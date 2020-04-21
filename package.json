@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "eslint": "^5.14.1",
     "openzeppelin-solidity": "2.3.0",
     "truffle": "^5.0.40",
     "truffle-flattener": "^1.4.2",
