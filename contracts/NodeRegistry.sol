@@ -46,19 +46,26 @@ contract NodeRegistry is Ownable {
         Node storage n = nodes[nodeAddress];
         return(n.url, n.lastSeen, n.next, n.prev);
     }
+    function createOrUpdateNode(address node, string memory url_) public onlyOwner {
+        _createOrUpdateNode(node, url_);
+    }
 
-    function createOrUpdateNode(string memory url_) public whitelistOK {
-        Node storage n = nodes[msg.sender];
+    function createOrUpdateNodeSelf(string memory url_) public whitelistOK {
+        _createOrUpdateNode(msg.sender, url_);
+    }
+
+    function _createOrUpdateNode(address node, string memory url_) internal {
+        Node storage n = nodes[node];
         if(n.lastSeen == 0){
-            nodes[msg.sender] = Node({nodeAddress: msg.sender, url: url_, lastSeen: block.timestamp, prev: tailNode, next: address(0)});
+            nodes[node] = Node({nodeAddress: node, url: url_, lastSeen: block.timestamp, prev: tailNode, next: address(0)});
             nodeCount++;
             if(tailNode != address(0)){
                 Node storage prevNode = nodes[tailNode];
-                prevNode.next = msg.sender;
+                prevNode.next = node;
             }
             if(headNode == address(0))
-                headNode = msg.sender;
-            tailNode = msg.sender;
+                headNode = node;
+            tailNode = node;
         }
         else{
             n.url = url_;
@@ -66,9 +73,17 @@ contract NodeRegistry is Ownable {
         }
         emit NodeUpdated(n.nodeAddress, n.url, n.lastSeen);
     }
+    
+    //    function removeNode(address node) public onlyOwner{
 
-    function removeNode() public {
-        Node storage n = nodes[msg.sender];
+    function removeNode(address node) public onlyOwner {
+        _removeNode(node);
+    }
+    function removeNodeSelf() public {
+        _removeNode(msg.sender);
+    }
+    function _removeNode(address node) internal {
+        Node storage n = nodes[node];
         require(n.lastSeen != 0, "notFound");
         if(n.prev != address(0)){
             Node storage prevNode = nodes[n.prev];
@@ -79,22 +94,31 @@ contract NodeRegistry is Ownable {
             nextNode.prev = n.prev;
         }
         nodeCount--;
-        if(msg.sender == tailNode) {
+        if(node == tailNode) {
             Node storage tn = nodes[tailNode];
             tailNode = tn.next;
         }
-        if(msg.sender == headNode) {
+        if(node == headNode) {
             Node storage hn = nodes[headNode];
             tailNode = hn.prev;
         }
 
-        delete nodes[msg.sender];
-        emit NodeRemoved(msg.sender);
+        delete nodes[node];
+        emit NodeRemoved(node);
     }
 
-    function whitelistNode(address nodeAddress) public onlyOwner {
+    function whitelistApproveNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Approved;
         emit NodeWhitelisted(nodeAddress);
+    }
+    function whitelistRejectNode(address nodeAddress) public onlyOwner {
+        whitelist[nodeAddress] = WhitelistState.Rejected;
+        emit NodeWhitelisted(nodeAddress);
+    }
+    
+    function kickOut(address nodeAddress) public onlyOwner {
+        whitelistRejectNode(nodeAddress);
+        removeNode(nodeAddress);
     }
 
     function setPermissionless(bool value) public onlyOwner {
@@ -107,23 +131,21 @@ contract NodeRegistry is Ownable {
     function getNodeByNumber(uint i) public view returns (address) {
         require(i < nodeCount, "getNthNode: n must be less than nodeCount");
         address cur = headNode;
-        for(uint nodeNum = i; nodeNum > 0; nodeNum--){
+        for(uint nodeNum = 0; nodeNum < i; nodeNum++){
             Node storage n = nodes[cur];
             cur = n.next;
         }
         return cur;
     }
-/*    
-    // this doesnt quite work because array size must be int literal or constant
-    function getNodes() public returns (Node[] memory){
-        Node[] memory nodeList = new Node[nodeCount];
-        address memory last = tailNode;
-        int64 memory i;
-        while(last != address(0)){
-            Node storage n = nodes[last];
-            nodeList[nodeCount - i - 1] = n;
+
+    function getNodes() public view returns (address[] memory) {
+        address[] memory nodesArray = new address[](nodeCount);
+        address cur = headNode;
+        for(uint nodeNum = 0; nodeNum < nodeCount; nodeNum++){
+            Node storage n = nodes[cur];
+            nodesArray[nodeNum] = cur;
+            cur = n.next;
         }
-        return nodeList;
-    } 
-*/
+        return nodesArray;
+    }
 }

@@ -26,7 +26,7 @@ contract("NodeRegistry", accounts => {
         //console.log(JSON.stringify(SimpleTrackerRegistry))
         stReg = await SimpleTrackerRegistry.new(creator, true, { from: creator })
         for(var i=0; i < nodeCount; i++){
-            assertEvent(await stReg.createOrUpdateNode(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
+            assertEvent(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
         }
 
         testToken = await ERC20Mintable.new({ from: creator })
@@ -48,8 +48,8 @@ contract("NodeRegistry", accounts => {
         it("can remove node", async () => {
             //test removal from middle of list
             var mid = Math.floor(nodeCount/2)
-            assertEvent(await stReg.removeNode({from: node_addresses[mid]}), "NodeRemoved")
-            await assertFails(stReg.removeNode({from: node_addresses[mid]}))       
+            assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
+            await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount -1, ncount)
             var j=0
@@ -61,7 +61,7 @@ contract("NodeRegistry", accounts => {
                 assertEqual(nodeadd, node_addresses[j++])
             }
             //re-add middle node
-            assertEvent(await stReg.createOrUpdateNode(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
+            assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
             ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
         }),
@@ -79,7 +79,7 @@ contract("NodeRegistry", accounts => {
         }),
         it("can update node", async () => {
             const newurl = "http://another.url"
-            assertEvent(await stReg.createOrUpdateNode(newurl,  {from: node_addresses[0]}), "NodeUpdated")
+            assertEvent(await stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}), "NodeUpdated")
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
             var nodeinfo = await stReg.getNode(node_addresses[0])
@@ -89,10 +89,10 @@ contract("NodeRegistry", accounts => {
             const newurl = "http://another.url2"
             await assertFails(stReg.setPermissionless(false, {from: node_addresses[0]}))
             await stReg.setPermissionless(false, {from: creator})
-            await assertFails(stReg.createOrUpdateNode(newurl,  {from: node_addresses[0]}))
-            await assertFails(stReg.whitelistNode(node_addresses[0],  {from: node_addresses[0]}))
-            await stReg.whitelistNode(node_addresses[0],  {from: creator})
-            assertEvent(await stReg.createOrUpdateNode(newurl,  {from: node_addresses[0]}), "NodeUpdated")
+            await assertFails(stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}))
+            await assertFails(stReg.whitelistApproveNode(node_addresses[0],  {from: node_addresses[0]}))
+            await stReg.whitelistApproveNode(node_addresses[0],  {from: creator})
+            assertEvent(await stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}), "NodeUpdated")
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
             var nodeinfo = await stReg.getNode(node_addresses[0])
