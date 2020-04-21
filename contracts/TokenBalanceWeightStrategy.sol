@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity ^0.5.16;
 
 import "./WeightStrategy.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
