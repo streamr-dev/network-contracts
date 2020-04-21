@@ -10,11 +10,11 @@ import "./Ownable.sol";
 contract NodeRegistry is Ownable {
     event NodeUpdated(address indexed nodeAddress, string url, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
-    event NodeWhitelisted(address indexed nodeAddress);
+    event NodeWhitelistApproved(address indexed nodeAddress);
+    event NodeWhitelistRejected(address indexed nodeAddress);
     event PermissionlessChanged(bool value);
     enum WhitelistState{
         None,
-        Pending,
         Approved,
         Rejected
     }
@@ -73,8 +73,6 @@ contract NodeRegistry is Ownable {
         }
         emit NodeUpdated(n.nodeAddress, n.url, n.lastSeen);
     }
-    
-    //    function removeNode(address node) public onlyOwner{
 
     function removeNode(address node) public onlyOwner {
         _removeNode(node);
@@ -109,11 +107,11 @@ contract NodeRegistry is Ownable {
 
     function whitelistApproveNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Approved;
-        emit NodeWhitelisted(nodeAddress);
+        emit NodeWhitelistApproved(nodeAddress);
     }
     function whitelistRejectNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Rejected;
-        emit NodeWhitelisted(nodeAddress);
+        emit NodeWhitelistRejected(nodeAddress);
     }
     
     function kickOut(address nodeAddress) public onlyOwner {
