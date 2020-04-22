@@ -129,7 +129,7 @@ contract NodeRegistry is Ownable {
     /*
         this function is O(N) because we need linked list functionality
     */
-    function getNodeByNumber(uint i) public view returns (address) {
+    function getNodeAddressByNumber(uint i) public view returns (address) {
         require(i < nodeCount, "getNthNode: n must be less than nodeCount");
         address cur = headNode;
         for(uint nodeNum = 0; nodeNum < i; nodeNum++){
@@ -139,14 +139,14 @@ contract NodeRegistry is Ownable {
         return cur;
     }
 
-    function getNodes() public view returns (address[] memory) {
-        address[] memory nodesArray = new address[](nodeCount);
-        address cur = headNode;
+    function getNodeAddresses() public view returns (address[] memory) {
+        address[] memory nodeAddressArray = new address[](nodeCount);
+        address currentNodeAddress = headNode;
         for(uint nodeNum = 0; nodeNum < nodeCount; nodeNum++){
-            Node storage n = nodes[cur];
-            nodesArray[nodeNum] = cur;
-            cur = n.next;
+            Node storage n = nodes[currentNodeAddress];
+            nodeAddressArray[nodeNum] = currentNodeAddress;
+            currentNodeAddress = n.next;
         }
-        return nodesArray;
+        return nodeAddressArray;
     }
 }

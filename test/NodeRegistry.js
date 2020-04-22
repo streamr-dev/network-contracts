@@ -41,10 +41,10 @@ contract("NodeRegistry", accounts => {
             assertEqual(nodeCount, ncount)
             //var nodeIds = new Map()
             for(var i=0; i < nodeCount; i++){
-                var nodeadd = await stReg.getNodeByNumber(i)
+                var nodeadd = await stReg.getNodeAddressByNumber(i)
                 assertEqual(nodeadd, node_addresses[i])
             }
-            const allNodes = await stReg.getNodes();
+            const allNodes = await stReg.getNodeAddresses();
             //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             for(i=0; i < nodeCount; i++){
                 assertEqual(allNodes[i], node_addresses[i])
@@ -60,7 +60,7 @@ contract("NodeRegistry", accounts => {
             var j=0
             for(var i=0; i < nodeCount - 1; i++){
                 // check that every node except mid is listed
-                var nodeadd = await stReg.getNodeByNumber(i)
+                var nodeadd = await stReg.getNodeAddressByNumber(i)
                 if(j == mid)
                     j++
                 assertEqual(nodeadd, node_addresses[j++])
@@ -81,7 +81,7 @@ contract("NodeRegistry", accounts => {
             var j=0
             for(var i=0; i < nodeCount - 1; i++){
                 // check that every node except mid is listed
-                var nodeadd = await stReg.getNodeByNumber(i)
+                var nodeadd = await stReg.getNodeAddressByNumber(i)
                 if(j == mid)
                     j++
                 assertEqual(nodeadd, node_addresses[j++])
@@ -90,7 +90,7 @@ contract("NodeRegistry", accounts => {
             //console.log(`mid_address: ${node_addresses[mid]}`)
             await assertFails(stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: node_addresses[mid]}))
             assertEvent(await stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: creator}), "NodeUpdated")
-            const allNodes = await stReg.getNodes();
+            const allNodes = await stReg.getNodeAddresses();
             //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)

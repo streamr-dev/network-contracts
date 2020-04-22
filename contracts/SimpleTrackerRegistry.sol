@@ -9,7 +9,7 @@ contract SimpleTrackerRegistry is TrackerRegistry, NodeRegistry{
     function getTrackers(string memory streamId, uint partition) public view returns (string memory) {
         bytes32 hash = keccak256(abi.encode(streamId, partition));
         uint nodeNum = uint256(hash) % nodeCount;
-        address nodeAddress = getNodeByNumber(nodeNum);
+        address nodeAddress = getNodeAddressByNumber(nodeNum);
         (string memory url,,,) = getNode(nodeAddress);
         return url;
     }
