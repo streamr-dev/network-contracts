@@ -8,11 +8,11 @@ import "./Ownable.sol";
  * functions, this simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Ownable {
-    event NodeUpdated(address indexed nodeAddress, string url, uint lastSeen);
+    event NodeUpdated(address indexed nodeAddress, string indexed url, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
-    event PermissionlessChanged(bool value);
+    event RequiresWhitelistChanged(bool indexed value);
     enum WhitelistState{
         None,
         Approved,
@@ -27,19 +27,19 @@ contract NodeRegistry is Ownable {
     }
 
     modifier whitelistOK() {
-        require(permissionless || whitelist[msg.sender] == WhitelistState.Approved, "notApproved");
+        require(!requiresWhitelist || whitelist[msg.sender] == WhitelistState.Approved, "notApproved");
         _;
     }
 
     uint64 public nodeCount;
     address public tailNode;
     address public headNode;
-    bool permissionless;
+    bool requiresWhitelist;
     mapping(address => Node) nodes;
     mapping(address => WhitelistState) whitelist;
 
-    constructor(address owner, bool permissionless_) Ownable(owner) public {
-        permissionless = permissionless_;
+    constructor(address owner, bool requiresWhitelist_) Ownable(owner) public {
+        requiresWhitelist = requiresWhitelist_;
     }
 
     function getNode(address nodeAddress) public view returns (string memory url, uint lastSeen, address nextNode, address prevNode) {
@@ -56,7 +56,9 @@ contract NodeRegistry is Ownable {
 
     function _createOrUpdateNode(address node, string memory url_) internal {
         Node storage n = nodes[node];
+        uint isNew = 0;
         if(n.lastSeen == 0){
+            isNew = 1;
             nodes[node] = Node({nodeAddress: node, url: url_, lastSeen: block.timestamp, prev: tailNode, next: address(0)});
             nodeCount++;
             if(tailNode != address(0)){
@@ -71,7 +73,7 @@ contract NodeRegistry is Ownable {
             n.url = url_;
             n.lastSeen = block.timestamp;
         }
-        emit NodeUpdated(n.nodeAddress, n.url, n.lastSeen);
+        emit NodeUpdated(n.nodeAddress, n.url, isNew, n.lastSeen);
     }
 
     function removeNode(address node) public onlyOwner {
@@ -109,6 +111,7 @@ contract NodeRegistry is Ownable {
         whitelist[nodeAddress] = WhitelistState.Approved;
         emit NodeWhitelistApproved(nodeAddress);
     }
+    
     function whitelistRejectNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Rejected;
         emit NodeWhitelistRejected(nodeAddress);
@@ -119,9 +122,9 @@ contract NodeRegistry is Ownable {
         removeNode(nodeAddress);
     }
 
-    function setPermissionless(bool value) public onlyOwner {
-        permissionless = value;
-        emit PermissionlessChanged(value);
+    function setRequiresWhitelist(bool value) public onlyOwner {
+        requiresWhitelist = value;
+        emit RequiresWhitelistChanged(value);
     }
     /*
         this function is O(N) because we need linked list functionality

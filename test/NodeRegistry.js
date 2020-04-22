@@ -24,7 +24,7 @@ contract("NodeRegistry", accounts => {
     //console.log(`creator: ${creator}`)
     before(async () => {
         //console.log(JSON.stringify(SimpleTrackerRegistry))
-        stReg = await SimpleTrackerRegistry.new(creator, true, { from: creator })
+        stReg = await SimpleTrackerRegistry.new(creator, false, { from: creator })
         for(var i=0; i < nodeCount; i++){
             assertEvent(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
         }
@@ -33,7 +33,7 @@ contract("NodeRegistry", accounts => {
         await testToken.mint(node_addresses[0], w3.utils.toWei("10"), { from: creator })
         await testToken.mint(node_addresses[1], w3.utils.toWei("100"), { from: creator })
         tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
-        weightedReg = await WeightedNodeRegistry.new(creator, true, tokenStrat.address, { from: creator })
+        weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, { from: creator })
     }),
     describe("SimpleTrackerRegistry", () => {
         it("node count and linked list functionality", async () => {
@@ -118,8 +118,9 @@ contract("NodeRegistry", accounts => {
         }),
         it("whitelist works", async () => {
             const newurl = "http://another.url2"
-            await assertFails(stReg.setPermissionless(false, {from: node_addresses[0]}))
-            await stReg.setPermissionless(false, {from: creator})
+            await assertFails(stReg.setRequiresWhitelist(true, {from: node_addresses[0]}))
+            await stReg.setRequiresWhitelist(true, {from: creator})
+            assertEvent(await stReg.kickOut(node_addresses[0],  {from: creator}),"NodeWhitelistRejected")
             await assertFails(stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}))
             await assertFails(stReg.whitelistApproveNode(node_addresses[0],  {from: node_addresses[0]}))
             await stReg.whitelistApproveNode(node_addresses[0],  {from: creator})
@@ -128,6 +129,7 @@ contract("NodeRegistry", accounts => {
             assertEqual(nodeCount, ncount)
             var nodeinfo = await stReg.getNode(node_addresses[0])
             assertEqual(nodeinfo[0], newurl)
+            
         })
     }),
     describe("WeightedNodeRegistry", () => {
