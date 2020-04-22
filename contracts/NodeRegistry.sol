@@ -94,11 +94,11 @@ contract NodeRegistry is Ownable {
         nodeCount--;
         if(node == tailNode) {
             Node storage tn = nodes[tailNode];
-            tailNode = tn.next;
+            tailNode = tn.prev;
         }
         if(node == headNode) {
             Node storage hn = nodes[headNode];
-            tailNode = hn.prev;
+            headNode = hn.next;
         }
 
         delete nodes[node];

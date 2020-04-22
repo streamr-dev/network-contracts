@@ -44,6 +44,11 @@ contract("NodeRegistry", accounts => {
                 var nodeadd = await stReg.getNodeByNumber(i)
                 assertEqual(nodeadd, node_addresses[i])
             }
+            const allNodes = await stReg.getNodes();
+            //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
+            for(i=0; i < nodeCount; i++){
+                assertEqual(allNodes[i], node_addresses[i])
+            }
         }),
         it("can remove node", async () => {
             //test removal from middle of list
@@ -65,6 +70,32 @@ contract("NodeRegistry", accounts => {
             ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
         }),
+        
+        it("only admin can remove/modify another node", async () => {
+            //test removal from middle of list
+            var mid = Math.floor(nodeCount/2)
+            await assertFails(stReg.removeNode(node_addresses[mid], {from: node_addresses[mid]}))       
+            assertEvent(await stReg.removeNode(node_addresses[mid], {from: creator}), "NodeRemoved")
+            var ncount = await stReg.nodeCount()
+            assertEqual(nodeCount -1, ncount)
+            var j=0
+            for(var i=0; i < nodeCount - 1; i++){
+                // check that every node except mid is listed
+                var nodeadd = await stReg.getNodeByNumber(i)
+                if(j == mid)
+                    j++
+                assertEqual(nodeadd, node_addresses[j++])
+            }
+            //re-add middle node
+            //console.log(`mid_address: ${node_addresses[mid]}`)
+            await assertFails(stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: node_addresses[mid]}))
+            assertEvent(await stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: creator}), "NodeUpdated")
+            const allNodes = await stReg.getNodes();
+            //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
+            ncount = await stReg.nodeCount()
+            assertEqual(nodeCount, ncount)
+        }),
+        
         it("getTrackers retuns a valid node and spans all nodes", async () => {
 
             var nodeNums = new Set();
