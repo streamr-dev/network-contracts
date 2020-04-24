@@ -1,4 +1,5 @@
 pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
 
 import "./Ownable.sol";
 
@@ -8,122 +9,153 @@ import "./Ownable.sol";
  * functions, this simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Ownable {
-    event NodeUpdated(address indexed nodeAddress, string url, uint lastSeen);
+    event NodeUpdated(address indexed nodeAddress, string indexed url, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
-    event NodeWhitelisted(address indexed nodeAddress);
-    event PermissionlessChanged(bool value);
+    event NodeWhitelistApproved(address indexed nodeAddress);
+    event NodeWhitelistRejected(address indexed nodeAddress);
+    event RequiresWhitelistChanged(bool indexed value);
     enum WhitelistState{
         None,
-        Pending,
         Approved,
         Rejected
     }
-    struct Node {
+    struct Node{
         address nodeAddress; // Ethereum address of the node (unique id)
         string url; // Connection url, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
+    }
+    struct NodeLinkedListItem {
+        Node node;
         address next; //linked list
         address prev; //linked list
     }
 
     modifier whitelistOK() {
-        require(permissionless || whitelist[msg.sender] == WhitelistState.Approved, "notApproved");
+        require(!requiresWhitelist || whitelist[msg.sender] == WhitelistState.Approved, "notApproved");
         _;
     }
 
     uint64 public nodeCount;
     address public tailNode;
     address public headNode;
-    bool permissionless;
-    mapping(address => Node) nodes;
+    bool requiresWhitelist;
+    mapping(address => NodeLinkedListItem) nodes;
     mapping(address => WhitelistState) whitelist;
 
-    constructor(address owner, bool permissionless_) Ownable(owner) public {
-        permissionless = permissionless_;
+    constructor(address owner, bool requiresWhitelist_) Ownable(owner) public {
+        requiresWhitelist = requiresWhitelist_;
     }
 
-    function getNode(address nodeAddress) public view returns (string memory url, uint lastSeen, address nextNode, address prevNode) {
-        Node storage n = nodes[nodeAddress];
-        return(n.url, n.lastSeen, n.next, n.prev);
+    function getNode(address nodeAddress) public view returns (Node memory) {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
+        return(n.node);
+    }
+ 
+    function createOrUpdateNode(address node, string memory url_) public onlyOwner {
+        _createOrUpdateNode(node, url_);
     }
 
-    function createOrUpdateNode(string memory url_) public whitelistOK {
-        Node storage n = nodes[msg.sender];
-        if(n.lastSeen == 0){
-            nodes[msg.sender] = Node({nodeAddress: msg.sender, url: url_, lastSeen: block.timestamp, prev: tailNode, next: address(0)});
+    function createOrUpdateNodeSelf(string memory url_) public whitelistOK {
+        _createOrUpdateNode(msg.sender, url_);
+    }
+
+    function _createOrUpdateNode(address nodeAddress, string memory url_) internal {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
+        uint isNew = 0;
+        if(n.node.lastSeen == 0){
+            isNew = 1;
+            nodes[nodeAddress] = NodeLinkedListItem({node: Node({nodeAddress: nodeAddress, url: url_, lastSeen: block.timestamp}), prev: tailNode, next: address(0)});
             nodeCount++;
             if(tailNode != address(0)){
-                Node storage prevNode = nodes[tailNode];
-                prevNode.next = msg.sender;
+                NodeLinkedListItem storage prevNode = nodes[tailNode];
+                prevNode.next = nodeAddress;
             }
             if(headNode == address(0))
-                headNode = msg.sender;
-            tailNode = msg.sender;
+                headNode = nodeAddress;
+            tailNode = nodeAddress;
         }
         else{
-            n.url = url_;
-            n.lastSeen = block.timestamp;
+            n.node.url = url_;
+            n.node.lastSeen = block.timestamp;
         }
-        emit NodeUpdated(n.nodeAddress, n.url, n.lastSeen);
+        emit NodeUpdated(nodeAddress, n.node.url, isNew, n.node.lastSeen);
     }
 
-    function removeNode() public {
-        Node storage n = nodes[msg.sender];
-        require(n.lastSeen != 0, "notFound");
+    function removeNode(address nodeAddress) public onlyOwner {
+        _removeNode(nodeAddress);
+    }
+    function removeNodeSelf() public {
+        _removeNode(msg.sender);
+    }
+    function _removeNode(address nodeAddress) internal {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
+        require(n.node.lastSeen != 0, "notFound");
         if(n.prev != address(0)){
-            Node storage prevNode = nodes[n.prev];
+            NodeLinkedListItem storage prevNode = nodes[n.prev];
             prevNode.next = n.next;
         }
         if(n.next != address(0)){
-            Node storage nextNode = nodes[n.next];
+            NodeLinkedListItem storage nextNode = nodes[n.next];
             nextNode.prev = n.prev;
         }
         nodeCount--;
-        if(msg.sender == tailNode) {
-            Node storage tn = nodes[tailNode];
-            tailNode = tn.next;
+        if(nodeAddress == tailNode) {
+            NodeLinkedListItem storage tn = nodes[tailNode];
+            tailNode = tn.prev;
         }
-        if(msg.sender == headNode) {
-            Node storage hn = nodes[headNode];
-            tailNode = hn.prev;
+        if(nodeAddress == headNode) {
+            NodeLinkedListItem storage hn = nodes[headNode];
+            headNode = hn.next;
         }
 
-        delete nodes[msg.sender];
-        emit NodeRemoved(msg.sender);
+        delete nodes[nodeAddress];
+        emit NodeRemoved(nodeAddress);
     }
 
-    function whitelistNode(address nodeAddress) public onlyOwner {
+    function whitelistApproveNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Approved;
-        emit NodeWhitelisted(nodeAddress);
+        emit NodeWhitelistApproved(nodeAddress);
+    }
+    
+    function whitelistRejectNode(address nodeAddress) public onlyOwner {
+        whitelist[nodeAddress] = WhitelistState.Rejected;
+        emit NodeWhitelistRejected(nodeAddress);
+    }
+    
+    function kickOut(address nodeAddress) public onlyOwner {
+        whitelistRejectNode(nodeAddress);
+        removeNode(nodeAddress);
     }
 
-    function setPermissionless(bool value) public onlyOwner {
-        permissionless = value;
-        emit PermissionlessChanged(value);
+    function setRequiresWhitelist(bool value) public onlyOwner {
+        requiresWhitelist = value;
+        emit RequiresWhitelistChanged(value);
     }
     /*
-        this function is O(N) because we need linked list functionality
+        this function is O(N) because we need linked list functionality.
+
+        i=0 is first node
     */
-    function getNodeByNumber(uint i) public view returns (address) {
+    
+    function getNodeByNumber(uint i) public view returns (Node memory) {
         require(i < nodeCount, "getNthNode: n must be less than nodeCount");
-        address cur = headNode;
-        for(uint nodeNum = i; nodeNum > 0; nodeNum--){
-            Node storage n = nodes[cur];
-            cur = n.next;
+        address currentNodeAddress = headNode;
+        NodeLinkedListItem storage n = nodes[currentNodeAddress];
+        for(uint nodeNum = 1; nodeNum <= i; nodeNum++){
+            currentNodeAddress = n.next;
+            n = nodes[currentNodeAddress];
         }
-        return cur;
+        return n.node;
     }
-/*    
-    // this doesnt quite work because array size must be int literal or constant
-    function getNodes() public returns (Node[] memory){
-        Node[] memory nodeList = new Node[nodeCount];
-        address memory last = tailNode;
-        int64 memory i;
-        while(last != address(0)){
-            Node storage n = nodes[last];
-            nodeList[nodeCount - i - 1] = n;
+
+    function getNodes() public view returns (Node[] memory) {
+        Node[] memory nodeArray = new Node[](nodeCount);
+        address currentNodeAddress = headNode;
+        for(uint nodeNum = 0; nodeNum < nodeCount; nodeNum++){
+            NodeLinkedListItem storage n = nodes[currentNodeAddress];
+            nodeArray[nodeNum] = n.node;
+            currentNodeAddress = n.next;
         }
-        return nodeList;
-    } 
-*/
+        return nodeArray;
+    }
 }

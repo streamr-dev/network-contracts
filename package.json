@@ -14,7 +14,7 @@
   "devDependencies": {
     "eslint": "^5.14.1",
     "openzeppelin-solidity": "2.3.0",
-    "truffle": "^5.1.16",
+    "truffle": "^5.1.23",
     "truffle-flattener": "^1.4.2",
     "web3": "^1.2.4"
   }
