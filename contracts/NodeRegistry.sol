@@ -1,4 +1,5 @@
 pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
 
 import "./Ownable.sol";
 
@@ -18,10 +19,13 @@ contract NodeRegistry is Ownable {
         Approved,
         Rejected
     }
-    struct Node {
+    struct Node{
         address nodeAddress; // Ethereum address of the node (unique id)
         string url; // Connection url, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
+    }
+    struct NodeLinkedListItem {
+        Node node;
         address next; //linked list
         address prev; //linked list
     }
@@ -35,17 +39,18 @@ contract NodeRegistry is Ownable {
     address public tailNode;
     address public headNode;
     bool requiresWhitelist;
-    mapping(address => Node) nodes;
+    mapping(address => NodeLinkedListItem) nodes;
     mapping(address => WhitelistState) whitelist;
 
     constructor(address owner, bool requiresWhitelist_) Ownable(owner) public {
         requiresWhitelist = requiresWhitelist_;
     }
 
-    function getNode(address nodeAddress) public view returns (string memory url, uint lastSeen, address nextNode, address prevNode) {
-        Node storage n = nodes[nodeAddress];
-        return(n.url, n.lastSeen, n.next, n.prev);
+    function getNode(address nodeAddress) public view returns (Node memory) {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
+        return(n.node);
     }
+ 
     function createOrUpdateNode(address node, string memory url_) public onlyOwner {
         _createOrUpdateNode(node, url_);
     }
@@ -54,57 +59,57 @@ contract NodeRegistry is Ownable {
         _createOrUpdateNode(msg.sender, url_);
     }
 
-    function _createOrUpdateNode(address node, string memory url_) internal {
-        Node storage n = nodes[node];
+    function _createOrUpdateNode(address nodeAddress, string memory url_) internal {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
         uint isNew = 0;
-        if(n.lastSeen == 0){
+        if(n.node.lastSeen == 0){
             isNew = 1;
-            nodes[node] = Node({nodeAddress: node, url: url_, lastSeen: block.timestamp, prev: tailNode, next: address(0)});
+            nodes[nodeAddress] = NodeLinkedListItem({node: Node({nodeAddress: nodeAddress, url: url_, lastSeen: block.timestamp}), prev: tailNode, next: address(0)});
             nodeCount++;
             if(tailNode != address(0)){
-                Node storage prevNode = nodes[tailNode];
-                prevNode.next = node;
+                NodeLinkedListItem storage prevNode = nodes[tailNode];
+                prevNode.next = nodeAddress;
             }
             if(headNode == address(0))
-                headNode = node;
-            tailNode = node;
+                headNode = nodeAddress;
+            tailNode = nodeAddress;
         }
         else{
-            n.url = url_;
-            n.lastSeen = block.timestamp;
+            n.node.url = url_;
+            n.node.lastSeen = block.timestamp;
         }
-        emit NodeUpdated(n.nodeAddress, n.url, isNew, n.lastSeen);
+        emit NodeUpdated(nodeAddress, n.node.url, isNew, n.node.lastSeen);
     }
 
-    function removeNode(address node) public onlyOwner {
-        _removeNode(node);
+    function removeNode(address nodeAddress) public onlyOwner {
+        _removeNode(nodeAddress);
     }
     function removeNodeSelf() public {
         _removeNode(msg.sender);
     }
-    function _removeNode(address node) internal {
-        Node storage n = nodes[node];
-        require(n.lastSeen != 0, "notFound");
+    function _removeNode(address nodeAddress) internal {
+        NodeLinkedListItem storage n = nodes[nodeAddress];
+        require(n.node.lastSeen != 0, "notFound");
         if(n.prev != address(0)){
-            Node storage prevNode = nodes[n.prev];
+            NodeLinkedListItem storage prevNode = nodes[n.prev];
             prevNode.next = n.next;
         }
         if(n.next != address(0)){
-            Node storage nextNode = nodes[n.next];
+            NodeLinkedListItem storage nextNode = nodes[n.next];
             nextNode.prev = n.prev;
         }
         nodeCount--;
-        if(node == tailNode) {
-            Node storage tn = nodes[tailNode];
+        if(nodeAddress == tailNode) {
+            NodeLinkedListItem storage tn = nodes[tailNode];
             tailNode = tn.prev;
         }
-        if(node == headNode) {
-            Node storage hn = nodes[headNode];
+        if(nodeAddress == headNode) {
+            NodeLinkedListItem storage hn = nodes[headNode];
             headNode = hn.next;
         }
 
-        delete nodes[node];
-        emit NodeRemoved(node);
+        delete nodes[nodeAddress];
+        emit NodeRemoved(nodeAddress);
     }
 
     function whitelistApproveNode(address nodeAddress) public onlyOwner {
@@ -127,26 +132,30 @@ contract NodeRegistry is Ownable {
         emit RequiresWhitelistChanged(value);
     }
     /*
-        this function is O(N) because we need linked list functionality
+        this function is O(N) because we need linked list functionality.
+
+        i=0 is first node
     */
-    function getNodeAddressByNumber(uint i) public view returns (address) {
+    
+    function getNodeByNumber(uint i) public view returns (Node memory) {
         require(i < nodeCount, "getNthNode: n must be less than nodeCount");
-        address cur = headNode;
-        for(uint nodeNum = 0; nodeNum < i; nodeNum++){
-            Node storage n = nodes[cur];
-            cur = n.next;
+        address currentNodeAddress = headNode;
+        NodeLinkedListItem storage n = nodes[currentNodeAddress];
+        for(uint nodeNum = 1; nodeNum <= i; nodeNum++){
+            currentNodeAddress = n.next;
+            n = nodes[currentNodeAddress];
         }
-        return cur;
+        return n.node;
     }
 
-    function getNodeAddresses() public view returns (address[] memory) {
-        address[] memory nodeAddressArray = new address[](nodeCount);
+    function getNodes() public view returns (Node[] memory) {
+        Node[] memory nodeArray = new Node[](nodeCount);
         address currentNodeAddress = headNode;
         for(uint nodeNum = 0; nodeNum < nodeCount; nodeNum++){
-            Node storage n = nodes[currentNodeAddress];
-            nodeAddressArray[nodeNum] = currentNodeAddress;
+            NodeLinkedListItem storage n = nodes[currentNodeAddress];
+            nodeArray[nodeNum] = n.node;
             currentNodeAddress = n.next;
         }
-        return nodeAddressArray;
+        return nodeArray;
     }
 }

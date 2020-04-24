@@ -39,15 +39,16 @@ contract("NodeRegistry", accounts => {
         it("node count and linked list functionality", async () => {
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
-            //var nodeIds = new Map()
+            const allNodes = await stReg.getNodes();
+//            console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             for(var i=0; i < nodeCount; i++){
-                var nodeadd = await stReg.getNodeAddressByNumber(i)
-                assertEqual(nodeadd, node_addresses[i])
+                var node = await stReg.getNodeByNumber(i)
+                assertEqual(node[0], node_addresses[i])
             }
-            const allNodes = await stReg.getNodeAddresses();
-            //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
+            
             for(i=0; i < nodeCount; i++){
-                assertEqual(allNodes[i], node_addresses[i])
+                var node = allNodes[i]
+                assertEqual(node[0], node_addresses[i])
             }
         }),
         it("can remove node", async () => {
@@ -60,7 +61,7 @@ contract("NodeRegistry", accounts => {
             var j=0
             for(var i=0; i < nodeCount - 1; i++){
                 // check that every node except mid is listed
-                var nodeadd = await stReg.getNodeAddressByNumber(i)
+                var nodeadd = (await stReg.getNodeByNumber(i))[0]
                 if(j == mid)
                     j++
                 assertEqual(nodeadd, node_addresses[j++])
@@ -81,7 +82,7 @@ contract("NodeRegistry", accounts => {
             var j=0
             for(var i=0; i < nodeCount - 1; i++){
                 // check that every node except mid is listed
-                var nodeadd = await stReg.getNodeAddressByNumber(i)
+                var nodeadd = (await stReg.getNodeByNumber(i))[0]
                 if(j == mid)
                     j++
                 assertEqual(nodeadd, node_addresses[j++])
@@ -90,7 +91,7 @@ contract("NodeRegistry", accounts => {
             //console.log(`mid_address: ${node_addresses[mid]}`)
             await assertFails(stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: node_addresses[mid]}))
             assertEvent(await stReg.createOrUpdateNode(node_addresses[mid], nodes[mid], {from: creator}), "NodeUpdated")
-            const allNodes = await stReg.getNodeAddresses();
+            //const allNodes = await stReg.getNodes();
             //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
@@ -100,9 +101,9 @@ contract("NodeRegistry", accounts => {
 
             var nodeNums = new Set();
             for(var i=0; i< nodeCount * 5; i++){
-                const url = await stReg.getTrackers(`stereamId${i}`,i)
+                const urls = await stReg.getTrackers(`stereamId${i}`,i)
                 //console.log(`url ${url}`)
-                const index = nodes.indexOf(url)
+                const index = nodes.indexOf(urls[0])
                 assert(index >= 0)
                 nodeNums.add(index)
             }
@@ -114,7 +115,7 @@ contract("NodeRegistry", accounts => {
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
             var nodeinfo = await stReg.getNode(node_addresses[0])
-            assertEqual(nodeinfo[0], newurl)
+            assertEqual(nodeinfo[1], newurl)
         }),
         it("whitelist works", async () => {
             const newurl = "http://another.url2"
@@ -128,7 +129,7 @@ contract("NodeRegistry", accounts => {
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
             var nodeinfo = await stReg.getNode(node_addresses[0])
-            assertEqual(nodeinfo[0], newurl)
+            assertEqual(nodeinfo[1], newurl)
             
         })
     }),
