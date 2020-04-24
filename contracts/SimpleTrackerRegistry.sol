@@ -5,7 +5,7 @@ import "./NodeRegistry.sol";
 
 contract SimpleTrackerRegistry is TrackerRegistry, NodeRegistry{
 
-    constructor(address owner, bool permissionless_) NodeRegistry(owner, permissionless_) public {}
+    constructor(address owner, bool requiresWhitelist_) NodeRegistry(owner, requiresWhitelist_) public {}
 
     function getTrackers(string memory streamId, uint partition) public view returns (string[] memory) {
         bytes32 hash = keccak256(abi.encode(streamId, partition));
