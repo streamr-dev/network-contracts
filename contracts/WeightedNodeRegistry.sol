@@ -6,7 +6,7 @@ import "./NodeRegistry.sol";
 
 contract WeightedNodeRegistry is NodeRegistry {
     WeightStrategy strat;
-    constructor(address owner_, bool permissionless_, address weightStrategy_) NodeRegistry(owner_, permissionless_) public {
+    constructor(address owner_, bool requiresWhitelist_, address weightStrategy_) NodeRegistry(owner_, requiresWhitelist_) public {
        strat = WeightStrategy(weightStrategy_);
     }
 
