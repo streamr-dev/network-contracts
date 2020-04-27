@@ -5,7 +5,7 @@ const w3 = new Web3(web3.currentProvider)
 const SimpleTrackerRegistry = artifacts.require("./SimpleTrackerRegistry.sol")
 const TokenBalanceWeightStrategy = artifacts.require("./TokenBalanceWeightStrategy.sol")
 const WeightedNodeRegistry = artifacts.require("./WeightedNodeRegistry.sol")
-const ERC20Mintable = artifacts.require("openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol")
+const ERC20Mintable = artifacts.require("./ERC20Mintable.sol")
 const nodeCount = 3
 
 contract("NodeRegistry", accounts => {
@@ -29,7 +29,7 @@ contract("NodeRegistry", accounts => {
             assertEvent(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
         }
 
-        testToken = await ERC20Mintable.new({ from: creator })
+        testToken = await ERC20Mintable.new("name","symbol",{ from: creator })
         await testToken.mint(node_addresses[0], w3.utils.toWei("10"), { from: creator })
         await testToken.mint(node_addresses[1], w3.utils.toWei("100"), { from: creator })
         tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })

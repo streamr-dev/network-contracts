@@ -13,9 +13,12 @@
   "license": "ISC",
   "devDependencies": {
     "eslint": "^5.14.1",
-    "openzeppelin-solidity": "2.3.0",
+    "openzeppelin-solidity": "^3.0.0",
     "truffle": "^5.1.23",
-    "truffle-flattener": "^1.4.2",
+    "truffle-flattener": "^1.4.3",
     "web3": "^1.2.4"
+  },
+  "dependencies": {
+    "ethers": "^4.0.47"
   }
 }
