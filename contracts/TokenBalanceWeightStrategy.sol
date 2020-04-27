@@ -1,8 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.6.0;
 
 import "./WeightStrategy.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 
 contract TokenBalanceWeightStrategy is WeightStrategy {
     ERC20 token;
@@ -11,7 +10,7 @@ contract TokenBalanceWeightStrategy is WeightStrategy {
         token = ERC20(tokenAddress);
     }
 
-    function getWeight(address nodeAddress) public view returns (uint) {
+    function getWeight(address nodeAddress) public override view returns (uint) {
        return token.balanceOf(nodeAddress);
     }
 }
