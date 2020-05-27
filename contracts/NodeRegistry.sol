@@ -42,8 +42,12 @@ contract NodeRegistry is Ownable {
     mapping(address => NodeLinkedListItem) nodes;
     mapping(address => WhitelistState) whitelist;
 
-    constructor(address owner, bool requiresWhitelist_) Ownable(owner) public {
+    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialUrls ) Ownable(owner) public {
         requiresWhitelist = requiresWhitelist_;
+        require(initialNodes.length == initialUrls.length, "bad_tracker_data");
+        for (uint i = 0; i < initialNodes.length; i++) {
+            createOrUpdateNode(initialNodes[i], initialUrls[i]);
+        }
     }
 
     function getNode(address nodeAddress) public view returns (Node memory) {
