@@ -24,8 +24,17 @@ contract("NodeRegistry", accounts => {
     //console.log(`creator: ${creator}`)
     before(async () => {
         //console.log(JSON.stringify(SimpleTrackerRegistry))
-        stReg = await SimpleTrackerRegistry.new(creator, false, { from: creator })
-        for(var i=0; i < nodeCount; i++){
+        //pass half the trackers in constructor, and set the others
+        var initialNodes = []
+        var initialUrls = []
+        
+        for(var i=0; i < nodeCount/2; i++){
+            initialUrls.push(nodes[i]);
+            initialNodes.push(node_addresses[i])
+        }
+
+        stReg = await SimpleTrackerRegistry.new(creator, false, initialNodes, initialUrls, { from: creator })
+        for(; i < nodeCount; i++){
             assertEvent(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
         }
 
@@ -33,14 +42,14 @@ contract("NodeRegistry", accounts => {
         await testToken.mint(node_addresses[0], w3.utils.toWei("10"), { from: creator })
         await testToken.mint(node_addresses[1], w3.utils.toWei("100"), { from: creator })
         tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
-        weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, { from: creator })
+        weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialUrls, { from: creator })
     }),
     describe("SimpleTrackerRegistry", () => {
         it("node count and linked list functionality", async () => {
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
             const allNodes = await stReg.getNodes();
-//            console.log(`allnodes: ${JSON.stringify(allNodes)}`)
+            console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             for(var i=0; i < nodeCount; i++){
                 var node = await stReg.getNodeByNumber(i)
                 assertEqual(node[0], node_addresses[i])
