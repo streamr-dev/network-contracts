@@ -3,16 +3,28 @@ pragma solidity ^0.6.0;
 import "./Ownable.sol";
 
 contract NetworkParameters is Ownable {
-    uint public minProtocolVersion;
+    uint public minControlLayerVersion;
+    uint public minMessageLayerVersion;
+    string public minNetworkReferenceCodeVersion;
     address public tokenAddress;
 
-    constructor(address owner, uint minProtocolVersion_, address tokenAddress_) public Ownable(owner){
-        minProtocolVersion = minProtocolVersion_;
+    constructor(address owner, uint minControlLayerVersion_, uint minMessageLayerVersion_, string memory minNetworkReferenceCodeVersion_, address tokenAddress_) public Ownable(owner) {
+        minControlLayerVersion = minControlLayerVersion_;
+        minMessageLayerVersion = minMessageLayerVersion_;
+        minNetworkReferenceCodeVersion = minNetworkReferenceCodeVersion_;
         tokenAddress = tokenAddress_;
     }
 
-    function setMinProtocolVersion(uint version) public onlyOwner{
-        minProtocolVersion = version;
+    function setMinControlLayerVersion(uint version) public onlyOwner {
+        minControlLayerVersion = version;
+    }
+
+    function setMinMessageLayerVersion(uint version) public onlyOwner {
+        minControlLayerVersion = version;
+    }
+
+    function setMinNetworkReferenceCodeVersion(string memory version) public onlyOwner {
+        minNetworkReferenceCodeVersion = version;
     }
 
     function setTokenAddress(address tokenAddress_) public onlyOwner {
