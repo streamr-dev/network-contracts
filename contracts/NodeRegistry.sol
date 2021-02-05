@@ -9,21 +9,24 @@ import "./Ownable.sol";
  * functions, this simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Ownable {
-    event NodeUpdated(address indexed nodeAddress, string indexed url, uint indexed isNew, uint lastSeen);
+    event NodeUpdated(address indexed nodeAddress, string indexed metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
+    
     enum WhitelistState{
         None,
         Approved,
         Rejected
     }
+    
     struct Node{
         address nodeAddress; // Ethereum address of the node (unique id)
-        string url; // Connection url, for example wss://node-domain-name:port
+        string metadata; // Connection metadata, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
     }
+
     struct NodeLinkedListItem {
         Node node;
         address next; //linked list
@@ -42,11 +45,11 @@ contract NodeRegistry is Ownable {
     mapping(address => NodeLinkedListItem) nodes;
     mapping(address => WhitelistState) whitelist;
 
-    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialUrls ) Ownable(owner) public {
+    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata ) Ownable(owner) public {
         requiresWhitelist = requiresWhitelist_;
-        require(initialNodes.length == initialUrls.length, "bad_tracker_data");
+        require(initialNodes.length == initialMetadata.length, "bad_tracker_data");
         for (uint i = 0; i < initialNodes.length; i++) {
-            createOrUpdateNode(initialNodes[i], initialUrls[i]);
+            createOrUpdateNode(initialNodes[i], initialMetadata[i]);
         }
     }
 
@@ -55,20 +58,20 @@ contract NodeRegistry is Ownable {
         return(n.node);
     }
  
-    function createOrUpdateNode(address node, string memory url_) public onlyOwner {
-        _createOrUpdateNode(node, url_);
+    function createOrUpdateNode(address node, string memory metadata_) public onlyOwner {
+        _createOrUpdateNode(node, metadata_);
     }
 
-    function createOrUpdateNodeSelf(string memory url_) public whitelistOK {
-        _createOrUpdateNode(msg.sender, url_);
+    function createOrUpdateNodeSelf(string memory metadata_) public whitelistOK {
+        _createOrUpdateNode(msg.sender, metadata_);
     }
 
-    function _createOrUpdateNode(address nodeAddress, string memory url_) internal {
+    function _createOrUpdateNode(address nodeAddress, string memory metadata_) internal {
         NodeLinkedListItem storage n = nodes[nodeAddress];
         uint isNew = 0;
         if(n.node.lastSeen == 0){
             isNew = 1;
-            nodes[nodeAddress] = NodeLinkedListItem({node: Node({nodeAddress: nodeAddress, url: url_, lastSeen: block.timestamp}), prev: tailNode, next: address(0)});
+            nodes[nodeAddress] = NodeLinkedListItem({node: Node({nodeAddress: nodeAddress, metadata: metadata_, lastSeen: block.timestamp}), prev: tailNode, next: address(0)});
             nodeCount++;
             if(tailNode != address(0)){
                 NodeLinkedListItem storage prevNode = nodes[tailNode];
@@ -79,10 +82,10 @@ contract NodeRegistry is Ownable {
             tailNode = nodeAddress;
         }
         else{
-            n.node.url = url_;
+            n.node.metadata = metadata_;
             n.node.lastSeen = block.timestamp;
         }
-        emit NodeUpdated(nodeAddress, n.node.url, isNew, n.node.lastSeen);
+        emit NodeUpdated(nodeAddress, n.node.metadata, isNew, n.node.lastSeen);
     }
 
     function removeNode(address nodeAddress) public onlyOwner {

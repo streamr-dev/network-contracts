@@ -2,7 +2,7 @@ const Web3 = require("web3")
 const { assertEqual, assertFails, assertEvent } = require("./utils/web3Assert")
 
 const w3 = new Web3(web3.currentProvider)
-const SimpleTrackerRegistry = artifacts.require("./SimpleTrackerRegistry.sol")
+const NodeRegistry = artifacts.require("./NodeRegistry.sol")
 const TokenBalanceWeightStrategy = artifacts.require("./TokenBalanceWeightStrategy.sol")
 const WeightedNodeRegistry = artifacts.require("./WeightedNodeRegistry.sol")
 const ERC20Mintable = artifacts.require("./ERC20Mintable.sol")
@@ -23,17 +23,17 @@ contract("NodeRegistry", accounts => {
     const day = 86400
     //console.log(`creator: ${creator}`)
     before(async () => {
-        //console.log(JSON.stringify(SimpleTrackerRegistry))
+        //console.log(JSON.stringify(NodeRegistry))
         //pass half the trackers in constructor, and set the others
         var initialNodes = []
-        var initialUrls = []
+        var initialMetadata = []
         
         for(var i=0; i < nodeCount/2; i++){
-            initialUrls.push(nodes[i]);
+            initialMetadata.push(nodes[i]);
             initialNodes.push(node_addresses[i])
         }
 
-        stReg = await SimpleTrackerRegistry.new(creator, false, initialNodes, initialUrls, { from: creator })
+        stReg = await NodeRegistry.new(creator, false, initialNodes, initialMetadata, { from: creator })
         for(; i < nodeCount; i++){
             assertEvent(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}), "NodeUpdated")
         }
@@ -42,9 +42,9 @@ contract("NodeRegistry", accounts => {
         await testToken.mint(node_addresses[0], w3.utils.toWei("10"), { from: creator })
         await testToken.mint(node_addresses[1], w3.utils.toWei("100"), { from: creator })
         tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
-        weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialUrls, { from: creator })
+        weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialMetadata, { from: creator })
     }),
-    describe("SimpleTrackerRegistry", () => {
+    describe("NodeRegistry", () => {
         it("node count and linked list functionality", async () => {
             var ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
@@ -105,19 +105,7 @@ contract("NodeRegistry", accounts => {
             ncount = await stReg.nodeCount()
             assertEqual(nodeCount, ncount)
         }),
-        
-        it("getTrackers retuns a valid node and spans all nodes", async () => {
 
-            var nodeNums = new Set();
-            for(var i=0; i< nodeCount * 5; i++){
-                const urls = await stReg.getTrackers(`stereamId${i}`,i)
-                //console.log(`url ${url}`)
-                const index = nodes.indexOf(urls[0])
-                assert(index >= 0)
-                nodeNums.add(index)
-            }
-            assertEqual(nodeNums.size, nodeCount)
-        }),
         it("can update node", async () => {
             const newurl = "http://another.url"
             assertEvent(await stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}), "NodeUpdated")
