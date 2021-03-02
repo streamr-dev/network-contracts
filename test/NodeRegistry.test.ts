@@ -1,6 +1,7 @@
 import { expect, use } from 'chai'
 import { deployContract, MockProvider, solidity } from 'ethereum-waffle'
 import { Contract, Wallet, utils } from 'ethers'
+import { BigNumber } from 'bignumber.js'
 // import chaiBignumber from 'chai-bignumber'
 
 import NodeRegistry from '../build/NodeRegistry.json'
@@ -10,6 +11,8 @@ import WeightedNodeRegistry from '../build/WeightedNodeRegistry.json'
 
 // use(require('chai-bignumber')());
 use(require('chai-bignumber')());
+use(solidity);
+
 
 const nodeCount = 3
 
@@ -17,80 +20,96 @@ describe("NodeRegistry", (): void => {
     const accounts: Wallet[] = new MockProvider().getWallets()
     const creator = accounts[0].address
     let nodes: string[] = []
-    let node_addresses: Wallet[] = []
+    let node_addresses: string[] = []
+    let contractsAsSigners: Contract[] = []
     let testToken: Contract
     let stReg: Contract
     let tokenStrat: Contract
     let weightedReg: Contract
+   
     for(var i=0; i < nodeCount; i++){
         nodes[i]= `http://node.url${i}`
-        node_addresses[i] = accounts[i+1]
+        node_addresses[i] = accounts[i+1].address
     }
+
     const day = 86400
     console.log(`creator: ${creator}`)
     before(async () => {
         //console.log(JSON.stringify(NodeRegistry))
         //pass half the trackers in constructor, and set the others
-        var initialNodes = []
-        var initialMetadata = []
+        let initialNodes = []
+        let initialMetadata = []
         
-        for(var i=0; i < nodeCount/2; i++){
+        for(let i=0; i < nodeCount; i++){
             initialMetadata.push(nodes[i]);
-            initialNodes.push(node_addresses[i].address)
+            initialNodes.push(node_addresses[i])
         }
 
         // stReg = await NodeRegistry.new(creator, false, initialNodes, initialMetadata, { from: creator })
         stReg = await deployContract(accounts[0], NodeRegistry, [creator, false, initialNodes, initialMetadata]);
-        // for(; i < nodeCount; i++){
-        //     expect(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}))
-        //         .to.emit(stReg, 'NodeUpdated')
-        // }
+        for(var i=0; i < nodeCount; i++){
+            contractsAsSigners[i] = stReg.connect(accounts[i+1]);
+        }
+        
+        for(let i=0; i < nodeCount; i++){
+            // expect(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}))
+            //     .to.emit(stReg, 'NodeUpdated')
+            expect(await contractsAsSigners[i].createOrUpdateNodeSelf(nodes[i]))
+                .to.emit(stReg, 'NodeUpdated')
+        }
 
-        // // testToken = await ERC20Mintable.new("name","symbol",{ from: creator })
-        // testToken = await deployContract(creator, ERC20Mintable, ["name","symbol"]);
-        // await testToken.mint(node_addresses[0], utils.parseUnits("10", "ether"), { from: creator })
-        // await testToken.mint(node_addresses[1], utils.parseUnits("100", "ether"), { from: creator })
-        // // tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
-        // tokenStrat = await deployContract(creator, TokenBalanceWeightStrategy, [testToken.address]);
-        // // weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialMetadata, { from: creator })
-        // weightedReg = await deployContract(creator, TokenBalanceWeightStrategy, [creator, false, tokenStrat.address, initialNodes, initialMetadata]);
+        // testToken = await ERC20Mintable.new("name","symbol",{ from: creator })
+        testToken = await deployContract(accounts[0], ERC20Mintable, ["name","symbol"]);
+        await testToken.mint(node_addresses[0], utils.parseUnits("10", "ether"), { from: creator })
+        await testToken.mint(node_addresses[1], utils.parseUnits("100", "ether"), { from: creator })
+        // tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
+        tokenStrat = await deployContract(accounts[0], TokenBalanceWeightStrategy, [testToken.address]);
+        // weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialMetadata, { from: creator })
+        weightedReg = await deployContract(accounts[0], WeightedNodeRegistry, [creator, false, tokenStrat.address, initialNodes, initialMetadata]);
     })
     // describe("NodeRegistry", () => {
         it("node count and linked list functionality", async () => {
             var ncount = await stReg.nodeCount()
-            expect(nodeCount).to.bignumber.equal(ncount)
-            // const allNodes = await stReg.getNodes();
-            // console.log(`allnodes: ${JSON.stringify(allNodes)}`)
-            // for(var i=0; i < nodeCount; i++){
-            //     var node = await stReg.getNodeByNumber(i)
-            //     assertEqual(node[0], node_addresses[i])
-            // }
+            let ncountnumber = ncount.toNumber()
+
+            // expect(nodeCount).to.bignumber.equal(new BigNumber(ncountnumber))
+            // let b1 = new BigNumber(nodeCount)
+            // let b2 = new BigNumber(ncountnumber)
+
+            expect(nodeCount).to.equal(ncountnumber)
+
+            const allNodes = await stReg.getNodes();
+            console.log(`allnodes: ${JSON.stringify(allNodes)}`)
+            for(var i=0; i < nodeCount; i++){
+                var node = await stReg.getNodeByNumber(i)
+                expect(node[0]).to.equal(node_addresses[i])
+            }
             
-            // for(i=0; i < nodeCount; i++){
-            //     var node = allNodes[i]
-            //     assertEqual(node[0], node_addresses[i])
-            // }
+            for(i=0; i < nodeCount; i++){
+                var node = allNodes[i]
+                expect(node[0]).to.equal(node_addresses[i])
+            }
         })
-    //     it("can remove node", async () => {
-    //         //test removal from middle of list
-    //         var mid = Math.floor(nodeCount/2)
-    //         assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
-    //         await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
-    //         var ncount = await stReg.nodeCount()
-    //         assertEqual(nodeCount -1, ncount)
-    //         var j=0
-    //         for(var i=0; i < nodeCount - 1; i++){
-    //             // check that every node except mid is listed
-    //             var nodeadd = (await stReg.getNodeByNumber(i))[0]
-    //             if(j == mid)
-    //                 j++
-    //             assertEqual(nodeadd, node_addresses[j++])
-    //         }
-    //         //re-add middle node
-    //         assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
-    //         ncount = await stReg.nodeCount()
-    //         assertEqual(nodeCount, ncount)
-    //     }),
+        it("can remove node", async () => {
+            //test removal from middle of list
+            var mid = Math.floor(nodeCount/2)
+            assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
+            await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
+            var ncount = await stReg.nodeCount()
+            assertEqual(nodeCount -1, ncount)
+            var j=0
+            for(var i=0; i < nodeCount - 1; i++){
+                // check that every node except mid is listed
+                var nodeadd = (await stReg.getNodeByNumber(i))[0]
+                if(j == mid)
+                    j++
+                assertEqual(nodeadd, node_addresses[j++])
+            }
+            //re-add middle node
+            assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
+            ncount = await stReg.nodeCount()
+            assertEqual(nodeCount, ncount)
+        }),
         
     //     it("only admin can remove/modify another node", async () => {
     //         //test removal from middle of list
