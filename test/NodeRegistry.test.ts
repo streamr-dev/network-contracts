@@ -93,23 +93,28 @@ describe("NodeRegistry", (): void => {
         it("can remove node", async () => {
             //test removal from middle of list
             var mid = Math.floor(nodeCount/2)
-            assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
-            await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
-            var ncount = await stReg.nodeCount()
-            assertEqual(nodeCount -1, ncount)
+            // assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
+            expect(await contractsAsSigners[mid].removeNodeSelf()).to.emit(stReg, 'NodeRemoved')
+            // await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
+            expect(contractsAsSigners[mid].removeNodeSelf()).to.be.reverted;
+
+            var ncount = (await stReg.nodeCount()).toNumber()
+            expect(nodeCount - 1).to.equal(ncount)
             var j=0
             for(var i=0; i < nodeCount - 1; i++){
                 // check that every node except mid is listed
                 var nodeadd = (await stReg.getNodeByNumber(i))[0]
                 if(j == mid)
                     j++
-                assertEqual(nodeadd, node_addresses[j++])
+                expect(nodeadd).to.equal(node_addresses[j++])
             }
             //re-add middle node
-            assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
-            ncount = await stReg.nodeCount()
-            assertEqual(nodeCount, ncount)
-        }),
+            // assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
+            expect(await contractsAsSigners[mid].createOrUpdateNodeSelf(nodes[mid])).to.emit(stReg, 'NodeUpdated')
+
+            ncount = (await stReg.nodeCount()).toNumber()
+            expect(nodeCount).to.equal(ncount)
+        })
         
     //     it("only admin can remove/modify another node", async () => {
     //         //test removal from middle of list
