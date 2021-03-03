@@ -35,7 +35,6 @@ describe("NodeRegistry", (): void => {
     const day = 86400
     console.log(`creator: ${creatorAddress}`)
     before(async () => {
-        //console.log(JSON.stringify(NodeRegistry))
         //pass half the trackers in constructor, and set the others
         let initialNodes = []
         let initialMetadata = []
@@ -45,36 +44,28 @@ describe("NodeRegistry", (): void => {
             initialNodes.push(node_addresses[i])
         }
 
-        // stReg = await NodeRegistry.new(creator, false, initialNodes, initialMetadata, { from: creator })
         nodeRegAsCreator = await deployContract(accounts[0], NodeRegistry, [creatorAddress, false, initialNodes, initialMetadata]);
         for(var i=0; i < nodeCount; i++){
             nodeRegAsSigners[i] = nodeRegAsCreator.connect(accounts[i+1]);
         }
         
         for(let i=0; i < nodeCount; i++){
-            // expect(await stReg.createOrUpdateNodeSelf(nodes[i],{from: node_addresses[i]}))
-            //     .to.emit(stReg, 'NodeUpdated')
             expect(await nodeRegAsSigners[i].createOrUpdateNodeSelf(node_metadatas[i]))
                 .to.emit(nodeRegAsCreator, 'NodeUpdated')
         }
 
-        // testToken = await ERC20Mintable.new("name","symbol",{ from: creator })
         testToken = await deployContract(accounts[0], ERC20Mintable, ["name","symbol"]);
         await testToken.mint(node_addresses[0], utils.parseUnits("10", "ether"), { from: creatorAddress })
         await testToken.mint(node_addresses[1], utils.parseUnits("100", "ether"), { from: creatorAddress })
-        // tokenStrat = await TokenBalanceWeightStrategy.new(testToken.address, { from: creator })
         tokenStrat = await deployContract(accounts[0], TokenBalanceWeightStrategy, [testToken.address]);
-        // weightedReg = await WeightedNodeRegistry.new(creator, false, tokenStrat.address, initialNodes, initialMetadata, { from: creator })
         weightedReg = await deployContract(accounts[0], WeightedNodeRegistry, [creatorAddress, false, tokenStrat.address, initialNodes, initialMetadata]);
     })
-    // describe("NodeRegistry", () => {
+    describe("NodeRegistry", () => {
         it("node count and linked list functionality", async () => {
             var ncount = await nodeRegAsCreator.nodeCount()
             let ncountnumber = ncount.toNumber()
 
             // expect(nodeCount).to.bignumber.equal(new BigNumber(ncountnumber))
-            // let b1 = new BigNumber(nodeCount)
-            // let b2 = new BigNumber(ncountnumber)
 
             expect(nodeCount).to.equal(ncountnumber)
 
@@ -93,9 +84,7 @@ describe("NodeRegistry", (): void => {
         it("can remove node", async () => {
             //test removal from middle of list
             var mid = Math.floor(nodeCount/2)
-            // assertEvent(await stReg.removeNodeSelf({from: node_addresses[mid]}), "NodeRemoved")
             expect(await nodeRegAsSigners[mid].removeNodeSelf()).to.emit(nodeRegAsCreator, 'NodeRemoved')
-            // await assertFails(stReg.removeNodeSelf({from: node_addresses[mid]}))       
             expect(nodeRegAsSigners[mid].removeNodeSelf()).to.be.reverted;
 
             var ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
@@ -109,7 +98,6 @@ describe("NodeRegistry", (): void => {
                 expect(nodeadd).to.equal(node_addresses[j++])
             }
             //re-add middle node
-            // assertEvent(await stReg.createOrUpdateNodeSelf(nodes[mid],{from: node_addresses[mid]}), "NodeUpdated")
             expect(await nodeRegAsSigners[mid].createOrUpdateNodeSelf(node_metadatas[mid])).to.emit(nodeRegAsCreator, 'NodeUpdated')
 
             ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
@@ -119,10 +107,7 @@ describe("NodeRegistry", (): void => {
         it("only admin can remove/modify another node", async () => {
             //test removal from middle of list
             var mid = Math.floor(nodeCount/2)
-            // await assertFails(stReg.removeNode(node_addresses[mid], {from: node_addresses[mid]})) 
             expect(nodeRegAsSigners[mid].removeNode(node_addresses[mid])).to.be.reverted
-      
-            // assertEvent(await nodeRegAsCreator.removeNode(node_addresses[mid], {from: creatorAddress}), "NodeRemoved")
             expect(await nodeRegAsCreator.removeNode(node_addresses[mid])).to.emit(nodeRegAsCreator, 'NodeRemoved')
 
             var ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
@@ -136,21 +121,14 @@ describe("NodeRegistry", (): void => {
                 expect(nodeadd).to.equal(node_addresses[j++])
             }
             //re-add middle node
-            //console.log(`mid_address: ${node_addresses[mid]}`)
-            // await assertFails(nodeRegAsCreator.createOrUpdateNode(node_addresses[mid], node_metadatas[mid], {from: node_addresses[mid]}))
             expect(nodeRegAsSigners[mid].createOrUpdateNode(node_addresses[mid], node_metadatas[mid])).to.be.reverted
-            // assertEvent(await nodeRegAsCreator.createOrUpdateNode(node_addresses[mid], node_metadatas[mid], {from: creatorAddress}), "NodeUpdated")
             expect(await nodeRegAsCreator.createOrUpdateNode(node_addresses[mid], node_metadatas[mid])).to.emit(nodeRegAsCreator, 'NodeUpdated')
-            //const allNodes = await stReg.getNodes();
-            //console.log(`allnodes: ${JSON.stringify(allNodes)}`)
             ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
-            // assertEqual(nodeCount, ncount)
             expect(nodeCount).to.equal(ncount)
         })
 
         it("can update node", async () => {
             const newurl = "http://another.url"
-            // assertEvent(await stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}), "NodeUpdated")
             expect(await nodeRegAsSigners[0].createOrUpdateNodeSelf(newurl)).to.emit(nodeRegAsCreator, 'NodeUpdated')
 
             var ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
@@ -160,35 +138,20 @@ describe("NodeRegistry", (): void => {
         }),
         it("whitelist works", async () => {
             const newurl = "http://another.url2"
-            // await assertFails(stReg.setRequiresWhitelist(true, {from: node_addresses[0]}))
             expect(nodeRegAsSigners[0].setRequiresWhitelist(true)).to.be.reverted
-
-            // await stReg.setRequiresWhitelist(true, {from: creator})
             await nodeRegAsCreator.setRequiresWhitelist(true)
-
-            // assertEvent(await stReg.kickOut(node_addresses[0],  {from: creator}),"NodeWhitelistRejected")
             expect(await nodeRegAsCreator.kickOut(node_addresses[0])).to.emit(nodeRegAsCreator, "NodeWhitelistRejected")
-
-            // await assertFails(stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}))
             expect(nodeRegAsSigners[0].createOrUpdateNodeSelf(newurl)).to.be.reverted
-            
-            // await assertFails(stReg.whitelistApproveNode(node_addresses[0],  {from: node_addresses[0]}))
             expect(nodeRegAsSigners[0].whitelistApproveNode(node_addresses[0])).to.be.reverted
-
-            // await stReg.whitelistApproveNode(node_addresses[0],  {from: creator})
             await nodeRegAsCreator.whitelistApproveNode(node_addresses[0])
-
-            // assertEvent(await stReg.createOrUpdateNodeSelf(newurl,  {from: node_addresses[0]}), "NodeUpdated")
             expect(await nodeRegAsSigners[0].createOrUpdateNodeSelf(newurl)).to.emit(nodeRegAsCreator, "NodeUpdated")
-
             var ncount = (await nodeRegAsCreator.nodeCount()).toNumber()
             expect(nodeCount).to.equal(ncount)
-
             var nodeinfo = await nodeRegAsCreator.getNode(node_addresses[0])
             expect(nodeinfo[1]).to.equal(newurl)
             
         })
-    // })
+    })
     describe("WeightedNodeRegistry", () => {
         it("getWeight() works", async () => {
             for(var i=0; i < nodeCount; i++){
