@@ -28,6 +28,7 @@ jobs:
         uses: actions/setup-node@v2.1.5
         with:
           node-version: ${{ matrix.node_version }}
+      - name: Install Npm 6.0.1
         run: npm i -g npm@6.0.1
       - uses: actions/cache@v2.1.4
         with:
