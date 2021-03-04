@@ -4,7 +4,7 @@ import "./WeightStrategy.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TokenBalanceWeightStrategy is WeightStrategy {
-    ERC20 token;
+    ERC20 public token;
 
     constructor(address tokenAddress) public {
         token = ERC20(tokenAddress);
