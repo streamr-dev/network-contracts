@@ -7,7 +7,7 @@
     "build": "waffle",
     "flatten": "waffle flatten",
     "test": "waffle && ts-mocha test/* --timeout 200000",
-    "lint": "eslint test && solhint src/*.sol"
+    "lint": "eslint test/*.* && solhint src/*.sol"
   },
   "author": "Streamr Network AG",
   "license": "ISC",

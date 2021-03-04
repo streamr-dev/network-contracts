@@ -1,6 +1,11 @@
 {
-    "rules": {
-        "no-await-in-loop": "off",
-        "no-plusplus": "off"
+    "globals": {
+        // mocha
+        "describe": "readonly",
+        "it": "readonly",
+        "before": "readonly",
+        "beforeEach": "readonly",
+        "after": "readonly",
+        "afterEach": "readonly"
     }
 }
