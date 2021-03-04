@@ -14,13 +14,13 @@ contract NodeRegistry is Ownable {
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
-    
+
     enum WhitelistState{
         None,
         Approved,
         Rejected
     }
-    
+
     struct Node{
         address nodeAddress; // Ethereum address of the node (unique id)
         string metadata; // Connection metadata, for example wss://node-domain-name:port
@@ -34,20 +34,20 @@ contract NodeRegistry is Ownable {
     }
 
     modifier whitelistOK() {
-        require(!requiresWhitelist || whitelist[msg.sender] == WhitelistState.Approved, "notApproved");
+        require(!requiresWhitelist || whitelist[msg.sender] == WhitelistState.Approved, "error_notApproved");
         _;
     }
 
     uint64 public nodeCount;
     address public tailNode;
     address public headNode;
-    bool requiresWhitelist;
-    mapping(address => NodeLinkedListItem) nodes;
-    mapping(address => WhitelistState) whitelist;
+    bool public requiresWhitelist;
+    mapping(address => NodeLinkedListItem) public nodes;
+    mapping(address => WhitelistState) public whitelist;
 
-    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata ) Ownable(owner) public {
+    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata ) public Ownable(owner) {
         requiresWhitelist = requiresWhitelist_;
-        require(initialNodes.length == initialMetadata.length, "bad_tracker_data");
+        require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         for (uint i = 0; i < initialNodes.length; i++) {
             createOrUpdateNode(initialNodes[i], initialMetadata[i]);
         }
@@ -57,7 +57,7 @@ contract NodeRegistry is Ownable {
         NodeLinkedListItem storage n = nodes[nodeAddress];
         return(n.node);
     }
- 
+
     function createOrUpdateNode(address node, string memory metadata_) public onlyOwner {
         _createOrUpdateNode(node, metadata_);
     }
@@ -71,7 +71,10 @@ contract NodeRegistry is Ownable {
         uint isNew = 0;
         if(n.node.lastSeen == 0){
             isNew = 1;
-            nodes[nodeAddress] = NodeLinkedListItem({node: Node({nodeAddress: nodeAddress, metadata: metadata_, lastSeen: block.timestamp}), prev: tailNode, next: address(0)});
+            nodes[nodeAddress] = NodeLinkedListItem({
+                node: Node({nodeAddress: nodeAddress, metadata: metadata_, lastSeen: block.timestamp}), // solhint-disable-line not-rely-on-time
+                prev: tailNode, next: address(0)
+            });
             nodeCount++;
             if(tailNode != address(0)){
                 NodeLinkedListItem storage prevNode = nodes[tailNode];
@@ -83,7 +86,7 @@ contract NodeRegistry is Ownable {
         }
         else{
             n.node.metadata = metadata_;
-            n.node.lastSeen = block.timestamp;
+            n.node.lastSeen = block.timestamp; // solhint-disable-line not-rely-on-time
         }
         emit NodeUpdated(nodeAddress, n.node.metadata, isNew, n.node.lastSeen);
     }
@@ -96,7 +99,7 @@ contract NodeRegistry is Ownable {
     }
     function _removeNode(address nodeAddress) internal {
         NodeLinkedListItem storage n = nodes[nodeAddress];
-        require(n.node.lastSeen != 0, "notFound");
+        require(n.node.lastSeen != 0, "error_notFound");
         if(n.prev != address(0)){
             NodeLinkedListItem storage prevNode = nodes[n.prev];
             prevNode.next = n.next;
@@ -123,12 +126,12 @@ contract NodeRegistry is Ownable {
         whitelist[nodeAddress] = WhitelistState.Approved;
         emit NodeWhitelistApproved(nodeAddress);
     }
-    
+
     function whitelistRejectNode(address nodeAddress) public onlyOwner {
         whitelist[nodeAddress] = WhitelistState.Rejected;
         emit NodeWhitelistRejected(nodeAddress);
     }
-    
+
     function kickOut(address nodeAddress) public onlyOwner {
         whitelistRejectNode(nodeAddress);
         removeNode(nodeAddress);
@@ -143,9 +146,9 @@ contract NodeRegistry is Ownable {
 
         i=0 is first node
     */
-    
-    function getNodeByNumber(uint i) public view returns (Node memory) {
-        require(i < nodeCount, "getNthNode: n must be less than nodeCount");
+
+    function getNodeByNumber(uint i) external view returns (Node memory) {
+        require(i < nodeCount, "error_indexOutOfBounds");
         address currentNodeAddress = headNode;
         NodeLinkedListItem storage n = nodes[currentNodeAddress];
         for(uint nodeNum = 1; nodeNum <= i; nodeNum++){
@@ -155,7 +158,7 @@ contract NodeRegistry is Ownable {
         return n.node;
     }
 
-    function getNodes() public view returns (Node[] memory) {
+    function getNodes() external view returns (Node[] memory) {
         Node[] memory nodeArray = new Node[](nodeCount);
         address currentNodeAddress = headNode;
         for(uint nodeNum = 0; nodeNum < nodeCount; nodeNum++){
