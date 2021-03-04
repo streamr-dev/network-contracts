@@ -36,9 +36,8 @@ jobs:
             ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm ci
-      - name: Lint
-        run: npm run lint
-          npm run unit-test
+      - name: Build and lint
+        run: npm run build && npm run lint
       - name: Unit tests
         run: npm run test
       # TODO: later we might want to run integration tests
