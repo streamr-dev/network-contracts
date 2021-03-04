@@ -1,8 +1,7 @@
 {
-  "name": "registry",
-  "version": "1.0.0",
-  "description": "Solidity puzzle: Implement PermissionRegistry",
-  "main": "index.js",
+  "name": "network-contracts",
+  "version": "0.0.2",
+  "description": "Smart contracts for Streamr Network",
   "scripts": {
     "build": "waffle",
     "flatten": "waffle flatten",
