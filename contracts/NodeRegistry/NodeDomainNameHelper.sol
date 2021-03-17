@@ -1,5 +1,4 @@
-pragma solidity ^0.6.0;
-
+pragma solidity ^0.7.6;
 
 contract NodeDomainNameHelper {
     event Request(address indexed requestor, string indexed ipAddress, uint port);

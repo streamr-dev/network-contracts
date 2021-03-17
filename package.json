@@ -1,16 +1,17 @@
 {
   "name": "network-contracts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Smart contracts for Streamr Network",
   "scripts": {
-    "build": "waffle",
-    "flatten": "waffle flatten",
-    "test": "waffle && ts-mocha test/* --timeout 200000",
-    "lint": "eslint test/*.* && solhint src/*.sol"
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "lint": "eslint test/*.* && solhint contracts/*/*.sol"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^3.4.0",
     "@types/chai": "^4.2.15",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
@@ -18,22 +19,28 @@
     "chai": "^4.3.1",
     "chai-bignumber": "^3.0.0",
     "eslint": "^7.21.0",
-    "ethers": "^5.0.31",
+    "ethers": "^5.0.32",
+    "hardhat": "^2.1.1",
+    "hardhat-typechain": "^0.3.5",
     "mocha": "^8.3.0",
     "solc": "^0.8.1",
     "solhint": "^3.3.2",
-    "ts-mocha": "^8.0.0",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.2"
+    "ts-mocha": "^8.0.0"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^2.0.0",
     "@types/mocha": "^8.2.1",
+    "@types/node": "^14.14.35",
     "bignumber.js": "^9.0.1",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-streamr-nodejs": "2.0.0",
     "eslint-plugin-chai-friendly": "^0.6.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-promise": "^4.3.1",
-    "ethereum-waffle": "^3.3.0"
+    "ethereum-waffle": "^3.3.0",
+    "ts-generator": "^0.1.1",
+    "ts-node": "^8.0.2",
+    "typechain": "^4.0.3",
+    "typescript": "^4.2.3"
   }
 }

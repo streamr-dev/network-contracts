@@ -1,6 +1,5 @@
-pragma solidity ^0.6.0;
-
-import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+pragma solidity ^0.7.6;
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /*
 ERC20Mintable is missing from open-zeppelin 3.0

@@ -2,10 +2,12 @@ import { expect, use } from 'chai'
 import { deployContract, MockProvider, solidity } from 'ethereum-waffle'
 import { Contract, Wallet, utils } from 'ethers'
 
-import NodeRegistry from '../build/NodeRegistry.json'
-import ERC20Mintable from '../build/ERC20Mintable.json'
-import TokenBalanceWeightStrategy from '../build/TokenBalanceWeightStrategy.json'
-import WeightedNodeRegistry from '../build/WeightedNodeRegistry.json'
+import NodeRegistry from '../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json'
+import ERC20Mintable from '../artifacts/contracts/NodeRegistry/ERC20Mintable.sol/ERC20Mintable.json'
+import TokenBalanceWeightStrategy from
+    '../artifacts/contracts/NodeRegistry/TokenBalanceWeightStrategy.sol/TokenBalanceWeightStrategy.json'
+import WeightedNodeRegistry from
+    '../artifacts/contracts/NodeRegistry/WeightedNodeRegistry.sol/WeightedNodeRegistry.json'
 
 use(solidity)
 
