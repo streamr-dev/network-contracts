@@ -19,6 +19,14 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 const config: HardhatUserConfig = {
+
+    defaultNetwork: 'hardhat',
+    networks: {
+        hardhat: {
+            gas: 100000000
+        }
+    },
+    // This
     solidity: {
         compilers: [{
             version: '0.7.6', settings: {}
