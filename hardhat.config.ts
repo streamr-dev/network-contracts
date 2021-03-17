@@ -22,11 +22,8 @@ const config: HardhatUserConfig = {
 
     defaultNetwork: 'hardhat',
     networks: {
-        hardhat: {
-            gas: 100000000
-        }
+        hardhat: {}
     },
-    // This
     solidity: {
         compilers: [{
             version: '0.7.6', settings: {}

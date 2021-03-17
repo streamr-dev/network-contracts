@@ -1,5 +1,5 @@
 import { expect, use } from 'chai'
-import { deployContract, MockProvider, solidity } from 'ethereum-waffle'
+import { waffle } from 'hardhat'
 import { Contract, Wallet, utils } from 'ethers'
 
 import NodeRegistry from '../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json'
@@ -9,12 +9,15 @@ import TokenBalanceWeightStrategy from
 import WeightedNodeRegistry from
     '../artifacts/contracts/NodeRegistry/WeightedNodeRegistry.sol/WeightedNodeRegistry.json'
 
-use(solidity)
+use(waffle.solidity)
+
+const { deployContract } = waffle
+const { provider } = waffle
 
 const nodeCount = 3
 
 describe('NodeRegistry', (): void => {
-    const accounts: Wallet[] = new MockProvider().getWallets()
+    const accounts: Wallet[] = provider.getWallets()
     const creatorAddress = accounts[0].address
     const nodeMetadatas: string[] = []
     const nodeAddresses: string[] = []
