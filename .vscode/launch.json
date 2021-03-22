@@ -12,12 +12,12 @@
             "args": [
                 // "--opts", 
                 // "${workspaceFolder}/support/mocha.opts",
-                "${workspaceFolder}/test/*.ts",
+                "${workspaceFolder}/test/*.test.ts",
                 "--timeout",  // so it doesnt run into timeouts while debugging
                 "200000"
             ],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
+            // "console": "integratedTerminal",
+            // "internalConsoleOptions": "neverOpen",
             "skipFiles": [
                 "<node_internals>/**/*.js"
             ]

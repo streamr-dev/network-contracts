@@ -5,7 +5,13 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "lint": "eslint test/*.* && solhint contracts/*/*.sol"
+    "lint": "eslint test/*.* && solhint contracts/*/*.sol",
+    "deploy": "hardhat run --network hardhat scripts/deploy.ts",
+    "deployProxy": "hardhat run --network hardhat scripts/deployWithProxy.ts",
+    "upgradeImpl": "hardhat run --network hardhat scripts/upgradeProxy.ts",
+    "localDeploy": "hardhat run --network dev scripts/deploy.ts",
+    "localDeployProxy": "hardhat run --network dev scripts/deployWithProxy.ts",
+    "localUpgradeImpl": "hardhat run --network dev scripts/upgradeProxy.ts"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
@@ -30,6 +36,7 @@
     "typechain": "^4.0.3"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^2.0.0",
     "@types/mocha": "^8.2.1",
     "@types/node": "^14.14.35",
     "bignumber.js": "^9.0.1",

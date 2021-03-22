@@ -44,7 +44,7 @@
         "no-complex-fallback": "error",
         "no-inline-assembly": "error",
         "not-rely-on-block-hash": "error",
-        "not-rely-on-time": "error",
+        "not-rely-on-time": "warn",
         "reentrancy": "error",
         "state-visibility": "error",
         "func-visibility": [

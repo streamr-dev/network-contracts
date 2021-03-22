@@ -1,4 +1,5 @@
-pragma solidity ^0.7.6;pragma experimental ABIEncoderV2;
+pragma solidity ^0.7.6;
+pragma experimental ABIEncoderV2;
 
 import "./Ownable.sol";
 

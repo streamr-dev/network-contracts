@@ -22,12 +22,19 @@ const config: HardhatUserConfig = {
 
     defaultNetwork: 'hardhat',
     networks: {
-        hardhat: {}
+        hardhat: {},
+        dev: {
+            url: 'http://0.0.0.0:8545',
+        }
     },
     solidity: {
         compilers: [{
             version: '0.7.6', settings: {}
         }],
+    },
+    typechain: {
+        outDir: './typechain',
+        target: 'ethers-v5',
     }
 }
 export default config

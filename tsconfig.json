@@ -3,7 +3,7 @@
     "display": "Node 12",
     "compilerOptions": {
         "lib": ["es2019", "es2020.promise", "es2020.bigint", "es2020.string"],
-        "module": "commonjs",
+        "module": "CommonJS",
         "target": "es2019",
         "preserveSymlinks": true,
         "strict": true,
@@ -13,7 +13,7 @@
         "resolveJsonModule": true,
         "outDir": "dist"
     },
-    "include": ["./scripts", "./test"],
+    "include": ["./scripts", "./test", "./typechain"],
     "files": [
       "./hardhat.config.ts"
     ]

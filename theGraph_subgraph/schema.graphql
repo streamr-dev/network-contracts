@@ -1,0 +1,15 @@
+type Stream @entity {
+  id: ID!
+  metadata: String!
+  permissions: [Permission]! @derivedFrom(field: "stream")
+}
+
+type Permission @entity {
+  id: ID!
+  user: Bytes!
+  stream: Stream
+  isadmin: Boolean
+  publishRights: Int
+  viewRights: Int
+  expirationTime: BigInt
+}
