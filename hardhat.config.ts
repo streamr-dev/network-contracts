@@ -25,6 +25,7 @@ const config: HardhatUserConfig = {
         hardhat: {},
         dev: {
             url: 'http://0.0.0.0:8545',
+            accounts: ['0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb']
         }
     },
     solidity: {
