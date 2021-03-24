@@ -8,7 +8,7 @@ contract NetworkParameters is Ownable {
     string public minNetworkReferenceCodeVersion;
     address public tokenAddress;
 
-    constructor(address owner, uint minControlLayerVersion_, uint minMessageLayerVersion_, string memory minNetworkReferenceCodeVersion_, address tokenAddress_) public Ownable(owner) {
+    constructor(address owner, uint minControlLayerVersion_, uint minMessageLayerVersion_, string memory minNetworkReferenceCodeVersion_, address tokenAddress_) Ownable(owner) {
         minControlLayerVersion = minControlLayerVersion_;
         minMessageLayerVersion = minMessageLayerVersion_;
         minNetworkReferenceCodeVersion = minNetworkReferenceCodeVersion_;

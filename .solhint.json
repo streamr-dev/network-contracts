@@ -50,7 +50,7 @@
         "func-visibility": [
             "error",
             {
-                "ignoreConstructors": false
+                "ignoreConstructors": true
             }
         ],
         "quotes": [
