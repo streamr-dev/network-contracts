@@ -8,7 +8,7 @@ https://forum.openzeppelin.com/t/where-is-erc20mintable-sol-in-openzeppelin-cont
 */
 contract ERC20Mintable is ERC20 {
     address private creator;
-    constructor(string memory name, string memory symbol) public ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
         creator = msg.sender;
     }
 

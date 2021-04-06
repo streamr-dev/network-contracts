@@ -5,7 +5,13 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "lint": "eslint test/*.* && solhint contracts/*/*.sol"
+    "lint": "eslint test/*.* && solhint contracts/*/*.sol",
+    "deploy": "hardhat run --network hardhat scripts/deploy.ts",
+    "deployProxy": "hardhat run --network hardhat scripts/deployWithProxy.ts",
+    "upgradeImpl": "hardhat run --network hardhat scripts/upgradeProxy.ts",
+    "localDeploy": "hardhat run --network dev scripts/deploy.ts",
+    "localDeployProxy": "hardhat run --network dev scripts/deployWithProxy.ts",
+    "localUpgradeImpl": "hardhat run --network dev scripts/upgradeProxy.ts"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
@@ -19,6 +25,7 @@
     "@typescript-eslint/parser": "^4.18.0",
     "chai": "^4.3.4",
     "chai-bignumber": "^3.0.0",
+    "debug": "^4.3.1",
     "eslint": "^7.22.0",
     "ethers": "^5.0.32",
     "hardhat": "^2.1.1",
@@ -30,7 +37,9 @@
     "typechain": "^4.0.3"
   },
   "devDependencies": {
-    "@types/mocha": "^8.2.1",
+    "@typechain/ethers-v5": "^6.0.4",
+    "@types/debug": "^4.1.5",
+    "@types/mocha": "^8.2.2",
     "@types/node": "^14.14.35",
     "bignumber.js": "^9.0.1",
     "eslint-config-airbnb-base": "^14.2.1",
