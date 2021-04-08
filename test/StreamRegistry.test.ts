@@ -1,7 +1,8 @@
 import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 
-import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistryNew.sol/StreamRegistryNew.json'
+// eslint-disable-next-line max-len
+import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistryTimeBased.sol/StreamRegistryTimeBased.json'
 import { StreamRegistryNew } from '../typechain/StreamRegistryNew'
 
 const { deployContract } = waffle

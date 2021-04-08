@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity 0.7.6;
-contract StreamRegistryNew {
+contract StreamRegistryTimeBased {
     event StreamCreated(uint id, address owner, string metadata);
     // TODO emit differences, transfered amount or emit absolute amounts from both sides?
     event TransferedViewRights(uint streamid, address from, address to, uint amount);
