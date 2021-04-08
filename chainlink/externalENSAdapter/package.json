@@ -6,11 +6,12 @@
   "license": "ISC",
   "scripts": {
     "test": "./node_modules/.bin/_mocha --timeout 0",
-    "start": "node app.js"
+    "start": "node -r dotenv/config app.js"
   },
   "dependencies": {
     "@chainlink/external-adapter": "^0.2.3",
     "@ensdomains/ens": "^0.6.0",
+    "dotenv": "^8.2.0",
     "eth-ens-namehash": "^2.0.8",
     "ethers": "^5.0.32"
   },
@@ -19,6 +20,7 @@
     "chai": "^4.2.0",
     "eslint": "^7.0.0",
     "eslint-config-standard": "^14.1.1",
+    "eslint-config-streamr-nodejs": "2.0.0",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
