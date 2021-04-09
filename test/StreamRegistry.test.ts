@@ -3,7 +3,7 @@ import { expect, use } from 'chai'
 
 // eslint-disable-next-line max-len
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistryTimeBased.sol/StreamRegistryTimeBased.json'
-import { StreamRegistryNew } from '../typechain/StreamRegistryNew'
+import { StreamRegistryTimeBased } from '../typechain/StreamRegistryTimeBased'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -12,8 +12,8 @@ use(waffle.solidity)
 
 describe('PermissionRegistry', (): void => {
     const wallets = provider.getWallets()
-    let registryFromAdmin: StreamRegistryNew
-    let registryFromUser0: StreamRegistryNew
+    let registryFromAdmin: StreamRegistryTimeBased
+    let registryFromUser0: StreamRegistryTimeBased
     // let registryFromUser1: StreamRegistry
     let streamID: number
     const adminAdress = wallets[0].address
@@ -21,7 +21,7 @@ describe('PermissionRegistry', (): void => {
     const user1Address = wallets[2].address
 
     before(async (): Promise<void> => {
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistryNew
+        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistryTimeBased
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         // registryFromUser1 = registryFromAdmin.connect(wallets[2])
     })
