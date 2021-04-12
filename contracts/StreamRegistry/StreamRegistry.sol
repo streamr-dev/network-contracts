@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.7.6;
+pragma solidity 0.8.3;
 contract StreamRegistry {
     event StreamCreated(uint id, address owner, string metadata);
     event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
