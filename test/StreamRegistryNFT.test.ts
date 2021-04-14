@@ -1,8 +1,9 @@
 import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 
-import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-import { StreamRegistry } from '../typechain/StreamRegistry'
+// eslint-disable-next-line max-len
+import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistryNFT.sol/StreamRegistryNFT.json'
+import { StreamRegistryNFT, StreamRegistryNFTInterface } from '../typechain/StreamRegistryNFT'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -11,8 +12,8 @@ use(waffle.solidity)
 
 describe('PermissionRegistry', (): void => {
     const wallets = provider.getWallets()
-    let registryFromAdmin: StreamRegistry
-    let registryFromUser0: StreamRegistry
+    let registryFromAdmin: StreamRegistryNFT
+    let registryFromUser0: StreamRegistryNFT
     // let registryFromUser1: StreamRegistry
     let streamID: number
     const adminAdress = wallets[0].address
@@ -20,26 +21,31 @@ describe('PermissionRegistry', (): void => {
     const user1Address = wallets[2].address
 
     before(async (): Promise<void> => {
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistry
+        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistryNFT
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         // registryFromUser1 = registryFromAdmin.connect(wallets[2])
     })
 
-    it('create stream, get description', async (): Promise<void> => {
+    it('create stream', async (): Promise<void> => {
         streamID = 1
-        await expect(await registryFromAdmin.createStream('a'))
+        await expect(await registryFromAdmin.createStream(adminAdress, 'a'))
             .to.emit(registryFromAdmin, 'StreamCreated')
             .withArgs(streamID, adminAdress, 'a')
-        expect(await registryFromAdmin.streamIdToMetadata(streamID)).to.equal('a')
-        const permissions = await registryFromAdmin.streamIdToPermissions(streamID, adminAdress)
-        expect(permissions.isAdmin).to.equal(true)
-        expect(permissions.publishRights).to.equal(1)
-        expect(await registryFromAdmin.getDescription(streamID)).to.equal('a')
+            .to.emit(registryFromAdmin, 'PermissionCreated')
+            .withArgs(streamID + 1, adminAdress, 'a', streamID, true, 1, 1)
+
+        // expect(await registryFromAdmin.streamIdToMetadata(streamID)).to.equal('a')
+        // const permissions = await registryFromAdmin.streamIdToPermissions(streamID, adminAdress)
+        // expect(permissions.isAdmin).to.equal(true)
+        // expect(permissions.publishRights).to.equal(1)
+        // expect(permissions.subscriptionExpirationTime).to.equal(0)
+        // expect(await registryFromAdmin.getDescription(streamID)).to.equal('a')
     })
-    // it('item already exists error', async (): Promise<void> => {
-    //     await expect(registryFromAdmin.createStream(1, 'c')).to.be.reverted
-    // })
-    it('edit stream', async (): Promise<void> => {
+    it('', async (): Promise<void> => {
+        await expect(registryFromAdmin.createStream(1, 'c')).to.be.reverted
+    })
+
+    /* it('edit stream', async (): Promise<void> => {
         await registryFromAdmin.editStream(1, 'b')
         expect(await registryFromAdmin.getDescription(streamID)).to.equal('b')
         // await expect(registryFromAdmin.grantPermissions(2, wallets[1].address, [true, true, true])).to.be.reverted
@@ -143,7 +149,7 @@ describe('PermissionRegistry', (): void => {
         expect(permissionsUser1.isAdmin).to.equal(false)
         expect(permissionsUser1.subscriptionExpirationTime).to.equal(subscriptionTimeUser1BeforeTransfer)
         expect(permissionsUser1.publishRights).to.equal(3)
-    })
+    }) */
     // it('granting permission of item to another address', async (): Promise<void> => {
     //     await registryFromAdmin.grantPermissions(1, wallets[1].address, [true, true, true])
     //     expect('grantPermissions').to.be.calledOnContract(registryFromAdmin)

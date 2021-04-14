@@ -9,6 +9,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 contract StreamRegistryNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable, ERC721Burnable {
+
+    event StreamCreated(uint id, address owner, string metadata);
+    event PermissionCreated(uint id, address owner, string metadata, uint256 streamId, bool isAdmin, 
+        uint8 publishExpirationTime, uint8 subscriptionExpirationTime);
+    
     uint public rollingId = 0;
     mapping (uint256 => Permission) public permissions;
     struct Permission {
@@ -17,6 +22,13 @@ contract StreamRegistryNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausab
         uint8 publishExpirationTime;
         uint8 subscriptionExpirationTime;
     }
+
+    // modifier canView(uint id) {
+    //     require(streamIdToPermissions[id][msg.sender].isAdmin ||
+    //     streamIdToPermissions[id][msg.sender].viewRights > 0 , "no view permission");
+    //     // TODO add check for expration time
+    //     _;
+    // }
 
     constructor() ERC721("StreamRegistry", "STR") {}
 
@@ -36,7 +48,8 @@ contract StreamRegistryNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausab
             publishExpirationTime: 1,
             subscriptionExpirationTime: 1
         });
-        // emit StreamCreated(rollingId, msg.sender, desc);
+        emit StreamCreated(streamid, streamowner, desc);
+        emit PermissionCreated(rollingId, streamowner, desc, streamid, true, 1, 1);
     }
 
     function pause() public onlyOwner {

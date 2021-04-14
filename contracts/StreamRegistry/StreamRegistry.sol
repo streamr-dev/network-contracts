@@ -11,14 +11,14 @@ contract StreamRegistry {
     mapping (uint => mapping(address => Permission)) public streamIdToPermissions;
 
     struct Permission {
-        bool isAdmin; // has all the rights, can grant
+        bool canEdit; // has all the rights, can grant
+        bool canDelete;
         uint8 publishRights; // TODO do we need more that 256 sharable rights?
         // sharable view rights = stream data read permission = stream subscription
-        uint8 viewRights;
+        uint8 subscritions;
         // can edit metadata
         // bool edit; // TODO do we need edit rights different from admin? can someone edit metadato but not publish?
         // TODO how big int is neccessary for time?
-        uint256 expirationTime;
     }
 
     modifier canView(uint id) {
@@ -39,16 +39,15 @@ contract StreamRegistry {
     }
 
     // TODO do we need an external id or increment ourselves?
-    function createItem(string memory desc) public {
+    function createStream(address owner, string memory desc) public {
         // require(bytes(streamIdToMetadata[id]).length == 0, "item id alreay exists!");
         rollingId = rollingId + 1;
         streamIdToMetadata[rollingId] = desc;
-        streamIdToPermissions[rollingId][msg.sender] = 
+        streamIdToPermissions[rollingId][owner] = 
         Permission({
             isAdmin: true,
             publishRights: 1,
-            viewRights: 1,
-            expirationTime: 0
+            viewRights: 1
         });
         emit StreamCreated(rollingId, msg.sender, desc);
     }
