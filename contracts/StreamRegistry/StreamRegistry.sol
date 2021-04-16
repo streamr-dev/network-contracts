@@ -2,8 +2,8 @@
 pragma solidity 0.8.3;
 contract StreamRegistry {
     event StreamCreated(string id, string metadata);
-    event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
-    event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
+    // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
+    // event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
@@ -44,7 +44,7 @@ contract StreamRegistry {
     }
     modifier streamExists(string calldata streamId) {
         // TODO can stream exist without metadata?
-        require(bytes(streamIdToMetadata[streamId]).length != 0, "stream doesn' exist");
+        require(bytes(streamIdToMetadata[streamId]).length != 0, "stream does not exist");
         _;
     }
 
@@ -52,7 +52,7 @@ contract StreamRegistry {
     function createStream(string memory streamIdPath, string calldata metadataJsonString) public {
         string memory ownerstring = addressToString(msg.sender);
         string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
-        require(bytes(streamIdToMetadata[streamId]).length == 0, "item id alreay exists!");
+        require(bytes(streamIdToMetadata[streamId]).length == 0, "stream id alreay exists");
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
         streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)] = 
