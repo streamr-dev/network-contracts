@@ -84,14 +84,14 @@ contract StreamRegistry {
     }
 
     
-    function getPermissionsForUser(string calldata streamId, address user) public view returns (Permission memory permission) {
+    function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
     // function grantPermissions(uint id, address user, bool[] memory _permission) public itemExists(id) canGrant(id) {
         // permissions[id][user] = _permission;
         return streamIdToPermissions[streamId][getAddressKey(streamId, user)];
     }
 
-    function setPermissionForUser(string calldata streamId, address user, bool edit, 
-        bool canDelete, bool publish, bool subscribe, bool share) public {
+    function setPermissionsForUser(string calldata streamId, address user, bool edit, 
+        bool canDelete, bool publish, bool subscribe, bool share) public canShare(streamId) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
                 edit: edit,
                 canDelete: canDelete,
@@ -101,7 +101,7 @@ contract StreamRegistry {
            });
     }
 
-    function revokePermissionForUser(string calldata streamId, address user) public canShare(streamId){
+    function revokePermissionsForUser(string calldata streamId, address user) public canShare(streamId){
     // function grantPermissions(uint id, address user, bool[] memory _permission) public itemExists(id) canGrant(id) {
         // permissions[id][user] = _permission;
         delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];

@@ -17,12 +17,12 @@ describe('PermissionRegistry', (): void => {
     const adminAdress = wallets[0].address
     const user0Address = wallets[1].address
     const user1Address = wallets[2].address
+    const streamPath0: string = '/streamPath0'
     const streamPath1: string = '/streamPath1'
-    const streamPath2: string = '/streamPath2'
+    const streamId0: string = adminAdress.toLowerCase() + streamPath0
     const streamId1: string = adminAdress.toLowerCase() + streamPath1
-    const streamId2: string = adminAdress.toLowerCase() + streamPath2
+    const metadata0: string = 'streammetadata0'
     const metadata1: string = 'streammetadata1'
-    const metadata2: string = 'streammetadata2'
 
     before(async (): Promise<void> => {
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistry
@@ -31,11 +31,11 @@ describe('PermissionRegistry', (): void => {
     })
 
     it('positivetest createStream, get description', async (): Promise<void> => {
-        await expect(await registryFromAdmin.createStream(streamPath1, metadata1))
+        await expect(await registryFromAdmin.createStream(streamPath0, metadata0))
             .to.emit(registryFromAdmin, 'StreamCreated')
-            .withArgs(streamId1, metadata1)
+            .withArgs(streamId0, metadata0)
         // const addresskey = await registryFromAdmin.getAddressKey(streamId, adminAdress)
-        expect(await registryFromAdmin.streamIdToMetadata(streamId1)).to.equal(metadata1)
+        expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
         // const permissions = await registryFromAdmin.streamIdToPermissions(streamId, addresskey)
         // expect(permissions.edit).to.equal(true)
         // expect(permissions.publishRights).to.equal(1)
@@ -44,46 +44,89 @@ describe('PermissionRegistry', (): void => {
     })
 
     it('negativetest createStream, already exists error', async (): Promise<void> => {
-        await expect(registryFromAdmin.createStream(streamPath1, metadata1))
+        await expect(registryFromAdmin.createStream(streamPath0, metadata0))
             .to.be.revertedWith('stream id alreay exists')
     })
 
+    // TEST IF CREATE; DELETE; CREATE SAME ID DELETES PERMISSIONS!!!
+
     it('positivetest getStreamMetadata', async (): Promise<void> => {
-        expect(await registryFromAdmin.getStreamMetadata(streamId1)).to.equal(metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
     })
 
     it('negativetest getStreamMetadata, stream doesnt exist', async (): Promise<void> => {
-        await expect(registryFromAdmin.getStreamMetadata(streamId2)).to.be.revertedWith('stream does not exist')
+        await expect(registryFromAdmin.getStreamMetadata(streamId1)).to.be.revertedWith('stream does not exist')
     })
 
     it('positivetest updateStreamMetadata', async (): Promise<void> => {
-        expect(await registryFromAdmin.getStreamMetadata(streamId1)).to.equal(metadata1)
-        await registryFromAdmin.updateStreamMetadata(streamId1, metadata2)
-        expect(await registryFromAdmin.getStreamMetadata(streamId1)).to.equal(metadata2)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
+        await registryFromAdmin.updateStreamMetadata(streamId0, metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata1)
     })
 
     it('negativetest updateStreamMetadata, not exist, no right', async (): Promise<void> => {
-        await expect(registryFromAdmin.updateStreamMetadata(streamId2, metadata1))
+        await expect(registryFromAdmin.updateStreamMetadata(streamId1, metadata0))
             .to.be.revertedWith('stream does not exist')
-        await expect(registryFromUser0.updateStreamMetadata(streamId1, metadata1))
+        await expect(registryFromUser0.updateStreamMetadata(streamId0, metadata0))
             .to.be.revertedWith('no edit permission')
     })
 
     it('positivetest deleteStream', async (): Promise<void> => {
-        expect(await registryFromAdmin.getStreamMetadata(streamId1)).to.equal(metadata2)
-        await registryFromAdmin.deleteStream(streamId1)
-        await expect(registryFromAdmin.updateStreamMetadata(streamId1, metadata1))
+        expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata1)
+        await registryFromAdmin.deleteStream(streamId0)
+        await expect(registryFromAdmin.updateStreamMetadata(streamId0, metadata0))
             .to.be.revertedWith('stream does not exist')
     })
 
     it('negativetest deleteStream, not exist, no right', async (): Promise<void> => {
-        await registryFromAdmin.createStream(streamPath1, metadata1)
-        await expect(registryFromAdmin.deleteStream(streamId2))
+        await registryFromAdmin.createStream(streamPath0, metadata0)
+        await expect(registryFromAdmin.deleteStream(streamId1))
             .to.be.revertedWith('stream does not exist')
-        await expect(registryFromUser0.deleteStream(streamId1))
+        await expect(registryFromUser0.deleteStream(streamId0))
             .to.be.revertedWith('no delete permission')
     })
 
+    it('positivetest getPermissionForUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
+    it('negativtest getPermissionForUser, stream not exist, userentry not exist', async (): Promise<void> => {
+        await expect(registryFromAdmin.getPermissionsForUser(streamId1, adminAdress))
+            .to.be.revertedWith('stream does not exist')
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('positivetest setPermissionForUser', async (): Promise<void> => {
+        // user0 has no permissions on stream0
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        // grant him all permissions
+        await registryFromAdmin.setPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+        // test if he can edit streammetadata
+        expect(await registryFromUser0.getStreamMetadata(streamId0)).to.equal(metadata0)
+        await registryFromUser0.updateStreamMetadata(streamId0, metadata1)
+        expect(await registryFromUser0.getStreamMetadata(streamId0)).to.equal(metadata1)
+        // test if he can share, edit other permissions
+        await registryFromUser0.setPermissionsForUser(streamId0, user1Address, true, true, true, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([true, true, true, true, true])
+        // test if he can delete stream
+        await registryFromUser0.deleteStream(streamId0)
+        await expect(registryFromAdmin.getStreamMetadata(streamId0))
+            .to.be.revertedWith('stream does not exist')
+    })
+
+    it('negativtest setPermissionForUser, stream not exist, no share permission', async (): Promise<void> => {
+        await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+            .to.be.revertedWith('stream does not exist')
+        await registryFromAdmin.createStream(streamPath0, metadata0)
+        await expect(registryFromUser0.setPermissionsForUser(streamId0, user0Address, true, true, true, true, true))
+            .to.be.revertedWith('no share permission')
+    })
 
     /* it('item doesn\'t exist error', async (): Promise<void> => {
         // item id 2 doesn't exist
