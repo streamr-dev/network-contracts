@@ -7,12 +7,15 @@ import { StreamRegistry } from '../typechain/StreamRegistry'
 const { deployContract } = waffle
 const { provider } = waffle
 
+enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
+
 use(waffle.solidity)
 
 describe('PermissionRegistry', (): void => {
     const wallets = provider.getWallets()
     let registryFromAdmin: StreamRegistry
     let registryFromUser0: StreamRegistry
+    let registryFromUser1: StreamRegistry
     // let registryFromUser1: StreamRegistry
     const adminAdress = wallets[0].address
     const user0Address = wallets[1].address
@@ -27,7 +30,7 @@ describe('PermissionRegistry', (): void => {
     before(async (): Promise<void> => {
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
-        // registryFromUser1 = registryFromAdmin.connect(wallets[2])
+        registryFromUser1 = registryFromAdmin.connect(wallets[2])
     })
 
     it('positivetest createStream, get description', async (): Promise<void> => {
@@ -120,7 +123,7 @@ describe('PermissionRegistry', (): void => {
             .to.be.revertedWith('stream does not exist')
     })
 
-    it('negativtest setPermissionForUser, stream not exist, no share permission', async (): Promise<void> => {
+    it('negativtest setPermissionForUser, stream doesnt exist, no share permission', async (): Promise<void> => {
         await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
             .to.be.revertedWith('stream does not exist')
         await registryFromAdmin.createStream(streamPath0, metadata0)
@@ -128,115 +131,97 @@ describe('PermissionRegistry', (): void => {
             .to.be.revertedWith('no share permission')
     })
 
-    /* it('item doesn\'t exist error', async (): Promise<void> => {
-        // item id 2 doesn't exist
-        await expect(registryFromAdmin.editItem(999, 'b')).to.be.reverted
-        await expect(registryFromAdmin.getDescription(999)).to.be.reverted
-        // await expect(registryFromAdmin.grantPermissions(2, wallets[1].address, [true, true, true])).to.be.reverted
-        // await expect(registryFromAdmin.hasPermission(2, wallets[1].address, 'view')).to.be.reverted
-        // await expect(registryFromAdmin.getPermissions(2, wallets[1].address)).to.be.reverted
-    })
-    it('admin transfers view rights to user0', async (): Promise<void> => {
-        const amountViewTimeToTransfer = 60 * 60 // one hour
-        // const ethersprovider = ethers.provider
-        // const blocknumber = await ethersprovider.getBlockNumber()
-        // const block = await ethersprovider.getBlock(blocknumber)
-        // const timeBeforeTransacion = block.timestamp
-        // const timetiIncreaseBlocktime = 15
-        // await ethers.provider.send('evm_increaseTime', [timetiIncreaseBlocktime])
-        await registryFromAdmin.transferViewTime(streamID, user0Address, amountViewTimeToTransfer)
-        // make sure user0 got read permission
-        // const tr1 = await ethers.provider.getTransaction(transaction.hash)
-        //const tr2 = await ethers.provider.getTransactionReceipt(transaction.hash)
-        const permissionsUser0 = await registryFromAdmin.streamIdToPermissions(streamID, user0Address)
-        expect(permissionsUser0.isAdmin).to.equal(false)
-        const blocknumber = await ethers.provider.getBlockNumber()
-        const block = await ethers.provider.getBlock(blocknumber)
-        const timeAfterTransacion = block.timestamp
-        expect(permissionsUser0.subscriptionExpirationTime).to.equal(timeAfterTransacion
-             + amountViewTimeToTransfer)
-        expect(permissionsUser0.publishRights).to.equal(0)
-    })
-    it('user0 transfers view rights to user1', async (): Promise<void> => {
-        const amountViewRightsToTransfer = 2
-        await registryFromUser0.transferViewTime(streamID, user1Address, amountViewRightsToTransfer)
-        // make sure user0 got read permission
-        const permissionsUser0 = await registryFromAdmin.streamIdToPermissions(streamID, user0Address)
-        expect(permissionsUser0.isAdmin).to.equal(false)
-        expect(permissionsUser0.subscriptionExpirationTime).to.equal(1) // he has one left
-        expect(permissionsUser0.publishRights).to.equal(0)
-        const permissionsUser1 = await registryFromAdmin.streamIdToPermissions(streamID, user1Address)
-        expect(permissionsUser1.isAdmin).to.equal(false)
-        expect(permissionsUser1.subscriptionExpirationTime).to.equal(amountViewRightsToTransfer) // he has one left
-        expect(permissionsUser1.publishRights).to.equal(0)
-    })
-    it('admin transfers publish rights to user0', async (): Promise<void> => {
-        const amountViewRightsToTransfer = 3
-        await registryFromAdmin.transferPublishRights(streamID, user0Address, amountViewRightsToTransfer)
-        // make sure user0 got read permission
-        const permissionsUser0 = await registryFromAdmin.streamIdToPermissions(streamID, user0Address)
-        expect(permissionsUser0.isAdmin).to.equal(false)
-        expect(permissionsUser0.subscriptionExpirationTime).to.equal(1)
-        expect(permissionsUser0.publishRights).to.equal(amountViewRightsToTransfer)
-    })
-    it('user0 transfers publish rights to user1', async (): Promise<void> => {
-        const amountViewRightsToTransfer = 2
-        await registryFromUser0.transferPublishRights(streamID, user1Address, amountViewRightsToTransfer)
-        // make sure user0 got read permission
-        const permissionsUser0 = await registryFromAdmin.streamIdToPermissions(streamID, user0Address)
-        expect(permissionsUser0.isAdmin).to.equal(false)
-        expect(permissionsUser0.subscriptionExpirationTime).to.equal(1)
-        expect(permissionsUser0.publishRights).to.equal(1)
-        let permissionsUser1 = await registryFromAdmin.streamIdToPermissions(streamID, user1Address)
-        expect(permissionsUser1.isAdmin).to.equal(false)
-        expect(permissionsUser1.subscriptionExpirationTime).to.equal(2)
-        expect(permissionsUser1.publishRights).to.equal(amountViewRightsToTransfer)
-        // transfer the remaining one as well, so none are left
-        await registryFromUser0.transferPublishRights(streamID, user1Address, 1)
-        permissionsUser1 = await registryFromAdmin.streamIdToPermissions(streamID, user1Address)
-        expect(permissionsUser1.isAdmin).to.equal(false)
-        expect(permissionsUser1.subscriptionExpirationTime).to.equal(2)
-        expect(permissionsUser1.publishRights).to.equal(3)
-    }) */
-    // it('granting permission of item to another address', async (): Promise<void> => {
-    //     await registryFromAdmin.grantPermissions(1, wallets[1].address, [true, true, true])
-    //     expect('grantPermissions').to.be.calledOnContract(registryFromAdmin)
-    // })
-    // it('get single permission on item', async (): Promise<void> => {
-    //     expect(await registryFromAdmin.hasPermission(1, wallets[1].address, 'view')).to.equal(true)
-    //     expect(await registryFromAdmin.hasPermission(1, wallets[1].address, 'edit')).to.equal(true)
-    //     expect(await registryFromAdmin.hasPermission(1, wallets[1].address, 'grant')).to.equal(true)
-    // })
-    // it('get wrong permission name', async (): Promise<void> => {
-    //     await expect(registryFromAdmin.hasPermission(1, wallets[1].address), 'asdf').to.be.reverted
-    // })
-    // it('read permissions on item', async (): Promise<void> => {
-    //     expect(await registryFromAdmin.getPermissions(1, wallets[1].address)).to.deep.equal([true, true, true])
-    // })
+    it('positivetest grantPermission, hasPermission', async (): Promise<void> => {
+        // user0 has no permissions on stream0
+        await registryFromAdmin.grantPermission(streamId0, user0Address, PermissionType.Edit)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Edit))
+            .to.equal(true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, false, false, false, false])
 
-    // it('positivetest other user can view', async (): Promise<void> => {
-    //     expect(await registryFromAcc2.getDescription(1)).to.equal('a')
-    // })
-    // it('positivetest other user can edit', async (): Promise<void> => {
-    //     await registryFromAcc2.editItem(1, 'b')
-    //     expect('editItem').to.be.calledOnContract(registryFromAcc2)
-    //     expect(await registryFromAcc2.getDescription(1)).to.equal('b')
-    // })
-    // it('positivetest other user can grant', async (): Promise<void> => {
-    //     await registryFromAcc2.grantPermissions(1, wallets[2].address, [true, true, true])
-    //     expect('grantPermissions').to.be.calledOnContract(registryFromAcc2)
-    //     expect(await registryFromAcc2.getPermissions(1, wallets[2].address)).to.deep.equal([true, true, true])
-    // })
+        await registryFromAdmin.grantPermission(streamId0, user0Address, PermissionType.Delete)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Delete))
+            .to.equal(true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, false, false, false])
 
-    // it('negativetest other user can view', async (): Promise<void> => {
-    //     await registryFromAdmin.grantPermissions(1, wallets[1].address, [false, false, false])
+        await registryFromAdmin.grantPermission(streamId0, user0Address, PermissionType.Publish)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Publish))
+            .to.equal(true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, false, false])
 
-    //     await expect(registryFromAcc2.getDescription(1)).to.be.reverted
-    // })
-    // it('negativetest other user can edit', async (): Promise<void> => {
-    //     await expect(registryFromAcc2.editItem(1, 'b')).to.be.reverted
-    // })
-    // it('negativetest other user can grant', async (): Promise<void> => {
-    //     await expect(registryFromAcc2.grantPermissions(1, wallets[2].address, [true, true, true])).to.be.reverted
-    // })
+        await registryFromAdmin.grantPermission(streamId0, user0Address, PermissionType.Subscribe)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Subscribe))
+            .to.equal(true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, false])
+
+        await registryFromAdmin.grantPermission(streamId0, user0Address, PermissionType.Share)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Share))
+            .to.equal(true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
+    it('negativetest grantPermission', async (): Promise<void> => {
+        // test from user1, who has no share permissions
+        await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Edit))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Delete))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Publish))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Subscribe))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Share))
+            .to.be.revertedWith('no share permission')
+    })
+
+    it('positivetest revokePermission, hasPermission', async (): Promise<void> => {
+        // user0 has no permissions on stream0
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Edit)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Edit))
+            .to.equal(false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, true, true, true, true])
+
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Delete)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Delete))
+            .to.equal(false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, true, true, true])
+
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Publish)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Publish))
+            .to.equal(false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, true, true])
+
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Subscribe)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Subscribe))
+            .to.equal(false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, true])
+
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Share)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Share))
+            .to.equal(false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('negativetest grantPermission', async (): Promise<void> => {
+        // test from user0, all his permissions were revoked in test before
+        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Edit))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Delete))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Publish))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Subscribe))
+            .to.be.revertedWith('no share permission')
+        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Share))
+            .to.be.revertedWith('no share permission')
+    })
 })
