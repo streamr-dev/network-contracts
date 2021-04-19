@@ -14,6 +14,8 @@
     },
     "plugins": ["@typescript-eslint",  "chai-friendly"],
     "rules": {
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": ["error"],
         "quotes": ["error", "single"],
         "object-curly-spacing": ["error", "always"],
         "no-await-in-loop": "off",
