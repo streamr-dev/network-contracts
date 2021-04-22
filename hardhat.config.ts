@@ -32,6 +32,10 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [{
             version: '0.8.3', settings: {}
+        },
+        {
+            version: '0.6.12',
+            settings: { }
         }],
         overrides: {
             'contracts/chainlinkClient/ESNCache.sol': {

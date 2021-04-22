@@ -3,53 +3,45 @@ pragma solidity >=0.6.0;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.6/Chainlink.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
 
-  uint256 constant private ORACLE_PAYMENT = 1 * LINK_DIVISIBILITY;
+  uint256 constant private ORACLE_PAYMENT = 1 * LINK;
 
   // address public resolvedEnsAddress;
   mapping(string => address) public owners;
   mapping(bytes32 => string) public sentRequests;
-  bytes32 public currentRequestid;
-  string public currentrequestname;
-  bytes32 public returnedRequestid;
-  bytes32 public returnedaddress;
+  address public oracle;
+  string public jobId;
 
-
-  constructor() {
+  constructor(address oracleaddress, string memory chainlinkJobId) public {
     setPublicChainlinkToken();
+    oracle = oracleaddress;
+    jobId = chainlinkJobId;
   }
 
-  function requestENSOwner(address oracle, string calldata jobId, string calldata ensName) public onlyOwner {
+  function setOracleAdress(address oracleAddress) public onlyOwner {
+    oracle = oracleAddress;
+  }
+
+  function setChainlinkJobId(string calldata chainlinkJobId) public onlyOwner {
+    jobId = chainlinkJobId;
+  }
+
+  function requestENSOwner(string calldata ensName) public onlyOwner {
     Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
     req.add("ensname", ensName);
     bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
     sentRequests[requestid] = ensName;
-    currentrequestname = ensName;
-    currentRequestid = requestid;
   }
 
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
     //emit RequestEthereumLastMarket(_requestId, _market);
-    // owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
-    returnedRequestid = requestId;
-    returnedaddress = owneraddress;
-  }
-  
-  function fulfillENSOwnerm(bytes32 requestId, bytes32 owneraddress) public {
-    //emit RequestEthereumLastMarket(_requestId, _market);
     owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
   }
   
-  // function setResultAddress(bytes32 _market)
-  //   public  {
-  //   resolvedEnsAddress = address(uint160(uint256(_market)));
-  // }
-  
-
   function getChainlinkToken() public view returns (address) {
     return chainlinkTokenAddress();
   }
