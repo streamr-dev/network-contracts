@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.3;
+pragma solidity ^0.6.0;
+
+import "../chainlinkClient/ENSCache.sol";
 contract StreamRegistry {
     event StreamCreated(string id, string metadata);
     // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
@@ -11,6 +13,7 @@ contract StreamRegistry {
     mapping (string => string) public streamIdToMetadata;
     // streamid ->  keccak256(version, useraddress); -> permissions struct 
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
+    ENSCache private ensCache;
 
     struct Permission {
         bool edit;
@@ -38,8 +41,23 @@ contract StreamRegistry {
         _;
     }
 
-    function createStream(string memory streamIdPath, string calldata metadataJsonString) public {
+    constructor(address ensCacheAddr) public {
+        ensCache = ENSCache(ensCacheAddr);
+    }
+
+    function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
         string memory ownerstring = addressToString(msg.sender);
+        _createStreamAndPermission(ownerstring, streamIdPath, metadataJsonString);
+    }
+
+    function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+        require(ensCache.owners(ensName) == msg.sender, "you must be owner of the ensname");
+        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+    }
+
+    function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
+        bytes memory pathBytes = bytes(streamIdPath);
+        require(pathBytes[0] == "/", "path must start with /");
         string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
         require(bytes(streamIdToMetadata[streamId]).length == 0, "stream id alreay exists");
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
