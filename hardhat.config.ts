@@ -33,6 +33,12 @@ const config: HardhatUserConfig = {
         compilers: [{
             version: '0.8.3', settings: {}
         }],
+        overrides: {
+            'contracts/chainlinkClient/ESNCache.sol': {
+                version: '0.6.12',
+                settings: { }
+            }
+        }
     },
     typechain: {
         outDir: './typechain',

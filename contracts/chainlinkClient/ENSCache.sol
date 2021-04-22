@@ -1,7 +1,8 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.6.0;
 
-import "@chainlink/contracts/src/v0.8/dev/ChainlinkClient.sol";
-import "@chainlink/contracts/src/v0.8/dev/Chainlink.sol";
+import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.6/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
@@ -12,9 +13,13 @@ contract ENSCache is ChainlinkClient, Ownable {
   // address public resolvedEnsAddress;
   mapping(string => address) public owners;
   mapping(bytes32 => string) public sentRequests;
+  bytes32 public currentRequestid;
+  string public currentrequestname;
+  bytes32 public returnedRequestid;
+  bytes32 public returnedaddress;
 
 
-  constructor() public Ownable() {
+  constructor() {
     setPublicChainlinkToken();
   }
 
@@ -23,9 +28,18 @@ contract ENSCache is ChainlinkClient, Ownable {
     req.add("ensname", ensName);
     bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
     sentRequests[requestid] = ensName;
+    currentrequestname = ensName;
+    currentRequestid = requestid;
   }
 
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
+    //emit RequestEthereumLastMarket(_requestId, _market);
+    // owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
+    returnedRequestid = requestId;
+    returnedaddress = owneraddress;
+  }
+  
+  function fulfillENSOwnerm(bytes32 requestId, bytes32 owneraddress) public {
     //emit RequestEthereumLastMarket(_requestId, _market);
     owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
   }
