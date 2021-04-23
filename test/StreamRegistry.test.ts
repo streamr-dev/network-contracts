@@ -3,6 +3,8 @@ import { expect, use } from 'chai'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import { StreamRegistry } from '../typechain/StreamRegistry'
+// import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
+// import { ENSCache } from '../typechain/ENSCache'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -13,13 +15,14 @@ use(waffle.solidity)
 
 describe('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
+    // let ensCacheFromAdmin: ENSCache
     let registryFromAdmin: StreamRegistry
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
     // let registryFromUser1: StreamRegistry
-    const adminAdress = wallets[0].address
-    const user0Address = wallets[1].address
-    const user1Address = wallets[2].address
+    const adminAdress: string = wallets[0].address
+    const user0Address: string = wallets[1].address
+    const user1Address: string = wallets[2].address
     const streamPath0: string = '/streamPath0'
     const streamPath1: string = '/streamPath1'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
@@ -28,7 +31,10 @@ describe('StreamRegistry', (): void => {
     const metadata1: string = 'streammetadata1'
 
     before(async (): Promise<void> => {
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson) as StreamRegistry
+        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
+        //     [user1Address, 'jobid']) as ENSCache
+        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
+            [wallets[3].address]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
     })

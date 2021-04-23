@@ -41,6 +41,14 @@ const config: HardhatUserConfig = {
             'contracts/chainlinkClient/ESNCache.sol': {
                 version: '0.6.12',
                 settings: { }
+            },
+            'contracts/chainlinkClient/Ownable.sol': {
+                version: '0.6.12',
+                settings: { }
+            },
+            'contracts/chainlinkClient/Context.sol': {
+                version: '0.6.12',
+                settings: { }
             }
         }
     },
