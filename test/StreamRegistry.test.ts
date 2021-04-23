@@ -43,13 +43,7 @@ describe('StreamRegistry', (): void => {
         await expect(await registryFromAdmin.createStream(streamPath0, metadata0))
             .to.emit(registryFromAdmin, 'StreamCreated')
             .withArgs(streamId0, metadata0)
-        // const addresskey = await registryFromAdmin.getAddressKey(streamId, adminAdress)
         expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
-        // const permissions = await registryFromAdmin.streamIdToPermissions(streamId, addresskey)
-        // expect(permissions.edit).to.equal(true)
-        // expect(permissions.publishRights).to.equal(1)
-        // expect(permissions.subscriptionExpirationTime).to.equal(0)
-        // expect(await registryFromAdmin.getDescription(streamID)).to.equal('a')
     })
 
     it('negativetest createStream, already exists error', async (): Promise<void> => {

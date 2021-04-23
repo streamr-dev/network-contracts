@@ -95,10 +95,10 @@ contract StreamRegistry {
     }
 
     function setPermissionsForUser(string calldata streamId, address user, bool edit, 
-        bool canDelete, bool publish, bool subscribe, bool share) public canShare(streamId) {
+        bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
                 edit: edit,
-                canDelete: canDelete,
+                canDelete: deletePerm,
                 publish: publish,
                 subscribed: subscribe,
                 share: share
