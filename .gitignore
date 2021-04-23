@@ -1,6 +1,6 @@
-/node_modules/
-/build
-/cache
-/bin/
-/artifacts/
-/typechain/
+**node_modules/
+**build
+**cache
+/packages/smartcontracts/bin/
+/packages/smartcontracts/artifacts/
+/packages/smartcontracts/typechain/

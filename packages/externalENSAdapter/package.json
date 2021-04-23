@@ -5,7 +5,7 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "scripts": {
-    "test": "./node_modules/.bin/_mocha --timeout 0",
+    "test": "mocha --timeout 0",
     "start": "node -r dotenv/config app.js"
   },
   "dependencies": {
