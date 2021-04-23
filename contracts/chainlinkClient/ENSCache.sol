@@ -51,15 +51,8 @@ contract ENSCache is ChainlinkClient, Ownable {
     require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
   }
 
-  function cancelRequest(
-    bytes32 _requestId,
-    uint256 _payment,
-    bytes4 _callbackFunctionId,
-    uint256 _expiration
-  )
-    public
-    onlyOwner
-  {
+  function cancelRequest(bytes32 _requestId, uint256 _payment, bytes4 _callbackFunctionId,
+    uint256 _expiration) public onlyOwner {
     cancelChainlinkRequest(_requestId, _payment, _callbackFunctionId, _expiration);
   }
   
