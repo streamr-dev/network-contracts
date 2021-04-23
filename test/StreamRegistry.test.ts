@@ -1,4 +1,4 @@
-import { waffle, network, ethers } from 'hardhat'
+import { waffle } from 'hardhat'
 import { expect, use } from 'chai'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
@@ -9,6 +9,7 @@ import { StreamRegistry } from '../typechain/StreamRegistry'
 const { deployContract } = waffle
 const { provider } = waffle
 
+// eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
 
 use(waffle.solidity)

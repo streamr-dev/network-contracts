@@ -13,10 +13,11 @@
     "@ensdomains/ens": "^0.6.0",
     "dotenv": "^8.2.0",
     "eth-ens-namehash": "^2.0.8",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.0",
     "ethers": "^5.0.32"
   },
   "devDependencies": {
-    "body-parser": "^1.19.0",
     "chai": "^4.2.0",
     "eslint": "^7.0.0",
     "eslint-config-standard": "^14.1.1",
@@ -25,7 +26,6 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "express": "^4.17.0",
     "mocha": "^7.1.2"
   }
 }
