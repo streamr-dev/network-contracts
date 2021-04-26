@@ -10,7 +10,7 @@ ONLY FOR LINUX: ./setup.sh
 docker-compose up
 ```
 
-then copy your abi (only the abi part of the hardhat/truffle generated jsonfile) into this repo in abis and update the contract address in subgraph.yaml
+then run the prepareTheGraph.js script in the scripts folder of the monorepo
 when using the openzeppelin proxy contracts: take the abi of the logic contract (not the proxy) and the address of the proxy
 also edit the githubname and subgraphname in the package.json taks
 
