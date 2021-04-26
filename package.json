@@ -9,6 +9,7 @@
     ],
     "scripts": {
         "build": "npm run build -w=smartcontracts -w=streamregistry-thegraph-subgraph",
+        "lint": "npm run lint -ws",
         "test": "npm run test -w=chainlink-ens-external-adapter -w=smartcontracts"
     }
 }

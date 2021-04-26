@@ -4,6 +4,8 @@ import { StreamCreated, TransferedPublishRights, TransferedViewRights }
     from '../generated/StreamRegistry/StreamRegistry'
 import { Stream, Permission } from '../generated/schema'
 
+type i32 = {}
+
 function createPermission(id: string, user: Bytes, stream: string, isAdmin: boolean,
     viewRights: i32, publishRights: i32, expirationTime: BigInt): Permission {
     const permission = new Permission(id)
