@@ -5,13 +5,16 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
+    "lint": "eslint ./src/*.ts",
     "create-local": "graph create githubname/subgraphname --node http://127.0.0.1:8020",
     "deploy-local": "graph deploy githubname/subgraphname --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
     "create": "graph create githubname/subgraphname --node https://api.thegraph.com/deploy/",
     "deploy": "graph deploy githubname/subgraphname --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.20.0",
+    "@graphprotocol/graph-cli": "^0.20.0"
+  },
+  "dependencies": {
     "@graphprotocol/graph-ts": "^0.20.0"
   }
 }

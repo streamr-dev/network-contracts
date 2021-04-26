@@ -3,6 +3,7 @@ import { expect, use } from 'chai'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import { StreamRegistry } from '../typechain/StreamRegistry'
+
 // import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
 // import { ENSCache } from '../typechain/ENSCache'
 
@@ -52,7 +53,19 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('stream id alreay exists')
     })
 
-    // TEST IF CREATE; DELETE; CREATE SAME ID DELETES PERMISSIONS!!!
+    // ENS tests seem to be impossible since enscache is dependent on chainlink
+    // and chainlink contracts seem not to work with mock-chains
+    // (chainlink docu says so, and trying to deploy LinkToken->Oracle->ENSCache does
+    // work on Rinkeby, but does not on remix js-EVM or on Ganache)
+    // write mock contracts?
+
+    // it('positivetest createStream with ENS', async (): Promise<void> => {
+    // })
+
+    // it('negativetest createStream with ENS', async (): Promise<void> => {
+    //     await expect(registryFromAdmin.createStreamWithENS('ensname.eth', streamPath0, metadata0))
+    //         .to.be.revertedWith('you must be owner of the ensname')
+    // })
 
     it('positivetest getStreamMetadata', async (): Promise<void> => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
@@ -224,5 +237,39 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('no share permission')
         await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Share))
             .to.be.revertedWith('no share permission')
+    })
+
+    it('positivetest revokePermissionsForUser, hasPermission', async (): Promise<void> => {
+        await registryFromAdmin.setPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+        await registryFromAdmin.revokePermissionsForUser(streamId0, user0Address)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('negativetest revokePermissionsForUser', async (): Promise<void> => {
+        await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Share)
+        expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Share))
+            .to.equal(false)
+        await expect(registryFromUser0.revokePermissionsForUser(streamId0, user0Address))
+            .to.be.revertedWith('no share permission')
+    })
+
+    // test if create stream->delete stream->recreate stream with same id also wipes
+    // all permissions (not trivial since you can't delete mappings)
+    it('recreate stream with same id wipes permissions', async (): Promise<void> => {
+        await registryFromAdmin.deleteStream(streamId0)
+        await registryFromAdmin.createStream(streamPath0, metadata0)
+        // give user0 all permissions
+        await registryFromAdmin.setPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+        // delete stream, and recreate with same id
+        await registryFromAdmin.deleteStream(streamId0)
+        await registryFromAdmin.createStream(streamPath0, metadata0)
+        // check that user0 has no permission
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
     })
 })
