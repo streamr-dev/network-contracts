@@ -5,6 +5,9 @@ pragma experimental ABIEncoderV2;
 import "../chainlinkClient/ENSCache.sol";
 contract StreamRegistry {
     event StreamCreated(string id, string metadata);
+    event StreamDeleted(string id);
+    event StreamUpdated(string id, string metadata);
+    event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, bool publish, bool subscribe, bool share);
     // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
     // event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
 
@@ -72,6 +75,7 @@ contract StreamRegistry {
             share: true
         });
         emit StreamCreated(streamId, metadataJsonString);
+        emit PermissionUpdated(streamId, msg.sender, true, true, true, true, true);
     }
 
     function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
@@ -80,6 +84,7 @@ contract StreamRegistry {
 
     function updateStreamMetadata(string calldata streamId, string calldata metadata) public streamExists(streamId) canEdit(streamId) {
         streamIdToMetadata[streamId] = metadata;
+        emit StreamUpdated(streamId, metadata);
     }
 
     function getStreamMetadata(string calldata streamId) public view streamExists(streamId) returns (string memory des) {
@@ -88,6 +93,7 @@ contract StreamRegistry {
 
     function deleteStream(string calldata streamId) public streamExists(streamId) canDelete(streamId) {
         delete streamIdToMetadata[streamId];
+        emit StreamDeleted(streamId);
     }
 
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
@@ -103,10 +109,12 @@ contract StreamRegistry {
                 subscribed: subscribe,
                 share: share
            });
+           emit PermissionUpdated(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
-    function revokePermissionsForUser(string calldata streamId, address user) public canShare(streamId){
+    function revokeAllPermissionsForUser(string calldata streamId, address user) public canShare(streamId){
         delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        emit PermissionUpdated(streamId, user, false, false, false, false, false);
     }
 
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
@@ -129,10 +137,14 @@ contract StreamRegistry {
 
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
         setPermission(streamId, user, permissionType, true);
+        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
     }
 
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
         setPermission(streamId, user, permissionType, false);
+        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
     }
 
     function setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) internal {

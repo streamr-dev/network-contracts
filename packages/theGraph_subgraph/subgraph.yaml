@@ -8,7 +8,7 @@ dataSources:
     name: StreamRegistry
     network: mainnet
     source:
-      address: '0xD404Cd7bc5086033E65b3b91b96a155FE1C1Fa16'
+      address: '0xd324ECeFD684F2C2C7bFdBa836C5dBBB63221870'
       abi: StreamRegistry
     mapping:
       kind: ethereum/events

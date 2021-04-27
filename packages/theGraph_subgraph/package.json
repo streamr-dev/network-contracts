@@ -8,8 +8,9 @@
     "lint": "eslint ./src/*.ts",
     "create-local": "graph create githubname/subgraphname --node http://127.0.0.1:8020",
     "deploy-local": "graph deploy githubname/subgraphname --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
-    "create": "graph create githubname/subgraphname --node https://api.thegraph.com/deploy/",
-    "deploy": "graph deploy githubname/subgraphname --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/"
+    "create_attention": "graph create githubname/subgraphname --node https://api.thegraph.com/deploy/",
+    "deploy_attention": "graph deploy githubname/subgraphname --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "doAll": "npm run codegen && npm run build && npm run create-local && npm run deploy-local"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.20.0"

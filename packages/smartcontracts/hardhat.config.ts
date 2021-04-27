@@ -2,9 +2,10 @@ import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-typechain'
 import { HardhatUserConfig } from 'hardhat/types'
+import 'hardhat-deploy'
+import 'hardhat-deploy-ethers'
 
 require('solidity-coverage')
-require('hardhat-deploy')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -29,6 +30,7 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {},
         dev: {
+            chainId: 1337,
             url: 'http://0.0.0.0:8545'
         }
     },
@@ -54,6 +56,9 @@ const config: HardhatUserConfig = {
                 settings: { }
             }
         }
+    },
+    namedAccounts: {
+        deployer: 0,
     },
     typechain: {
         outDir: './typechain',
