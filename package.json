@@ -13,6 +13,7 @@
         "test": "npm run test -w=chainlink-ens-external-adapter -w=smartcontracts",
         "graph1_build" : "npm run deployLocalWithExport -w=smartcontracts",
         "graph2_copyInfo" : "node ./scripts/prepareTheGraph.js",
-        "graph3_build" : "npm run doAll -w=streamregistry-thegraph-subgraph"
+        "graph3_build" : "npm run doAll -w=streamregistry-thegraph-subgraph",
+        "graph_all" : "npm run graph1_build && npm run graph2_copyInfo && npm run graph3_build"
     }
 }

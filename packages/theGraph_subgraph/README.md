@@ -38,10 +38,11 @@ example queries:
     permissions {
       id,
   		user,
-  		isadmin,
-  		publishRights
-  		viewRights
-  		expirationTime
+  		edit,
+      canDelete,
+      publish,
+      subscribed,
+      share,
     }
   }
 }

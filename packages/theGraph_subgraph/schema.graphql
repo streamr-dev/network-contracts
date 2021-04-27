@@ -8,8 +8,9 @@ type Permission @entity {
   id: ID!
   user: Bytes!
   stream: Stream
-  isadmin: Boolean
-  publishRights: Int
-  viewRights: Int
-  expirationTime: BigInt
+  edit: Boolean
+  canDelete: Boolean
+  publish: Boolean
+  subscribed: Boolean
+  share: Boolean
 }

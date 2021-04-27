@@ -8,7 +8,7 @@ dataSources:
     name: StreamRegistry
     network: mainnet
     source:
-      address: '0xd324ECeFD684F2C2C7bFdBa836C5dBBB63221870'
+      address: '0xB24f425B95f8EA307F041e3925D5dfe989CF6313'
       abi: StreamRegistry
     mapping:
       kind: ethereum/events
@@ -20,10 +20,12 @@ dataSources:
         - name: StreamRegistry
           file: ./abis/StreamRegistry.json
       eventHandlers:
-        - event: StreamCreated(uint256,address,string)
+        - event: StreamCreated(string,string)
           handler: handleStreamCreation
-        - event: TransferedViewRights(uint256,address,address,uint8)
-          handler: handleTransferViewRights
-        - event: TransferedPublishRights(uint256,address,address,uint8)
-          handler: handleTransferPublishRights
+        - event: StreamDeleted(string)
+          handler: handleStreamDeletion
+        - event: StreamUpdated(string,string)
+          handler: handleStreamUpdate
+        - event: PermissionUpdated(string,address,bool,bool,bool,bool,bool)
+          handler: handlePermissionUpdate
       file: ./src/mapping.ts
