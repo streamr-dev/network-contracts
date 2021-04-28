@@ -7,7 +7,7 @@ contract StreamRegistry {
     event StreamCreated(string id, string metadata);
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
-    event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, bool publish, bool subscribe, bool share);
+    event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, bool publish, bool subscribed, bool share);
     // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
     // event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
 
