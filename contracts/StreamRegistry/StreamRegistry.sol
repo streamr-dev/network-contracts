@@ -1,100 +1,168 @@
-pragma solidity 0.7.6;
-contract StreamRegistry {
-    event StreamCreated(uint id, address owner, string metadata);
-    event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
-    event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.6.0;
+pragma experimental ABIEncoderV2;
 
-    uint public rollingId = 0;
-    mapping (uint => string) public streamIdToMetadata;
-    // streamid ->  useraddr -> permissions struct 
-    mapping (uint => mapping(address => Permission)) public streamIdToPermissions;
+import "../chainlinkClient/ENSCache.sol";
+contract StreamRegistry {
+    event StreamCreated(string id, string metadata);
+    // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
+    // event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
+
+    enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
+
+    mapping (string => uint32) private streamIdToVersion;
+    mapping (string => string) public streamIdToMetadata;
+    // streamid ->  keccak256(version, useraddress); -> permissions struct 
+    mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
+    ENSCache private ensCache;
 
     struct Permission {
-        bool isAdmin; // has all the rights, can grant
-        uint8 publishRights; // TODO do we need more that 256 sharable rights?
-        // sharable view rights = stream data read permission = stream subscription
-        uint8 viewRights;
-        // can edit metadata
-        // bool edit; // TODO do we need edit rights different from admin? can someone edit metadato but not publish?
-        // TODO how big int is neccessary for time?
-        uint256 expirationTime;
+        bool edit;
+        bool canDelete;
+        bool publish; 
+        bool subscribed;
+        bool share;
     }
 
-    modifier canView(uint id) {
-        require(streamIdToPermissions[id][msg.sender].isAdmin ||
-        streamIdToPermissions[id][msg.sender].viewRights > 0 , "no view permission");
-        // TODO add check for expration time
+    modifier canShare(string calldata streamId) {
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].share, "no share permission"); //||
         _;
     }
-    modifier canEdit(uint id) {
-        require(streamIdToPermissions[id][msg.sender].isAdmin, "no edit permission"); //||
-        //streamIdToPermissions[id][msg.sender].edit, "no edit permission");
+    modifier canDelete(string calldata streamId) {
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].canDelete, "no delete permission"); //||
         _;
     }
-    modifier itemExists(uint id) {
+    modifier canEdit(string calldata streamId) {
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].edit, "no edit permission"); //||
+        _;
+    }
+    modifier streamExists(string calldata streamId) {
         // TODO can stream exist without metadata?
-        require(bytes(streamIdToMetadata[id]).length != 0, "item doesn' exist");
+        require(bytes(streamIdToMetadata[streamId]).length != 0, "stream does not exist");
         _;
     }
 
-    // TODO do we need an external id or increment ourselves?
-    function createItem(string memory desc) public {
-        // require(bytes(streamIdToMetadata[id]).length == 0, "item id alreay exists!");
-        rollingId = rollingId + 1;
-        streamIdToMetadata[rollingId] = desc;
-        streamIdToPermissions[rollingId][msg.sender] = 
+    constructor(address ensCacheAddr) public {
+        ensCache = ENSCache(ensCacheAddr);
+    }
+
+    function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
+        string memory ownerstring = addressToString(msg.sender);
+        _createStreamAndPermission(ownerstring, streamIdPath, metadataJsonString);
+    }
+
+    function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+        require(ensCache.owners(ensName) == msg.sender, "you must be owner of the ensname");
+        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+    }
+
+    function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
+        bytes memory pathBytes = bytes(streamIdPath);
+        require(pathBytes[0] == "/", "path must start with /");
+        string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
+        require(bytes(streamIdToMetadata[streamId]).length == 0, "stream id alreay exists");
+        streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
+        streamIdToMetadata[streamId] = metadataJsonString;
+        streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)] = 
         Permission({
-            isAdmin: true,
-            publishRights: 1,
-            viewRights: 1,
-            expirationTime: 0
+            edit: true,
+            canDelete: true,
+            publish: true,
+            subscribed: true,
+            share: true
         });
-        emit StreamCreated(rollingId, msg.sender, desc);
+        emit StreamCreated(streamId, metadataJsonString);
     }
 
-    function editItem(uint id, string memory desc) public itemExists(id) canEdit(id) {
-        streamIdToMetadata[id] = desc;
+    function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
+        return keccak256(abi.encode(streamIdToVersion[streamId], user));
     }
 
-    function getDescription(uint id) public view itemExists(id) returns (string memory des) {
-        return streamIdToMetadata[id];
+    function updateStreamMetadata(string calldata streamId, string calldata metadata) public streamExists(streamId) canEdit(streamId) {
+        streamIdToMetadata[streamId] = metadata;
     }
 
-    function transferViewRights(uint id, address recipient, uint8 amount) public itemExists(id) {
-        require(recipient != address(0), "recipient address is 0");
-        if (!streamIdToPermissions[id][msg.sender].isAdmin) {
-            require(streamIdToPermissions[id][msg.sender].viewRights >= amount, "no rights left to transfer");
-            streamIdToPermissions[id][msg.sender].viewRights -= amount;
+    function getStreamMetadata(string calldata streamId) public view streamExists(streamId) returns (string memory des) {
+        return streamIdToMetadata[streamId];
+    }
+
+    function deleteStream(string calldata streamId) public streamExists(streamId) canDelete(streamId) {
+        delete streamIdToMetadata[streamId];
+    }
+
+    function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
+        return streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+    }
+
+    function setPermissionsForUser(string calldata streamId, address user, bool edit, 
+        bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
+                edit: edit,
+                canDelete: deletePerm,
+                publish: publish,
+                subscribed: subscribe,
+                share: share
+           });
+    }
+
+    function revokePermissionsForUser(string calldata streamId, address user) public canShare(streamId){
+        delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+    }
+
+    function hasPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
+        if (permissionType == PermissionType.Edit) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit;
         }
-        streamIdToPermissions[id][recipient].viewRights += amount;
-        emit TransferedViewRights(id, msg.sender, recipient, amount);
-    }
-    function transferPublishRights(uint id, address recipient, uint8 amount) public itemExists(id) {
-        require(recipient != address(0), "recipient address is 0");
-        if (!streamIdToPermissions[id][msg.sender].isAdmin) {
-            require(streamIdToPermissions[id][msg.sender].publishRights >= amount, "no rights left to transfer");
-            streamIdToPermissions[id][msg.sender].publishRights -= amount;
+        else if (permissionType == PermissionType.Delete) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete;
         }
-        streamIdToPermissions[id][recipient].publishRights += amount;
-        emit TransferedPublishRights(id, msg.sender, recipient, amount);
+        else if (permissionType == PermissionType.Subscribe) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribed;
+        }
+        else if (permissionType == PermissionType.Publish) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].publish;
+        }
+        else if (permissionType == PermissionType.Share) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].share;
+        }
     }
 
-    // function grantPermissions(uint id, address user, bool[] memory _permission) public itemExists(id) canGrant(id) {
-    //     permissions[id][user] = _permission;
-    // }
-    
-    // function hasPermission(uint id, address user, string memory _permission) public view itemExists(id) returns (bool userPermission) {
-    //     if (keccak256(bytes(_permission)) == keccak256(bytes("view"))) {
-    //         return permissions[id][user][0];
-    //     }
-    //     else if (keccak256(bytes(_permission)) == keccak256(bytes("edit"))) {
-    //         return permissions[id][user][1];
-    //     }
-    //     else if (keccak256(bytes(_permission)) == keccak256(bytes("grant"))) {
-    //         return permissions[id][user][2];
-    //     } else require(false, "use view, edit and grant");
-    // }
-    // function getPermissions(uint id, address user) public view itemExists(id) returns (Permission memory userHasPermission) {
-    //     return streamIdToPermissions[id][user];
-    // }
+    function grantPermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
+        setPermission(streamId, user, permissionType, true);
+    }
+
+    function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
+        setPermission(streamId, user, permissionType, false);
+    }
+
+    function setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) internal {
+        if (permissionType == PermissionType.Edit) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit = grant;
+        }
+        else if (permissionType == PermissionType.Delete) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete = grant;
+        }
+        else if (permissionType == PermissionType.Subscribe) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribed = grant;
+        }
+        else if (permissionType == PermissionType.Publish) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publish = grant;
+        }
+        else if (permissionType == PermissionType.Share) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].share = grant;
+        }
+    }
+
+    function addressToString(address _address) public pure returns(string memory) {
+       bytes32 _bytes = bytes32(uint256(uint160(_address)));
+       bytes memory _hex = "0123456789abcdef";
+       bytes memory _string = new bytes(42);
+       _string[0] = "0";
+       _string[1] = "x";
+       for(uint i = 0; i < 20; i++) {
+           _string[2+i*2] = _hex[uint8(_bytes[i + 12] >> 4)];
+           _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
+       }
+       return string(_string);
+    }
 }

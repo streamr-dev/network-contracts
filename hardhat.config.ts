@@ -9,6 +9,7 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
     const accounts = await hre.ethers.getSigners()
     // eslint-disable-next-line no-restricted-syntax
     for (const account of accounts) {
+        // eslint-disable-next-line no-console
         console.log(account.address)
     }
 })
@@ -25,14 +26,31 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {},
         dev: {
-            url: 'http://0.0.0.0:8545',
-            accounts: ['0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb']
+            url: 'http://0.0.0.0:8545'
         }
     },
     solidity: {
         compilers: [{
-            version: '0.7.6', settings: {}
+            version: '0.8.3', settings: {}
+        },
+        {
+            version: '0.6.12',
+            settings: { }
         }],
+        overrides: {
+            'contracts/chainlinkClient/ESNCache.sol': {
+                version: '0.6.12',
+                settings: { }
+            },
+            'contracts/chainlinkClient/Ownable.sol': {
+                version: '0.6.12',
+                settings: { }
+            },
+            'contracts/chainlinkClient/Context.sol': {
+                version: '0.6.12',
+                settings: { }
+            }
+        }
     },
     typechain: {
         outDir: './typechain',
