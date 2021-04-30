@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "./WeightStrategy.sol";
@@ -8,7 +8,7 @@ import "./NodeRegistry.sol";
 contract WeightedNodeRegistry is NodeRegistry {
     WeightStrategy public strat;
     constructor(address owner_, bool requiresWhitelist_, address weightStrategy_, address[] memory initialNodes, string[] memory initialUrls)
-        NodeRegistry(owner_, requiresWhitelist_, initialNodes, initialUrls) {
+        NodeRegistry(owner_, requiresWhitelist_, initialNodes, initialUrls) public {
        strat = WeightStrategy(weightStrategy_);
     }
 

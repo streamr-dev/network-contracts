@@ -3,7 +3,7 @@ pragma solidity >=0.6.0;
 
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.6/Chainlink.sol";
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;

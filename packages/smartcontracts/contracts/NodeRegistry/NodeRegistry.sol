@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import "./Ownable.sol";
@@ -46,7 +46,7 @@ contract NodeRegistry is Ownable {
     mapping(address => NodeLinkedListItem) public nodes;
     mapping(address => WhitelistState) public whitelist;
 
-    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata ) Ownable(owner) {
+    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata ) public Ownable(owner) {
         requiresWhitelist = requiresWhitelist_;
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         for (uint i = 0; i < initialNodes.length; i++) {

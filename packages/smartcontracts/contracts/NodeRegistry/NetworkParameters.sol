@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.0;
 
 import "./Ownable.sol";
 
@@ -9,7 +9,7 @@ contract NetworkParameters is Ownable {
     string public minNetworkReferenceCodeVersion;
     address public tokenAddress;
 
-    constructor(address owner, uint minControlLayerVersion_, uint minMessageLayerVersion_, string memory minNetworkReferenceCodeVersion_, address tokenAddress_) Ownable(owner) {
+    constructor(address owner, uint minControlLayerVersion_, uint minMessageLayerVersion_, string memory minNetworkReferenceCodeVersion_, address tokenAddress_) public Ownable(owner) {
         minControlLayerVersion = minControlLayerVersion_;
         minMessageLayerVersion = minMessageLayerVersion_;
         minNetworkReferenceCodeVersion = minNetworkReferenceCodeVersion_;
