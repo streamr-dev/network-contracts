@@ -17,13 +17,17 @@ contract ENSCache is ChainlinkClient, Ownable {
   string public jobId;
 
   constructor(address oracleaddress, string memory chainlinkJobId) public {
-    setPublicChainlinkToken();
+    // setPublicChainlinkToken();
     oracle = oracleaddress;
     jobId = chainlinkJobId;
   }
 
   function setOracleAdress(address oracleAddress) public onlyOwner {
     oracle = oracleAddress;
+  }
+
+  function setChainlinkTokenAddress(address _link) public onlyOwner {
+    super.setChainlinkToken(_link);
   }
 
   function setChainlinkJobId(string calldata chainlinkJobId) public onlyOwner {

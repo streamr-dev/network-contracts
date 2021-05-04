@@ -30,8 +30,9 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {},
         dev: {
-            chainId: 1337,
-            url: 'http://0.0.0.0:8545'
+            chainId: 8997,
+            // url: 'http://0.0.0.0:8545'
+            url: 'http://192.168.2.108:8546'
         }
     },
     solidity: {
@@ -46,15 +47,15 @@ const config: HardhatUserConfig = {
             'contracts/chainlinkClient/ESNCache.sol': {
                 version: '0.6.12',
                 settings: { }
-            },
-            'contracts/chainlinkClient/Ownable.sol': {
-                version: '0.6.12',
-                settings: { }
-            },
-            'contracts/chainlinkClient/Context.sol': {
-                version: '0.6.12',
-                settings: { }
             }
+            // 'contracts/chainlinkClient/Ownable.sol': {
+            //     version: '0.6.12',
+            //     settings: { }
+            // },
+            // 'contracts/chainlinkClient/Context.sol': {
+            //     version: '0.6.12',
+            //     settings: { }
+            // }
         }
     },
     namedAccounts: {
