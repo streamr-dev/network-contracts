@@ -4,7 +4,8 @@ const { ethers } = require('ethers')
 const namehash = require('eth-ens-namehash')
 const { Requester, Validator } = require('@chainlink/external-adapter')
 
-const provider = new ethers.providers.InfuraProvider(process.env.NETWORK, process.env.INFURA_API_KEY)
+// const provider = new ethers.providers.InfuraProvider(process.env.NETWORK, process.env.INFURA_API_KEY)
+const provider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PARITY_MAINCHAIN)
 
 const customParams = {
     name: ['name', 'ensname']
@@ -27,7 +28,7 @@ const createRequest = (input, callback) => {
             }))
         })
         .catch((error) => {
-            callback(500, Requester.errored(jobRunID, error, 400))
+            callback(500, Requester.errored(jobRunID, error, 500))
         })
 }
 
