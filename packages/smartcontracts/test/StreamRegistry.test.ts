@@ -109,6 +109,11 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('no delete permission')
     })
 
+    it('positivetest getDirectPermissionForUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, adminAdress))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
     it('positivetest getPermissionForUser', async (): Promise<void> => {
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
             .to.deep.equal([true, true, true, true, true])

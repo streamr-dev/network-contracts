@@ -16,6 +16,7 @@ contract StreamRegistry {
     mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
     // streamid ->  keccak256(version, useraddress); -> permissions struct 
+    // mapping (string => mapping(bytes32 => mapping(PermissionType => bool))) public streamIdToPermissions2;
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     ENSCache private ensCache;
 
@@ -44,7 +45,7 @@ contract StreamRegistry {
         require(bytes(streamIdToMetadata[streamId]).length != 0, "stream does not exist");
         _;
     }
-
+   
     constructor(address ensCacheAddr) public {
         ensCache = ENSCache(ensCacheAddr);
     }
@@ -97,11 +98,21 @@ contract StreamRegistry {
     }
 
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
+        permission = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
+        permission.publish = permission.publish || publicPermission.publish;
+        permission.subscribed = permission.subscribed || publicPermission.subscribed;
+        return permission;
+    }
+
+    function getDirectPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
         return streamIdToPermissions[streamId][getAddressKey(streamId, user)];
     }
 
     function setPermissionsForUser(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
+            require(user != address(0) || !(edit || deletePerm || share),
+                "Only subscribe and publish can be set on public permissions");
             streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
                 edit: edit,
                 canDelete: deletePerm,
@@ -118,6 +129,11 @@ contract StreamRegistry {
     }
 
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
+        return hasDirectPermission(streamId, user, permissionType) ||
+            hasDirectPermission(streamId, address(0), permissionType);
+    }
+
+    function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
         if (permissionType == PermissionType.Edit) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit;
         }
@@ -137,17 +153,15 @@ contract StreamRegistry {
 
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
         setPermission(streamId, user, permissionType, true);
-        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
     }
 
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
         setPermission(streamId, user, permissionType, false);
-        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
     }
 
-    function setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) internal {
+    function setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) public {
+        require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish,
+            "Only subscribe and publish can be set on public permissions");
         if (permissionType == PermissionType.Edit) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit = grant;
         }
@@ -163,6 +177,24 @@ contract StreamRegistry {
         else if (permissionType == PermissionType.Share) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].share = grant;
         }
+        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
+    }
+
+    function grantPublicPermission(string calldata streamId, PermissionType permissionType) public canShare(streamId) {
+        grantPermission(streamId, address(0), permissionType);
+    }
+
+    function revokePublicPermission(string calldata streamId, PermissionType permissionType) public canShare(streamId) {
+        revokePermission(streamId, address(0), permissionType);
+    }
+
+    function setPublicPermission(string calldata streamId, PermissionType permissionType, bool grant) public {
+        setPermission(streamId, address(0), permissionType, grant);
+    }
+
+    function setPublicPermission(string calldata streamId, bool publish, bool subscribe) public {
+        setPermissionsForUser(streamId, address(0), false, false, publish, subscribe, false);
     }
 
     function addressToString(address _address) public pure returns(string memory) {
