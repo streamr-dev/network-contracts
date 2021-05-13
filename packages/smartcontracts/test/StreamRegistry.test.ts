@@ -21,10 +21,12 @@ describe('StreamRegistry', (): void => {
     let registryFromAdmin: StreamRegistry
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
+    let registryFromMigrator: StreamRegistry
     // let registryFromUser1: StreamRegistry
     const adminAdress: string = wallets[0].address
     const user0Address: string = wallets[1].address
     const user1Address: string = wallets[2].address
+    const migratorAddress: string = wallets[3].address
     const streamPath0: string = '/streamPath0'
     const streamPath1: string = '/streamPath1'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
@@ -36,12 +38,13 @@ describe('StreamRegistry', (): void => {
         // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
         //     [user1Address, 'jobid']) as ENSCache
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [wallets[3].address]) as StreamRegistry
+            [wallets[3].address, migratorAddress]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
+        registryFromMigrator = registryFromAdmin.connect(wallets[3])
     })
 
-    it('positivetest createStream, get description', async (): Promise<void> => {
+    it('positivetest createStream + event, get description', async (): Promise<void> => {
         await expect(await registryFromAdmin.createStream(streamPath0, metadata0))
             .to.emit(registryFromAdmin, 'StreamCreated')
             .withArgs(streamId0, metadata0)
@@ -77,7 +80,7 @@ describe('StreamRegistry', (): void => {
         await expect(registryFromAdmin.getStreamMetadata(streamId1)).to.be.revertedWith('stream does not exist')
     })
 
-    it('positivetest updateStreamMetadata', async (): Promise<void> => {
+    it('positivetest updateStreamMetadata + event', async (): Promise<void> => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
         await expect(await registryFromAdmin.updateStreamMetadata(streamId0, metadata1))
             .to.emit(registryFromAdmin, 'StreamUpdated')
@@ -92,7 +95,7 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('no edit permission')
     })
 
-    it('positivetest deleteStream', async (): Promise<void> => {
+    it('positivetest deleteStream + event', async (): Promise<void> => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata1)
         await expect(await registryFromAdmin.deleteStream(streamId0))
             .to.emit(registryFromAdmin, 'StreamDeleted')
@@ -308,5 +311,67 @@ describe('StreamRegistry', (): void => {
         // check that user0 has no permission
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
             .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('positivetest grantPublicPermission', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        await registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Publish)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, true, false, false])
+        await registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Subscribe)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, true, true, false])
+    })
+
+    it('negativetest grantPublicPermission', async (): Promise<void> => {
+        await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Edit))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+        await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Delete))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+        await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Share))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+    })
+
+    it('positivetest revokePublicPermission', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, true, true, false])
+        await registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Publish)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, true, false])
+        await registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Subscribe)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('negativetest revokePublicPermission', async (): Promise<void> => {
+        await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Edit))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+        await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Delete))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+        await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Share))
+            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+    })
+
+    it('positivetest setPublicPermission', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        await registryFromAdmin.setPublicPermission(streamId0, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, true, true, false])
+        await registryFromAdmin.setPublicPermission(streamId0, false, false)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
+    it('positivetest migratorSetStream', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, migratorAddress))
+            .to.deep.equal([false, false, false, false, false])
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata0)
+        await registryFromMigrator.migratorSetStream(streamId0, metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata1)
     })
 })

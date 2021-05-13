@@ -13,6 +13,8 @@ contract StreamRegistry {
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
+    address public migrator;
+    bool public migrationActive = true;
     mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
     // streamid ->  keccak256(version, useraddress); -> permissions struct 
@@ -45,9 +47,18 @@ contract StreamRegistry {
         require(bytes(streamIdToMetadata[streamId]).length != 0, "stream does not exist");
         _;
     }
+    modifier isMigrator() {
+        require(msg.sender == migrator, "only migrator can call this");
+        _;
+    }
+    modifier migrationIsActive() {
+        require(migrationActive, "Migration is closed");
+        _;
+    }
    
-    constructor(address ensCacheAddr) public {
+    constructor(address ensCacheAddr, address migratoraddr) public {
         ensCache = ENSCache(ensCacheAddr);
+        migrator = migratoraddr;
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
@@ -111,16 +122,21 @@ contract StreamRegistry {
 
     function setPermissionsForUser(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
-            require(user != address(0) || !(edit || deletePerm || share),
-                "Only subscribe and publish can be set on public permissions");
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
-                edit: edit,
-                canDelete: deletePerm,
-                publish: publish,
-                subscribed: subscribe,
-                share: share
-           });
-           emit PermissionUpdated(streamId, user, edit, deletePerm, publish, subscribe, share);
+            _setPermission(streamId, user, edit, deletePerm, publish, subscribe, share);
+    }
+
+    function _setPermission(string calldata streamId, address user, bool edit, 
+        bool deletePerm, bool publish, bool subscribe, bool share) private {
+        require(user != address(0) || !(edit || deletePerm || share),
+            "Only subscribe and publish can be set on public permissions");
+        streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
+            edit: edit,
+            canDelete: deletePerm,
+            publish: publish,
+            subscribed: subscribe,
+            share: share
+        });
+        emit PermissionUpdated(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
     function revokeAllPermissionsForUser(string calldata streamId, address user) public canShare(streamId){
@@ -152,14 +168,14 @@ contract StreamRegistry {
     }
 
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
-        setPermission(streamId, user, permissionType, true);
+        _setPermission(streamId, user, permissionType, true);
     }
 
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
-        setPermission(streamId, user, permissionType, false);
+        _setPermission(streamId, user, permissionType, false);
     }
 
-    function setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) public {
+    function _setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) private {
         require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish,
             "Only subscribe and publish can be set on public permissions");
         if (permissionType == PermissionType.Edit) {
@@ -189,12 +205,33 @@ contract StreamRegistry {
         revokePermission(streamId, address(0), permissionType);
     }
 
-    function setPublicPermission(string calldata streamId, PermissionType permissionType, bool grant) public {
-        setPermission(streamId, address(0), permissionType, grant);
+    function setPublicPermission(string calldata streamId, bool publish, bool subscribe) public canShare(streamId) {
+        setPermissionsForUser(streamId, address(0), false, false, publish, subscribe, false);
     }
 
-    function setPublicPermission(string calldata streamId, bool publish, bool subscribe) public {
-        setPermissionsForUser(streamId, address(0), false, false, publish, subscribe, false);
+    function migratorSetStream(string calldata streamId, string calldata metadata) public isMigrator() migrationIsActive() {
+        streamIdToMetadata[streamId] = metadata;
+        emit StreamUpdated(streamId, metadata);
+    }
+
+    function migratorSetPermissionsForUser(string calldata streamId, address user, bool edit, 
+        bool deletePerm, bool publish, bool subscribe, bool share) public isMigrator() migrationIsActive() {
+            _setPermission(streamId, user, edit, deletePerm, publish, subscribe, share);
+    }
+
+    function bulkmigrate(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isMigrator() migrationIsActive() {
+        uint arrayLength = streamids.length;
+        for (uint i=0; i<arrayLength; i++) {
+            string calldata streamId = streamids[i];
+            streamIdToMetadata[streamId] = metadatas[i];
+            emit StreamUpdated(streamId, metadatas[i]);
+            Permission memory permission = permissions[i];
+            _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publish, permission.subscribed, permission.share);
+        }
+    }
+
+    function setMigrationComplete() public isMigrator() migrationIsActive() {
+        migrationActive = false;
     }
 
     function addressToString(address _address) public pure returns(string memory) {
