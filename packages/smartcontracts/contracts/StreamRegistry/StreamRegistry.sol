@@ -128,7 +128,7 @@ contract StreamRegistry {
     function _setPermission(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) private {
         require(user != address(0) || !(edit || deletePerm || share),
-            "Only subscribe and publish can be set on public permissions");
+            "public: only subscribe,publish");
         streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
             edit: edit,
             canDelete: deletePerm,
@@ -177,7 +177,7 @@ contract StreamRegistry {
 
     function _setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) private {
         require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish,
-            "Only subscribe and publish can be set on public permissions");
+            "public: only subscribe,publish");
         if (permissionType == PermissionType.Edit) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit = grant;
         }

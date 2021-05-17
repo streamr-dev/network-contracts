@@ -326,11 +326,11 @@ describe('StreamRegistry', (): void => {
 
     it('negativetest grantPublicPermission', async (): Promise<void> => {
         await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Edit))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
         await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Delete))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
         await expect(registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Share))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
     })
 
     it('positivetest revokePublicPermission', async (): Promise<void> => {
@@ -346,11 +346,11 @@ describe('StreamRegistry', (): void => {
 
     it('negativetest revokePublicPermission', async (): Promise<void> => {
         await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Edit))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
         await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Delete))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
         await expect(registryFromAdmin.revokePublicPermission(streamId0, PermissionType.Share))
-            .to.be.revertedWith('Only subscribe and publish can be set on public permissions')
+            .to.be.revertedWith('public: only subscribe,publish')
     })
 
     it('positivetest setPublicPermission', async (): Promise<void> => {
