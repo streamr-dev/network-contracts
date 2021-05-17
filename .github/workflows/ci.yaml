@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - node_version: 14
+          - node_version: 15
             os: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2.3.4
