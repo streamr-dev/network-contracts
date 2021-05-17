@@ -1,6 +1,6 @@
 const { assert } = require('chai')
 
-const { createRequest } = require('../index.js')
+const { createRequest } = require('../index')
 require('dotenv').config({
     path: './.env'
 })

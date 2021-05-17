@@ -5,10 +5,11 @@
     "author": "Streamr Network AG",
     "license": "ISC",
     "workspaces": [
-        "./packages/*"
+        "./packages/smartcontracts",
+        "./packages/externalENSAdapter"
     ],
     "scripts": {
-        "build": "npm run build -w=smartcontracts -w=streamregistry-thegraph-subgraph",
+        "build": "npm run build -w=smartcontracts",
         "lint": "npm run lint -ws",
         "test": "npm run test -w=chainlink-ens-external-adapter -w=smartcontracts",
         "graph1_build": "npm run deployLocalWithExport -w=smartcontracts",
