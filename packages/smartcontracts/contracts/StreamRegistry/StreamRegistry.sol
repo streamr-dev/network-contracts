@@ -52,7 +52,7 @@ contract StreamRegistry {
         _;
     }
     modifier migrationIsActive() {
-        require(migrationActive, "Migration is closed");
+        require(migrationActive, "migration is closed");
         _;
     }
    
@@ -209,6 +209,23 @@ contract StreamRegistry {
         setPermissionsForUser(streamId, address(0), false, false, publish, subscribe, false);
     }
 
+    function transferAllPermissionsToUser(string calldata streamId, address recipient) public {
+        Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)];
+        require(permSender.edit || permSender.canDelete || permSender.publish || permSender.subscribed ||
+        permSender.share, "no permission to transfer");
+        Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
+        _setPermission(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
+        permSender.publish || permRecipient.publish, permSender.subscribed || permRecipient.subscribed, 
+        permSender.share || permRecipient.share);
+        _setPermission(streamId, msg.sender, false, false, false, false, false);
+    }
+
+    function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
+        require(hasDirectPermission(streamId, msg.sender, permissionType), "no permission to transfer");
+        _setPermission(streamId, msg.sender, permissionType, false);
+        _setPermission(streamId, recipient, permissionType, true);
+    }
+
     function migratorSetStream(string calldata streamId, string calldata metadata) public isMigrator() migrationIsActive() {
         streamIdToMetadata[streamId] = metadata;
         emit StreamUpdated(streamId, metadata);
@@ -219,16 +236,17 @@ contract StreamRegistry {
             _setPermission(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
-    function bulkmigrate(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isMigrator() migrationIsActive() {
-        uint arrayLength = streamids.length;
-        for (uint i=0; i<arrayLength; i++) {
-            string calldata streamId = streamids[i];
-            streamIdToMetadata[streamId] = metadatas[i];
-            emit StreamUpdated(streamId, metadatas[i]);
-            Permission memory permission = permissions[i];
-            _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publish, permission.subscribed, permission.share);
-        }
-    }
+    // not in current apidefinition, might speed up migratrion, needs to be tested
+    // function bulkmigrate(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isMigrator() migrationIsActive() {
+    //     uint arrayLength = streamids.length;
+    //     for (uint i=0; i<arrayLength; i++) {
+    //         string calldata streamId = streamids[i];
+    //         streamIdToMetadata[streamId] = metadatas[i];
+    //         emit StreamUpdated(streamId, metadatas[i]);
+    //         Permission memory permission = permissions[i];
+    //         _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publish, permission.subscribed, permission.share);
+    //     }
+    // }
 
     function setMigrationComplete() public isMigrator() migrationIsActive() {
         migrationActive = false;

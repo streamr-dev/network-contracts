@@ -374,4 +374,108 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata1)
     })
+
+    it('positivetest migratorSetPermissionsForUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, migratorAddress))
+            .to.deep.equal([false, false, false, false, false])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        await registryFromMigrator.migratorSetPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
+    it('negativetest setMigrationComplete', async (): Promise<void> => {
+        await expect(registryFromAdmin.setMigrationComplete())
+            .to.be.revertedWith('only migrator can call this')
+    })
+
+    it('positivetest setMigrationComplete', async (): Promise<void> => {
+        expect(await registryFromAdmin.migrationActive()).to.equal(true)
+        await registryFromMigrator.setMigrationComplete()
+        expect(await registryFromAdmin.migrationActive()).to.equal(false)
+    })
+
+    it('negativetest migratorSetStream', async (): Promise<void> => {
+        await expect(registryFromMigrator.migratorSetStream(streamId0, metadata1))
+            .to.be.revertedWith('migration is closed')
+    })
+
+    it('negativetest migratorSetPermissionsForUser', async (): Promise<void> => {
+        await expect(registryFromMigrator.migratorSetPermissionsForUser(streamId0,
+            user0Address, true, true, true, true, true))
+            .to.be.revertedWith('migration is closed')
+    })
+
+    it('positivetest transferAllPermissionsToUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+            .to.deep.equal([true, true, true, true, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, false, false, false, false])
+        await registryFromAdmin.transferAllPermissionsToUser(streamId0, user1Address)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+            .to.deep.equal([false, false, false, false, false])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([true, true, true, true, true])
+            // make sure positive ones are not overwritten
+            // user 0 and 1 both have all perms
+        await registryFromUser0.setPermissionsForUser(streamId0, user0Address,
+            true, false, false, false, false)
+        // it also tests that user0 can transfer away even though he does not have share permission
+        await registryFromUser0.transferAllPermissionsToUser(streamId0, user1Address)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
+    it('negativetest transferAllPermissionsToUser', async (): Promise<void> => {
+        await expect(registryFromUser0.transferAllPermissionsToUser(streamId0, user1Address))
+            .to.be.revertedWith('no permission to transfer')
+    })
+
+    it('positivetest transferPermissionToUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([true, true, true, true, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+        await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Edit)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, true, true, true, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, false, false, false, false])
+        await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Delete)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, false, true, true, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, false, false, false])
+        await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Publish)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, false, false, true, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, false, false])
+        await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Subscribe)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, false, false, false, true])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, false])
+        await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Share)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user1Address))
+            .to.deep.equal([false, false, false, false, false])
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, true, true, true])
+    })
+
+    it('negativetest transferPermissionToUser', async (): Promise<void> => {
+        await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Edit))
+            .to.be.revertedWith('no permission to transfer')
+        await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Delete))
+            .to.be.revertedWith('no permission to transfer')
+        await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Publish))
+            .to.be.revertedWith('no permission to transfer')
+        await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Subscribe))
+            .to.be.revertedWith('no permission to transfer')
+        await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Share))
+            .to.be.revertedWith('no permission to transfer')
+    })
 })
