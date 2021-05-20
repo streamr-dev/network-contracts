@@ -32,12 +32,16 @@ const config: HardhatUserConfig = {
         dev: {
             chainId: 8997,
             // url: 'http://0.0.0.0:8545'
-            url: 'http://192.168.2.108:8546'
+            url: 'http://localhost:8546'
         }
     },
     solidity: {
         compilers: [{
             version: '0.8.3', settings: {}
+        },
+        {
+            version: '0.6.6',
+            settings: { }
         },
         {
             version: '0.6.12',
@@ -47,11 +51,11 @@ const config: HardhatUserConfig = {
             'contracts/chainlinkClient/ESNCache.sol': {
                 version: '0.6.12',
                 settings: { }
-            }
-            // 'contracts/chainlinkClient/Ownable.sol': {
-            //     version: '0.6.12',
-            //     settings: { }
-            // },
+            },
+            'contracts/chainlinkClient/Token.sol': {
+                version: '0.6.6',
+                settings: { }
+            },
             // 'contracts/chainlinkClient/Context.sol': {
             //     version: '0.6.12',
             //     settings: { }

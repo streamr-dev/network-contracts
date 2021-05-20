@@ -8,8 +8,6 @@ contract StreamRegistry {
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
     event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, bool publish, bool subscribed, bool share);
-    // event TransferedViewRights(uint streamid, address from, address to, uint8 amount);
-    // event TransferedPublishRights(uint streamid, address from, address to, uint8 amount);
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
@@ -18,7 +16,6 @@ contract StreamRegistry {
     mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
     // streamid ->  keccak256(version, useraddress); -> permissions struct 
-    // mapping (string => mapping(bytes32 => mapping(PermissionType => bool))) public streamIdToPermissions2;
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     ENSCache private ensCache;
 
@@ -31,28 +28,28 @@ contract StreamRegistry {
     }
 
     modifier canShare(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].share, "no share permission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].share, "error_noSahrePermission"); //||
         _;
     }
     modifier canDelete(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].canDelete, "no delete permission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].canDelete, "error_noDeletePermission"); //||
         _;
     }
     modifier canEdit(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].edit, "no edit permission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].edit, "error_noEditPermission"); //||
         _;
     }
     modifier streamExists(string calldata streamId) {
         // TODO can stream exist without metadata?
-        require(bytes(streamIdToMetadata[streamId]).length != 0, "stream does not exist");
+        require(bytes(streamIdToMetadata[streamId]).length != 0, "error_streamDoesNotExist");
         _;
     }
     modifier isMigrator() {
-        require(msg.sender == migrator, "only migrator can call this");
+        require(msg.sender == migrator, "error_mustBeMigrator");
         _;
     }
     modifier migrationIsActive() {
-        require(migrationActive, "migration is closed");
+        require(migrationActive, "error_migrationIsClosed");
         _;
     }
    
@@ -67,15 +64,15 @@ contract StreamRegistry {
     }
 
     function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
-        require(ensCache.owners(ensName) == msg.sender, "you must be owner of the ensname");
+        require(ensCache.owners(ensName) == msg.sender, "error_notOwnerOfENSName");
         _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
     }
 
     function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
         bytes memory pathBytes = bytes(streamIdPath);
-        require(pathBytes[0] == "/", "path must start with /");
+        require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
         string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
-        require(bytes(streamIdToMetadata[streamId]).length == 0, "stream id alreay exists");
+        require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
         streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)] = 
@@ -128,7 +125,7 @@ contract StreamRegistry {
     function _setPermission(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) private {
         require(user != address(0) || !(edit || deletePerm || share),
-            "public: only subscribe,publish");
+            "error_publicCanOnlySubsPubl");
         streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
             edit: edit,
             canDelete: deletePerm,
@@ -177,7 +174,7 @@ contract StreamRegistry {
 
     function _setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) private {
         require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish,
-            "public: only subscribe,publish");
+            "error_publicCanOnlySubsPubl");
         if (permissionType == PermissionType.Edit) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit = grant;
         }
@@ -212,7 +209,7 @@ contract StreamRegistry {
     function transferAllPermissionsToUser(string calldata streamId, address recipient) public {
         Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)];
         require(permSender.edit || permSender.canDelete || permSender.publish || permSender.subscribed ||
-        permSender.share, "no permission to transfer");
+        permSender.share, "error_noPermissionToTransfer");
         Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
         _setPermission(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
         permSender.publish || permRecipient.publish, permSender.subscribed || permRecipient.subscribed, 
@@ -221,7 +218,7 @@ contract StreamRegistry {
     }
 
     function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
-        require(hasDirectPermission(streamId, msg.sender, permissionType), "no permission to transfer");
+        require(hasDirectPermission(streamId, msg.sender, permissionType), "error_noPermissionToTransfer");
         _setPermission(streamId, msg.sender, permissionType, false);
         _setPermission(streamId, recipient, permissionType, true);
     }

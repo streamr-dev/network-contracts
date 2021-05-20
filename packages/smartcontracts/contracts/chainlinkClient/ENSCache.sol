@@ -10,14 +10,12 @@ contract ENSCache is ChainlinkClient, Ownable {
 
   uint256 constant private ORACLE_PAYMENT = 1 * LINK;
 
-  // address public resolvedEnsAddress;
   mapping(string => address) public owners;
   mapping(bytes32 => string) public sentRequests;
   address public oracle;
   string public jobId;
 
   constructor(address oracleaddress, string memory chainlinkJobId) public {
-    // setPublicChainlinkToken();
     oracle = oracleaddress;
     jobId = chainlinkJobId;
   }
@@ -34,7 +32,7 @@ contract ENSCache is ChainlinkClient, Ownable {
     jobId = chainlinkJobId;
   }
 
-  function requestENSOwner(string calldata ensName) public onlyOwner {
+  function requestENSOwner(string calldata ensName) public {
     Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
     req.add("ensname", ensName);
     bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
@@ -42,7 +40,6 @@ contract ENSCache is ChainlinkClient, Ownable {
   }
 
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
-    //emit RequestEthereumLastMarket(_requestId, _market);
     owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
   }
   
