@@ -29,9 +29,8 @@ const config: HardhatUserConfig = {
     defaultNetwork: 'hardhat',
     networks: {
         hardhat: {},
-        dev: {
+        localsidechain: {
             chainId: 8997,
-            // url: 'http://0.0.0.0:8545'
             url: 'http://localhost:8546'
         }
     },
