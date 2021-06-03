@@ -13,8 +13,8 @@ const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
 
-const MAINNETURL = 'http://192.168.0.8:8545'
-const SIDECHAINURL = 'http://192.168.0.8:8546'
+const MAINNETURL = 'http://localhost:8545'
+const SIDECHAINURL = 'http://localhost:8546'
 const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const STREAMREGISTRYADDRESS = '0x5071E3b309B11794982D640E121aBE4f849CFC98'
 const ENSCACHEADDRESS = '0xb383870d47B2cb0250D8D7f620889091952Fb7f6'

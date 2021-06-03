@@ -1,5 +1,12 @@
 # Subgraph definitions for the stream permission registry
 
+## Setup
+Everything is already included in the streamr-docker-dev environment
+
+The container and thus image that initially compiles and pushes the subgraph to the graph node
+can be recreated with the Dockerfile.
+## Setup locally without the streamr-docker-dev environment
+
 first run a local eth blockchain (ganache, ganache-cli, harhat, ...) and deploy the contracts into that blockchain. You should also be abple to interact with the contract, for example with the REMIX IDE
 
 then set up the graph infrastructure locally in docker (thegraph node, ipfs, postgres):
