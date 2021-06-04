@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../chainlinkClient/ENSCache.sol";
-contract StreamRegistry {
+import "zeppelin4/metatx/ERC2771Context.sol";
+
+contract StreamRegistry is ERC2771Context {
     event StreamCreated(string id, string metadata);
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
@@ -28,15 +30,15 @@ contract StreamRegistry {
     }
 
     modifier canShare(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].share, "error_noSahrePermission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share, "error_noSahrePermission"); //||
         _;
     }
     modifier canDelete(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].canDelete, "error_noDeletePermission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canDelete, "error_noDeletePermission"); //||
         _;
     }
     modifier canEdit(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)].edit, "error_noEditPermission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].edit, "error_noEditPermission"); //||
         _;
     }
     modifier streamExists(string calldata streamId) {
@@ -45,7 +47,7 @@ contract StreamRegistry {
         _;
     }
     modifier isMigrator() {
-        require(msg.sender == migrator, "error_mustBeMigrator");
+        require(_msgSender() == migrator, "error_mustBeMigrator");
         _;
     }
     modifier migrationIsActive() {
@@ -53,18 +55,19 @@ contract StreamRegistry {
         _;
     }
    
-    constructor(address ensCacheAddr, address migratoraddr) public {
+    constructor(address ensCacheAddr, address migratoraddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+        // trustedForwarder = trustedForwarderAddress;
         ensCache = ENSCache(ensCacheAddr);
         migrator = migratoraddr;
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
-        string memory ownerstring = addressToString(msg.sender);
+        string memory ownerstring = addressToString(_msgSender());
         _createStreamAndPermission(ownerstring, streamIdPath, metadataJsonString);
     }
 
     function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
-        require(ensCache.owners(ensName) == msg.sender, "error_notOwnerOfENSName");
+        require(ensCache.owners(ensName) == _msgSender(), "error_notOwnerOfENSName");
         _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
     }
 
@@ -75,7 +78,7 @@ contract StreamRegistry {
         require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
-        streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)] = 
+        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] = 
         Permission({
             edit: true,
             canDelete: true,
@@ -84,7 +87,7 @@ contract StreamRegistry {
             share: true
         });
         emit StreamCreated(streamId, metadataJsonString);
-        emit PermissionUpdated(streamId, msg.sender, true, true, true, true, true);
+        emit PermissionUpdated(streamId, _msgSender(), true, true, true, true, true);
     }
 
     function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
@@ -207,19 +210,19 @@ contract StreamRegistry {
     }
 
     function transferAllPermissionsToUser(string calldata streamId, address recipient) public {
-        Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, msg.sender)];
+        Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())];
         require(permSender.edit || permSender.canDelete || permSender.publish || permSender.subscribed ||
         permSender.share, "error_noPermissionToTransfer");
         Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
         _setPermission(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
         permSender.publish || permRecipient.publish, permSender.subscribed || permRecipient.subscribed, 
         permSender.share || permRecipient.share);
-        _setPermission(streamId, msg.sender, false, false, false, false, false);
+        _setPermission(streamId, _msgSender(), false, false, false, false, false);
     }
 
     function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
-        require(hasDirectPermission(streamId, msg.sender, permissionType), "error_noPermissionToTransfer");
-        _setPermission(streamId, msg.sender, permissionType, false);
+        require(hasDirectPermission(streamId, _msgSender(), permissionType), "error_noPermissionToTransfer");
+        _setPermission(streamId, _msgSender(), permissionType, false);
         _setPermission(streamId, recipient, permissionType, true);
     }
 

@@ -1,19 +1,60 @@
 import { waffle } from 'hardhat'
 import { expect, use } from 'chai'
+import { utils } from 'ethers'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import { StreamRegistry } from '../typechain/StreamRegistry'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import { ENSMock } from '../typechain/StreamRegistry'
+import ForwarderJson from '../artifacts/zeppelin4/metatx/MinimalForwarder.sol/MinimalForwarder.json'
+import { MinimalForwarder } from '../typechain/MinimalForwarder'
+
+const ethSigUtil = require('eth-sig-util')
 
 const { deployContract } = waffle
 const { provider } = waffle
+
+const types = {
+    EIP712Domain: [
+        {
+            name: 'name', type: 'string'
+        },
+        {
+            name: 'version', type: 'string'
+        },
+        {
+            name: 'chainId', type: 'uint256'
+        },
+        {
+            name: 'verifyingContract', type: 'address'
+        },
+    ],
+    ForwardRequest: [
+        {
+            name: 'from', type: 'address'
+        },
+        {
+            name: 'to', type: 'address'
+        },
+        {
+            name: 'value', type: 'uint256'
+        },
+        {
+            name: 'gas', type: 'uint256'
+        },
+        {
+            name: 'nonce', type: 'uint256'
+        },
+        {
+            name: 'data', type: 'bytes'
+        },
+    ],
+}
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
 
 use(waffle.solidity)
-
 describe('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
     // let ensCacheFromAdmin: ENSCache
@@ -21,6 +62,7 @@ describe('StreamRegistry', (): void => {
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
     let registryFromMigrator: StreamRegistry
+    let minimalForwarderFromUser0: MinimalForwarder
     // let registryFromUser1: StreamRegistry
     const adminAdress: string = wallets[0].address
     const user0Address: string = wallets[1].address
@@ -34,10 +76,11 @@ describe('StreamRegistry', (): void => {
     const metadata1: string = 'streammetadata1'
 
     before(async (): Promise<void> => {
+        minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
         // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
         //     [user1Address, 'jobid']) as ENSCache
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [wallets[3].address, migratorAddress]) as StreamRegistry
+            [wallets[3].address, migratorAddress, minimalForwarderFromUser0.address]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -467,5 +510,119 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('error_noPermissionToTransfer')
         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Share))
             .to.be.revertedWith('error_noPermissionToTransfer')
+    })
+
+    it('positivetest istrustedForwarder', async (): Promise<void> => {
+        expect(await registryFromAdmin.isTrustedForwarder(minimalForwarderFromUser0.address))
+            .to.equal(true)
+    })
+
+    it('positivetest metatransaction', async (): Promise<void> => {
+        // admin is creating and signing transaction, user0 is posting it and paying for gas
+        const path = '/path'
+        const metadata = 'metadata'
+        const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
+        const req = {
+            from: adminAdress,
+            to: registryFromAdmin.address,
+            value: '0',
+            gas: '1000000',
+            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
+            data
+        }
+        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[0].privateKey), // user0
+            {
+                data: {
+                    types,
+                    domain: {
+                        name: 'MinimalForwarder',
+                        version: '0.0.1',
+                        chainId: (await provider.getNetwork()).chainId,
+                        verifyingContract: minimalForwarderFromUser0.address,
+                    },
+                    primaryType: 'ForwardRequest',
+                    message: req
+                }
+            })
+
+        const res = await minimalForwarderFromUser0.verify(req, sign)
+        await expect(res).to.be.true
+        const tx = await minimalForwarderFromUser0.execute(req, sign)
+        const tx2 = await tx.wait()
+        expect(tx2.logs.length).to.equal(2)
+        const id = adminAdress.toLowerCase() + path
+        expect(await registryFromAdmin.getStreamMetadata(id)).to.equal(metadata)
+    })
+
+    it('negativetest metatransaction', async (): Promise<void> => {
+        const path = '/path1'
+        const metadata = 'metadata1'
+        const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
+        const req = {
+            from: adminAdress,
+            to: registryFromAdmin.address,
+            value: '0',
+            gas: '1000000',
+            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
+            data
+        }
+        // signing with user1 (walletindex 2)
+        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[2].privateKey), // user0
+            {
+                data: {
+                    types,
+                    domain: {
+                        name: 'MinimalForwarder',
+                        version: '0.0.1',
+                        chainId: (await provider.getNetwork()).chainId,
+                        verifyingContract: minimalForwarderFromUser0.address,
+                    },
+                    primaryType: 'ForwardRequest',
+                    message: req
+                }
+            })
+
+        const res = await minimalForwarderFromUser0.verify(req, sign)
+        await expect(res).to.be.false
+        await expect(minimalForwarderFromUser0.execute(req, sign))
+            .to.be.revertedWith('MinimalForwarder: signature does not match request')
+    })
+
+    it('negativetest metatransaction not enough gas in internal transaction call', async (): Promise<void> => {
+        const path = '/path2'
+        const metadata = 'metadata2'
+        const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
+        const req = {
+            from: adminAdress,
+            to: registryFromAdmin.address,
+            value: '0',
+            gas: '1000',
+            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
+            data
+        }
+        // signing with user1 (walletindex 2)
+        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[0].privateKey), // user0
+            {
+                data: {
+                    types,
+                    domain: {
+                        name: 'MinimalForwarder',
+                        version: '0.0.1',
+                        chainId: (await provider.getNetwork()).chainId,
+                        verifyingContract: minimalForwarderFromUser0.address,
+                    },
+                    primaryType: 'ForwardRequest',
+                    message: req
+                }
+            })
+
+        const res = await minimalForwarderFromUser0.verify(req, sign)
+        await expect(res).to.be.true
+        const tx = await minimalForwarderFromUser0.execute(req, sign)
+        const tx2 = await tx.wait()
+        expect(tx2.logs.length).to.equal(0)
+        const id = adminAdress.toLowerCase() + path
+        await expect(registryFromAdmin.getStreamMetadata(id))
+            .to.be.revertedWith('error_streamDoesNotExist')
     })
 })

@@ -35,20 +35,26 @@ const config: HardhatUserConfig = {
         }
     },
     solidity: {
-        compilers: [{
-            version: '0.8.3', settings: {}
-        },
-        {
-            version: '0.6.6',
-            settings: { }
-        },
-        {
-            version: '0.6.12',
-            settings: { }
-        }],
+        compilers: [
+            {
+                version: '0.8.4',
+                settings: { }
+            },
+            {
+                version: '0.7.4',
+                settings: { }
+            },
+            {
+                version: '0.6.6',
+                settings: { }
+            },
+            {
+                version: '0.6.12',
+                settings: { }
+            }],
         overrides: {
             'contracts/chainlinkClient/ESNCache.sol': {
-                version: '0.6.12',
+                version: '0.7.6',
                 settings: { }
             },
             'contracts/chainlinkClient/Token.sol': {

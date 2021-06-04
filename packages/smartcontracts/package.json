@@ -36,6 +36,7 @@
     "debug": "^4.3.1",
     "eslint": "^7.25.0",
     "eth-ens-namehash": "^2.0.8",
+    "eth-sig-util": "^2.5.4",
     "ethers": "^5.1.4",
     "hardhat": "^2.2.1",
     "hardhat-deploy": "^0.7.5",
@@ -46,7 +47,8 @@
     "solhint": "^3.3.4",
     "solidity-coverage": "^0.7.16",
     "ts-mocha": "^8.0.0",
-    "typechain": "^4.0.3"
+    "typechain": "^4.0.3",
+    "zeppelin4": "npm:@openzeppelin/contracts@^4.1.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",

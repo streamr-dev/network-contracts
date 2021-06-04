@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity >=0.6.0;
+pragma solidity ^0.8.0;
 
-import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "@chainlink/contracts/src/v0.6/Chainlink.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+// import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+// import "@chainlink/contracts/src/v0.6/Chainlink.sol";
+import "../Chainlink0.6/ChainlinkClient.sol";
+import "../Chainlink0.6/Chainlink.sol";
+import "zeppelin4/access/Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
@@ -15,7 +17,24 @@ contract ENSCache is ChainlinkClient, Ownable {
   address public oracle;
   string public jobId;
 
-  constructor(address oracleaddress, string memory chainlinkJobId) public {
+    function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
+        if (isTrustedForwarder(msg.sender)) {
+            // The assembly code is more direct than the Solidity version using `abi.decode`.
+            assembly { sender := shr(96, calldataload(sub(calldatasize(), 20))) }
+        } else {
+            return super._msgSender();
+        }
+    }
+
+    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+        if (isTrustedForwarder(msg.sender)) {
+            return msg.data[:msg.data.length-20];
+        } else {
+            return super._msgData();
+        }
+    }
+  constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder) 
+  ChainlinkClient(trustedForwarder) Ownable() {
     oracle = oracleaddress;
     jobId = chainlinkJobId;
   }
@@ -49,7 +68,7 @@ contract ENSCache is ChainlinkClient, Ownable {
 
   function withdrawLink() public onlyOwner {
     LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
-    require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
+    require(link.transfer(_msgSender(), link.balanceOf(address(this))), "Unable to transfer");
   }
 
   function cancelRequest(bytes32 _requestId, uint256 _payment, bytes4 _callbackFunctionId,
