@@ -20,8 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - node_version: 16
-            os: ubuntu-20.04
+          - node_version: 14
+            os: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2.3.4
       - name: Node ${{ matrix.node_version }} - x64 on ${{ matrix.os }}

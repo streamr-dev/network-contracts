@@ -1,0 +1,26 @@
+{
+  "name": "streamregistry-thegraph-subgraph",
+  "version": "0.0.1",
+  "description": "Subgraph definitions for the stream permission registry",
+  "scripts": {
+    "codegen": "graph codegen",
+    "graphbuild": "graph build",
+    "build": "npm run codegen && npm run graphbuild",
+    "lint": "eslint ./src/*.ts",
+    "create-local": "graph create githubname/subgraphname --node http://streamr-dev-thegraph-node:8020",
+    "deploy-local": "graph deploy githubname/subgraphname --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
+    "create-production": "graph create githubname/subgraphname --node https://api.thegraph.com/deploy/",
+    "deploy-production": "graph deploy githubname/subgraphname --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "doAll": "npm run build && npm run create-local && npm run deploy-local"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.20.0",
+    "@typescript-eslint/eslint-plugin": "^4.22.1",
+    "@typescript-eslint/parser": "^4.22.1",
+    "eslint-config-streamr-nodejs": "2.0.0",
+    "eslint-plugin-chai-friendly": "^0.6.0"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-ts": "^0.20.0"
+  }
+}
