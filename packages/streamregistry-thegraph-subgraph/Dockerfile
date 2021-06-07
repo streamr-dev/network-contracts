@@ -1,6 +1,8 @@
-FROM node:16-alpine
+FROM node:16-buster
 
-RUN apk add libsecret-dev
+# RUN apk add libsecret-dev
+RUN apt update
+RUN apt install -y libsecret-1-dev
 RUN mkdir /firstrun && chown node:node /firstrun
 RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 
@@ -12,4 +14,4 @@ COPY --chown=node:node . .
 
 RUN npm i
 RUN chmod +x start.sh
-CMD ./start.sh
+ENTRYPOINT [ "sh", "./start.sh" ]

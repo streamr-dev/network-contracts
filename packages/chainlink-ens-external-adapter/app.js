@@ -16,4 +16,8 @@ app.post('/', (req, res) => {
     })
 })
 
+app.get('/health', (req, res) => {
+    res.send('healthy')
+})
+
 app.listen(port, () => console.log(`Listening on port ${port}!`))
