@@ -5,6 +5,8 @@ Everything is already included in the streamr-docker-dev environment
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile.
+To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev", and then push the image
+with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
 ## Setup locally without the streamr-docker-dev environment
 
 first run a local eth blockchain (ganache, ganache-cli, harhat, ...) and deploy the contracts into that blockchain. You should also be abple to interact with the contract, for example with the REMIX IDE
