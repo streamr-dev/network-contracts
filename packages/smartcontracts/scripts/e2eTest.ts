@@ -9,7 +9,7 @@ import { ENSCache } from '../typechain'
 import { StreamRegistry } from '../typechain/StreamRegistry'
 
 const { ethers } = hhat
-const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
+const ensAbi = require('@ensdomains/ens/build/contracts/ENSRegistry.json')
 const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
 
@@ -67,7 +67,9 @@ const registerENSNameOnMainnet = async () => {
     // console.log('3')
 
     tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    await tx.wait()
+    const tr = await tx.wait()
+    // log("receipt: %o", tr)
+    console.log(`receipt: ${JSON.stringify(tr)}`)
     console.log('querying owner from mainchain')
 
     const addr = await ensFomAdmin.owner(nameHashedENSName)
