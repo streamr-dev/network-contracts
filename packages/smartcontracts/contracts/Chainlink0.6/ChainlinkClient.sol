@@ -7,7 +7,7 @@ import "./interfaces/LinkTokenInterface.sol";
 import "./interfaces/ChainlinkRequestInterface.sol";
 import "./interfaces/PointerInterface.sol";
 import { ENSResolver as ENSResolver_Chainlink } from "./vendor/ENSResolver.sol";
-import "zeppelin4/metatx/ERC2771Context.sol";
+import "../metatx/ERC2771Context.sol";
 
 /**
  * @title The ChainlinkClient contract

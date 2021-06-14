@@ -33,6 +33,7 @@ contract ENSCache is ChainlinkClient, Ownable {
             return super._msgData();
         }
     }
+
   constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder) 
   ChainlinkClient(trustedForwarder) Ownable() {
     oracle = oracleaddress;
