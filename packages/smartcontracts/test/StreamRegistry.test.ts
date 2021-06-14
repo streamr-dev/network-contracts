@@ -190,12 +190,12 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('error_streamDoesNotExist')
     })
 
-    it('negativtest setPermissionForUser, stream doesnt exist, error_noSahrePermission', async (): Promise<void> => {
+    it('negativtest setPermissionForUser, stream doesnt exist, error_noSharePermission', async (): Promise<void> => {
         await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
             .to.be.revertedWith('error_streamDoesNotExist')
         await registryFromAdmin.createStream(streamPath0, metadata0)
         await expect(registryFromUser0.setPermissionsForUser(streamId0, user0Address, true, true, true, true, true))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
     })
 
     it('positivetest grantPermission, hasPermission', async (): Promise<void> => {
@@ -244,15 +244,15 @@ describe('StreamRegistry', (): void => {
     it('negativetest grantPermission', async (): Promise<void> => {
         // test from user1, who has no share permissions
         await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Edit))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
         await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Delete))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
         await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Publish))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
         await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Subscribe))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
         await expect(registryFromUser1.grantPermission(streamId0, user0Address, PermissionType.Share))
-            .to.be.revertedWith('error_noSahrePermission')
+            .to.be.revertedWith('error_noSharePermission')
     })
 
     it('positivetest revokePermission, hasPermission', async (): Promise<void> => {
@@ -300,16 +300,16 @@ describe('StreamRegistry', (): void => {
 
     it('negativetest grantPermission', async (): Promise<void> => {
         // test from user0, all his permissions were revoked in test before
-        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Edit))
-            .to.be.revertedWith('error_noSahrePermission')
-        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Delete))
-            .to.be.revertedWith('error_noSahrePermission')
-        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Publish))
-            .to.be.revertedWith('error_noSahrePermission')
-        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Subscribe))
-            .to.be.revertedWith('error_noSahrePermission')
-        await expect(registryFromUser0.revokePermission(streamId0, user0Address, PermissionType.Share))
-            .to.be.revertedWith('error_noSahrePermission')
+        await expect(registryFromUser0.revokePermission(streamId0, user1Address, PermissionType.Edit))
+            .to.be.revertedWith('error_noSharePermission')
+        await expect(registryFromUser0.revokePermission(streamId0, user1Address, PermissionType.Delete))
+            .to.be.revertedWith('error_noSharePermission')
+        await expect(registryFromUser0.revokePermission(streamId0, user1Address, PermissionType.Publish))
+            .to.be.revertedWith('error_noSharePermission')
+        await expect(registryFromUser0.revokePermission(streamId0, user1Address, PermissionType.Subscribe))
+            .to.be.revertedWith('error_noSharePermission')
+        await expect(registryFromUser0.revokePermission(streamId0, user1Address, PermissionType.Share))
+            .to.be.revertedWith('error_noSharePermission')
     })
 
     it('positivetest revokeAllPermissionsForUser, hasPermission', async (): Promise<void> => {
@@ -325,8 +325,8 @@ describe('StreamRegistry', (): void => {
         await registryFromAdmin.revokePermission(streamId0, user0Address, PermissionType.Share)
         expect(await registryFromAdmin.hasPermission(streamId0, user0Address, PermissionType.Share))
             .to.equal(false)
-        await expect(registryFromUser0.revokeAllPermissionsForUser(streamId0, user0Address))
-            .to.be.revertedWith('error_noSahrePermission')
+        await expect(registryFromUser0.revokeAllPermissionsForUser(streamId0, user1Address))
+            .to.be.revertedWith('error_noSharePermission')
     })
 
     // test if create stream->delete stream->recreate stream with same id also wipes
@@ -624,5 +624,31 @@ describe('StreamRegistry', (): void => {
         const id = adminAdress.toLowerCase() + path
         await expect(registryFromAdmin.getStreamMetadata(id))
             .to.be.revertedWith('error_streamDoesNotExist')
+    })
+
+    it('positivetest revoke own permissions without share', async (): Promise<void> => {
+        await registryFromAdmin.createStream(streamPath1, metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(streamId1)).to.equal(metadata1)
+
+        await registryFromAdmin.setPermissionsForUser(streamId1, user0Address, true, true, true, true, false)
+        await registryFromUser0.revokePermission(streamId1, user0Address, PermissionType.Edit)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
+            .to.deep.equal([false, true, true, true, false])
+        await registryFromUser0.revokePermission(streamId1, user0Address, PermissionType.Delete)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
+            .to.deep.equal([false, false, true, true, false])
+        await registryFromUser0.revokePermission(streamId1, user0Address, PermissionType.Publish)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
+            .to.deep.equal([false, false, false, true, false])
+        await registryFromUser0.revokePermission(streamId1, user0Address, PermissionType.Subscribe)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
+            .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('negativetest revokeAllPermissionsForUser', async (): Promise<void> => {
+        await registryFromAdmin.setPermissionsForUser(streamId1, user0Address, true, true, true, true, false)
+        await registryFromUser0.revokeAllPermissionsForUser(streamId1, user0Address)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
+            .to.deep.equal([false, false, false, false, false])
     })
 })
