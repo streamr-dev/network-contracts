@@ -85,6 +85,7 @@ contract ChainlinkClient is ERC2771Context {
     _req.nonce = requestCount;
     pendingRequests[requestId] = _oracle;
     emit ChainlinkRequested(requestId);
+    // solhint-disable-next-line reason-string
     require(link.transferAndCall(_oracle, _payment, encodeRequest(_req)), "unable to transferAndCall to oracle");
     requestCount += 1;
 
@@ -246,6 +247,7 @@ contract ChainlinkClient is ERC2771Context {
    * @param _requestId The request ID for fulfillment
    */
   modifier recordChainlinkFulfillment(bytes32 _requestId) {
+    // solhint-disable-next-line reason-string
     require(_msgSender() == pendingRequests[_requestId],
             "Source must be the oracle of the request");
     delete pendingRequests[_requestId];

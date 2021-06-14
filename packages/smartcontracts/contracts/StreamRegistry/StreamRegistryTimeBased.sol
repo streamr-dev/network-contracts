@@ -25,6 +25,7 @@ contract StreamRegistryTimeBased {
     modifier canView(uint id) {
         require(streamIdToPermissions[id][msg.sender].isAdmin ||
         // streamIdToPermissions[id][msg.sender].viewRights > 0 , "no view permission");
+        // solhint-disable-next-line not-rely-on-time
         streamIdToPermissions[id][msg.sender].subscriptionExpirationTime > block.timestamp , "no view permission");
         _;
     }
@@ -70,7 +71,9 @@ contract StreamRegistryTimeBased {
             streamIdToPermissions[id][msg.sender].subscriptionExpirationTime -= amount;
         }
         uint256 recipientEndTime = streamIdToPermissions[id][recipient].subscriptionExpirationTime;
+        // solhint-disable-next-line not-rely-on-time
         if (recipientEndTime < block.timestamp) {
+            // solhint-disable-next-line not-rely-on-time
             recipientEndTime = block.timestamp;
         }
         recipientEndTime += amount;

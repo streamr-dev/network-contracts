@@ -8,7 +8,7 @@ import "zeppelin4/utils/Context.sol";
  * @dev Context variant with ERC2771 support.
  */
 abstract contract ERC2771Context is Context {
-    address _trustedForwarder;
+    address public _trustedForwarder;
 
     constructor(address trustedForwarder) {
         _trustedForwarder = trustedForwarder;
@@ -21,6 +21,7 @@ abstract contract ERC2771Context is Context {
     function _msgSender() internal view virtual override returns (address sender) {
         if (isTrustedForwarder(msg.sender)) {
             // The assembly code is more direct than the Solidity version using `abi.decode`.
+            // solhint-disable-next-line no-inline-assembly
             assembly { sender := shr(96, calldataload(sub(calldatasize(), 20))) }
         } else {
             return super._msgSender();

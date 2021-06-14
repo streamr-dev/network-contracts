@@ -1,6 +1,6 @@
 import { waffle } from 'hardhat'
 import { expect, use } from 'chai'
-import { providers, utils, BigNumber } from 'ethers'
+import { utils, BigNumber } from 'ethers'
 
 import LinkTokenJson from '../artifacts/@chainlink/token/contracts/v0.6/LinkToken.sol/LinkToken.json'
 import { LinkToken } from '../typechain/LinkToken'
@@ -18,7 +18,7 @@ const { provider } = waffle
 
 use(waffle.solidity)
 
-describe('StreamRegistry', (): void => {
+describe('ENSCache', (): void => {
     const wallets = provider.getWallets()
     let ensCacheFromAdmin: ENSCache
     let linkTokenFromAdmin: LinkToken
@@ -52,19 +52,8 @@ describe('StreamRegistry', (): void => {
     })
 
     it('positivetest metatransaction', async (): Promise<void> => {
-        // const data = await ensCacheFromAdmin.populateTransaction.requestENSOwner('ensdomain1')
         const data = await ensCacheFromAdmin.interface.encodeFunctionData('requestENSOwner', ['ensdomain1'])
 
-        // const hexdata = utils.hexlify(JSON.stringify(data))
-        // const req = {
-        // const forwardReq = {
-        //     from: adminAdress,
-        //     to: ensCacheFromAdmin.address,
-        //     value: 0,
-        //     gas: 100000,
-        //     nonce: (await minimalForwarder.getNonce(adminAdress)).toString(),
-        //     data: hexdata
-        // }
         const req = {
             from: adminAdress,
             to: ensCacheFromAdmin.address,
@@ -123,36 +112,9 @@ describe('StreamRegistry', (): void => {
                 }
             })
 
-        // struct ForwardRequest {
-        //     address from;
-        //     address to;
-        //     uint256 value;
-        //     uint256 gas;
-        //     uint256 nonce;
-        //     bytes data;
-        // }
-        // const sognature = await wallets[0].signTransaction(forwardReq)
         const res = await minimalForwarderFromUser0.verify(req, sign)
         expect(res).to.be.true
-        await minimalForwarderFromUser0.execute(req, sign)
-        // const data = this.recipient.contract.methods.msgSender().encodeABI();
-
-        // const req = {
-        //   from: this.sender,
-        //   to: this.recipient.address,
-        //   value: '0',
-        //   gas: '100000',
-        //   nonce: (await this.forwarder.getNonce(this.sender)).toString(),
-        //   data,
-        // };
-
-        // const sign = ethSigUtil.signTypedMessage(this.wallet.getPrivateKey(),
-        // { data: { ...this.data, message: req } });
-
-        // rejected by lint :/
-        // expect(await this.forwarder.verify(req, sign)).to.be.true;
-
-        // const { tx } = await this.forwarder.execute(req, sign);
-        // await expectEvent.inTransaction(tx, ERC2771ContextMock, 'Sender', { sender: this.sender });
+        await expect(minimalForwarderFromUser0.execute(req, sign))
+            .to.not.be.reverted
     })
 })
