@@ -30,7 +30,12 @@ contract StreamRegistry is ERC2771Context {
     }
 
     modifier canShare(string calldata streamId) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share, "error_noSahrePermission"); //||
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share, "error_noSharePermission"); //||
+        _;
+    }
+    modifier canShareOrRevokeOwn(string calldata streamId, address user) {
+        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share ||
+            _msgSender() == user, "error_noSharePermission"); //||
         _;
     }
     modifier canDelete(string calldata streamId) {
@@ -122,10 +127,10 @@ contract StreamRegistry is ERC2771Context {
 
     function setPermissionsForUser(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
-            _setPermission(streamId, user, edit, deletePerm, publish, subscribe, share);
+            _setPermissionBooleans(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
-    function _setPermission(string calldata streamId, address user, bool edit, 
+    function _setPermissionBooleans(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) private {
         require(user != address(0) || !(edit || deletePerm || share),
             "error_publicCanOnlySubsPubl");
@@ -139,7 +144,7 @@ contract StreamRegistry is ERC2771Context {
         emit PermissionUpdated(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
-    function revokeAllPermissionsForUser(string calldata streamId, address user) public canShare(streamId){
+    function revokeAllPermissionsForUser(string calldata streamId, address user) public canShareOrRevokeOwn(streamId, user){
         delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
         emit PermissionUpdated(streamId, user, false, false, false, false, false);
     }
@@ -171,7 +176,7 @@ contract StreamRegistry is ERC2771Context {
         _setPermission(streamId, user, permissionType, true);
     }
 
-    function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShare(streamId) {
+    function revokePermission(string calldata streamId, address user, PermissionType permissionType) public canShareOrRevokeOwn(streamId, user) {
         _setPermission(streamId, user, permissionType, false);
     }
 
@@ -214,10 +219,10 @@ contract StreamRegistry is ERC2771Context {
         require(permSender.edit || permSender.canDelete || permSender.publish || permSender.subscribed ||
         permSender.share, "error_noPermissionToTransfer");
         Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
-        _setPermission(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
+        _setPermissionBooleans(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
         permSender.publish || permRecipient.publish, permSender.subscribed || permRecipient.subscribed, 
         permSender.share || permRecipient.share);
-        _setPermission(streamId, _msgSender(), false, false, false, false, false);
+        _setPermissionBooleans(streamId, _msgSender(), false, false, false, false, false);
     }
 
     function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
@@ -233,7 +238,7 @@ contract StreamRegistry is ERC2771Context {
 
     function migratorSetPermissionsForUser(string calldata streamId, address user, bool edit, 
         bool deletePerm, bool publish, bool subscribe, bool share) public isMigrator() migrationIsActive() {
-            _setPermission(streamId, user, edit, deletePerm, publish, subscribe, share);
+            _setPermissionBooleans(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
     // not in current apidefinition, might speed up migratrion, needs to be tested
