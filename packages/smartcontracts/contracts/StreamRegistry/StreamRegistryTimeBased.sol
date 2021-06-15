@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+/* solhint-disable not-rely-on-time */
+
 pragma solidity 0.8.4;
 contract StreamRegistryTimeBased {
     event StreamCreated(uint id, address owner, string metadata);
@@ -25,7 +27,6 @@ contract StreamRegistryTimeBased {
     modifier canView(uint id) {
         require(streamIdToPermissions[id][msg.sender].isAdmin ||
         // streamIdToPermissions[id][msg.sender].viewRights > 0 , "no view permission");
-        // solhint-disable-next-line not-rely-on-time
         streamIdToPermissions[id][msg.sender].subscriptionExpirationTime > block.timestamp , "no view permission");
         _;
     }
@@ -71,9 +72,7 @@ contract StreamRegistryTimeBased {
             streamIdToPermissions[id][msg.sender].subscriptionExpirationTime -= amount;
         }
         uint256 recipientEndTime = streamIdToPermissions[id][recipient].subscriptionExpirationTime;
-        // solhint-disable-next-line not-rely-on-time
         if (recipientEndTime < block.timestamp) {
-            // solhint-disable-next-line not-rely-on-time
             recipientEndTime = block.timestamp;
         }
         recipientEndTime += amount;
