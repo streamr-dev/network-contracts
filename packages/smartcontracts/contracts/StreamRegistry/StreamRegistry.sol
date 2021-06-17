@@ -3,8 +3,12 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../chainlinkClient/ENSCache.sol";
+import "zeppelin4/access/AccessControl.sol";
 
-contract StreamRegistry is ERC2771Context {
+contract StreamRegistry is ERC2771Context, AccessControl {
+
+    bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
+
     event StreamCreated(string id, string metadata);
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
@@ -12,8 +16,6 @@ contract StreamRegistry is ERC2771Context {
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
-    address public migrator;
-    bool public migrationActive = true;
     mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
     // streamid ->  keccak256(version, useraddress); -> permissions struct 
@@ -46,23 +48,35 @@ contract StreamRegistry is ERC2771Context {
         _;
     }
     modifier streamExists(string calldata streamId) {
-        // TODO can stream exist without metadata?
         require(bytes(streamIdToMetadata[streamId]).length != 0, "error_streamDoesNotExist");
         _;
     }
-    modifier isMigrator() {
-        require(_msgSender() == migrator, "error_mustBeMigrator");
+    modifier isTrusted() {
+        require(hasRole(TRUSTED_ROLE, _msgSender()), "error_mustBeTrustedRole");
         _;
     }
-    modifier migrationIsActive() {
-        require(migrationActive, "error_migrationIsClosed");
-        _;
-    }
-   
-    constructor(address ensCacheAddr, address migratoraddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
-        // trustedForwarder = trustedForwarderAddress;
+
+    constructor(address ensCacheAddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
         ensCache = ENSCache(ensCacheAddr);
-        migrator = migratoraddr;
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+     function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
+        if (isTrustedForwarder(msg.sender)) {
+            // The assembly code is more direct than the Solidity version using `abi.decode`.
+            // solhint-disable-next-line no-inline-assembly
+            assembly { sender := shr(96, calldataload(sub(calldatasize(), 20))) }
+        } else {
+            return super._msgSender();
+        }
+    }
+
+    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+        if (isTrustedForwarder(msg.sender)) {
+            return msg.data[:msg.data.length-20];
+        } else {
+            return super._msgData();
+        }
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
@@ -230,13 +244,13 @@ contract StreamRegistry is ERC2771Context {
         _setPermission(streamId, recipient, permissionType, true);
     }
 
-    function migratorSetStream(string calldata streamId, string calldata metadata) public isMigrator() migrationIsActive() {
+    function trustedSetStream(string calldata streamId, string calldata metadata) public isTrusted() {
         streamIdToMetadata[streamId] = metadata;
         emit StreamUpdated(streamId, metadata);
     }
 
-    function migratorSetPermissionsForUser(string calldata streamId, address user, bool edit, 
-        bool deletePerm, bool publish, bool subscribe, bool share) public isMigrator() migrationIsActive() {
+    function trustedSetPermissionsForUser(string calldata streamId, address user, bool edit, 
+        bool deletePerm, bool publish, bool subscribe, bool share) public isTrusted() {
             _setPermissionBooleans(streamId, user, edit, deletePerm, publish, subscribe, share);
     }
 
@@ -251,10 +265,6 @@ contract StreamRegistry is ERC2771Context {
     //         _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publish, permission.subscribed, permission.share);
     //     }
     // }
-
-    function setMigrationComplete() public isMigrator() migrationIsActive() {
-        migrationActive = false;
-    }
 
     function addressToString(address _address) public pure returns(string memory) {
        bytes32 _bytes = bytes32(uint256(uint160(_address)));

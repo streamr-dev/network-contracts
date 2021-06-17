@@ -67,7 +67,7 @@ describe('StreamRegistry', (): void => {
     const adminAdress: string = wallets[0].address
     const user0Address: string = wallets[1].address
     const user1Address: string = wallets[2].address
-    const migratorAddress: string = wallets[3].address
+    const trustedAddress: string = wallets[3].address
     const streamPath0: string = '/streamPath0'
     const streamPath1: string = '/streamPath1'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
@@ -80,7 +80,7 @@ describe('StreamRegistry', (): void => {
         // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
         //     [user1Address, 'jobid']) as ENSCache
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [wallets[3].address, migratorAddress, minimalForwarderFromUser0.address]) as StreamRegistry
+            [wallets[3].address, minimalForwarderFromUser0.address]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -398,46 +398,36 @@ describe('StreamRegistry', (): void => {
     })
 
     // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
-    it('positivetest migratorSetStream', async (): Promise<void> => {
-        expect(await registryFromAdmin.getPermissionsForUser(streamId0, migratorAddress))
+    it('positivetest trustedRoleSetStream', async (): Promise<void> => {
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), trustedAddress)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, trustedAddress))
             .to.deep.equal([false, false, false, false, false])
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata0)
-        await registryFromMigrator.migratorSetStream(streamId0, metadata1)
+        await registryFromMigrator.trustedSetStream(streamId0, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata1)
     })
 
-    it('positivetest migratorSetPermissionsForUser', async (): Promise<void> => {
-        expect(await registryFromAdmin.getPermissionsForUser(streamId0, migratorAddress))
+    it('positivetest trustedRoleSetPermissionsForUser', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, trustedAddress))
             .to.deep.equal([false, false, false, false, false])
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
             .to.deep.equal([false, false, false, false, false])
-        await registryFromMigrator.migratorSetPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
+        await registryFromMigrator.trustedSetPermissionsForUser(streamId0, user0Address, true, true, true, true, true)
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
             .to.deep.equal([true, true, true, true, true])
     })
 
-    it('negativetest setMigrationComplete', async (): Promise<void> => {
-        await expect(registryFromAdmin.setMigrationComplete())
-            .to.be.revertedWith('error_mustBeMigrator')
+    it('negativetest trustedSetStream', async (): Promise<void> => {
+        await expect(registryFromAdmin.trustedSetStream(streamId0, metadata1))
+            .to.be.revertedWith('error_mustBeTrustedRole')
     })
 
-    it('positivetest setMigrationComplete', async (): Promise<void> => {
-        expect(await registryFromAdmin.migrationActive()).to.equal(true)
-        await registryFromMigrator.setMigrationComplete()
-        expect(await registryFromAdmin.migrationActive()).to.equal(false)
-    })
-
-    it('negativetest migratorSetStream', async (): Promise<void> => {
-        await expect(registryFromMigrator.migratorSetStream(streamId0, metadata1))
-            .to.be.revertedWith('error_migrationIsClosed')
-    })
-
-    it('negativetest migratorSetPermissionsForUser', async (): Promise<void> => {
-        await expect(registryFromMigrator.migratorSetPermissionsForUser(streamId0,
+    it('negativetest trustedSetPermissionsForUser', async (): Promise<void> => {
+        await expect(registryFromAdmin.trustedSetPermissionsForUser(streamId0,
             user0Address, true, true, true, true, true))
-            .to.be.revertedWith('error_migrationIsClosed')
+            .to.be.revertedWith('error_mustBeTrustedRole')
     })
 
     it('positivetest transferAllPermissionsToUser', async (): Promise<void> => {
@@ -650,5 +640,20 @@ describe('StreamRegistry', (): void => {
         await registryFromUser0.revokeAllPermissionsForUser(streamId1, user0Address)
         expect(await registryFromAdmin.getPermissionsForUser(streamId1, user0Address))
             .to.deep.equal([false, false, false, false, false])
+    })
+
+    it('positivetest grantRole, revokerole', async (): Promise<void> => {
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress)
+        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress))
+            .to.equal(true)
+        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress)
+        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress))
+            .to.equal(false)
+    })
+
+    it('negativetest grantRole, revokerole', async (): Promise<void> => {
+        await expect(registryFromUser0.grantRole(await registryFromAdmin.TRUSTED_ROLE(), user0Address))
+            .to.be.revertedWith('account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing '
+            + 'role 0x0000000000000000000000000000000000000000000000000000000000000000')
     })
 })
