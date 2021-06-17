@@ -21,6 +21,7 @@
         "object-curly-spacing": ["error", "always"],
         "no-await-in-loop": "off",
         "no-plusplus": "off",
+        "no-console": "off",
         "import/extensions": [
             "error",
             "ignorePackages",

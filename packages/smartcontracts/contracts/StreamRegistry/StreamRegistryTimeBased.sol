@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.3;
+/* solhint-disable not-rely-on-time */
+
+pragma solidity 0.8.4;
 contract StreamRegistryTimeBased {
     event StreamCreated(uint id, address owner, string metadata);
     // TODO emit differences, transfered amount or emit absolute amounts from both sides?
