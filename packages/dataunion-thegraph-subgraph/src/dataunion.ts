@@ -13,11 +13,11 @@ export function handleMemberJoined(event: MemberJoined): void {
     member.address = memberAddress
     member.addressString = memberAddress.toHexString()
     member.dataunion = duAddress.toHexString()
-    member.status = "ACTIVE"
+    member.status = 'ACTIVE'
     member.save()
 
-    addToBucket(duAddress, event.block.timestamp, "HOUR", 1)
-    addToBucket(duAddress, event.block.timestamp, "DAY", 1)
+    addToBucket(duAddress, event.block.timestamp, 'HOUR', 1)
+    addToBucket(duAddress, event.block.timestamp, 'DAY', 1)
     addDUMemberCount(event.address, 1)
 }
 
@@ -28,16 +28,16 @@ export function handleMemberParted(event: MemberParted): void {
 
     const memberId = getMemberId(memberAddress, duAddress)
     const member = Member.load(memberId)
-    member.status = "INACTIVE"
+    member.status = 'INACTIVE'
     member.save()
 
-    addToBucket(duAddress, event.block.timestamp, "HOUR", -1)
-    addToBucket(duAddress, event.block.timestamp, "DAY", -1)
+    addToBucket(duAddress, event.block.timestamp, 'HOUR', -1)
+    addToBucket(duAddress, event.block.timestamp, 'DAY', -1)
     addDUMemberCount(event.address, -1)
 }
 
 function getMemberId(memberAddress: Address, duAddress: Address): string {
-    return memberAddress.toHexString() + "-" + duAddress.toHexString()
+    return memberAddress.toHexString() + '-' + duAddress.toHexString()
 }
 
 function getDataUnion(duAddress: Address): DataUnion | null {
@@ -105,10 +105,10 @@ function getNearestBucket(length: string, timestamp: BigInt): BigInt {
 }
 
 function getBucketLength(length: string): BigInt {
-    if (length === "HOUR") {
+    if (length === 'HOUR') {
         return BigInt.fromI32(60 * 60)
     }
-    else if (length === "DAY") {
+    else if (length === 'DAY') {
         return BigInt.fromI32(24 * 60 * 60)
     }
     else {
