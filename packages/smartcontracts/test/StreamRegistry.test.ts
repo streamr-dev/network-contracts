@@ -155,7 +155,7 @@ describe('StreamRegistry', (): void => {
             .to.deep.equal([true, true, true, true, true])
     })
 
-    it('negativtest getPermissionForUser, stream not exist, userentry not exist', async (): Promise<void> => {
+    it('negativetest getPermissionForUser, stream not exist, userentry not exist', async (): Promise<void> => {
         await expect(registryFromAdmin.getPermissionsForUser(streamId1, adminAdress))
             .to.be.revertedWith('error_streamDoesNotExist')
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
@@ -190,7 +190,7 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('error_streamDoesNotExist')
     })
 
-    it('negativtest setPermissionForUser, stream doesnt exist, error_noSharePermission', async (): Promise<void> => {
+    it('negativetest setPermissionForUser, stream doesnt exist, error_noSharePermission', async (): Promise<void> => {
         await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
             .to.be.revertedWith('error_streamDoesNotExist')
         await registryFromAdmin.createStream(streamPath0, metadata0)
