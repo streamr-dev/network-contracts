@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.6.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 /**
  * @title Ownable
@@ -19,7 +19,7 @@ contract Ownable {
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
      * account.
      */
-    constructor(address owner_) public {
+    constructor(address owner_) {
         owner = owner_;
     }
 
