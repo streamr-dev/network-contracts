@@ -2,14 +2,16 @@ import { waffle } from 'hardhat'
 import { expect, use } from 'chai'
 import { utils, BigNumber } from 'ethers'
 
-import LinkTokenJson from '../artifacts/@chainlink/token/contracts/v0.6/LinkToken.sol/LinkToken.json'
-import { LinkToken } from '../typechain/LinkToken'
-import OracleJson from '../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json'
-import { Oracle } from '../typechain/Oracle'
 import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
 import { ENSCache } from '../typechain/ENSCache'
 import ForwarderJson from '../artifacts/zeppelin4/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import { MinimalForwarder } from '../typechain/MinimalForwarder'
+
+import OracleJson from './Oracle.json'
+import LinkTokenJson from './LinkToken.json'
+
+import type { Oracle } from './Oracle'
+import type { LinkToken } from './LinkToken'
 
 const ethSigUtil = require('eth-sig-util')
 
