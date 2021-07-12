@@ -10,8 +10,8 @@ import { MinimalForwarder } from '../typechain/MinimalForwarder'
 import OracleJson from './Oracle.json'
 import LinkTokenJson from './LinkToken.json'
 
-import type { Oracle } from './Oracle'
-import type { LinkToken } from './LinkToken'
+import type { Oracle } from './contracts/Oracle'
+import type { LinkToken } from './contracts/LinkToken'
 
 const ethSigUtil = require('eth-sig-util')
 
