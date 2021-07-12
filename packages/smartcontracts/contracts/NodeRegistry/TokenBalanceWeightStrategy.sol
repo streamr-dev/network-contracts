@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.6.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import "./WeightStrategy.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract TokenBalanceWeightStrategy is WeightStrategy {
     ERC20 public token;
 
-    constructor(address tokenAddress) public {
+    constructor(address tokenAddress) {
         token = ERC20(tokenAddress);
     }
 

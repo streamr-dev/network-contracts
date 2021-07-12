@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "zeppelin4/utils/Context.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 
 /*
  * @dev Context variant with ERC2771 support.

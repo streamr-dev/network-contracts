@@ -3,11 +3,12 @@ import { expect, use } from 'chai'
 import { BigNumber, utils } from 'ethers'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-import { StreamRegistry } from '../typechain/StreamRegistry'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import { ENSMock } from '../typechain/StreamRegistry'
-import ForwarderJson from '../artifacts/zeppelin4/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import { MinimalForwarder } from '../typechain/MinimalForwarder'
+import ForwarderJson from '../test-contracts/MinimalForwarder.json'
+import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+
+import type { StreamRegistry } from '../typechain/StreamRegistry'
 
 const ethSigUtil = require('eth-sig-util')
 

@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.6.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 contract NodeDomainNameHelper {
     event Request(address indexed requestor, string indexed ipAddress, uint port);

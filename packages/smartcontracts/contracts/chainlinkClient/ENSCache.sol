@@ -1,11 +1,9 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-// import "@chainlink/contracts/src/v0.6/Chainlink.sol";
 import "../Chainlink0.6/ChainlinkClient.sol";
 import "../Chainlink0.6/Chainlink.sol";
-import "zeppelin4/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
@@ -25,7 +23,7 @@ contract ENSCache is ChainlinkClient, Ownable {
     return super._msgData();
   }
 
-  constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder) 
+  constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder)
   ChainlinkClient(trustedForwarder) Ownable() {
     oracle = oracleaddress;
     jobId = chainlinkJobId;
@@ -53,7 +51,7 @@ contract ENSCache is ChainlinkClient, Ownable {
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
     owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
   }
-  
+
   function getChainlinkToken() public view returns (address) {
     return chainlinkTokenAddress();
   }
@@ -67,7 +65,7 @@ contract ENSCache is ChainlinkClient, Ownable {
     uint256 _expiration) public onlyOwner {
     cancelChainlinkRequest(_requestId, _payment, _callbackFunctionId, _expiration);
   }
-  
+
   function stringToBytes32(string memory source) private pure returns (bytes32 result) {
     bytes memory tempEmptyStringTest = bytes(source);
     if (tempEmptyStringTest.length == 0) {
