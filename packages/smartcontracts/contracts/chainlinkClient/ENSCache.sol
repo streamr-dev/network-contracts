@@ -17,23 +17,13 @@ contract ENSCache is ChainlinkClient, Ownable {
   address public oracle;
   string public jobId;
 
-    function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
-        if (isTrustedForwarder(msg.sender)) {
-            // The assembly code is more direct than the Solidity version using `abi.decode`.
-            // solhint-disable-next-line no-inline-assembly
-            assembly { sender := shr(96, calldataload(sub(calldatasize(), 20))) }
-        } else {
-            return super._msgSender();
-        }
-    }
+  function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
+    return super._msgSender();
+  }
 
-    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
-        if (isTrustedForwarder(msg.sender)) {
-            return msg.data[:msg.data.length-20];
-        } else {
-            return super._msgData();
-        }
-    }
+  function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+    return super._msgData();
+  }
 
   constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder) 
   ChainlinkClient(trustedForwarder) Ownable() {
