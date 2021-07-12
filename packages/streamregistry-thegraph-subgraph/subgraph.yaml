@@ -8,7 +8,7 @@ dataSources:
     name: StreamRegistry
     network: xDai
     source:
-      address: '0xa86863053cECFD9f6f861e0Fd39a042238411b75'
+      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
       abi: StreamRegistry
     mapping:
       kind: ethereum/events
@@ -26,6 +26,6 @@ dataSources:
           handler: handleStreamDeletion
         - event: StreamUpdated(string,string)
           handler: handleStreamUpdate
-        - event: PermissionUpdated(string,address,bool,bool,bool,bool,bool)
+        - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
           handler: handlePermissionUpdate
       file: ./src/mapping.ts

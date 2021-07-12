@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
+/* solhint-disable not-rely-on-time */
 
 import "../chainlinkClient/ENSCache.sol";
 import "zeppelin4/access/AccessControl.sol";
@@ -8,11 +9,12 @@ import "zeppelin4/access/AccessControl.sol";
 contract StreamRegistry is ERC2771Context, AccessControl {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
+    uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     event StreamCreated(string id, string metadata);
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
-    event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, bool publish, bool subscribed, bool share);
+    event PermissionUpdated(string streamId, address user, bool edit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool share);
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
@@ -25,8 +27,8 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     struct Permission {
         bool edit;
         bool canDelete;
-        bool publish; 
-        bool subscribed;
+        uint256 publishExpiration; 
+        uint256 subscribeExpiration;
         bool share;
     }
 
@@ -90,12 +92,12 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         Permission({
             edit: true,
             canDelete: true,
-            publish: true,
-            subscribed: true,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
             share: true
         });
         emit StreamCreated(streamId, metadataJsonString);
-        emit PermissionUpdated(streamId, _msgSender(), true, true, true, true, true);
+        emit PermissionUpdated(streamId, _msgSender(), true, true, MAX_INT, MAX_INT, true);
     }
 
     function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
@@ -119,8 +121,12 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
         Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
-        permission.publish = permission.publish || publicPermission.publish;
-        permission.subscribed = permission.subscribed || publicPermission.subscribed;
+        if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
+            permission.publishExpiration = publicPermission.publishExpiration;
+        }
+        if (permission.subscribeExpiration < block.timestamp && publicPermission.subscribeExpiration >= block.timestamp) {
+            permission.subscribeExpiration = publicPermission.subscribeExpiration;
+        }
         return permission;
     }
 
@@ -129,27 +135,27 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     }
 
     function setPermissionsForUser(string calldata streamId, address user, bool edit, 
-        bool deletePerm, bool publish, bool subscribe, bool share) public canShare(streamId) {
-            _setPermissionBooleans(streamId, user, edit, deletePerm, publish, subscribe, share);
+        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) public canShare(streamId) {
+            _setPermissionBooleans(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
 
     function _setPermissionBooleans(string calldata streamId, address user, bool edit, 
-        bool deletePerm, bool publish, bool subscribe, bool share) private {
+        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) private {
         require(user != address(0) || !(edit || deletePerm || share),
             "error_publicCanOnlySubsPubl");
         streamIdToPermissions[streamId][getAddressKey(streamId, user)] = Permission({
             edit: edit,
             canDelete: deletePerm,
-            publish: publish,
-            subscribed: subscribe,
+            publishExpiration: publishExpiration,
+            subscribeExpiration: subscribeExpiration,
             share: share
         });
-        emit PermissionUpdated(streamId, user, edit, deletePerm, publish, subscribe, share);
+        emit PermissionUpdated(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
 
     function revokeAllPermissionsForUser(string calldata streamId, address user) public canShareOrRevokeOwn(streamId, user){
         delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        emit PermissionUpdated(streamId, user, false, false, false, false, false);
+        emit PermissionUpdated(streamId, user, false, false, 0, 0, false);
     }
 
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
@@ -164,11 +170,11 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         else if (permissionType == PermissionType.Delete) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete;
         }
-        else if (permissionType == PermissionType.Subscribe) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribed;
-        }
         else if (permissionType == PermissionType.Publish) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].publish;
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration >= block.timestamp;
+        }
+        else if (permissionType == PermissionType.Subscribe) {
+            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration >= block.timestamp;
         }
         else if (permissionType == PermissionType.Share) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].share;
@@ -192,17 +198,27 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         else if (permissionType == PermissionType.Delete) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete = grant;
         }
-        else if (permissionType == PermissionType.Subscribe) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribed = grant;
-        }
         else if (permissionType == PermissionType.Publish) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publish = grant;
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration = grant ? MAX_INT : 0;
+        }
+        else if (permissionType == PermissionType.Subscribe) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration = grant ? MAX_INT : 0;
         }
         else if (permissionType == PermissionType.Share) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].share = grant;
         }
         Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publish, perm.subscribed, perm.share);
+        emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.share);
+    }
+
+    function setExpirationTime(string calldata streamId, address user, PermissionType permissionType, uint256 expirationTime) public canShare(streamId) {
+        require(permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_timeOnlyObPubSub");
+        if (permissionType == PermissionType.Publish) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration = expirationTime;
+        }
+        else if (permissionType == PermissionType.Subscribe) {
+            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration = expirationTime;
+        }
     }
 
     function grantPublicPermission(string calldata streamId, PermissionType permissionType) public canShare(streamId) {
@@ -213,19 +229,20 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         revokePermission(streamId, address(0), permissionType);
     }
 
-    function setPublicPermission(string calldata streamId, bool publish, bool subscribe) public canShare(streamId) {
-        setPermissionsForUser(streamId, address(0), false, false, publish, subscribe, false);
+    function setPublicPermission(string calldata streamId, uint256 publishExpiration, uint256 subscribeExpiration) public canShare(streamId) {
+        setPermissionsForUser(streamId, address(0), false, false, publishExpiration, subscribeExpiration, false);
     }
 
     function transferAllPermissionsToUser(string calldata streamId, address recipient) public {
         Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())];
-        require(permSender.edit || permSender.canDelete || permSender.publish || permSender.subscribed ||
+        require(permSender.edit || permSender.canDelete || permSender.publishExpiration > 0 || permSender.subscribeExpiration > 0 ||
         permSender.share, "error_noPermissionToTransfer");
         Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
+        uint256 publishExpiration = permSender.publishExpiration > permRecipient.publishExpiration ? permSender.publishExpiration : permRecipient.publishExpiration;
+        uint256 subscribeExpiration = permSender.subscribeExpiration > permRecipient.subscribeExpiration ? permSender.subscribeExpiration : permRecipient.subscribeExpiration;
         _setPermissionBooleans(streamId, recipient, permSender.edit || permRecipient.edit, permSender.canDelete || permRecipient.canDelete,
-        permSender.publish || permRecipient.publish, permSender.subscribed || permRecipient.subscribed, 
-        permSender.share || permRecipient.share);
-        _setPermissionBooleans(streamId, _msgSender(), false, false, false, false, false);
+        publishExpiration, subscribeExpiration, permSender.share || permRecipient.share);
+        _setPermissionBooleans(streamId, _msgSender(), false, false, 0, 0, false);
     }
 
     function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
@@ -240,8 +257,8 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     }
 
     function trustedSetPermissionsForUser(string calldata streamId, address user, bool edit, 
-        bool deletePerm, bool publish, bool subscribe, bool share) public isTrusted() {
-            _setPermissionBooleans(streamId, user, edit, deletePerm, publish, subscribe, share);
+        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) public isTrusted() {
+            _setPermissionBooleans(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
 
     // not in current apidefinition, might speed up migratrion, needs to be tested
@@ -252,7 +269,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     //         streamIdToMetadata[streamId] = metadatas[i];
     //         emit StreamUpdated(streamId, metadatas[i]);
     //         Permission memory permission = permissions[i];
-    //         _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publish, permission.subscribed, permission.share);
+    //         _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
     //     }
     // }
 
