@@ -24,12 +24,12 @@ export function handleStreamUpdate(event: StreamUpdated): void {
 export function handlePermissionUpdate(event: PermissionUpdated): void {
     const permissionId = event.params.streamId + '-' + event.params.user.toHex()
     const permission = new Permission(permissionId)
-    permission.user = event.params.user
+    permission.userAddress = event.params.user
     permission.stream = event.params.streamId
     permission.edit = event.params.edit
     permission.canDelete = event.params.canDelete
-    permission.publish = event.params.publish
-    permission.subscribed = event.params.subscribed
+    permission.publishExpiration = event.params.publishExpiration
+    permission.subscribeExpiration = event.params.subscribeExpiration
     permission.share = event.params.share
     permission.save()
 }

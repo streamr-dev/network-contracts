@@ -6,11 +6,11 @@ type Stream @entity {
 
 type Permission @entity {
   id: ID!
-  user: Bytes!
+  userAddress: Bytes!
   stream: Stream
   edit: Boolean
   canDelete: Boolean
-  publish: Boolean
-  subscribed: Boolean
+  publishExpiration: BigInt
+  subscribeExpiration: BigInt
   share: Boolean
 }
