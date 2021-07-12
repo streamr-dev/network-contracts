@@ -19,8 +19,6 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
-    "@chainlink/contracts": "^0.1.7",
-    "@chainlink/token": "^1.1.0",
     "@ensdomains/ens": "^0.6.0",
     "@ensdomains/resolver": "^0.2.4",
     "@ethersproject/contracts": "^5.1.1",
