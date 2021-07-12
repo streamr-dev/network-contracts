@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import "../metatx/ERC2771Context.sol";
 import "../chainlinkClient/ENSCache.sol";
-import "zeppelin4/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract StreamRegistry is ERC2771Context, AccessControl {
 
@@ -21,14 +21,14 @@ contract StreamRegistry is ERC2771Context, AccessControl {
 
     mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
-    // streamid ->  keccak256(version, useraddress); -> permissions struct 
+    // streamid ->  keccak256(version, useraddress); -> permissions struct
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     ENSCache private ensCache;
 
     struct Permission {
         bool edit;
         bool canDelete;
-        uint256 publishExpiration; 
+        uint256 publishExpiration;
         uint256 subscribeExpiration;
         bool share;
     }
@@ -89,7 +89,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
-        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] = 
+        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] =
         Permission({
             edit: true,
             canDelete: true,
@@ -135,12 +135,12 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         return streamIdToPermissions[streamId][getAddressKey(streamId, user)];
     }
 
-    function setPermissionsForUser(string calldata streamId, address user, bool edit, 
+    function setPermissionsForUser(string calldata streamId, address user, bool edit,
         bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) public canShare(streamId) {
             _setPermissionBooleans(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
 
-    function _setPermissionBooleans(string calldata streamId, address user, bool edit, 
+    function _setPermissionBooleans(string calldata streamId, address user, bool edit,
         bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) private {
         require(user != address(0) || !(edit || deletePerm || share),
             "error_publicCanOnlySubsPubl");
@@ -257,7 +257,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         emit StreamUpdated(streamId, metadata);
     }
 
-    function trustedSetPermissionsForUser(string calldata streamId, address user, bool edit, 
+    function trustedSetPermissionsForUser(string calldata streamId, address user, bool edit,
         bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool share) public isTrusted() {
             _setPermissionBooleans(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
