@@ -4,14 +4,13 @@ import { utils, BigNumber } from 'ethers'
 
 import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
 import { ENSCache } from '../typechain/ENSCache'
-import ForwarderJson from '../artifacts/zeppelin4/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import { MinimalForwarder } from '../typechain/MinimalForwarder'
+import ForwarderJson from '../test-contracts/MinimalForwarder.json'
+import OracleJson from '../test-contracts/Oracle.json'
+import LinkTokenJson from '../test-contracts/LinkToken.json'
 
-import OracleJson from './Oracle.json'
-import LinkTokenJson from './LinkToken.json'
-
-import type { Oracle } from './contracts/Oracle'
-import type { LinkToken } from './contracts/LinkToken'
+import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+import type { Oracle } from '../test-contracts/Oracle'
+import type { LinkToken } from '../test-contracts/LinkToken'
 
 const ethSigUtil = require('eth-sig-util')
 

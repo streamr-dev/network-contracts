@@ -5,6 +5,7 @@
 import {
   ethers,
   EventFilter,
+  Event,
   Signer,
   BigNumber,
   BigNumberish,
@@ -17,7 +18,21 @@ import {
 import { BytesLike } from "@ethersproject/bytes";
 import { Listener, Provider } from "@ethersproject/providers";
 import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
-import { TypedEventFilter, TypedEvent, TypedListener } from "../../typechain/commons";
+
+export interface TypedEventFilter<_EventArgsArray, _EventArgsObject>
+  extends EventFilter {}
+
+export interface TypedEvent<EventArgs extends Result> extends Event {
+  args: EventArgs;
+}
+
+export type TypedListener<EventArgsArray extends Array<any>, EventArgsObject> =
+  (
+    ...listenerArg: [
+      ...EventArgsArray,
+      TypedEvent<EventArgsArray & EventArgsObject>
+    ]
+  ) => void;
 
 interface LinkTokenInterface extends ethers.utils.Interface {
   functions: {

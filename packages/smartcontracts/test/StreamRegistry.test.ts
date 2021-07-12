@@ -3,11 +3,10 @@ import { expect, use } from 'chai'
 import { BigNumber, utils } from 'ethers'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import { ENSMock } from '../typechain/StreamRegistry'
-import ForwarderJson from './contracts/MinimalForwarder.json'
-import { MinimalForwarder } from './contracts/MinimalForwarder'
+import ForwarderJson from '../test-contracts/MinimalForwarder.json'
+import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
