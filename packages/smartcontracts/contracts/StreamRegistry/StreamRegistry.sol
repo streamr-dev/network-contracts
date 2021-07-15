@@ -19,12 +19,6 @@ contract StreamRegistry is ERC2771Context, AccessControl {
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
 
-    mapping (string => uint32) private streamIdToVersion;
-    mapping (string => string) public streamIdToMetadata;
-    // streamid ->  keccak256(version, useraddress); -> permissions struct
-    mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
-    ENSCache private ensCache;
-
     struct Permission {
         bool edit;
         bool canDelete;
@@ -32,6 +26,12 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         uint256 subscribeExpiration;
         bool share;
     }
+
+    // streamid -> keccak256(version, useraddress) -> permission struct above
+    mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
+    mapping (string => uint32) private streamIdToVersion;
+    mapping (string => string) public streamIdToMetadata;
+    ENSCache private ensCache;
 
     modifier canShare(string calldata streamId) {
         require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share, "error_noSharePermission"); //||
@@ -85,12 +85,13 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
         bytes memory pathBytes = bytes(streamIdPath);
         require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
+
         string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
         require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
+
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
-        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] =
-        Permission({
+        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] = Permission({
             edit: true,
             canDelete: true,
             publishExpiration: MAX_INT,
