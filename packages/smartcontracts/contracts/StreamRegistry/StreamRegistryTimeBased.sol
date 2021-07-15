@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-/* solhint-disable not-rely-on-time */
-
 pragma solidity ^0.8.0;
+/* solhint-disable not-rely-on-time */
 
 contract StreamRegistryTimeBased {
     event StreamCreated(uint id, address owner, string metadata);
@@ -11,7 +10,7 @@ contract StreamRegistryTimeBased {
 
     uint public rollingId = 0;
     mapping (uint => string) public streamIdToMetadata;
-    // streamid ->  useraddr -> permissions struct 
+    // streamid ->  useraddr -> permissions struct
     mapping (uint => mapping(address => Permission)) public streamIdToPermissions;
 
     struct Permission {
@@ -46,7 +45,7 @@ contract StreamRegistryTimeBased {
         // require(bytes(streamIdToMetadata[id]).length == 0, "item id alreay exists!");
         rollingId = rollingId + 1;
         streamIdToMetadata[rollingId] = desc;
-        streamIdToPermissions[rollingId][msg.sender] = 
+        streamIdToPermissions[rollingId][msg.sender] =
         Permission({
             isAdmin: true,
             publishRights: 1,
@@ -93,7 +92,7 @@ contract StreamRegistryTimeBased {
     // function grantPermissions(uint id, address user, bool[] memory _permission) public itemExists(id) canGrant(id) {
     //     permissions[id][user] = _permission;
     // }
-    
+
     // function hasPermission(uint id, address user, string memory _permission) public view itemExists(id) returns (bool userPermission) {
     //     if (keccak256(bytes(_permission)) == keccak256(bytes("view"))) {
     //         return permissions[id][user][0];

@@ -86,10 +86,10 @@ describe('StreamRegistry', (): void => {
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
-        //     [user1Address, 'jobid']) as ENSCache
+        // enscache object is only used for createStreamWithENS function; if that's not called, then it can be dropped
+        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson, [user1Address, 'jobid']) as ENSCache
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [wallets[3].address, minimalForwarderFromUser0.address]) as StreamRegistry
+            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
