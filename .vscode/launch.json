@@ -5,16 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
+            "name": "Hardhat test this file",
+            "runtimeExecutable": "${workspaceFolder}/packages/smartcontracts/node_modules/.bin/hardhat",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "runtimeArgs": [
+                "test",
+                "${file}"
             ],
-            "program": "./scripts/prepareTheGraph.js",
-            "outFiles": [
-                "${workspaceFolder}/**/*.js"
-            ]
-        }
+            "runtimeVersion": "16.1.0",
+            "internalConsoleOptions": "openOnSessionStart",
+            "cwd": "${workspaceFolder}/packages/smartcontracts"
+        },
     ]
 }
