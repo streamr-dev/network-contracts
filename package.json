@@ -12,7 +12,7 @@
         "lint": "npm run lint -ws",
         "test": "npm run test -w=chainlink-ens-external-adapter -w=smartcontracts",
         "graph1_build": "npm run deployLocalWithExport -w=smartcontracts",
-        "graph2_copyInfo": "node ./scripts/prepareTheGraph.js",
+        "graph2_copyInfo": "./scripts/copyAbis.sh && ./scripts/generateYaml.sh",
         "graph3_build": "npm run doAll -w=streamregistry-thegraph-subgraph",
         "graph": "npm run graph1_build && npm run graph2_copyInfo && npm run graph3_build",
         "e2etest": "npm run e2etest -w=smartcontracts"
