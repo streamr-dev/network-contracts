@@ -8,7 +8,7 @@ import {
 import { Node } from '../generated/schema'
 
 export function handleStorageNodeAddedToStream(event: Added): void {
-    let nodeId = event.params.nodeAddress.toString()
+    let nodeId = event.params.nodeAddress.toHexString()
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
 
@@ -28,7 +28,7 @@ export function handleStorageNodeAddedToStream(event: Added): void {
 }
 
 export function handleStorageNodeRemovedFromStream(event: Removed): void {
-    let nodeId = event.params.nodeAddress.toString()
+    let nodeId = event.params.nodeAddress.toHexString()
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
 
