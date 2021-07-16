@@ -6,6 +6,7 @@ import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 
 require('solidity-coverage')
+require('hardhat-dependency-compiler')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -17,6 +18,13 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
         console.log(account.address)
     }
 })
+
+// TODO: add this to the hardhat-dependency-compiler repo as a pull request or whatever
+declare module 'hardhat/types/config' {
+    interface HardhatUserConfig {
+      dependencyCompiler?: any;
+    }
+}
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -33,6 +41,11 @@ const config: HardhatUserConfig = {
             chainId: 8997,
             url: 'http://localhost:8546'
         }
+    },
+    dependencyCompiler: {
+        paths: [
+            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
+        ],
     },
     solidity: {
         compilers: [

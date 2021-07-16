@@ -37,6 +37,7 @@
     "eth-sig-util": "^2.5.4",
     "ethers": "^5.1.4",
     "hardhat": "^2.2.1",
+    "hardhat-dependency-compiler": "^1.1.1",
     "hardhat-deploy": "^0.7.5",
     "hardhat-deploy-ethers": "*",
     "hardhat-typechain": "^0.3.5",
