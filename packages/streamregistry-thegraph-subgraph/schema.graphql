@@ -1,8 +1,5 @@
-type Stream @entity {
-  id: ID!
-  metadata: String!
-  permissions: [Permission]! @derivedFrom(field: "stream")
-}
+# TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
+# scalar Date
 
 type Permission @entity {
   id: ID!
@@ -14,3 +11,27 @@ type Permission @entity {
   subscribeExpiration: BigInt
   share: Boolean
 }
+
+type Stream @entity {
+  id: ID!
+  metadata: String!
+  permissions: [Permission!] @derivedFrom(field: "stream")
+  storageNodes: [Node!] @derivedFrom(field: "storedStreams")
+}
+
+type Node @entity {
+  id: ID!
+  metadata: String!
+  lastSeen: BigInt!
+  # whitelisted: Boolean!
+  storedStreams: [Stream!] # @derivedFrom(field: "storageNodes")
+}
+
+# many-to-many relationship: https://thegraph.com/docs/developer/create-subgraph-hosted#many-to-many-relationships
+# "more performant option" according the the docs:
+# type StreamStorage @entity {
+#   id: ID!
+#   created: BigInt!
+#   node: Node!
+#   stream: Stream!
+# }

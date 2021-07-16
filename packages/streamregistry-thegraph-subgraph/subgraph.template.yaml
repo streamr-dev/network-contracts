@@ -1,0 +1,81 @@
+specVersion: 0.0.2
+description: Subgraph definitions for the stream permission registry
+repository:
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: StreamRegistry
+    network: xDai
+    source:
+      address: $STREAM_REGISTRY_ADDRESS
+      abi: StreamRegistry
+      # startBlock: 10000000 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Stream
+      abis:
+        - name: StreamRegistry
+          file: ./abis/StreamRegistry.json
+      eventHandlers:
+        - event: StreamCreated(string,string)
+          handler: handleStreamCreation
+        - event: StreamDeleted(string)
+          handler: handleStreamDeletion
+        - event: StreamUpdated(string,string)
+          handler: handleStreamUpdate
+        - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdate
+      file: ./src/streamRegistry.ts
+  - kind: ethereum/contract
+    name: NodeRegistry
+    network: xDai
+    source:
+      address: $NODE_REGISTRY_ADDRESS
+      abi: NodeRegistry
+      # startBlock: 10000000 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Node
+      abis:
+        - name: NodeRegistry
+          file: ./abis/NodeRegistry.json
+      eventHandlers:
+        - event: NodeUpdated(indexed address,indexed string,indexed uint256,uint256)
+          handler: handleNodeUpdate
+        - event: NodeRemoved(indexed address)
+          handler: handleNodeRemoved
+        # - event: NodeWhitelistApproved(indexed address)
+        #   handler: handleNodeWhitelisted
+        # - event: NodeWhitelistRejected(indexed address)
+        #   handler: handleNodeUnWhitelisted
+      file: ./src/nodeRegistry.ts
+  - kind: ethereum/contract
+    name: StreamStorageRegistry
+    network: xDai
+    source:
+      address: $STREAM_STORAGE_REGISTRY_ADDRESS
+      abi: StreamStorageRegistry
+      # startBlock: 10000000 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Node
+        # - Stream
+      abis:
+        - name: StreamStorageRegistry
+          file: ./abis/StreamStorageRegistry.json
+      eventHandlers:
+        - event: Added(indexed string,indexed address)
+          handler: handleStorageNodeAddedToStream
+        - event: Removed(indexed string,indexed address)
+          handler: handleStorageNodeRemovedFromStream
+      file: ./src/streamStorageRegistry.ts

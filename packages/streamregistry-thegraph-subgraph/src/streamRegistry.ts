@@ -5,25 +5,32 @@ import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated }
 import { Stream, Permission } from '../generated/schema'
 
 export function handleStreamCreation(event: StreamCreated): void {
-    const stream = new Stream(event.params.id)
+    log.info('handleStreamCreation: id={} metadata={} blockNumber={}',
+        [event.params.id, event.params.metadata, event.block.number.toString()])
+    let stream = new Stream(event.params.id)
     stream.metadata = event.params.metadata
     stream.save()
 }
+
 export function handleStreamDeletion(event: StreamDeleted): void {
-    log.warning('handleDeleteStream: id={} blockNumber={}',
+    log.info('handleDeleteStream: id={} blockNumber={}',
         [event.params.id, event.block.number.toString()])
     store.remove('Stream', event.params.id)
 }
+
 export function handleStreamUpdate(event: StreamUpdated): void {
-    log.warning('handleUpdateStream: id={} metadata={} blockNumber={}',
+    log.info('handleUpdateStream: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
-    const stream = Stream.load(event.params.id)
+    let stream = Stream.load(event.params.id)
     stream.metadata = event.params.metadata
     stream.save()
 }
+
 export function handlePermissionUpdate(event: PermissionUpdated): void {
-    const permissionId = event.params.streamId + '-' + event.params.user.toHex()
-    const permission = new Permission(permissionId)
+    log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
+        [event.params.user.toString(), event.params.streamId, event.block.number.toString()])
+    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+    let permission = new Permission(permissionId)
     permission.userAddress = event.params.user
     permission.stream = event.params.streamId
     permission.edit = event.params.edit
