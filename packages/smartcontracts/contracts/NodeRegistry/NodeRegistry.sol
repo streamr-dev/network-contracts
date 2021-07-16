@@ -17,13 +17,13 @@ contract NodeRegistry is Ownable {
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
 
-    enum WhitelistState{
+    enum WhitelistState {
         None,
         Approved,
         Rejected
     }
 
-    struct Node{
+    struct Node {
         address nodeAddress; // Ethereum address of the node (unique id)
         string metadata; // Connection metadata, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?

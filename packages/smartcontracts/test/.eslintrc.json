@@ -9,6 +9,8 @@
         "afterEach": "readonly"
     },
     "rules": {
-        "no-unused-expressions": "off"
+        "no-unused-expressions": "off",
+        "max-len": "off",
+        "import/order": "warn"
     }
 }

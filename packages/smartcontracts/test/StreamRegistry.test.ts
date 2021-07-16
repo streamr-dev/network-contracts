@@ -7,7 +7,6 @@ import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegi
 // import { ENSMock } from '../typechain/StreamRegistry'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
-
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
 const ethSigUtil = require('eth-sig-util')
@@ -86,10 +85,10 @@ describe('StreamRegistry', (): void => {
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
-        //     [user1Address, 'jobid']) as ENSCache
+        // enscache object is only used for createStreamWithENS function; if that's not called, then it can be dropped
+        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson, [user1Address, 'jobid']) as ENSCache
         registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [wallets[3].address, minimalForwarderFromUser0.address]) as StreamRegistry
+            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address]) as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
