@@ -7,7 +7,6 @@ import { ENSCache } from '../typechain/ENSCache'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import OracleJson from '../test-contracts/Oracle.json'
 import LinkTokenJson from '../test-contracts/LinkToken.json'
-
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { Oracle } from '../test-contracts/Oracle'
 import type { LinkToken } from '../test-contracts/LinkToken'
