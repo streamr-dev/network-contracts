@@ -79,26 +79,6 @@ describe('StreamStorageRegistry', () => {
         expect(await reg.isStorageNodeOf(testStreamId, nodes[1].address)).to.be.false
     })
 
-    it('can clean up removed streams', async () => {
-        const testStreamId2 = admin.address.toLowerCase() + '/test2'
-        await streamReg.createStream('/test2', 'test2-metadata')
-        await reg.addStorageNode(testStreamId2, node0.address)
-        await streamReg.deleteStream(testStreamId2)
-        await expect(reg.cleanupStreams([testStreamId, testStreamId2], nodeAddresses))
-            .to.be.revertedWith('error_streamExists')
-        await expect(reg.cleanupStreams([testStreamId2], nodeAddresses))
-            .to.emit(reg, 'Removed').withArgs(testStreamId2, node0.address)
-    })
-
-    it('can clean up removed nodes', async () => {
-        await reg.addStorageNode(testStreamId, node2.address)
-        await nodeReg.removeNode(node2.address)
-        await expect(reg.cleanupStorageNodes(nodeAddresses, [testStreamId]))
-            .to.be.revertedWith('error_storageNodeExists')
-        await expect(reg.cleanupStorageNodes([node2.address], [testStreamId]))
-            .to.emit(reg, 'Removed').withArgs(testStreamId, node2.address)
-    })
-
     it('gives errors for non-existent streams and nodes', async () => {
         await expect(reg.addStorageNode(testStreamId, admin.address))
             .to.be.revertedWith('error_storageNodeNotRegistered')
@@ -117,4 +97,6 @@ describe('StreamStorageRegistry', () => {
         await expect(reg.addStorageNode(testStreamId2, node0.address))
             .to.be.revertedWith('error_noEditPermission')
     })
+
+    // TODO: test removed nodes and streams aren't returned by isStorageNodeOf
 })

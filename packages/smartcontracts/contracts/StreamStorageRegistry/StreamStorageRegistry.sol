@@ -38,6 +38,9 @@ contract StreamStorageRegistry is ERC2771Context {
     }
 
     function isStorageNodeOf(string calldata streamId, address nodeAddress) public view returns (bool) {
+        if (bytes(streamRegistry.streamIdToMetadata(streamId)).length == 0) { return false; }
+        NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
+        if (node.lastSeen == 0) { return false; }
         return pairs[streamId][nodeAddress].dateCreated != 0;
     }
 
@@ -70,42 +73,4 @@ contract StreamStorageRegistry is ERC2771Context {
             _removePair(streamId, removeNodes[i]);
         }
     }
-
-    /**
-     * Method for cleaning up deleted streams from this registry. Anyone can call it.
-     * @dev Reverts if any of the streamIds exists in the StreamRegistry (there must be a need for cleanup)
-     * @dev Iterates the "cartesian product" of streamIds X storageNodes,
-     * @dev   so some care must be taken to give either small number of streamIds or storageNodes,
-     * @dev   not a large number of both (of course gas fees would make the "user error" more clear)
-     */
-    function cleanupStreams(string[] calldata streamIds, address[] calldata storageNodes) external {
-        for (uint i = 0; i < streamIds.length; i++) {
-            string calldata streamId = streamIds[i];
-            // TODO: streamRegistry could offer: .exists(streamId) returns (bool)
-            // TODO can stream exist without metadata?
-            require(bytes(streamRegistry.streamIdToMetadata(streamId)).length == 0, "error_streamExists");
-            for (uint j = 0; j < storageNodes.length; j++) {
-                _removePair(streamId, storageNodes[j]);
-            }
-        }
-    }
-
-    /**
-     * Method for cleaning up deleted storage nodes from this registry. Anyone can call it.
-     * @dev Reverts if any of the storageNodes exists in the NodeRegistry (there must be a need for cleanup)
-     * @dev Iterates the "cartesian product" of streamIds X storageNodes,
-     * @dev   so some care must be taken to give either small number of streamIds or storageNodes,
-     * @dev   not a large number of both (of course gas fees would make the "user error" more clear)
-     */
-    function cleanupStorageNodes(address[] calldata storageNodes, string[] calldata streamIds) external {
-        for (uint i = 0; i < storageNodes.length; i++) {
-            address nodeAddress = storageNodes[i];
-            NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
-            require(node.lastSeen == 0, "error_storageNodeExists");
-            for (uint j = 0; j < streamIds.length; j++) {
-                _removePair(streamIds[j], nodeAddress);
-            }
-        }
-    }
-
 }
