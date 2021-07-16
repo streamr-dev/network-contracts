@@ -115,42 +115,6 @@
   {
     "inputs": [
       {
-        "internalType": "address[]",
-        "name": "storageNodes",
-        "type": "address[]"
-      },
-      {
-        "internalType": "string[]",
-        "name": "streamIds",
-        "type": "string[]"
-      }
-    ],
-    "name": "cleanupStorageNodes",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string[]",
-        "name": "streamIds",
-        "type": "string[]"
-      },
-      {
-        "internalType": "address[]",
-        "name": "storageNodes",
-        "type": "address[]"
-      }
-    ],
-    "name": "cleanupStreams",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "string",
         "name": "streamId",
         "type": "string"
