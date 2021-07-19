@@ -98,5 +98,19 @@ describe('StreamStorageRegistry', () => {
             .to.be.revertedWith('error_noEditPermission')
     })
 
-    // TODO: test removed nodes and streams aren't returned by isStorageNodeOf
+    it('removed nodes and streams aren\'t returned by isStorageNodeOf', async () => {
+        const testStreamId2 = admin.address.toLowerCase() + '/test2'
+        await streamReg.createStream('/test2', 'test2-metadata')
+
+        await reg.addStorageNode(testStreamId2, node0.address)
+        await reg.addStorageNode(testStreamId, node2.address)
+
+        expect(await reg.isStorageNodeOf(testStreamId2, node0.address)).to.be.true
+        await streamReg.deleteStream(testStreamId2)
+        expect(await reg.isStorageNodeOf(testStreamId2, node0.address)).to.be.false
+
+        expect(await reg.isStorageNodeOf(testStreamId, node2.address)).to.be.true
+        await nodeReg.removeNode(node2.address)
+        expect(await reg.isStorageNodeOf(testStreamId, node2.address)).to.be.false
+    })
 })
