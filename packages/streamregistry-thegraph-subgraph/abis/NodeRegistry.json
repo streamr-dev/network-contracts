@@ -48,7 +48,7 @@
         "type": "address"
       },
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "string",
         "name": "metadata",
         "type": "string"
