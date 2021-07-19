@@ -28,7 +28,7 @@ export function handleStreamUpdate(event: StreamUpdated): void {
 
 export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
-        [event.params.user.toString(), event.params.streamId, event.block.number.toString()])
+        [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     let permissionId = event.params.streamId + '-' + event.params.user.toHex()
     let permission = new Permission(permissionId)
     permission.userAddress = event.params.user
