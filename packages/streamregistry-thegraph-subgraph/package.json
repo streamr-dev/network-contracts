@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Subgraph definitions for the stream permission registry",
   "scripts": {
+    "clean": "rm -rf build generated",
     "codegen": "graph codegen",
     "graphbuild": "graph build",
     "build": "npm run codegen && npm run graphbuild",

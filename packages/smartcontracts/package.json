@@ -4,6 +4,7 @@
   "description": "Smart contracts for Streamr Network",
   "scripts": {
     "build": "hardhat compile",
+    "clean": "rm -rf artifacts cache coverage typechain deployments",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
     "lint": "eslint test/*.* && solhint contracts/*/*.sol",

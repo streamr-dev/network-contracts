@@ -5,6 +5,7 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "scripts": {
+    "clean": "",
     "test": "mocha --timeout 0",
     "lint": "eslint ./*.js test/*.js",
     "start": "node -r dotenv/config app.js"
