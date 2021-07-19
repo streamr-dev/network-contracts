@@ -34,7 +34,7 @@ async function main() {
     const tr2 = await tx2.wait()
     console.log('Node %s registered, receipt: %s', node.address, tr2)
 
-    const tx3 = await ssReg.addStorageNode(streamId, node.address, {gasLimit: '1000000'})
+    const tx3 = await ssReg.addStorageNode(streamId, node.address, { gasLimit: '1000000' })
     const tr3 = await tx3.wait()
     console.log('Storage node %s added to stream %s, receipt: %s', node.address, streamId, tr3)
 }
