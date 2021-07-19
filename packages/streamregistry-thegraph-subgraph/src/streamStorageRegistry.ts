@@ -1,10 +1,9 @@
-import { log, store } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 
 import {
     Added,
     Removed
 } from '../generated/StreamStorageRegistry/StreamStorageRegistry'
-
 import { Node } from '../generated/schema'
 
 export function handleStorageNodeAddedToStream(event: Added): void {
@@ -21,9 +20,12 @@ export function handleStorageNodeAddedToStream(event: Added): void {
 
     let node = Node.load(nodeId)
     if (!node.storedStreams) {
-        node.storedStreams = []
+        node.storedStreams = [streamId]
+    } else {
+        let streams = node.storedStreams
+        streams.push(streamId)
+        node.storedStreams = streams
     }
-    node.storedStreams.push(streamId)
     node.save()
 }
 
@@ -34,8 +36,15 @@ export function handleStorageNodeRemovedFromStream(event: Removed): void {
 
     let node = Node.load(nodeId)
     if (!node) { return }
-    if (node.storedStreams) {
-        node.storedStreams = node.storedStreams.filter(streamId => streamId !== streamId)
-        node.save()
+    if (!node.storedStreams) { return }
+    let streams = node.storedStreams as string[]
+    for (let i = 0; i < streams.length; i++) {
+        let s = streams[i] as string
+        if (s == streamId) {
+            streams.splice(i, 1)
+            node.storedStreams = streams
+            node.save()
+            break
+        }
     }
 }

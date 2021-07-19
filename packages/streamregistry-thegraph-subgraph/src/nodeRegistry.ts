@@ -6,7 +6,6 @@ import {
     // NodeWhitelistApproved,
     // NodeWhitelistRejected
 } from '../generated/NodeRegistry/NodeRegistry'
-
 import { Node } from '../generated/schema'
 
 export function handleNodeUpdate(event: NodeUpdated): void {
@@ -17,8 +16,9 @@ export function handleNodeUpdate(event: NodeUpdated): void {
 
     let node = Node.load(id) || new Node(id)
 
-    node.metadata = event.params.metadata.toString()
+    node.metadata = event.params.metadata
     node.lastSeen = event.params.lastSeen
+    // node.storedStreams = []
     node.save()
 }
 
@@ -27,6 +27,11 @@ export function handleNodeRemoved(event: NodeRemoved): void {
     log.info('handleNodeRemoved: node={} blockNumber={}', [id, event.block.number.toString()])
     store.remove('Node', id)
 }
+
+// Problem with whitelisting is that nodes might need to be whitelisted BEFORE they're otherwise created
+// So question is: should a "whitelisted node" show up in the graphql results?
+// Right now we keep it simple by not indexing the whitelistings at all
+// The "rejections" could be interesting to query though so maybe this needs to be solved at some point
 
 // export function handleNodeWhitelistApproved(event: NodeWhitelistApproved): void {
 //     const id = event.params.nodeAddress.toString()
