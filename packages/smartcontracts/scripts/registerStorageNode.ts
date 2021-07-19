@@ -1,6 +1,6 @@
 // Steps before running this file:
 //   start dev env: streamr-docker-dev start graph-node
-//   deploy in the localsidechain: npm run deployLocalWithExport
+//   deploy in the localsidechain: npm run graph (in network-contracts directory!)
 
 import { Contract } from '@ethersproject/contracts'
 import { Wallet } from '@ethersproject/wallet'
@@ -25,18 +25,28 @@ async function main() {
     const ssReg = new Contract(ssRegistryAddress, ssRegistryAbi, wallet) as StreamStorageRegistry
 
     const path = `/test-${Date.now()}`
-    const streamId = wallet.address + path
+    const streamId = wallet.address.toLowerCase() + path
     const tx1 = await streamReg.createStream(path, '{"partitions":1}')
     const tr1 = await tx1.wait()
-    console.log('Stream %s registered, receipt: %s', streamId, tr1)
+    console.log('Stream %s registered, tx: %s', streamId, tr1.transactionHash)
 
     const tx2 = await nodeReg.createOrUpdateNode(node.address, 'http://node.url')
     const tr2 = await tx2.wait()
-    console.log('Node %s registered, receipt: %s', node.address, tr2)
+    console.log('Node %s registered, tx: %s', node.address, tr2.transactionHash)
+
+    // const metadata = await streamReg.streamIdToMetadata(streamId)
+    // console.log("metadata", metadata)
+    // const nodeInfo = await nodeReg.getNode(node.address)
+    // console.log("node info", nodeInfo)
+    // const perms = await streamReg.getPermissionsForUser(streamId, wallet.address)
+    // console.log("perms", perms)
+    // enum PermissionType { Edit, Delete, Publish, Subscribe, Share }
+    // const canEdit = await streamReg.hasPermission(streamId, wallet.address, PermissionType.Edit)
+    // console.log("canEdit", canEdit)
 
     const tx3 = await ssReg.addStorageNode(streamId, node.address, { gasLimit: '1000000' })
     const tr3 = await tx3.wait()
-    console.log('Storage node %s added to stream %s, receipt: %s', node.address, streamId, tr3)
+    console.log('Storage node %s added to stream %s, tx: %s', node.address, streamId, tr3.transactionHash)
 }
 
 main()
