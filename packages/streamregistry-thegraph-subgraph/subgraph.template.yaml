@@ -47,7 +47,7 @@ dataSources:
         - name: NodeRegistry
           file: ./abis/NodeRegistry.json
       eventHandlers:
-        - event: NodeUpdated(indexed address,indexed string,indexed uint256,uint256)
+        - event: NodeUpdated(indexed address,string,indexed uint256,uint256)
           handler: handleNodeUpdate
         - event: NodeRemoved(indexed address)
           handler: handleNodeRemoved
@@ -74,8 +74,8 @@ dataSources:
         - name: StreamStorageRegistry
           file: ./abis/StreamStorageRegistry.json
       eventHandlers:
-        - event: Added(indexed string,indexed address)
+        - event: Added(string,indexed address)
           handler: handleStorageNodeAddedToStream
-        - event: Removed(indexed string,indexed address)
+        - event: Removed(string,indexed address)
           handler: handleStorageNodeRemovedFromStream
       file: ./src/streamStorageRegistry.ts

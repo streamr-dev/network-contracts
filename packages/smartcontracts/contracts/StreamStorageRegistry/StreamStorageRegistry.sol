@@ -18,8 +18,8 @@ contract StreamStorageRegistry is ERC2771Context {
     }
     mapping(string => mapping(address => Pair)) public pairs;
 
-    event Added(string indexed streamId, address indexed nodeAddress);
-    event Removed(string indexed streamId, address indexed nodeAddress);
+    event Added(string streamId, address indexed nodeAddress);
+    event Removed(string streamId, address indexed nodeAddress);
 
     constructor(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
         streamRegistry = StreamRegistry(streamRegistryAddress);
