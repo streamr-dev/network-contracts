@@ -10,6 +10,7 @@
     },
     "rules": {
         "no-unused-expressions": "off",
-        "max-len": "off"
+        "max-len": "off",
+        "import/order": "warn"
     }
 }
