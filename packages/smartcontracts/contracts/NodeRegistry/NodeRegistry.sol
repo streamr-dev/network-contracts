@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract NodeRegistry is Ownable {
 
     // TODO: next version isNew should be boolean
-    event NodeUpdated(address indexed nodeAddress, string indexed metadata, uint indexed isNew, uint lastSeen);
+    event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
