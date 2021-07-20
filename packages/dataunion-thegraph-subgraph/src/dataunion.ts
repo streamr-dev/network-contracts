@@ -4,12 +4,12 @@ import { MemberJoined, MemberParted } from '../generated/templates/DataUnionSide
 import { DataUnion, DataUnionStatsBucket, Member } from '../generated/schema'
 
 export function handleMemberJoined(event: MemberJoined): void {
-    const duAddress = event.address
-    const memberAddress = event.params.member
+    let duAddress = event.address
+    let memberAddress = event.params.member
     log.warning('handleMemberJoined: member={} duAddress={}', [memberAddress.toHexString(), duAddress.toHexString()])
 
-    const memberId = getMemberId(memberAddress, duAddress)
-    const member = new Member(memberId)
+    let memberId = getMemberId(memberAddress, duAddress)
+    let member = new Member(memberId)
     member.address = memberAddress
     member.addressString = memberAddress.toHexString()
     member.dataunion = duAddress.toHexString()
@@ -22,12 +22,12 @@ export function handleMemberJoined(event: MemberJoined): void {
 }
 
 export function handleMemberParted(event: MemberParted): void {
-    const duAddress = event.address
-    const memberAddress = event.params.member
+    let duAddress = event.address
+    let memberAddress = event.params.member
     log.warning('handleMemberParted: member={} duAddress={}', [memberAddress.toHexString(), duAddress.toHexString()])
 
-    const memberId = getMemberId(memberAddress, duAddress)
-    const member = Member.load(memberId)
+    let memberId = getMemberId(memberAddress, duAddress)
+    let member = Member.load(memberId)
     member.status = 'INACTIVE'
     member.save()
 
@@ -41,7 +41,7 @@ function getMemberId(memberAddress: Address, duAddress: Address): string {
 }
 
 function getDataUnion(duAddress: Address): DataUnion | null {
-    const dataunion = DataUnion.load(duAddress.toHexString())
+    let dataunion = DataUnion.load(duAddress.toHexString())
     if (dataunion != null) {
         return dataunion
     } else {
@@ -51,7 +51,7 @@ function getDataUnion(duAddress: Address): DataUnion | null {
 }
 
 function addDUMemberCount(duAddress: Address, change: i32): void {
-    const dataunion = getDataUnion(duAddress)
+    let dataunion = getDataUnion(duAddress)
     if (dataunion != null) {
         dataunion.memberCount += change
         dataunion.save()
@@ -63,28 +63,28 @@ function addDUMemberCount(duAddress: Address, change: i32): void {
 function addToBucket(duAddress: Address, timestamp: BigInt, length: string, change: i32): void {
     log.warning('addToBucket: timestamp={} length={}', [timestamp.toString(), length])
 
-    const bucket = getBucket(length, timestamp, duAddress)
+    let bucket = getBucket(length, timestamp, duAddress)
     bucket.memberCountChange += change
     bucket.save()
 }
 
 function getBucket(length: string, timestamp: BigInt, duAddress: Address): DataUnionStatsBucket | null {
-    const nearestBucket = getNearestBucket(length, timestamp)
-    const bucketId = length + '-' + nearestBucket.toString()
+    let nearestBucket = getNearestBucket(length, timestamp)
+    let bucketId = length + '-' + nearestBucket.toString()
 
     log.warning('getBucket: nearestBucket={}', [nearestBucket.toString()])
 
-    const existingBucket = DataUnionStatsBucket.load(bucketId)
+    let existingBucket = DataUnionStatsBucket.load(bucketId)
     if (existingBucket == null) {
         // Get DataUnion to fetch member count at the start of the bucket timespan
         let memberCount = 0
-        const dataunion = getDataUnion(duAddress)
+        let dataunion = getDataUnion(duAddress)
         if (dataunion != null) {
             memberCount = dataunion.memberCount
         }
 
         // Create new bucket
-        const newBucket = new DataUnionStatsBucket(bucketId)
+        let newBucket = new DataUnionStatsBucket(bucketId)
         newBucket.type = length
         newBucket.dataUnionAddress = duAddress
         newBucket.startDate = nearestBucket
@@ -99,8 +99,8 @@ function getBucket(length: string, timestamp: BigInt, duAddress: Address): DataU
 }
 
 function getNearestBucket(length: string, timestamp: BigInt): BigInt {
-    const seconds = getBucketLength(length)
-    const prev = timestamp.minus(timestamp.mod(seconds))
+    let seconds = getBucketLength(length)
+    let prev = timestamp.minus(timestamp.mod(seconds))
     return prev
 }
 

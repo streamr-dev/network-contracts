@@ -5,7 +5,6 @@ import NodeRegistryJson from '../artifacts/contracts/NodeRegistry/NodeRegistry.s
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamStorageRegistry, StreamRegistry, NodeRegistry } from '../typechain'
 
