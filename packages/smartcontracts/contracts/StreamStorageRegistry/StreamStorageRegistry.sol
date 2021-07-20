@@ -13,10 +13,11 @@ contract StreamStorageRegistry is ERC2771Context {
     StreamRegistry public streamRegistry;
     NodeRegistry public nodeRegistry;
 
-    struct Pair {
+    // metadata attached to stream-storagenode-pairs, TODO: use it for something? Add getter?
+    struct StreamNodePair {
         uint dateCreated;
     }
-    mapping(string => mapping(address => Pair)) public pairs;
+    mapping(string => mapping(address => StreamNodePair)) public pairs;
 
     event Added(string streamId, address indexed nodeAddress);
     event Removed(string streamId, address indexed nodeAddress);
