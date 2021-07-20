@@ -8,8 +8,8 @@
         "./packages/*"
     ],
     "scripts": {
-        "clean": "npm run clean -w=smartcontracts -w=streamregistry-thegraph-subgraph -w=dataunion-thegraph-subgraph",
-        "build": "npm run build -w=smartcontracts -w=streamregistry-thegraph-subgraph -w=dataunion-thegraph-subgraph",
+        "clean": "npm run clean -ws",
+        "build": "npm run build -ws",
         "lint": "npm run lint -ws",
         "test": "npm run test -w=chainlink-ens-external-adapter -w=smartcontracts",
         "graph1_build": "npm run deployLocalWithExport -w=smartcontracts",

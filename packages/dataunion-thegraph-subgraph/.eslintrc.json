@@ -4,7 +4,6 @@
         "mocha": true
     },
     "extends": [
-        "streamr-ts",
         "plugin:import/typescript"
     ],
     "parser": "@typescript-eslint/parser",
