@@ -51,7 +51,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _;
     }
     modifier streamExists(string calldata streamId) {
-        require(bytes(streamIdToMetadata[streamId]).length != 0, "error_streamDoesNotExist");
+        require(exists(streamId), "error_streamDoesNotExist");
         _;
     }
     modifier isTrusted() {
@@ -82,7 +82,13 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
     }
 
+    function exists(string calldata streamId) public view returns (bool) {
+        return bytes(streamIdToMetadata[streamId]).length != 0;
+    }
+
     function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
+        require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
+
         bytes memory pathBytes = bytes(streamIdPath);
         require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
 
