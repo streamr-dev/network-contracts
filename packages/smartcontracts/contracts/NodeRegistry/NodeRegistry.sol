@@ -11,7 +11,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * functions, this simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Ownable {
-    event NodeUpdated(address indexed nodeAddress, string indexed metadata, uint indexed isNew, uint lastSeen);
+
+    // TODO: next version isNew should be boolean
+    event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
@@ -72,22 +74,22 @@ contract NodeRegistry is Ownable {
     function _createOrUpdateNode(address nodeAddress, string memory metadata_) internal {
         NodeLinkedListItem storage n = nodes[nodeAddress];
         uint isNew = 0;
-        if(n.node.lastSeen == 0){
+        if (n.node.lastSeen == 0) {
             isNew = 1;
             nodes[nodeAddress] = NodeLinkedListItem({
                 node: Node({nodeAddress: nodeAddress, metadata: metadata_, lastSeen: block.timestamp}), // solhint-disable-line not-rely-on-time
                 prev: tailNode, next: address(0)
             });
             nodeCount++;
-            if(tailNode != address(0)){
+            if (tailNode != address(0)) {
                 NodeLinkedListItem storage prevNode = nodes[tailNode];
                 prevNode.next = nodeAddress;
             }
-            if(headNode == address(0))
+            if (headNode == address(0)) {
                 headNode = nodeAddress;
+            }
             tailNode = nodeAddress;
-        }
-        else{
+        } else {
             n.node.metadata = metadata_;
             n.node.lastSeen = block.timestamp; // solhint-disable-line not-rely-on-time
         }

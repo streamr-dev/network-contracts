@@ -1,7 +1,7 @@
 {
     "rules": {
-        "no-console": "off",
-        "object-curly-newline": "off",
+        "prefer-const": "off",
+        "eqeqeq": "off",
         "max-len": ["warn", {
             "code": 150
         }]

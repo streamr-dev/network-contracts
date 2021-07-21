@@ -7,7 +7,7 @@ import { DataUnionSidechain } from '../generated/templates'
 export function handleDUCreated(event: SidechainDUCreated): void {
     log.warning('handleDUCreated: sidechainaddress={} blockNumber={}', [event.params.sidenet.toHexString(), event.block.number.toString()])
 
-    const dataunion = new DataUnion(event.params.sidenet.toHexString())
+    let dataunion = new DataUnion(event.params.sidenet.toHexString())
     dataunion.sidechainAddress = event.params.sidenet
     dataunion.mainchainAddress = event.params.mainnet
     dataunion.memberCount = 0
