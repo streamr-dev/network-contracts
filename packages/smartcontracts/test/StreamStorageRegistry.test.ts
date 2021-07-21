@@ -36,6 +36,7 @@ describe('StreamStorageRegistry', () => {
         streamReg = await deployContract(admin, StreamRegistryJson,
             ['0x0000000000000000000000000000000000000000', forwarder.address]) as StreamRegistry
         await streamReg.createStream('/test', 'test-metadata')
+        await streamReg.grantRole(await streamReg.TRUSTED_ROLE(), trusted.address)
 
         // deploy
         reg = await deployContract(admin, StreamStorageRegistryJson,
@@ -90,10 +91,14 @@ describe('StreamStorageRegistry', () => {
             .to.be.revertedWith('error_streamDoesNotExist')
     })
 
-    it('will only add nodes to sender\'s own streams', async () => {
+    it('will only modify nodes on sender\'s own streams', async () => {
         const testStreamId2 = node0.address.toLowerCase() + '/test3'
         await streamReg.connect(node0).createStream('/test3', 'test3-metadata')
         await expect(reg.addStorageNode(testStreamId2, node0.address))
+            .to.be.revertedWith('error_noEditPermission')
+        await expect(reg.removeStorageNode(testStreamId2, node0.address))
+            .to.be.revertedWith('error_noEditPermission')
+        await expect(reg.addAndRemoveStorageNodes(testStreamId2, [], []))
             .to.be.revertedWith('error_noEditPermission')
     })
 
@@ -111,5 +116,26 @@ describe('StreamStorageRegistry', () => {
         expect(await reg.isStorageNodeOf(testStreamId, node2.address)).to.be.true
         await nodeReg.removeNode(node2.address)
         expect(await reg.isStorageNodeOf(testStreamId, node2.address)).to.be.false
+    })
+
+    it('allows TRUSTED_ROLE address to add and remove nodes', async () => {
+        const r = reg.connect(trusted)
+        await expect(r.addStorageNode(testStreamId, node1.address))
+            .to.emit(reg, 'Added').withArgs(testStreamId, node1.address)
+        expect(await r.isStorageNodeOf(testStreamId, node1.address)).to.be.true
+
+        await expect(r.removeStorageNode(testStreamId, node1.address))
+            .to.emit(reg, 'Removed').withArgs(testStreamId, node1.address)
+        expect(await r.isStorageNodeOf(testStreamId, node1.address)).to.be.false
+
+        await expect(r.addAndRemoveStorageNodes(testStreamId, [nodes[0].address, nodes[1].address], [nodes[2].address, nodes[3].address]))
+            .to.emit(reg, 'Added').withArgs(testStreamId, nodes[0].address)
+            .and.emit(reg, 'Added').withArgs(testStreamId, nodes[1].address)
+            .and.emit(reg, 'Removed').withArgs(testStreamId, nodes[2].address)
+            .and.emit(reg, 'Removed').withArgs(testStreamId, nodes[3].address)
+        expect(await r.isStorageNodeOf(testStreamId, nodes[0].address)).to.be.true
+        expect(await r.isStorageNodeOf(testStreamId, nodes[1].address)).to.be.true
+        expect(await r.isStorageNodeOf(testStreamId, nodes[2].address)).to.be.false
+        expect(await r.isStorageNodeOf(testStreamId, nodes[3].address)).to.be.false
     })
 })
