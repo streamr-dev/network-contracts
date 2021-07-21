@@ -39,7 +39,7 @@ contract StreamStorageRegistry is ERC2771Context {
     }
 
     function isStorageNodeOf(string calldata streamId, address nodeAddress) public view returns (bool) {
-        if (bytes(streamRegistry.streamIdToMetadata(streamId)).length == 0) { return false; }
+        if (!streamRegistry.exists(streamId)) { return false; }
         NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
         if (node.lastSeen == 0) { return false; }
         return pairs[streamId][nodeAddress].dateCreated != 0;

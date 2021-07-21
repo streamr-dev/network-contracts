@@ -60,8 +60,14 @@ contract NodeRegistry is Ownable {
 
     function getNode(address nodeAddress) public view returns (Node memory) {
         NodeLinkedListItem storage n = nodes[nodeAddress];
-        return(n.node);
+        return n.node;
     }
+
+    // TODO: add function
+    // function exists(address nodeAddress) public view returns (bool) {
+    //     NodeLinkedListItem storage n = nodes[nodeAddress];
+    //     return n.node.lastSeen != 0;
+    // }
 
     function createOrUpdateNode(address node, string memory metadata_) public onlyOwner {
         _createOrUpdateNode(node, metadata_);
