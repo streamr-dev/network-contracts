@@ -39,31 +39,32 @@ contract StreamStorageRegistry is ERC2771Context {
     }
 
     function isStorageNodeOf(string calldata streamId, address nodeAddress) public view returns (bool) {
-        if (bytes(streamRegistry.streamIdToMetadata(streamId)).length == 0) { return false; }
+        if (!streamRegistry.exists(streamId)) { return false; }
         NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
         if (node.lastSeen == 0) { return false; }
         return pairs[streamId][nodeAddress].dateCreated != 0;
     }
 
-    modifier onlyEditor(string calldata streamId) {
-        // TODO: streamRegistry could offer: .exists(streamId) returns (bool)
-        // TODO can stream exist without metadata?
-        require(bytes(streamRegistry.streamIdToMetadata(streamId)).length != 0, "error_streamDoesNotExist");
-        require(streamRegistry.hasPermission(streamId, _msgSender(), StreamRegistry.PermissionType.Edit), "error_noEditPermission");
+    modifier onlyEditorOrTrusted(string calldata streamId) {
+        require(streamRegistry.exists(streamId), "error_streamDoesNotExist");
+        bool isTrusted = streamRegistry.hasRole(keccak256("TRUSTED_ROLE"), _msgSender());
+        if (!isTrusted) {
+            require(streamRegistry.hasPermission(streamId, _msgSender(), StreamRegistry.PermissionType.Edit), "error_noEditPermission");
+        }
         _;
     }
 
-    function addStorageNode(string calldata streamId, address nodeAddress) external onlyEditor(streamId) {
+    function addStorageNode(string calldata streamId, address nodeAddress) external onlyEditorOrTrusted(streamId) {
         NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
         require(node.lastSeen != 0, "error_storageNodeNotRegistered");
         _addPair(streamId, nodeAddress);
     }
 
-    function removeStorageNode(string calldata streamId, address nodeAddress) external onlyEditor(streamId) {
+    function removeStorageNode(string calldata streamId, address nodeAddress) external onlyEditorOrTrusted(streamId) {
         _removePair(streamId, nodeAddress);
     }
 
-    function addAndRemoveStorageNodes(string calldata streamId, address[] calldata addNodes, address[] calldata removeNodes) external onlyEditor(streamId) {
+    function addAndRemoveStorageNodes(string calldata streamId, address[] calldata addNodes, address[] calldata removeNodes) external onlyEditorOrTrusted(streamId) {
         for (uint i = 0; i < addNodes.length; i++) {
             address nodeAddress = addNodes[i];
             NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
