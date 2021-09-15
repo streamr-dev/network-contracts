@@ -15,7 +15,7 @@
     "doAll": "npm run build && npm run create-local && npm run deploy-local"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "0.20.1",
+    "@graphprotocol/graph-cli": "0.21.1",
     "@graphprotocol/graph-ts": "0.20.0",
     "@typescript-eslint/eslint-plugin": "4.22.1",
     "@typescript-eslint/parser": "4.22.1",
