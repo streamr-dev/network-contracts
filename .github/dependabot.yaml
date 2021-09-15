@@ -9,6 +9,9 @@ updates:
       time: '08:00'
       timezone: Europe/Helsinki
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+      include: scope
     labels:
       - ci
     assignees:
@@ -23,6 +26,9 @@ updates:
       time: '08:00'
       timezone: Europe/Helsinki
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
     labels:
       - build
     assignees:
