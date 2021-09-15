@@ -69,3 +69,34 @@ updates:
       - jtakalai
       - kare
 
+  - package-ecosystem: docker
+    directory: /packages/chainlink-ens-external-adapter
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+    labels:
+      - build
+
+  - package-ecosystem: docker
+    directory: /packages/streamregistry-thegraph-subgraph
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+    labels:
+      - build
