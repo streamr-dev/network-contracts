@@ -19,7 +19,7 @@
     "@typescript-eslint/eslint-plugin": "^4.22.1",
     "@typescript-eslint/parser": "^4.22.1",
     "eslint-config-streamr-nodejs": "2.0.0",
-    "eslint-plugin-chai-friendly": "^0.6.0"
+    "eslint-plugin-chai-friendly": "^0.7.2"
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "^0.20.0"
