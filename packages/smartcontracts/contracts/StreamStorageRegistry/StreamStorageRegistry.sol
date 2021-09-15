@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
 import "../metatx/ERC2771Context.sol";
