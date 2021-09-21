@@ -13,7 +13,7 @@ dataSources:
       # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
         - Stream
@@ -39,7 +39,7 @@ dataSources:
       # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
         - Node
@@ -65,7 +65,7 @@ dataSources:
       # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
         - Node

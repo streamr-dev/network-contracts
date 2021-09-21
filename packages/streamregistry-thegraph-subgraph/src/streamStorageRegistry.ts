@@ -18,11 +18,12 @@ export function handleStorageNodeAddedToStream(event: Added): void {
     // stream.storageNodes.push(nodeId)
     // stream.save()
 
-    let node = Node.load(nodeId)
+    let node = Node.load(nodeId)!
     if (!node.storedStreams) {
         node.storedStreams = [streamId]
     } else {
         let streams = node.storedStreams
+        if (!streams) { streams = [] }
         streams.push(streamId)
         node.storedStreams = streams
     }
@@ -34,7 +35,7 @@ export function handleStorageNodeRemovedFromStream(event: Removed): void {
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
 
-    let node = Node.load(nodeId)
+    let node = Node.load(nodeId)!
     if (!node) { return }
     if (!node.storedStreams) { return }
     let streams = node.storedStreams as string[]

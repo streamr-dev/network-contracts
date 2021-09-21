@@ -14,7 +14,8 @@ export function handleNodeUpdate(event: NodeUpdated): void {
     log.info('handleStreamCreation: {} node={} metadata={} blockNumber={}',
         [isNew ? 'NEW' : 'UPDATE', id, event.params.metadata.toString(), event.block.number.toString()])
 
-    let node = Node.load(id) || new Node(id)
+    let node = Node.load(id)
+    if (!node) { node = new Node(id) }
 
     node.metadata = event.params.metadata
     node.lastSeen = event.params.lastSeen
