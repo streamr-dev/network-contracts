@@ -1,3 +1,4 @@
+---
 name: Continuous Integration
 
 on:
@@ -41,13 +42,3 @@ jobs:
         run: npm run build && npm run lint
       - name: Unit tests
         run: npm run test
-      # TODO: later we might want to run integration tests
-      # - name: Start Streamr Docker Stack
-      #   uses: streamr-dev/streamr-docker-dev-action@v1.0.0-alpha.3
-      #   with:
-      #     services-to-start: 'parity-sidechain-node0 parity-node0 bridge'
-      # - name: Integration Test
-      #   env:
-      #     DEBUG: '*'
-      #     TEST_TIMEOUT: '600000'
-      #   run: npm run integration-test
