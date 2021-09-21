@@ -35,7 +35,7 @@
     "chai": "^4.3.4",
     "chai-bignumber": "^3.0.0",
     "debug": "^4.3.1",
-    "eslint": "^7.25.0",
+    "eslint": "^7.32.0",
     "eth-ens-namehash": "^2.0.8",
     "eth-sig-util": "^2.5.4",
     "ethers": "^5.1.4",
