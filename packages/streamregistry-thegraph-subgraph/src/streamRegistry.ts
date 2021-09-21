@@ -21,7 +21,7 @@ export function handleStreamDeletion(event: StreamDeleted): void {
 export function handleStreamUpdate(event: StreamUpdated): void {
     log.info('handleUpdateStream: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
-    let stream = Stream.load(event.params.id)
+    let stream = Stream.load(event.params.id)!
     stream.metadata = event.params.metadata
     stream.save()
 }
