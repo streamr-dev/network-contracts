@@ -15,13 +15,13 @@
     "doAll": "npm run build && npm run create-local && npm run deploy-local"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.20.0",
-    "@typescript-eslint/eslint-plugin": "^4.22.1",
-    "@typescript-eslint/parser": "^4.22.1",
+    "@graphprotocol/graph-cli": "^0.22.0",
+    "@typescript-eslint/eslint-plugin": "^4.31.2",
+    "@typescript-eslint/parser": "^4.31.2",
     "eslint-config-streamr-nodejs": "2.0.0",
-    "eslint-plugin-chai-friendly": "^0.6.0"
+    "eslint-plugin-chai-friendly": "^0.7.2"
   },
   "dependencies": {
-    "@graphprotocol/graph-ts": "^0.20.0"
+    "@graphprotocol/graph-ts": "^0.22.0"
   }
 }
