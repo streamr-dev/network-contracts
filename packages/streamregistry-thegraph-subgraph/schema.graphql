@@ -20,6 +20,7 @@ type Permission @entity {
 }
 
 type Stream @entity {
+  "stream ID = 'creator address'/'path' where path can be any string"
   id: ID!
   "Stream metadata JSON"
   metadata: String!
@@ -30,6 +31,7 @@ type Stream @entity {
 }
 
 type Node @entity {
+  "node ID = address"
   id: ID!
   "Connection metadata, e.g. URL of the node, e.g. http://mynode.com:3000"
   metadata: String!
