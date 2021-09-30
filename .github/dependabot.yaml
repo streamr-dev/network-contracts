@@ -1,0 +1,103 @@
+---
+# https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+    labels:
+      - ci
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+
+  - package-ecosystem: npm
+    directory: /packages/chainlink-ens-external-adapter
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+
+  - package-ecosystem: npm
+    directory: /packages/smartcontracts
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+
+  - package-ecosystem: npm
+    directory: /packages/streamregistry-thegraph-subgraph
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+
+  - package-ecosystem: docker
+    directory: /packages/chainlink-ens-external-adapter
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+    labels:
+      - build
+
+  - package-ecosystem: docker
+    directory: /packages/streamregistry-thegraph-subgraph
+    schedule:
+      interval: daily
+      time: "08:00"
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+    assignees:
+      - samt1803
+      - jtakalai
+      - kare
+    labels:
+      - build
