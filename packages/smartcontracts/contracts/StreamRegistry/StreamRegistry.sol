@@ -29,9 +29,11 @@ contract StreamRegistry is ERC2771Context, AccessControl {
 
     // streamid -> keccak256(version, useraddress) -> permission struct above
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
-    mapping (string => uint32) private streamIdToVersion;
     mapping (string => string) public streamIdToMetadata;
     ENSCache private ensCache;
+
+    // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
+    mapping (string => uint32) private streamIdToVersion;
 
     modifier canShare(string calldata streamId) {
         require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].share, "error_noSharePermission"); //||
@@ -92,6 +94,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         bytes memory pathBytes = bytes(streamIdPath);
         require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
 
+        // abi.encodePacked does simple string concatenation here
         string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
         require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
 
