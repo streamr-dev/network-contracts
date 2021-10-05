@@ -218,7 +218,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         else if (permissionType == PermissionType.Share) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].share = grant;
         }
-        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        Permission storage perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
         emit PermissionUpdated(streamId, user, perm.edit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.share);
     }
 
