@@ -10,17 +10,17 @@ module.exports = async ({ deployments }) => {
     })
     const streamReg = await deploy('StreamRegistry', {
         from: key,
-        gasLimit: 7000000,
+        gasLimit: 6000000,
         args: ['0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54', minimalForwarder.address]
     })
     const nodeReg = await deploy('NodeRegistry', {
         from: key,
-        gasLimit: 7000000,
+        gasLimit: 6000000,
         args: [address, false, [], []]
     })
     const ssReg = await deploy('StreamStorageRegistry', {
         from: key,
-        gasLimit: 7000000,
+        gasLimit: 6000000,
         args: [streamReg.address, nodeReg.address, minimalForwarder.address]
     })
 
