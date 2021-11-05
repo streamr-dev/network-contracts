@@ -16,7 +16,7 @@
                 "test",
                 "${file}"
             ],
-            "runtimeVersion": "16.1.0",
+            "runtimeVersion": "16.2.0",
             "internalConsoleOptions": "openOnSessionStart",
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },

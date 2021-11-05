@@ -174,6 +174,10 @@ contract StreamRegistry is ERC2771Context, AccessControl {
             hasDirectPermission(streamId, address(0), permissionType);
     }
 
+    function hasPublicPermission(string calldata streamId, PermissionType permissionType) public view returns (bool userHasPermission) {
+        return hasDirectPermission(streamId, address(0), permissionType);
+    }
+
     function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
         if (permissionType == PermissionType.Edit) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].edit;
