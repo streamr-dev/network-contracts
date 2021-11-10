@@ -276,17 +276,17 @@ contract StreamRegistry is ERC2771Context, AccessControl {
             _setPermissionBooleans(streamId, user, edit, deletePerm, publishExpiration, subscribeExpiration, share);
     }
 
-    // not in current apidefinition, might speed up migratrion, needs to be tested
-    // function bulkmigrate(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isMigrator() migrationIsActive() {
-    //     uint arrayLength = streamids.length;
-    //     for (uint i=0; i<arrayLength; i++) {
-    //         string calldata streamId = streamids[i];
-    //         streamIdToMetadata[streamId] = metadatas[i];
-    //         emit StreamUpdated(streamId, metadatas[i]);
-    //         Permission memory permission = permissions[i];
-    //         _setPermission(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
-    //     }
-    // }
+    function trustedBulkAddStreams(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isTrusted() {
+        uint arrayLength = streamids.length;
+        for (uint i=0; i<arrayLength; i++) {
+            string calldata streamId = streamids[i];
+            streamIdToMetadata[streamId] = metadatas[i];
+            Permission memory permission = permissions[i];
+            _setPermissionBooleans(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
+            emit StreamUpdated(streamId, metadatas[i]);
+            emit PermissionUpdated(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
+        }
+    }
 
     function addressToString(address _address) public pure returns(string memory) {
        bytes32 _bytes = bytes32(uint256(uint160(_address)));
