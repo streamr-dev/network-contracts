@@ -283,7 +283,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
             streamIdToMetadata[streamId] = metadatas[i];
             Permission memory permission = permissions[i];
             _setPermissionBooleans(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
-            emit StreamUpdated(streamId, metadatas[i]);
+            emit StreamCreated(streamId, metadatas[i]);
             emit PermissionUpdated(streamId, users[i], permission.edit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.share);
         }
     }
