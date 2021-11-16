@@ -8,17 +8,18 @@ import { Contract } from '@ethersproject/contracts'
 import { NonceManager } from '@ethersproject/experimental'
 import { Wallet } from '@ethersproject/wallet'
 import hhat from 'hardhat'
-import { BigNumberish } from '@ethersproject/bignumber'
-import { Signer } from '@ethersproject/abstract-signer'
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
+// import { Signer } from '@ethersproject/abstract-signer'
 
+// import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { StreamRegistry } from '../typechain/StreamRegistry'
 
 const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000006'
-const STREAMREGISTRY_ADDRESS = '0x7FBeaa14BBD275159CE9f91296243aB5108829A5'
+const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000001'
+const STREAMREGISTRY_ADDRESS = '0x338090C5492C5c5E41a4458f5FC4b205cbc54A24'
 
 export type StreamData = {
     id: string,
@@ -38,7 +39,7 @@ let migratorWallet : Wallet
 let registryFromAdmin : StreamRegistry
 let registryFromMigrator : StreamRegistry
 let streamsToMigrate: StreamData[] = []
-// let nonceManager: NonceManager
+let nonceManager: NonceManager
 let nonce: number
 
 // const getRandomPath = () => {
@@ -59,18 +60,23 @@ const sendStreamsToChain = async (streams: StreamData[]) => {
     const metadatas = new Array(streams.length)
     metadatas.fill('')
 
-    nonce += 1
     // nonceManager.setTransactionCount(nonce)
-    try {
-        console.log('sending n:' + nonce)
+    // nonce += 1
 
-        const tx = await registryFromMigrator.trustedBulkAddStreams(
-            streams.map((stream) => stream.id), users, metadatas, permissions, {
-                nonce
-            }
+    try {
+        const n2 = nonce
+        const tx = await registryFromMigrator.populateTransaction.trustedBulkAddStreams(
+            streams.map((stream) => stream.id), users, metadatas, permissions
         )
-        const receipt = await tx.wait()
-        console.log('sent ' + await migratorWallet.getTransactionCount())
+        tx.nonce = nonce
+        // tx.gasLimit = BigNumber.from(6000000)
+        console.log(`sending nonce: ${nonce}, gas: ${tx.gasLimit}`)
+        nonce += 1
+
+        // const signedtx = await migratorWallet.signTransaction(tx)
+        const tx2 = await migratorWallet.sendTransaction(tx)
+        const receipt = await tx2.wait()
+        console.log('sent ' + n2)
     } catch (err) {
         console.log(err)
     }
@@ -79,7 +85,7 @@ const sendStreamsToChain = async (streams: StreamData[]) => {
 const addAndSendStream = async (id: string) => {
     process.stdout.write('.')
     streamsToMigrate.push({ id })
-    if (streamsToMigrate.length >= 100) {
+    if (streamsToMigrate.length >= 3) {
         const clonedArr = streamsToMigrate.map((a) => ({ ...a }))
         // const a1 = streamsToMigrate.splice(0, 50)
         // const a2 = streamsToMigrate.splice(0, 50)
@@ -90,7 +96,7 @@ const addAndSendStream = async (id: string) => {
         // nonce += 1
         // nonceManager.setTransactionCount(nonce)
         // sendStreamsToChain(a2)
-        await new Promise((resolve) => setTimeout(resolve, 10000))
+        await new Promise((resolve) => setTimeout(resolve, 100))
     }
     return Promise.resolve()
 }
@@ -103,19 +109,18 @@ async function main() {
     const networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
     adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, networkProvider)
     migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, networkProvider)
-    // nonceManager = new NonceManager(migratorWallet)
-    // const { signer } = nonceManager
+    nonceManager = new NonceManager(migratorWallet)
+    const { signer } = nonceManager
     const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
     const registry = await streamregistryFactory.attach(STREAMREGISTRY_ADDRESS)
     const registryContract = await registry.deployed()
     registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
-    registryFromMigrator = await registryContract.connect(migratorWallet) as StreamRegistry
-    nonce = await migratorWallet.getTransactionCount()
+    registryFromMigrator = await registryContract.connect(signer) as StreamRegistry
+    nonce = await nonceManager.getTransactionCount()
     console.log('startnonce: ' + nonce)
     const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), migratorWallet.address)
-    await mtx.wait()
-    nonce = await migratorWallet.getTransactionCount()
-    console.log('startnonce: ' + nonce)
+    await mtx.wait(2)
+    console.log('added migrator role to ' + migratorWallet.address)
     let resolver: any
     const promise = new Promise((resolve) => { resolver = resolve })
     const s = fs.createReadStream('./out.tsv')
