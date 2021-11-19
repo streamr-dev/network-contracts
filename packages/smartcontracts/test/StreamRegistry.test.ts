@@ -756,13 +756,13 @@ describe('StreamRegistry', (): void => {
             streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
             users.push(user.address)
             metadatas.push(`metadata-${i}`)
-            permissions.push({
+            permissions.push([{
                 edit: true,
                 canDelete: true,
                 publishExpiration: MAX_INT,
                 subscribeExpiration: MAX_INT,
                 share: true
-            })
+            }])
         }
         await registryFromMigrator.trustedBulkAddStreams(streamIds, users, metadatas, permissions)
         for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {

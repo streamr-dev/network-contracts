@@ -19,7 +19,7 @@ const { ethers } = hhat
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000001'
-const STREAMREGISTRY_ADDRESS = '0x338090C5492C5c5E41a4458f5FC4b205cbc54A24'
+const STREAMREGISTRY_ADDRESS = '0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78'
 
 export type StreamData = {
     id: string,
@@ -47,13 +47,13 @@ let nonce: number
 // }
 const sendStreamsToChain = async (streams: StreamData[]) => {
     const permissions = new Array(streams.length)
-    permissions.fill({
+    permissions.fill([{
         edit: true,
         canDelete: true,
         publishExpiration: 0,
         subscribeExpiration: 0,
         share: true,
-    })
+    }])
     const fakeAddr = Wallet.createRandom().address
     const users = new Array(streams.length)
     users.fill(fakeAddr)
@@ -85,7 +85,7 @@ const sendStreamsToChain = async (streams: StreamData[]) => {
 const addAndSendStream = async (id: string) => {
     process.stdout.write('.')
     streamsToMigrate.push({ id })
-    if (streamsToMigrate.length >= 3) {
+    if (streamsToMigrate.length >= 1) {
         const clonedArr = streamsToMigrate.map((a) => ({ ...a }))
         // const a1 = streamsToMigrate.splice(0, 50)
         // const a2 = streamsToMigrate.splice(0, 50)
@@ -96,7 +96,7 @@ const addAndSendStream = async (id: string) => {
         // nonce += 1
         // nonceManager.setTransactionCount(nonce)
         // sendStreamsToChain(a2)
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 500))
     }
     return Promise.resolve()
 }
@@ -129,13 +129,14 @@ async function main() {
             s.pause()
             lineNr += 1
             const id = line.split('\t')[1]
-            if (id && id.includes('/')) { // && !id.includes('metrics')) {
-                const address = id.split('/')[0]
-                if (ethers.utils.isAddress(address)) {
-                    valids += 1
-                    if (!id.includes('metrics')) { withoutMetrics += 1 }
+            if (id && !id.includes('/')) { // && !id.includes('metrics')) {
+                // const address = id.split('/')[0]
+                // if (ethers.utils.isAddress(address)) {
+                //     valids += 1
+                //     if (!id.includes('metrics')) { withoutMetrics += 1 }
+                    console.log(id)
                     await addAndSendStream(id)
-                }
+                // }
             }
             s.resume()
         })
