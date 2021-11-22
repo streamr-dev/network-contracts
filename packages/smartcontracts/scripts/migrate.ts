@@ -18,8 +18,9 @@ const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000001'
+const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000003'
 const STREAMREGISTRY_ADDRESS = '0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78'
+const PROGRESS_FILENAME = 'progressFile.txt'
 
 export type StreamData = {
     id: string,
@@ -41,11 +42,17 @@ let registryFromMigrator : StreamRegistry
 let streamsToMigrate: StreamData[] = []
 let nonceManager: NonceManager
 let nonce: number
+let transactionData: Array<{
+    streamdata: StreamData[],
+    nonce: number
+}> = []
+let sucessfulLineNumber: number = -1
 
-// const getRandomPath = () => {
-//     return '/' + Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-// }
-const sendStreamsToChain = async (streams: StreamData[]) => {
+// one transaction with 30 streams, one permission each costs about 2mio gas
+// polygon has 20 mio blockgaslimit, 5 transactions should fit in one block (depending on how many
+// permissions each stream has)
+
+const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => {
     const permissions = new Array(streams.length)
     permissions.fill([{
         edit: true,
@@ -64,39 +71,55 @@ const sendStreamsToChain = async (streams: StreamData[]) => {
     // nonce += 1
 
     try {
-        const n2 = nonce
         const tx = await registryFromMigrator.populateTransaction.trustedBulkAddStreams(
             streams.map((stream) => stream.id), users, metadatas, permissions
         )
-        tx.nonce = nonce
+        tx.nonce = nonceParam
         // tx.gasLimit = BigNumber.from(6000000)
-        console.log(`sending nonce: ${nonce}, gas: ${tx.gasLimit}`)
-        nonce += 1
-
         // const signedtx = await migratorWallet.signTransaction(tx)
         const tx2 = await migratorWallet.sendTransaction(tx)
+        console.log(`sent out tx: nonce: ${tx2.nonce}, gas: ${parseInt(tx2.gasLimit._hex, 16)}`)
+        // console.log(`tx2: ${JSON.stringify(tx2)}`)
         const receipt = await tx2.wait()
-        console.log('sent ' + n2)
+        console.log('mined tx with nonce ' + tx2.nonce)
     } catch (err) {
         console.log(err)
     }
 }
-
-const addAndSendStream = async (id: string) => {
+const addAndSendStream = async (id: string, lineNr: number) => {
+    if (lineNr <= sucessfulLineNumber) {
+        return Promise.resolve()
+    }
+    sucessfulLineNumber = lineNr
     process.stdout.write('.')
     streamsToMigrate.push({ id })
-    if (streamsToMigrate.length >= 1) {
+    if (streamsToMigrate.length >= 30) {
         const clonedArr = streamsToMigrate.map((a) => ({ ...a }))
         // const a1 = streamsToMigrate.splice(0, 50)
         // const a2 = streamsToMigrate.splice(0, 50)
         streamsToMigrate = []
+        transactionData.push({
+            streamdata: clonedArr,
+            nonce
+        })
+        nonce += 1
+        if (transactionData.length >= 5) {
+            const promises = transactionData.map((data) => sendStreamsToChain(data.streamdata, data.nonce))
+            await Promise.all(promises)
+            transactionData = []
+            // fs.writeFile(PROGRESS_FILENAME, sucessfulLineNumber.toString(), (err) => {
+            //     if (err) { throw err }
+            //     console.log('saved current linenumber ' + sucessfulLineNumber)
+            // })
+            fs.writeFileSync(PROGRESS_FILENAME, sucessfulLineNumber.toString())
+            console.log('saved current linenumber ' + sucessfulLineNumber)
+        }
         // nonce += 1
         // nonceManager.setTransactionCount(nonce)
-        sendStreamsToChain(clonedArr)
         // nonce += 1
         // nonceManager.setTransactionCount(nonce)
         // sendStreamsToChain(a2)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        // await new Promise((resolve) => setTimeout(resolve, 500000))
     }
     return Promise.resolve()
 }
@@ -123,19 +146,29 @@ async function main() {
     console.log('added migrator role to ' + migratorWallet.address)
     let resolver: any
     const promise = new Promise((resolve) => { resolver = resolve })
+
+    fs.readFile(PROGRESS_FILENAME, 'utf8', (err, data) => {
+        if (err) {
+            console.log('cant read progress file ', err)
+            throw err
+        }
+        sucessfulLineNumber = parseInt(data, 10)
+        console.log('read progressFile, starting with that number: ' + sucessfulLineNumber)
+    })
     const s = fs.createReadStream('./out.tsv')
         .pipe(es.split())
         .pipe(es.mapSync(async (line: string) => {
             s.pause()
             lineNr += 1
+            // console.log(lineNr)
             const id = line.split('\t')[1]
-            if (id && !id.includes('/')) { // && !id.includes('metrics')) {
+            if (id) { // && id.includes('/')) { // && !id.includes('metrics')) {
                 // const address = id.split('/')[0]
                 // if (ethers.utils.isAddress(address)) {
-                //     valids += 1
-                //     if (!id.includes('metrics')) { withoutMetrics += 1 }
-                    console.log(id)
-                    await addAndSendStream(id)
+                    // valids += 1
+                    // if (!id.includes('metrics')) { withoutMetrics += 1 }
+                    // console.log(id)
+                    await addAndSendStream(id, lineNr)
                 // }
             }
             s.resume()
