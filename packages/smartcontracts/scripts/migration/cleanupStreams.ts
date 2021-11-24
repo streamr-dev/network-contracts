@@ -1,16 +1,14 @@
 // without metrics Read 3220084 lines, 23955 streams, 1017490 valid ids, 953081 stream+user combos,0 without metrics.
 // with metrics Read 3220084 lines, 435427 streams, 3075190 valid ids, 1365005 stream+user combos,0 without metrics.
 
+// get data out of db:
+// echo "select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username;" | mysql -u root -ppassword -h 127.0.0.1 -P 3306 core_test > streamData.tsv
 
 import * as fs from 'fs'
 
 import es from 'event-stream'
-import { Contract } from '@ethersproject/contracts'
-import { NonceManager } from '@ethersproject/experimental'
-import { Wallet } from '@ethersproject/wallet'
 import hhat from 'hardhat'
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
-// import { Signer } from '@ethersproject/abstract-signer'
+
 const { ethers } = hhat
 
 const IN_FILE = ('./streamData.tsv')

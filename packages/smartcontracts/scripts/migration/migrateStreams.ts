@@ -1,10 +1,10 @@
+/* eslint-disable import/no-extraneous-dependencies */
 // first register ens domain on mainnet
 // scripts/deploy.js
 
 import * as fs from 'fs'
 
 import es from 'event-stream'
-import { Contract } from '@ethersproject/contracts'
 import { NonceManager } from '@ethersproject/experimental'
 import { Wallet } from '@ethersproject/wallet'
 import hhat from 'hardhat'
@@ -117,9 +117,10 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
         // tx.gasLimit = BigNumber.from(6000000)
         // const signedtx = await migratorWallet.signTransaction(tx)
         const tx2 = await migratorWallet.sendTransaction(tx)
+        // eslint-disable-next-line no-underscore-dangle
         console.log(`sent out tx: nonce: ${tx2.nonce}, gas: ${parseInt(tx2.gasLimit._hex, 16)}`)
         // console.log(`tx2: ${JSON.stringify(tx2)}`)
-        const receipt = await tx2.wait()
+        await tx2.wait()
         console.log('mined tx with nonce ' + tx2.nonce)
     } catch (err) {
         console.log(err)
@@ -149,6 +150,7 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
                 (data) => sendStreamsToChain(data.streamdata, data.nonce)
             )
             await Promise.all(promises)
+            // eslint-disable-next-line require-atomic-updates
             transactionData = []
             // fs.writeFile(PROGRESS_FILENAME, sucessfulLineNumber.toString(), (err) => {
             //     if (err) { throw err }
