@@ -28,6 +28,13 @@ jobs:
             os: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.4.0
+      - name: Set $NODE_VERSION variable
+        run: |
+          echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+      - name: Install Node
+        uses: actions/setup-node@v2.4.1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Node ${{ matrix.node_version }} - x64 on ${{ matrix.os }}
         uses: actions/setup-node@v2.4.1
         with:
