@@ -16,7 +16,8 @@
     "localDeployProxy": "hardhat run --network localsidechain scripts/deployWithProxy.ts",
     "localUpgradeImpl": "hardhat run --network localsidechain scripts/upgradeProxy.ts",
     "e2etest": "hardhat run --network localsidechain scripts/e2eTest.ts",
-    "migrate": "hardhat run --network localsidechain scripts/migrate.ts",
+    "migrateStreams": "hardhat run --network localsidechain scripts/migration/migrateStreams.ts",
+    "cleanupStreams": "hardhat run --network localsidechain scripts/migration/cleanupStreams.ts",
     "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts"
   },
   "author": "Streamr Network AG",

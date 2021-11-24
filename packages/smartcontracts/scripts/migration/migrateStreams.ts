@@ -9,18 +9,21 @@ import { NonceManager } from '@ethersproject/experimental'
 import { Wallet } from '@ethersproject/wallet'
 import hhat from 'hardhat'
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
+import { MaxInt256 } from '@ethersproject/constants'
+
 // import { Signer } from '@ethersproject/abstract-signer'
 
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
-import { StreamRegistry } from '../typechain/StreamRegistry'
+import { StreamRegistry } from '../../typechain/StreamRegistry'
 
 const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000003'
+const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000004'
 const STREAMREGISTRY_ADDRESS = '0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78'
 const PROGRESS_FILENAME = 'progressFile.txt'
+const DATA_FILE = './streamDate_cleaned.tsv'
 
 export type StreamData = {
     id: string,
@@ -51,6 +54,37 @@ let sucessfulLineNumber: number = -1
 // one transaction with 30 streams, one permission each costs about 2mio gas
 // polygon has 20 mio blockgaslimit, 5 transactions should fit in one block (depending on how many
 // permissions each stream has)
+const convertPermissions = (permissions: string[]) => {
+    const permissionSet = {
+        edit: false,
+        canDelete: false,
+        publishExpiration: BigNumber.from(0),
+        subscribeExpiration: BigNumber.from(0),
+        share: false,
+    }
+    permissions.forEach((el) => {
+        switch (el) {
+            case 'stream_edit':
+                permissionSet.edit = true
+                break
+            case 'stream_delete':
+                permissionSet.canDelete = true
+                break
+            case 'stream_publish':
+                permissionSet.publishExpiration = MaxInt256
+                break
+            case 'stream_subscribe':
+                permissionSet.subscribeExpiration = MaxInt256
+                break
+            case 'stream_share':
+                permissionSet.share = true
+                break
+            default:
+                break
+        }
+    })
+    return permissionSet
+}
 
 const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => {
     const permissions = new Array(streams.length)
@@ -86,13 +120,15 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
         console.log(err)
     }
 }
-const addAndSendStream = async (id: string, lineNr: number) => {
+
+const addAndSendStreamPermission = async (streamID: string, user:string, permissionStrings:string[], lineNr: number) => {
     if (lineNr <= sucessfulLineNumber) {
         return Promise.resolve()
     }
     sucessfulLineNumber = lineNr
     process.stdout.write('.')
-    streamsToMigrate.push({ id })
+    const permissions = convertPermissions(permissionStrings)
+    streamsToMigrate.push({ id: streamID, user, permissions })
     if (streamsToMigrate.length >= 30) {
         const clonedArr = streamsToMigrate.map((a) => ({ ...a }))
         // const a1 = streamsToMigrate.splice(0, 50)
@@ -126,8 +162,8 @@ const addAndSendStream = async (id: string, lineNr: number) => {
 
 async function main() {
     let lineNr = 0
-    let valids = 0
-    let withoutMetrics = 0
+    const valids = 0
+    const withoutMetrics = 0
 
     const networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
     adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, networkProvider)
@@ -155,20 +191,24 @@ async function main() {
         sucessfulLineNumber = parseInt(data, 10)
         console.log('read progressFile, starting with that number: ' + sucessfulLineNumber)
     })
-    const s = fs.createReadStream('./out.tsv')
+    const s = fs.createReadStream(DATA_FILE)
         .pipe(es.split())
         .pipe(es.mapSync(async (line: string) => {
             s.pause()
             lineNr += 1
-            // console.log(lineNr)
-            const id = line.split('\t')[1]
-            if (id) { // && id.includes('/')) { // && !id.includes('metrics')) {
+            const words = line.split('\t')
+            const streamid = words[0]
+            const user = words[1]
+            const permissions = JSON.parse(words[2]) as string[]
+            if (streamid && !streamid.includes('metrics')) { // && id.includes('/')) { // && !id.includes('metrics')) {
                 // const address = id.split('/')[0]
                 // if (ethers.utils.isAddress(address)) {
+                if (ethers.utils.isAddress(user)) {
                     // valids += 1
                     // if (!id.includes('metrics')) { withoutMetrics += 1 }
                     // console.log(id)
-                    await addAndSendStream(id, lineNr)
+                    await addAndSendStreamPermission(streamid, user, permissions, lineNr)
+                }
                 // }
             }
             s.resume()

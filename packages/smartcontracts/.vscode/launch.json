@@ -28,6 +28,19 @@
             "type": "pwa-node"
         },
         {
+            "name": "cleanup",
+            "request": "launch",
+            "runtimeArgs": [
+                "run",
+                "cleanupStreams"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Mocha Test All with Options",
