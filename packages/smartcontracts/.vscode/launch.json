@@ -19,7 +19,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "migrate"
+                "migrateStreams"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [

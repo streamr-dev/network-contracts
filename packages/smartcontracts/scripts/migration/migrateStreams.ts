@@ -21,21 +21,23 @@ const { ethers } = hhat
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000004'
-const STREAMREGISTRY_ADDRESS = '0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78'
+const STREAMREGISTRY_ADDRESS = '0xfb19CE10b438417D95354d9BB09583a2a07b4367'
 const PROGRESS_FILENAME = 'progressFile.txt'
-const DATA_FILE = './streamDate_cleaned.tsv'
+const DATA_FILE = './streamData_cleaned.tsv'
+
+export type Permission = {
+    edit: boolean;
+    canDelete: boolean;
+    publishExpiration: BigNumberish;
+    subscribeExpiration: BigNumberish;
+    share: boolean;
+}
 
 export type StreamData = {
     id: string,
     metadata?: string,
-    user?: string,
-    permissions?: {
-        edit: boolean;
-        canDelete: boolean;
-        publishExpiration: BigNumberish;
-        subscribeExpiration: BigNumberish;
-        share: boolean;
-    }[]
+    user: string,
+    permissions: Permission
 }
 
 let adminWallet : Wallet
@@ -87,17 +89,17 @@ const convertPermissions = (permissions: string[]) => {
 }
 
 const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => {
-    const permissions = new Array(streams.length)
-    permissions.fill([{
-        edit: true,
-        canDelete: true,
-        publishExpiration: 0,
-        subscribeExpiration: 0,
-        share: true,
-    }])
-    const fakeAddr = Wallet.createRandom().address
-    const users = new Array(streams.length)
-    users.fill(fakeAddr)
+    // const permissions = new Array(streams.length)
+    // permissions.fill([{
+    //     edit: true,
+    //     canDelete: true,
+    //     publishExpiration: 0,
+    //     subscribeExpiration: 0,
+    //     share: true,
+    // }])
+    // const fakeAddr = Wallet.createRandom().address
+    // const users = new Array(streams.length)
+    // users.fill(fakeAddr)
     const metadatas = new Array(streams.length)
     metadatas.fill('')
 
@@ -106,7 +108,10 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
 
     try {
         const tx = await registryFromMigrator.populateTransaction.trustedBulkAddStreams(
-            streams.map((stream) => stream.id), users, metadatas, permissions
+            streams.map((el) => el.id),
+            streams.map((el) => el.user),
+            metadatas,
+            streams.map((el) => el.permissions)
         )
         tx.nonce = nonceParam
         // tx.gasLimit = BigNumber.from(6000000)
@@ -140,7 +145,9 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
         })
         nonce += 1
         if (transactionData.length >= 5) {
-            const promises = transactionData.map((data) => sendStreamsToChain(data.streamdata, data.nonce))
+            const promises = transactionData.map(
+                (data) => sendStreamsToChain(data.streamdata, data.nonce)
+            )
             await Promise.all(promises)
             transactionData = []
             // fs.writeFile(PROGRESS_FILENAME, sucessfulLineNumber.toString(), (err) => {
@@ -200,17 +207,15 @@ async function main() {
             const streamid = words[0]
             const user = words[1]
             const permissions = JSON.parse(words[2]) as string[]
-            if (streamid && !streamid.includes('metrics')) { // && id.includes('/')) { // && !id.includes('metrics')) {
-                // const address = id.split('/')[0]
-                // if (ethers.utils.isAddress(address)) {
-                if (ethers.utils.isAddress(user)) {
-                    // valids += 1
-                    // if (!id.includes('metrics')) { withoutMetrics += 1 }
-                    // console.log(id)
-                    await addAndSendStreamPermission(streamid, user, permissions, lineNr)
-                }
-                // }
+            // const address = id.split('/')[0]
+            // if (ethers.utils.isAddress(address)) {
+            if (ethers.utils.isAddress(user)) {
+                // valids += 1
+                // if (!id.includes('metrics')) { withoutMetrics += 1 }
+                // console.log(id)
+                await addAndSendStreamPermission(streamid, user, permissions, lineNr)
             }
+            // }
             s.resume()
         })
             .on('error', (err: any) => {
