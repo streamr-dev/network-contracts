@@ -21,13 +21,13 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
-    "@ensdomains/ens": "^0.6.0",
-    "@ensdomains/resolver": "^0.2.4",
+    "@ensdomains/ens": "0.6.0",
+    "@ensdomains/resolver": "0.2.4",
     "@openzeppelin/contracts": "4.2.0",
-    "debug": "^4.3.1",
-    "eth-ens-namehash": "^2.0.8",
-    "eth-sig-util": "^2.5.4",
-    "ethers": "^5.1.4"
+    "debug": "4.3.1",
+    "eth-ens-namehash": "2.0.8",
+    "eth-sig-util": "2.5.4",
+    "ethers": "5.1.4"
   },
   "devDependencies": {
     "@ethersproject/contracts": "^5.1.1",
