@@ -28,9 +28,7 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
           cache: npm
-          cache-dependency-path: |
-            ./package-lock.json
-            ./packages/smartcontracts/package-lock.json
+          cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
         run: npm ci
       - name: Build and lint
