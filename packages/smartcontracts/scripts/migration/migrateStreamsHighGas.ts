@@ -22,8 +22,8 @@ const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
-const STREAMREGISTRY_ADDRESS = '0xEAA002f7Dc60178B6103f8617Be45a9D3df659B6'
+const MIGRATOR_PRIVATEKEY = '0x0000000000000000000000000000000000000000000000000000000000000010'
+const STREAMREGISTRY_ADDRESS = '0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3'
 const PROGRESS_FILENAME = 'progressFile.txt'
 const DATA_FILE = './streamData_cleaned.tsv'
 
@@ -54,6 +54,7 @@ let transactionData: Array<{
     nonce: number
 }> = []
 let sucessfulLineNumber: number = -1
+let timer
 
 // one transaction with 30 streams, one permission each costs about 2mio gas
 // polygon has 20 mio blockgaslimit, 5 transactions should fit in one block (depending on how many
@@ -116,29 +117,25 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
             streams.map((el) => el.permissions)
         )
         tx.nonce = nonceParam
-        tx.gasPrice = BigNumber.from(1)
+        tx.gasPrice = BigNumber.from(100)
         // tx.gasLimit = BigNumber.from(6000000)
         // const signedtx = await migratorWallet.signTransaction(tx)
         const tx2 = await migratorWallet.sendTransaction(tx)
         // eslint-disable-next-line no-underscore-dangle
         console.log(`sent out tx: nonce: ${tx2.nonce}, gas: ${parseInt(tx2.gasLimit._hex, 16)}, gasPrice: ${tx2.gasPrice?.toNumber()}`)
-        const timer = setTimeout(async () => {
-            console.log(`nothing happening for 20s, resending tx with nonce ${tx2.nonce}`)
-            const newGasPrice = (tx2.gasPrice as BigNumber).toNumber() + 150 //* 1.2
-            // const newGasPrice = 200
-            if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
-            const txResend = await migratorWallet.sendTransaction(tx)
-            console.log(`resent tx with nonce: ${txResend.nonce}, gas: ${parseInt(txResend.gasLimit._hex, 16)}, gasPrice: ${txResend.gasPrice?.toNumber()}`)
-            await txResend.wait()
-            console.log('mined resent tx with nonce ' + txResend.nonce)
-        }, 30000)
+        // timer = setTimeout(async () => {
+        //     console.log('nothing happening for 20s, resending last batch')
+        //     const newGasPrice = (tx2.gasPrice as BigNumber).toNumber() + 150 //* 1.2
+        //     // const newGasPrice = 200
+        //     if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
+        //     const txResend = await migratorWallet.sendTransaction(tx)
+        //     console.log(`resent tx with nonce: ${txResend.nonce}, gas: ${parseInt(txResend.gasLimit._hex, 16)}`)
+        // }, 20000)
         // console.log(`tx2: ${JSON.stringify(tx2)}`)
         await tx2.wait()
-        clearTimeout(timer)
         console.log('mined tx with nonce ' + tx2.nonce)
-    } catch (err: any) {
-        if (err.code === 'TRANSACTION_REPLACED') { console.log('a transaction got replaced') }
-        else { console.log(err) }
+    } catch (err) {
+        console.log(err)
     }
 }
 
@@ -147,10 +144,10 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
         return Promise.resolve()
     }
     sucessfulLineNumber = lineNr
-    process.stdout.write('.')
+    // process.stdout.write('.')
     const permissions = convertPermissions(permissionStrings)
     streamsToMigrate.push({ id: streamID, user, permissions })
-    if (streamsToMigrate.length >= 60) {
+    if (streamsToMigrate.length >= 30) {
         const clonedArr = streamsToMigrate.map((a) => ({ ...a }))
         // const a1 = streamsToMigrate.splice(0, 50)
         // const a2 = streamsToMigrate.splice(0, 50)
@@ -164,7 +161,9 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
             const promises = transactionData.map(
                 (data) => sendStreamsToChain(data.streamdata, data.nonce)
             )
-            await Promise.all(promises)
+            // await Promise.all(promises)
+
+
             // eslint-disable-next-line require-atomic-updates
             transactionData = []
             // fs.writeFile(PROGRESS_FILENAME, sucessfulLineNumber.toString(), (err) => {
@@ -179,7 +178,7 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
         // nonce += 1
         // nonceManager.setTransactionCount(nonce)
         // sendStreamsToChain(a2)
-        // await new Promise((resolve) => setTimeout(resolve, 500000))
+        await new Promise((resolve) => setTimeout(resolve, 1000))
     }
     return Promise.resolve()
 }
