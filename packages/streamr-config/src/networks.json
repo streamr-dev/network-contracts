@@ -74,7 +74,8 @@
         "chainId": 0,
         "environment": "production",
         "contracts": {
-            "DATA-token": "0x0864c156b3c5f69824564dec60c629ae6401bf2a"
+            "DATA-token": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
+            "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
         }
     },
     "polygon": {
