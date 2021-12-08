@@ -1,6 +1,6 @@
 import { ethers, waffle } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, utils } from 'ethers'
+import { BigNumber, utils, Wallet } from 'ethers'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
@@ -8,6 +8,7 @@ import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegi
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
+import exp from 'constants'
 
 const ethSigUtil = require('eth-sig-util')
 
@@ -414,6 +415,33 @@ describe('StreamRegistry', (): void => {
             .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
     })
 
+    it('positivetest setPermissions', async (): Promise<void> => {
+        const userA = ethers.Wallet.createRandom().address
+        const userB = ethers.Wallet.createRandom().address
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: false
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: true,
+            publishExpiration: 1,
+            subscribeExpiration: 1,
+            canGrant: true
+        }
+
+        await registryFromAdmin.setPermissions(streamId0, [userA, userB], [permissionA, permissionB])
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userA)).to.deep.equal(
+            [true, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userB)).to.deep.equal(
+            [false, true, BigNumber.from(1), BigNumber.from(1), true]
+        )
+    })
+
     // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
     it('positivetest trustedRoleSetStream', async (): Promise<void> => {
         await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), trustedAddress)
@@ -742,5 +770,30 @@ describe('StreamRegistry', (): void => {
             .to.equal(false)
         expect(await registryFromAdmin.hasDirectPermission(streamId1, user0Address, PermissionType.Subscribe))
             .to.equal(false)
+    })
+
+    it('positiveTest test bulk migrate', async (): Promise<void> => {
+        const STREAMS_TO_MIGRATE = 100
+        const streamIds: string[] = []
+        const users: string[] = []
+        const metadatas: string[] = []
+        const permissions = []
+        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
+            const user = Wallet.createRandom()
+            streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
+            users.push(user.address)
+            metadatas.push(`metadata-${i}`)
+            permissions.push({
+                canEdit: true,
+                canDelete: true,
+                publishExpiration: MAX_INT,
+                subscribeExpiration: MAX_INT,
+                canGrant: true
+            })
+        }
+        await registryFromMigrator.trustedSetStreams(streamIds, users, metadatas, permissions)
+        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
+            expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
+        }
     })
 })
