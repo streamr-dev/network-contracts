@@ -33,10 +33,10 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     let permission = new Permission(permissionId)
     permission.userAddress = event.params.user
     permission.stream = event.params.streamId
-    permission.edit = event.params.edit
+    permission.canEdit = event.params.canEdit
     permission.canDelete = event.params.canDelete
     permission.publishExpiration = event.params.publishExpiration
     permission.subscribeExpiration = event.params.subscribeExpiration
-    permission.share = event.params.share
+    permission.canGrant = event.params.canGrant
     permission.save()
 }

@@ -416,6 +416,33 @@ describe('StreamRegistry', (): void => {
             .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
     })
 
+    it('positivetest setPermissions', async (): Promise<void> => {
+        const userA = ethers.Wallet.createRandom().address
+        const userB = ethers.Wallet.createRandom().address
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: false
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: true,
+            publishExpiration: 1,
+            subscribeExpiration: 1,
+            canGrant: true
+        }
+
+        await registryFromAdmin.setPermissions(streamId0, [userA, userB], [permissionA, permissionB])
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userA)).to.deep.equal(
+            [true, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userB)).to.deep.equal(
+            [false, true, BigNumber.from(1), BigNumber.from(1), true]
+        )
+    })
+
     // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
     it('positivetest trustedRoleSetStream', async (): Promise<void> => {
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, trustedAddress))
@@ -757,14 +784,14 @@ describe('StreamRegistry', (): void => {
             users.push(user.address)
             metadatas.push(`metadata-${i}`)
             permissions.push({
-                edit: true,
+                canEdit: true,
                 canDelete: true,
                 publishExpiration: MAX_INT,
                 subscribeExpiration: MAX_INT,
-                share: true
+                canGrant: true
             })
         }
-        await registryFromMigrator.trustedBulkAddStreams(streamIds, users, metadatas, permissions)
+        await registryFromMigrator.trustedSetStreams(streamIds, users, metadatas, permissions)
         for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
             expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
         }
