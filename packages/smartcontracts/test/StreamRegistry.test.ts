@@ -1,6 +1,6 @@
 import { ethers, waffle } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, utils } from 'ethers'
+import { BigNumber, utils, Wallet } from 'ethers'
 
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
@@ -8,6 +8,7 @@ import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegi
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
+import exp from 'constants'
 
 const ethSigUtil = require('eth-sig-util')
 
@@ -412,6 +413,33 @@ describe('StreamRegistry', (): void => {
         await registryFromAdmin.setPublicPermission(streamId0, 0, 0)
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
             .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
+    })
+
+    it('positivetest setPermissions', async (): Promise<void> => {
+        const userA = ethers.Wallet.createRandom().address
+        const userB = ethers.Wallet.createRandom().address
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: false
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: true,
+            publishExpiration: 1,
+            subscribeExpiration: 1,
+            canGrant: true
+        }
+
+        await registryFromAdmin.setPermissions(streamId0, [userA, userB], [permissionA, permissionB])
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userA)).to.deep.equal(
+            [true, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userB)).to.deep.equal(
+            [false, true, BigNumber.from(1), BigNumber.from(1), true]
+        )
     })
 
     // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
