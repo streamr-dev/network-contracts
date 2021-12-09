@@ -771,29 +771,4 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.hasDirectPermission(streamId1, user0Address, PermissionType.Subscribe))
             .to.equal(false)
     })
-
-    it('positiveTest test bulk migrate', async (): Promise<void> => {
-        const STREAMS_TO_MIGRATE = 100
-        const streamIds: string[] = []
-        const users: string[] = []
-        const metadatas: string[] = []
-        const permissions = []
-        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-            const user = Wallet.createRandom()
-            streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
-            users.push(user.address)
-            metadatas.push(`metadata-${i}`)
-            permissions.push({
-                canEdit: true,
-                canDelete: true,
-                publishExpiration: MAX_INT,
-                subscribeExpiration: MAX_INT,
-                canGrant: true
-            })
-        }
-        await registryFromMigrator.trustedSetStreams(streamIds, users, metadatas, permissions)
-        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-            expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
-        }
-    })
 })
