@@ -8,11 +8,14 @@
     "graphbuild": "graph build",
     "build": "npm run codegen && npm run graphbuild",
     "lint": "eslint ./src/*.ts",
-    "create-local": "graph create githubname/subgraphname --node http://streamr-dev-thegraph-node:8020",
-    "deploy-local": "graph deploy githubname/subgraphname --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
-    "create-production": "graph create githubname/subgraphname --node https://api.thegraph.com/deploy/",
-    "deploy-production": "graph deploy githubname/subgraphname --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
-    "doAll": "npm run build && npm run create-local && npm run deploy-local"
+    "create-docker-dev": "graph create streamr-dev/network-contracts --node http://streamr-dev-thegraph-node:8020",
+    "deploy-docker-dev": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
+    "create-local": "graph create streamr-dev/network-contracts --node http://localhost:8020",
+    "deploy-local": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://localhost:5001 --node http://localhost:8020",
+    "create-production": "graph create streamr-dev/network-contracts --node https://api.thegraph.com/deploy/",
+    "deploy-production": "graph deploy streamr-dev/network-contracts --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "doAll": "npm run build && npm run create-local && npm run deploy-local",
+    "doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.22.0",
