@@ -25,10 +25,10 @@ jobs:
             os: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.4.0
-      - name: Node ${{ matrix.node_version }} - x64 on ${{ matrix.os }}
-        uses: actions/setup-node@v2.4.1
+      - name: Install Node 
+        uses: actions/setup-node@v2.5.0
         with:
-          node-version: ${{ matrix.node_version }}
+          node-version-file: '.nvmrc'
           cache: npm
           cache-dependency-path: |
             ./package-lock.json
