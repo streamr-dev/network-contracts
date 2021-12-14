@@ -36,7 +36,11 @@ const config: HardhatUserConfig = {
 
     defaultNetwork: 'hardhat',
     networks: {
-        hardhat: {},
+        hardhat: {
+            gas: 12000000,
+            blockGasLimit: 0x1fffffffffffff,
+            allowUnlimitedContractSize: true
+        },
         localsidechain: {
             chainId: 8997,
             url: 'http://localhost:8546'
