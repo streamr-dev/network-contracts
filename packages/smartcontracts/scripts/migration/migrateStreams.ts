@@ -207,14 +207,9 @@ async function main() {
     let resolver: any
     const promise = new Promise((resolve) => { resolver = resolve })
 
-    fs.readFile(PROGRESS_FILENAME, 'utf8', (err, data) => {
-        if (err) {
-            console.log('cant read progress file ', err)
-            throw err
-        }
-        sucessfulLineNumber = parseInt(data, 10)
-        console.log('read progressFile, starting with that number: ' + sucessfulLineNumber)
-    })
+    const data = fs.readFileSync(PROGRESS_FILENAME, 'utf8')
+    sucessfulLineNumber = parseInt(data, 10)
+    console.log('read progressFile, starting with that number: ' + sucessfulLineNumber)
     const s = fs.createReadStream(DATA_FILE)
         .pipe(es.split())
         .pipe(es.mapSync(async (line: string) => {
