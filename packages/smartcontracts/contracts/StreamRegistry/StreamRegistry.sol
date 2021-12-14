@@ -197,7 +197,7 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     }
 
     function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
-        require(users.length == permissions.length);
+        require(users.length == permissions.length, "error_invalidInputArrayLengths");
         uint arrayLength = users.length;
         for (uint i=0; i<arrayLength; i++) {
             Permission memory permission = permissions[i];

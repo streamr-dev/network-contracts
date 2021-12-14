@@ -15,10 +15,7 @@ updates:
     labels:
       - ci
     assignees:
-      - samt1803
-      - jtakalai
-      - kare
-
+      - DaisyDomergue
   - package-ecosystem: npm
     directory: /packages/chainlink-ens-external-adapter
     schedule:

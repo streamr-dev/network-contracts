@@ -1,14 +1,13 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 
-import { Contract } from '@ethersproject/contracts'
-import { Wallet } from '@ethersproject/wallet'
-import hhat from 'hardhat'
+import { Contract, providers, utils, Wallet } from 'ethers'
+import { ethers } from 'hardhat'
 
 import { ENSCache } from '../typechain'
 import { StreamRegistry } from '../typechain/StreamRegistry'
 
-const { ethers } = hhat
+// const { ethers } = hhat
 const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
@@ -22,8 +21,8 @@ const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
 const FIFSADDRESS = '0x57B81a9442805f88c4617B506206531e72d96290'
 const RESOLVERADDRESS = '0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c'
 
-const mainnetProvider = new ethers.providers.JsonRpcProvider(MAINNETURL)
-const sideChainProvider = new ethers.providers.JsonRpcProvider(SIDECHAINURL)
+const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
+const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
 let walletMainnet : Wallet
 let walletSidechain : Wallet
 let registryFromAdmin : StreamRegistry
@@ -52,8 +51,8 @@ const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
     randomENSName = randomDomain + '.eth'
     console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    const hashedDomain = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(randomDomain))
-    const nameHashedENSName = ethers.utils.namehash(randomENSName)
+    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    const nameHashedENSName = utils.namehash(randomENSName)
     let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
     await tx.wait()
     console.log('seting resolver for ens')
@@ -104,18 +103,18 @@ const createAndCheckStreamWithENS = async () => {
 }
 
 async function main() {
-    walletMainnet = new ethers.Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
-    walletSidechain = new ethers.Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
+    walletMainnet = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
+    walletSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
 
     const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
     const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
     const registryContract = await registry.deployed()
     registryFromAdmin = await registryContract.connect(walletSidechain) as StreamRegistry
 
-    const ensContract = new ethers.Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
+    const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
     ensFomAdmin = await ensContract.connect(walletMainnet)
 
-    const fifsContract = new ethers.Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
+    const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
     fifsFromAdmin = await fifsContract.connect(walletMainnet)
 
     // const resolverContract = new ethers.Contract(RESOLVERADDRESS, resolverAbi.abi, mainnetProvider)

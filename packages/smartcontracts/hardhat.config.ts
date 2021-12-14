@@ -55,19 +55,39 @@ const config: HardhatUserConfig = {
         compilers: [
             {
                 version: '0.8.6',
-                settings: { }
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 5,
+                    },
+                },
             },
             {
                 version: '0.7.4',
-                settings: { }
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 5,
+                    },
+                },
             },
             {
                 version: '0.6.6',
-                settings: { }
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 5,
+                    },
+                },
             },
             {
                 version: '0.6.12',
-                settings: { }
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 5,
+                    },
+                },
             }],
         overrides: {
             'contracts/chainlinkClient/ESNCache.sol': {
