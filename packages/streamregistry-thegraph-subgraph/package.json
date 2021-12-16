@@ -18,13 +18,13 @@
     "doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.22.0",
-    "@typescript-eslint/eslint-plugin": "^4.31.2",
-    "@typescript-eslint/parser": "^4.31.2",
+    "@graphprotocol/graph-cli": "0.22.0",
+    "@typescript-eslint/eslint-plugin": "4.31.2",
+    "@typescript-eslint/parser": "4.31.2",
     "eslint-config-streamr-nodejs": "2.0.1",
-    "eslint-plugin-chai-friendly": "^0.7.2"
+    "eslint-plugin-chai-friendly": "0.7.2"
   },
   "dependencies": {
-    "@graphprotocol/graph-ts": "^0.22.0"
+    "@graphprotocol/graph-ts": "0.22.0"
   }
 }
