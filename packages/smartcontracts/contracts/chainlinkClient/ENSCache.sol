@@ -4,6 +4,7 @@ pragma solidity 0.8.6;
 import "../Chainlink0.6/ChainlinkClient.sol";
 import "../Chainlink0.6/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../StreamRegistry/StreamRegistry.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
@@ -11,9 +12,12 @@ contract ENSCache is ChainlinkClient, Ownable {
   uint256 constant private ORACLE_PAYMENT = 1 * LINK;
 
   mapping(string => address) public owners;
-  mapping(bytes32 => string) public sentRequests;
+  mapping(bytes32 => string) public tempENSnames;
+  mapping(bytes32 => string) public tempIdPaths;
+  mapping(bytes32 => string) public tempMetadatas;
   address public oracle;
   string public jobId;
+  StreamRegistry private streamRegistry;
 
   function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
     return super._msgSender();
@@ -33,6 +37,10 @@ contract ENSCache is ChainlinkClient, Ownable {
     oracle = oracleAddress;
   }
 
+  function setStreamRegistry(address streamRegistryAddress) public onlyOwner {
+    streamRegistry = StreamRegistry(streamRegistryAddress);
+  }
+
   function setChainlinkTokenAddress(address _link) public onlyOwner {
     super.setChainlinkToken(_link);
   }
@@ -45,11 +53,22 @@ contract ENSCache is ChainlinkClient, Ownable {
     Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
     req.add("ensname", ensName);
     bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
-    sentRequests[requestid] = ensName;
+    tempENSnames[requestid] = ensName;
+  }
+
+  function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+    Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
+    req.add("ensname", ensName);
+    bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
+    tempENSnames[requestid] = ensName;
+    tempIdPaths[requestid] = streamIdPath;
+    tempMetadatas[requestid] = metadataJsonString;
   }
 
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
-    owners[sentRequests[requestId]] = address(uint160(uint256(owneraddress)));
+    owners[tempENSnames[requestId]] = address(uint160(uint256(owneraddress)));
+    streamRegistry.trustedSetStreamWithPermission(string(abi.encodePacked(tempENSnames[requestId], tempIdPaths[requestId])), tempMetadatas[requestId],
+      owners[tempENSnames[requestId]], true, true, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, true);
   }
 
   function getChainlinkToken() public view returns (address) {

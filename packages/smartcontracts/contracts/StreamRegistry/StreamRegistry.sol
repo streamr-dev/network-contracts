@@ -84,6 +84,10 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
     }
 
+    function syncEnsAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+        ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString);
+    }
+
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
     }
@@ -276,8 +280,15 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _setPermission(streamId, recipient, permissionType, true);
     }
 
-    function trustedSetStream(string calldata streamId, string calldata metadata) public isTrusted() {
+    function trustedSetStreamMetadata(string calldata streamId, string calldata metadata) public isTrusted() {
         streamIdToMetadata[streamId] = metadata;
+        emit StreamUpdated(streamId, metadata);
+    }
+
+    function trustedSetStreamWithPermission(string calldata streamId, string calldata metadata, address user, bool canEdit,
+        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) public isTrusted() {
+        streamIdToMetadata[streamId] = metadata;
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
         emit StreamUpdated(streamId, metadata);
     }
 

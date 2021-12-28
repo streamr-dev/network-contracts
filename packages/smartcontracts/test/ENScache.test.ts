@@ -2,6 +2,7 @@ import { waffle } from 'hardhat'
 import { expect, use } from 'chai'
 import { utils, BigNumber } from 'ethers'
 
+import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
 import { ENSCache } from '../typechain/ENSCache'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
@@ -10,6 +11,7 @@ import LinkTokenJson from '../test-contracts/LinkToken.json'
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { Oracle } from '../test-contracts/Oracle'
 import type { LinkToken } from '../test-contracts/LinkToken'
+import type { StreamRegistry } from '../typechain/StreamRegistry'
 
 const ethSigUtil = require('eth-sig-util')
 
@@ -25,6 +27,7 @@ describe('ENSCache', (): void => {
     let oracleFromAdmin: Oracle
     let minimalForwarderFromAdmin: MinimalForwarder
     let minimalForwarderFromUser0: MinimalForwarder
+    let registryFromAdmin: StreamRegistry
     const adminAdress: string = wallets[0].address
 
     before(async (): Promise<void> => {
@@ -40,10 +43,18 @@ describe('ENSCache', (): void => {
 
         await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address,
             BigNumber.from('1000000000000000000000')) // 1000 link
+
+        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
+            [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address]) as StreamRegistry
+        await ensCacheFromAdmin.setStreamRegistry(registryFromAdmin.address)
     })
 
     it('positivetest queryENSOwner', async (): Promise<void> => {
-        await ensCacheFromAdmin.requestENSOwner('ensdomain1')
+        expect(await ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
+    })
+
+    it('create stream with ens sync trigger', async (): Promise<void> => {
+        expect(await registryFromAdmin.syncEnsAndCreateStream('ensdomain1.eth', '/path', 'metadata')).to.not.throw
     })
 
     it('positivetest istrustedForwarder', async (): Promise<void> => {
