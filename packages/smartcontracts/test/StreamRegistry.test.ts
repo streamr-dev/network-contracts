@@ -106,6 +106,28 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
     })
 
+    it('positivetest createStream path character edgecases', async (): Promise<void> => {
+        expect(await registryFromAdmin.createStream('/', metadata0))
+            .to.not.throw
+        expect(await registryFromAdmin.createStream('/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-', metadata0))
+            .to.not.throw
+    })
+
+    it('negativetest createStream path character edgecases', async (): Promise<void> => {
+        await expect(registryFromAdmin.createStream('/,', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/:', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/@', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/[', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/`', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/{', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+    })
+
     it('negativetest createStream, already exists error', async (): Promise<void> => {
         await expect(registryFromAdmin.createStream(streamPath0, metadata0))
             .to.be.revertedWith('error_streamAlreadyExists')
