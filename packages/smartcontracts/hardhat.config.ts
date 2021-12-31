@@ -45,6 +45,16 @@ const config: HardhatUserConfig = {
             chainId: 8997,
             url: 'http://localhost:8546',
             accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
+        },
+        polygonTestMumbai1: {
+            chainId: 80001,
+            url: 'https://rpc-mumbai.maticvigil.com',
+            // accounts: ['0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae']
+        },
+        polygonTestMumbai2: {
+            chainId: 80001,
+            url: 'https://matic-mumbai.chainstacklabs.com/',
+            // accounts: ['0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae']
         }
     },
     dependencyCompiler: {
@@ -59,7 +69,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 50,
                     },
                 },
             },

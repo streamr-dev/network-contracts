@@ -20,8 +20,11 @@ const { ethers } = hhat
 // const StreamRegistry = require('./ethereumContractJSONs/StreamRegistry.json')
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
-const chainURL = 'http://10.200.10.1:8546'
-const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E'
+// const chainURL = 'http://10.200.10.1:8546'
+// const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
+const chainURL = 'https://rpc-mumbai.maticvigil.com'
+// const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
+const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
 
 const log = require('debug')('eth-init')
 
@@ -57,12 +60,12 @@ async function deployStreamStorageRegistry() {
 }
 
 async function deployStreamRegistry() {
-    log('Sending some Ether to chainlink node address')
-    const tx = await wallet.sendTransaction({
-        to: chainlinkNodeAddress,
-        value: parseEther('10')
-    })
-    await tx.wait()
+    // log('Sending some Ether to chainlink node address')
+    // const tx = await wallet.sendTransaction({
+    //     to: chainlinkNodeAddress,
+    //     value: parseEther('10')
+    // })
+    // await tx.wait()
 
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
     // const linkTokenFactory = await ethers.getContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
@@ -93,24 +96,26 @@ async function deployStreamRegistry() {
     // log('Sending some Link to ENSCache')
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry.', wallet)
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
     const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
 
     log('setting Streamregistry address in ENSCache')
-    await ensCache.setStreamRegistry(streamRegistry.address)
-    log('setting enscache address as trusted role in streamregistry')
+    const tx3 = await ensCache.setStreamRegistry(streamRegistry.address)
+    await tx3.wait()
 
+    log('setting enscache address as trusted role in streamregistry')
     const role = await streamRegistry.TRUSTED_ROLE()
     log(`granting role ${role} ensaddress ${ensCache.address}`)
-    await streamRegistry.grantRole(role, ensCache.address)
+    const tx2 = await streamRegistry.grantRole(role, ensCache.address)
+    await tx2.wait()
 }
 
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
-
+    log(`wallet address ${wallet.address}`)
     const initialNodes = []
     const initialMetadata = []
     initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
@@ -118,8 +123,6 @@ async function main() {
     await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()
-
-    // TODO: move these deployments to the top once address change pains are solved
 
     await deployStreamStorageRegistry()
 }
