@@ -15,6 +15,19 @@
             "type": "pwa-node"
         },
         {
+            "name": "deploy",
+            "request": "launch",
+            "runtimeArgs": [
+                "run",
+                "deploylive"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
             "name": "migrate",
             "request": "launch",
             "runtimeArgs": [

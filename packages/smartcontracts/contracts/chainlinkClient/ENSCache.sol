@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
 
-import "../Chainlink0.6/ChainlinkClient.sol";
-import "../Chainlink0.6/Chainlink.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
 
-  uint256 constant private ORACLE_PAYMENT = 1 * LINK;
+  uint256 constant private ORACLE_PAYMENT = 0 * LINK_DIVISIBILITY;
 
   mapping(string => address) public owners;
   mapping(bytes32 => string) public sentRequests;
   address public oracle;
   string public jobId;
 
-  function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
-    return super._msgSender();
-  }
+  // function _msgSender() internal view virtual override(Context) returns (address sender) {
+  //   return super._msgSender();
+  // }
 
-  function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
-    return super._msgData();
-  }
+  // function _msgData() internal view virtual override(Context) returns (bytes calldata) {
+  //   return super._msgData();
+  // }
 
-  constructor(address oracleaddress, string memory chainlinkJobId, address trustedForwarder)
-  ChainlinkClient(trustedForwarder) Ownable() {
+  constructor(address oracleaddress, string memory chainlinkJobId)
+  ChainlinkClient() Ownable() {
     oracle = oracleaddress;
     jobId = chainlinkJobId;
   }

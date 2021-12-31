@@ -16,6 +16,7 @@
     "localDeployProxy": "hardhat run --network localsidechain scripts/deployWithProxy.ts",
     "localUpgradeImpl": "hardhat run --network localsidechain scripts/upgradeProxy.ts",
     "e2etest": "hardhat run --network localsidechain scripts/e2eTest.ts",
+    "deploylive": "hardhat run --network localsidechain scripts/1_deployLiveNets.ts",
     "migrateStreams": "hardhat run --network localsidechain scripts/migration/migrateStreams.ts",
     "migrateStreams2": "hardhat run --network localsidechain scripts/migration/migrateStreamsHighGas.ts",
     "cleanupStreams": "hardhat run --network localsidechain scripts/migration/cleanupStreams.ts",
@@ -24,6 +25,7 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
+    "@chainlink/contracts": "^0.3.0",
     "@ensdomains/ens": "^0.6.0",
     "@ensdomains/resolver": "^0.2.4",
     "@ethersproject/bignumber": "^5.5.0",
