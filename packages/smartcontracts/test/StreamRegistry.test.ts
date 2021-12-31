@@ -449,7 +449,7 @@ describe('StreamRegistry', (): void => {
             .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata0)
-        await registryFromMigrator.trustedSetStream(streamId0, metadata1)
+        await registryFromMigrator.trustedSetStreamMetadata(streamId0, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata1)
     })
@@ -466,8 +466,25 @@ describe('StreamRegistry', (): void => {
     })
 
     it('negativetest trustedSetStream', async (): Promise<void> => {
-        await expect(registryFromAdmin.trustedSetStream(streamId0, metadata1))
+        await expect(registryFromAdmin.trustedSetStreamMetadata(streamId0, metadata1))
             .to.be.revertedWith('error_mustBeTrustedRole')
+    })
+
+    it('positivetest trustedSetStreamWithPermissions', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true])
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata1)
+        await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata0, user0Address, false, false, 0, 0, false)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata0)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
+        await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata1, user0Address, true, true, MAX_INT, MAX_INT, true)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata1)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true])
     })
 
     it('negativetest trustedSetPermissionsForUser', async (): Promise<void> => {
