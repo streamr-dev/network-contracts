@@ -9,7 +9,8 @@ import "../StreamRegistry/StreamRegistry.sol";
 contract ENSCache is ChainlinkClient, Ownable {
   using Chainlink for Chainlink.Request;
 
-  uint256 constant private ORACLE_PAYMENT = 1 * LINK_DIVISIBILITY;
+  uint256 constant private ORACLE_PAYMENT = 0 * LINK_DIVISIBILITY;
+  // uint256 constant private ORACLE_PAYMENT = 1;
 
   mapping(string => address) public owners;
   mapping(bytes32 => string) public tempENSnames;

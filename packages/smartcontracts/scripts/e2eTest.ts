@@ -25,8 +25,8 @@ const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
 // mumbai
 // const LINKTOKEN = '0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44'
 
-const STREAMREGISTRYADDRESS = '0x64A04452995DfFFf1756190098EeB0F5786Eff53'
-const ENSCACHEADDRESS = '0x8d40DAeBACFd5D662B093B5Ee7030388603091f2'
+const STREAMREGISTRYADDRESS = '0x67D2B9022Ea80A133B8C0E81192f0C402d56180a'
+const ENSCACHEADDRESS = '0x0871fEDE6094bF7373bfA63dCa60fA80b0900dFB'
 
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
 const FIFSADDRESS = '0x57B81a9442805f88c4617B506206531e72d96290'
@@ -91,19 +91,19 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     // console.log('Sending some Link to ENSCache')
     // const txl = await linkTokenFromAdmin.transfer(ensCacheFromOwner.address, BigNumber.from('1000000000000000000000')) // 1000 link
     // await txl.wait()
-    // console.log('owner of enscache is ' + await ensCacheFromOwner.owner())
-    // console.log('used address to access is ' + walletSidechain.address)
-    // console.log('setting linktoken in enscache')
-    // let tx = await ensCacheFromOwner.setChainlinkTokenAddress(LINKTOKEN)
-    // await tx.wait()
-    // console.log('setting streamregistry in enscache')
-    // tx = await ensCacheFromOwner.setStreamRegistry(STREAMREGISTRYADDRESS)
-    // await tx.wait()
-    const t2 = await ensCacheFromOwner.setChainlinkJobId('4f47744ab75a4778bbcce222e2f7883d')
+    console.log('owner of enscache is ' + await ensCacheFromOwner.owner())
+    console.log('used address to access is ' + walletSidechain.address)
+    console.log('setting linktoken in enscache')
+    let tx = await ensCacheFromOwner.setChainlinkTokenAddress(LINKTOKEN)
+    await tx.wait()
+    console.log('setting streamregistry in enscache')
+    tx = await ensCacheFromOwner.setStreamRegistry(STREAMREGISTRYADDRESS)
+    await tx.wait()
+    const t2 = await ensCacheFromOwner.setChainlinkJobId('907957cb12324f21a0b3fb4745dd0367')
     await t2.wait()
     console.log('creating stream with ensname ' + randomENSName)
     const randomPath = getRandomPath()
-    const tx = await registryFromAdmin.syncEnsAndCreateStream(randomENSName, randomPath, metadata1)
+    tx = await registryFromAdmin.syncEnsAndCreateStream(randomENSName, randomPath, metadata1)
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
     await tx.wait()
     console.log('call done')
