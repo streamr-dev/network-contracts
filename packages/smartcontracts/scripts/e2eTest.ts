@@ -1,10 +1,10 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 
-import { Contract, providers, utils, Wallet } from 'ethers'
+import { BigNumber, Contract, providers, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
 
-import { ENSCache } from '../typechain'
+import { ENSCache, LinkToken } from '../typechain'
 import { StreamRegistry } from '../typechain/StreamRegistry'
 
 // const { ethers } = hhat
@@ -13,11 +13,15 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
 
 const MAINNETURL = 'http://localhost:8545'
-const SIDECHAINURL = 'http://localhost:8546'
-const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const LINKTOKEN = '0x115da13e0f2618013b8b1E21B73ca36B42C39F44'
-const STREAMREGISTRYADDRESS = '0xa86863053cECFD9f6f861e0Fd39a042238411b75'
-const ENSCACHEADDRESS = '0xD1d514082ED630687a5DCB85406130eD0745fA06'
+// const SIDECHAINURL = 'http://localhost:8546'
+const SIDECHAINURL = 'http://localhost:8545'
+// const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const DEFAULTPRIVATEKEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
+
+const LINKTOKEN = '0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44'
+const STREAMREGISTRYADDRESS = '0x09635F643e140090A9A8Dcd712eD6285858ceBef'
+const ENSCACHEADDRESS = '0x7a2088a1bFc9d81c55368AE168C2C02570cB814F'
+
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
 const FIFSADDRESS = '0x57B81a9442805f88c4617B506206531e72d96290'
 const RESOLVERADDRESS = '0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c'
@@ -28,6 +32,7 @@ let walletMainnet : Wallet
 let walletSidechain : Wallet
 let registryFromAdmin : StreamRegistry
 let ensCacheFromAdmin : ENSCache
+let linkTokenFromAdmin : LinkToken
 let ensFomAdmin : Contract
 let fifsFromAdmin : Contract
 // let resolverFomAdmin : Contract
@@ -52,42 +57,46 @@ const createAndCheckStreamWithoutENS = async () => {
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
     randomENSName = randomDomain + '.eth'
-    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
-    const nameHashedENSName = utils.namehash(randomENSName)
-    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
-    await tx.wait()
-    console.log('seting resolver for ens')
-
-    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    await tx.wait(2)
-    console.log('setting owner for ens')
-
-    // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    // const nameHashedENSName = utils.namehash(randomENSName)
+    // let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
     // await tx.wait()
-    // console.log('3')
+    // console.log('seting resolver for ens')
 
-    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    await tx.wait()
-    console.log('querying owner from mainchain')
+    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    // await tx.wait(2)
+    // console.log('setting owner for ens')
 
-    const addr = await ensFomAdmin.owner(nameHashedENSName)
-    console.log('queried owner of', randomENSName, ': ', addr)
+    // // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    // // await tx.wait()
+    // // console.log('3')
+
+    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    // await tx.wait()
+    // console.log('querying owner from mainchain')
+
+    // const addr = await ensFomAdmin.owner(nameHashedENSName)
+    // console.log('queried owner of', randomENSName, ': ', addr)
 }
 
 const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     // only when redeploying locally
-    // console.log('setting linktoken in enscache')
-    // let tx = await ensCacheFromAdmin.setChainlinkTokenAddress(LINKTOKEN)
-    // await tx.wait()
-    // console.log('setting streamregistry in enscache')
-    // tx = await ensCacheFromAdmin.setStreamRegistry(STREAMREGISTRYADDRESS)
-    // await tx.wait()
-    // const t2 = await ensCacheFromAdmin.setChainlinkJobId('c99333d032ed4cb8967b956c7f0329b5')
-    // await t2.wait()
+    console.log('Sending some Link to ENSCache')
+    await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address, BigNumber.from('1000000000000000000000')) // 1000 link
+    console.log('owner of enscache is ' + await ensCacheFromAdmin.owner())
+    console.log('used address to access is ' + walletSidechain.address)
+    console.log('setting linktoken in enscache')
+    let tx = await ensCacheFromAdmin.setChainlinkTokenAddress(LINKTOKEN)
+    await tx.wait()
+    console.log('setting streamregistry in enscache')
+    tx = await ensCacheFromAdmin.setStreamRegistry(STREAMREGISTRYADDRESS)
+    await tx.wait()
+    const t2 = await ensCacheFromAdmin.setChainlinkJobId('c99333d032ed4cb8967b956c7f0329b5')
+    await t2.wait()
     console.log('creating stream with ensname ' + randomENSName)
     const randomPath = getRandomPath()
-    const tx = await registryFromAdmin.syncEnsAndCreateStream(randomENSName, randomPath, metadata1)
+    tx = await registryFromAdmin.syncEnsAndCreateStream(randomENSName, randomPath, metadata1)
     // const tx = await ensCacheFromAdmin.requestENSOwner(randomENSName)
     await tx.wait()
     console.log('call done')
@@ -124,11 +133,16 @@ async function main() {
     // const resolverContract = new ethers.Contract(RESOLVERADDRESS, resolverAbi.abi, mainnetProvider)
     // resolverFomAdmin = await resolverContract.connect(walletMainnet)
 
-    const ensOwner = new Wallet('0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', sideChainProvider)
+    // const ensOwner = new Wallet('0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', sideChainProvider)
     const ENSCacheFactory = await ethers.getContractFactory('ENSCache')
     const enscache = await ENSCacheFactory.attach(ENSCACHEADDRESS)
     const enscacheContract = await enscache.deployed()
-    ensCacheFromAdmin = await enscacheContract.connect(ensOwner) as ENSCache
+    ensCacheFromAdmin = await enscacheContract.connect(walletSidechain) as ENSCache
+
+    const linkTokenFactory = await ethers.getContractFactory('LinkToken')
+    const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
+    const linkTokenContract = await linkTokenFactoryTx.deployed()
+    linkTokenFromAdmin = await linkTokenContract.connect(walletSidechain) as LinkToken
 
     await createAndCheckStreamWithoutENS()
     console.log('SUCCESS creating stream worked')

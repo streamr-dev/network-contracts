@@ -3,7 +3,7 @@ import { constants, Wallet } from 'ethers'
 import { parseEther } from 'ethers/lib/utils'
 import hhat from 'hardhat'
 
-import { StreamRegistry } from '../typechain/StreamRegistry'
+import { StreamRegistry } from '../../typechain/StreamRegistry'
 
 const { ethers } = hhat
 
@@ -20,16 +20,25 @@ const { ethers } = hhat
 // const StreamRegistry = require('./ethereumContractJSONs/StreamRegistry.json')
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
+// localsidechain
 // const chainURL = 'http://10.200.10.1:8546'
-// const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
-const chainURL = 'https://rpc-mumbai.maticvigil.com'
 // const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
-const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+
+// hardhat
+const chainURL = 'http://127.0.0.1:8545'
+const privKeyStreamRegistry = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
+let LINKTOKEN_ADDRESS = ''
+
+// mumbai
+// const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
+// const chainURL = 'https://rpc-mumbai.maticvigil.com'
+// const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 const log = require('debug')('eth-init')
 
 // this wallet will deploy all contracts and "own" them if applicable
-const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // these come from the next step, but we can predict the addresses
 const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
@@ -73,6 +82,14 @@ async function deployStreamRegistry() {
     // const linkToken = await linkTokenFactoryTx.deployed()
     // log(`Link Token deployed at ${linkToken.address}`)
 
+    // LINK
+    log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
+    const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    const linkToken = await linkTokenFactoryTx.deployed()
+    LINKTOKEN_ADDRESS = linkToken.address
+    log(`Link Token deployed at ${linkToken.address}`)
+
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
     const oracleFactoryTx = await oracleFactory.deploy(LINKTOKEN_ADDRESS)
@@ -86,10 +103,12 @@ async function deployStreamRegistry() {
     log(`Chainlink Oracle permission for ${chainlinkNodeAddress} is ${permission}`)
 
     // chainlink client enscache
+    log(`deploxing enscache from ${wallet.address}`)
     const ensCacheFactory = await ethers.getContractFactory('ENSCache', wallet)
     const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId) // , constants.AddressZero)
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
+    log(`ENSCache owner is ${await ensCache.owner()}`)
     // log(`ENSCache setting Link token address ${linkToken.address}`)
     // await ensCache.setChainlinkTokenAddress(linkToken.address)
 

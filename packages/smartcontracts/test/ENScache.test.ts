@@ -37,7 +37,8 @@ describe('ENSCache', (): void => {
         await oracleFromAdmin.setFulfillmentPermission(adminAdress, true)
 
         ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
-            [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
+            // [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
+            [adminAdress, 'jobid']) as ENSCache
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
         minimalForwarderFromUser0 = minimalForwarderFromAdmin.connect(wallets[1])
 
@@ -57,10 +58,10 @@ describe('ENSCache', (): void => {
         expect(await registryFromAdmin.syncEnsAndCreateStream('ensdomain1.eth', '/path', 'metadata')).to.not.throw
     })
 
-    it('positivetest istrustedForwarder', async (): Promise<void> => {
-        expect(await ensCacheFromAdmin.isTrustedForwarder(minimalForwarderFromAdmin.address))
-            .to.equal(true)
-    })
+    // it('positivetest istrustedForwarder', async (): Promise<void> => {
+    //     expect(await ensCacheFromAdmin.isTrustedForwarder(minimalForwarderFromAdmin.address))
+    //         .to.equal(true)
+    // })
 
     it('positivetest metatransaction', async (): Promise<void> => {
         const data = await ensCacheFromAdmin.interface.encodeFunctionData('requestENSOwner', ['ensdomain1'])

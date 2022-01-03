@@ -92,6 +92,15 @@ const config: HardhatUserConfig = {
                 },
             },
             {
+                version: '0.4.24',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 5,
+                    },
+                },
+            },
+            {
                 version: '0.6.12',
                 settings: {
                     optimizer: {
@@ -107,6 +116,10 @@ const config: HardhatUserConfig = {
             },
             'contracts/chainlinkOracle/OracleImport.sol': {
                 version: '0.6.6',
+                settings: { }
+            },
+            'contracts/chainlinkOracle/LinkTolenImport.sol': {
+                version: '0.4.24',
                 settings: { }
             },
             // 'contracts/chainlinkClient/Context.sol': {
