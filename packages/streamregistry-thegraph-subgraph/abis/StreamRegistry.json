@@ -1007,6 +1007,29 @@
     "inputs": [
       {
         "internalType": "string",
+        "name": "ensName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "streamIdPath",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadataJsonString",
+        "type": "string"
+      }
+    ],
+    "name": "syncEnsAndCreateStream",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
         "name": "streamId",
         "type": "string"
       },
@@ -1100,7 +1123,55 @@
         "type": "string"
       }
     ],
-    "name": "trustedSetStream",
+    "name": "trustedSetStreamMetadata",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "streamId",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "canEdit",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "deletePerm",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "publishExpiration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "subscribeExpiration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "canGrant",
+        "type": "bool"
+      }
+    ],
+    "name": "trustedSetStreamWithPermission",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

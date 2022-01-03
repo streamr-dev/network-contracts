@@ -14,7 +14,8 @@ module.exports = async ({ deployments }) => {
     const ensCache = await deploy('ENSCache', {
         from: key,
         gasLimit: 6000000,
-        args: [ORACLE_ADDRESS, CHAINLINK_JOBID, minimalForwarder.address]
+        args: [ORACLE_ADDRESS, CHAINLINK_JOBID]
+        // args: [ORACLE_ADDRESS, CHAINLINK_JOBID, minimalForwarder.address]
     })
     const streamReg = await deploy('StreamRegistry', {
         from: key,
