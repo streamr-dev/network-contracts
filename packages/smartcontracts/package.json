@@ -17,6 +17,7 @@
     "localUpgradeImpl": "hardhat run --network localsidechain scripts/upgradeProxy.ts",
     "e2etest": "hardhat run --network localsidechain scripts/e2eTest.ts",
     "e2etest2": "hardhat run --network localhost scripts/e2eTest.ts",
+    "deploylive2": "hardhat run --network localhost scripts/deployToLivenet/1_deployContracts.ts",
     "deploylive1": "hardhat run --network polygonTestMumbai1 scripts/deployToLivenet/1_deployContracts.ts",
     "deploylive": "hardhat run --network localsidechain scripts/deployToLivenet/1_deployContracts.ts",
     "migrateStreams": "hardhat run --network localsidechain scripts/migration/migrateStreams.ts",

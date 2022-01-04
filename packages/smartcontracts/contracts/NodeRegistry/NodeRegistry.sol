@@ -3,6 +3,7 @@ pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
 // import "./Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  * @dev TheOwnableUpgradablecontract has an owner address, and provides basic authorization control
  * functions, this simplifies the implementation of "user permissions".
  */
-contract NodeRegistry is Initializable, OwnableUpgradeable {
+contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     // TODO: next version isNew should be boolean
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
@@ -55,14 +56,16 @@ contract NodeRegistry is Initializable, OwnableUpgradeable {
     // }
 
     function initialize(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) public initializer {
-        transferOwnership(owner);
+        __Ownable_init();
+        __UUPSUpgradeable_init();
         requiresWhitelist = requiresWhitelist_;
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         for (uint i = 0; i < initialNodes.length; i++) {
             createOrUpdateNode(initialNodes[i], initialMetadata[i]);
         }
-        OwnableUpgradeable.__Ownable_init();
+        transferOwnership(owner);
     }
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function getNode(address nodeAddress) public view returns (Node memory) {
         NodeLinkedListItem storage n = nodes[nodeAddress];
