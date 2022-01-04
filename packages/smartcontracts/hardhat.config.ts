@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 10,
                     },
                 },
             },
@@ -81,7 +81,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 10,
                     },
                 },
             },
@@ -90,7 +90,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 10,
                     },
                 },
             },
@@ -99,7 +99,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 10,
                     },
                 },
             },
@@ -108,28 +108,28 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 1,
+                        runs: 10,
                     },
                 },
             }],
-        overrides: {
-            'contracts/chainlinkClient/ESNCache.sol': {
-                version: '0.7.6',
-                settings: { }
-            },
-            'contracts/chainlinkOracle/OracleImport.sol': {
-                version: '0.6.6',
-                settings: { }
-            },
-            'contracts/chainlinkOracle/LinkTolenImport.sol': {
-                version: '0.4.24',
-                settings: { }
-            },
-            // 'contracts/chainlinkClient/Context.sol': {
-            //     version: '0.6.12',
-            //     settings: { }
-            // }
-        }
+        // overrides: {
+        // 'contracts/chainlinkClient/ESNCache.sol': {
+        //     version: '0.7.6',
+        //     settings: { }
+        // },
+        // 'contracts/chainlinkOracle/OracleImport.sol': {
+        //     version: '0.6.6',
+        //     settings: { }
+        // },
+        // 'contracts/chainlinkOracle/LinkTolenImport.sol': {
+        //     version: '0.4.24',
+        //     settings: { }
+        // },
+        // 'contracts/chainlinkClient/Context.sol': {
+        //     version: '0.6.12',
+        //     settings: { }
+        // }
+        // }
     },
     namedAccounts: {
         deployer: 0,

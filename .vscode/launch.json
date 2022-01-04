@@ -5,10 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "command": "npm run deploylive",
+            "name": "Run leployment",
+            "request": "launch",
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "cwd": "${workspaceFolder}/packages/smartcontracts"
+        },
+        {
             "command": "npm run e2etest",
             "name": "Run e2etest",
             "request": "launch",
-            "type": "node-terminal"
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "cwd": "${workspaceFolder}/packages/smartcontracts"
         },
         {
             "type": "node",
