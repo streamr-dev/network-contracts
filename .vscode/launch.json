@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "npm run deploylive",
+            "command": "npm run deploylive2",
             "name": "Run leployment",
             "request": "launch",
             "type": "node-terminal",

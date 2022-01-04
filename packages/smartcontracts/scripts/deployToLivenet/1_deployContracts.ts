@@ -76,18 +76,14 @@ async function deployStreamRegistry() {
     // await tx.wait()
 
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    // const linkTokenFactory = await ethers.getContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
-    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    // const linkToken = await linkTokenFactoryTx.deployed()
-    // log(`Link Token deployed at ${linkToken.address}`)
 
     // LINK
-    // log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    // const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
-    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    // const linkToken = await linkTokenFactoryTx.deployed()
-    // LINKTOKEN_ADDRESS = linkToken.address
-    // log(`Link Token deployed at ${linkToken.address}`)
+    log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
+    const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    const linkToken = await linkTokenFactoryTx.deployed()
+    LINKTOKEN_ADDRESS = linkToken.address
+    log(`Link Token deployed at ${linkToken.address}`)
 
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
@@ -115,7 +111,8 @@ async function deployStreamRegistry() {
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
-    const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
+    // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
+    const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, constants.AddressZero], { kind: 'uups' })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
@@ -140,7 +137,7 @@ async function main() {
     initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
     await deployNodeRegistry(initialNodes, initialMetadata)
 
-    // await deployStreamRegistry()
+    await deployStreamRegistry()
 
     // await deployStreamStorageRegistry()
 }

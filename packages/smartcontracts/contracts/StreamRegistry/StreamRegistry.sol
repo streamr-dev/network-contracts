@@ -5,6 +5,8 @@ pragma experimental ABIEncoderV2;
 
 // import "../metatx/ERC2771Context.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
 import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
