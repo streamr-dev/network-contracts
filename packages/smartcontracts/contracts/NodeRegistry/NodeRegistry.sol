@@ -3,14 +3,16 @@ pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
 // import "./Ownable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 
 /**
  * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * @dev TheOwnableUpgradablecontract has an owner address, and provides basic authorization control
  * functions, this simplifies the implementation of "user permissions".
  */
-contract NodeRegistry is Ownable {
+contract NodeRegistry is Initializable, OwnableUpgradeable {
 
     // TODO: next version isNew should be boolean
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
@@ -49,13 +51,17 @@ contract NodeRegistry is Ownable {
     mapping(address => NodeLinkedListItem) public nodes;
     mapping(address => WhitelistState) public whitelist;
 
-    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) Ownable() { // Ownable(owner) {
+    // constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) Ownable() { // Ownable(owner) {
+    // }
+
+    function initialize(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) public initializer {
         transferOwnership(owner);
         requiresWhitelist = requiresWhitelist_;
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         for (uint i = 0; i < initialNodes.length; i++) {
             createOrUpdateNode(initialNodes[i], initialMetadata[i]);
         }
+        OwnableUpgradeable.__Ownable_init();
     }
 
     function getNode(address nodeAddress) public view returns (Node memory) {

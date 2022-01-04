@@ -2,14 +2,14 @@
 pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
-import "../metatx/ERC2771Context.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "../StreamRegistry/StreamRegistry.sol";
 import "../NodeRegistry/NodeRegistry.sol";
 
 /**
  * StreamStorageRegistry associates streams to storage nodes in many-to-many relationship
  */
-contract StreamStorageRegistry is ERC2771Context {
+contract StreamStorageRegistry is ERC2771ContextUpgradeable {
     StreamRegistry public streamRegistry;
     NodeRegistry public nodeRegistry;
 
@@ -22,9 +22,14 @@ contract StreamStorageRegistry is ERC2771Context {
     event Added(string streamId, address indexed nodeAddress);
     event Removed(string streamId, address indexed nodeAddress);
 
-    constructor(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+    // constructor(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+    //     streamRegistry = StreamRegistry(streamRegistryAddress);
+    //     nodeRegistry = NodeRegistry(nodeRegistryAddress);
+    // }
+    function initialize(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) public initializer {
         streamRegistry = StreamRegistry(streamRegistryAddress);
         nodeRegistry = NodeRegistry(nodeRegistryAddress);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
     function _addPair(string calldata streamId, address nodeAddress) private {

@@ -3,10 +3,10 @@ pragma solidity 0.8.6;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/Chainlink.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../StreamRegistry/StreamRegistry.sol";
 
-contract ENSCache is ChainlinkClient, Ownable {
+contract ENSCache is ChainlinkClient, OwnableUpgradeable {
   using Chainlink for Chainlink.Request;
 
   uint256 constant private ORACLE_PAYMENT = 0 * LINK_DIVISIBILITY;
@@ -28,10 +28,16 @@ contract ENSCache is ChainlinkClient, Ownable {
   //   return super._msgData();
   // }
 
-  constructor(address oracleaddress, string memory chainlinkJobId)
-  ChainlinkClient() Ownable() {
+  // constructor(address oracleaddress, string memory chainlinkJobId)
+  // ChainlinkClient() Ownable() {
+  //   oracle = oracleaddress;
+  //   jobId = chainlinkJobId;
+  // }
+
+  function initialize(address oracleaddress, string memory chainlinkJobId) public initializer {
     oracle = oracleaddress;
     jobId = chainlinkJobId;
+    OwnableUpgradeable.__Ownable_init();
   }
 
   function setOracleAdress(address oracleAddress) public onlyOwner {

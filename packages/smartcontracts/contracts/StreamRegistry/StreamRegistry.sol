@@ -3,11 +3,12 @@ pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 /* solhint-disable not-rely-on-time */
 
-import "../metatx/ERC2771Context.sol";
+// import "../metatx/ERC2771Context.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "../chainlinkClient/ENSCache.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract StreamRegistry is ERC2771Context, AccessControl {
+contract StreamRegistry is ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -61,16 +62,21 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _;
     }
 
-    constructor(address ensCacheAddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+    // constructor(address ensCacheAddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+    //     ensCache = ENSCache(ensCacheAddr);
+    //     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    // }
+    function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
         ensCache = ENSCache(ensCacheAddr);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
-     function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
+     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
-    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
     }
 

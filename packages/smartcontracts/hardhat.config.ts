@@ -4,6 +4,7 @@ import 'hardhat-typechain'
 import { HardhatUserConfig } from 'hardhat/types'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
+import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
@@ -59,7 +60,9 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
+            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            '@chainlink/contracts/src/v0.4/LinkToken.sol',
+            '@chainlink/contracts/src/v0.6/Oracle.sol'
         ],
     },
     solidity: {
@@ -69,7 +72,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 1,
                     },
                 },
             },
@@ -78,7 +81,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 1,
                     },
                 },
             },
@@ -87,7 +90,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 1,
                     },
                 },
             },
@@ -96,7 +99,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 1,
                     },
                 },
             },
@@ -105,7 +108,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 1,
                     },
                 },
             }],

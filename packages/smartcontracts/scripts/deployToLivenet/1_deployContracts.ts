@@ -5,7 +5,7 @@ import hhat from 'hardhat'
 
 import { StreamRegistry } from '../../typechain/StreamRegistry'
 
-const { ethers } = hhat
+const { ethers, upgrades } = hhat
 
 // const NodeRegistry = require('./ethereumContractJSONs/NodeRegistry.json')
 
@@ -49,9 +49,8 @@ let wallet: Wallet
 
 async function deployNodeRegistry(initialNodes: any, initialMetadata: any) {
     const strDeploy = await ethers.getContractFactory('NodeRegistry', wallet)
-    const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata, {
-        gasLimit: 6000000
-    })
+    const strDeployTx = await upgrades.deployProxy(strDeploy, [wallet.address, false, initialNodes, initialMetadata])
+    // const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata)
     const str = await strDeployTx.deployed()
     nodeRegistryAddress = str.address
     log(`NodeRegistry deployed at ${str.address}`)
@@ -141,9 +140,9 @@ async function main() {
     initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
     await deployNodeRegistry(initialNodes, initialMetadata)
 
-    await deployStreamRegistry()
+    // await deployStreamRegistry()
 
-    await deployStreamStorageRegistry()
+    // await deployStreamStorageRegistry()
 }
 
 main()
