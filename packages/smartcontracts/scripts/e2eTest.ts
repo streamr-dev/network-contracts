@@ -107,7 +107,7 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     await t2.wait()
     console.log('creating stream with ensname ' + randomENSName)
     const randomPath = getRandomPath()
-    tx = await registryFromAdmin.syncEnsAndCreateStream(randomENSName, randomPath, metadata1)
+    const tx = await registryFromAdmin.createStreamWithENS(randomENSName, randomPath, metadata1)
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
     await tx.wait()
     console.log('call done')

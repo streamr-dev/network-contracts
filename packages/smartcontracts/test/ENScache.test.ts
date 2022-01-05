@@ -55,7 +55,7 @@ describe('ENSCache', (): void => {
     })
 
     it('create stream with ens sync trigger', async (): Promise<void> => {
-        expect(await registryFromAdmin.syncEnsAndCreateStream('ensdomain1.eth', '/path', 'metadata')).to.not.throw
+        expect(await registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
     })
 
     // it('positivetest istrustedForwarder', async (): Promise<void> => {
