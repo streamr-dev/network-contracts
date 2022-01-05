@@ -5,11 +5,15 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "../StreamRegistry/StreamRegistry.sol";
 import "../NodeRegistry/NodeRegistry.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+
 
 /**
  * StreamStorageRegistry associates streams to storage nodes in many-to-many relationship
  */
-contract StreamStorageRegistry is ERC2771ContextUpgradeable {
+contract StreamStorageRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable {
     StreamRegistry public streamRegistry;
     NodeRegistry public nodeRegistry;
 
@@ -22,15 +26,28 @@ contract StreamStorageRegistry is ERC2771ContextUpgradeable {
     event Added(string streamId, address indexed nodeAddress);
     event Removed(string streamId, address indexed nodeAddress);
 
-    // constructor(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
-    //     streamRegistry = StreamRegistry(streamRegistryAddress);
-    //     nodeRegistry = NodeRegistry(nodeRegistryAddress);
-    // }
+
+    modifier onlyEditorOrTrusted(string calldata streamId) {
+        require(streamRegistry.exists(streamId), "error_streamDoesNotExist");
+        bool isTrusted = streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender());
+        if (!isTrusted) {
+            require(streamRegistry.hasPermission(streamId, _msgSender(), StreamRegistry.PermissionType.Edit), "error_noEditPermission");
+        }
+        _;
+    }
+
+    modifier isTrusted() {
+        require(streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender()), "error_notTrustedRole");
+        _;
+    }
+    
     function initialize(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) public initializer {
         streamRegistry = StreamRegistry(streamRegistryAddress);
         nodeRegistry = NodeRegistry(nodeRegistryAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
+    
+    function _authorizeUpgrade(address) internal override isTrusted() {}
 
     function _addPair(string calldata streamId, address nodeAddress) private {
         if (pairs[streamId][nodeAddress].dateCreated == 0) { // don't overwrite existing creation date
@@ -48,15 +65,6 @@ contract StreamStorageRegistry is ERC2771ContextUpgradeable {
         NodeRegistry.Node memory node = nodeRegistry.getNode(nodeAddress);
         if (node.lastSeen == 0) { return false; }
         return pairs[streamId][nodeAddress].dateCreated != 0;
-    }
-
-    modifier onlyEditorOrTrusted(string calldata streamId) {
-        require(streamRegistry.exists(streamId), "error_streamDoesNotExist");
-        bool isTrusted = streamRegistry.hasRole(keccak256("TRUSTED_ROLE"), _msgSender());
-        if (!isTrusted) {
-            require(streamRegistry.hasPermission(streamId, _msgSender(), StreamRegistry.PermissionType.Edit), "error_noEditPermission");
-        }
-        _;
     }
 
     function addStorageNode(string calldata streamId, address nodeAddress) external onlyEditorOrTrusted(streamId) {
