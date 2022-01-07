@@ -71,6 +71,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     // }
     function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
         ensCache = ENSCache(ensCacheAddr);
+        __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
