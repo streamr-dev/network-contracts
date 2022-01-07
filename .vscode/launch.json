@@ -15,8 +15,8 @@
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },
         {
-            "command": "npm run e2etest",
-            "name": "Run e2etest",
+            "command": "npm run interact",
+            "name": "Run interact",
             "request": "launch",
             "type": "node-terminal",
             "env": {

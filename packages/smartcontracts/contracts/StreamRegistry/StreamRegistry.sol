@@ -86,6 +86,10 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         return super._msgData();
     }
 
+    function setEnsCache(address ensCacheAddr) public isTrusted() {
+        ensCache = ENSCache(ensCacheAddr);
+    }
+
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
         string memory ownerstring = addressToString(_msgSender());
         _createStreamAndPermission(ownerstring, streamIdPath, metadataJsonString);
