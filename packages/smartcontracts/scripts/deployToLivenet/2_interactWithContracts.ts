@@ -19,24 +19,24 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const ENS_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
 
 // localsidechain
-const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const MAINNETURL = 'http://localhost:8545'
-const SIDECHAINURL = 'http://localhost:8546'
-const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
-const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+// const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+// const MAINNETURL = 'http://localhost:8545'
+// const SIDECHAINURL = 'http://localhost:8546'
+// const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
+// const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // mumbai
-// const DEFAULTPRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-// const MAINNETURL = 'http://localhost:8545'
-// const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
-// const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
-// const ENS_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEFAULTPRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const MAINNETURL = 'http://localhost:8545'
+const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
+const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
+const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
-const ORACLEADDRESS = '0x8F9bcc36d1ba920a4B1177E2A21d4cB280cAeA70'
-const STREAMREGISTRYADDRESS = '0xAEB6EE472f7BE30462c45c31A2d8c50b0e242Cc7'
-const ENSCACHEADDRESS = '0x67394dCd86142fd96aFD396245D4f964245707E4'
-const CHAINLINK_JOBID = '322a9312f60849cb85f94835003b68ea'
-const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
+const ORACLEADDRESS = '0x01D7D230e7c503776021aE7450B8aaA22f63cA16'
+const STREAMREGISTRYADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
+const ENSCACHEADDRESS = '0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A'
+const CHAINLINK_JOBID = '94446c15abdc425ba6aa7c4c810c07d4'
+const CHAINLINK_NODE_ADDRESS = '0x8E50D49B3C46B037b57081d463F267f383B2aE62'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -121,29 +121,29 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    randomENSName = randomDomain + '.eth'
-    // randomENSName = 'cdokg.eth'
-    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
-    const nameHashedENSName = utils.namehash(randomENSName)
-    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
-    await tx.wait()
-    console.log('seting resolver for ens')
-
-    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    await tx.wait(2)
-    console.log('setting owner for ens')
-
-    // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    randomENSName = 'ektwz.eth'
+    // randomENSName = randomDomain + '.eth'
+    // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    // const nameHashedENSName = utils.namehash(randomENSName)
+    // let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
     // await tx.wait()
-    // console.log('3')
+    // console.log('seting resolver for ens')
 
-    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    await tx.wait()
-    console.log('querying owner from mainchain')
+    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    // await tx.wait(2)
+    // console.log('setting owner for ens')
 
-    const addr = await ensFomAdmin.owner(nameHashedENSName)
-    console.log('queried owner of', randomENSName, ': ', addr)
+    // // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    // // await tx.wait()
+    // // console.log('3')
+
+    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    // await tx.wait()
+    // console.log('querying owner from mainchain')
+
+    // const addr = await ensFomAdmin.owner(nameHashedENSName)
+    // console.log('queried owner of', randomENSName, ': ', addr)
 }
 
 const setChainlinkTokenAddressinENSCache = async () => {
@@ -217,13 +217,13 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    await setOracleFulfilmentPermission()
-    await setChainlinkTokenAddressinENSCache()
-    await setStreamRegistryInEnsCache()
-    await setEnsCacheInStreamRegistry()
-    await setChainlinkJobId()
+    // await setOracleFulfilmentPermission()
+    // await setChainlinkTokenAddressinENSCache()
+    // await setStreamRegistryInEnsCache()
+    // await setEnsCacheInStreamRegistry()
+    // await setChainlinkJobId()
 
-    await createAndCheckStreamWithoutENS()
+    // await createAndCheckStreamWithoutENS()
     await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
 }

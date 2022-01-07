@@ -21,9 +21,9 @@ const { ethers, upgrades } = hhat
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 // localsidechain
-const chainURL = 'http://10.200.10.1:8546'
-const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
+// const chainURL = 'http://10.200.10.1:8546'
+// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+// const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
 
 // hardhat
 // const chainURL = 'http://127.0.0.1:8545'
@@ -32,9 +32,9 @@ const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localc
 
 // mumbai
 // const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
-// // const chainURL = 'https://rpc-mumbai.maticvigil.com'
-// const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
-// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const chainURL = 'https://rpc-mumbai.maticvigil.com'
+const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 const log = require('debug')('eth-init')
 
