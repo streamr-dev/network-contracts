@@ -1,7 +1,6 @@
-import { waffle } from 'hardhat'
+import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 
-import NodeRegistryJson from '../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json'
 import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
@@ -28,19 +27,33 @@ describe('StreamStorageRegistry', () => {
 
     before(async () => {
         // set up nodes
-        nodeReg = await deployContract(admin, NodeRegistryJson,
-            [admin.address, false, nodeAddresses, nodeUrls]) as NodeRegistry
+        // nodeReg = await deployContract(admin, NodeRegistryJson,
+        //     [admin.address, false, nodeAddresses, nodeUrls]) as NodeRegistry
+
+        const nodeRegDeploy = await ethers.getContractFactory('NodeRegistry')
+        const nodeRegDeployTx = await upgrades.deployProxy(nodeRegDeploy, [admin.address,
+            false, nodeAddresses, nodeUrls], {
+            kind: 'uups'
+        })
+        nodeReg = await nodeRegDeployTx.deployed() as NodeRegistry
 
         // set up streams
         forwarder = await deployContract(trusted, ForwarderJson) as MinimalForwarder
-        streamReg = await deployContract(admin, StreamRegistryJson,
-            ['0x0000000000000000000000000000000000000000', forwarder.address]) as StreamRegistry
+        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+            ['0x0000000000000000000000000000000000000000', forwarder.address], {
+                kind: 'uups'
+            })
+        streamReg = await streamRegistryFactoryTx.deployed() as StreamRegistry
         await streamReg.createStream('/test', 'test-metadata')
         await streamReg.grantRole(await streamReg.TRUSTED_ROLE(), trusted.address)
 
         // deploy
-        reg = await deployContract(admin, StreamStorageRegistryJson,
-            [streamReg.address, nodeReg.address, forwarder.address]) as StreamStorageRegistry
+        const strDeploy = await ethers.getContractFactory('StreamStorageRegistry')
+        const strDeployTx = await upgrades.deployProxy(strDeploy, [streamReg.address, nodeReg.address, forwarder.address], {
+            kind: 'uups'
+        })
+        reg = await strDeployTx.deployed() as StreamStorageRegistry
     })
 
     it('can add nodes to a stream', async () => {

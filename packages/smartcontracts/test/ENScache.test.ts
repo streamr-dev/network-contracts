@@ -1,4 +1,4 @@
-import { waffle } from 'hardhat'
+import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { utils, BigNumber } from 'ethers'
 
@@ -45,8 +45,11 @@ describe('ENSCache', (): void => {
         await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address,
             BigNumber.from('1000000000000000000000')) // 1000 link
 
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address]) as StreamRegistry
+        // registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
+        //     [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address]) as StreamRegistry
+        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCacheFromAdmin.address, '0x7b5F1610920d5BAf00D684929272213BaF962eFe'], { kind: 'uups' })
+        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         await ensCacheFromAdmin.setStreamRegistry(registryFromAdmin.address)
     })
 

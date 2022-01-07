@@ -1,4 +1,4 @@
-import { ethers, waffle } from 'hardhat'
+import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
 
@@ -86,10 +86,9 @@ describe('StreamRegistry', (): void => {
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        // enscache object is only used for createStreamWithENS function; if that's not called, then it can be dropped
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson, [user1Address, 'jobid']) as ENSCache
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address]) as StreamRegistry
+        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], { kind: 'uups' })
+        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
