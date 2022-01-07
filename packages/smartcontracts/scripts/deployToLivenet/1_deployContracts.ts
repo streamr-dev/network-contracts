@@ -21,14 +21,14 @@ const { ethers, upgrades } = hhat
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 // localsidechain
-// const chainURL = 'http://10.200.10.1:8546'
-// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-// const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
+const chainURL = 'http://10.200.10.1:8546'
+const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
 
 // hardhat
-const chainURL = 'http://127.0.0.1:8545'
-const privKeyStreamRegistry = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
-let LINKTOKEN_ADDRESS = ''
+// const chainURL = 'http://127.0.0.1:8545'
+// const privKeyStreamRegistry = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
+// let LINKTOKEN_ADDRESS = ''
 
 // mumbai
 // const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
@@ -76,12 +76,12 @@ async function deployStreamRegistry() {
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
 
     // deploy LINKtoken
-    log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
-    const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    const linkToken = await linkTokenFactoryTx.deployed()
-    LINKTOKEN_ADDRESS = linkToken.address
-    log(`Link Token deployed at ${linkToken.address}`)
+    // log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    // const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
+    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    // const linkToken = await linkTokenFactoryTx.deployed()
+    // LINKTOKEN_ADDRESS = linkToken.address
+    // log(`Link Token deployed at ${linkToken.address}`)
 
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
@@ -124,6 +124,9 @@ async function deployStreamRegistry() {
     log(`granting role ${role} ensaddress ${ensCache.address}`)
     const tx2 = await streamRegistry.grantRole(role, ensCache.address)
     await tx2.wait()
+    log('granting role trusted role to deployer')
+    const tx6 = await streamRegistry.grantRole(role, wallet.address)
+    await tx6.wait()
 
     console.log('##1')
     const tx4 = await streamRegistry.trustedSetStreamMetadata('asdf/asdf', 'asdf')
