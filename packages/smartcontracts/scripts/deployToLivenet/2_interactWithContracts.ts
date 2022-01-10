@@ -15,8 +15,8 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const DEFAULTPRIVATEKEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
 // const SIDECHAINURL = 'http://localhost:8545'
 // const MAINNETURL = 'http://localhost:8545'
-// const LINKTOKEN = '0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1'
-// const ENS_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+// const LINKTOKEN = '0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1'
+// const DEPLOYMENT_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
 
 // localsidechain
 // const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
@@ -26,17 +26,17 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // mumbai
-const DEFAULTPRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
 const MAINNETURL = 'http://localhost:8545'
 const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
 const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
-const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0x01D7D230e7c503776021aE7450B8aaA22f63cA16'
-const STREAMREGISTRYADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
-const ENSCACHEADDRESS = '0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A'
-const CHAINLINK_JOBID = '94446c15abdc425ba6aa7c4c810c07d4'
-const CHAINLINK_NODE_ADDRESS = '0x8E50D49B3C46B037b57081d463F267f383B2aE62'
+const ORACLEADDRESS = '0x163ED84743B84c2d9039c7972993D4eC82e0Bf06'
+const ENSCACHEADDRESS = '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
+const STREAMREGISTRYADDRESS = '0xb341829f43EaF631C73D29dcd3C26637d1695e42'
+const CHAINLINK_JOBID = 'daf33a6a1ceb462da1cd94ce592d3ac6' // https://github.com/streamr-dev/smart-contracts-init#running
+const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -164,10 +164,11 @@ const setStreamRegistryInEnsCache = async () => {
 }
 
 const setEnsCacheInStreamRegistry = async () => {
-    console.log('##1')
-    const tx4 = await registryFromOwner.trustedSetStreamMetadata('asdf/asdf', 'asdf')
-    await tx4.wait()
-    console.log('##2')
+    // test role setup by creating a stream as trusted entitiy
+    // console.log('##1')
+    // const tx4 = await registryFromOwner.trustedSetStreamMetadata('asdf/asdf', 'asdf')
+    // await tx4.wait()
+    // console.log('##2')
     console.log('setting enscache address as trusted role in streamregistry')
     const role = await registryFromOwner.TRUSTED_ROLE()
     console.log(`granting role ${role} ensaddress ${ENSCACHEADDRESS}`)
@@ -217,13 +218,13 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    // await setOracleFulfilmentPermission()
+    await setOracleFulfilmentPermission()
     // await setChainlinkTokenAddressinENSCache()
-    // await setStreamRegistryInEnsCache()
-    // await setEnsCacheInStreamRegistry()
-    // await setChainlinkJobId()
+    await setStreamRegistryInEnsCache()
+    await setEnsCacheInStreamRegistry()
+    await setChainlinkJobId()
 
-    // await createAndCheckStreamWithoutENS()
+    await createAndCheckStreamWithoutENS()
     await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
 }

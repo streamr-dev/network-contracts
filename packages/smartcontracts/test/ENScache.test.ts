@@ -54,11 +54,11 @@ describe('ENSCache', (): void => {
     })
 
     it('positivetest queryENSOwner', async (): Promise<void> => {
-        expect(await ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
+        await expect(ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
     })
 
     it('create stream with ens sync trigger', async (): Promise<void> => {
-        expect(await registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
+        await expect(registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
     })
 
     // it('positivetest istrustedForwarder', async (): Promise<void> => {

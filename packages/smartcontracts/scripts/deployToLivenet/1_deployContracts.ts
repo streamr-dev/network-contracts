@@ -34,9 +34,9 @@ const { ethers, upgrades } = hhat
 // const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
 const chainURL = 'https://rpc-mumbai.maticvigil.com'
 const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
-const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
-const log = require('debug')('eth-init')
+const log = require('debug')('Streamr:eth-init')
 
 // this wallet will deploy all contracts and "own" them if applicable
 
@@ -102,15 +102,16 @@ async function deployStreamRegistry() {
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
     log(`ENSCache owner is ${await ensCache.owner()}`)
-    // log(`ENSCache setting Link token address ${linkToken.address}`)
-    // await ensCache.setChainlinkTokenAddress(linkToken.address)
+    log(`ENSCache setting Link token address ${linkToken.address}`)
+    await ensCache.setChainlinkTokenAddress(linkToken.address)
 
     // log('Sending some Link to ENSCache')
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
-    const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, '0x7b5F1610920d5BAf00D684929272213BaF962eFe'], { kind: 'uups' })
+    const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+        [ensCache.address, Wallet.createRandom().address], { kind: 'uups' })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
@@ -128,19 +129,19 @@ async function deployStreamRegistry() {
     const tx6 = await streamRegistry.grantRole(role, wallet.address)
     await tx6.wait()
 
-    console.log('##1')
-    const tx4 = await streamRegistry.trustedSetStreamMetadata('asdf/asdf', 'asdf')
-    await tx4.wait()
-    console.log('##2')
+    // console.log('##1')
+    // const tx4 = await streamRegistry.trustedSetStreamMetadata('asdf/asdf', 'asdf')
+    // await tx4.wait()
+    // console.log('##2')
     console.log('setting enscache address as trusted role in streamregistry')
     console.log(`granting role ${role} ensaddress ${ensCache.address}`)
     const tx5 = await streamRegistry.grantRole(role, ensCache.address)
     await tx5.wait()
     console.log('done granting role')
-    console.log('setting enscache in streamregistry to ' + ensCache.address)
-    const tx = await streamRegistry.setEnsCache(ensCache.address)
-    await tx.wait()
-    console.log('done setting enscache in streamregistry')
+    // console.log('setting enscache in streamregistry to ' + ensCache.address)
+    // const tx = await streamRegistry.setEnsCache(ensCache.address)
+    // await tx.wait()
+    // console.log('done setting enscache in streamregistry')
 }
 
 async function main() {
