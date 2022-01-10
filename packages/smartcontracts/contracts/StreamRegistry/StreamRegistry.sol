@@ -92,6 +92,14 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
 
         bytes memory pathBytes = bytes(streamIdPath);
+        for (uint i = 1; i < pathBytes.length; i++) {
+            //       - . / 0 1 2 ... 9
+            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) || 
+            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) || 
+            ((bytes1("a") <= pathBytes[i] && pathBytes[i] <= bytes1("z"))) ||
+            pathBytes[i] == "_"
+            , "error_invalidPathChars");
+        }
         require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
 
         // abi.encodePacked does simple string concatenation here

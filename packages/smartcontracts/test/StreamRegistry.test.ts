@@ -8,7 +8,6 @@ import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegi
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
-import exp from 'constants'
 
 const ethSigUtil = require('eth-sig-util')
 
@@ -104,6 +103,28 @@ describe('StreamRegistry', (): void => {
             .to.emit(registryFromAdmin, 'PermissionUpdated')
             .withArgs(streamId0, adminAdress, true, true, MAX_INT, MAX_INT, true)
         expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
+    })
+
+    it('positivetest createStream path character edgecases', async (): Promise<void> => {
+        expect(await registryFromAdmin.createStream('/', metadata0))
+            .to.not.throw
+        expect(await registryFromAdmin.createStream('/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-', metadata0))
+            .to.not.throw
+    })
+
+    it('negativetest createStream path character edgecases', async (): Promise<void> => {
+        await expect(registryFromAdmin.createStream('/,', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/:', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/@', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/[', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/`', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/{', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
     })
 
     it('negativetest createStream, already exists error', async (): Promise<void> => {
