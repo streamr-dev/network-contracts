@@ -32,10 +32,10 @@ const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
 const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
 const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0x163ED84743B84c2d9039c7972993D4eC82e0Bf06'
-const ENSCACHEADDRESS = '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
-const STREAMREGISTRYADDRESS = '0xb341829f43EaF631C73D29dcd3C26637d1695e42'
-const CHAINLINK_JOBID = 'daf33a6a1ceb462da1cd94ce592d3ac6' // https://github.com/streamr-dev/smart-contracts-init#running
+const ORACLEADDRESS = '0xD40F15ae2DdDa02E5495bC35b6242104d30D821e'
+const ENSCACHEADDRESS = '0x7bcDfB2D6f66Ab5619103a4F29e8F325bdc895F3'
+const STREAMREGISTRYADDRESS = '0xE94faaE1631723aEb65D0126CD33a5681EebdFa4'
+const CHAINLINK_JOBID = '2ad63a3a4e0a483d88c2fa3b1de3a86b' // https://github.com/streamr-dev/smart-contracts-init#running
 const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // ens on mainnet
@@ -121,7 +121,7 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    randomENSName = 'ektwz.eth'
+    randomENSName = 'aseqe.eth'
     // randomENSName = randomDomain + '.eth'
     // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
     // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
@@ -218,13 +218,13 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    await setOracleFulfilmentPermission()
+    // await setOracleFulfilmentPermission()
     // await setChainlinkTokenAddressinENSCache()
-    await setStreamRegistryInEnsCache()
-    await setEnsCacheInStreamRegistry()
-    await setChainlinkJobId()
+    // await setStreamRegistryInEnsCache()
+    // await setEnsCacheInStreamRegistry()
+    // await setChainlinkJobId()
 
-    await createAndCheckStreamWithoutENS()
+    // await createAndCheckStreamWithoutENS()
     await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
 }

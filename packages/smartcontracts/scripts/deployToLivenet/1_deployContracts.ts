@@ -102,8 +102,8 @@ async function deployStreamRegistry() {
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
     log(`ENSCache owner is ${await ensCache.owner()}`)
-    log(`ENSCache setting Link token address ${linkToken.address}`)
-    await ensCache.setChainlinkTokenAddress(linkToken.address)
+    log(`ENSCache setting Link token address ${LINKTOKEN_ADDRESS}`)
+    await ensCache.setChainlinkTokenAddress(LINKTOKEN_ADDRESS)
 
     // log('Sending some Link to ENSCache')
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
