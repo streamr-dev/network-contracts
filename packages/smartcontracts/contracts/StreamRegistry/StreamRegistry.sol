@@ -80,8 +80,11 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     }
 
     function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
-        require(ensCache.owners(ensName) == _msgSender(), "error_notOwnerOfENSName");
-        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+        if (ensCache.owners(ensName) == _msgSender()) {
+            _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+        } else {
+            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString);
+        }
     }
 
     function exists(string calldata streamId) public view returns (bool) {
@@ -284,19 +287,41 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _setPermission(streamId, recipient, permissionType, true);
     }
 
-    function trustedSetStream(string calldata streamId, string calldata metadata) public isTrusted() {
+    function trustedSetStreamMetadata(string calldata streamId, string calldata metadata) public isTrusted() {
         streamIdToMetadata[streamId] = metadata;
         emit StreamUpdated(streamId, metadata);
     }
 
-    function trustedSetPermissionsForUser(string calldata streamId, address user, bool canEdit,
-        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) public isTrusted() {
-            _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    function trustedSetStreamWithPermission(
+        string calldata streamId,
+        string calldata metadata,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        streamIdToMetadata[streamId] = metadata;
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+        emit StreamUpdated(streamId, metadata);
+    }
+
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     }
 
     function trustedSetStreams(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isTrusted() {
         uint arrayLength = streamids.length;
-        for (uint i=0; i<arrayLength; i++) {
+        for (uint i = 0; i < arrayLength; i++) {
             string calldata streamId = streamids[i];
             streamIdToMetadata[streamId] = metadatas[i];
             Permission memory permission = permissions[i];

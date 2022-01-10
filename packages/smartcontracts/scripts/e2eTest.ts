@@ -15,6 +15,7 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 const MAINNETURL = 'http://localhost:8545'
 const SIDECHAINURL = 'http://localhost:8546'
 const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const LINKTOKEN = '0x115da13e0f2618013b8b1E21B73ca36B42C39F44'
 const STREAMREGISTRYADDRESS = '0xa86863053cECFD9f6f861e0Fd39a042238411b75'
 const ENSCACHEADDRESS = '0xD1d514082ED630687a5DCB85406130eD0745fA06'
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -45,6 +46,7 @@ const createAndCheckStreamWithoutENS = async () => {
     await tx.wait()
     const getMetadata = await registryFromAdmin.getStreamMetadata(stringIdWithoutENS)
     console.log('checking metadata from stream ', stringIdWithoutENS, ': ', getMetadata)
+    console.log('SUCCESS creating stream worked')
 }
 
 const registerENSNameOnMainnet = async () => {
@@ -74,32 +76,34 @@ const registerENSNameOnMainnet = async () => {
 }
 
 const triggerChainlinkSyncOfENSNameToSidechain = async () => {
-    console.log('triggering sync from mainchain to sidechain through chainlink')
-    const tx = await ensCacheFromAdmin.requestENSOwner(randomENSName)
-    await tx.wait()
-    let syncedOwner = ''
-    const address = walletSidechain.address as string
-    while (syncedOwner !== address) {
-        syncedOwner = await ensCacheFromAdmin.owners(randomENSName)
-        console.log('checking if ens is synced through chainlink: owner is ', syncedOwner)
-        await new Promise((resolve) => {
-            return setTimeout(resolve, 3000)
-        })
-    }
-    console.log('ensname', randomENSName, 'was synced from mainchain, owner: ', syncedOwner)
-}
-
-const createAndCheckStreamWithENS = async () => {
+    // only when redeploying locally
+    // console.log('setting linktoken in enscache')
+    // let tx = await ensCacheFromAdmin.setChainlinkTokenAddress(LINKTOKEN)
+    // await tx.wait()
+    // console.log('setting streamregistry in enscache')
+    // tx = await ensCacheFromAdmin.setStreamRegistry(STREAMREGISTRYADDRESS)
+    // await tx.wait()
+    // const t2 = await ensCacheFromAdmin.setChainlinkJobId('c99333d032ed4cb8967b956c7f0329b5')
+    // await t2.wait()
+    console.log('creating stream with ensname ' + randomENSName)
     const randomPath = getRandomPath()
-    console.log('registering stream with ensname ', randomENSName, ' and path ', randomPath)
     const tx = await registryFromAdmin.createStreamWithENS(randomENSName, randomPath, metadata1)
+    // const tx = await ensCacheFromAdmin.requestENSOwner(randomENSName)
     await tx.wait()
-    const streamId = randomENSName + randomPath
-    const getMetadata = await registryFromAdmin.getStreamMetadata(streamId)
-    console.log('queried metadata of stream with id', streamId, ': ', getMetadata)
-    if (getMetadata === metadata1) {
-        console.log('SUCCESS, everything worked!')
+    console.log('call done')
+    let streamMetaDataCreatedByChainlink = ''
+    while (streamMetaDataCreatedByChainlink !== metadata1) {
+        try {
+            streamMetaDataCreatedByChainlink = await registryFromAdmin.getStreamMetadata(randomENSName + randomPath)
+        } catch (err) {
+            console.log('checking if stream is created through chainlink: metadata is ', streamMetaDataCreatedByChainlink)
+            await new Promise((resolve) => {
+                return setTimeout(resolve, 3000)
+            })
+        }
     }
+    console.log('stream', randomENSName + randomPath, 'was synced from mainchain, metadata: ', metadata1)
+    console.log('SUCCESS, everything worked!')
 }
 
 async function main() {
@@ -120,10 +124,11 @@ async function main() {
     // const resolverContract = new ethers.Contract(RESOLVERADDRESS, resolverAbi.abi, mainnetProvider)
     // resolverFomAdmin = await resolverContract.connect(walletMainnet)
 
+    const ensOwner = new Wallet('0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', sideChainProvider)
     const ENSCacheFactory = await ethers.getContractFactory('ENSCache')
     const enscache = await ENSCacheFactory.attach(ENSCACHEADDRESS)
     const enscacheContract = await enscache.deployed()
-    ensCacheFromAdmin = await enscacheContract.connect(walletSidechain) as ENSCache
+    ensCacheFromAdmin = await enscacheContract.connect(ensOwner) as ENSCache
 
     await createAndCheckStreamWithoutENS()
     console.log('SUCCESS creating stream worked')
@@ -131,7 +136,6 @@ async function main() {
         'creating stream with ens as owner of that ens')
     await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
-    await createAndCheckStreamWithENS()
 }
 
 main()
