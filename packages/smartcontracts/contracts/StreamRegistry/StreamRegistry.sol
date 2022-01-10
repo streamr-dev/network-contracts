@@ -284,21 +284,36 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         emit StreamUpdated(streamId, metadata);
     }
 
-    function trustedSetStreamWithPermission(string calldata streamId, string calldata metadata, address user, bool canEdit,
-        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) public isTrusted() {
+    function trustedSetStreamWithPermission(
+        string calldata streamId,
+        string calldata metadata,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
         streamIdToMetadata[streamId] = metadata;
         _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
         emit StreamUpdated(streamId, metadata);
     }
 
-    function trustedSetPermissionsForUser(string calldata streamId, address user, bool canEdit,
-        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) public isTrusted() {
-            _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     }
 
     function trustedSetStreams(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isTrusted() {
         uint arrayLength = streamids.length;
-        for (uint i=0; i<arrayLength; i++) {
+        for (uint i = 0; i < arrayLength; i++) {
             string calldata streamId = streamids[i];
             streamIdToMetadata[streamId] = metadatas[i];
             Permission memory permission = permissions[i];
