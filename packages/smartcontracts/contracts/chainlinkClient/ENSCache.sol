@@ -22,13 +22,12 @@ contract ENSCache is ChainlinkClient, Ownable {
   string public jobId;
   StreamRegistry private streamRegistry;
 
-  constructor(address oracleaddress, string memory chainlinkJobId)
-  ChainlinkClient() Ownable() {
-    oracle = oracleaddress;
+  constructor(address oracleAddress, string memory chainlinkJobId) ChainlinkClient() Ownable() {
+    oracle = oracleAddress;
     jobId = chainlinkJobId;
   }
 
-  function setOracleAdress(address oracleAddress) public onlyOwner {
+  function setOracleAddress(address oracleAddress) public onlyOwner {
     oracle = oracleAddress;
   }
 
