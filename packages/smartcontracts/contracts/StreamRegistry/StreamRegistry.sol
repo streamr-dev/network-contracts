@@ -100,12 +100,17 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         if (ensCache.owners(ensName) == _msgSender()) {
             _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
         } else {
-            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString);
+            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, _msgSender());
         }
     }
 
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
+    }
+
+    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
+        require(ensCache.owners(ensName) == requestorAddress, "error_notOwnerOfENSName");
+        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
     }
 
     function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {

@@ -16,6 +16,8 @@ contract ENSCache is ChainlinkClient, Ownable {
   mapping(bytes32 => string) public tempENSnames;
   mapping(bytes32 => string) public tempIdPaths;
   mapping(bytes32 => string) public tempMetadatas;
+  mapping(bytes32 => address) public tempRequestorAddress;
+
   address public oracle;
   string public jobId;
   StreamRegistry private streamRegistry;
@@ -57,10 +59,11 @@ contract ENSCache is ChainlinkClient, Ownable {
     tempENSnames[requestid] = ensName;
   }
 
-  function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+  function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString, address requestorAddress) public {
     Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
     req.add("ensname", ensName);
     bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
+    tempRequestorAddress[requestid] = requestorAddress;
     tempENSnames[requestid] = ensName;
     tempIdPaths[requestid] = streamIdPath;
     tempMetadatas[requestid] = metadataJsonString;
@@ -68,8 +71,7 @@ contract ENSCache is ChainlinkClient, Ownable {
 
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
     owners[tempENSnames[requestId]] = address(uint160(uint256(owneraddress)));
-    streamRegistry.trustedSetStreamWithPermission(string(abi.encodePacked(tempENSnames[requestId], tempIdPaths[requestId])), tempMetadatas[requestId],
-      owners[tempENSnames[requestId]], true, true, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, true);
+    streamRegistry.ENScreateStreamCallback(tempRequestorAddress[requestId], tempENSnames[requestId], tempIdPaths[requestId], tempMetadatas[requestId]);
   }
 
   function getChainlinkToken() public view returns (address) {
