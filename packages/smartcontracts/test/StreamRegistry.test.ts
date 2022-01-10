@@ -8,7 +8,6 @@ import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegi
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
-import exp from 'constants'
 
 const ethSigUtil = require('eth-sig-util')
 
