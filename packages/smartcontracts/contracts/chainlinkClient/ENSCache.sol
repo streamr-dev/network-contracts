@@ -22,14 +22,6 @@ contract ENSCache is ChainlinkClient, Ownable {
   string public jobId;
   StreamRegistry private streamRegistry;
 
-  // function _msgSender() internal view virtual override(Context) returns (address sender) {
-  //   return super._msgSender();
-  // }
-
-  // function _msgData() internal view virtual override(Context) returns (bytes calldata) {
-  //   return super._msgData();
-  // }
-
   constructor(address oracleaddress, string memory chainlinkJobId)
   ChainlinkClient() Ownable() {
     oracle = oracleaddress;
