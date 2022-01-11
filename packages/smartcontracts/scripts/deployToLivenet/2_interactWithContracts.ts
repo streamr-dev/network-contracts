@@ -26,10 +26,17 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // mumbai
+// const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
+// const MAINNETURL = 'http://localhost:8545'
+// const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
+// const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
+// const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
+
+// Polygon mainet
 const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
 const MAINNETURL = 'http://localhost:8545'
-const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
-const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
+const SIDECHAINURL = 'https://polygon-rpc.com'
+const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
 const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
 const ORACLEADDRESS = '0xD40F15ae2DdDa02E5495bC35b6242104d30D821e'

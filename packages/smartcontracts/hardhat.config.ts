@@ -56,6 +56,10 @@ const config: HardhatUserConfig = {
             chainId: 80001,
             url: 'https://matic-mumbai.chainstacklabs.com/',
             // accounts: ['0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae']
+        },
+        polygonMainnet: {
+            chainId: 137,
+            url: 'https://polygon-rpc.com',
         }
     },
     dependencyCompiler: {
@@ -72,7 +76,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 100,
                     },
                 },
             },
@@ -81,7 +85,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 100,
                     },
                 },
             },
@@ -90,7 +94,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 100,
                     },
                 },
             },
@@ -99,7 +103,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 100,
                     },
                 },
             },
@@ -108,7 +112,7 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 50,
+                        runs: 100,
                     },
                 },
             }],
@@ -141,3 +145,22 @@ const config: HardhatUserConfig = {
 }
 export default config
 
+Streamr:eth-init wallet address 0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB +0ms
+Streamr:eth-init NodeRegistry deployed at 0x64A04452995DfFFf1756190098EeB0F5786Eff53 +11s
+Streamr:eth-init NodeRegistry nodes : [["0xde1112f631486CfC759A50196853011528bC5FA0","{\"http\": \"http://10.200.10.1:8891/api/v1\"}",{"type":"BigNumber","hex":"0x61dc0bdc"}]] +647ms
+Streamr:eth-init Deploying Streamregistry and chainlink contracts to sidechain: +0ms
+Streamr:eth-init Chainlink Oracle deployed at 0x163ED84743B84c2d9039c7972993D4eC82e0Bf06 +8s
+Streamr:eth-init Chainlink Oracle token pointing to 0x326C977E6efc84E512bB9C30f76E30c160eD06FB +431ms
+Streamr:eth-init Chainlink Oracle permission for 0x7b5F1610920d5BAf00D684929272213BaF962eFe is true +10s
+Streamr:eth-init deploxing enscache from 0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB +0ms
+Streamr:eth-init ENSCache deployed at 0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB +7s
+Streamr:eth-init ENSCache owner is 0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB +529ms
+Streamr:eth-init Streamregistry deployed at 0xb341829f43EaF631C73D29dcd3C26637d1695e42 +18s
+Streamr:eth-init setting Streamregistry address in ENSCache +0ms
+Streamr:eth-init setting enscache address as trusted role in streamregistry +8s
+Streamr:eth-init granting role 0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7 ensaddress 0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB +433ms
+Streamr:eth-init granting role trusted role to deployer +8s
+setting enscache address as trusted role in streamregistry
+granting role 0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7 ensaddress 0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB
+done granting role
+Streamr:eth-init StreamStorageRegistry deployed at 0xCe97AF1A30C18aF9Eff60f9463b75bB8cCAE3777 +33s

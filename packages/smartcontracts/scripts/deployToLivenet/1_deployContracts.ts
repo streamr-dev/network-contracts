@@ -32,8 +32,13 @@ const { ethers, upgrades } = hhat
 
 // mumbai
 // const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
-const chainURL = 'https://rpc-mumbai.maticvigil.com'
-const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const chainURL = 'https://rpc-mumbai.maticvigil.com'
+// const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
+
+// Polygon mainnet
+const chainURL = 'https://polygon-rpc.com'
+const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
 const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
 const log = require('debug')('Streamr:eth-init')
@@ -43,7 +48,8 @@ const log = require('debug')('Streamr:eth-init')
 // these come from the next step, but we can predict the addresses
 const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
-let nodeRegistryAddress = ''
+
+let nodeRegistryAddress = '0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6'
 let streamRegistryAddress = ''
 let wallet: Wallet
 
@@ -60,7 +66,8 @@ async function deployNodeRegistry(initialNodes: any, initialMetadata: any) {
 
 async function deployStreamStorageRegistry() {
     const strDeploy = await ethers.getContractFactory('StreamStorageRegistry', wallet)
-    const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, '0x03CF38C75BFb9F4466fBA0aEd95f2613B0D1bCA0'], { kind: 'uups' })
+    const strDeployTx = await upgrades.deployProxy(strDeploy,
+        [streamRegistryAddress, nodeRegistryAddress, Wallet.createRandom().address], { kind: 'uups' })
     const str = await strDeployTx.deployed()
     log(`StreamStorageRegistry deployed at ${str.address}`)
 }
@@ -85,29 +92,36 @@ async function deployStreamRegistry() {
 
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
-    const oracleFactoryTx = await oracleFactory.deploy(LINKTOKEN_ADDRESS)
-    const oracle = await oracleFactoryTx.deployed()
+    const oracleFactoryTx = await oracleFactory.attach('0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D')
+    // const oracleFactoryTx = await oracleFactory.deploy(LINKTOKEN_ADDRESS)
+    const oracle1 = await oracleFactoryTx.deployed()
+    const oracle = await oracle1.connect(wallet)
+
     log(`Chainlink Oracle deployed at ${oracle.address}`)
     const tokenaddrFromOracle = await oracle.getChainlinkToken()
     log(`Chainlink Oracle token pointing to ${tokenaddrFromOracle}`)
-    const fulfilmentPermissionTX = await oracle.setFulfillmentPermission(chainlinkNodeAddress, true)
-    await fulfilmentPermissionTX.wait()
+    // const fulfilmentPermissionTX = await oracle.setFulfillmentPermission(chainlinkNodeAddress, true)
+    // await fulfilmentPermissionTX.wait()
     const permission = await oracle.getAuthorizationStatus(chainlinkNodeAddress)
     log(`Chainlink Oracle permission for ${chainlinkNodeAddress} is ${permission}`)
 
     // chainlink client enscache
-    log(`deploxing enscache from ${wallet.address}`)
+    // log(`deploying enscache from ${wallet.address}`)
     const ensCacheFactory = await ethers.getContractFactory('ENSCache', wallet)
-    const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId) // , constants.AddressZero)
+    // const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId) // , constants.AddressZero)
+    const ensCacheFactoryTx = await ensCacheFactory.attach('0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A') // , constants.AddressZero)
+    // log(`probable addres ENSCache will be deployed to: ${ensCacheFactoryTx.address}`)
+    // log(`txhash of deployment transaction: ${ensCacheFactoryTx.deployTransaction.hash}`)
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
-    log(`ENSCache owner is ${await ensCache.owner()}`)
-    log(`ENSCache setting Link token address ${LINKTOKEN_ADDRESS}`)
-    await ensCache.setChainlinkTokenAddress(LINKTOKEN_ADDRESS)
+    // log(`ENSCache owner is ${await ensCache.owner()}`)
+    // log(`ENSCache setting Link token address ${LINKTOKEN_ADDRESS}`)
+    // await ensCache.setChainlinkTokenAddress(LINKTOKEN_ADDRESS)
 
     // log('Sending some Link to ENSCache')
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
+    log('deploying Streamregistry')
     const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
@@ -147,11 +161,12 @@ async function deployStreamRegistry() {
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     log(`wallet address ${wallet.address}`)
-    const initialNodes = []
-    const initialMetadata = []
-    initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
-    await deployNodeRegistry(initialNodes, initialMetadata)
+    const initialNodes: string[] = []
+    const initialMetadata: string[] = []
+    // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
+    // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
+
+    // await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()
 

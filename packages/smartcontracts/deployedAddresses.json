@@ -1,0 +1,26 @@
+{
+    "polygon": {
+        "chainId": 137,
+        "url": "https://polygon-rpc.com",
+        "environment": "production",
+        "contracts": {
+            "nodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+            "chainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
+            "enscache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
+            "streamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
+            "streamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
+        }
+    },
+    "mumbai": {
+        "chainId": 80001,
+        "url": "https://rpc-mumbai.maticvigil.com",
+        "environment": "staging",
+        "contracts": {
+            "nodeRegistry": "0x64A04452995DfFFf1756190098EeB0F5786Eff53",
+            "chainlinkOracle": "0x163ED84743B84c2d9039c7972993D4eC82e0Bf06",
+            "enscache": "0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB",
+            "streamRegistry": "0xb341829f43EaF631C73D29dcd3C26637d1695e42",
+            "streamStorageRegistry": "0xCe97AF1A30C18aF9Eff60f9463b75bB8cCAE3777"
+        }
+    }
+}
