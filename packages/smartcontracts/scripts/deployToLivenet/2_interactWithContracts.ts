@@ -42,8 +42,8 @@ const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
 const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
 const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-const CHAINLINK_JOBID = '2ad63a3a4e0a483d88c2fa3b1de3a86b' // https://github.com/streamr-dev/smart-contracts-init#running
-const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
+const CHAINLINK_JOBID = '78295c4504404391ba2f114b045cc2da' // https://github.com/streamr-dev/smart-contracts-init#running
+const CHAINLINK_NODE_ADDRESS = '0xc50A0581CCCcB0b64530D411e84316E6e47da1ba'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -188,6 +188,15 @@ const setEnsCacheInStreamRegistry = async () => {
     console.log('done setting enscache in streamregistry')
 }
 
+const grantTrustedRoleToAddress = async (trustedaddress: string) => {
+    console.log(`setting ${trustedaddress} as trusted role in streamregistry`)
+    const role = await registryFromOwner.TRUSTED_ROLE()
+    console.log(`granting role ${role} (TRUSTED_ROLE) to ${trustedaddress}`)
+    const tx2 = await registryFromOwner.grantRole(role, trustedaddress)
+    await tx2.wait()
+    console.log('done granting role')
+}
+
 const setChainlinkJobId = async () => {
     console.log('setting chainlink job id: ' + CHAINLINK_JOBID)
     const t2 = await ensCacheFromOwner.setChainlinkJobId(CHAINLINK_JOBID)
@@ -230,6 +239,8 @@ async function main() {
     // await setStreamRegistryInEnsCache()
     // await setEnsCacheInStreamRegistry()
     // await setChainlinkJobId()
+
+    // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
 
     // await createAndCheckStreamWithoutENS()
     // await registerENSNameOnMainnet()
