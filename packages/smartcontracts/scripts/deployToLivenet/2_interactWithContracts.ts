@@ -39,9 +39,9 @@ const SIDECHAINURL = 'https://polygon-rpc.com'
 const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
 const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0xD40F15ae2DdDa02E5495bC35b6242104d30D821e'
-const ENSCACHEADDRESS = '0x7bcDfB2D6f66Ab5619103a4F29e8F325bdc895F3'
-const STREAMREGISTRYADDRESS = '0xE94faaE1631723aEb65D0126CD33a5681EebdFa4'
+const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
+const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
+const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
 const CHAINLINK_JOBID = '2ad63a3a4e0a483d88c2fa3b1de3a86b' // https://github.com/streamr-dev/smart-contracts-init#running
 const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
@@ -232,8 +232,8 @@ async function main() {
     // await setChainlinkJobId()
 
     // await createAndCheckStreamWithoutENS()
-    await registerENSNameOnMainnet()
-    await triggerChainlinkSyncOfENSNameToSidechain()
+    // await registerENSNameOnMainnet()
+    // await triggerChainlinkSyncOfENSNameToSidechain()
 }
 
 main()
