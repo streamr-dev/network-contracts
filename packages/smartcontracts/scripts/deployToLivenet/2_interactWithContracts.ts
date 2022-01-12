@@ -2,7 +2,7 @@
 // scripts/deploy.js
 
 import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
-import { ethers } from 'hardhat'
+import { ethers, upgrades } from 'hardhat'
 
 import { ENSCache, LinkToken, Oracle, StreamRegistry } from '../../typechain'
 
@@ -19,11 +19,11 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const DEPLOYMENT_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
 
 // localsidechain
-// const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-// const MAINNETURL = 'http://localhost:8545'
-// const SIDECHAINURL = 'http://localhost:8546'
-// const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
-// const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const MAINNETURL = 'http://localhost:8545'
+const SIDECHAINURL = 'http://localhost:8546'
+const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
+const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // mumbai
 // const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
@@ -33,17 +33,24 @@ const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
 // const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
 // Polygon mainet
-const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
-const MAINNETURL = 'http://localhost:8545'
-const SIDECHAINURL = 'https://polygon-rpc.com'
-const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
-const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
+// const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
+// const MAINNETURL = 'http://localhost:8545'
+// const SIDECHAINURL = 'https://polygon-rpc.com'
+// const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
+// const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
-const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
-const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-const CHAINLINK_JOBID = '78295c4504404391ba2f114b045cc2da' // https://github.com/streamr-dev/smart-contracts-init#running
-const CHAINLINK_NODE_ADDRESS = '0xc50A0581CCCcB0b64530D411e84316E6e47da1ba'
+const ORACLEADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
+const ENSCACHEADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
+const STREAMREGISTRYADDRESS = '0x720daa1337B50DF384C3AcFa037A98D533059d0d'
+const CHAINLINK_JOBID = '020f92986c5840debdcbd99d607602d2' // https://github.com/streamr-dev/smart-contracts-init#running
+const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
+
+// Polygon mainet contract addresses
+// const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
+// const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
+// const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
+// const CHAINLINK_JOBID = '78295c4504404391ba2f114b045cc2da' // https://github.com/streamr-dev/smart-contracts-init#running
+// const CHAINLINK_NODE_ADDRESS = '0xc50A0581CCCcB0b64530D411e84316E6e47da1ba'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -170,6 +177,14 @@ const setStreamRegistryInEnsCache = async () => {
     console.log('done setting streamregistry in enscache')
 }
 
+const upgradeStreamRegistry = async () => {
+    const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, sideChainProvider)
+    const streamregistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', deploymentOwner)
+    console.log('upgrading Streamregistry: proxyaddress: ' + STREAMREGISTRYADDRESS)
+    const streamRegistryUpgraded = await upgrades.upgradeProxy(STREAMREGISTRYADDRESS, streamregistryFactoryV2)
+    console.log('streamregistry upgraded, address is (should be same): ' + streamRegistryUpgraded.address)
+}
+
 const setEnsCacheInStreamRegistry = async () => {
     // test role setup by creating a stream as trusted entitiy
     // console.log('##1')
@@ -234,15 +249,21 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
+    // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
+
+    // set up contracts
     // await setOracleFulfilmentPermission()
     // await setChainlinkTokenAddressinENSCache()
     // await setStreamRegistryInEnsCache()
     // await setEnsCacheInStreamRegistry()
     // await setChainlinkJobId()
 
-    // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
+    // upgrade Contracts
+    // await upgradeStreamRegistry()
 
+    // test stream creation
     // await createAndCheckStreamWithoutENS()
+
     // await registerENSNameOnMainnet()
     // await triggerChainlinkSyncOfENSNameToSidechain()
 }

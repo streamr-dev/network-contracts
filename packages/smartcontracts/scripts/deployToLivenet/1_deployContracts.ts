@@ -21,9 +21,9 @@ const { ethers, upgrades } = hhat
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 // localsidechain
-// const chainURL = 'http://10.200.10.1:8546'
-// const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-// const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
+const chainURL = 'http://10.200.10.1:8546'
+const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
 
 // hardhat
 // const chainURL = 'http://127.0.0.1:8545'
@@ -37,9 +37,9 @@ const { ethers, upgrades } = hhat
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
 // Polygon mainnet
-const chainURL = 'https://polygon-rpc.com'
-const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
-const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
+// const chainURL = 'https://polygon-rpc.com'
+// const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
+// const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
 const log = require('debug')('Streamr:eth-init')
 
@@ -49,7 +49,7 @@ const log = require('debug')('Streamr:eth-init')
 const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 
-let nodeRegistryAddress = '0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6'
+let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let wallet: Wallet
 
@@ -92,8 +92,8 @@ async function deployStreamRegistry() {
 
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
-    const oracleFactoryTx = await oracleFactory.attach('0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D')
-    // const oracleFactoryTx = await oracleFactory.deploy(LINKTOKEN_ADDRESS)
+    // const oracleFactoryTx = await oracleFactory.attach('0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D')
+    const oracleFactoryTx = await oracleFactory.deploy(LINKTOKEN_ADDRESS)
     const oracle1 = await oracleFactoryTx.deployed()
     const oracle = await oracle1.connect(wallet)
 
@@ -108,10 +108,10 @@ async function deployStreamRegistry() {
     // chainlink client enscache
     // log(`deploying enscache from ${wallet.address}`)
     const ensCacheFactory = await ethers.getContractFactory('ENSCache', wallet)
-    // const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId) // , constants.AddressZero)
-    const ensCacheFactoryTx = await ensCacheFactory.attach('0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A') // , constants.AddressZero)
-    // log(`probable addres ENSCache will be deployed to: ${ensCacheFactoryTx.address}`)
-    // log(`txhash of deployment transaction: ${ensCacheFactoryTx.deployTransaction.hash}`)
+    const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId) // , constants.AddressZero)
+    // const ensCacheFactoryTx = await ensCacheFactory.attach('0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A') // , constants.AddressZero)
+    log(`probable addres ENSCache will be deployed to: ${ensCacheFactoryTx.address}`)
+    log(`txhash of deployment transaction: ${ensCacheFactoryTx.deployTransaction.hash}`)
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
     // log(`ENSCache owner is ${await ensCache.owner()}`)
@@ -166,7 +166,7 @@ async function main() {
     // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
 
-    // await deployNodeRegistry(initialNodes, initialMetadata)
+    await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()
 

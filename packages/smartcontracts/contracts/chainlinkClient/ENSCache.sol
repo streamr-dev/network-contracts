@@ -60,6 +60,15 @@ contract ENSCache is ChainlinkClient, Ownable {
     tempMetadatas[requestid] = metadataJsonString;
   }
 
+  function resetCacheForMyENSName(string calldata ensName) public {
+    require(owners[ensName] == msg.sender, "error_notOwnerOfThisENSName");
+    owners[ensName] = address(0);
+  }
+
+  function resetCacheForENSName(string calldata ensName) public onlyOwner {
+    owners[ensName] = address(0);
+  }
+
   function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
     owners[tempENSnames[requestId]] = address(uint160(uint256(owneraddress)));
     streamRegistry.ENScreateStreamCallback(tempRequestorAddress[requestId], tempENSnames[requestId], tempIdPaths[requestId], tempMetadatas[requestId]);
