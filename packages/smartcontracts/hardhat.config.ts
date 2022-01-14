@@ -50,12 +50,10 @@ const config: HardhatUserConfig = {
         polygonTestMumbai1: {
             chainId: 80001,
             url: 'https://rpc-mumbai.maticvigil.com',
-            // accounts: ['0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae']
         },
         polygonTestMumbai2: {
             chainId: 80001,
             url: 'https://matic-mumbai.chainstacklabs.com/',
-            // accounts: ['0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae']
         },
         polygonMainnet: {
             chainId: 137,

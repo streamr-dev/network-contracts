@@ -1,15 +1,19 @@
+/**
+ * Upgraded on: 2021-01-12
+ * DO NOT EDIT
+ * Instead, make a copy with new version number
+ */
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 /* solhint-disable not-rely-on-time */
 
-// import "../metatx/ERC2771Context.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 
 contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
@@ -65,10 +69,8 @@ contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         _;
     }
 
-    // constructor(address ensCacheAddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
-    //     ensCache = ENSCache(ensCacheAddr);
-    //     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    // }
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
         ensCache = ENSCache(ensCacheAddr);
         __AccessControl_init();
@@ -108,6 +110,9 @@ contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         return bytes(streamIdToMetadata[streamId]).length != 0;
     }
 
+    /**
+     * Called by the ENSCache when the lookup / update is complete
+     */
     function ENScreateStreamCallback(address ownerAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
         require(ensCache.owners(ensName) == ownerAddress, "error_notOwnerOfENSName");
         _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
@@ -119,8 +124,8 @@ contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         bytes memory pathBytes = bytes(streamIdPath);
         for (uint i = 1; i < pathBytes.length; i++) {
             //       - . / 0 1 2 ... 9
-            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) || 
-            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) || 
+            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) ||
+            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) ||
             ((bytes1("a") <= pathBytes[i] && pathBytes[i] <= bytes1("z"))) ||
             pathBytes[i] == "_"
             , "error_invalidPathChars");

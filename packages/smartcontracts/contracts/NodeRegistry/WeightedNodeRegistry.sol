@@ -10,6 +10,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract WeightedNodeRegistry is NodeRegistry {
     WeightStrategy public strat;
 
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address owner_, bool requiresWhitelist_, address weightStrategy_, address[] memory initialNodes, string[] memory initialUrls) public initializer {
        NodeRegistry.initialize(owner_, requiresWhitelist_, initialNodes, initialUrls);
        strat = WeightStrategy(weightStrategy_);

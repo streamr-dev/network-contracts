@@ -2,15 +2,14 @@
 pragma solidity 0.8.6;
 pragma experimental ABIEncoderV2;
 
-// import "./Ownable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-
 /**
- * @title Ownable
- * @dev TheOwnableUpgradablecontract has an owner address, and provides basic authorization control
+ * @title NodeRegistry
+ * Streamr Network nodes register themselves here
+ * @dev OwnableUpgradable contract has an owner address, and provides basic authorization control
  * functions, this simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
@@ -52,9 +51,8 @@ contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     mapping(address => NodeLinkedListItem) public nodes;
     mapping(address => WhitelistState) public whitelist;
 
-    // constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) Ownable() { // Ownable(owner) {
-    // }
-
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
