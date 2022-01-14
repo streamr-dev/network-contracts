@@ -57,6 +57,7 @@ contract ENSCache is ChainlinkClient, Ownable {
 
     /** Update cache and create a stream */
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString, address requestorAddress) public {
+        require(bytes(streamIdPath).length > 0, "error_emptyStreamIdPath");
         Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
         req.add("ensname", ensName);
         bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
@@ -75,6 +76,7 @@ contract ENSCache is ChainlinkClient, Ownable {
         owners[ensName] = address(0);
     }
 
+    /** Callback from Chainlink returning the results of the ENS lookup */
     function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
         owners[tempENSnames[requestId]] = address(uint160(uint256(owneraddress)));
         if (bytes(tempIdPaths[requestId]).length > 0) {
