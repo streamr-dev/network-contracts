@@ -6,7 +6,7 @@ import "@chainlink/contracts/src/v0.8/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IStreamRegistry {
-    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString);
+    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) external;
 }
 
 contract ENSCache is ChainlinkClient, Ownable {
@@ -23,7 +23,7 @@ contract ENSCache is ChainlinkClient, Ownable {
 
     address public oracle;
     string public jobId;
-    StreamRegistry private streamRegistry;
+    IStreamRegistry private streamRegistry;
 
     constructor(address oracleAddress, string memory chainlinkJobId) ChainlinkClient() Ownable() {
         oracle = oracleAddress;
