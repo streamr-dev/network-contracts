@@ -11,6 +11,7 @@
     "rules": {
         "no-unused-expressions": "off",
         "max-len": "off",
-        "import/order": "warn"
+        "import/order": "warn",
+        "import/extensions": "off"
     }
 }

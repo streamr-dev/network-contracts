@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.8/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IStreamRegistry {
+    // solhint-disable-next-line func-name-mixedcase
     function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) external;
 }
 

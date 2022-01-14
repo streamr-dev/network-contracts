@@ -2,12 +2,8 @@ import { expect, use } from 'chai'
 import { waffle, upgrades, ethers } from 'hardhat'
 import { Contract, Wallet, utils } from 'ethers'
 
-import NodeRegistry from '../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json'
 import ERC20Mintable from '../artifacts/contracts/NodeRegistry/ERC20Mintable.sol/ERC20Mintable.json'
-import TokenBalanceWeightStrategy from
-    '../artifacts/contracts/NodeRegistry/TokenBalanceWeightStrategy.sol/TokenBalanceWeightStrategy.json'
-// import WeightedNodeRegistry from
-//     '../artifacts/contracts/NodeRegistry/WeightedNodeRegistry.sol/WeightedNodeRegistry.json'
+// import TokenBalanceWeightStrategy from '../artifacts/contracts/NodeRegistry/TokenBalanceWeightStrategy.sol/TokenBalanceWeightStrategy.json'
 
 use(waffle.solidity)
 
@@ -24,8 +20,8 @@ describe('NodeRegistry', (): void => {
     const nodeRegAsSigners: Contract[] = []
     let nodeRegAsCreator: Contract
     let testToken: Contract
-    let tokenStrat: Contract
-    let weightedReg: Contract
+    // let tokenStrat: Contract
+    // let weightedReg: Contract
 
     for (let i = 0; i < nodeCount; i++) {
         nodeMetadatas[i] = `http://node.url${i}`
@@ -42,11 +38,8 @@ describe('NodeRegistry', (): void => {
             initialNodes.push(nodeAddresses[i])
         }
 
-        // nodeRegAsCreator = await deployContract(accounts[0], NodeRegistry,
-        //     [creatorAddress, false, initialNodes, initialMetadata])
         const strDeploy = await ethers.getContractFactory('NodeRegistry')
         const strDeployTx = await upgrades.deployProxy(strDeploy, [accounts[0].address, false, initialNodes, initialMetadata], { kind: 'uups' })
-        // const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata)
         nodeRegAsCreator = await strDeployTx.deployed()
         for (let i = 0; i < nodeCount; i++) {
             nodeRegAsSigners[i] = nodeRegAsCreator.connect(accounts[i + 1])
@@ -64,9 +57,8 @@ describe('NodeRegistry', (): void => {
         await testToken.mint(nodeAddresses[1], utils.parseUnits('100', 'ether'), {
             from: creatorAddress
         })
-        tokenStrat = await deployContract(accounts[0], TokenBalanceWeightStrategy, [testToken.address])
-        // weightedReg = await deployContract(accounts[0], WeightedNodeRegistry,
-        //     [creatorAddress, false, tokenStrat.address, initialNodes, initialMetadata])
+        // tokenStrat = await deployContract(accounts[0], TokenBalanceWeightStrategy, [testToken.address])
+        // TODO: deploy WeightedNodeRegistry
     })
 
     describe('NodeRegistry', () => {

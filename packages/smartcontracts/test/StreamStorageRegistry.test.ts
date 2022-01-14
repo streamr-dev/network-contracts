@@ -1,8 +1,8 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 
-import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
+// import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
+// import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamStorageRegistry, StreamRegistry, NodeRegistry } from '../typechain'
@@ -27,9 +27,6 @@ describe('StreamStorageRegistry', () => {
 
     before(async () => {
         // set up nodes
-        // nodeReg = await deployContract(admin, NodeRegistryJson,
-        //     [admin.address, false, nodeAddresses, nodeUrls]) as NodeRegistry
-
         const nodeRegDeploy = await ethers.getContractFactory('NodeRegistry')
         const nodeRegDeployTx = await upgrades.deployProxy(nodeRegDeploy, [admin.address,
             false, nodeAddresses, nodeUrls], {
@@ -48,7 +45,7 @@ describe('StreamStorageRegistry', () => {
         await streamReg.createStream('/test', 'test-metadata')
         await streamReg.grantRole(await streamReg.TRUSTED_ROLE(), trusted.address)
 
-        // deploy
+        // deploy StreamStorageRegistry
         const strDeploy = await ethers.getContractFactory('StreamStorageRegistry')
         const strDeployTx = await upgrades.deployProxy(strDeploy, [streamReg.address, nodeReg.address, forwarder.address], {
             kind: 'uups'

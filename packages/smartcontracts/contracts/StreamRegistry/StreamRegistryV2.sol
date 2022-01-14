@@ -113,6 +113,7 @@ contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     /**
      * Called by the ENSCache when the lookup / update is complete
      */
+    // solhint-disable-next-line func-name-mixedcase
     function ENScreateStreamCallback(address ownerAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
         require(ensCache.owners(ensName) == ownerAddress, "error_notOwnerOfENSName");
         _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
