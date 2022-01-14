@@ -4,7 +4,10 @@ pragma solidity 0.8.6;
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/Chainlink.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../StreamRegistry/StreamRegistry.sol";
+
+interface IStreamRegistry {
+    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString);
+}
 
 contract ENSCache is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
@@ -32,7 +35,7 @@ contract ENSCache is ChainlinkClient, Ownable {
     }
 
     function setStreamRegistry(address streamRegistryAddress) public onlyOwner {
-        streamRegistry = StreamRegistry(streamRegistryAddress);
+        streamRegistry = IStreamRegistry(streamRegistryAddress);
     }
 
     function setChainlinkTokenAddress(address _link) public onlyOwner {
