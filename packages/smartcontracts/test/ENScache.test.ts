@@ -12,7 +12,7 @@ import type { Oracle } from '../test-contracts/Oracle'
 import type { LinkToken } from '../test-contracts/LinkToken'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
-const ethSigUtil = require('eth-sig-util')
+// const ethSigUtil = require('eth-sig-util')
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -67,15 +67,15 @@ describe('ENSCache', (): void => {
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
         await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32)))
-            .to.emit(ensCacheFromAdmin, "ChainlinkFulfilled")
-            .and.to.not.emit(registryFromAdmin, "StreamCreated")
+            .to.emit(ensCacheFromAdmin, 'ChainlinkFulfilled')
+            .and.to.not.emit(registryFromAdmin, 'StreamCreated')
     })
 
     it('updates the cache entry and creates a stream: requestENSOwnerAndCreateStream', async () => {
-        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream('ensdomain1', "/path", "metadata", adminAdress)
+        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream('ensdomain1', '/path', 'metadata', adminAdress)
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
-        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, "StreamCreated")
+        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, 'StreamCreated')
     })
 
     // TODO: ENSCache is not meta-transaction ready right now
