@@ -26,8 +26,8 @@ contract StreamStorageRegistry is Initializable, UUPSUpgradeable, ERC2771Context
 
     modifier onlyEditorOrTrusted(string calldata streamId) {
         require(streamRegistry.exists(streamId), "error_streamDoesNotExist");
-        bool isTrusted = streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender());
-        if (!isTrusted) {
+        bool senderIsTrusted = streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender());
+        if (!senderIsTrusted) {
             require(streamRegistry.hasPermission(streamId, _msgSender(), StreamRegistry.PermissionType.Edit), "error_noEditPermission");
         }
         _;
