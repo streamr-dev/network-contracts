@@ -25,7 +25,7 @@ describe('ENSCache', (): void => {
     let linkTokenFromAdmin: LinkToken
     let oracleFromAdmin: Oracle
     let minimalForwarderFromAdmin: MinimalForwarder
-    let minimalForwarderFromUser0: MinimalForwarder
+    // let minimalForwarderFromUser0: MinimalForwarder
     let registryFromAdmin: StreamRegistry
     const adminAdress: string = wallets[0].address
 
@@ -39,7 +39,7 @@ describe('ENSCache', (): void => {
             // [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
             [adminAdress, 'jobid']) as ENSCache
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
-        minimalForwarderFromUser0 = minimalForwarderFromAdmin.connect(wallets[1])
+        // minimalForwarderFromUser0 = minimalForwarderFromAdmin.connect(wallets[1])
 
         await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address,
             BigNumber.from('1000000000000000000000')) // 1000 link
