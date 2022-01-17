@@ -11,8 +11,9 @@ if (process.env.ENVIRONMENT === 'prod') {
     provider = new ethers.providers.JsonRpcProvider(process.env.LOCAL_PARITY_MAINCHAIN)
 }
 
+// see ../smartcontracts/contracts/ENSCache.json:requestENSOwner
 const customParams = {
-    name: ['name', 'ensname']
+    name: ['name', 'ensname'] // TODO: test if 'name' is needed? Remove if not
 }
 
 const createRequest = (input, callback) => {
