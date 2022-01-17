@@ -2,6 +2,7 @@
   "name": "smartcontracts",
   "version": "0.0.4",
   "description": "Smart contracts for Streamr Network",
+  "private": true,
   "scripts": {
     "build": "hardhat compile",
     "clean": "rm -rf artifacts cache coverage typechain deployments",
