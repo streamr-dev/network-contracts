@@ -54,14 +54,6 @@ describe('ENSCache', (): void => {
         await ensCacheFromAdmin.setStreamRegistry(registryFromAdmin.address)
     })
 
-    it('positivetest queryENSOwner', async (): Promise<void> => {
-        await expect(ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
-    })
-
-    it('create stream with ens sync trigger', async (): Promise<void> => {
-        await expect(registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
-    })
-
     it('updates the cache entry: requestENSOwner', async () => {
         const tx = await ensCacheFromAdmin.requestENSOwner('ensdomain1')
         const tr = await tx.wait()
@@ -76,6 +68,14 @@ describe('ENSCache', (): void => {
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
         await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, 'StreamCreated')
+    })
+
+    it('positivetest queryENSOwner', async (): Promise<void> => {
+        await expect(ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
+    })
+
+    it('create stream with ens sync trigger', async (): Promise<void> => {
+        await expect(registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
     })
 
     // TODO: ENSCache is not meta-transaction ready right now
