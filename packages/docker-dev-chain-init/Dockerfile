@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:17
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	curl \
@@ -24,7 +24,9 @@ WORKDIR /
 RUN node --version
 RUN npm --version
 COPY ./ ./
-RUN npm ci --only=production
+# RUN cd network-contracts
+RUN npm i
 ENV DEBUG=*
-CMD node index.js && ./bridge/deploy_bridge_and_du2.sh
+# CMD node index.js && ./bridge/deploy_bridge_and_du2.sh
+CMD npm run build -w=streamr-smart-contracts-init && npm run start -w=streamr-smart-contracts-init
 

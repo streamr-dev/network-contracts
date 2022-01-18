@@ -17,8 +17,6 @@ const MarketplaceJson = require("./ethereumContractJSONs/Marketplace.json")
 const Marketplace2Json = require("./ethereumContractJSONs/Marketplace2.json")
 const UniswapAdaptor = require("./ethereumContractJSONs/UniswapAdaptor.json")
 const Uniswap2Adapter = require("./ethereumContractJSONs/Uniswap2Adapter.json")
-// const NodeRegistry = require("./ethereumContractJSONs/NodeRegistry.json")
-const TrackerRegistry = require("./ethereumContractJSONs/TrackerRegistry.json")
 const ENSRegistry = require("./ethereumContractJSONs/ENSRegistry.json")
 const FIFSRegistrar = require("./ethereumContractJSONs/FIFSRegistrar.json")
 const PublicResolver = require("./ethereumContractJSONs/PublicResolver.json")
@@ -40,12 +38,12 @@ const uniswap_exchange_bytecode = fs.readFileSync("./bytecode/uniswap_exchange.t
 const uniswap_factory_bytecode = fs.readFileSync("./bytecode/uniswap_factory.txt", "utf-8")
 
 // Streamregistry
-const LinkToken = require('./ethereumContractJSONs/LinkToken.json')
-const ChainlinkOracle = require('./ethereumContractJSONs/Oracle.json')
-const ENSCache = require('./ethereumContractJSONs/ENSCache.json')
-const StreamRegistry = require('./ethereumContractJSONs/StreamRegistry.json')
+// const LinkToken = require('./ethereumContractJSONs/LinkToken.json')
+// const ChainlinkOracle = require('./ethereumContractJSONs/Oracle.json')
+// // const ENSCache = require('./ethereumContractJSONs/ENSCache.json')
+// const StreamRegistry = require('./ethereumContractJSONs/StreamRegistry.json')
 
-const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
+// const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 const products = require('./products.json')
 
@@ -150,17 +148,17 @@ function getRootNodeFromTLD(tld) {
 }
 
 async function deployNodeRegistry(wallet, initialNodes, initialMetadata) {
-    const strDeploy = new ContractFactory(TrackerRegistry.abi, TrackerRegistry.bytecode, wallet)
+    const strDeploy = await ethers.getContractFactory("TrackerRegistry", wallet)
     const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
     await strDeployTx.deployed()
     // nodeRegistryAddress = str.address
-    // log(`NodeRegistry deployed at ${str.address}`)
+    log(`NodeRegistry deployed at ${strDeployTx.address}`)
     // let nodes = await str.getNodes()
     // log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 }
 
 async function deployStreamStorageRegistry(wallet) {
-    const strDeploy = new ContractFactory(StreamStorageRegistry.abi, StreamStorageRegistry.bytecode, wallet)
+    const strDeploy = await ethers.getContractFactory("StreamStorageRegistry", wallet)
     // const strDeployTx = await strDeploy.deploy(streamRegistryAddress, nodeRegistryAddress, wallet.address, {gasLimit: 6000000} )
     const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, constants.AddressZero], {
         kind: 'uups'
@@ -201,43 +199,38 @@ async function ethersWallet(url, privateKey) {
 async function deployStreamRegistries() {
     const sidechainWalletStreamReg = await ethersWallet(sidechainURL, privKeyStreamRegistry)
 
-    // log('Sending some Ether to chainlink node address')
-    // await sidechainWalletStreamReg.sendTransaction({
-    //     to: chainlinkNodeAddress,
-    //     value: parseEther('100')
-    // })
+    log('Sending some Ether to chainlink node address')
+    await sidechainWalletStreamReg.sendTransaction({
+        to: chainlinkNodeAddress,
+        value: parseEther('100')
+    })
 
-    // // const strDeploy = await ethers.getContractFactory('NodeRegistry')
-    // // const strDeployTx = await upgrades.deployProxy(strDeploy, [accounts[0].address, false, initialNodes, initialMetadata], { kind: 'uups' })
-    // // nodeRegAsCreator = await strDeployTx.deployed()
+    log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    const linkTokenFactory = await ethers.getContractFactory("LinkToken", sidechainWalletStreamReg)
+    const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    const linkToken = await linkTokenFactoryTx.deployed()
+    log(`Link Token deployed at ${linkToken.address}`)
 
-    // log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    // const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
-    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    // const linkToken = await linkTokenFactoryTx.deployed()
-    // log(`Link Token deployed at ${linkToken.address}`)
+    const oracleFactory = await ethers.getContractFactory("Oracle", sidechainWalletStreamReg)
+    const oracleFactoryTx = await oracleFactory.deploy(linkToken.address)
+    const oracle = await oracleFactoryTx.deployed()
+    log(`Chainlink Oracle deployed at ${oracle.address}`)
+    const tokenaddrFromOracle = await oracle.getChainlinkToken()
+    log(`Chainlink Oracle token pointing to ${tokenaddrFromOracle}`)
+    const fulfilmentPermissionTX = await oracle.setFulfillmentPermission(chainlinkNodeAddress, true)
+    await fulfilmentPermissionTX.wait()
+    const permission = await oracle.getAuthorizationStatus(chainlinkNodeAddress)
+    log(`Chainlink Oracle permission for ${chainlinkNodeAddress} is ${permission}`)
 
-    // const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
-    //     ChainlinkOracle.compilerOutput.evm.bytecode.object, sidechainWalletStreamReg)
-    // const oracleFactoryTx = await oracleFactory.deploy(linkToken.address)
-    // const oracle = await oracleFactoryTx.deployed()
-    // log(`Chainlink Oracle deployed at ${oracle.address}`)
-    // const tokenaddrFromOracle = await oracle.getChainlinkToken()
-    // log(`Chainlink Oracle token pointing to ${tokenaddrFromOracle}`)
-    // const fulfilmentPermissionTX = await oracle.setFulfillmentPermission(chainlinkNodeAddress, true)
-    // await fulfilmentPermissionTX.wait()
-    // const permission = await oracle.getAuthorizationStatus(chainlinkNodeAddress)
-    // log(`Chainlink Oracle permission for ${chainlinkNodeAddress} is ${permission}`)
+    const ensCacheFactory = await ethers.getContractFactory("ENSCache", sidechainWalletStreamReg)
+    const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId)
+    const ensCache = await ensCacheFactoryTx.deployed()
+    log(`ENSCache deployed at ${ensCache.address}`)
+    log(`ENSCache setting Link token address ${linkToken.address}`)
+    await ensCache.setChainlinkTokenAddress(linkToken.address)
 
-    // const ensCacheFactory = new ContractFactory(ENSCache.abi, ENSCache.bytecode, sidechainWalletStreamReg)
-    // const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId)
-    // const ensCache = await ensCacheFactoryTx.deployed()
-    // log(`ENSCache deployed at ${ensCache.address}`)
-    // log(`ENSCache setting Link token address ${linkToken.address}`)
-    // await ensCache.setChainlinkTokenAddress(linkToken.address)
-
-    // log('Sending some Link to ENSCache')
-    // await linkToken.transfer(ensCache.address, BigNumber.from('1000000000000000000000')) // 1000 link
+    log('Sending some Link to ENSCache')
+    await linkToken.transfer(ensCache.address, BigNumber.from('1000000000000000000000')) // 1000 link
 
     const wallet1 = new Wallet('0x000000000000000000000000000000000000000000000000000000000000000a')
 
@@ -246,18 +239,18 @@ async function deployStreamRegistries() {
     initialMetadata = []
     initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
-    const strDeploy = ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
+    const strDeploy = await ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
     // const strDeploy = await ethers.getContractFactory('NodeRegistry')
     const strDeployTx = await upgrades.deployProxy(strDeploy, 
         [sidechainWalletStreamReg.address, false, initialNodes, initialMetadata], { kind: 'uups' })
-    // const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
+    // const strDeployTx = await strDeploy.deploy(sidechainWalletStreamReg.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
     const nodeRegDeployed = await strDeployTx.deployed()
     nodeRegistryAddress = nodeRegDeployed.address
     log(`NodeRegistry deployed at ${nodeRegDeployed.address}`)
     let nodes = await nodeRegDeployed.getNodes()
     log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 
-    const streamRegistryFactory = new ContractFactory(StreamRegistry.abi, StreamRegistry.bytecode, sidechainWalletStreamReg)
+    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistry", sidechainWalletStreamReg)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, wallet1.address], {
         kind: 'uups'
     })
@@ -284,8 +277,8 @@ async function smartContractInitialization() {
     // const tokenDeployTx = await tokenDeployer.deploy("Test DATAv2", "\ud83e\udd84") // unicorn
     // const token = await tokenDeployTx.deployed()
     // log(`New DATAv2 ERC20 deployed at ${token.address}`)
-    await deployStreamRegistries()
-    // log(`Deploying test DATAv2 from ${wallet.address}`)
+
+    log(`Deploying test DATAv2 from ${wallet.address}`)
     const tokenDeployer = await new ContractFactory(DATAv2.abi, DATAv2.bytecode, wallet)
     const tokenDeployTx = await tokenDeployer.deploy()
     const token = await tokenDeployTx.deployed()
@@ -370,8 +363,8 @@ async function smartContractInitialization() {
     log(`Added liquidity to uniswap exchanges: ${formatEther(amt_token)} DATAcoin, ${formatEther(amt_token2)} OTHERcoin`)
 
     log(`Deploying NodeRegistry contract 1 (tracker registry) from ${wallet.address}`)
-    var initialNodes = []
-    var initialMetadata = []
+    let initialNodes = []
+    let initialMetadata = []
     initialNodes.push('0xb9e7cEBF7b03AE26458E32a059488386b05798e8')
     initialMetadata.push('{"ws": "ws://10.200.10.1:30301", "http": "http://10.200.10.1:30301"}')
     initialNodes.push('0x0540A3e144cdD81F402e7772C76a5808B71d2d30')

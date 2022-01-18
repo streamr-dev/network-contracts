@@ -14,11 +14,12 @@ checkImg poanetwork/omnibridge
 checkImg streamr/tokenbridge-contracts
 
 echo "Building smart-contracts-init docker image"
-docker build -t streamr/smart-contracts-init:dev  -f packages/docker-dev-chain-init/ .
+docker build -t streamr/smart-contracts-init:dev  -f ./packages/docker-dev-chain-init/Dockerfile .
 #echo "Starting Streamr stack to fetch products from Engine and Editor"
 # streamr-docker-dev start
 #echo "Stopping OpenEthereum containers from Streamr stack"
 # streamr-docker-dev stop parity-sidechain-node0 parity-node0
+cd packages/docker-dev-chain-init
 echo "Starting init stack with OpenEthereum"
 docker-compose up -d parity-node0 parity-sidechain-node0
 echo "waiting 5s for chains to start up"

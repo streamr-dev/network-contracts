@@ -62,6 +62,7 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             'smartcontracts/contracts/NodeRegistry/NodeRegistry.sol',
+            'smartcontracts/contracts/NodeRegistry/TrackerRegistry.sol',
             'smartcontracts/contracts/StreamRegistry/StreamRegistry.sol',
             'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',

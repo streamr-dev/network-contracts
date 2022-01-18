@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.9;
 
 contract NodeDomainNameHelper {
     event Request(address indexed requestor, string indexed ipAddress, uint port);
