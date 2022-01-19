@@ -5,13 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Program",
+            "name": "Launch index.js",
             "program": "${workspaceFolder}/packages/docker-dev-chain-init/index.js",
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "pwa-node",
+            "env": {
+                "DEBUG": "*"
+            },
             "cwd": "${workspaceFolder}/packages/docker-dev-chain-init/",
         },
         {

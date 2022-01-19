@@ -4,12 +4,10 @@ const { ethers, upgrades } = require('hardhat')
 const {
     Contract,
     ContractFactory,
-    constants,
-    utils: {computeAddress, parseEther, formatEther, namehash, id},
+    utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
     Wallet,
     providers: {JsonRpcProvider}
-} = ethers
-const { BigNumber } = require('@ethersproject/bignumber')
+} = require("ethers4")
 
 const TestTokenJson = require("./ethereumContractJSONs/TestToken.json")
 const OldTokenJson = require("./ethereumContractJSONs/CrowdsaleToken.json")
@@ -160,7 +158,7 @@ async function deployNodeRegistry(wallet, initialNodes, initialMetadata) {
 async function deployStreamStorageRegistry(wallet) {
     const strDeploy = await ethers.getContractFactory("StreamStorageRegistry", wallet)
     // const strDeployTx = await strDeploy.deploy(streamRegistryAddress, nodeRegistryAddress, wallet.address, {gasLimit: 6000000} )
-    const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, constants.AddressZero], {
+    const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, ethers.constants.AddressZero], {
         kind: 'uups'
     })
     const str = await strDeployTx.deployed()
@@ -227,10 +225,12 @@ async function deployStreamRegistries() {
     const ensCache = await ensCacheFactoryTx.deployed()
     log(`ENSCache deployed at ${ensCache.address}`)
     log(`ENSCache setting Link token address ${linkToken.address}`)
-    await ensCache.setChainlinkTokenAddress(linkToken.address)
+    const setPermissionTx = await ensCache.setChainlinkTokenAddress(linkToken.address)
+    await setPermissionTx.wait()
 
     log('Sending some Link to ENSCache')
-    await linkToken.transfer(ensCache.address, BigNumber.from('1000000000000000000000')) // 1000 link
+    const transfertx = await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
+    await transfertx.wait()
 
     const wallet1 = new Wallet('0x000000000000000000000000000000000000000000000000000000000000000a')
 
@@ -259,13 +259,15 @@ async function deployStreamRegistries() {
     log(`Streamregistry deployed at ${streamRegistry.address}`)
     
     log(`setting Streamregistry address in ENSCache`)
-    await ensCache.setStreamRegistry(streamRegistry.address)
+    const setStreamRegTx = await ensCache.setStreamRegistry(streamRegistry.address)
+    await setStreamRegTx.wait()
     log(`setting enscache address as trusted role in streamregistry`)
     
     const ensa = ensCache.address
     const role = await streamRegistry.TRUSTED_ROLE()
     log(`granting role ${role} ensaddress ${ensa}`)
-    await streamRegistry.grantRole(role, ensa)
+    const grantRoleTx = await streamRegistry.grantRole(role, ensa)
+    await grantRoleTx.wait()
 }
 
 async function smartContractInitialization() {

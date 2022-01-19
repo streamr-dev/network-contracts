@@ -1,4 +1,4 @@
-FROM node:17
+FROM node:17-bullseye-slim
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	curl \
@@ -24,9 +24,8 @@ WORKDIR /
 RUN node --version
 RUN npm --version
 COPY ./ ./
-# RUN cd network-contracts
-RUN npm i
+RUN npm ci
 ENV DEBUG=*
-# CMD node index.js && ./bridge/deploy_bridge_and_du2.sh
-CMD npm run build -w=streamr-smart-contracts-init && npm run start -w=streamr-smart-contracts-init
+RUN npm run build -w=streamr-smart-contracts-init
+CMD npm run preload -w=streamr-smart-contracts-init && ./packages/docker-dev-chain-init/bridge/deploy_bridge_and_du2.sh
 
