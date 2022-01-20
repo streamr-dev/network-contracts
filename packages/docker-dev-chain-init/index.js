@@ -15,6 +15,7 @@ const MarketplaceJson = require("./ethereumContractJSONs/Marketplace.json")
 const Marketplace2Json = require("./ethereumContractJSONs/Marketplace2.json")
 const UniswapAdaptor = require("./ethereumContractJSONs/UniswapAdaptor.json")
 const Uniswap2Adapter = require("./ethereumContractJSONs/Uniswap2Adapter.json")
+const NodeRegistry = require("./ethereumContractJSONs/NodeRegistry.json")
 const ENSRegistry = require("./ethereumContractJSONs/ENSRegistry.json")
 const FIFSRegistrar = require("./ethereumContractJSONs/FIFSRegistrar.json")
 const PublicResolver = require("./ethereumContractJSONs/PublicResolver.json")
@@ -146,13 +147,13 @@ function getRootNodeFromTLD(tld) {
 }
 
 async function deployNodeRegistry(wallet, initialNodes, initialMetadata) {
-    const strDeploy = await ethers.getContractFactory("TrackerRegistry", wallet)
+    const strDeploy = new ContractFactory(NodeRegistry.abi, NodeRegistry.bytecode, wallet)
     const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
-    await strDeployTx.deployed()
-    // nodeRegistryAddress = str.address
-    log(`NodeRegistry deployed at ${strDeployTx.address}`)
-    // let nodes = await str.getNodes()
-    // log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
+    const str = await strDeployTx.deployed()
+    nodeRegistryAddress = str.address
+    log(`NodeRegistry deployed at ${str.address}`)
+    let nodes = await str.getNodes()
+    log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 }
 
 async function deployStreamStorageRegistry(wallet) {
@@ -436,11 +437,11 @@ async function smartContractInitialization() {
     // TODO remove this node registry deployment
     // this is not used any more, but still needs to be here because otherwise all following addresses would change
     // currently used ones is in deployRegistries() and is deployed proxified
-    // log(`Deploying NodeRegistry contract 2 (storage node registry) to sidechain from ${sidechainWallet.address}`)
+    log(`Deploying OLD UNUSED NodeRegistry contract 2 (storage node registry) to sidechain from ${sidechainWallet.address}`)
     initialNodes = []
     initialMetadata = []
-    // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
+    initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
+    initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
     await deployNodeRegistry(sidechainWallet, initialNodes, initialMetadata)
 
     log(`deploy Uniswap2 mainnet`)
