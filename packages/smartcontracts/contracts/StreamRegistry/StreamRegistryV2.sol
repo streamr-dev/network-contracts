@@ -1,5 +1,5 @@
 /**
- * Deployed on 2021-01-11 to 0x0D483E10612F327FC11965Fc82E90dC19b141641
+ * Upgraded on: 2021-01-12
  * DO NOT EDIT
  * Instead, make a copy with new version number
  */
@@ -15,7 +15,7 @@ import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract StreamRegistryV2 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -80,7 +80,8 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
 
     function _authorizeUpgrade(address) internal override isTrusted() {}
 
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+
+     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
@@ -94,12 +95,12 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
         string memory ownerstring = addressToString(_msgSender());
-        _createStreamAndPermission(ownerstring, streamIdPath, metadataJsonString);
+        _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
     }
 
     function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
         if (ensCache.owners(ensName) == _msgSender()) {
-            _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+            _createStreamAndPermission(_msgSender(), ensName, streamIdPath, metadataJsonString);
         } else {
             ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, _msgSender());
         }
@@ -113,12 +114,12 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
      * Called by the ENSCache when the lookup / update is complete
      */
     // solhint-disable-next-line func-name-mixedcase
-    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
-        require(ensCache.owners(ensName) == requestorAddress, "error_notOwnerOfENSName");
-        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+    function ENScreateStreamCallback(address ownerAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
+        require(ensCache.owners(ensName) == ownerAddress, "error_notOwnerOfENSName");
+        _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
     }
 
-    function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
+    function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
         require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
 
         bytes memory pathBytes = bytes(streamIdPath);
@@ -138,7 +139,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
 
         streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
         streamIdToMetadata[streamId] = metadataJsonString;
-        streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())] = Permission({
+        streamIdToPermissions[streamId][getAddressKey(streamId, ownerAddress)] = Permission({
             canEdit: true,
             canDelete: true,
             publishExpiration: MAX_INT,
@@ -146,7 +147,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
             canGrant: true
         });
         emit StreamCreated(streamId, metadataJsonString);
-        emit PermissionUpdated(streamId, _msgSender(), true, true, MAX_INT, MAX_INT, true);
+        emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
     }
 
     function getAddressKey(string memory streamId, address user) public view returns (bytes32) {

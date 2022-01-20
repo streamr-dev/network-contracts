@@ -5,6 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "command": "npm run deploylive2",
+            "name": "Run leployment",
+            "request": "launch",
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "cwd": "${workspaceFolder}/packages/smartcontracts"
+        },
+        {
+            "command": "npm run interact",
+            "name": "Run interact",
+            "request": "launch",
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "cwd": "${workspaceFolder}/packages/smartcontracts"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Hardhat test this file",
@@ -16,7 +36,6 @@
                 "test",
                 "${file}"
             ],
-            "runtimeVersion": "16.2.0",
             "internalConsoleOptions": "openOnSessionStart",
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },

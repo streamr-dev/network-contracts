@@ -1,3 +1,7 @@
+/**
+ * Deployed on 2021-01-11 to 0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A
+ */
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.6;
 
@@ -10,7 +14,7 @@ interface IStreamRegistry {
     function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) external;
 }
 
-contract ENSCache is ChainlinkClient, Ownable {
+contract ENSCacheV1 is ChainlinkClient, Ownable {
     using Chainlink for Chainlink.Request;
 
     uint256 constant private ORACLE_PAYMENT = 0 * LINK_DIVISIBILITY;
@@ -57,7 +61,6 @@ contract ENSCache is ChainlinkClient, Ownable {
 
     /** Update cache and create a stream */
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString, address requestorAddress) public {
-        require(bytes(streamIdPath).length > 0, "error_emptyStreamIdPath");
         Chainlink.Request memory req = buildChainlinkRequest(stringToBytes32(jobId), address(this), this.fulfillENSOwner.selector);
         req.add("ensname", ensName);
         bytes32 requestid = sendChainlinkRequestTo(oracle, req, ORACLE_PAYMENT);
@@ -67,21 +70,9 @@ contract ENSCache is ChainlinkClient, Ownable {
         tempMetadatas[requestid] = metadataJsonString;
     }
 
-    function resetCacheForMyENSName(string calldata ensName) public {
-        require(owners[ensName] == msg.sender, "error_notOwnerOfThisENSName");
-        owners[ensName] = address(0);
-    }
-
-    function resetCacheForENSName(string calldata ensName) public onlyOwner {
-        owners[ensName] = address(0);
-    }
-
-    /** Callback from Chainlink returning the results of the ENS lookup */
     function fulfillENSOwner(bytes32 requestId, bytes32 owneraddress) public recordChainlinkFulfillment(requestId) {
         owners[tempENSnames[requestId]] = address(uint160(uint256(owneraddress)));
-        if (bytes(tempIdPaths[requestId]).length > 0) {
-            streamRegistry.ENScreateStreamCallback(tempRequestorAddress[requestId], tempENSnames[requestId], tempIdPaths[requestId], tempMetadatas[requestId]);
-        }
+        streamRegistry.ENScreateStreamCallback(tempRequestorAddress[requestId], tempENSnames[requestId], tempIdPaths[requestId], tempMetadatas[requestId]);
     }
 
     function getChainlinkToken() public view returns (address) {

@@ -1,12 +1,12 @@
-import { ethers, waffle } from 'hardhat'
+import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
 
-import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
+// import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import { ENSMock } from '../typechain/StreamRegistry'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
 const ethSigUtil = require('eth-sig-util')
@@ -85,10 +85,12 @@ describe('StreamRegistry', (): void => {
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        // enscache object is only used for createStreamWithENS function; if that's not called, then it can be dropped
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson, [user1Address, 'jobid']) as ENSCache
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address]) as StreamRegistry
+        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
+                kind: 'uups'
+            })
+        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -139,6 +141,13 @@ describe('StreamRegistry', (): void => {
 
     it('positivetest getStreamMetadata', async (): Promise<void> => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
+    })
+
+    it('positivetest setEnsCache', async (): Promise<void> => {
+        const role = await registryFromAdmin.TRUSTED_ROLE()
+        const has = await registryFromAdmin.hasRole(role, trustedAddress)
+        expect(has).to.equal(true)
+        await registryFromMigrator.setEnsCache('0x0000000000000000000000000000000000000000')
     })
 
     it('negativetest getStreamMetadata, stream doesnt exist', async (): Promise<void> => {
@@ -811,7 +820,7 @@ describe('StreamRegistry', (): void => {
     })
 
     it('positiveTest test bulk migrate', async (): Promise<void> => {
-        const STREAMS_TO_MIGRATE = 100
+        const STREAMS_TO_MIGRATE = 50
         const streamIds: string[] = []
         const users: string[] = []
         const metadatas: string[] = []
