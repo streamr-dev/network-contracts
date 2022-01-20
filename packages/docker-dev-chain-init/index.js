@@ -37,8 +37,8 @@ const uniswap_exchange_bytecode = fs.readFileSync("./bytecode/uniswap_exchange.t
 const uniswap_factory_bytecode = fs.readFileSync("./bytecode/uniswap_factory.txt", "utf-8")
 
 // Streamregistry
-// const LinkToken = require('./ethereumContractJSONs/LinkToken.json')
-// const ChainlinkOracle = require('./ethereumContractJSONs/Oracle.json')
+const LinkToken = require('./ethereumContractJSONs/LinkToken.json')
+const ChainlinkOracle = require('./ethereumContractJSONs/Oracle.json')
 // // const ENSCache = require('./ethereumContractJSONs/ENSCache.json')
 // const StreamRegistry = require('./ethereumContractJSONs/StreamRegistry.json')
 
@@ -205,12 +205,13 @@ async function deployStreamRegistries() {
     })
 
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    const linkTokenFactory = await ethers.getContractFactory("LinkToken", sidechainWalletStreamReg)
+    const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
     const linkToken = await linkTokenFactoryTx.deployed()
     log(`Link Token deployed at ${linkToken.address}`)
 
-    const oracleFactory = await ethers.getContractFactory("Oracle", sidechainWalletStreamReg)
+    const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
+        ChainlinkOracle.compilerOutput.evm.bytecode.object, sidechainWalletStreamReg)
     const oracleFactoryTx = await oracleFactory.deploy(linkToken.address)
     const oracle = await oracleFactoryTx.deployed()
     log(`Chainlink Oracle deployed at ${oracle.address}`)
