@@ -70,14 +70,6 @@ describe('ENSCache', (): void => {
         await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, 'StreamCreated')
     })
 
-    it('positivetest queryENSOwner', async (): Promise<void> => {
-        await expect(ensCacheFromAdmin.requestENSOwner('ensdomain1')).to.not.throw
-    })
-
-    it('create stream with ens sync trigger', async (): Promise<void> => {
-        await expect(registryFromAdmin.createStreamWithENS('ensdomain1.eth', '/path', 'metadata')).to.not.throw
-    })
-
     // TODO: ENSCache is not meta-transaction ready right now
 
     // it('positivetest istrustedForwarder', async (): Promise<void> => {

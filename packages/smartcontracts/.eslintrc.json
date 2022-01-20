@@ -23,6 +23,7 @@
         "no-await-in-loop": "off",
         "no-plusplus": "off",
         "object-curly-newline": "off",
+        "no-multiple-empty-lines": ["error", { "max": 2, "maxEOF": 1 }],
         "import/extensions": [
             "error",
             "ignorePackages",
