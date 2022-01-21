@@ -1,8 +1,8 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 
-import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
 import { ethers, upgrades } from 'hardhat'
+import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
 
 import { ENSCache, LinkToken, Oracle, StreamRegistry } from '../../typechain'
 
@@ -39,10 +39,19 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 // const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
 // const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
-const ENSCACHEADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
-const STREAMREGISTRYADDRESS = '0x720daa1337B50DF384C3AcFa037A98D533059d0d'
-const CHAINLINK_JOBID = '020f92986c5840debdcbd99d607602d2' // https://github.com/streamr-dev/smart-contracts-init#running
+// ADDRESSES
+
+// const ORACLEADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
+// const ENSCACHEADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
+// const STREAMREGISTRYADDRESS = '0x720daa1337B50DF384C3AcFa037A98D533059d0d'
+// const CHAINLINK_JOBID = '020f92986c5840debdcbd99d607602d2' // https://github.com/streamr-dev/smart-contracts-init#running
+// const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
+
+// addresses localsidechain
+const ORACLEADDRESS = '0xD94D41F23F1D42C51Ab61685e5617BBC858e5871'
+const ENSCACHEADDRESS = '0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3'
+const STREAMREGISTRYADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+const CHAINLINK_JOBID = 'c99333d032ed4cb8967b956c7f0329b5' // https://github.com/streamr-dev/smart-contracts-init#running
 const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // Polygon mainet contract addresses
@@ -135,29 +144,29 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    randomENSName = 'aseqe.eth'
-    // randomENSName = randomDomain + '.eth'
-    // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
-    // const nameHashedENSName = utils.namehash(randomENSName)
-    // let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
+    // randomENSName = 'aseqe.eth'
+    randomENSName = randomDomain + '.eth'
+    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    const nameHashedENSName = utils.namehash(randomENSName)
+    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
+    await tx.wait()
+    console.log('seting resolver for ens')
+
+    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    await tx.wait(2)
+    console.log('setting owner for ens')
+
+    // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
     // await tx.wait()
-    // console.log('seting resolver for ens')
+    // console.log('3')
 
-    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    // await tx.wait(2)
-    // console.log('setting owner for ens')
+    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    await tx.wait()
+    console.log('querying owner from mainchain')
 
-    // // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
-    // // await tx.wait()
-    // // console.log('3')
-
-    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    // await tx.wait()
-    // console.log('querying owner from mainchain')
-
-    // const addr = await ensFomAdmin.owner(nameHashedENSName)
-    // console.log('queried owner of', randomENSName, ': ', addr)
+    const addr = await ensFomAdmin.owner(nameHashedENSName)
+    console.log('queried owner of', randomENSName, ': ', addr)
 }
 
 const setChainlinkTokenAddressinENSCache = async () => {
@@ -262,10 +271,10 @@ async function main() {
     // await upgradeStreamRegistry()
 
     // test stream creation
-    // await createAndCheckStreamWithoutENS()
+    await createAndCheckStreamWithoutENS()
 
-    // await registerENSNameOnMainnet()
-    // await triggerChainlinkSyncOfENSNameToSidechain()
+    await registerENSNameOnMainnet()
+    await triggerChainlinkSyncOfENSNameToSidechain()
 }
 
 main()
