@@ -58,8 +58,8 @@ const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
 // const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
 // const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-// const CHAINLINK_JOBID = '78295c4504404391ba2f114b045cc2da' // https://github.com/streamr-dev/smart-contracts-init#running
-// const CHAINLINK_NODE_ADDRESS = '0xc50A0581CCCcB0b64530D411e84316E6e47da1ba'
+// const CHAINLINK_JOBID = '13c04b52ce0c4716bb629a872c99b153' // https://github.com/streamr-dev/smart-contracts-init#running
+// const CHAINLINK_NODE_ADDRESS = '0xc244dA783A3B96f4D420A4eEfb105CD0Db4bE01a'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -128,7 +128,10 @@ const createAndCheckStreamWithoutENS = async () => {
     stringIdWithoutENS = walletSidechain.address.toLowerCase() + randomPath
     console.log('creating stream without ens with name ', stringIdWithoutENS, ' and metadata ', metadata1)
     const tx = await registryFromUser.createStream(randomPath, metadata1)
-    await tx.wait()
+    console.log('transaction: ', tx)
+    // await tx.wait()
+    const receipt = await sideChainProvider.waitForTransaction(tx.hash, 2, 60000)
+    console.log('receipt: ', receipt)
     const getMetadata = await registryFromUser.getStreamMetadata(stringIdWithoutENS)
     console.log('checking metadata from stream ', stringIdWithoutENS, ': ', getMetadata)
     console.log('SUCCESS creating stream worked')
@@ -144,29 +147,29 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    // randomENSName = 'aseqe.eth'
-    randomENSName = randomDomain + '.eth'
-    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
-    const nameHashedENSName = utils.namehash(randomENSName)
-    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
-    await tx.wait()
-    console.log('seting resolver for ens')
-
-    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    await tx.wait(2)
-    console.log('setting owner for ens')
-
-    // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    randomENSName = 'sam.eth'
+    // randomENSName = randomDomain + '.eth'
+    // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    // const nameHashedENSName = utils.namehash(randomENSName)
+    // let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
     // await tx.wait()
-    // console.log('3')
+    // console.log('seting resolver for ens')
 
-    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    await tx.wait()
-    console.log('querying owner from mainchain')
+    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    // await tx.wait(2)
+    // console.log('setting owner for ens')
 
-    const addr = await ensFomAdmin.owner(nameHashedENSName)
-    console.log('queried owner of', randomENSName, ': ', addr)
+    // // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
+    // // await tx.wait()
+    // // console.log('3')
+
+    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    // await tx.wait()
+    // console.log('querying owner from mainchain')
+
+    // const addr = await ensFomAdmin.owner(nameHashedENSName)
+    // console.log('queried owner of', randomENSName, ': ', addr)
 }
 
 const setChainlinkTokenAddressinENSCache = async () => {
@@ -273,8 +276,8 @@ async function main() {
     // test stream creation
     await createAndCheckStreamWithoutENS()
 
-    await registerENSNameOnMainnet()
-    await triggerChainlinkSyncOfENSNameToSidechain()
+    // await registerENSNameOnMainnet()
+    // await triggerChainlinkSyncOfENSNameToSidechain()
 }
 
 main()
