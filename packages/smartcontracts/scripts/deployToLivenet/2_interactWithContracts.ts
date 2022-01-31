@@ -1,8 +1,8 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 
-import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
 import { ethers, upgrades } from 'hardhat'
+import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
 
 import { ENSCache, LinkToken, Oracle, StreamRegistry } from '../../typechain'
 
@@ -39,18 +39,27 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 // const LINKTOKEN = '0xb0897686c545045afc77cf20ec7a532e3120e0f1'
 // const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 
-const ORACLEADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
-const ENSCACHEADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
-const STREAMREGISTRYADDRESS = '0x720daa1337B50DF384C3AcFa037A98D533059d0d'
-const CHAINLINK_JOBID = '020f92986c5840debdcbd99d607602d2' // https://github.com/streamr-dev/smart-contracts-init#running
+// ADDRESSES
+
+// const ORACLEADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
+// const ENSCACHEADDRESS = '0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b'
+// const STREAMREGISTRYADDRESS = '0x720daa1337B50DF384C3AcFa037A98D533059d0d'
+// const CHAINLINK_JOBID = '020f92986c5840debdcbd99d607602d2' // https://github.com/streamr-dev/smart-contracts-init#running
+// const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
+
+// addresses localsidechain
+const ORACLEADDRESS = '0xD94D41F23F1D42C51Ab61685e5617BBC858e5871'
+const ENSCACHEADDRESS = '0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3'
+const STREAMREGISTRYADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+const CHAINLINK_JOBID = 'c99333d032ed4cb8967b956c7f0329b5' // https://github.com/streamr-dev/smart-contracts-init#running
 const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
 // const ENSCACHEADDRESS = '0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A'
 // const STREAMREGISTRYADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-// const CHAINLINK_JOBID = '78295c4504404391ba2f114b045cc2da' // https://github.com/streamr-dev/smart-contracts-init#running
-// const CHAINLINK_NODE_ADDRESS = '0xc50A0581CCCcB0b64530D411e84316E6e47da1ba'
+// const CHAINLINK_JOBID = '13c04b52ce0c4716bb629a872c99b153' // https://github.com/streamr-dev/smart-contracts-init#running
+// const CHAINLINK_NODE_ADDRESS = '0xc244dA783A3B96f4D420A4eEfb105CD0Db4bE01a'
 
 // ens on mainnet
 const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
@@ -119,7 +128,10 @@ const createAndCheckStreamWithoutENS = async () => {
     stringIdWithoutENS = walletSidechain.address.toLowerCase() + randomPath
     console.log('creating stream without ens with name ', stringIdWithoutENS, ' and metadata ', metadata1)
     const tx = await registryFromUser.createStream(randomPath, metadata1)
-    await tx.wait()
+    console.log('transaction: ', tx)
+    // await tx.wait()
+    const receipt = await sideChainProvider.waitForTransaction(tx.hash, 2, 60000)
+    console.log('receipt: ', receipt)
     const getMetadata = await registryFromUser.getStreamMetadata(stringIdWithoutENS)
     console.log('checking metadata from stream ', stringIdWithoutENS, ': ', getMetadata)
     console.log('SUCCESS creating stream worked')
@@ -135,7 +147,7 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    randomENSName = 'aseqe.eth'
+    randomENSName = 'sam.eth'
     // randomENSName = randomDomain + '.eth'
     // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
     // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
@@ -262,7 +274,7 @@ async function main() {
     // await upgradeStreamRegistry()
 
     // test stream creation
-    // await createAndCheckStreamWithoutENS()
+    await createAndCheckStreamWithoutENS()
 
     // await registerENSNameOnMainnet()
     // await triggerChainlinkSyncOfENSNameToSidechain()

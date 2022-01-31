@@ -5,6 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch index.js",
+            "program": "${workspaceFolder}/packages/docker-dev-chain-init/index.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node",
+            "env": {
+                "DEBUG": "*"
+            },
+            "cwd": "${workspaceFolder}/packages/docker-dev-chain-init/",
+        },
+        {
+            "command": "npm run start -w=streamr-smart-contracts-init",
+            "name": "run init",
+            "request": "launch",
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+        },
+        {
             "command": "npm run deploylive2",
             "name": "Run leployment",
             "request": "launch",
