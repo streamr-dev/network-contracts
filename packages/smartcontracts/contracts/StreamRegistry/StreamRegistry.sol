@@ -1,13 +1,21 @@
+/**
+ * Deployed on 2021-01-11 to 0x0D483E10612F327FC11965Fc82E90dC19b141641
+ * DO NOT EDIT
+ * Instead, make a copy with new version number
+ */
+
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 /* solhint-disable not-rely-on-time */
 
-import "../metatx/ERC2771Context.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../chainlinkClient/ENSCache.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract StreamRegistry is ERC2771Context, AccessControl {
+contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -61,17 +69,27 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _;
     }
 
-    constructor(address ensCacheAddr, address trustedForwarderAddress) ERC2771Context(trustedForwarderAddress) {
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
+    function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
         ensCache = ENSCache(ensCacheAddr);
+        __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
-     function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address sender) {
+    function _authorizeUpgrade(address) internal override isTrusted() {}
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
-    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function setEnsCache(address ensCacheAddr) public isTrusted() {
+        ensCache = ENSCache(ensCacheAddr);
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
@@ -80,18 +98,38 @@ contract StreamRegistry is ERC2771Context, AccessControl {
     }
 
     function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
-        require(ensCache.owners(ensName) == _msgSender(), "error_notOwnerOfENSName");
-        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+        if (ensCache.owners(ensName) == _msgSender()) {
+            _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+        } else {
+            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, _msgSender());
+        }
     }
 
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
     }
 
+    /**
+     * Called by the ENSCache when the lookup / update is complete
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
+        require(ensCache.owners(ensName) == requestorAddress, "error_notOwnerOfENSName");
+        _createStreamAndPermission(ensName, streamIdPath, metadataJsonString);
+    }
+
     function _createStreamAndPermission(string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
         require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
 
         bytes memory pathBytes = bytes(streamIdPath);
+        for (uint i = 1; i < pathBytes.length; i++) {
+            //       - . / 0 1 2 ... 9
+            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) ||
+            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) ||
+            ((bytes1("a") <= pathBytes[i] && pathBytes[i] <= bytes1("z"))) ||
+            pathBytes[i] == "_"
+            , "error_invalidPathChars");
+        }
         require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
 
         // abi.encodePacked does simple string concatenation here
@@ -276,19 +314,41 @@ contract StreamRegistry is ERC2771Context, AccessControl {
         _setPermission(streamId, recipient, permissionType, true);
     }
 
-    function trustedSetStream(string calldata streamId, string calldata metadata) public isTrusted() {
+    function trustedSetStreamMetadata(string calldata streamId, string calldata metadata) public isTrusted() {
         streamIdToMetadata[streamId] = metadata;
         emit StreamUpdated(streamId, metadata);
     }
 
-    function trustedSetPermissionsForUser(string calldata streamId, address user, bool canEdit,
-        bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) public isTrusted() {
-            _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    function trustedSetStreamWithPermission(
+        string calldata streamId,
+        string calldata metadata,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        streamIdToMetadata[streamId] = metadata;
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+        emit StreamUpdated(streamId, metadata);
+    }
+
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     }
 
     function trustedSetStreams(string[] calldata streamids, address[] calldata users, string[] calldata metadatas, Permission[] calldata permissions) public isTrusted() {
         uint arrayLength = streamids.length;
-        for (uint i=0; i<arrayLength; i++) {
+        for (uint i = 0; i < arrayLength; i++) {
             string calldata streamId = streamids[i];
             streamIdToMetadata[streamId] = metadatas[i];
             Permission memory permission = permissions[i];
@@ -309,5 +369,9 @@ contract StreamRegistry is ERC2771Context, AccessControl {
            _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
        }
        return string(_string);
+    }
+
+    function getTrustedRole() public pure returns (bytes32) {
+        return TRUSTED_ROLE;
     }
 }

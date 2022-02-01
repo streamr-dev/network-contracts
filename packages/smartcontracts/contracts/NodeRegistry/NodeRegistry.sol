@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 
-// import "./Ownable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * @title NodeRegistry
+ * Streamr Network nodes register themselves here
+ * @dev OwnableUpgradable contract has an owner address, and provides basic authorization control
  * functions, this simplifies the implementation of "user permissions".
  */
-contract NodeRegistry is Ownable {
+contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     // TODO: next version isNew should be boolean
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
@@ -49,14 +51,19 @@ contract NodeRegistry is Ownable {
     mapping(address => NodeLinkedListItem) public nodes;
     mapping(address => WhitelistState) public whitelist;
 
-    constructor(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) Ownable() { // Ownable(owner) {
-        transferOwnership(owner);
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
+    function initialize(address owner, bool requiresWhitelist_, address[] memory initialNodes, string[] memory initialMetadata) public initializer {
+        __Ownable_init();
+        __UUPSUpgradeable_init();
         requiresWhitelist = requiresWhitelist_;
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         for (uint i = 0; i < initialNodes.length; i++) {
             createOrUpdateNode(initialNodes[i], initialMetadata[i]);
         }
+        transferOwnership(owner);
     }
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function getNode(address nodeAddress) public view returns (Node memory) {
         NodeLinkedListItem storage n = nodes[nodeAddress];

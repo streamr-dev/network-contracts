@@ -2,11 +2,30 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "command": "npm run e2etest",
+            "name": "Run npm run e2etest",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
             "name": "Launch via NPM",
             "request": "launch",
             "runtimeArgs": [
                 "run",
                 "test"
+            ],
+            "runtimeExecutable": "npm",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "name": "deploy",
+            "request": "launch",
+            "runtimeArgs": [
+                "run",
+                "deploylive"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
