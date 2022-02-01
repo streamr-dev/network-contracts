@@ -24,9 +24,6 @@
     "deploylive1": "hardhat run --network polygonTestMumbai1 scripts/deployToLivenet/1_deployContracts.ts",
     "deploylive": "hardhat run --network localsidechain scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/1_deployContracts.ts",
-    "migrateStreams": "hardhat run --network localsidechain scripts/migration/migrateStreams.ts",
-    "migrateStreams2": "hardhat run --network localsidechain scripts/migration/migrateStreamsHighGas.ts",
-    "cleanupStreams": "hardhat run --network localsidechain scripts/migration/cleanupStreams.ts",
     "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts"
   },
   "author": "Streamr Network AG",
