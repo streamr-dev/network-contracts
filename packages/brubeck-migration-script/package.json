@@ -23,6 +23,7 @@
     "eslint-config-streamr-nodejs": "^2.0.1",
     "hardhat-dependency-compiler": "^1.1.2",
     "mysql": "^2.18.1",
+    "node-fetch": "^2.6.6",
     "web3": "1.2.4"
   },
   "devDependencies": {
