@@ -5,7 +5,7 @@ on:
     tags:
       - '**'
     branches:
-      - main
+      - master
   pull_request:
     branches:
       - '**'
@@ -13,11 +13,11 @@ on:
     # run every day at 00:00
     - cron: '0 0 * * *'
 concurrency:
-  group: streamr-config-ci-${{ github.head_ref }}
+  group: config-ci-${{ github.head_ref }}
   cancel-in-progress: true
 defaults:
   run:
-    working-directory: packages/streamr-config
+    working-directory: packages/config
     shell: bash
 jobs:
   build:
