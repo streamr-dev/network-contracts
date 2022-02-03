@@ -1,11 +1,7 @@
 import networksAsJSON from "./networks.json"
 
-export interface Address {
-  toString(): string
-}
-
 export interface Contracts {
-  [name: string]: Address
+  [name: string]: string
 }
 
 export interface Chain {
