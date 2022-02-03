@@ -1,4 +1,3 @@
-import { Environment } from "./Environment"
 import networksAsJSON from "./networks.json"
 
 export interface Address {
@@ -17,6 +16,8 @@ export interface Chain {
 export interface Chains {
   [name: string]: Chain
 }
+
+export type Environment = "development" | "production"
 
 export type Networks = {
   [env in Environment]: Chains
