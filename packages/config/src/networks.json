@@ -77,7 +77,7 @@
             }
         },
         "binance-smart-chain": {
-            "id": 0,
+            "id": 56,
             "rpcHttpUrl": "https://bsc-dataseed.binance.org",
             "rpcWsUrl": "wss://bsc-dataseed.binance.org",
             "contracts": {
@@ -86,11 +86,16 @@
             }
         },
         "polygon": {
-            "id": 0,
+            "id": 137,
             "rpcHttpUrl": "https://polygon-rpc.com",
             "rpcWsUrl": "wss://polygon-rpc.com",
             "contracts": {
-                "DATA-token": "0x3a9A81d576d83FF21f26f325066054540720fC34"
+                "DATA-token": "0x3a9A81d576d83FF21f26f325066054540720fC34",
+                "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+                "ChainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
+                "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
+                "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
+                "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
             }
         }
     }
