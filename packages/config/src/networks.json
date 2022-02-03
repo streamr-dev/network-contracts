@@ -60,7 +60,7 @@
                 "MigrationManager": "0xf32219E61c840300D1B35c939ed9E54a86163334"
             }
         },
-        "xdai": {
+        "gnosis": {
             "id": 100,
             "rpcHttpUrl": "https://rpc.gnosischain.com",
             "rpcWsUrl": "wss://rpc.gnosischain.com/wss",
