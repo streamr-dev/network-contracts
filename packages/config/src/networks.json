@@ -78,7 +78,7 @@
                 "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59"
             }
         },
-        "binance-smart-chain": {
+        "binance": {
             "id": 56,
             "rpcHttpUrl": "https://bsc-dataseed.binance.org",
             "rpcWsUrl": "wss://bsc-dataseed.binance.org",
