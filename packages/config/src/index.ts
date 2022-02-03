@@ -10,6 +10,8 @@ export interface Contracts {
 
 export interface Chain {
   id: number
+  rpcHttpUrl: string
+  rpcWsUrl: string
   contracts: Contracts
 }
 
