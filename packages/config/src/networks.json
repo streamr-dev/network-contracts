@@ -32,7 +32,9 @@
                 "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
                 "DataUnionFactory": "0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927",
                 "DataUnionTemplate": "0x36afc8c9283CC866b8EB6a61C6e6862a83cd6ee8",
-                "StorageNodeRegistry": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
+                "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
+                "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
+                "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
                 "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415"
             }
         }
