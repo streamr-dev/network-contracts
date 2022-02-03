@@ -1,12 +1,12 @@
 /* eslint-disable max-len */
 import fetch from 'node-fetch'
-import { Debugger } from 'debug'
+import Debug from 'debug'
 
 export class GraphQLClient {
-    private debug: Debugger
+    private debug = Debug('migrator')
 
     // private theGraphUrl: string = 'https://api.thegraph.com/subgraphs/name/streamr-network/streamr-network'
-    private theGraphUrl: string = '10.200.10.1:8000/subgraphs/name/streamr-dev/network-contracts'
+    private theGraphUrl: string = 'http://10.200.10.1:8000/subgraphs/name/streamr-dev/network-contracts'
 
     async sendQuery(gqlQuery: string): Promise<Object> {
         this.debug('GraphQL query: %s', gqlQuery)

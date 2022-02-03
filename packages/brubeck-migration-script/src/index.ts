@@ -1,5 +1,7 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
+import comparator from './comparator'
+
 const mysql = require('mysql')
 
 const connection = mysql.createConnection({
@@ -40,7 +42,8 @@ connection.query(query, (error: any, results:any, fields: any) => {
         }
         streams[stream.id][stream.username].push(stream.operation)
     })
-    console.log('The solution is: ', streams)
+    console.log('streams from db: ', streams)
+    comparator(streams)
 })
 
 connection.end()
