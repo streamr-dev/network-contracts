@@ -41,6 +41,10 @@ export class Migrator {
     private registryFromMigrator : StreamRegistry
 
     async migrate(streams:any[]): Promise<void> {
+        .. check if stream exists, then create it,
+        then use trustedSetPermissionsForUser to set permissions
+        .. use StreamData array everywhere!
+        
         const streamDatas = await Migrator.convertToStreamDataArray(streams)
         this.sendStreamsToChain(streamDatas)
     }

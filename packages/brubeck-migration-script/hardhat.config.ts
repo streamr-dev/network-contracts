@@ -3,7 +3,7 @@
 import 'hardhat-typechain'
 // import { HardhatUserConfig } from 'hardhat/types'
 // import 'hardhat-deploy'
-// import 'hardhat-deploy-ethers'
+import 'hardhat-deploy-ethers'
 require('@openzeppelin/hardhat-upgrades')
 
 // require('solidity-coverage')

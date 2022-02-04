@@ -22,5 +22,8 @@
     },
     "devDependencies": {
         "ts-node": "^10.4.0"
+    },
+    "dependencies": {
+        "@nomiclabs/hardhat-ethers": "^2.0.4"
     }
 }
