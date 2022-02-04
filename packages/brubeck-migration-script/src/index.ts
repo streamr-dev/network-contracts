@@ -43,7 +43,8 @@ connection.query(query, (error: any, results:any, fields: any) => {
         streams[stream.id][stream.username].push(stream.operation)
     })
     console.log('streams from db: ', streams)
-    comparator(streams)
+    const migratedFilteredOut = comparator(streams)
+    
 })
 
 connection.end()

@@ -1,6 +1,6 @@
 // import { task } from 'hardhat/config'
 // import '@nomiclabs/hardhat-waffle'
-// import 'hardhat-typechain'
+import 'hardhat-typechain'
 // import { HardhatUserConfig } from 'hardhat/types'
 // import 'hardhat-deploy'
 // import 'hardhat-deploy-ethers'
@@ -75,5 +75,9 @@ module.exports = {
                     },
                 },
             }],
+    },
+    typechain: {
+        outDir: './typechain',
+        target: 'ethers-v5',
     }
 }

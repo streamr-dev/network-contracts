@@ -9,8 +9,6 @@ const buildQuery = (
 ): string => {
     const query = `
     {
-        streams (first: ${pageSize} id_gt: "${lastId}") {
-            {
                 streams (first: ${pageSize} id_gt: "${lastId}" where: {id_in: ${JSON.stringify(streamIds)}}) {
                      id
                      metadata
@@ -30,15 +28,16 @@ const buildQuery = (
     })
 }
 
-const compareToMigrated = async (streams: { id: string }[]): Promise<[]> => {
+const compareToMigrated = async (streams: { id: string }[]): Promise<any[]> => {
     const streamIDs = Object.keys(streams)
     const streamsFromTheGraph = graphqlClient.fetchPaginatedResults((lastId: string, pageSize: number) => buildQuery(lastId, pageSize, streamIDs))
-    for (let stream; (stream = (await streamsFromTheGraph.next()).value); ) {
+    // const a = await streamsFromTheGraph.next()
+    for (let stream; (stream = (await streamsFromTheGraph.next()).value);) {
         if (streamIDs.includes(stream.id)) {
             return []
         }
     }
-    return []
+    return streams
 }
 
 export default compareToMigrated
