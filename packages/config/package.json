@@ -38,17 +38,16 @@
     "url": "git+https://github.com/streamr-dev/network-contracts.git"
   },
   "keywords": [
-    "streamr",
-    "network",
+    "streamr network",
     "ethereum",
-    "smart",
-    "contract",
-    "address"
+    "ethereum address",
+    "smart contract",
+    "smart contract address"
   ],
   "author": "Kare Nuorteva <kare.nuorteva@streamr.network>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/streamr-dev/network-contracts/issues"
   },
-  "homepage": "https://github.com/streamr-dev/network-contracts#readme"
+  "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme"
 }
