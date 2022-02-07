@@ -47,17 +47,22 @@ Start with [Common Setup](#common-setup) before continuing.
 
 Run tests:
 ```bash
-npm test
+make test
 ```
 
 Run lint:
 ```bash
-npm run lint
+make lint
 ```
 
 Run build:
 ```bash
-npm run build
+make build
+```
+
+Run clean:
+```bash
+make clean
 ```
 
 ### Publish Release
@@ -66,12 +71,11 @@ Start with [Common Setup](#common-setup) before continuing.
 Login to Npmjs.com:
 ```bash
 npm login --registry https://registry.npmjs.org --scope @streamr
-
 ```
 
 Run build:
 ```bash
-npm run clean && npm run build
+make clean build
 ```
 
 Create a new release on Npmjs.com, update version in package.json, tag it on GitHub and push a release commit:
