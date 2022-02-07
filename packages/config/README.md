@@ -16,7 +16,10 @@ Import DATA token production Ethereum address as a variable in a Javascript proj
 import { Chains, loadConfig } from "index"
 
 const config: Chains = loadConfig("production")
-const address = config.ethereum.contracts["DATA-token"]
+const contractAddress: string = config.ethereum.contracts["DATA-token"]
+const chainId: number = config.ethereum.id
+const rpcHttpUrl: string = config.ethereum.rpcHttpUrl
+const rpcWsUrl: string = config.ethereum.rpcWsUrl
 ```
 
 Other languages can read the [JSON file](./src/networks.json) directly.
