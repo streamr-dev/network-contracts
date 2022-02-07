@@ -30,8 +30,7 @@
     "build": "npm run prepare",
     "prepare": "tsc --project tsconfig.json",
     "test": "mocha --config mocharc.json",
-    "lint": "eslint --config .eslintrc.js --ext .ts src test",
-    "clean": "rm -rf dist"
+    "lint": "eslint --config .eslintrc.js --ext .ts src test"
   },
   "repository": {
     "type": "git",
