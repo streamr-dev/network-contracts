@@ -69,7 +69,7 @@ export class Migrator {
                     id: streamid,
                     metadata: stream.metadata,
                     user,
-                    permissions: Migrator.convertPermissions(stream.permissions[user])
+                    permissions: stream.permissions[user]
                 })
             })
         })
@@ -78,23 +78,27 @@ export class Migrator {
 
     async init() {
         const networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
-        const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, networkProvider)
         const migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, networkProvider)
         const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
         const registry = await streamregistryFactory.attach(STREAMREGISTRY_ADDRESS)
         const registryContract = await registry.deployed()
-
-        // debug, only do this once
-        const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
         this.registryFromMigrator = await registryContract.connect(migratorWallet) as StreamRegistry
-        const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
-            migratorWallet.address)
-        await mtx.wait()
-        this.debug('added migrator role to ' + migratorWallet.address)
+
+        // debug, only needed once
+        // const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, networkProvider)
+        // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
+        // const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
+        //     migratorWallet.address)
+        // await mtx.wait()
+        // this.debug('added migrator role to ' + migratorWallet.address)
     }
 
     async sendStreamsToChain(streams: StreamData[]) {
         // const metadatas = new Array(streams.length)
+        if (streams.length === 0) {
+            this.debug('no streams to migrate')
+            return
+        }
         // metadatas.fill('')
         try {
             // const tx = await this.registryFromMigrator.populateTransaction.trustedBulkAddStreams(

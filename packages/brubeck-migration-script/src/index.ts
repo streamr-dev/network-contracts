@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 import { hexZeroPad } from '@ethersproject/bytes'
+import { ethers } from 'hardhat'
 import comparator from './comparator'
 import { Migrator, Permission } from './Migrator'
 
@@ -60,7 +62,7 @@ const main = async () => {
     connection.query(query, async (error: any, results:any, fields: any) => {
         if (error) { throw error }
         console.log('data from db: ', results)
-        const streams = {}
+        const streams: any = {}
         results.forEach((stream: any) => {
             if (!streams[stream.id]) {
                 streams[stream.id] = {
@@ -68,17 +70,21 @@ const main = async () => {
                     permissions: {}
                 }
             }
-            if (!streams[stream.id].permissions[stream.username]) {
-                streams[stream.id].permissions[stream.username] = []
+            if (ethers.utils.isAddress(stream.username)) {
+                if (!streams[stream.id].permissions[stream.username]) {
+                    streams[stream.id].permissions[stream.username] = []
+                }
+                streams[stream.id].permissions[stream.username].push(stream.operation)
             }
-            streams[stream.id].permissions[stream.username].push(stream.operation)
         })
-        convert permisssions here...
-        // streams = streams.map((stream: any) => {
-        //     return {
-        //         ...stream, permissions: Migrator.convertPermissions(stream.permissions)
-        //     }
-        // })
+        // convert permisssions here...
+        for (const streamid of Object.keys(streams)) {
+            const stream = streams[streamid]
+            for (const user of Object.keys(stream.permissions)) {
+                const convertedPermission = Migrator.convertPermissions(stream.permissions[user])
+                stream.permissions[user] = convertedPermission
+            }
+        }
 
         console.log('converted streams from db: ', streams)
         const migratedFilteredOut = await comparator(streams)
