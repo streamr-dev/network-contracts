@@ -37,20 +37,13 @@ const buildQuery = (
 }
 
 const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise<StreamsWithPermissions> => {
+    debug('comparing streams from DB to migrated streams, total: ' + Object.keys(streamsFromDB).length)
     const streamIDs = Object.keys(streamsFromDB)
-    // const resultStreams: StreamsWithPermissions = {}
     const streamsFromTheGraph = graphqlClient.fetchPaginatedResults<{id:string, metadata:string, permissions:({userAddress:string} & Permission)[]}>((lastId: string, pageSize: number) => buildQuery(lastId, pageSize, streamIDs))
     for await (const streamFromGraph of streamsFromTheGraph) {
         for (const userPermissionGraph of streamFromGraph.permissions) {
-            // const userPermissionsDb: Permission = Migrator.convertPermissions(streamsFromDB[streamFromGraph.id].permissions[userPermissionGraph.userAddress])
             const userPermissionsDb: Permission = streamsFromDB[streamFromGraph.id].permissions[userPermissionGraph.userAddress]
             let migrationRequired = false
-            // for (const signlePermissionKey in userPermissionsDb) {
-            //     if (userPermissionsDb[signlePermissionKey] && !userPermissionGraph[signlePermissionKey]) {
-            //         migrationRequired = true
-            //         break
-            //     }
-            // }
             if ((userPermissionsDb.canDelete && !userPermissionGraph.canDelete)
                 || (userPermissionsDb.canEdit && !userPermissionGraph.canEdit)
                 || (userPermissionsDb.canGrant && !userPermissionGraph.canGrant)
@@ -82,6 +75,7 @@ const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise
             delete streamsFromDB[streamFromGraph.id]
         }
     }
+    debug('streams left to migrate at least some permissions after comparison: ' + Object.keys(streamsFromDB).length)
     return streamsFromDB
 }
 

@@ -5,6 +5,7 @@ import { hexZeroPad } from '@ethersproject/bytes'
 import { ethers } from 'hardhat'
 import comparator from './comparator'
 import { Migrator, Permission } from './Migrator'
+import debug from 'debug'
 
 const mysql = require('mysql')
 
@@ -16,16 +17,6 @@ const connection = mysql.createConnection({
     password: 'password',
     database: 'core_test'
 })
-
-// export type PermissionData = {
-//     user: string,
-//     permissions: string[]
-// }
-// export type Stream = {
-//     id: string,
-//     metadata: string,
-//     permissions: PermissionData[]
-// }
 
 export type StreamsWithPermissions = {
     [key: string]: {
@@ -46,22 +37,11 @@ const main = async () => {
     // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
     // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
 
-    // update stream.migrate_to_brubeck = 0
-    // streams = {
-    //     "streamid1": {
-    //         "metadata": "alsdkfjadlfk",
-    //         "permissions": {
-    //              "userid1": ["stream_get", "stream_post", "stream_delete"],
-    //              "userid2": ["stream_get", "stream_post", "stream_delete"]
-    //         }
-    //     }
-    // }
-
     const query = 'select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where user.id = permission.user_id'
          + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username limit 10;'
     connection.query(query, async (error: any, results:any, fields: any) => {
         if (error) { throw error }
-        console.log('data from db: ', results)
+        debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
         const streams: any = {}
         results.forEach((stream: any) => {
             if (!streams[stream.id]) {
@@ -75,9 +55,10 @@ const main = async () => {
                     streams[stream.id].permissions[stream.username] = []
                 }
                 streams[stream.id].permissions[stream.username].push(stream.operation)
+            } else {
+                debug('skipping user ' + stream.username + ' in stream ' + stream.id + ' because user is not an address')
             }
         })
-        // convert permisssions here...
         for (const streamid of Object.keys(streams)) {
             const stream = streams[streamid]
             for (const user of Object.keys(stream.permissions)) {
@@ -85,8 +66,6 @@ const main = async () => {
                 stream.permissions[user] = convertedPermission
             }
         }
-
-        console.log('converted streams from db: ', streams)
         const migratedFilteredOut = await comparator(streams)
         await migrator.init()
         migrator.migrate(migratedFilteredOut)
@@ -97,7 +76,7 @@ const main = async () => {
 
 // eslint-disable-next-line promise/always-return
 main().then(() => {
-    console.log('done')
+    debug('done')
 }).catch((err: any) => {
-    console.log('err: ', err)
+    debug('err: ' + err)
 })

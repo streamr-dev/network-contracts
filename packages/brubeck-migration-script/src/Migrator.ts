@@ -1,12 +1,10 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable max-len */
-// import { TimerOptions } from 'timers'
 
 import Debug from 'debug'
 import hhat from 'hardhat'
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { MaxInt256 } from '@ethersproject/constants'
-// import ts from 'typescript'
 
 import { StreamRegistry } from '../typechain/StreamRegistry'
 import { StreamsWithPermissions } from '.'
@@ -31,7 +29,6 @@ export type Permission = {
 
 export type StreamData = {
     id: string,
-    metadata?: string,
     user: string,
     permissions: Permission
 }
@@ -39,16 +36,11 @@ export type StreamData = {
 export class Migrator {
     private debug = Debug('Migrator')
 
-    // private registryFromAdmin : StreamRegistry
-
     private registryFromMigrator : StreamRegistry
 
     async migrate(streams: StreamsWithPermissions): Promise<void> {
-        // .. check if stream exists, then create it,
-        // then use trustedSetPermissionsForUser to set permissions
         // eslint-disable-next-line no-restricted-syntax
         for (const streamid of Object.keys(streams)) {
-            const stream = streams[streamid]
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 this.debug('creating stream ' + streamid)
                 const tx = await this.registryFromMigrator.trustedSetStreamMetadata(streamid, 'metadata')
@@ -56,7 +48,6 @@ export class Migrator {
             }
         }
         const streamDatas = await Migrator.convertToStreamDataArray(streams)
-        // await this.registryFromMigrator.trustedSetPermissions(streamid, stream.user, this.convertPermissions(stream.permissions))
         this.sendStreamsToChain(streamDatas)
     }
 
@@ -67,7 +58,6 @@ export class Migrator {
             Object.keys(stream.permissions).forEach((user:string) => {
                 streamDatas.push({
                     id: streamid,
-                    metadata: stream.metadata,
                     user,
                     permissions: stream.permissions[user]
                 })
@@ -94,40 +84,20 @@ export class Migrator {
     }
 
     async sendStreamsToChain(streams: StreamData[]) {
-        // const metadatas = new Array(streams.length)
         if (streams.length === 0) {
             this.debug('no streams to migrate')
             return
         }
-        // metadatas.fill('')
         try {
-            // const tx = await this.registryFromMigrator.populateTransaction.trustedBulkAddStreams(
             const tx = await this.registryFromMigrator.trustedSetPermissions(
                 streams.map((el) => el.id),
                 streams.map((el) => el.user),
                 streams.map((el) => el.permissions)
             )
-            // eslint-disable-next-line no-underscore-dangle
-            // const timer = setTimeout(async () => {
-            //     console.log(`nothing happening for 20s, resending tx with nonce ${tx2.nonce}`)
-            //     const newGasPrice = (tx2.gasPrice as BigNumber).toNumber() //* 1.2
-            //     // const newGasPrice = 200
-            //     if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
-            //     const txResend = await migratorWallet.sendTransaction(tx)
-            //     console.log(`resent tx with nonce: ${txResend.nonce}, gas: ${parseInt(txResend.gasLimit._hex, 16)}, gasPrice: ${txResend.gasPrice?.toNumber()}`)
-            //     await txResend.wait()
-            //     console.log('mined resent tx with nonce ' + txResend.nonce)
-            // }, 30000)
-            // console.log(`tx2: ${JSON.stringify(tx2)}`)
             await tx.wait()
-            // clearTimeout(timer)
             this.debug('mined tx with nonce ' + tx.nonce)
         } catch (err: any) {
-            if (err.code === 'TRANSACTION_REPLACED') {
-                this.debug('a transaction got replaced')
-            } else {
-                this.debug(err)
-            }
+            this.debug(err)
         }
     }
 
