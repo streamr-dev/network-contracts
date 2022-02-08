@@ -26,6 +26,7 @@ export function handleStreamUpdate(event: StreamUpdated): void {
     let stream = Stream.load(event.params.id)
     if (stream === null) {
         stream = new Stream(event.params.id)
+        stream.createdAt = event.block.timestamp
     }
     stream.metadata = event.params.metadata
     stream.updatedAt = event.block.timestamp
