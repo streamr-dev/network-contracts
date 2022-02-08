@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.26.0",
-    "@typescript-eslint/eslint-plugin": "^5.10.0",
+    "@typescript-eslint/eslint-plugin": "^5.11.0",
     "@typescript-eslint/parser": "^5.10.0",
     "eslint-config-streamr-nodejs": "2.0.1",
     "eslint-plugin-chai-friendly": "^0.7.2",
