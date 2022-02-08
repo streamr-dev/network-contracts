@@ -7,7 +7,6 @@ import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { MaxInt256 } from '@ethersproject/constants'
 
 import { StreamRegistry } from '../typechain/StreamRegistry'
-import { StreamsWithPermissions } from '.'
 
 const { ethers } = hhat
 
@@ -16,8 +15,6 @@ const CHAIN_NODE_URL = 'http://localhost:8546'
 const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
 const STREAMREGISTRY_ADDRESS = '0xa2338F8be0941B361baBebb01ab8da5725CF0a33'
-const PROGRESS_FILENAME = 'progressFile.txt'
-const DATA_FILE = './streamData_cleaned.tsv'
 
 export type Permission = {
     canEdit: boolean;
@@ -25,6 +22,15 @@ export type Permission = {
     publishExpiration: BigNumberish;
     subscribeExpiration: BigNumberish;
     canGrant: boolean;
+}
+
+export type StreamsWithPermissions = {
+    [key: string]: {
+        metadata: string,
+        permissions: {
+            [key: string]: Permission
+        }
+    }
 }
 
 export type StreamData = {

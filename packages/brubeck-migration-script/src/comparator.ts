@@ -1,12 +1,11 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable max-len */
 import debug from 'debug'
+import { BigNumber } from '@ethersproject/bignumber'
 
 import { GraphQLClient } from './GraphQLClient'
-import { Permission } from './Migrator'
+import { Permission, StreamsWithPermissions } from './Migrator'
 
-import { StreamsWithPermissions } from '.'
-import { BigNumber } from '@ethersproject/bignumber'
 
 const graphqlClient = new GraphQLClient()
 const buildQuery = (
