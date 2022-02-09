@@ -35,7 +35,8 @@ build: node_modules ## Run build
 .PHONY: clean
 clean: ## Remove generated files
 	$(RM) -r \
-		dist
+		dist \
+		node_modules
 
 .PHONY: help
 help: ## Show Help
