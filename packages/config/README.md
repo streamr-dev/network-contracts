@@ -80,7 +80,7 @@ make clean build
 
 Create a new release on Npmjs.com, update version in package.json, tag it on GitHub and push a release commit:
 ```bash
-./release.sh 0.0.1
+./release.bash 0.0.1
 ```
 
 ## License

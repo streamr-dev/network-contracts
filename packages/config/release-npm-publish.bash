@@ -5,7 +5,7 @@ set -e -u -o pipefail
 function usage() {
 	local name
 	name=$(basename "$0")
-	echo "$name: Publish new version" 1>&2
+	echo "$name: Publish new version in Npm" 1>&2
 	echo "Usage: $name [-h] semver" 1>&2
 	echo "	-h Show help" 1>&2
 	echo "Example: $name 0.2.7" 1>&2
@@ -26,7 +26,6 @@ if test -z "$version"; then
 	exit 1
 fi
 
-./release-validate-semver.sh "$version"
+./release-validate-semver.bash "$version"
 
-./release-git-tag.sh "$version"
-./release-npm-publish.sh "$version"
+npm publish . --access public --tag "v$version"

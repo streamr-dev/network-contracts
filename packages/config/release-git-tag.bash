@@ -26,7 +26,7 @@ if test -z "$version"; then
 	exit 1
 fi
 
-./release-validate-semver.sh "$version"
+./release-validate-semver.bash "$version"
 
 # check for unstaged changes
 if ! git diff --exit-code --quiet; then
@@ -44,7 +44,7 @@ if output=$(git status --porcelain=v1) && test -n "$output"; then
 	exit 1
 fi
 
-./release-npm-update-version-package-json.sh "$version"
+./release-npm-update-version-package-json.bash "$version"
 
 # Create release commit
 git commit --message="chore: release @streamr/config ${version}"

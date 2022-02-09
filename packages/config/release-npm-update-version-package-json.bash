@@ -26,7 +26,7 @@ if test -z "$version"; then
 	exit 1
 fi
 
-./release-validate-semver.sh "$version"
+./release-validate-semver.bash "$version"
 
 sed -i '' -e 's/"version": ".*",$/"version": "'"$version"'",/g' package.json
 git add package.json
