@@ -65,14 +65,14 @@
     "solc": "0.8.6",
     "solhint": "^3.3.4",
     "solidity-coverage": "^0.7.17",
-    "ts-mocha": "^8.0.0",
+    "ts-mocha": "^9.0.2",
     "typechain": "^4.0.3"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@typechain/ethers-v5": "^6.0.5",
     "@types/debug": "^4.1.7",
-    "@types/mocha": "^8.2.2",
+    "@types/mocha": "^9.1.0",
     "@types/node": "^15.0.1",
     "bignumber.js": "^9.0.1",
     "eslint-config-airbnb-base": "^14.2.1",
