@@ -38,13 +38,13 @@ const main = async () => {
         debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
         const streams: any = {}
         results.forEach((queryResultLine: any) => {
-            if (!streams[queryResultLine.id]) {
-                streams[queryResultLine.id] = {
-                    metadata: queryResultLine.metadata,
-                    permissions: {}
-                }
-            }
             if (ethers.utils.isAddress(queryResultLine.username)) {
+                if (!streams[queryResultLine.id]) {
+                    streams[queryResultLine.id] = {
+                        metadata: queryResultLine.metadata,
+                        permissions: {}
+                    }
+                }
                 const userAddressLowercase = queryResultLine.username.toLowerCase()
                 if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
                     streams[queryResultLine.id].permissions[userAddressLowercase] = []
@@ -57,10 +57,14 @@ const main = async () => {
         for (const streamid of Object.keys(streams)) {
             const stream = streams[streamid]
             for (const user of Object.keys(stream.permissions)) {
+                if (Object.keys(stream.permissions[user]).length === 0) {
+                    debug('ERR')
+                }
                 const convertedPermission = Migrator.convertPermissions(stream.permissions[user])
                 stream.permissions[user] = convertedPermission
             }
         }
+        // didnt find user permissions in DB for stream -01aikENTQux4MByocrFzg user 0x4178babe9e5148c6d5fd431cd72884b07ad855a0
         const migratedFilteredOut = await comparator(streams)
         await migrator.init()
         migrator.migrate(migratedFilteredOut)
