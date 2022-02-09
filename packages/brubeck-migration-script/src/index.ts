@@ -29,19 +29,32 @@ const main = async () => {
     // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
     // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
 
+    //     select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation
+    // from user, stream, permission
+    // where stream.migrate_to_brubeck = 1
+    // and user.id = permission.user_id
+    // and permission.stream_id = stream.id
+    // and permission.operation != 'stream_get'
+    // order by stream.id, user.username;
+
     // debug update migration flag to 1
     // UPDATE stream SET migrate_to_brubeck = 1 LIMIT 100;
-    const query = 'select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
+    const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
          + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
     connection.query(query, async (error: any, results:any, fields: any) => {
         if (error) { throw error }
         debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
         const streams: any = {}
         results.forEach((queryResultLine: any) => {
+            const metadata = JSON.stringify({
+                description: queryResultLine.description,
+                partitions: queryResultLine.partitions,
+                inactivityThresholdHours: queryResultLine.inactivity_threshold_hours
+            })
             if (ethers.utils.isAddress(queryResultLine.username)) {
                 if (!streams[queryResultLine.id]) {
                     streams[queryResultLine.id] = {
-                        metadata: queryResultLine.metadata,
+                        metadata,
                         permissions: {}
                     }
                 }
