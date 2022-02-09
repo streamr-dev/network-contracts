@@ -27,5 +27,6 @@ if test -z "$version"; then
 fi
 
 ./release-validate-semver.sh "$version"
+
 ./release-git-tag.sh "$version"
 ./release-npm-publish.sh "$version"
