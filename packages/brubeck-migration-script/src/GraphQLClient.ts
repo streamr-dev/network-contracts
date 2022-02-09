@@ -9,7 +9,7 @@ export class GraphQLClient {
     private theGraphUrl: string = 'http://10.200.10.1:8000/subgraphs/name/streamr-dev/network-contracts'
 
     async sendQuery(gqlQuery: string): Promise<Object> {
-        this.debug('GraphQL query: %s', gqlQuery)
+        // this.debug('GraphQL query: %s', gqlQuery)
         const res = await fetch(this.theGraphUrl, {
             method: 'POST',
             headers: {
@@ -25,7 +25,7 @@ export class GraphQLClient {
         } catch {
             throw new Error(`GraphQL query failed with "${resText}", check that your theGraphUrl="${this.theGraphUrl}" is correct`)
         }
-        this.debug('GraphQL response: %o', resJson)
+        // this.debug('GraphQL response: %o', resJson)
         if (!resJson.data) {
             if (resJson.errors && resJson.errors.length > 0) {
                 throw new Error('GraphQL query failed: ' + JSON.stringify(resJson.errors.map((e: any) => e.message)))

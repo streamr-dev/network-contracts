@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable max-len */
 
@@ -40,28 +41,39 @@ export type StreamData = {
 }
 
 export class Migrator {
-    private debug = Debug('Migrator')
+    private debug = Debug('migration-script:migrator')
 
     private registryFromMigrator : StreamRegistry
 
+    private networkProvider: any
+
     async migrate(streams: StreamsWithPermissions): Promise<void> {
-        // eslint-disable-next-line no-restricted-syntax
         for (const streamid of Object.keys(streams)) {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 this.debug('creating stream ' + streamid)
-                const tx = await this.registryFromMigrator.trustedSetStreamMetadata(streamid, 'metadata')
+                const tx = await this.registryFromMigrator.trustedSetStreamMetadata(streamid, 'metadata',
+                    {
+                        gasPrice: this.networkProvider.getGasPrice().then((estimatedGasPrice: BigNumber) => estimatedGasPrice.add('10000000000'))
+                    })
                 await tx.wait()
             }
         }
-        const streamDatas = await Migrator.convertToStreamDataArray(streams)
-        this.sendStreamsToChain(streamDatas)
+        const streamDataChunks = await Migrator.convertToStreamDataArray(streams)
+        for (const streamData of streamDataChunks) {
+            await this.sendStreamsToChain(streamData)
+        }
     }
 
-    static async convertToStreamDataArray(streams:StreamsWithPermissions): Promise<StreamData[]> {
-        const streamDatas: StreamData[] = []
+    static async convertToStreamDataArray(streams:StreamsWithPermissions): Promise<StreamData[][]> {
+        const result: StreamData[][] = []
+        let streamDatas: StreamData[] = []
         Object.keys(streams).forEach((streamid:string) => {
             const stream = streams[streamid]
             Object.keys(stream.permissions).forEach((user:string) => {
+                if (streamDatas.length >= 20) {
+                    result.push(streamDatas)
+                    streamDatas = []
+                }
                 streamDatas.push({
                     id: streamid,
                     user,
@@ -69,12 +81,15 @@ export class Migrator {
                 })
             })
         })
-        return streamDatas
+        if (streamDatas.length > 0) {
+            result.push(streamDatas)
+        }
+        return result
     }
 
     async init() {
-        const networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
-        const migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, networkProvider)
+        this.networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
+        const migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, this.networkProvider)
         const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
         const registry = await streamregistryFactory.attach(STREAMREGISTRY_ADDRESS)
         const registryContract = await registry.deployed()
@@ -89,16 +104,20 @@ export class Migrator {
         // this.debug('added migrator role to ' + migratorWallet.address)
     }
 
-    async sendStreamsToChain(streams: StreamData[]) {
-        if (streams.length === 0) {
+    async sendStreamsToChain(streamDatas: StreamData[]) {
+        if (streamDatas.length === 0) {
             this.debug('no streams to migrate')
             return
         }
+        this.debug('migrating ' + streamDatas.length + ' streams-user-permissions')
         try {
             const tx = await this.registryFromMigrator.trustedSetPermissions(
-                streams.map((el) => el.id),
-                streams.map((el) => el.user),
-                streams.map((el) => el.permissions)
+                streamDatas.map((el) => el.id),
+                streamDatas.map((el) => el.user),
+                streamDatas.map((el) => el.permissions),
+                {
+                    gasPrice: this.networkProvider.getGasPrice().then((estimatedGasPrice: BigNumber) => estimatedGasPrice.add('10000000000'))
+                }
             )
             await tx.wait()
             this.debug('mined tx with nonce ' + tx.nonce)

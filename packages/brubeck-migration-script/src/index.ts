@@ -2,7 +2,7 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
 import { ethers } from 'hardhat'
-import debug from 'debug'
+import Debug from 'debug'
 
 import comparator from './comparator'
 import { Migrator } from './Migrator'
@@ -10,6 +10,7 @@ import { Migrator } from './Migrator'
 const mysql = require('mysql')
 
 const migrator = new Migrator()
+const debug = Debug('migration-script:index')
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -28,8 +29,10 @@ const main = async () => {
     // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
     // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
 
-    const query = 'select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where user.id = permission.user_id'
-         + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username limit 10;'
+    // debug update migration flag to 1
+    // UPDATE stream SET migrate_to_brubeck = 1 LIMIT 100;
+    const query = 'select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
+         + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
     connection.query(query, async (error: any, results:any, fields: any) => {
         if (error) { throw error }
         debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
@@ -42,10 +45,11 @@ const main = async () => {
                 }
             }
             if (ethers.utils.isAddress(queryResultLine.username)) {
-                if (!streams[queryResultLine.id].permissions[queryResultLine.username]) {
-                    streams[queryResultLine.id].permissions[queryResultLine.username] = []
+                const userAddressLowercase = queryResultLine.username.toLowerCase()
+                if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
+                    streams[queryResultLine.id].permissions[userAddressLowercase] = []
                 }
-                streams[queryResultLine.id].permissions[queryResultLine.username].push(queryResultLine.operation)
+                streams[queryResultLine.id].permissions[userAddressLowercase].push(queryResultLine.operation)
             } else {
                 debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
             }

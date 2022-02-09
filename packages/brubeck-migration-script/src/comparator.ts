@@ -1,13 +1,13 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable max-len */
-import debug from 'debug'
+import Debug from 'debug'
 import { BigNumber } from '@ethersproject/bignumber'
 
 import { GraphQLClient } from './GraphQLClient'
 import { Permission, StreamsWithPermissions } from './Migrator'
 
-
 const graphqlClient = new GraphQLClient()
+const debug = Debug('migration-script:compareToMigrated')
 const buildQuery = (
     lastId: string,
     pageSize: number,
@@ -35,6 +35,7 @@ const buildQuery = (
     })
 }
 
+// description, partitions, inactivit threshhold
 const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise<StreamsWithPermissions> => {
     debug('comparing streams from DB to migrated streams, total: ' + Object.keys(streamsFromDB).length)
     const streamIDs = Object.keys(streamsFromDB)
