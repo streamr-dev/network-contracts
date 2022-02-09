@@ -23,8 +23,7 @@
     "eslint-plugin-prefer-arrow": "1.2.3",
     "mocha": "9.2.0",
     "ts-node": "10.5.0",
-    "typescript": "4.5.5",
-    "typescript-eslint-parser": "22.0.0"
+    "typescript": "4.5.5"
   },
   "scripts": {
     "build": "npm run prepare",
