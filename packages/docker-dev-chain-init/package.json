@@ -1,5 +1,5 @@
 {
-  "name": "streamr-smart-contracts-init",
+  "name": "docker-dev-chain-init",
   "version": "1.0.0",
   "description": "Locally run Ethereum client for developing the Streamr services",
   "main": "index.js",
