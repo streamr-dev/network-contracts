@@ -86,13 +86,22 @@ describe('StreamRegistry', (): void => {
     const metadata1: string = 'streammetadata1'
 
     before(async (): Promise<void> => {
-        minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV3')
-        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+        minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
+        const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2,
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
                 kind: 'uups'
             })
-        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
+        registryFromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
+        // to upgrade the deployer must also have the trusted role
+        // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', wallets[0])
+        const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address,
+            streamregistryFactoryV3)
+        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        // eslint-disable-next-line require-atomic-updates
+        registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
