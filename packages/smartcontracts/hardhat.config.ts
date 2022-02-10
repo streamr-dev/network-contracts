@@ -4,20 +4,21 @@ import 'hardhat-typechain'
 import { HardhatUserConfig } from 'hardhat/types'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
+import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async (args, hre) => {
-    const accounts = await hre.ethers.getSigners()
-    // eslint-disable-next-line no-restricted-syntax
-    for (const account of accounts) {
-        // eslint-disable-next-line no-console
-        console.log(account.address)
-    }
-})
+// task('accounts', 'Prints the list of accounts', async (args, hre) => {
+//     const accounts = await hre.ethers.getSigners()
+//     // eslint-disable-next-line no-restricted-syntax
+//     for (const account of accounts) {
+//         // eslint-disable-next-line no-console
+//         console.log(account.address)
+//     }
+// })
 
 // TODO: add this to the hardhat-dependency-compiler repo as a pull request or whatever
 declare module 'hardhat/types/config' {
@@ -43,31 +44,37 @@ const config: HardhatUserConfig = {
         },
         localsidechain: {
             chainId: 8997,
-            url: 'http://localhost:8546'
-        }
+            url: 'http://10.200.10.1:8546',
+            accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
+        },
+        // polygonTestMumbai1: {
+        //     chainId: 80001,
+        //     url: 'https://rpc-mumbai.maticvigil.com',
+        // },
+        // polygonTestMumbai2: {
+        //     chainId: 80001,
+        //     url: 'https://matic-mumbai.chainstacklabs.com/',
+        // },
+        // polygonMainnet: {
+        //     chainId: 137,
+        //     url: 'https://polygon-rpc.com',
+        // }
     },
     dependencyCompiler: {
         paths: [
-            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
+            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            '@chainlink/contracts/src/v0.4/LinkToken.sol',
+            '@chainlink/contracts/src/v0.6/Oracle.sol'
         ],
     },
     solidity: {
         compilers: [
             {
-                version: '0.8.6',
+                version: '0.8.9',
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
-                    },
-                },
-            },
-            {
-                version: '0.7.4',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 5,
+                        runs: 100,
                     },
                 },
             },
@@ -76,7 +83,16 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 100,
+                    },
+                },
+            },
+            {
+                version: '0.4.24',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 100,
                     },
                 },
             },
@@ -85,24 +101,10 @@ const config: HardhatUserConfig = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 5,
+                        runs: 100,
                     },
                 },
             }],
-        overrides: {
-            'contracts/chainlinkClient/ESNCache.sol': {
-                version: '0.7.6',
-                settings: { }
-            },
-            'contracts/chainlinkClient/Token.sol': {
-                version: '0.6.6',
-                settings: { }
-            },
-            // 'contracts/chainlinkClient/Context.sol': {
-            //     version: '0.6.12',
-            //     settings: { }
-            // }
-        }
     },
     namedAccounts: {
         deployer: 0,
@@ -113,4 +115,3 @@ const config: HardhatUserConfig = {
     }
 }
 export default config
-

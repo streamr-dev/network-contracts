@@ -1,14 +1,13 @@
-import { ethers, waffle } from 'hardhat'
+import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
 
-import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
+// import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import { ENSMock } from '../typechain/StreamRegistry'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-import { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
-import exp from 'constants'
 
 const ethSigUtil = require('eth-sig-util')
 
@@ -86,10 +85,12 @@ describe('StreamRegistry', (): void => {
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        // enscache object is only used for createStreamWithENS function; if that's not called, then it can be dropped
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson, [user1Address, 'jobid']) as ENSCache
-        registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address]) as StreamRegistry
+        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
+                kind: 'uups'
+            })
+        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -106,6 +107,28 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
     })
 
+    it('positivetest createStream path character edgecases', async (): Promise<void> => {
+        expect(await registryFromAdmin.createStream('/', metadata0))
+            .to.not.throw
+        expect(await registryFromAdmin.createStream('/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-', metadata0))
+            .to.not.throw
+    })
+
+    it('negativetest createStream path character edgecases', async (): Promise<void> => {
+        await expect(registryFromAdmin.createStream('/,', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/:', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/@', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/[', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/`', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+        await expect(registryFromAdmin.createStream('/{', metadata0))
+            .to.be.revertedWith('error_invalidPathChars')
+    })
+
     it('negativetest createStream, already exists error', async (): Promise<void> => {
         await expect(registryFromAdmin.createStream(streamPath0, metadata0))
             .to.be.revertedWith('error_streamAlreadyExists')
@@ -118,6 +141,13 @@ describe('StreamRegistry', (): void => {
 
     it('positivetest getStreamMetadata', async (): Promise<void> => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata0)
+    })
+
+    it('positivetest setEnsCache', async (): Promise<void> => {
+        const role = await registryFromAdmin.TRUSTED_ROLE()
+        const has = await registryFromAdmin.hasRole(role, trustedAddress)
+        expect(has).to.equal(true)
+        await registryFromMigrator.setEnsCache('0x0000000000000000000000000000000000000000')
     })
 
     it('negativetest getStreamMetadata, stream doesnt exist', async (): Promise<void> => {
@@ -449,7 +479,7 @@ describe('StreamRegistry', (): void => {
             .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata0)
-        await registryFromMigrator.trustedSetStream(streamId0, metadata1)
+        await registryFromMigrator.trustedSetStreamMetadata(streamId0, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata1)
     })
@@ -466,8 +496,25 @@ describe('StreamRegistry', (): void => {
     })
 
     it('negativetest trustedSetStream', async (): Promise<void> => {
-        await expect(registryFromAdmin.trustedSetStream(streamId0, metadata1))
+        await expect(registryFromAdmin.trustedSetStreamMetadata(streamId0, metadata1))
             .to.be.revertedWith('error_mustBeTrustedRole')
+    })
+
+    it('positivetest trustedSetStreamWithPermissions', async (): Promise<void> => {
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true])
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata1)
+        await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata0, user0Address, false, false, 0, 0, false)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata0)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([false, false, BigNumber.from(0), BigNumber.from(0), false])
+        await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata1, user0Address, true, true, MAX_INT, MAX_INT, true)
+        expect(await registryFromAdmin.getStreamMetadata(streamId0))
+            .to.deep.equal(metadata1)
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
+            .to.deep.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true])
     })
 
     it('negativetest trustedSetPermissionsForUser', async (): Promise<void> => {
@@ -773,7 +820,7 @@ describe('StreamRegistry', (): void => {
     })
 
     it('positiveTest test bulk migrate', async (): Promise<void> => {
-        const STREAMS_TO_MIGRATE = 100
+        const STREAMS_TO_MIGRATE = 50
         const streamIds: string[] = []
         const users: string[] = []
         const metadatas: string[] = []

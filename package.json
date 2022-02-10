@@ -17,5 +17,8 @@
         "graph3_build": "npm run doAll -w=streamregistry-thegraph-subgraph",
         "graph": "npm run graph1_build && npm run graph2_copyInfo && npm run graph3_build",
         "e2etest": "npm run e2etest -w=smartcontracts"
+    },
+    "devDependencies": {
+        "ts-node": "^10.4.0"
     }
 }

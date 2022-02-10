@@ -20,7 +20,7 @@ To deploy the contract with a proxy into a locally running eth environment run
 ```
 npm run localDeployProxy
 ```
-then copy the Proxy and Proxyadmin adresses to the upgradeProxy.ts script and run it with
+then copy the Proxy and Proxyadmin addresses to the upgradeProxy.ts script and run it with
 ```
 npm run localUpgradeImpl
 ````

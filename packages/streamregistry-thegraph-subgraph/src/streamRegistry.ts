@@ -9,6 +9,8 @@ export function handleStreamCreation(event: StreamCreated): void {
         [event.params.id, event.params.metadata, event.block.number.toString()])
     let stream = new Stream(event.params.id)
     stream.metadata = event.params.metadata
+    stream.createdAt = event.block.timestamp
+    stream.updatedAt = event.block.timestamp
     stream.save()
 }
 
@@ -21,8 +23,13 @@ export function handleStreamDeletion(event: StreamDeleted): void {
 export function handleStreamUpdate(event: StreamUpdated): void {
     log.info('handleUpdateStream: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
-    let stream = Stream.load(event.params.id)!
+    let stream = Stream.load(event.params.id)
+    if (stream === null) {
+        stream = new Stream(event.params.id)
+        stream.createdAt = event.block.timestamp
+    }
     stream.metadata = event.params.metadata
+    stream.updatedAt = event.block.timestamp
     stream.save()
 }
 
@@ -39,4 +46,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     permission.subscribeExpiration = event.params.subscribeExpiration
     permission.canGrant = event.params.canGrant
     permission.save()
+    let stream = Stream.load(event.params.streamId)!
+    stream.updatedAt = event.block.timestamp
+    stream.save()
 }
