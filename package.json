@@ -19,6 +19,12 @@
         "e2etest": "npm run e2etest -w=smartcontracts"
     },
     "devDependencies": {
+        "eslint": "7.25.0",
+        "eslint-config-streamr-ts": "^4.0.1",
+        "eslint-plugin-promise": "^5.1.0",
+        "@typescript-eslint/eslint-plugin": "^4.22.1",
+        "@typescript-eslint/parser": "^4.22.1",
+        "eslint-plugin-chai-friendly": "^0.6.0",
         "ts-node": "10.4.0",
         "typescript": "4.2.4"
     }

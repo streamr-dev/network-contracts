@@ -9,7 +9,7 @@ import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
-const ethSigUtil = require('eth-sig-util')
+import ethSigUtil from 'eth-sig-util'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -54,7 +54,7 @@ const types = {
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
 
-const getBlocktime = async () : Promise<number> => {
+const getBlocktime = async (): Promise<number> => {
     const blocknumber = await ethers.provider.getBlockNumber()
     const block = await ethers.provider.getBlock(blocknumber)
     return block.timestamp
@@ -76,12 +76,12 @@ describe('StreamRegistry', (): void => {
     const user0Address: string = wallets[1].address
     const user1Address: string = wallets[2].address
     const trustedAddress: string = wallets[3].address
-    const streamPath0: string = '/streamPath0'
-    const streamPath1: string = '/streamPath1'
+    const streamPath0 = '/streamPath0'
+    const streamPath1 = '/streamPath1'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
     const streamId1: string = adminAdress.toLowerCase() + streamPath1
-    const metadata0: string = 'streammetadata0'
-    const metadata1: string = 'streammetadata1'
+    const metadata0 = 'streammetadata0'
+    const metadata1 = 'streammetadata1'
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder

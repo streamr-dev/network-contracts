@@ -396,7 +396,7 @@ async function smartContractInitialization() {
     const fifsDeployTx = await fifsDeploy.deploy(ens.address, rootNode.namehash)
     const fifs = await fifsDeployTx.deployed()
     log(`FIFSRegistrar deployed at ${fifs.address}`)
-    tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
+    let tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
     await tx.wait()
     const resDeploy = new ContractFactory(PublicResolver.abi, PublicResolver.bytecode, wallet)
     const resDeployTx = await resDeploy.deploy(ens.address)
