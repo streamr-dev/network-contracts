@@ -19,6 +19,6 @@
         "e2etest": "npm run e2etest -w=smartcontracts"
     },
     "devDependencies": {
-        "ts-node": "^10.4.0"
+        "ts-node": "10.4.0"
     }
 }
