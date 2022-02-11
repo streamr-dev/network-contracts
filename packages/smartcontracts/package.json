@@ -72,7 +72,6 @@
     "@types/debug": "^4.1.7",
     "@types/mocha": "^9.1.0",
     "@types/node": "^15.0.1",
-    "bignumber.js": "^9.0.1",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-streamr-nodejs": "2.0.1",
     "eslint-plugin-chai-friendly": "^0.6.0",
