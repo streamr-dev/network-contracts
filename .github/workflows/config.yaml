@@ -26,8 +26,8 @@ jobs:
           cache-dependency-path: |
             ./package-lock.json
       - run: |
-          cd packages/config
           npm ci
+          cd packages/config
           npm run lint
           npm run test
           npm run build
