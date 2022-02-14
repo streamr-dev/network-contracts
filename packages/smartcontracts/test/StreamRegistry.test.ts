@@ -50,7 +50,7 @@ const types = {
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
 
-const getBlocktime = async () : Promise<number> => {
+const getBlocktime = async (): Promise<number> => {
     const blocknumber = await ethers.provider.getBlockNumber()
     const block = await ethers.provider.getBlock(blocknumber)
     return block.timestamp
@@ -72,14 +72,14 @@ describe('StreamRegistry', (): void => {
     const user0Address: string = wallets[1].address
     const user1Address: string = wallets[2].address
     const trustedAddress: string = wallets[3].address
-    const streamPath0: string = '/streamPath0'
-    const streamPath1: string = '/streamPath1'
-    const streamPath2: string = '/streamPath2'
+    const streamPath0 = '/streamPath0'
+    const streamPath1 = '/streamPath1'
+    const streamPath2 = '/streamPath2'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
     const streamId1: string = adminAdress.toLowerCase() + streamPath1
     const streamId2: string = adminAdress.toLowerCase() + streamPath2
-    const metadata0: string = 'streammetadata0'
-    const metadata1: string = 'streammetadata1'
+    const metadata0 = 'streammetadata0'
+    const metadata1 = 'streammetadata1'
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
