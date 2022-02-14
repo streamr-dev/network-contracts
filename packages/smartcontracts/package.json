@@ -46,7 +46,6 @@
     "@openzeppelin/hardhat-upgrades": "^1.12.0",
     "debug": "^4.3.1",
     "eth-ens-namehash": "^2.0.8",
-    "eth-sig-util": "^2.5.4",
     "ethers": "^5.1.4",
     "event-stream": "^4.0.1",
     "hardhat": "^2.2.1",
@@ -56,11 +55,11 @@
     "hardhat-typechain": "^0.3.5"
   },
   "devDependencies": {
+    "@metamask/eth-sig-util": "^4.0.0",
     "solc": "0.8.6",
     "solidity-coverage": "^0.7.17",
     "typechain": "^4.0.3",
     "solhint": "^3.3.4",
-    "eth-sig-util": "3.0.0",
     "ts-mocha": "9.0.2",
     "mocha": "9.2.0",
     "@types/chai": "^4.2.22",
