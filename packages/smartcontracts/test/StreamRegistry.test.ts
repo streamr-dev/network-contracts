@@ -938,5 +938,5 @@ describe('StreamRegistry', (): void => {
             .to.be.revertedWith('error_mustBeTrustedRole')
         await expect(registryFromUser0.trustedSetPermissions([`${user0Address}/test`], [user0Address], [permissions]))
             .to.be.revertedWith('error_mustBeTrustedRole')
-})
+    })
 })
