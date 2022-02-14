@@ -22,7 +22,7 @@ export type Networks = {
 }
 
 export const loadConfig = (env: Environment): Chains => {
-  const networks: Networks = networksAsJSON
-  const chain: Chains = networks[env]
-  return chain
+    const networks: Networks = networksAsJSON
+    const chain: Chains = networks[env]
+    return chain
 }
