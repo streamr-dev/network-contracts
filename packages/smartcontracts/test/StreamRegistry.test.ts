@@ -1,15 +1,11 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
+import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-// import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-// import ENSMockJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-// import { ENSMock } from '../typechain/StreamRegistry'
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
-
-const ethSigUtil = require('eth-sig-util')
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -669,20 +665,23 @@ describe('StreamRegistry', (): void => {
             nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
             data
         }
-        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[0].privateKey), // user0
-            {
-                data: {
-                    types,
-                    domain: {
-                        name: 'MinimalForwarder',
-                        version: '0.0.1',
-                        chainId: (await provider.getNetwork()).chainId,
-                        verifyingContract: minimalForwarderFromUser0.address,
-                    },
-                    primaryType: 'ForwardRequest',
-                    message: req
-                }
-            })
+        const d: TypedMessage<any> = {
+            types,
+            domain: {
+                name: 'MinimalForwarder',
+                version: '0.0.1',
+                chainId: (await provider.getNetwork()).chainId,
+                verifyingContract: minimalForwarderFromUser0.address,
+            },
+            primaryType: 'ForwardRequest',
+            message: req,
+        }
+        const options = {
+            data: d,
+            privateKey: utils.arrayify(wallets[0].privateKey) as Buffer,
+            version: SignTypedDataVersion.V4,
+        }
+        const sign = signTypedData(options) // user0
 
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be.true
@@ -706,20 +705,23 @@ describe('StreamRegistry', (): void => {
             data
         }
         // signing with user1 (walletindex 2)
-        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[2].privateKey), // user0
-            {
-                data: {
-                    types,
-                    domain: {
-                        name: 'MinimalForwarder',
-                        version: '0.0.1',
-                        chainId: (await provider.getNetwork()).chainId,
-                        verifyingContract: minimalForwarderFromUser0.address,
-                    },
-                    primaryType: 'ForwardRequest',
-                    message: req
-                }
-            })
+        const d: TypedMessage<any> = {
+            types,
+            domain: {
+                name: 'MinimalForwarder',
+                version: '0.0.1',
+                chainId: (await provider.getNetwork()).chainId,
+                verifyingContract: minimalForwarderFromUser0.address,
+            },
+            primaryType: 'ForwardRequest',
+            message: req,
+        }
+        const options = {
+            data: d,
+            privateKey: utils.arrayify(wallets[2].privateKey) as Buffer,
+            version: SignTypedDataVersion.V4,
+        }
+        const sign = signTypedData(options) // user0
 
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be.false
@@ -740,20 +742,23 @@ describe('StreamRegistry', (): void => {
             data
         }
         // signing with user1 (walletindex 2)
-        const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[0].privateKey), // user0
-            {
-                data: {
-                    types,
-                    domain: {
-                        name: 'MinimalForwarder',
-                        version: '0.0.1',
-                        chainId: (await provider.getNetwork()).chainId,
-                        verifyingContract: minimalForwarderFromUser0.address,
-                    },
-                    primaryType: 'ForwardRequest',
-                    message: req
-                }
-            })
+        const d: TypedMessage<any> = {
+            types,
+            domain: {
+                name: 'MinimalForwarder',
+                version: '0.0.1',
+                chainId: (await provider.getNetwork()).chainId,
+                verifyingContract: minimalForwarderFromUser0.address,
+            },
+            primaryType: 'ForwardRequest',
+            message: req,
+        }
+        const options = {
+            data: d,
+            privateKey: utils.arrayify(wallets[0].privateKey) as Buffer,
+            version: SignTypedDataVersion.V4,
+        }
+        const sign = signTypedData(options) // user0
 
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be.true
