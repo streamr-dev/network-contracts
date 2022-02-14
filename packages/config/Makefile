@@ -1,6 +1,6 @@
 LANG := en_US.UTF-8
 SHELL := /bin/bash
-.SHELLFLAGS := -e -u -o pipefail -c
+.SHELLFLAGS := --norc --noprofile -e -u -o pipefail -c
 .DEFAULT_GOAL = test
 
 nvm_brew = /usr/local/opt/nvm/nvm.sh
@@ -14,7 +14,7 @@ endif
 node_version = $(shell cat ../../.nvmrc)
 define npm
 	@$(eval npm_args=$(1))
-	bash -e -o pipefail -l -c "source $(nvm_sh) && nvm exec $(node_version) npm $(npm_args)"
+	bash --norc --noprofile -e -o pipefail -l -c "source $(nvm_sh) && nvm exec $(node_version) npm $(npm_args)"
 endef
 
 node_modules: ## Run 'npm ci' if node_modules directory doesn't exist
