@@ -925,4 +925,18 @@ describe('StreamRegistry', (): void => {
             expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
         }
     })
+
+    it('negativetest trustedSetPermissions', async (): Promise<void> => {
+        const permissions = {
+            canEdit: true,
+            canDelete: true,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        await expect(registryFromUser0.trustedCreateStreams([`${user0Address}/test`], ['meta']))
+            .to.be.revertedWith('error_mustBeTrustedRole')
+        await expect(registryFromUser0.trustedSetPermissions([`${user0Address}/test`], [user0Address], [permissions]))
+            .to.be.revertedWith('error_mustBeTrustedRole')
+})
 })
