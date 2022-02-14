@@ -78,19 +78,30 @@ describe('StreamRegistry', (): void => {
     const trustedAddress: string = wallets[3].address
     const streamPath0: string = '/streamPath0'
     const streamPath1: string = '/streamPath1'
+    const streamPath2: string = '/streamPath2'
     const streamId0: string = adminAdress.toLowerCase() + streamPath0
     const streamId1: string = adminAdress.toLowerCase() + streamPath1
+    const streamId2: string = adminAdress.toLowerCase() + streamPath2
     const metadata0: string = 'streammetadata0'
     const metadata1: string = 'streammetadata1'
 
     before(async (): Promise<void> => {
-        minimalForwarderFromUser0 = await deployContract(wallets[1], ForwarderJson) as MinimalForwarder
-        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
-        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+        minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
+        const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2,
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
                 kind: 'uups'
             })
-        registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
+        registryFromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
+        // to upgrade the deployer must also have the trusted role
+        // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', wallets[0])
+        const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address,
+            streamregistryFactoryV3)
+        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        // eslint-disable-next-line require-atomic-updates
+        registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -400,6 +411,11 @@ describe('StreamRegistry', (): void => {
         await registryFromAdmin.grantPublicPermission(streamId0, PermissionType.Subscribe)
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, user0Address))
             .to.deep.equal([false, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false])
+        expect(await registryFromAdmin.hasPublicPermission(streamId0, PermissionType.Publish)).to.equal(true)
+        expect(await registryFromAdmin.hasPublicPermission(streamId0, PermissionType.Subscribe)).to.equal(true)
+        expect(await registryFromAdmin.hasPublicPermission(streamId0, PermissionType.Edit)).to.equal(false)
+        expect(await registryFromAdmin.hasPublicPermission(streamId0, PermissionType.Delete)).to.equal(false)
+        expect(await registryFromAdmin.hasPublicPermission(streamId0, PermissionType.Share)).to.equal(false)
     })
 
     it('negativetest grantPublicPermission', async (): Promise<void> => {
@@ -473,6 +489,42 @@ describe('StreamRegistry', (): void => {
         )
     })
 
+    it('positivetest setPermissionsMultipleStreams', async (): Promise<void> => {
+        const userA = ethers.Wallet.createRandom().address
+        const userB = ethers.Wallet.createRandom().address
+        await registryFromAdmin.createStream(streamPath2, metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(streamId2)).to.equal(metadata1)
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: false
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: true,
+            publishExpiration: 1,
+            subscribeExpiration: 1,
+            canGrant: true
+        }
+
+        await registryFromAdmin.setPermissionsMultipleStreans([streamId0, streamId2],
+            [[userA, userB], [userA, userB]], [[permissionA, permissionB], [permissionA, permissionB]])
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userA)).to.deep.equal(
+            [true, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, userB)).to.deep.equal(
+            [false, true, BigNumber.from(1), BigNumber.from(1), true]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId2, userA)).to.deep.equal(
+            [true, false, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), false]
+        )
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId2, userB)).to.deep.equal(
+            [false, true, BigNumber.from(1), BigNumber.from(1), true]
+        )
+    })
+
     // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
     it('positivetest trustedRoleSetStream', async (): Promise<void> => {
         expect(await registryFromAdmin.getPermissionsForUser(streamId0, trustedAddress))
@@ -482,6 +534,10 @@ describe('StreamRegistry', (): void => {
         await registryFromMigrator.trustedSetStreamMetadata(streamId0, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId0))
             .to.deep.equal(metadata1)
+    })
+
+    it('positivetest getTrustedRoleId', async (): Promise<void> => {
+        expect(await registryFromAdmin.getTrustedRole()).to.equal('0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7')
     })
 
     it('positivetest trustedRoleSetPermissionsForUser', async (): Promise<void> => {
@@ -819,7 +875,7 @@ describe('StreamRegistry', (): void => {
             .to.equal(false)
     })
 
-    it('positiveTest test bulk migrate', async (): Promise<void> => {
+    it('positiveTest trustedSetStreams', async (): Promise<void> => {
         const STREAMS_TO_MIGRATE = 50
         const streamIds: string[] = []
         const users: string[] = []
@@ -842,5 +898,45 @@ describe('StreamRegistry', (): void => {
         for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
             expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
         }
+    })
+
+    it('positiveTest trustedSetPermissions', async (): Promise<void> => {
+        const STREAMS_TO_MIGRATE = 50
+        const streamIds: string[] = []
+        const users: string[] = []
+        const metadatas: string[] = []
+        const permissions = []
+        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
+            const user = Wallet.createRandom()
+            streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
+            users.push(user.address)
+            metadatas.push(`metadata-${i}`)
+            permissions.push({
+                canEdit: true,
+                canDelete: true,
+                publishExpiration: MAX_INT,
+                subscribeExpiration: MAX_INT,
+                canGrant: true
+            })
+        }
+        await registryFromMigrator.trustedCreateStreams(streamIds, metadatas)
+        await registryFromMigrator.trustedSetPermissions(streamIds, users, permissions)
+        for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
+            expect(await registryFromAdmin.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
+        }
+    })
+
+    it('negativetest trustedSetPermissions', async (): Promise<void> => {
+        const permissions = {
+            canEdit: true,
+            canDelete: true,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        await expect(registryFromUser0.trustedCreateStreams([`${user0Address}/test`], ['meta']))
+            .to.be.revertedWith('error_mustBeTrustedRole')
+        await expect(registryFromUser0.trustedSetPermissions([`${user0Address}/test`], [user0Address], [permissions]))
+            .to.be.revertedWith('error_mustBeTrustedRole')
     })
 })
