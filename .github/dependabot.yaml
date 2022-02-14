@@ -1,6 +1,7 @@
----
+#
 # https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates
-
+#
+---
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -16,6 +17,23 @@ updates:
       - ci
     assignees:
       - DaisyDomergue
+    reviewers:
+      - kare
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - build
+    reviewers:
+      - kare
 
   - package-ecosystem: npm
     directory: /packages/chainlink-ens-external-adapter
@@ -29,8 +47,6 @@ updates:
       include: scope
     labels:
       - build
-    assignees:
-      - samt1803
 
   - package-ecosystem: npm
     directory: /packages/smartcontracts
@@ -44,8 +60,6 @@ updates:
       include: scope
     labels:
       - build
-    assignees:
-      - samt1803
 
   - package-ecosystem: npm
     directory: /packages/streamregistry-thegraph-subgraph
@@ -59,8 +73,6 @@ updates:
       include: scope
     labels:
       - build
-    assignees:
-      - samt1803
 
   - package-ecosystem: npm
     directory: /packages/config
@@ -76,6 +88,8 @@ updates:
       - build
     assignees:
       - kare
+    reviewers:
+      - kare
 
   - package-ecosystem: npm
     directory: /packages/docker-dev-chain-init
@@ -89,8 +103,6 @@ updates:
       include: scope
     labels:
       - build
-    assignees:
-      - teogeb
 
   - package-ecosystem: docker
     directory: /packages/docker-dev-chain-init
