@@ -2,16 +2,11 @@
 name: streamr-config package
 on:
   push:
-    tags:
-      - '**'
     branches:
       - master
   pull_request:
     branches:
-      - '**'
-  schedule:
-    # run every day at 00:00
-    - cron: '0 0 * * *'
+      - master
 concurrency:
   group: config-ci-${{ github.head_ref }}
   cancel-in-progress: true
@@ -21,20 +16,15 @@ defaults:
 jobs:
   build:
     name: Lint & Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version:
-          - 16.x
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.4.0
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2.4.1
+      - uses: actions/setup-node@v2.5.1
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
           cache-dependency-path: |
-            package-lock.json
+            ./package-lock.json
       - run: |
           cd packages/config
           npm ci
