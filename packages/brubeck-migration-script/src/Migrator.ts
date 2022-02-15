@@ -13,7 +13,7 @@ const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
 // const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+// const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
 const STREAMREGISTRY_ADDRESS = '0x8f83273a293292b0142d810623568Ea5A248CA58'
 
@@ -43,11 +43,11 @@ export type StreamData = {
 export class Migrator {
     private debug = Debug('migration-script:migrator')
 
-    private registryFromMigrator : StreamRegistry
+    private registryFromMigrator: StreamRegistry
 
     private networkProvider: any
 
-    async migrate(streams: StreamsWithPermissions, mysql: any): Promise<void> {
+    async migrate(streams: StreamsWithPermissions, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
         for (const streamid of Object.keys(streams)) {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 this.debug('creating stream ' + streamid)
@@ -70,7 +70,7 @@ export class Migrator {
         }
     }
 
-    async updateDB(streams: { [key: string]: Date }, mysql: any) {
+    async updateDB(streams: { [key: string]: Date }, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
         this.debug('updating db with ' + Object.keys(streams).length + ' streams')
         for (const streamid of Object.keys(streams)) {
             const updatedAt = streams[streamid].toISOString().slice(0, 19).replace('T', ' ')
@@ -80,12 +80,12 @@ export class Migrator {
         }
     }
 
-    static async convertToStreamDataArray(streams:StreamsWithPermissions): Promise<StreamData[][]> {
+    static async convertToStreamDataArray(streams: StreamsWithPermissions): Promise<StreamData[][]> {
         const result: StreamData[][] = []
         let streamDatas: StreamData[] = []
-        Object.keys(streams).forEach((streamid:string) => {
+        Object.keys(streams).forEach((streamid: string) => {
             const stream = streams[streamid]
-            Object.keys(stream.permissions).forEach((user:string) => {
+            Object.keys(stream.permissions).forEach((user: string) => {
                 if (streamDatas.length >= 20) {
                     result.push(streamDatas)
                     streamDatas = []
@@ -103,7 +103,7 @@ export class Migrator {
         return result
     }
 
-    async init() {
+    async init(): Promise<void> {
         this.networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
         const migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, this.networkProvider)
         const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
@@ -120,7 +120,7 @@ export class Migrator {
         // this.debug('added migrator role to ' + migratorWallet.address)
     }
 
-    async sendStreamsToChain(streamDatas: StreamData[]) {
+    async sendStreamsToChain(streamDatas: StreamData[]): Promise<void> {
         if (streamDatas.length === 0) {
             this.debug('no streams to migrate')
             return
