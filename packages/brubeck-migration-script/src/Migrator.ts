@@ -15,7 +15,7 @@ const CHAIN_NODE_URL = 'http://localhost:8546'
 // const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
-const STREAMREGISTRY_ADDRESS = '0xa2338F8be0941B361baBebb01ab8da5725CF0a33'
+const STREAMREGISTRY_ADDRESS = '0x8f83273a293292b0142d810623568Ea5A248CA58'
 
 export type Permission = {
     canEdit: boolean;
@@ -47,7 +47,7 @@ export class Migrator {
 
     private networkProvider: any
 
-    async migrate(streams: StreamsWithPermissions): Promise<void> {
+    async migrate(streams: StreamsWithPermissions, mysql: any): Promise<void> {
         for (const streamid of Object.keys(streams)) {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 this.debug('creating stream ' + streamid)
@@ -59,8 +59,24 @@ export class Migrator {
             }
         }
         const streamDataChunks = await Migrator.convertToStreamDataArray(streams)
+        let updatedStreams: { [key: string]: Date} = {}
         for (const streamData of streamDataChunks) {
             await this.sendStreamsToChain(streamData)
+            for (const streamDataItem of streamData) {
+                updatedStreams[streamDataItem.id] = new Date()
+            }
+            await this.updateDB(updatedStreams, mysql)
+            updatedStreams = {}
+        }
+    }
+
+    async updateDB(streams: { [key: string]: Date }, mysql: any) {
+        this.debug('updating db with ' + Object.keys(streams).length + ' streams')
+        for (const streamid of Object.keys(streams)) {
+            const updatedAt = streams[streamid].toISOString().slice(0, 19).replace('T', ' ')
+            const sql = 'UPDATE stream SET migrate_sync_last_run_at = ? WHERE id = ?'
+            const params = [updatedAt, streamid]
+            await mysql.query(sql, params)
         }
     }
 

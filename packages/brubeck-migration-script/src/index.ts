@@ -1,6 +1,22 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-param-reassign */
 /* eslint-disable max-len */
+
+// get all data
+    // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
+    // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
+
+    //     select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation
+    // from user, stream, permission
+    // where stream.migrate_to_brubeck = 1
+    // and user.id = permission.user_id
+    // and permission.stream_id = stream.id
+    // and permission.operation != 'stream_get'
+    // order by stream.id, user.username;
+
+    // debug update migration flag to 1
+    // UPDATE stream SET migrate_to_brubeck = 1 LIMIT 100;
+
 import { ethers } from 'hardhat'
 import Debug from 'debug'
 
@@ -25,20 +41,6 @@ const main = async () => {
         debug('Connected!')
     })
 
-    // get all data
-    // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
-    // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
-
-    //     select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation
-    // from user, stream, permission
-    // where stream.migrate_to_brubeck = 1
-    // and user.id = permission.user_id
-    // and permission.stream_id = stream.id
-    // and permission.operation != 'stream_get'
-    // order by stream.id, user.username;
-
-    // debug update migration flag to 1
-    // UPDATE stream SET migrate_to_brubeck = 1 LIMIT 100;
     const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
          + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
     connection.query(query, async (error: any, results:any, fields: any) => {
@@ -77,13 +79,12 @@ const main = async () => {
                 stream.permissions[user] = convertedPermission
             }
         }
-        // didnt find user permissions in DB for stream -01aikENTQux4MByocrFzg user 0x4178babe9e5148c6d5fd431cd72884b07ad855a0
         const migratedFilteredOut = await comparator(streams)
         await migrator.init()
-        migrator.migrate(migratedFilteredOut)
+        await migrator.migrate(migratedFilteredOut, connection)
+        connection.end()
     })
 
-    connection.end()
 }
 
 // eslint-disable-next-line promise/always-return
