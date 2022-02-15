@@ -1,0 +1,189 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
+      "txHash": "0x158db1237d86b145869e54a64d102fdef4b2c616f8d883367f20d8acc1b1f27e",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "51c029503bc7c54fd7002c209e57b2ed8825d8b6444e059a6c7021850cba9162": {
+      "address": "0x63290C3cbb6Cc56D69e03d06038456d0a4b68D9b",
+      "txHash": "0xaffb6fed19f51a2dd29c689321ae7102f0b81ca557b348764fedfaa5f5995c07",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "ERC2771ContextUpgradeable",
+            "label": "_trustedForwarder",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol:13"
+          },
+          {
+            "contract": "ERC2771ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol:46"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:36"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)2219_storage)",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:64"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:232"
+          },
+          {
+            "contract": "StreamRegistryV2",
+            "label": "streamIdToPermissions",
+            "type": "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)8942_storage))",
+            "src": "contracts/StreamRegistry/StreamRegistryV2.sol:39"
+          },
+          {
+            "contract": "StreamRegistryV2",
+            "label": "streamIdToMetadata",
+            "type": "t_mapping(t_string_memory_ptr,t_string_storage)",
+            "src": "contracts/StreamRegistry/StreamRegistryV2.sol:40"
+          },
+          {
+            "contract": "StreamRegistryV2",
+            "label": "ensCache",
+            "type": "t_contract(ENSCache)13757",
+            "src": "contracts/StreamRegistry/StreamRegistryV2.sol:41"
+          },
+          {
+            "contract": "StreamRegistryV2",
+            "label": "streamIdToVersion",
+            "type": "t_mapping(t_string_memory_ptr,t_uint32)",
+            "src": "contracts/StreamRegistry/StreamRegistryV2.sol:44"
+          }
+        ],
+        "types": {
+          "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)8942_storage))": {
+            "label": "mapping(string => mapping(bytes32 => struct StreamRegistryV2.Permission))"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_mapping(t_bytes32,t_struct(Permission)8942_storage)": {
+            "label": "mapping(bytes32 => struct StreamRegistryV2.Permission)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(Permission)8942_storage": {
+            "label": "struct StreamRegistryV2.Permission",
+            "members": [
+              {
+                "label": "canEdit",
+                "type": "t_bool"
+              },
+              {
+                "label": "canDelete",
+                "type": "t_bool"
+              },
+              {
+                "label": "publishExpiration",
+                "type": "t_uint256"
+              },
+              {
+                "label": "subscribeExpiration",
+                "type": "t_uint256"
+              },
+              {
+                "label": "canGrant",
+                "type": "t_bool"
+              }
+            ]
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_string_memory_ptr,t_string_storage)": {
+            "label": "mapping(string => string)"
+          },
+          "t_contract(ENSCache)13757": {
+            "label": "contract ENSCache"
+          },
+          "t_mapping(t_string_memory_ptr,t_uint32)": {
+            "label": "mapping(string => uint32)"
+          },
+          "t_uint32": {
+            "label": "uint32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)2219_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_struct(RoleData)2219_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    }
+  }
+}
