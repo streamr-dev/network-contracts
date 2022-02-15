@@ -7,6 +7,17 @@ The container and thus image that initially compiles and pushes the subgraph to 
 can be recreated with the Dockerfile.
 To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev", and then push the image
 with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
+
+## Prod deployment to the centralised theGraph
+First build it then set token, then deploy. The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
+Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
+```
+cd packages/streamregistry-thegraph-subgraph
+npm i
+npm run build
+npx graph auth --product hosted-service <TOKEN>
+npm run deploy-production
+```
 ## Setup locally without the streamr-docker-dev environment
 
 first run a local eth blockchain (ganache, ganache-cli, harhat, ...) and deploy the contracts into that blockchain. You should also be abple to interact with the contract, for example with the REMIX IDE

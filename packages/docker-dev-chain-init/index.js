@@ -240,7 +240,7 @@ async function deployStreamRegistries() {
     initialNodes = []
     initialMetadata = []
     initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
+    initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
     const strDeploy = await ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
     // const strDeploy = await ethers.getContractFactory('NodeRegistry')
     const strDeployTx = await upgrades.deployProxy(strDeploy, 
@@ -396,7 +396,7 @@ async function smartContractInitialization() {
     const fifsDeployTx = await fifsDeploy.deploy(ens.address, rootNode.namehash)
     const fifs = await fifsDeployTx.deployed()
     log(`FIFSRegistrar deployed at ${fifs.address}`)
-    tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
+    let tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
     await tx.wait()
     const resDeploy = new ContractFactory(PublicResolver.abi, PublicResolver.bytecode, wallet)
     const resDeployTx = await resDeploy.deploy(ens.address)
@@ -442,7 +442,7 @@ async function smartContractInitialization() {
     initialNodes = []
     initialMetadata = []
     initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
+    initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
     await deployNodeRegistry(sidechainWallet, initialNodes, initialMetadata)
 
     log(`deploy Uniswap2 mainnet`)

@@ -1,5 +1,5 @@
 {
-  "name": "streamr-smart-contracts-init",
+  "name": "docker-dev-chain-init",
   "version": "1.0.0",
   "description": "Locally run Ethereum client for developing the Streamr services",
   "main": "index.js",
@@ -33,13 +33,5 @@
     "node-fetch": "2.6.1",
     "smartcontracts": "0.0.4",
     "web3": "1.2.4"
-  },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^4.22.1",
-    "@typescript-eslint/parser": "^4.22.1",
-    "eslint": "^7.25.0",
-    "eslint-config-streamr-ts": "^4.0.1",
-    "eslint-plugin-promise": "^5.1.0",
-    "typescript": "^4.4.4"
   }
 }

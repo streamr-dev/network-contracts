@@ -12,8 +12,6 @@ import type { Oracle } from '../test-contracts/Oracle'
 import type { LinkToken } from '../test-contracts/LinkToken'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
-// const ethSigUtil = require('eth-sig-util')
-
 const { deployContract } = waffle
 const { provider } = waffle
 
@@ -47,8 +45,10 @@ describe('ENSCache', (): void => {
         // registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
         //     [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address]) as StreamRegistry
         const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV2')
-        // const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCacheFromAdmin.address, '0x7b5F1610920d5BAf00D684929272213BaF962eFe'], { kind: 'uups' })
-        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address], { kind: 'uups' })
+        const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [
+            ensCacheFromAdmin.address,
+            minimalForwarderFromAdmin.address
+        ], { kind: 'uups' })
         registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), ensCacheFromAdmin.address)
         await ensCacheFromAdmin.setStreamRegistry(registryFromAdmin.address)

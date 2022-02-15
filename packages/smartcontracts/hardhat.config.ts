@@ -55,10 +55,10 @@ const config: HardhatUserConfig = {
         //     chainId: 80001,
         //     url: 'https://matic-mumbai.chainstacklabs.com/',
         // },
-        // polygonMainnet: {
-        //     chainId: 137,
-        //     url: 'https://polygon-rpc.com',
-        // }
+        polygonMainnet: {
+            chainId: 137,
+            url: 'https://polygon-rpc.com',
+        }
     },
     dependencyCompiler: {
         paths: [
