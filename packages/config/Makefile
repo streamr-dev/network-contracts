@@ -1,7 +1,7 @@
 LANG := en_US.UTF-8
 SHELL := /bin/bash
 .SHELLFLAGS := --norc --noprofile -e -u -o pipefail -c
-.DEFAULT_GOAL = test
+.DEFAULT_GOAL := test
 
 nvm_brew = /usr/local/opt/nvm/nvm.sh
 ifneq ("$(wildcard $(nvm_brew))", "")
@@ -11,25 +11,24 @@ nvm_default = $(HOME)/.nvm/nvm.sh
 ifneq ("$(wildcard $(nvm_default))", "")
 	nvm_sh = $(nvm_default)
 endif
-node_version = $(shell cat ../../.nvmrc)
+export NODE_VERSION = $(shell cat ../../.nvmrc)
 define npm
 	@$(eval npm_args=$(1))
-	bash --norc --noprofile -e -o pipefail -l -c "source $(nvm_sh) && nvm exec $(node_version) npm $(npm_args)"
+	bash --norc --noprofile -e -o pipefail -l -c "source $(nvm_sh) && nvm exec npm $(npm_args)"
 endef
-
-node_modules: ## Run 'npm ci' if node_modules directory doesn't exist
-	$(call npm, ci)
+export NODE_ENV := "development"
 
 .PHONY: test
-test: node_modules ## Run tests
+test: ## Run tests
 	$(call npm, test)
 
 .PHONY: lint
-lint: node_modules ## Run lint
+lint: ## Run lint
 	$(call npm, run lint)
 
+build: NODE_ENV = "production"
 .PHONY: build
-build: node_modules ## Run build
+build: ## Run build
 	$(call npm, run build)
 
 .PHONY: clean
