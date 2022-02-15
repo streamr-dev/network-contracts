@@ -261,8 +261,6 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    await grantTrustedRoleToAddress('0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB')
-
     // set up contracts
     // await setOracleFulfilmentPermission()
     // await setChainlinkTokenAddressinENSCache()
