@@ -23,7 +23,7 @@ const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86d
 const MAINNETURL = 'http://localhost:8545'
 const SIDECHAINURL = 'http://localhost:8546'
 const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
-const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEPLOYMENT_OWNER_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 
 // mumbai
 // const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
@@ -87,7 +87,7 @@ const connectToAllContracts = async () => {
     walletSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
     const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, sideChainProvider)
 
-    const streamregistryFactory = await ethers.getContractFactory('StreamRegistry', walletSidechain)
+    const streamregistryFactory = await ethers.getContractFactory('StreamRegistryV2', walletSidechain)
     const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
     const registryContract = await registry.deployed()
     registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistry
@@ -190,10 +190,19 @@ const setStreamRegistryInEnsCache = async () => {
 }
 
 const upgradeStreamRegistry = async () => {
+    console.log('upgrading streamregistry')
+    const role = await registryFromOwner.TRUSTED_ROLE()
+    const superadmin = await registryFromOwner.DEFAULT_ADMIN_ROLE()
+    console.log('superadmin role: ', superadmin)
     const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, sideChainProvider)
-    const streamregistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', deploymentOwner)
+    console.log('granting trusted role to ' + deploymentOwner.address)
+    console.log('has role ' + await registryFromOwner.hasRole(superadmin, deploymentOwner.address))
+    const tx = await registryFromOwner.grantRole(role, deploymentOwner.address)
+    await tx.wait()
+    console.log('done granting trusted role')
+    const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', deploymentOwner)
     console.log('upgrading Streamregistry: proxyaddress: ' + STREAMREGISTRYADDRESS)
-    const streamRegistryUpgraded = await upgrades.upgradeProxy(STREAMREGISTRYADDRESS, streamregistryFactoryV2)
+    const streamRegistryUpgraded = await upgrades.upgradeProxy(STREAMREGISTRYADDRESS, streamregistryFactoryV3)
     console.log('streamregistry upgraded, address is (should be same): ' + streamRegistryUpgraded.address)
 }
 
@@ -261,7 +270,7 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
+    await grantTrustedRoleToAddress('0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB')
 
     // set up contracts
     // await setOracleFulfilmentPermission()
@@ -271,10 +280,10 @@ async function main() {
     // await setChainlinkJobId()
 
     // upgrade Contracts
-    // await upgradeStreamRegistry()
+    await upgradeStreamRegistry()
 
     // test stream creation
-    await createAndCheckStreamWithoutENS()
+    // await createAndCheckStreamWithoutENS()
 
     // await registerENSNameOnMainnet()
     // await triggerChainlinkSyncOfENSNameToSidechain()

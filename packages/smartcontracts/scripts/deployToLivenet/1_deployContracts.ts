@@ -83,12 +83,12 @@ async function deployStreamRegistry() {
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
 
     // deploy LINKtoken
-    // log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    // const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
-    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    // const linkToken = await linkTokenFactoryTx.deployed()
-    // LINKTOKEN_ADDRESS = linkToken.address
-    // log(`Link Token deployed at ${linkToken.address}`)
+    log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    const linkTokenFactory = await ethers.getContractFactory('LinkToken', wallet)
+    const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    const linkToken = await linkTokenFactoryTx.deployed()
+    LINKTOKEN_ADDRESS = linkToken.address
+    log(`Link Token deployed at ${linkToken.address}`)
 
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
@@ -122,7 +122,7 @@ async function deployStreamRegistry() {
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     log('deploying Streamregistry')
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV2', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
         [ensCache.address, Wallet.createRandom().address], { kind: 'uups' })
@@ -166,11 +166,11 @@ async function main() {
     // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
 
-    await deployNodeRegistry(initialNodes, initialMetadata)
+    // await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()
 
-    await deployStreamStorageRegistry()
+    // await deployStreamStorageRegistry()
 }
 
 main()
