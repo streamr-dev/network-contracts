@@ -32,14 +32,14 @@ Install [NVM](https://github.com/nvm-sh/nvm) and run command in the repository r
 nvm use
 ```
 
-Change directory:
-```bash
-cd packages/config
-```
-
 Install Node modules:
 ```bash
 npm ci
+```
+
+Change directory:
+```bash
+cd packages/config
 ```
 
 ### Programming
@@ -78,7 +78,7 @@ Run build:
 make clean build
 ```
 
-Create a new release on Npmjs.com, update version in package.json, tag it on GitHub and push a release commit:
+Create a new release on Npmjs.com, update version in package.json, push a release commit, and tag it on GitHub:
 ```bash
 ./release.bash 0.0.1
 ```
