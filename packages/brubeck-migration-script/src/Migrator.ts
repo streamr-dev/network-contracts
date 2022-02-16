@@ -112,12 +112,12 @@ export class Migrator {
         this.registryFromMigrator = await registryContract.connect(migratorWallet) as StreamRegistry
 
         // debug, only needed once
-        const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, this.networkProvider)
-        const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
-        const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
-            migratorWallet.address)
-        await mtx.wait()
-        this.debug('added migrator role to ' + migratorWallet.address)
+        // const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, this.networkProvider)
+        // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
+        // const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
+        //     migratorWallet.address)
+        // await mtx.wait()
+        // this.debug('added migrator role to ' + migratorWallet.address)
     }
 
     async sendStreamsToChain(streamDatas: StreamData[]): Promise<void> {
