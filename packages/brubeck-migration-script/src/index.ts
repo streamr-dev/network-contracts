@@ -38,47 +38,49 @@ const connection = mysql.createConnection({
 const compareAndMigrate = async () => {
     const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
     + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
-    connection.query(query, async (error: any, results: any) => {
-        if (error) { throw error }
-        debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
-        const streams: any = {}
-        results.forEach((queryResultLine: any) => {
-            const metadata = JSON.stringify({
-                description: queryResultLine.description,
-                partitions: queryResultLine.partitions,
-                inactivityThresholdHours: queryResultLine.inactivity_threshold_hours
-            })
-            if (ethers.utils.isAddress(queryResultLine.username)) {
-                if (!streams[queryResultLine.id]) {
-                    streams[queryResultLine.id] = {
-                        metadata,
-                        permissions: {}
+    return new Promise((resolve, reject) => {
+        connection.query(query, async (error: any, results: any) => {
+            if (error) { throw error }
+            debug('number of streamr-user-combinations from DB to migrate: ' + results.length)
+            const streams: any = {}
+            results.forEach((queryResultLine: any) => {
+                const metadata = JSON.stringify({
+                    description: queryResultLine.description,
+                    partitions: queryResultLine.partitions,
+                    inactivityThresholdHours: queryResultLine.inactivity_threshold_hours
+                })
+                if (ethers.utils.isAddress(queryResultLine.username)) {
+                    if (!streams[queryResultLine.id]) {
+                        streams[queryResultLine.id] = {
+                            metadata,
+                            permissions: {}
+                        }
                     }
+                    const userAddressLowercase = queryResultLine.username.toLowerCase()
+                    if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
+                        streams[queryResultLine.id].permissions[userAddressLowercase] = []
+                    }
+                    streams[queryResultLine.id].permissions[userAddressLowercase].push(queryResultLine.operation)
+                } else {
+                    debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
                 }
-                const userAddressLowercase = queryResultLine.username.toLowerCase()
-                if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
-                    streams[queryResultLine.id].permissions[userAddressLowercase] = []
+            })
+            for (const streamid of Object.keys(streams)) {
+                const stream = streams[streamid]
+                for (const user of Object.keys(stream.permissions)) {
+                    if (Object.keys(stream.permissions[user]).length === 0) {
+                        debug('ERR')
+                    }
+                    const convertedPermission = Migrator.convertPermissions(stream.permissions[user])
+                    stream.permissions[user] = convertedPermission
                 }
-                streams[queryResultLine.id].permissions[userAddressLowercase].push(queryResultLine.operation)
-            } else {
-                debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
             }
+            const migratedFilteredOut = await comparator(streams)
+            await migrator.init()
+            await migrator.migrate(migratedFilteredOut, connection)
+            resolve(void 0)
         })
-        for (const streamid of Object.keys(streams)) {
-            const stream = streams[streamid]
-            for (const user of Object.keys(stream.permissions)) {
-                if (Object.keys(stream.permissions[user]).length === 0) {
-                    debug('ERR')
-                }
-                const convertedPermission = Migrator.convertPermissions(stream.permissions[user])
-                stream.permissions[user] = convertedPermission
-            }
-        }
-        const migratedFilteredOut = await comparator(streams)
-        await migrator.init()
-        await migrator.migrate(migratedFilteredOut, connection)
     })
-
 }
 
 const main = async () => {
@@ -93,13 +95,13 @@ const main = async () => {
 }
 
 // eslint-disable-next-line promise/always-return
-connection.connect((err: any) => {
-    if (err) { throw err }
-    debug('Connected!')
-    main().then(() => {
-        debug('done')
-    }).catch((err: any) => {
-        connection.end()
-        debug('err: ' + err)
-    })
+// connection.connect((err: any) => {
+//     if (err) { throw err }
+//     debug('Connected!')
+main().then(() => {
+    debug('done')
+}).catch((err: any) => {
+    connection.end()
+    debug('err: ' + err)
 })
+// })

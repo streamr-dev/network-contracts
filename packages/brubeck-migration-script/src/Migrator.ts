@@ -12,10 +12,10 @@ import { StreamRegistry } from '../typechain/StreamRegistry'
 const { ethers } = hhat
 
 const CHAIN_NODE_URL = 'http://localhost:8546'
-// const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 // const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
-const STREAMREGISTRY_ADDRESS = '0x8f83273a293292b0142d810623568Ea5A248CA58'
+const STREAMREGISTRY_ADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
 
 export type Permission = {
     canEdit: boolean;
@@ -112,12 +112,12 @@ export class Migrator {
         this.registryFromMigrator = await registryContract.connect(migratorWallet) as StreamRegistry
 
         // debug, only needed once
-        // const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, networkProvider)
-        // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
-        // const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
-        //     migratorWallet.address)
-        // await mtx.wait()
-        // this.debug('added migrator role to ' + migratorWallet.address)
+        const adminWallet = new ethers.Wallet(ADMIN_PRIVATEKEY, this.networkProvider)
+        const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
+        const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
+            migratorWallet.address)
+        await mtx.wait()
+        this.debug('added migrator role to ' + migratorWallet.address)
     }
 
     async sendStreamsToChain(streamDatas: StreamData[]): Promise<void> {
