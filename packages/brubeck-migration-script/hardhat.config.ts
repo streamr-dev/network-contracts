@@ -56,12 +56,13 @@ module.exports = {
         },
         polygonMainnet: {
             chainId: 137,
-            url: 'https://polygon-rpc.com',
+            // url: 'https://polygon-rpc.com',
+            url: 'https://wild-dark-thunder.matic.quiknode.pro/08b0fa6254499defc975c381ee21777cb197fac5/',
         }
     },
     dependencyCompiler: {
         paths: [
-            'smartcontracts/contracts/StreamRegistry/StreamRegistry.sol'
+            'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol'
         ],
     },
     solidity: {

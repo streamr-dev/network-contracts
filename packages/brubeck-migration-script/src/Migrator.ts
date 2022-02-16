@@ -11,11 +11,17 @@ import { StreamRegistry } from '../typechain/StreamRegistry'
 
 const { ethers } = hhat
 
-const CHAIN_NODE_URL = 'http://localhost:8546'
-const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
-// const ADMIN_PRIVATEKEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
-const STREAMREGISTRY_ADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+// localsidechain
+// const CHAIN_NODE_URL = 'http://localhost:8546'
+// const ADMIN_PRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+// const MIGRATOR_PRIVATEKEY = '0x000000000000000000000000000000000000000000000000000000000000000c'
+// const STREAMREGISTRY_ADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+
+// polygon mainnet
+// const CHAIN_NODE_URL = 'https://polygon-rpc.com'
+const CHAIN_NODE_URL = 'https://wild-dark-thunder.matic.quiknode.pro/08b0fa6254499defc975c381ee21777cb197fac5/'
+const MIGRATOR_PRIVATEKEY = process.env.MIGRATOR_PRIVATEKEY
+const STREAMREGISTRY_ADDRESS = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
 
 export type Permission = {
     canEdit: boolean;
@@ -106,7 +112,7 @@ export class Migrator {
     async init(): Promise<void> {
         this.networkProvider = new ethers.providers.JsonRpcProvider(CHAIN_NODE_URL)
         const migratorWallet = new ethers.Wallet(MIGRATOR_PRIVATEKEY, this.networkProvider)
-        const streamregistryFactory = await ethers.getContractFactory('StreamRegistry')
+        const streamregistryFactory = await ethers.getContractFactory('StreamRegistryV3')
         const registry = await streamregistryFactory.attach(STREAMREGISTRY_ADDRESS)
         const registryContract = await registry.deployed()
         this.registryFromMigrator = await registryContract.connect(migratorWallet) as StreamRegistry
