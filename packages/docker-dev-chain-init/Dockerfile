@@ -26,6 +26,6 @@ RUN npm --version
 COPY ./ ./
 RUN npm ci
 ENV DEBUG=*
-RUN npm run build -w=streamr-smart-contracts-init
-CMD npm run preload -w=streamr-smart-contracts-init && ./packages/docker-dev-chain-init/bridge/deploy_bridge_and_du2.sh
+RUN npm run build -w=docker-dev-chain-init
+CMD npm run preload -w=docker-dev-chain-init && ./packages/docker-dev-chain-init/bridge/deploy_bridge_and_du2.sh
 
