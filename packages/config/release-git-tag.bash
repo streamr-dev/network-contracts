@@ -28,22 +28,6 @@ fi
 
 ./release-validate-semver.bash "$version"
 
-# check for unstaged changes
-if ! git diff --exit-code --quiet; then
-	echo "$(basename "$0"): error: git workspace is dirty" 1>&2
-	exit 1
-fi
-# check for staged, but not committed changes
-if ! git diff --cached --exit-code --quiet; then
-	echo "$(basename "$0"): error: git workspace is dirty" 1>&2
-	exit 1
-fi
-# check for no changes to be committed
-if output=$(git status --porcelain=v1) && test -n "$output"; then
-	echo "$(basename "$0"): error: git workspace is dirty" 1>&2
-	exit 1
-fi
-
 ./release-npm-update-version-package-json.bash "$version"
 
 # Create release commit

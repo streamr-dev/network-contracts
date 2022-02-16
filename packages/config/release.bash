@@ -20,6 +20,8 @@ while getopts "h" arg; do
 	esac
 done
 
+./release-git-validate.bash
+
 version="${1-}"
 if test -z "$version"; then
 	usage
