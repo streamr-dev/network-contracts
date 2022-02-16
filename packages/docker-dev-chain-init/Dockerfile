@@ -24,7 +24,7 @@ WORKDIR /
 RUN node --version
 RUN npm --version
 COPY ./ ./
-RUN npm ci
+RUN npm i
 ENV DEBUG=*
 RUN npm run build -w=docker-dev-chain-init
 CMD npm run preload -w=docker-dev-chain-init && ./packages/docker-dev-chain-init/bridge/deploy_bridge_and_du2.sh
