@@ -19,7 +19,7 @@
 
 import { ethers } from 'hardhat'
 import Debug from 'debug'
-
+import 'dotenv/config'
 import comparator from './comparator'
 import { Migrator } from './Migrator'
 
@@ -28,21 +28,13 @@ import mysql from 'mysql'
 const migrator = new Migrator()
 const debug = Debug('migration-script:index')
 
-// localsidechain
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'core_test'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 })
 
-// production
-// const connection = mysql.createConnection({
-//     host: 'localhost',
-//     user: 'root',
-//     password: '',
-//     database: 'streamr_prod'
-// })
 
 const compareAndMigrate = async () => {
     const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
@@ -99,7 +91,7 @@ const main = async () => {
     })
     while(true) {
         await compareAndMigrate()
-        await new Promise((resolve) => setTimeout(resolve, 5000))
+        await new Promise((resolve) => setTimeout(resolve, Number.parseInt(process.env.PAUSE_BETWEEN_MIGRATIONS_MS)))
     }
 }
 

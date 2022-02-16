@@ -23,6 +23,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@types/debug": "^4.1.7",
     "debug": "^4.3.1",
+    "dotenv": "^16.0.0",
     "eslint-config-streamr-nodejs": "^2.0.1",
     "hardhat": "^2.2.1",
     "hardhat-dependency-compiler": "^1.1.2",
