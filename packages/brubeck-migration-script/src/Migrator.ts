@@ -81,7 +81,7 @@ export class Migrator {
                         tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice))
                         await this.sendTransaction(tx)
                         resolve(void 0)
-                    }, 8000)
+                    }, 30000)
                 })
             }
 
