@@ -95,8 +95,6 @@ export class Migrator {
 
             await Promise.race([replaceTX(), sendTx()])
             clearTimeout(replacementTimer)
-            this.debug('promise race fired')
-
         } catch (err: any) {
             if (err.code === 'TRANSACTION_REPLACED') { this.debug('a transaction got replaced') }
             else { this.debug(err) }
