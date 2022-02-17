@@ -114,6 +114,7 @@ export class Migrator {
             const params = [updatedAt, streamid]
             await mysql.query(sql, params)
         }
+        this.debug('updated streams updatedAt time in DB')
     }
 
     static async convertToStreamDataArray(streams: StreamsWithPermissions): Promise<StreamData[][]> {
