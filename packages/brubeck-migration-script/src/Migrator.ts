@@ -62,11 +62,9 @@ export class Migrator {
             updatedStreams = {}
         }
     }
-    private counter = 0
     async sendTransaction(tx: TransactionRequest): Promise<void> {
         try {
             this.debug('sending transaction')
-            this.counter += 1
 
             let replacementTimer = setTimeout(() => {}, 0)
             const replaceTX = () => {
@@ -88,16 +86,11 @@ export class Migrator {
             }
 
             const sendTx = async() => {
-                if (this.counter > 2) {
-                    const response = await this.migratorWallet.sendTransaction(tx)
-                    this.debug('sent, waiting for transaction with hash' + response.hash + ' and gasprice ' + response.gasPrice?.toNumber())
-                    const receipt = await response.wait()
-                    this.debug('mined transaction with hash ' + receipt.transactionHash)
-                    return receipt
-                }
-                this.debug('waiting forever')
-                await new Promise((resolve) => setTimeout(resolve, 50000))
-                this.debug('done waiting forever')
+                const response = await this.migratorWallet.sendTransaction(tx)
+                this.debug('sent, waiting for transaction with hash' + response.hash + ' and gasprice ' + response.gasPrice?.toNumber())
+                const receipt = await response.wait()
+                this.debug('mined transaction with hash ' + receipt.transactionHash)
+                return receipt
             }
 
             await Promise.race([replaceTX(), sendTx()])
