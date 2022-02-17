@@ -7,7 +7,7 @@ import hhat from 'hardhat'
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { MaxInt256 } from '@ethersproject/constants'
 
-import { StreamRegistry } from '../typechain/StreamRegistry'
+import { StreamRegistryV3 } from '../typechain/StreamRegistryV3'
 import { TransactionReceipt, TransactionRequest } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 
@@ -39,7 +39,7 @@ export type StreamData = {
 export class Migrator {
     private debug = Debug('migration-script:migrator')
 
-    private registryFromMigrator: StreamRegistry
+    private registryFromMigrator: StreamRegistryV3
     private migratorWallet: Wallet
     private networkProvider: any
 
@@ -48,7 +48,7 @@ export class Migrator {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 this.debug('creating stream ' + streamid)
                 const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, 'metadata')
-                const transactionReceipt = await this.sendTransaction(transaction)
+                await this.sendTransaction(transaction)
             }
         }
         const streamDataChunks = await Migrator.convertToStreamDataArray(streams)
@@ -62,26 +62,54 @@ export class Migrator {
             updatedStreams = {}
         }
     }
-    // private counter = 0
-    async sendTransaction(tx: TransactionRequest): Promise<TransactionReceipt> {
-        // counter += 1
-        const timer = setTimeout(async () => {
-            const gasPrice = (tx.gasPrice as BigNumber).toNumber()
-            const newGasPrice = gasPrice * 1.2
-            this.debug('nothing happened for 20s, increasing gas price to ' + newGasPrice)
-            // const newGasPrice = 200
-            // if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
-            tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice))
-            this.sendTransaction(tx)
-            // const txResend = await migratorWallet.sendTransaction(tx)
-            // console.log(`resent tx with nonce: ${txResend.nonce}, gas: ${parseInt(txResend.gasLimit._hex, 16)}, gasPrice: ${txResend.gasPrice?.toNumber()}`)
-        }, 20000)
-        const response = await this.migratorWallet.sendTransaction(tx)
-        this.debug('sent, waiting for transaction with hash' + response.hash + ' and gasprice ' + response.gasPrice.toNumber())
-        const receipt = await response.wait()
-        clearTimeout(timer)
-        this.debug('mined transaction with hash ' + receipt.transactionHash)
-        return receipt
+    private counter = 0
+    async sendTransaction(tx: TransactionRequest): Promise<void> {
+        try {
+            this.debug('sending transaction')
+            this.counter += 1
+
+            let replacementTimer = setTimeout(() => {}, 0)
+            const replaceTX = () => {
+                return new Promise((resolve, reject) => {
+                    replacementTimer = setTimeout(async () => {
+                        let gasPrice = await this.networkProvider.getGasPrice()
+                        if (tx.gasPrice) {
+                            gasPrice = (tx.gasPrice as BigNumber).toNumber()
+                        }
+                        const newGasPrice = gasPrice * 1.2
+                        this.debug(`nothing happened for 20s, increasing gas price from ${gasPrice} to ${newGasPrice}`)
+                        // const newGasPrice = 200
+                        // if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
+                        tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice))
+                        await this.sendTransaction(tx)
+                        resolve(void 0)
+                    }, 8000)
+                })
+            }
+
+            const sendTx = async() => {
+                if (this.counter > 2) {
+                    const response = await this.migratorWallet.sendTransaction(tx)
+                    this.debug('sent, waiting for transaction with hash' + response.hash + ' and gasprice ' + response.gasPrice?.toNumber())
+                    const receipt = await response.wait()
+                    this.debug('mined transaction with hash ' + receipt.transactionHash)
+                    return receipt
+                }
+                this.debug('waiting forever')
+                await new Promise((resolve) => setTimeout(resolve, 50000))
+                this.debug('done waiting forever')
+            }
+
+            await Promise.race([replaceTX(), sendTx()])
+            clearTimeout(replacementTimer)
+            this.debug('promise race fired')
+
+        } catch (err: any) {
+            if (err.code === 'TRANSACTION_REPLACED') { this.debug('a transaction got replaced') }
+            else { this.debug(err) }
+        }
+        // throw('transaction failed')
+        // return (await this.migratorWallet.sendTransaction(tx)).wait()
         // {
         //     gasPrice: this.networkProvider.getGasPrice().then((estimatedGasPrice: BigNumber) => estimatedGasPrice.add('10000000000'))
         // }
@@ -122,11 +150,11 @@ export class Migrator {
 
     async init(): Promise<void> {
         this.networkProvider = new ethers.providers.JsonRpcProvider(process.env.CHAIN_NODE_URL)
-        this.migratorWallet = new ethers.Wallet(process.env.MIGRATOR_PRIVATEKEY, this.networkProvider)
+        this.migratorWallet = new ethers.Wallet(process.env.MIGRATOR_PRIVATEKEY || '', this.networkProvider)
         const streamregistryFactory = await ethers.getContractFactory('StreamRegistryV3', this.migratorWallet)
-        const registry = await streamregistryFactory.attach(process.env.STREAMREGISTRY_ADDRESS)
+        const registry = await streamregistryFactory.attach(process.env.STREAMREGISTRY_ADDRESS || '')
         const registryContract = await registry.deployed()
-        this.registryFromMigrator = await registryContract.connect(this.migratorWallet) as StreamRegistry
+        this.registryFromMigrator = await registryContract.connect(this.migratorWallet) as StreamRegistryV3
 
         // debug, only needed once
         // const adminWallet = new ethers.Wallet(process.env.ADMIN_PRIVATEKEY, this.networkProvider)
@@ -144,7 +172,7 @@ export class Migrator {
         }
         this.debug('migrating ' + streamDatas.length + ' streams-user-permissions')
         try {
-            const tx = await this.registryFromMigrator.trustedSetPermissions(
+            const tx = await this.registryFromMigrator.populateTransaction.trustedSetPermissions(
                 streamDatas.map((el) => el.id),
                 streamDatas.map((el) => el.user),
                 streamDatas.map((el) => el.permissions),
@@ -152,8 +180,9 @@ export class Migrator {
                     gasPrice: this.networkProvider.getGasPrice().then((estimatedGasPrice: BigNumber) => estimatedGasPrice.add('10000000000'))
                 }
             )
-            await tx.wait()
-            this.debug('mined tx with nonce ' + tx.nonce)
+            await this.sendTransaction(tx)
+            // await tx.wait()
+            // this.debug('mined tx with nonce ' + tx.nonce)
         } catch (err: any) {
             this.debug(err)
         }

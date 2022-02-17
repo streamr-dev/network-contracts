@@ -91,7 +91,7 @@ const main = async () => {
     })
     while(true) {
         await compareAndMigrate()
-        await new Promise((resolve) => setTimeout(resolve, Number.parseInt(process.env.PAUSE_BETWEEN_MIGRATIONS_MS)))
+        await new Promise((resolve) => setTimeout(resolve, Number.parseInt(process.env.PAUSE_BETWEEN_MIGRATIONS_MS || '')))
     }
 }
 

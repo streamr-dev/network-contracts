@@ -5,7 +5,7 @@ import Debug from 'debug'
 export class GraphQLClient {
     private debug = Debug('migrator')
 
-    private theGraphUrl = process.env.THE_GRAPH_URL
+    private theGraphUrl = process.env.THE_GRAPH_URL || ''
     async sendQuery(gqlQuery: string): Promise<Object> {
         // this.debug('GraphQL query: %s', gqlQuery)
         const res = await fetch(this.theGraphUrl, {
