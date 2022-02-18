@@ -42,6 +42,8 @@ export class Migrator {
     private registryFromMigrator: StreamRegistryV3
     private migratorWallet: Wallet
     private networkProvider: any
+    private gasPriceIncrease: number
+    private originalGasPrice: number
 
     async migrate(streams: StreamsWithPermissions, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
         for (const streamid of Object.keys(streams)) {
@@ -70,24 +72,35 @@ export class Migrator {
             const replaceTX = () => {
                 return new Promise((resolve, reject) => {
                     replacementTimer = setTimeout(async () => {
-                        let gasPrice = await this.networkProvider.getGasPrice()
-                        if (tx.gasPrice) {
-                            gasPrice = (tx.gasPrice as BigNumber).toNumber()
+                        try {
+                            const gasPriceIncreaseFactor = Number.parseInt(process.env.GASPRICE_INCREASE_PERCENT!) / 100
+                            let gasPrice = 0
+                            if (tx.gasPrice) {
+                                gasPrice = (tx.gasPrice as BigNumber).toNumber()
+                            } else {
+                                gasPrice = await this.networkProvider.getGasPrice()
+                                this.originalGasPrice = gasPrice
+                                this.gasPriceIncrease = gasPrice * gasPriceIncreaseFactor
+                            }
+                            const newGasPrice = Math.ceil(gasPrice + this.gasPriceIncrease)
+                            if (newGasPrice > this.originalGasPrice * 3) {
+                                reject(new Error('gas price got too high, aborting'))
+                            }
+                            this.debug(`nothing happened for a while, increasing gas price from ${gasPrice} to ${newGasPrice}`)
+                            // eslint-disable-next-line require-atomic-updates
+                            tx.gasPrice = BigNumber.from(newGasPrice)
+                            await this.sendTransaction(tx)
+                            resolve(void 0)
+                        } catch (e) {
+                            reject(e)
                         }
-                        const newGasPrice = gasPrice * 1.2
-                        this.debug(`nothing happened for 20s, increasing gas price from ${gasPrice} to ${newGasPrice}`)
-                        // const newGasPrice = 200
-                        // if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
-                        tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice))
-                        await this.sendTransaction(tx)
-                        resolve(void 0)
-                    }, 30000)
+                    }, Number.parseInt(process.env.GASPRICE_INCREASE_TIMEOUT_MS!))
                 })
             }
 
             const sendTx = async() => {
                 const response = await this.migratorWallet.sendTransaction(tx)
-                this.debug('sent, waiting for transaction with hash' + response.hash + ' and gasprice ' + response.gasPrice?.toNumber())
+                this.debug('sent, waiting for transaction with hash ' + response.hash)
                 const receipt = await response.wait()
                 this.debug('mined transaction with hash ' + receipt.transactionHash)
                 return receipt
@@ -149,12 +162,12 @@ export class Migrator {
         this.registryFromMigrator = await registryContract.connect(this.migratorWallet) as StreamRegistryV3
 
         // debug, only needed once
-        // const adminWallet = new ethers.Wallet(process.env.ADMIN_PRIVATEKEY, this.networkProvider)
-        // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistry
+        // const adminWallet = new ethers.Wallet(process.env.ADMIN_PRIVATEKEY!, this.networkProvider)
+        // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistryV3
         // const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
-        //     migratorWallet.address)
+        //     this.migratorWallet.address)
         // await mtx.wait()
-        // this.debug('added migrator role to ' + migratorWallet.address)
+        // this.debug('added migrator role to ' + this.migratorWallet.address)
     }
 
     async sendStreamsToChain(streamDatas: StreamData[]): Promise<void> {
