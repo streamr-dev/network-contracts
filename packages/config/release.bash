@@ -31,4 +31,4 @@ fi
 ./release-validate-semver.bash "$version"
 
 ./release-git-tag.bash "$version"
-./release-npm-publish.bash "$version"
+./release-npm-publish.bash
