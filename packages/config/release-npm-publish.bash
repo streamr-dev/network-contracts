@@ -6,9 +6,9 @@ function usage() {
 	local name
 	name=$(basename "$0")
 	echo "$name: Publish new version in Npm" 1>&2
-	echo "Usage: $name [-h] semver" 1>&2
+	echo "Usage: $name [-h]" 1>&2
 	echo "	-h Show help" 1>&2
-	echo "Example: $name 0.2.7" 1>&2
+	echo "Example: $name" 1>&2
 }
 
 while getopts "h" arg; do
@@ -20,12 +20,4 @@ while getopts "h" arg; do
 	esac
 done
 
-version="${1-}"
-if test -z "$version"; then
-	usage
-	exit 1
-fi
-
-./release-validate-semver.bash "$version"
-
-npm publish . --access public --tag "v$version"
+npm publish . --access public
