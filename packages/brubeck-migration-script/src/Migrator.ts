@@ -48,20 +48,28 @@ export class Migrator {
     async migrate(streams: StreamsWithPermissions, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
         for (const streamid of Object.keys(streams)) {
             if (!(await this.registryFromMigrator.exists(streamid))) {
-                this.debug('creating stream ' + streamid)
-                const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, 'metadata')
-                await this.sendTransaction(transaction)
+                try {
+                    this.debug('creating stream ' + streamid)
+                    const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, 'metadata')
+                    await this.sendTransaction(transaction)
+                } catch (e) {
+                    this.debug('ERROR creating stream: ' + e)
+                }
             }
         }
         const streamDataChunks = await Migrator.convertToStreamDataArray(streams)
         let updatedStreams: { [key: string]: Date} = {}
         for (const streamData of streamDataChunks) {
-            await this.sendStreamsToChain(streamData)
-            for (const streamDataItem of streamData) {
-                updatedStreams[streamDataItem.id] = new Date()
+            try {
+                await this.sendStreamsToChain(streamData)
+                for (const streamDataItem of streamData) {
+                    updatedStreams[streamDataItem.id] = new Date()
+                }
+                await this.updateDB(updatedStreams, mysql)
+                updatedStreams = {}
+            } catch (err) {
+                this.debug('error sending permission chunks to chain: ' + err)
             }
-            await this.updateDB(updatedStreams, mysql)
-            updatedStreams = {}
         }
     }
     async sendTransaction(tx: TransactionRequest): Promise<void> {
@@ -110,7 +118,7 @@ export class Migrator {
             clearTimeout(replacementTimer)
         } catch (err: any) {
             if (err.code === 'TRANSACTION_REPLACED') { this.debug('a transaction got replaced') }
-            else { this.debug(err) }
+            else { throw err }
         }
         // throw('transaction failed')
         // return (await this.migratorWallet.sendTransaction(tx)).wait()
