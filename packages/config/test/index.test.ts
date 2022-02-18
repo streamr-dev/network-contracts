@@ -2,7 +2,7 @@ import { describe, it } from "mocha"
 import { assert } from "chai"
 import { Chains, loadConfig } from "../src/index"
 
-describe("Package exports network details from JSON file", () => {
+describe("Load configuration from JSON file", () => {
     it("ethereum chain id is 1", () => {
         const config: Chains = loadConfig("production")
         const chainId: number = config.ethereum.id
