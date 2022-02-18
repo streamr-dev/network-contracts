@@ -82,7 +82,7 @@ export class Migrator {
                                 this.originalGasPrice = gasPrice
                                 this.gasPriceIncrease = gasPrice * gasPriceIncreaseFactor
                             }
-                            const newGasPrice = Math.ceil(gasPrice + this.gasPriceIncrease)
+                            const newGasPrice = Math.ceil(+gasPrice + +this.gasPriceIncrease)
                             if (newGasPrice > this.originalGasPrice * 3) {
                                 reject(new Error('gas price got too high, aborting'))
                             }
