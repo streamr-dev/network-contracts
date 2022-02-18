@@ -1,0 +1,37 @@
+{
+  "name": "@streamr/config",
+  "version": "0.0.1-beta.1",
+  "description": "Zero dependency package that contains Streamr Network smart contract addresses",
+  "main": "dist/index.js",
+  "directories": {
+    "lib": "./dist",
+    "src": "./src",
+    "test": "./test"
+  },
+  "files": [
+    "dist/src"
+  ],
+  "scripts": {
+    "build": "npm run prepare",
+    "prepare": "tsc --project tsconfig.json",
+    "test": "mocha --config mocharc.json",
+    "lint": "eslint --ext .ts src test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/streamr-dev/network-contracts.git"
+  },
+  "keywords": [
+    "streamr network",
+    "ethereum",
+    "ethereum address",
+    "smart contract",
+    "smart contract address"
+  ],
+  "author": "Kare Nuorteva <kare.nuorteva@streamr.network>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/streamr-dev/network-contracts/issues"
+  },
+  "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme"
+}
