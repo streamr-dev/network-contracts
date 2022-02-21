@@ -18,6 +18,6 @@
     "dotenv": "16.0.0",
     "eth-ens-namehash": "2.0.8",
     "ethers": "5.5.3",
-    "express": "4.17.2"
+    "express": "4.17.3"
   }
 }
