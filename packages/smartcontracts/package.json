@@ -55,15 +55,15 @@
     "hardhat-typechain": "0.3.5"
   },
   "devDependencies": {
-    "@metamask/eth-sig-util": "^4.0.0",
+    "@metamask/eth-sig-util": "4.0.0",
     "solc": "0.8.6",
-    "solidity-coverage": "^0.7.20",
-    "typechain": "^4.0.3",
-    "solhint": "^3.3.4",
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@typechain/ethers-v5": "^6.0.5",
-    "@types/debug": "^4.1.7",
-    "ethereum-waffle": "^3.3.0",
-    "ts-generator": "^0.1.1"
+    "solidity-coverage": "0.7.20",
+    "typechain": "4.0.3",
+    "solhint": "3.3.6",
+    "@nomiclabs/hardhat-ethers": "2.0.4",
+    "@typechain/ethers-v5": "6.0.5",
+    "@types/debug": "4.1.7",
+    "ethereum-waffle": "3.4.0",
+    "ts-generator": "0.1.1"
   }
 }
