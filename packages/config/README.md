@@ -11,8 +11,8 @@ npm install --save @streamr/config
 ```
 
 ## Examples
-Import DATA token production Ethereum address as a variable in a Javascript project:
-```javascript
+Import DATA token production Ethereum address as a variable in a Typescript project:
+```typescript
 import { Chains, loadConfig } from "index"
 
 const config: Chains = loadConfig("production")
