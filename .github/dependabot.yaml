@@ -21,21 +21,6 @@ updates:
       - kare
 
   - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: daily
-      time: '08:00'
-      timezone: Europe/Helsinki
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build
-      include: scope
-    labels:
-      - build
-    reviewers:
-      - kare
-
-  - package-ecosystem: npm
     directory: /packages/chainlink-ens-external-adapter
     schedule:
       interval: daily
