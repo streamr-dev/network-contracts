@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@metamask/eth-sig-util": "4.0.0",
-    "solc": "0.8.6",
+    "solc": "0.8.12",
     "solidity-coverage": "0.7.20",
     "typechain": "4.0.3",
     "solhint": "3.3.6",
