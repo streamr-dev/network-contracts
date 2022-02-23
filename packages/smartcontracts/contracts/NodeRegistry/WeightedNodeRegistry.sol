@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 
 import "./WeightStrategy.sol";
 import "./NodeRegistry.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract WeightedNodeRegistry is NodeRegistry {
     WeightStrategy public strat;
-    constructor(address owner_, bool requiresWhitelist_, address weightStrategy_, address[] memory initialNodes, string[] memory initialUrls)
-    NodeRegistry(owner_, requiresWhitelist_, initialNodes, initialUrls) {
+
+    // Constructor can't be used with upgradeable contracts, so use initialize instead
+    //    this will not be called upon each upgrade, only once during first deployment
+    function initialize(address owner_, bool requiresWhitelist_, address weightStrategy_, address[] memory initialNodes, string[] memory initialUrls) public initializer {
+       NodeRegistry.initialize(owner_, requiresWhitelist_, initialNodes, initialUrls);
        strat = WeightStrategy(weightStrategy_);
     }
 

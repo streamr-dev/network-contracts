@@ -4,4 +4,7 @@
 /packages/smartcontracts/bin/
 /packages/smartcontracts/artifacts/
 /packages/smartcontracts/typechain/
+/packages/smartcontracts/.openzeppelin/
 /bin/
+.DS_Store
+.idea

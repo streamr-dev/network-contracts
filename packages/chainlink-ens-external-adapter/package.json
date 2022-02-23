@@ -14,21 +14,10 @@
   "dependencies": {
     "@chainlink/external-adapter": "^0.2.6",
     "@ensdomains/ens": "^0.6.0",
-    "body-parser": "^1.19.0",
-    "dotenv": "^8.2.0",
+    "body-parser": "^1.19.1",
+    "dotenv": "^16.0.0",
     "eth-ens-namehash": "^2.0.8",
-    "ethers": "^5.1.4",
-    "express": "^4.17.1"
-  },
-  "devDependencies": {
-    "chai": "^4.3.4",
-    "eslint": "^7.25.0",
-    "eslint-config-standard": "^16.0.2",
-    "eslint-config-streamr-nodejs": "2.0.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.1.0",
-    "mocha": "^8.3.2"
+    "ethers": "^5.5.3",
+    "express": "^4.17.2"
   }
 }

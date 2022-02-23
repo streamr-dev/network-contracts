@@ -11,19 +11,13 @@ export function handleStorageNodeAddedToStream(event: Added): void {
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
 
-    // let stream = Stream.load(streamId)
-    // if (!stream.storageNodes) {
-    //     stream.storageNodes = []
-    // }
-    // stream.storageNodes.push(nodeId)
-    // stream.save()
-
     let node = Node.load(nodeId)!
     if (!node.storedStreams) {
         node.storedStreams = [streamId]
     } else {
         let streams = node.storedStreams
         if (!streams) { streams = [] }
+        if (streams.includes(streamId)) { return }
         streams.push(streamId)
         node.storedStreams = streams
     }

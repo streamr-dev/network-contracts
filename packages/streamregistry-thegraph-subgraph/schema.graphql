@@ -8,15 +8,15 @@ type Permission @entity {
   "Target stream this permission applies to"
   stream: Stream
   "Edit permission enables changing the stream's metadata"
-  edit: Boolean
+  canEdit: Boolean
   "canDelete permission allows deleting the stream from the StreamRegistry"
   canDelete: Boolean
   "publishExpiration timestamp tells until what time this address may publish data to the stream"
   publishExpiration: BigInt
   "subscribeExpires timestamp tells until what time this address may subscribe to the stream"
   subscribeExpiration: BigInt
-  "share permission allows granting and revoking permissions to this stream"
-  share: Boolean
+  "grant permission allows granting and revoking permissions to this stream"
+  canGrant: Boolean
 }
 
 type Stream @entity {
@@ -28,6 +28,10 @@ type Stream @entity {
   permissions: [Permission!] @derivedFrom(field: "stream")
   "Nodes the have been registered as storage nodes to this stream in the StreamStorageRegistry"
   storageNodes: [Node!] @derivedFrom(field: "storedStreams")
+  "date created. This is a timestamp in seconds"
+  createdAt: BigInt
+  "date updated. This is a timestamp in seconds"
+  updatedAt: BigInt
 }
 
 type Node @entity {
@@ -40,6 +44,8 @@ type Node @entity {
   "Streams for which this node is registered as a storage node in the StreamStorageRegistry"
   storedStreams: [Stream!] # @derivedFrom(field: "storageNodes")
   # whitelisted: Boolean! # Problem: should whitelisting "create" nodes that show up in query results?
+  "date created. This is a timestamp in seconds"
+  createdAt: BigInt
 }
 
 # many-to-many relationship: https://thegraph.com/docs/developer/create-subgraph-hosted#many-to-many-relationships
