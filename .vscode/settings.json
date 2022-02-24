@@ -1,5 +1,5 @@
 {
-    "solidity.compileUsingRemoteVersion": "v0.8.6+commit.11564f7e",
+    "solidity.compileUsingRemoteVersion": "v0.8.12+commit.f00d7308",
     "solidity.defaultCompiler": "remote",
     "solidity.compileUsingLocalVersion": "/Users/sam/projects/network-contracts/soljson-v0.8.4+commit.c7e474f2.js"
 }

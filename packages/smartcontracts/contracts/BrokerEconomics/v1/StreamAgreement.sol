@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.6;
+pragma solidity ^0.8.9;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./StreamBrokerRegistry.sol";
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../IERC677.sol";
+import "../IERC677Receiver.sol";
 import "./IAddBrokerListener.sol";
 import "./IRemoveBrokerListener.sol";
 
