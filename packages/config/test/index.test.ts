@@ -1,6 +1,6 @@
 import { describe, it } from "mocha"
 import { assert } from "chai"
-import { Chains, loadConfig } from "../src/index"
+import { Chains, getRpcEndpointsByProtocol, loadConfig, RpcProtocol } from "../src/index"
 
 describe("Load configuration from JSON file", () => {
     it("ethereum chain id is 1", () => {
@@ -23,8 +23,14 @@ describe("Load configuration from JSON file", () => {
     })
     it("reads prod Polygon RPC URL", () => {
         const config: Chains = loadConfig("production")
-        const rpcHttpUrl = config.polygon.rpcHttpUrl
+        const rpcHttpUrl = config.polygon.rpcEndpoints[0].url
         const expected = "https://polygon-rpc.com"
         assert.equal(rpcHttpUrl, expected, `Expecting prod polygon RPC URL to equal ${expected}, got '${rpcHttpUrl}'`)
+    })
+    it("finds RPC endpoints by protocol", () => {
+        const config: Chains = loadConfig("production")
+        const endpoints = getRpcEndpointsByProtocol(config.binance.rpcEndpoints, RpcProtocol.HTTP)
+        assert.equal(endpoints.length, 1)
+        assert.equal(endpoints[0].url, "https://bsc-dataseed.binance.org")
     })
 })
