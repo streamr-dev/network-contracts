@@ -48,6 +48,9 @@ const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise
     const streamIDs = Object.keys(streamsFromDB)
     const userPermissionsGraph = graphqlClient.fetchPaginatedResults<PermissionAdditions & Permission>((lastId: string, pageSize: number) => buildQuery(lastId, pageSize, streamIDs))
     for await (const userPermissionGraph of userPermissionsGraph) {
+        if (userPermissionGraph.stream === null) {
+            continue
+        }
         let migrationRequired = false
         if (streamsFromDB[userPermissionGraph.stream.id] === undefined || streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress] === undefined) {
             debug('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
