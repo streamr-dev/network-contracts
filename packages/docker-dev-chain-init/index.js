@@ -252,7 +252,7 @@ async function deployStreamRegistries() {
     let nodes = await nodeRegDeployed.getNodes()
     log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 
-    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistry", sidechainWalletStreamReg)
+    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV3", sidechainWalletStreamReg)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, wallet1.address], {
         kind: 'uups'
     })

@@ -36,17 +36,19 @@ export function handleStreamUpdate(event: StreamUpdated): void {
 export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
-    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
-    let permission = new Permission(permissionId)
-    permission.userAddress = event.params.user
-    permission.stream = event.params.streamId
-    permission.canEdit = event.params.canEdit
-    permission.canDelete = event.params.canDelete
-    permission.publishExpiration = event.params.publishExpiration
-    permission.subscribeExpiration = event.params.subscribeExpiration
-    permission.canGrant = event.params.canGrant
-    permission.save()
-    let stream = Stream.load(event.params.streamId)!
-    stream.updatedAt = event.block.timestamp
-    stream.save()
+    let stream = Stream.load(event.params.streamId)
+    if (stream !== null) {
+        let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+        let permission = new Permission(permissionId)
+        permission.userAddress = event.params.user
+        permission.stream = event.params.streamId
+        permission.canEdit = event.params.canEdit
+        permission.canDelete = event.params.canDelete
+        permission.publishExpiration = event.params.publishExpiration
+        permission.subscribeExpiration = event.params.subscribeExpiration
+        permission.canGrant = event.params.canGrant
+        permission.save()
+        stream.updatedAt = event.block.timestamp
+        stream.save()
+    }
 }

@@ -63,7 +63,7 @@ module.exports = {
         paths: [
             'smartcontracts/contracts/NodeRegistry/NodeRegistry.sol',
             'smartcontracts/contracts/NodeRegistry/TrackerRegistry.sol',
-            'smartcontracts/contracts/StreamRegistry/StreamRegistry.sol',
+            'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol',
             'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
