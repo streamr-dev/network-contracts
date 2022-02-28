@@ -35,11 +35,10 @@ const connection = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
-
 const compareAndMigrate = async () => {
     const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
     + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         connection.query(query, async (error: any, results: any) => {
             if (error) { throw error }
             debug('number of streamr-user-combinations from DB to migrate: ' + results.length)

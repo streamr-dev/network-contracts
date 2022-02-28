@@ -8,7 +8,7 @@ import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { MaxInt256 } from '@ethersproject/constants'
 
 import { StreamRegistryV3 } from '../typechain/StreamRegistryV3'
-import { TransactionReceipt, TransactionRequest } from '@ethersproject/providers'
+import { TransactionRequest } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 
 const { ethers } = hhat

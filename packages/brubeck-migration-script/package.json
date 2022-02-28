@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint ./*.js",
+    "lint": "eslint ./src/*.ts",
     "migration": "hardhat run --network polygonMainnet src/index.ts",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "build": "hardhat compile"
