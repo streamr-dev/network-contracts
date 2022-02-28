@@ -26,8 +26,8 @@ test: ## Run tests
 lint: ## Run lint
 	$(call npm, run lint)
 
-build: NODE_ENV = "production"
 .PHONY: build
+build: NODE_ENV = "production"
 build: ## Run build
 	$(call npm, run build)
 

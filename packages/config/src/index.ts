@@ -1,54 +1,104 @@
 import networksAsJSON from "./networks.json"
 
-export interface Contracts {
-  [name: string]: string
+interface ContractsJSON {
+    readonly [name: string]: string
+}
+export class Contracts implements ContractsJSON {
+    [name: string]: string
 }
 
-export enum RpcProtocol {
-  HTTP,
-  WEBSOCKET
+export enum RPCProtocol {
+    HTTP,
+    WEBSOCKET
 }
 
-export interface RpcEndpoint {
-  url: string
-  //readTimeoutSecond: int
-  //writeTimeoutSecond: int
+interface RPCEndpointJSON {
+    readonly url: string
 }
 
-export interface Chain {
-  id: number
-  rpcEndpoints: RpcEndpoint[]
-  contracts: Contracts
+export class RPCEndpoint implements RPCEndpointJSON {
+    constructor(
+        readonly url: string,
+        //readonly readTimeoutSecond: int,
+        //readonly writeTimeoutSecond: int,
+    ) {}
 }
 
-export interface Chains {
-  [name: string]: Chain
+interface ChainJSON {
+    readonly id: number
+    readonly rpcEndpoints: RPCEndpointJSON[]
+    readonly contracts: ContractsJSON
+}
+
+export class Chain implements ChainJSON {
+    constructor(
+        public readonly id: number,
+        public rpcEndpoints: RPCEndpoint[],
+        public contracts: Contracts,
+    ) {
+        this.id = id
+        this.rpcEndpoints = new Array<RPCEndpoint>()
+        for (const rpcEndpoint of rpcEndpoints) {
+            this.rpcEndpoints.push(new RPCEndpoint(rpcEndpoint.url))
+        }
+        this.contracts = new Contracts()
+        for (const key of Object.keys(contracts)) {
+            this.contracts[key] = contracts[key]
+        }
+    }
+    getRPCEndpointsByProtocol(protocol: RPCProtocol): RPCEndpoint[] {
+        const endpoints = new Array<RPCEndpoint>()
+        for (const rpcEndpoint of this.rpcEndpoints) {
+            if (protocol === RPCProtocol.HTTP) {
+                if (rpcEndpoint.url.startsWith("https://") || rpcEndpoint.url.startsWith("http://")) {
+                    endpoints.push(new RPCEndpoint(rpcEndpoint.url))
+                }
+            } else if (protocol === RPCProtocol.WEBSOCKET) {
+                if (rpcEndpoint.url.startsWith("wss://") || rpcEndpoint.url.startsWith("ws://")) {
+                    endpoints.push(new RPCEndpoint(rpcEndpoint.url))
+                }
+            }
+        }
+        return endpoints
+    }
 }
 
 export type Environment = "development" | "production"
 
-export type Networks = {
-  [env in Environment]: Chains
+type NetworksJSON = {
+    readonly [env in Environment]: ChainsJSON
 }
 
-export const getRpcEndpointsByProtocol = (rpcEndpoints: RpcEndpoint[], protocol: RpcProtocol): RpcEndpoint[] => {
-    const endpoints = new Array<RpcEndpoint>()
-    for (const rpcEndpoint of rpcEndpoints) {
-        if (protocol === RpcProtocol.HTTP) {
-            if (rpcEndpoint.url.startsWith("https://") || rpcEndpoint.url.startsWith("http://")) {
-                endpoints.push(rpcEndpoint)
-            }
-        } else if (protocol === RpcProtocol.WEBSOCKET) {
-            if (rpcEndpoint.url.startsWith("wss://") || rpcEndpoint.url.startsWith("ws://")) {
-                endpoints.push(rpcEndpoint)
-            }
-        }
+interface ChainsJSON {
+    readonly [name: string]: ChainJSON
+}
+
+export class Chains implements ChainsJSON {
+    [name: string]: Chain
+    public static load(env: Environment): Chains {
+        const networks: NetworksJSON = networksAsJSON
+        const chainsJson: ChainsJSON = networks[env]
+        const chains: Chains = ChainsFactory.create(chainsJson)
+        return chains
     }
-    return endpoints
 }
 
-export const loadConfig = (env: Environment): Chains => {
-    const networks: Networks = networksAsJSON
-    const chain: Chains = networks[env]
-    return chain
+class ChainsFactory {
+    private constructor() {}
+    static create(chainsJson: ChainsJSON): Chains {
+        const chains = new Chains()
+        for (const key in chainsJson) {
+            const chainJson: ChainJSON = chainsJson[key]
+            const rpcEndpoints = new Array<RPCEndpoint>()
+            for (const rpcEndpoint of chainJson.rpcEndpoints) {
+                rpcEndpoints.push(new RPCEndpoint(rpcEndpoint.url))
+            }
+            const contracts = new Contracts()
+            for (const key of Object.keys(chainJson.contracts)) {
+                contracts[key] = chainJson.contracts[key]
+            }
+            chains[key] = new Chain(chainJson.id, rpcEndpoints, contracts)
+        }
+        return chains
+    }
 }
