@@ -2,7 +2,12 @@
 pragma solidity ^0.8.9;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 // import "../metatx/ERC2771Context.sol";
 
 import "./StreamBrokerRegistry.sol";
@@ -11,13 +16,20 @@ import "../IERC677.sol";
 import "../IERC677Receiver.sol";
 import "./IAddBrokerListener.sol";
 import "./IRemoveBrokerListener.sol";
+import "./policies/IJoinPolicy.sol";
+import "./policies/ILeavePolicy.sol";
+import "./policies/IAllocationPolicy.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
  */
-contract StreamAgreement is IERC677Receiver, AccessControl, IAddBrokerListener, IRemoveBrokerListener { //}, ERC2771Context {
+contract StreamAgreement is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, IAddBrokerListener, IRemoveBrokerListener { //}, ERC2771Context {
     StreamBrokerRegistry public streamBrokerRegistry; // TODO: call it just registry if no other registries are directly referenced
     IERC677 public token;
+
+    IJoinPolicy public joinPolicy;
+    ILeavePolicy public leavePolicy;
+    IAllocationPolicy public allocationPolicy;
 
     // default parameters, TODO: add setters for owner after the model is set in stone
     uint public defaultAllocationPerEpochWei = 1 ether;
@@ -35,15 +47,32 @@ contract StreamAgreement is IERC677Receiver, AccessControl, IAddBrokerListener, 
     // broker-specific state
     mapping(address => uint) public stakedWei;
 
-    constructor(
-        address streamBrokerRegistryAddress,
-        address tokenAddress
-        // address nodeRegistryAddress,
-        // address trustedForwarderAddress
-    ) { // ERC2771Context(trustedForwarderAddress) {
+    // constructor(
+    //     address streamBrokerRegistryAddress,
+    //     address tokenAddress
+    //     // address nodeRegistryAddress,
+    //     // address trustedForwarderAddress
+    // ) { // ERC2771Context(trustedForwarderAddress) {
+    //     streamBrokerRegistry = StreamBrokerRegistry(streamBrokerRegistryAddress);
+    //     token = IERC677(tokenAddress);
+    //     // nodeRegistry = NodeRegistry(nodeRegistryAddress);
+    // }
+
+    // function initialize(address streamBrokerRegistryAddress, address tokenAddress, address trustedForwarderAddress) public initializer {
+    function initialize(address streamBrokerRegistryAddress, address tokenAddress) public initializer {
+        // __AccessControl_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         streamBrokerRegistry = StreamBrokerRegistry(streamBrokerRegistryAddress);
         token = IERC677(tokenAddress);
-        // nodeRegistry = NodeRegistry(nodeRegistryAddress);
+    }
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
     }
 
     /**

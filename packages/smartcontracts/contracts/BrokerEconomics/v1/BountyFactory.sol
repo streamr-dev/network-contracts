@@ -5,11 +5,18 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./StreamAgreement.sol";
 
 contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
     address public bountyContractTemplate;
-    function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
+    address public streamBrokerRegistryAddress;
+    address public tokenAddress;
+    mapping(string => address) joinPolicies;
+    mapping(string => address) leavePolicies;
+    mapping(string => address) allocationPolicies;
+
+    function initialize(address trustedForwarderAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
@@ -26,8 +33,14 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         return super._msgData();
     }
 
-    function deployBountyAgreement() public {
-        BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
-        ClonesUpgradeable.clone(bountyContractTemplate);
+    function deployBountyAgreement() public returns (address) {
+        // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
+        // ClonesUpgradeable.clone(bountyContractTemplate);
+        // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
+        // StreamAgreement streamAgreement = new StreamAgreement(this);
+        address streamAgreementAdress = ClonesUpgradeable.clone(bountyContractTemplate);
+        StreamAgreement streamAgreement = StreamAgreement(streamAgreementAdress);
+        streamAgreement.initialize(streamBrokerRegistryAddress, tokenAddress);
+        return streamAgreementAdress;
     }
 }
