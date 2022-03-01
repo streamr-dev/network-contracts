@@ -1,12 +1,11 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, utils, Wallet } from 'ethers'
-import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
+// import { BigNumber, utils, Wallet } from 'ethers'
 
 import type { BountyFactory } from '../typechain/BountyFactory'
 import type { StreamAgreement } from '../typechain/StreamAgreement'
 
-const { deployContract } = waffle
+// const { deployContract } = waffle
 const { provider } = waffle
 
 // eslint-disable-next-line no-unused-vars
