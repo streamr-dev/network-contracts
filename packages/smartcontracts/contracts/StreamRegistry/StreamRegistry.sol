@@ -358,16 +358,6 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         }
     }
 
-    function trustedSetPermissions(string[] calldata streamids, address[] calldata users, Permission[] calldata permissions) public isTrusted() {
-        uint arrayLength = streamids.length;
-        for (uint i = 0; i < arrayLength; i++) {
-            string calldata streamId = streamids[i];
-            Permission memory permission = permissions[i];
-            _setPermissionBooleans(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
-            emit PermissionUpdated(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
-        }
-    }
-
     function addressToString(address _address) public pure returns(string memory) {
        bytes32 _bytes = bytes32(uint256(uint160(_address)));
        bytes memory _hex = "0123456789abcdef";
