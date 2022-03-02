@@ -1,7 +1,6 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable max-len */
-/* eslint-disable no-param-reassign */
 import Debug from 'debug'
 import { BigNumber } from '@ethersproject/bignumber'
 
@@ -47,44 +46,54 @@ const buildQuery = (
 const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise<StreamsWithPermissions> => {
     debug('comparing streams from DB to migrated streams, total: ' + Object.keys(streamsFromDB).length)
     const streamIDs = Object.keys(streamsFromDB)
-    const userPermissionsFromGraph = graphqlClient.fetchPaginatedResults<PermissionAdditions & Permission>((lastId: string, pageSize: number) => buildQuery(lastId, pageSize, streamIDs))
-    for await (const fromGraph of userPermissionsFromGraph) {
-        if (fromGraph.stream === null) { continue }
-        if (streamsFromDB[fromGraph.stream.id] === undefined || streamsFromDB[fromGraph.stream.id].permissions[fromGraph.userAddress] === undefined) {
-            debug('Didn\'t find user permissions in DB for stream ' + fromGraph.stream.id + ' user ' + fromGraph.userAddress)
-            throw new Error('Didn\'t find user permissions in DB for stream ' + fromGraph.stream.id + ' user ' + fromGraph.userAddress)
+    const userPermissionsGraph = graphqlClient.fetchPaginatedResults<PermissionAdditions & Permission>((lastId: string, pageSize: number) => buildQuery(lastId, pageSize, streamIDs))
+    for await (const userPermissionGraph of userPermissionsGraph) {
+        if (userPermissionGraph.stream === null) {
+            continue
         }
-        const fromDB: Permission = streamsFromDB[fromGraph.stream.id].permissions[fromGraph.userAddress]
-
-        // only migrate permissions that have been added in DB but not in smart contract
-        //   also only "add" permissions, never "subtract"
-        // if a permission was added to smart contract (not in DB), we don't want to delete it
-        const permissionsWereAdded: boolean = ((fromDB.canDelete && !fromGraph.canDelete)
-                || (fromDB.canEdit && !fromGraph.canEdit)
-                || (fromDB.canGrant && !fromGraph.canGrant)
-                || BigNumber.from(fromDB.publishExpiration).gt(fromGraph.publishExpiration)
-                || BigNumber.from(fromDB.subscribeExpiration).gt(fromGraph.subscribeExpiration))
-        if (permissionsWereAdded) {
-            streamsFromDB[fromGraph.stream.id][fromGraph.userAddress] = {
-                canEdit: fromDB.canEdit || fromGraph.canEdit,
-                canDelete: fromDB.canDelete || fromGraph.canDelete,
-                canGrant: fromDB.canGrant || fromGraph.canGrant,
-                publishExpiration: fromDB.publishExpiration < fromGraph.publishExpiration ? fromDB.publishExpiration : fromGraph.publishExpiration,
-                subscribeExpiration: fromDB.subscribeExpiration < fromGraph.subscribeExpiration ? fromDB.subscribeExpiration : fromGraph.subscribeExpiration,
+        let migrationRequired = false
+        if (streamsFromDB[userPermissionGraph.stream.id] === undefined || streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress] === undefined) {
+            debug('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
+            throw new Error('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
+        }
+        const userPermissionsDb: Permission = streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress]
+        if ((userPermissionsDb.canDelete && !userPermissionGraph.canDelete)
+                || (userPermissionsDb.canEdit && !userPermissionGraph.canEdit)
+                || (userPermissionsDb.canGrant && !userPermissionGraph.canGrant)
+                || BigNumber.from(userPermissionsDb.publishExpiration).gt(userPermissionGraph.publishExpiration)
+                || BigNumber.from(userPermissionsDb.subscribeExpiration).gt(userPermissionGraph.subscribeExpiration)) {
+            migrationRequired = true
+        }
+        if (migrationRequired) {
+            // eslint-disable-next-line no-param-reassign
+            streamsFromDB[userPermissionGraph.stream.id] = {
+                ...streamsFromDB[userPermissionGraph.stream.id],
+                [userPermissionGraph.userAddress]: {
+                    canEdit: userPermissionsDb.canEdit || userPermissionGraph.canEdit,
+                    canDelete: userPermissionsDb.canDelete || userPermissionGraph.canDelete,
+                    publishExpiration: userPermissionsDb.publishExpiration < userPermissionGraph.publishExpiration
+                        ? userPermissionsDb.publishExpiration : userPermissionGraph.publishExpiration,
+                    subscribeExpiration: userPermissionsDb.subscribeExpiration < userPermissionGraph.subscribeExpiration
+                        ? userPermissionsDb.subscribeExpiration : userPermissionGraph.subscribeExpiration,
+                    canGrant: userPermissionsDb.canGrant || userPermissionGraph.canGrant
+                }
             }
         } else {
-            delete streamsFromDB[fromGraph.stream.id].permissions[fromGraph.userAddress]
+            // eslint-disable-next-line no-param-reassign
+            delete streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress]
         }
     }
     Object.keys(streamsFromDB).forEach((streamId) => {
         if (Object.keys(streamsFromDB[streamId].permissions).length === 0) {
+            // eslint-disable-next-line no-param-reassign
             delete streamsFromDB[streamId]
         }
     })
     // if (streamsFromDB[streamFromGraph.id].permissions && Object.keys(streamsFromDB[streamFromGraph.id].permissions).length === 0) {
+    //     // eslint-disable-next-line no-param-reassign
     //     delete streamsFromDB[streamFromGraph.id]
     // }
-    debug('Streams left to migrate at least some permissions after comparison: ' + Object.keys(streamsFromDB).length)
+    debug('streams left to migrate at least some permissions after comparison: ' + Object.keys(streamsFromDB).length)
     return streamsFromDB
 }
 
