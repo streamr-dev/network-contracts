@@ -22,10 +22,10 @@ export type Permission = {
 }
 
 export type StreamsWithPermissions = {
-    [key: string]: {
+    [key: string]: { // key is stream id
         metadata: string,
         permissions: {
-            [key: string]: Permission
+            [key: string]: Permission // key is the ethereum address of the permission holder
         }
     }
 }
@@ -130,6 +130,7 @@ export class Migrator {
     async updateDB(streams: { [key: string]: Date }, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
         this.debug('updating db with ' + Object.keys(streams).length + ' streams')
         for (const streamid of Object.keys(streams)) {
+            // date format conversion from "2022-03-02T10:16:20.054Z" to "2022-03-02 10:16:25"
             const updatedAt = streams[streamid].toISOString().slice(0, 19).replace('T', ' ')
             const sql = 'UPDATE stream SET migrate_sync_last_run_at = ? WHERE id = ?'
             const params = [updatedAt, streamid]
