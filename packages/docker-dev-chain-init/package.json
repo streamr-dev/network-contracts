@@ -31,6 +31,6 @@
     "hardhat-dependency-compiler": "1.1.2",
     "node-fetch": "2.6.1",
     "smartcontracts": "0.0.4",
-    "web3": "1.2.4"
+    "web3": "1.7.0"
   }
 }
