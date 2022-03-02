@@ -100,6 +100,7 @@ const main = async () => {
 //     debug('Connected!')
 main().then(() => {
     debug('done')
+    return void 0
 }).catch((err: any) => {
     connection.end()
     debug('err: ' + err)
