@@ -29,7 +29,7 @@
     "debug": "4.3.3",
     "ethers4": "npm:ethers@4.0.49",
     "hardhat-dependency-compiler": "1.1.2",
-    "node-fetch": "2.6.1",
+    "node-fetch": "2.6.7",
     "smartcontracts": "0.0.4",
     "web3": "1.2.4"
   }
