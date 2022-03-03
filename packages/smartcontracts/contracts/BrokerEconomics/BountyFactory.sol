@@ -16,10 +16,13 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     mapping(string => address) leavePolicies;
     mapping(string => address) allocationPolicies;
 
-    function initialize(address trustedForwarderAddress) public initializer {
+    event NewBounty(address bountyContract);
+
+    function initialize(address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        tokenAddress = _tokenAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -40,7 +43,8 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address streamAgreementAdress = ClonesUpgradeable.clone(bountyContractTemplate);
         StreamAgreement streamAgreement = StreamAgreement(streamAgreementAdress);
-        streamAgreement.initialize(tokenAddress, 0, 0, 0, 0, 0);
+        streamAgreement.initialize(tokenAddress, 0, 0, 10, 1, 100);
+        emit NewBounty(streamAgreementAdress);
         return streamAgreementAdress;
     }
 }
