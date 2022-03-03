@@ -4,15 +4,24 @@ pragma experimental ABIEncoderV2;
 
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 // import "../metatx/ERC2771Context.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+// import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./policies/IJoinPolicy.sol";
+import "./policies/ILeavePolicy.sol";
+import "./policies/IAllocationPolicy.sol";
+
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
  */
-contract StreamAgreement is IERC677Receiver, Ownable { //}, ERC2771Context {
+contract StreamAgreement is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
     // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
     enum State {
@@ -64,6 +73,31 @@ contract StreamAgreement is IERC677Receiver, Ownable { //}, ERC2771Context {
         maxBrokerCount = initialMaxBrokerCount;
         minimumStakeWei = initialMinimumStakeWei;
         minHorizonSeconds = initialMinHorizonSeconds;
+    }
+
+    function initialize(address tokenAddress,
+        uint initialAllocationWeiPerSecond,
+        uint initialMinBrokerCount,
+        uint initialMaxBrokerCount,
+        uint initialMinimumStakeWei,
+        uint initialMinHorizonSeconds) public initializer {
+        // __AccessControl_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        token = IERC677(tokenAddress);
+        allocationWeiPerSecond = initialAllocationWeiPerSecond;
+        minBrokerCount = initialMinBrokerCount;
+        maxBrokerCount = initialMaxBrokerCount;
+        minimumStakeWei = initialMinimumStakeWei;
+        minHorizonSeconds = initialMinHorizonSeconds;
+    }
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
     }
 
     function getState() public view returns (State) {

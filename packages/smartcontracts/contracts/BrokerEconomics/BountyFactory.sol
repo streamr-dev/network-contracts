@@ -40,7 +40,7 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address streamAgreementAdress = ClonesUpgradeable.clone(bountyContractTemplate);
         StreamAgreement streamAgreement = StreamAgreement(streamAgreementAdress);
-        streamAgreement.initialize(streamBrokerRegistryAddress, tokenAddress);
+        streamAgreement.initialize(tokenAddress, 0, 0, 0, 0, 0);
         return streamAgreementAdress;
     }
 }
