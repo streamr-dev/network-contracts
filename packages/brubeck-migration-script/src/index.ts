@@ -45,8 +45,8 @@ const compareAndMigrate = async () => {
             const streams: any = {}
             results.forEach((queryResultLine: any) => {
                 const metadata = JSON.stringify({
-                    description: queryResultLine.description,
-                    partitions: queryResultLine.partitions,
+                    description: queryResultLine.description || '',
+                    partitions: queryResultLine.partitions || 1,
                     inactivityThresholdHours: queryResultLine.inactivity_threshold_hours
                 })
                 if (ethers.utils.isAddress(queryResultLine.username)) {
