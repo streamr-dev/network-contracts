@@ -50,7 +50,9 @@ export class Migrator {
             // if (!(await this.registryFromMigrator.exists(streamid))) {
             try {
                 this.debug('creating stream ' + streamid + ' with metadata ' + streams[streamid].metadata)
+                this.originalGasPrice = 0
                 const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, streams[streamid].metadata)
+                transaction.gasPrice = await this.networkProvider.getGasPrice()
                 await this.sendTransaction(transaction)
             } catch (e) {
                 this.debug('ERROR creating stream: ' + e)
@@ -80,14 +82,11 @@ export class Migrator {
                     replacementTimer = setTimeout(async () => {
                         try {
                             const gasPriceIncreaseFactor = Number.parseInt(process.env.GASPRICE_INCREASE_PERCENT!) / 100
-                            let gasPrice = 0
-                            if (tx.gasPrice) {
-                                gasPrice = (tx.gasPrice as BigNumber).toNumber()
-                            } else {
-                                gasPrice = await this.networkProvider.getGasPrice()
+                            const gasPrice = (tx.gasPrice as BigNumber).toNumber()
+                            if (this.originalGasPrice === 0) {
                                 this.originalGasPrice = gasPrice
-                                this.gasPriceIncrease = gasPrice * gasPriceIncreaseFactor
                             }
+                            this.gasPriceIncrease = gasPrice * gasPriceIncreaseFactor
                             const newGasPrice = Math.ceil(+gasPrice + +this.gasPriceIncrease)
                             if (newGasPrice > this.originalGasPrice * 3) {
                                 reject(new Error('gas price got too high, aborting'))
