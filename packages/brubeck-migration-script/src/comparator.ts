@@ -51,7 +51,7 @@ const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise
         if (userPermissionGraph.stream === null) {
             continue
         }
-        let migrationRequired = false
+        let migrationRequired = true
         if (streamsFromDB[userPermissionGraph.stream.id] === undefined || streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress] === undefined) {
             debug('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
             throw new Error('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)

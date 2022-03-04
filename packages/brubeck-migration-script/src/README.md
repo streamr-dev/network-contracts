@@ -7,15 +7,15 @@ echo "select id, name from stream;" | mysql -u root -ppassword -h 127.0.0.1 -P 3
 
 
 hat:core:hre Creating provider for network polygonMainnet
-14|brubeck-migrator  | 2022-03-04T12:46:50.378Z migration-script:index stream: 0x04e15239c37d0a74a5fcd84133b5913afb121102/streamr/node/metrics/day
-14|brubeck-migrator  | 2022-03-04T12:46:50.380Z migration-script:index stream: 0x0cd2f8eba5033524ac7e2d9d72c112ac4383d576/VANTECH
-14|brubeck-migrator  | 2022-03-04T12:46:50.386Z migration-script:index stream: 0x1039bc4d681a0868d4ae7a9770b142bc525e6895/thisisnew
-14|brubeck-migrator  | 2022-03-04T12:46:50.389Z migration-script:index stream: 0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/day
-14|brubeck-migrator  | 2022-03-04T12:46:50.391Z migration-script:index stream: 0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/hour
-14|brubeck-migrator  | 2022-03-04T12:46:50.393Z migration-script:index stream: 0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/min
-14|brubeck-migrator  | 2022-03-04T12:46:50.395Z migration-script:index stream: 0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/sec
-14|brubeck-migrator  | 2022-03-04T12:46:50.396Z migration-script:index stream: 0x5b1569bef32f58491272b478ddd0f7e4efdf35d7/meteroloji1
-14|brubeck-migrator  | 2022-03-04T12:46:50.398Z migration-script:index stream: 0x7d275b79eaed6b00eb1fe7e1174c1c6f2e711283/testastorage
-14|brubeck-migrator  | 2022-03-04T12:46:50.399Z migration-script:index stream: 0x98bebbe4218fcaa44fe5dfc0bc3b3244cf2a6c10/TestStream
-14|brubeck-migrator  | 2022-03-04T12:46:50.400Z migration-script:index stream: 0xab138905776f5aa8113c174b73601152fd3207bc/siggi.eth
-14|brubeck-migrator  | 2022-03-04T12:46:50.401Z migration-script:index stream: 0xc939c2e8f856ca4a0b9ec7c031662c926d6ba50f/Airometrix
+"0x04e15239c37d0a74a5fcd84133b5913afb121102/streamr/node/metrics/day",
+"0x0cd2f8eba5033524ac7e2d9d72c112ac4383d576/VANTECH",
+"0x1039bc4d681a0868d4ae7a9770b142bc525e6895/thisisnew",
+"0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/day",
+"0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/hour",
+"0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/min",
+"0x15b0958917d945288f181924818067e4dfce238d/streamr/node/metrics/sec",
+"0x5b1569bef32f58491272b478ddd0f7e4efdf35d7/meteroloji1",
+"0x7d275b79eaed6b00eb1fe7e1174c1c6f2e711283/testastorage",
+"0x98bebbe4218fcaa44fe5dfc0bc3b3244cf2a6c10/TestStream",
+"0xab138905776f5aa8113c174b73601152fd3207bc/siggi.eth",
+"0xc939c2e8f856ca4a0b9ec7c031662c926d6ba50f/Airometri"

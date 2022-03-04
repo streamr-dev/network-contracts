@@ -77,8 +77,8 @@ const compareAndMigrate = async () => {
                 }
             }
             // const migratedFilteredOut = await comparator(streams)
-            // await migrator.init()
-            // await migrator.migrate(migratedFilteredOut, connection)
+            await migrator.init()
+            await migrator.migrate(streams, connection)
             resolve(void 0)
         })
     })
