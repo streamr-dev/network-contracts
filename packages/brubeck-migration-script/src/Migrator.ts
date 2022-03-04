@@ -74,8 +74,6 @@ export class Migrator {
     }
     async sendTransaction(tx: TransactionRequest): Promise<void> {
         try {
-            this.debug('sending transaction')
-
             let replacementTimer = setTimeout(() => {}, 0)
             const replaceTX = () => {
                 return new Promise((resolve, reject) => {
@@ -107,6 +105,7 @@ export class Migrator {
             }
 
             const sendTx = async() => {
+                this.debug('sending transaction with gas price ' + tx.gasPrice)
                 const response = await this.migratorWallet.sendTransaction(tx)
                 this.debug('sent, waiting for transaction with hash ' + response.hash)
                 const receipt = await response.wait()
