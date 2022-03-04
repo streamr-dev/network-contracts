@@ -51,32 +51,33 @@ const compareToMigrated = async (streamsFromDB: StreamsWithPermissions): Promise
         if (userPermissionGraph.stream === null) {
             continue
         }
-        let migrationRequired = true
+        let migrationRequired = false
         if (streamsFromDB[userPermissionGraph.stream.id] === undefined || streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress] === undefined) {
             debug('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
             throw new Error('didnt find user permissions in DB for stream ' + userPermissionGraph.stream.id + ' user ' + userPermissionGraph.userAddress)
         }
-        const userPermissionsDb: Permission = streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress]
-        if ((userPermissionsDb.canDelete && !userPermissionGraph.canDelete)
-                || (userPermissionsDb.canEdit && !userPermissionGraph.canEdit)
-                || (userPermissionsDb.canGrant && !userPermissionGraph.canGrant)
-                || BigNumber.from(userPermissionsDb.publishExpiration).gt(userPermissionGraph.publishExpiration)
-                || BigNumber.from(userPermissionsDb.subscribeExpiration).gt(userPermissionGraph.subscribeExpiration)) {
+        // const userPermissionsDb: Permission = streamsFromDB[userPermissionGraph.stream.id].permissions[userPermissionGraph.userAddress]
+        if (userPermissionGraph.stream.metadata !== streamsFromDB[userPermissionGraph.stream.id].metadata) {
+        // if ((userPermissionsDb.canDelete && !userPermissionGraph.canDelete)
+        //         || (userPermissionsDb.canEdit && !userPermissionGraph.canEdit)
+        //         || (userPermissionsDb.canGrant && !userPermissionGraph.canGrant)
+        //         || BigNumber.from(userPermissionsDb.publishExpiration).gt(userPermissionGraph.publishExpiration)
+        //         || BigNumber.from(userPermissionsDb.subscribeExpiration).gt(userPermissionGraph.subscribeExpiration)) {
             migrationRequired = true
         }
         if (migrationRequired) {
             // eslint-disable-next-line no-param-reassign
             streamsFromDB[userPermissionGraph.stream.id] = {
                 ...streamsFromDB[userPermissionGraph.stream.id],
-                [userPermissionGraph.userAddress]: {
-                    canEdit: userPermissionsDb.canEdit || userPermissionGraph.canEdit,
-                    canDelete: userPermissionsDb.canDelete || userPermissionGraph.canDelete,
-                    publishExpiration: userPermissionsDb.publishExpiration < userPermissionGraph.publishExpiration
-                        ? userPermissionsDb.publishExpiration : userPermissionGraph.publishExpiration,
-                    subscribeExpiration: userPermissionsDb.subscribeExpiration < userPermissionGraph.subscribeExpiration
-                        ? userPermissionsDb.subscribeExpiration : userPermissionGraph.subscribeExpiration,
-                    canGrant: userPermissionsDb.canGrant || userPermissionGraph.canGrant
-                }
+                // [userPermissionGraph.userAddress]: {
+                //     canEdit: userPermissionsDb.canEdit || userPermissionGraph.canEdit,
+                //     canDelete: userPermissionsDb.canDelete || userPermissionGraph.canDelete,
+                //     publishExpiration: userPermissionsDb.publishExpiration < userPermissionGraph.publishExpiration
+                //         ? userPermissionsDb.publishExpiration : userPermissionGraph.publishExpiration,
+                //     subscribeExpiration: userPermissionsDb.subscribeExpiration < userPermissionGraph.subscribeExpiration
+                //         ? userPermissionsDb.subscribeExpiration : userPermissionGraph.subscribeExpiration,
+                //     canGrant: userPermissionsDb.canGrant || userPermissionGraph.canGrant
+                // }
             }
         } else {
             // eslint-disable-next-line no-param-reassign

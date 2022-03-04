@@ -76,9 +76,9 @@ const compareAndMigrate = async () => {
                     stream.permissions[user] = convertedPermission
                 }
             }
-            // const migratedFilteredOut = await comparator(streams)
+            const migratedFilteredOut = await comparator(streams)
             await migrator.init()
-            await migrator.migrate(streams, connection)
+            await migrator.migrate(migratedFilteredOut, connection)
             resolve(void 0)
         })
     })
