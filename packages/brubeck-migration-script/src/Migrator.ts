@@ -50,7 +50,7 @@ export class Migrator {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 try {
                     this.debug('creating stream ' + streamid)
-                    const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, 'metadata')
+                    const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, streams[streamid].metadata)
                     await this.sendTransaction(transaction)
                 } catch (e) {
                     this.debug('ERROR creating stream: ' + e)
