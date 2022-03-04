@@ -55,6 +55,7 @@ const compareAndMigrate = async () => {
                             metadata,
                             permissions: {}
                         }
+                        debug('stream: ' + queryResultLine.id)
                     }
                     const userAddressLowercase = queryResultLine.username.toLowerCase()
                     if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
@@ -62,7 +63,7 @@ const compareAndMigrate = async () => {
                     }
                     streams[queryResultLine.id].permissions[userAddressLowercase].push(queryResultLine.operation)
                 } else {
-                    debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
+                    // debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
                 }
             })
             for (const streamid of Object.keys(streams)) {
@@ -75,9 +76,9 @@ const compareAndMigrate = async () => {
                     stream.permissions[user] = convertedPermission
                 }
             }
-            const migratedFilteredOut = await comparator(streams)
-            await migrator.init()
-            await migrator.migrate(migratedFilteredOut, connection)
+            // const migratedFilteredOut = await comparator(streams)
+            // await migrator.init()
+            // await migrator.migrate(migratedFilteredOut, connection)
             resolve(void 0)
         })
     })
