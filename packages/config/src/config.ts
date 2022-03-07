@@ -81,6 +81,17 @@ export class Chains implements ChainsJSON {
         const chains: Chains = ChainsFactory.create(chainsJson)
         return chains
     }
+    public static loadFromNodeEnv(): Chains {
+        const nodeEnv = process.env.NODE_ENV
+        if (nodeEnv === undefined) {
+            throw new Error("NODE_ENV environment variable is not set")
+        }
+        if (nodeEnv !== "production" && nodeEnv !== "development") {
+            throw new Error("NODE_ENV environment variable value must be either 'production' or 'development'")
+        }
+        const env: Environment = nodeEnv
+        return Chains.load(env)
+    }
 }
 
 class ChainsFactory {
