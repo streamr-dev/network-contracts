@@ -47,6 +47,16 @@
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },
         {
+            "command": "npm run migration-run",
+            "name": "Run migration",
+            "request": "launch",
+            "type": "node-terminal",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Hardhat test this file",
