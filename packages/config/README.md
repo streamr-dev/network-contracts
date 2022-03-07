@@ -13,13 +13,13 @@ npm install --save @streamr/config
 ## Examples
 Import DATA token production Ethereum address as a variable in a Typescript project:
 ```typescript
-import { Chains } from "index"
+import { Chains, RPCEndpoint, RPCProtocol } from "index"
 
 const config: Chains = Chains.load("production")
 const contractAddress: string = config.ethereum.contracts["DATA-token"]
 const chainId: number = config.ethereum.id
-const rpcHttpUrl: string = config.ethereum.rpcHttpUrl
-const rpcWsUrl: string = config.ethereum.rpcWsUrl
+const httpRpcEndpoints: RPCEndpoint[] = config.ethereum.getRPCEndpointsByProtocol(RPCProtocol.HTTP)
+const wsRpcEndpoints: RPCEndpoint[] = config.ethereum.getRPCEndpointsByProtocol(RPCProtocol.WEBSOCKET)
 ```
 
 You can also load configuration based on `$NODE_ENV` environment variable:
