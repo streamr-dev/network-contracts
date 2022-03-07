@@ -24,9 +24,9 @@ const rpcWsUrl: string = config.ethereum.rpcWsUrl
 
 You can also load configuration based on `$NODE_ENV` environment variable:
 ```typescript
-import { Chains, loadConfigFromNodeEnv } from "index"
+import { Chains } from "index"
 
-const config: Chains = loadConfigFromNodeEnv()
+const config: Chains = Chains.loadFromNodeEnv()
 ```
 
 Other languages can read the [JSON file](./src/networks.json) directly.

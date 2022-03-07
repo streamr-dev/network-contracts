@@ -1,6 +1,6 @@
 import { describe, it } from "mocha"
 import { assert } from "chai"
-import { Chains, RPCProtocol, loadConfigFromNodeEnv } from "../src/index"
+import { Chains, RPCProtocol } from "../src/index"
 
 describe("Load configuration from JSON file", () => {
     it("ethereum chain id is 1", () => {
@@ -37,14 +37,14 @@ describe("Load configuration from JSON file", () => {
 describe("Load configuration based on NODE_ENV environment variable", () => {
     it("ethereum chain id is 1", () => {
         process.env.NODE_ENV = "production"
-        const config: Chains = loadConfigFromNodeEnv()
+        const config: Chains = Chains.loadFromNodeEnv()
         const chainId: number = config.ethereum.id
         const expected = 1
         assert.equal(chainId, expected, `Expecting ethereum prod chain id to equal ${expected}, got '${chainId}'`)
     })
     it("development chain id is 8995", () => {
         process.env.NODE_ENV = "development"
-        const config: Chains = loadConfigFromNodeEnv()
+        const config: Chains = Chains.loadFromNodeEnv()
         const chainId: number = config.ethereum.id
         const expected = 8995
         assert.equal(chainId, expected, `Expecting ethereum dev chain id to equal ${expected}, got '${chainId}'`)
@@ -53,14 +53,14 @@ describe("Load configuration based on NODE_ENV environment variable", () => {
         delete process.env.NODE_ENV
         assert.throws(() => {
             /* eslint-disable @typescript-eslint/no-unused-vars */
-            const config: Chains = loadConfigFromNodeEnv()
+            const config: Chains = Chains.loadFromNodeEnv()
         }, /NODE_ENV environment variable is not set/)
     })
     it("errors when NODE_ENV is something else than 'production' or 'development'", () => {
         process.env.NODE_ENV = "dev"
         assert.throws(() => {
             /* eslint-disable @typescript-eslint/no-unused-vars */
-            const config: Chains = loadConfigFromNodeEnv()
+            const config: Chains = Chains.loadFromNodeEnv()
         }, /NODE_ENV environment variable value must be either 'production' or 'development'/)
     })
 })
