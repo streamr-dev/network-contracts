@@ -2,8 +2,14 @@
     "development": {
         "ethereum": {
             "id": 8995,
-            "rpcHttpUrl": "http://10.200.10.1:8545",
-            "rpcWsUrl": "ws://10.200.10.1:8545",
+            "rpcEndpoints": [
+                {
+                    "url": "http://10.200.10.1:8545"
+                },
+                {
+                    "url": "ws://10.200.10.1:8545"
+                }
+            ],
             "contracts": {
                 "DATA-token": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
                 "XDATA-token": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
@@ -24,8 +30,14 @@
         },
         "streamr": {
             "id": 8997,
-            "rpcHttpUrl": "http://10.200.10.1:8546",
-            "rpcWsUrl": "ws://10.200.10.1:8546",
+            "rpcEndpoints": [
+                {
+                    "url": "http://10.200.10.1:8546"
+                },
+                {
+                    "url": "ws://10.200.10.1:8546"
+                }
+            ],
             "contracts": {
                 "Token": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
                 "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
@@ -42,8 +54,7 @@
     "production": {
         "ethereum": {
             "id": 1,
-            "rpcHttpUrl": "",
-            "rpcWsUrl": "",
+            "rpcEndpoints": [],
             "contracts": {
                 "DATA-token": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
                 "XDATA-token": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
@@ -62,8 +73,14 @@
         },
         "gnosis": {
             "id": 100,
-            "rpcHttpUrl": "https://rpc.gnosischain.com",
-            "rpcWsUrl": "wss://rpc.gnosischain.com/wss",
+            "rpcEndpoints": [
+                {
+                    "url": "https://rpc.gnosischain.com"
+                },
+                {
+                    "url": "wss://rpc.gnosischain.com/wss"
+                }
+            ],
             "contracts": {
                 "XDATA-token": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
                 "DATA-token": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
@@ -80,8 +97,16 @@
         },
         "binance": {
             "id": 56,
-            "rpcHttpUrl": "https://bsc-dataseed.binance.org",
-            "rpcWsUrl": "wss://bsc-dataseed.binance.org",
+            "rpcHttpUrl": "",
+            "rpcWsUrl": "",
+            "rpcEndpoints": [
+                {
+                    "url": "https://bsc-dataseed.binance.org"
+                },
+                {
+                    "url": "wss://bsc-dataseed.binance.org"
+                }
+            ],
             "contracts": {
                 "DATA-token": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
                 "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
@@ -89,8 +114,14 @@
         },
         "polygon": {
             "id": 137,
-            "rpcHttpUrl": "https://polygon-rpc.com",
-            "rpcWsUrl": "wss://polygon-rpc.com",
+            "rpcEndpoints": [
+                {
+                    "url": "https://polygon-rpc.com"
+                },
+                {
+                    "url": "wss://polygon-rpc.com"
+                }
+            ],
             "contracts": {
                 "DATA-token": "0x3a9A81d576d83FF21f26f325066054540720fC34",
                 "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
