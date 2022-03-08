@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./StreamAgreement.sol";
+import "./Bounty.sol";
 
 contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
@@ -41,10 +41,10 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         // ClonesUpgradeable.clone(bountyContractTemplate);
         // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
         // StreamAgreement streamAgreement = new StreamAgreement(this);
-        address streamAgreementAdress = ClonesUpgradeable.clone(bountyContractTemplate);
-        StreamAgreement streamAgreement = StreamAgreement(streamAgreementAdress);
-        streamAgreement.initialize(tokenAddress, 0, 0, 10, 1, 100);
-        emit NewBounty(streamAgreementAdress);
-        return streamAgreementAdress;
+        address bountyAddress = ClonesUpgradeable.clone(bountyContractTemplate);
+        Bounty bounty = Bounty(bountyAddress);
+        bounty.initialize(tokenAddress, 0, 0, 10, 1, 100);
+        emit NewBounty(bountyAddress);
+        return bountyAddress;
     }
 }

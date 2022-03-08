@@ -5,7 +5,7 @@ import { expect, use } from 'chai'
 // import { BigNumber, utils, Wallet } from 'ethers'
 
 import type { BountyFactory } from '../typechain/BountyFactory'
-import type { StreamAgreement } from '../typechain/StreamAgreement'
+import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
 import { ERC20 } from '../typechain/ERC20'
 
@@ -16,14 +16,14 @@ const { provider } = waffle
 
 use(waffle.solidity)
 
-describe('Agreements', (): void => {
+describe('Bounty', (): void => {
     const wallets = provider.getWallets()
     const adminAddress = wallets[0].address
     const brokerAddress = wallets[8].address
     const trustedForwarderAddress: string = wallets[9].address
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
-    let agreementContract: StreamAgreement
+    let bountyContract: Bounty
     let tokenAddress: string
     let token: ERC20
 
@@ -38,17 +38,17 @@ describe('Agreements', (): void => {
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     })
 
-    it.only('deploy agreement', async (): Promise<void> => {
+    it.only('deploy bounty through factory', async (): Promise<void> => {
         const agreementtx = await bountyFactory.deployBountyAgreement()
         const res = await agreementtx.wait()
         expect(agreementtx).to.be.not.null
-        console.log(JSON.stringify(agreementtx))
-        console.log(JSON.stringify(res))
-        const agreementFactory = await ethers.getContractFactory('StreamAgreement', wallets[0])
+        // console.log(JSON.stringify(agreementtx))
+        // console.log(JSON.stringify(res))
+        const agreementFactory = await ethers.getContractFactory('Bounty', wallets[0])
         const newAgreement = await bountyFactoryFactory.interface.decodeEventLog('NewBounty', res.logs[0].data, res.logs[0].topics)
-        agreementContract = agreementFactory.attach(newAgreement.bountyContract.toString()) as StreamAgreement
-        const agreementDeployed = await agreementContract.deployed()
-        const agreement: StreamAgreement = (await agreementDeployed.connect(wallets[0])) as StreamAgreement
+        bountyContract = agreementFactory.attach(newAgreement.bountyContract.toString()) as Bounty
+        const agreementDeployed = await bountyContract.deployed()
+        const agreement: Bounty = (await agreementDeployed.connect(wallets[0])) as Bounty
         // token.transferAndCall(agreement.address, ethers.utils.parseEther('1'), ...)
         await token.transfer(agreement.address, ethers.utils.parseEther('1'))
         await agreement.join(brokerAddress)

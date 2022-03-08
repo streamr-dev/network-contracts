@@ -21,7 +21,7 @@ import "./policies/IAllocationPolicy.sol";
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
  */
-contract StreamAgreement is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
+contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
     // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
     enum State {
