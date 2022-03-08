@@ -38,13 +38,13 @@ const connection = mysql.createConnection({
 
 const compareAndMigrate = async () => {
     const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours,' +
-    'user.username, permission.operation, stream_storage_node.storage_node_address' +
-    'from user, stream, permission, stream_storage_node' +
-    'where stream.migrate_to_brubeck = 1' +
-    'and stream_storage_node.stream_id = stream.id' +
-    'and user.id = permission.user_id' +
-    'and permission.stream_id = stream.id' +
-    'and permission.operation != \'stream_get\'' +
+    'user.username, permission.operation, stream_storage_node.storage_node_address ' +
+    'from user, stream, permission, stream_storage_node ' +
+    'where stream.migrate_to_brubeck = 1 ' +
+    'and stream_storage_node.stream_id = stream.id ' +
+    'and user.id = permission.user_id ' +
+    'and permission.stream_id = stream.id ' +
+    'and permission.operation != \'stream_get\' ' +
     'order by stream.id, user.username;'
     return new Promise((resolve) => {
         connection.query(query, async (error: any, results: any) => {

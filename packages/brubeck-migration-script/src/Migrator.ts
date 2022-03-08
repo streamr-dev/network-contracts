@@ -8,6 +8,7 @@ import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { MaxInt256 } from '@ethersproject/constants'
 
 import { StreamRegistryV3 } from '../typechain/StreamRegistryV3'
+import { StreamStorageRegistry } from '../typechain/StreamStorageRegistry'
 import { TransactionRequest } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 
@@ -41,6 +42,7 @@ export class Migrator {
     private debug = Debug('migration-script:migrator')
 
     private registryFromMigrator: StreamRegistryV3
+    private storageRegistryFromMigrator: StreamStorageRegistry
     private migratorWallet: Wallet
     private networkProvider: any
     private gasPriceIncrease: number
@@ -64,7 +66,7 @@ export class Migrator {
             if (streams[streamid].storageNodeAddress) {
                 try {
                     this.debug('setting storage node address for stream ' + streamid)
-                    const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStorageNodeAddress(streamid, streams[streamid].storageNodeAddress)
+                    const transaction = await this.storageRegistryFromMigrator.populateTransaction.addStorageNode(streamid, streams[streamid].storageNodeAddress as string)
                     await this.sendTransaction(transaction)
                 } catch (e) {
                     this.debug('ERROR setting storage node address: ' + e)
@@ -185,12 +187,25 @@ export class Migrator {
         const registryContract = await registry.deployed()
         this.registryFromMigrator = await registryContract.connect(this.migratorWallet) as StreamRegistryV3
 
+        const streamStorageRegistryFactory = await ethers.getContractFactory('StreamStorageRegistry', this.migratorWallet)
+        const storageRegistry = await streamStorageRegistryFactory.attach(process.env.STORAGEREGISTRY_ADDRESS || '')
+        const storageRegistryContract = await storageRegistry.deployed()
+        this.storageRegistryFromMigrator = await storageRegistryContract.connect(this.migratorWallet) as StreamStorageRegistry
+
         // debug, only needed once
+        // this.debug('adding migrator role to registry')
         // const adminWallet = new ethers.Wallet(process.env.ADMIN_PRIVATEKEY!, this.networkProvider)
         // const registryFromAdmin = await registryContract.connect(adminWallet) as StreamRegistryV3
         // const mtx = await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
         //     this.migratorWallet.address)
         // await mtx.wait()
+        // this.debug('added migrator role to ' + this.migratorWallet.address)
+
+        // this.debug('adding migrator role to storage registry')
+        // const storageRegistryFromAdmin = await storageRegistryContract.connect(adminWallet) as StreamStorageRegistry
+        // const mtx2 = await storageRegistryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(),
+        //     this.migratorWallet.address)
+        // await mtx2.wait()
         // this.debug('added migrator role to ' + this.migratorWallet.address)
     }
 
