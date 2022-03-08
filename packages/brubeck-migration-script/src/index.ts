@@ -6,12 +6,13 @@
 // select DISTINCT stream.id, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1
 // and user.id = permission.user_id and permission.stream_id = stream.id and permission.operation != 'stream_get' order by stream.id, user.username limit 10;
 
-//     select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation
-// from user, stream, permission
+// select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation, stream_storage_node.storage_node_address 
+// from user, stream, permission, stream_storage_node 
 // where stream.migrate_to_brubeck = 1
+// and stream_storage_node.stream_id = stream.id
 // and user.id = permission.user_id
-// and permission.stream_id = stream.id
-// and permission.operation != 'stream_get'
+// and permission.stream_id = stream.id 
+// and permission.operation != 'stream_get' 
 // order by stream.id, user.username;
 
 // debug update migration flag to 1
@@ -36,8 +37,15 @@ const connection = mysql.createConnection({
 })
 
 const compareAndMigrate = async () => {
-    const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours, user.username, permission.operation from user, stream, permission where stream.migrate_to_brubeck = 1 and user.id = permission.user_id'
-    + ' and permission.stream_id = stream.id and permission.operation != \'stream_get\' order by stream.id, user.username;'
+    const query = 'select DISTINCT stream.id, stream.description, stream.partitions, stream.inactivity_threshold_hours,' +
+    'user.username, permission.operation, stream_storage_node.storage_node_address' +
+    'from user, stream, permission, stream_storage_node' +
+    'where stream.migrate_to_brubeck = 1' +
+    'and stream_storage_node.stream_id = stream.id' +
+    'and user.id = permission.user_id' +
+    'and permission.stream_id = stream.id' +
+    'and permission.operation != \'stream_get\'' +
+    'order by stream.id, user.username;'
     return new Promise((resolve) => {
         connection.query(query, async (error: any, results: any) => {
             if (error) { throw error }
@@ -55,6 +63,9 @@ const compareAndMigrate = async () => {
                             metadata,
                             permissions: {}
                         }
+                    }
+                    if (queryResultLine.storage_node_address) {
+                        streams[queryResultLine.id].storageNodeAddress = queryResultLine.storage_node_address
                     }
                     const userAddressLowercase = queryResultLine.username.toLowerCase()
                     if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {

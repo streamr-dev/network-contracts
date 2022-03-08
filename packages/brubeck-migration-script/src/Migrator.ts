@@ -24,6 +24,7 @@ export type Permission = {
 export type StreamsWithPermissions = {
     [key: string]: { // key is stream id
         metadata: string,
+        storageNodeAddress?: string,
         permissions: {
             [key: string]: Permission // key is the ethereum address of the permission holder
         }
@@ -46,6 +47,7 @@ export class Migrator {
     private originalGasPrice: number
 
     async migrate(streams: StreamsWithPermissions, mysql: {query: (arg0: string, arg1: string[]) => unknown }): Promise<void> {
+        // create streams
         for (const streamid of Object.keys(streams)) {
             if (!(await this.registryFromMigrator.exists(streamid))) {
                 try {
@@ -57,6 +59,19 @@ export class Migrator {
                 }
             }
         }
+        // set storage node address
+        for (const streamid of Object.keys(streams)) {
+            if (streams[streamid].storageNodeAddress) {
+                try {
+                    this.debug('setting storage node address for stream ' + streamid)
+                    const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStorageNodeAddress(streamid, streams[streamid].storageNodeAddress)
+                    await this.sendTransaction(transaction)
+                } catch (e) {
+                    this.debug('ERROR setting storage node address: ' + e)
+                }
+            }
+        }
+        // update permissions
         const streamDataChunks = await Migrator.convertToStreamDataArray(streams)
         let updatedStreams: { [key: string]: Date} = {}
         for (const streamData of streamDataChunks) {
