@@ -189,7 +189,7 @@ export class Migrator {
         this.registryFromMigrator = await registryContract.connect(this.migratorWallet) as StreamRegistryV3
 
         const streamStorageRegistryFactory = await ethers.getContractFactory('StreamStorageRegistry', this.migratorWallet)
-        const storageRegistry = await streamStorageRegistryFactory.attach(process.env.STORAGEREGISTRY_ADDRESS || '')
+        const storageRegistry = await streamStorageRegistryFactory.attach(process.env.STREAMSTORAGEREGISTRY_ADDRESS || '')
         const storageRegistryContract = await storageRegistry.deployed()
         this.storageRegistryFromMigrator = await storageRegistryContract.connect(this.migratorWallet) as StreamStorageRegistry
 
