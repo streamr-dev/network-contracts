@@ -1,9 +1,9 @@
 // import { task } from 'hardhat/config'
 // import '@nomiclabs/hardhat-waffle'
-// import 'hardhat-typechain'
+import 'hardhat-typechain'
 // import { HardhatUserConfig } from 'hardhat/types'
 // import 'hardhat-deploy'
-// import 'hardhat-deploy-ethers'
+import 'hardhat-deploy-ethers'
 require('@openzeppelin/hardhat-upgrades')
 
 // require('solidity-coverage')
@@ -56,18 +56,13 @@ module.exports = {
         },
         polygonMainnet: {
             chainId: 137,
-            url: 'https://polygon-rpc.com',
+            // url: 'https://polygon-rpc.com',
+            url: 'https://wild-dark-thunder.matic.quiknode.pro/08b0fa6254499defc975c381ee21777cb197fac5/',
         }
     },
     dependencyCompiler: {
         paths: [
-            'smartcontracts/contracts/NodeRegistry/NodeRegistry.sol',
-            'smartcontracts/contracts/NodeRegistry/TrackerRegistry.sol',
-            'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol',
-            'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
-            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
-            '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol'
+            'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol'
         ],
     },
     solidity: {
@@ -80,33 +75,10 @@ module.exports = {
                         runs: 100,
                     },
                 },
-            },
-            {
-                version: '0.6.6',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 100,
-                    },
-                },
-            },
-            {
-                version: '0.4.24',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 100,
-                    },
-                },
-            },
-            {
-                version: '0.6.12',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 100,
-                    },
-                },
             }],
+    },
+    typechain: {
+        outDir: './typechain',
+        target: 'ethers-v5',
     }
 }

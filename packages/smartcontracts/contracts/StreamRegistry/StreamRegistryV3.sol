@@ -1,5 +1,8 @@
 /**
- * Upgraded on: not deployed yet
+ * Upgraded on: 2021-02-16
+ * https://polygonscan.com/tx/0x47536e57cf8db693627438373635b22fa471311acdc79be234e9fa959f7f6a62
+ * DO NOT EDIT
+ * Instead, make a copy with new version number
  */
 
 // SPDX-License-Identifier: MIT

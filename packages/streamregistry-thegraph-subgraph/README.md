@@ -9,7 +9,7 @@ To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:de
 with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
 
 ## Prod deployment to the centralised theGraph
-First build it then set token, then deploy. The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
+First rename subgraph_prod.yaml to rename subgraph.yaml then follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
 Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
 ```
 cd packages/streamregistry-thegraph-subgraph
