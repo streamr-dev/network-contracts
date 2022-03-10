@@ -20,6 +20,7 @@ while getopts "h" arg; do
 	esac
 done
 
+make clean
 ./release-git-validate.bash
 
 version="${1-}"
@@ -29,6 +30,6 @@ if test -z "$version"; then
 fi
 
 ./release-validate-semver.bash "$version"
-
 ./release-git-tag.bash "$version"
-./release-npm-publish.bash
+make build
+make npm-publish

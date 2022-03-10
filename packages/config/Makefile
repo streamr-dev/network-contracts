@@ -31,9 +31,22 @@ build: NODE_ENV = "production"
 build: ## Run build
 	$(call npm, run build)
 
+.PHONY: npm-install
+npm-install:
+	$(call npm, install)
+
+.PHONY: npm-publish
+npm-publish:
+	$(call npm, publish . --access public)
+
+.PHONY: npm-pack
+npm-pack:
+	$(call npm, pack)
+
 .PHONY: clean
 clean: ## Remove generated files
 	$(RM) -r \
+		build \
 		dist \
 		node_modules
 

@@ -1,6 +1,6 @@
 import { describe, it } from "mocha"
 import { assert } from "chai"
-import * as config from "../src/config"
+import * as config from "../src"
 
 describe("Load configuration from JSON file", () => {
     it("ethereum chain id is 1", () => {
