@@ -14,6 +14,11 @@ import { Wallet } from '@ethersproject/wallet'
 
 const { ethers } = hhat
 
+export type RawPermission = {
+    type: string,
+    expiration: BigNumber
+}
+
 export type Permission = {
     canEdit: boolean;
     canDelete: boolean;
@@ -226,7 +231,7 @@ export class Migrator {
         }
     }
 
-    static convertPermissions(permissions: string[]): Permission {
+    static convertPermissions(permissions: RawPermission[]): Permission {
         const permissionSet = {
             canEdit: false,
             canDelete: false,
@@ -235,7 +240,7 @@ export class Migrator {
             canGrant: false,
         }
         permissions.forEach((el) => {
-            switch (el) {
+            switch (el.type) {
                 case 'stream_edit':
                     permissionSet.canEdit = true
                     break
@@ -243,10 +248,10 @@ export class Migrator {
                     permissionSet.canDelete = true
                     break
                 case 'stream_publish':
-                    permissionSet.publishExpiration = MaxInt256
+                    permissionSet.publishExpiration = el.expiration
                     break
                 case 'stream_subscribe':
-                    permissionSet.subscribeExpiration = MaxInt256
+                    permissionSet.subscribeExpiration = el.expiration
                     break
                 case 'stream_share':
                     permissionSet.canGrant = true

@@ -131,9 +131,10 @@ import { ethers } from 'hardhat'
 import Debug from 'debug'
 import 'dotenv/config'
 import comparator from './comparator'
-import { Migrator } from './Migrator'
+import { Migrator, RawPermission } from './Migrator'
 
 import mysql from 'mysql'
+import { BigNumber } from '@ethersproject/bignumber'
 
 const migrator = new Migrator()
 const debug = Debug('migration-script:index')
@@ -186,11 +187,14 @@ const compareAndMigrate = async () => {
             const streams: any = {}
             for (let i = 0; i < results.length; i++) {
                 const queryResultLine = results[i]
-                const expiraton = queryResultLine.ends_at ? new Date(queryResultLine.ends_at).getDate() : Number.MAX_VALUE
-                if (Date.now() > expiraton) {
-                    debug('skipping permission for user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because ends_at has expired')
-                    continue
-                }
+                // if (queryResultLine.ends_at) {
+                //     debug('skipping stream ' + queryResultLine.id + ' because it has ended')
+                // }
+                // const expiraton = queryResultLine.ends_at ? new Date(queryResultLine.ends_at).getTime() : Number.MAX_VALUE
+                // if (Date.now() > expiraton) {
+                //     debug('skipping permission for user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because ends_at has expired')
+                //     continue
+                // }
                 if (!ethers.utils.isAddress(queryResultLine.username)) {
                     debug('skipping user ' + queryResultLine.username + ' in stream ' + queryResultLine.id + ' because user is not an address')
                     continue
@@ -214,7 +218,11 @@ const compareAndMigrate = async () => {
                 if (!streams[queryResultLine.id].permissions[userAddressLowercase]) {
                     streams[queryResultLine.id].permissions[userAddressLowercase] = []
                 }
-                streams[queryResultLine.id].permissions[userAddressLowercase].push(queryResultLine.operation)
+                const rawPermission: RawPermission = {
+                    type: queryResultLine.operation,
+                    expiration: queryResultLine.ends_at ? BigNumber.from(new Date(queryResultLine.ends_at).getTime()) : BigNumber.from(ethers.constants.MaxUint256)
+                }
+                streams[queryResultLine.id].permissions[userAddressLowercase].push(rawPermission)
             }
             for (const streamid of Object.keys(streams)) {
                 const stream = streams[streamid]
