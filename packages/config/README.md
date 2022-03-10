@@ -82,17 +82,16 @@ make clean
 ```
 
 ### Publish Release
-Start with [Common Setup](#common-setup) before continuing.
-
-Login to Npmjs.com:
-```bash
-npm login --registry https://registry.npmjs.org --scope @streamr
-```
-
-Run clean build, create a new release on Npmjs.com, update version in `package.json`, push a release commit, and tag it on GitHub:
-```bash
-./release.bash 0.0.1
-```
-
+1. Start with [Common Setup](#common-setup) before continuing.
+1. Login to Npmjs.com:
+    ```bash
+    npm login --registry https://registry.npmjs.org --scope @streamr
+    ```
+1. Run clean build, create a new release on Npmjs.com, update version in `package.json`, push a release commit, and tag it on GitHub:
+    ```bash
+    ./release.bash 0.0.2
+    ```
+1. Draft a new release on GitHub [network-contracts](https://github.com/streamr-dev/network-contracts/releases) repository with the generated tag `config/0.0.2`
+	![Draft a new release on GitHub](./docs/draft-release-github.png "Drafting a new release")
 ## License
 [MIT](LICENSE)
