@@ -25,7 +25,7 @@ const wsRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(
 
 You can also load configuration based on `$NODE_ENV` environment variable:
 ```typescript
-import * as config from "config"
+import * as config from "@streamr/config"
 
 const chains: Chains = config.Chains.loadFromNodeEnv()
 ```
