@@ -60,7 +60,8 @@ export class Migrator {
                 try {
                     this.debug('creating stream ' + streamid)
                     const transaction = await this.registryFromMigrator.populateTransaction.trustedSetStreamMetadata(streamid, streams[streamid].metadata)
-                    // await this.sendTransaction(transaction)
+                    transaction.gasPrice = await this.networkProvider.getGasPrice()
+                    await this.sendTransaction(transaction)
                 } catch (e) {
                     this.debug('ERROR creating stream: ' + e)
                 }
@@ -73,7 +74,8 @@ export class Migrator {
                     this.debug('setting storage node address for stream ' + streamid)
                     const transaction = await this.storageRegistryFromMigrator.populateTransaction.addStorageNode(streamid, streams[streamid].storageNodeAddress as string)
                     // const transaction = await this.storageRegistryFromMigrator.populateTransaction.addStorageNode(streamid, "0xde1112f631486cfc759a50196853011528bc5fa0")
-                    // await this.sendTransaction(transaction)
+                    transaction.gasPrice = await this.networkProvider.getGasPrice()
+                    await this.sendTransaction(transaction)
                 } catch (e) {
                     this.debug('ERROR setting storage node address: ' + e)
                 }
@@ -84,11 +86,11 @@ export class Migrator {
         let updatedStreams: { [key: string]: Date} = {}
         for (const streamData of streamDataChunks) {
             try {
-                // await this.sendStreamsToChain(streamData)
+                await this.sendStreamsToChain(streamData)
                 for (const streamDataItem of streamData) {
                     updatedStreams[streamDataItem.id] = new Date()
                 }
-                // await this.updateDB(updatedStreams, mysql)
+                await this.updateDB(updatedStreams, mysql)
                 updatedStreams = {}
             } catch (err) {
                 this.debug('error sending permission chunks to chain: ' + err)
@@ -224,8 +226,7 @@ export class Migrator {
                 }
             )
             await this.sendTransaction(tx)
-            // await tx.wait()
-            // this.debug('mined tx with nonce ' + tx.nonce)
+            tx.gasPrice = await this.networkProvider.getGasPrice()
         } catch (err: any) {
             this.debug(err)
         }
