@@ -12,6 +12,7 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     address public bountyContractTemplate;
     address public streamBrokerRegistryAddress;
     address public tokenAddress;
+    address private trustedForwarder;
     mapping(string => address) joinPolicies;
     mapping(string => address) leavePolicies;
     mapping(string => address) allocationPolicies;
@@ -23,6 +24,7 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         tokenAddress = _tokenAddress;
+        trustedForwarder = trustedForwarderAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -36,14 +38,24 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         return super._msgData();
     }
 
-    function deployBountyAgreement() public returns (address) {
+    function deployBountyAgreement(uint initialAllocationWeiPerSecond,
+        uint initialMinBrokerCount,
+        uint initialMaxBrokerCount,
+        uint initialMinimumStakeWei,
+        uint initialMinHorizonSeconds,
+        address _joinPolicy,
+        address _leavePolicy,
+        address _allocationPolicy
+    ) public returns (address) {
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
         // ClonesUpgradeable.clone(bountyContractTemplate);
         // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.clone(bountyContractTemplate);
         Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(tokenAddress, 0, 0, 10, 1, 100);
+        bounty.initialize(tokenAddress, initialAllocationWeiPerSecond, initialMinBrokerCount,
+            initialMaxBrokerCount, initialMinimumStakeWei, initialMinHorizonSeconds,
+            _joinPolicy, _leavePolicy, _allocationPolicy, trustedForwarder);
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }

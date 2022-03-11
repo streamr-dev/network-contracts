@@ -8,6 +8,7 @@ import type { BountyFactory } from '../typechain/BountyFactory'
 import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
 import { ERC20 } from '../typechain/ERC20'
+import { IAllocationPolicy, IJoinPolicy, ILeavePolicy } from '../typechain'
 
 // const { deployContract } = waffle
 const { provider } = waffle
@@ -26,6 +27,9 @@ describe('Bounty', (): void => {
     let bountyContract: Bounty
     let tokenAddress: string
     let token: ERC20
+    let joinPolicy: IJoinPolicy
+    let leavePolicy: ILeavePolicy
+    let allocationPolicy: IAllocationPolicy
 
     before(async (): Promise<void> => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', wallets[0])
@@ -33,13 +37,27 @@ describe('Bounty', (): void => {
         tokenAddress = token.address
         // await token.mint(adminAddress, ethers.utils.parseEther('1000000'))
 
+        const jpF = await ethers.getContractFactory('DefaultJoinPolicy', wallets[0])
+        const jpTx = await jpF.deploy() as Contract
+        joinPolicy = await jpTx.connect(wallets[0]).deployed() as IJoinPolicy
+
+        const lpF = await ethers.getContractFactory('DefaultLeavePolicy', wallets[0])
+        const lpTx = await lpF.deploy() as Contract
+        leavePolicy = await lpTx.connect(wallets[0]).deployed() as ILeavePolicy
+
+        const apF = await ethers.getContractFactory('WeightBasedAllocationPolicy', wallets[0])
+        const apTx = await apF.deploy() as Contract
+        allocationPolicy = await apTx.connect(wallets[0]).deployed() as IAllocationPolicy
+
         bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', wallets[0])
-        const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory, [ trustedForwarderAddress, tokenAddress ])
+        const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory, 
+            [ trustedForwarderAddress, tokenAddress ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     })
 
     it.only('deploy bounty through factory', async (): Promise<void> => {
-        const agreementtx = await bountyFactory.deployBountyAgreement()
+        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, 10, 1, 100, 
+            joinPolicy.address, leavePolicy.address, allocationPolicy.address)
         const res = await agreementtx.wait()
         expect(agreementtx).to.be.not.null
         // console.log(JSON.stringify(agreementtx))
@@ -50,9 +68,15 @@ describe('Bounty', (): void => {
         const agreementDeployed = await bountyContract.deployed()
         const agreement: Bounty = (await agreementDeployed.connect(wallets[0])) as Bounty
         // token.transferAndCall(agreement.address, ethers.utils.parseEther('1'), ...)
-        await token.transfer(agreement.address, ethers.utils.parseEther('1'))
-        await agreement.join(brokerAddress)
-        await agreement.stake(brokerAddress, ethers.utils.parseEther('1'))
+        console.log(await agreement.a())
+
+        let tx = await token.transfer(agreement.address, ethers.utils.parseEther('1'))
+        await tx.wait()
+        tx = await agreement.join(brokerAddress)
+        await tx.wait()
+        tx = await agreement.stake(brokerAddress, ethers.utils.parseEther('1'))
+        await tx.wait()
+        // console.log(await agreement.unallocatedWei())
     })
 
 })

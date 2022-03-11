@@ -51,6 +51,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
     uint public cueTimestamp;
     uint public totalSponsorshipsAtCueTimestamp;
+    IJoinPolicy joinPolicy;
+    ILeavePolicy leavePolicy;
+    IAllocationPolicy allocationPolicy;
     // uint public startCue;           // CUE when StateChanged(Running)
     // uint public startTimestamp;     // block.timestamp when StateChanged(Running)
 
@@ -59,37 +62,46 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     mapping(address => uint) public cueAtJoinWei;
     // mapping(address => uint) public weight; // TODO: weighting
 
-    constructor(
-        address tokenAddress,
-        uint initialAllocationWeiPerSecond,
-        uint initialMinBrokerCount,
-        uint initialMaxBrokerCount,
-        uint initialMinimumStakeWei,
-        uint initialMinHorizonSeconds
-    ) {
-        token = IERC677(tokenAddress);
-        allocationWeiPerSecond = initialAllocationWeiPerSecond;
-        minBrokerCount = initialMinBrokerCount;
-        maxBrokerCount = initialMaxBrokerCount;
-        minimumStakeWei = initialMinimumStakeWei;
-        minHorizonSeconds = initialMinHorizonSeconds;
-    }
+    // constructor(
+    //     address tokenAddress,
+    //     uint initialAllocationWeiPerSecond,
+    //     uint initialMinBrokerCount,
+    //     uint initialMaxBrokerCount,
+    //     uint initialMinimumStakeWei,
+    //     uint initialMinHorizonSeconds
+    // ) {
+    //     token = IERC677(tokenAddress);
+    //     allocationWeiPerSecond = initialAllocationWeiPerSecond;
+    //     minBrokerCount = initialMinBrokerCount;
+    //     maxBrokerCount = initialMaxBrokerCount;
+    //     minimumStakeWei = initialMinimumStakeWei;
+    //     minHorizonSeconds = initialMinHorizonSeconds;
+    // }
 
     function initialize(address tokenAddress,
         uint initialAllocationWeiPerSecond,
         uint initialMinBrokerCount,
         uint initialMaxBrokerCount,
         uint initialMinimumStakeWei,
-        uint initialMinHorizonSeconds) public initializer {
+        uint initialMinHorizonSeconds,
+        address _joinPolicy,
+        address _leavePolicy,
+        address _allocationPolicy,
+        address trustedForwarderAddress) public initializer {
         // __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         token = IERC677(tokenAddress);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         allocationWeiPerSecond = initialAllocationWeiPerSecond;
         minBrokerCount = initialMinBrokerCount;
         maxBrokerCount = initialMaxBrokerCount;
         minimumStakeWei = initialMinimumStakeWei;
         minHorizonSeconds = initialMinHorizonSeconds;
+        joinPolicy = IJoinPolicy(_joinPolicy);
+        leavePolicy = ILeavePolicy(_leavePolicy);
+        allocationPolicy = IAllocationPolicy(_allocationPolicy);
+
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -127,8 +139,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Agreement will be closed only after enough brokers leave that there's less than minBrokerCount left
      */
     function unallocatedWei() public view returns (uint) {
-        (uint owedWei, uint remainingWei) = getBalances();
-        return remainingWei > owedWei ? remainingWei - owedWei : 0;
+        // (uint owedWei, uint remainingWei) = getBalances();
+        // return remainingWei > owedWei ? remainingWei - owedWei : 0;
+        return 4;
+    }
+    function a() public pure returns (uint) {
+        return 4;
     }
 
     /**
