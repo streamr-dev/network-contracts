@@ -97,8 +97,6 @@
         },
         "binance": {
             "id": 56,
-            "rpcHttpUrl": "",
-            "rpcWsUrl": "",
             "rpcEndpoints": [
                 {
                     "url": "https://bsc-dataseed.binance.org"
