@@ -69,7 +69,7 @@ export class Migrator {
         }
         // set storage node address
         for (const streamid of Object.keys(streams)) {
-            if (streams[streamid].storageNodeAddress) {
+            if (streams[streamid].storageNodeAddress && !this.storageRegistryFromMigrator.isStorageNodeOf(streamid, streams[streamid].storageNodeAddress!)) {
                 try {
                     this.debug('setting storage node address for stream ' + streamid)
                     const transaction = await this.storageRegistryFromMigrator.populateTransaction.addStorageNode(streamid, streams[streamid].storageNodeAddress as string)
