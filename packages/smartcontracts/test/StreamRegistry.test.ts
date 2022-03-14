@@ -6,6 +6,7 @@ import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
+import { StreamRegistryV2, StreamRegistryV3 } from '../typechain'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -60,10 +61,11 @@ use(waffle.solidity)
 describe('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
     // let ensCacheFromAdmin: ENSCache
-    let registryFromAdmin: StreamRegistry
-    let registryFromUser0: StreamRegistry
-    let registryFromUser1: StreamRegistry
-    let registryFromMigrator: StreamRegistry
+    let registryFromAdminV2: StreamRegistryV2
+    let registryFromAdmin: StreamRegistryV3
+    let registryFromUser0: StreamRegistryV3
+    let registryFromUser1: StreamRegistryV3
+    let registryFromMigrator: StreamRegistryV3
     let minimalForwarderFromUser0: MinimalForwarder
     let MAX_INT: BigNumber
     let blocktime: number
@@ -88,7 +90,7 @@ describe('StreamRegistry', (): void => {
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
                 kind: 'uups'
             })
-        registryFromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
+        registryFromAdminV2 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV2
         // to upgrade the deployer must also have the trusted role
         // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
@@ -97,7 +99,7 @@ describe('StreamRegistry', (): void => {
             streamregistryFactoryV3)
         await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
-        registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
+        registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -490,18 +492,18 @@ describe('StreamRegistry', (): void => {
         const userB = ethers.Wallet.createRandom().address
         await registryFromAdmin.createStream(streamPath2, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId2)).to.equal(metadata1)
-        const permissionA = {
+        const permissionA: StreamRegistryV3.PermissionStruct = {
             canEdit: true,
             canDelete: false,
             publishExpiration: MAX_INT,
             subscribeExpiration: MAX_INT,
             canGrant: false
         }
-        const permissionB = {
+        const permissionB: StreamRegistryV3.PermissionStruct = {
             canEdit: false,
             canDelete: true,
-            publishExpiration: 1,
-            subscribeExpiration: 1,
+            publishExpiration: BigNumber.from(1),
+            subscribeExpiration: BigNumber.from(1),
             canGrant: true
         }
 
