@@ -143,7 +143,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // return remainingWei > owedWei ? remainingWei - owedWei : 0;
         return 4;
     }
-    function a() public view returns (uint) {
+    function a() public pure returns (uint) {
         return 4;
     }
 

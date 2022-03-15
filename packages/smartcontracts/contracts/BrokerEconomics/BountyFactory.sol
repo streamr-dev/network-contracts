@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
 
-contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
+contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
     address public bountyContractTemplate;
     address public streamBrokerRegistryAddress;
@@ -19,11 +19,12 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
 
     event NewBounty(address bountyContract);
 
-    function initialize(address trustedForwarderAddress, address _tokenAddress) public initializer {
+    function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         tokenAddress = _tokenAddress;
+        bountyContractTemplate = templateAddress;
         trustedForwarder = trustedForwarderAddress;
     }
 
@@ -38,20 +39,23 @@ contract BountyFactory is  Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         return super._msgData();
     }
 
-    function deployBountyAgreement(uint initialAllocationWeiPerSecond,
+    function deployBountyAgreement(
+        uint initialAllocationWeiPerSecond,
         uint initialMinBrokerCount,
         uint initialMaxBrokerCount,
         uint initialMinimumStakeWei,
         uint initialMinHorizonSeconds,
         address _joinPolicy,
         address _leavePolicy,
-        address _allocationPolicy
+        address _allocationPolicy,
+        string memory bountyName
     ) public returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
         // ClonesUpgradeable.clone(bountyContractTemplate);
         // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
         // StreamAgreement streamAgreement = new StreamAgreement(this);
-        address bountyAddress = ClonesUpgradeable.clone(bountyContractTemplate);
+        address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(tokenAddress, initialAllocationWeiPerSecond, initialMinBrokerCount,
             initialMaxBrokerCount, initialMinimumStakeWei, initialMinHorizonSeconds,
