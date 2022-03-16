@@ -21,8 +21,7 @@ export interface OracleInterfaceInterface extends utils.Interface {
   contractName: "OracleInterface";
   functions: {
     "fulfillOracleRequest(bytes32,uint256,address,bytes4,uint256,bytes32)": FunctionFragment;
-    "getAuthorizationStatus(address)": FunctionFragment;
-    "setFulfillmentPermission(address,bool)": FunctionFragment;
+    "isAuthorizedSender(address)": FunctionFragment;
     "withdraw(address,uint256)": FunctionFragment;
     "withdrawable()": FunctionFragment;
   };
@@ -39,12 +38,8 @@ export interface OracleInterfaceInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "getAuthorizationStatus",
+    functionFragment: "isAuthorizedSender",
     values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setFulfillmentPermission",
-    values: [string, boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
@@ -60,11 +55,7 @@ export interface OracleInterfaceInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getAuthorizationStatus",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setFulfillmentPermission",
+    functionFragment: "isAuthorizedSender",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
@@ -114,16 +105,10 @@ export interface OracleInterface extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    getAuthorizationStatus(
+    isAuthorizedSender(
       node: string,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
-
-    setFulfillmentPermission(
-      node: string,
-      allowed: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
 
     withdraw(
       recipient: string,
@@ -144,16 +129,7 @@ export interface OracleInterface extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  getAuthorizationStatus(
-    node: string,
-    overrides?: CallOverrides
-  ): Promise<boolean>;
-
-  setFulfillmentPermission(
-    node: string,
-    allowed: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
+  isAuthorizedSender(node: string, overrides?: CallOverrides): Promise<boolean>;
 
   withdraw(
     recipient: string,
@@ -174,16 +150,10 @@ export interface OracleInterface extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    getAuthorizationStatus(
+    isAuthorizedSender(
       node: string,
       overrides?: CallOverrides
     ): Promise<boolean>;
-
-    setFulfillmentPermission(
-      node: string,
-      allowed: boolean,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     withdraw(
       recipient: string,
@@ -207,15 +177,9 @@ export interface OracleInterface extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    getAuthorizationStatus(
+    isAuthorizedSender(
       node: string,
       overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    setFulfillmentPermission(
-      node: string,
-      allowed: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     withdraw(
@@ -238,15 +202,9 @@ export interface OracleInterface extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    getAuthorizationStatus(
+    isAuthorizedSender(
       node: string,
       overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    setFulfillmentPermission(
-      node: string,
-      allowed: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     withdraw(

@@ -21,7 +21,6 @@ export interface BountyInterface extends utils.Interface {
   contractName: "Bounty";
   functions: {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
-    "a()": FunctionFragment;
     "allocationWeiPerSecond()": FunctionFragment;
     "brokers(uint256)": FunctionFragment;
     "cueAtJoinWei(address)": FunctionFragment;
@@ -60,7 +59,6 @@ export interface BountyInterface extends utils.Interface {
     functionFragment: "DEFAULT_ADMIN_ROLE",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "a", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "allocationWeiPerSecond",
     values?: undefined
@@ -187,7 +185,6 @@ export interface BountyInterface extends utils.Interface {
     functionFragment: "DEFAULT_ADMIN_ROLE",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "a", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "allocationWeiPerSecond",
     data: BytesLike
@@ -378,8 +375,6 @@ export interface Bounty extends BaseContract {
   functions: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
-    a(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
@@ -509,8 +504,6 @@ export interface Bounty extends BaseContract {
 
   DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
-  a(overrides?: CallOverrides): Promise<BigNumber>;
-
   allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
   brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
@@ -639,8 +632,6 @@ export interface Bounty extends BaseContract {
 
   callStatic: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
-
-    a(overrides?: CallOverrides): Promise<BigNumber>;
 
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -834,8 +825,6 @@ export interface Bounty extends BaseContract {
   estimateGas: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
-    a(overrides?: CallOverrides): Promise<BigNumber>;
-
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
     brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
@@ -970,8 +959,6 @@ export interface Bounty extends BaseContract {
     DEFAULT_ADMIN_ROLE(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    a(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     allocationWeiPerSecond(
       overrides?: CallOverrides

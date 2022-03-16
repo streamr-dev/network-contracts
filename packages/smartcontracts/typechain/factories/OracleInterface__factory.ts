@@ -62,7 +62,7 @@ const _abi = [
         type: "address",
       },
     ],
-    name: "getAuthorizationStatus",
+    name: "isAuthorizedSender",
     outputs: [
       {
         internalType: "bool",
@@ -71,24 +71,6 @@ const _abi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "node",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "allowed",
-        type: "bool",
-      },
-    ],
-    name: "setFulfillmentPermission",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
   },
   {

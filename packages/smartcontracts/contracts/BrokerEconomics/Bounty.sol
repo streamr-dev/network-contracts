@@ -139,12 +139,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Agreement will be closed only after enough brokers leave that there's less than minBrokerCount left
      */
     function unallocatedWei() public view returns (uint) {
-        // (uint owedWei, uint remainingWei) = getBalances();
-        // return remainingWei > owedWei ? remainingWei - owedWei : 0;
-        return 4;
-    }
-    function a() public pure returns (uint) {
-        return 4;
+        (uint owedWei, uint remainingWei) = getBalances();
+        return remainingWei > owedWei ? remainingWei - owedWei : 0;
     }
 
     /**

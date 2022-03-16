@@ -24,7 +24,7 @@ describe('Bounty', (): void => {
     const trustedForwarderAddress: string = wallets[9].address
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
-    let bountyContract: Bounty
+    let bounty: Bounty
     let tokenAddress: string
     let token: ERC20
     let joinPolicy: IJoinPolicy
@@ -59,62 +59,23 @@ describe('Bounty', (): void => {
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     })
 
-    it('deploy bounty through factory', async (): Promise<void> => {
+    it.only('deploy bounty through factory', async (): Promise<void> => {
         const bountyName = "test2"
         const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, 10, 1, 100, 
             joinPolicy.address, leavePolicy.address, allocationPolicy.address, bountyName)
         const res = await agreementtx.wait()
-        // const newAgreement = await bountyFactoryFactory.interface.decodeEventLog('NewBounty', res.logs[0].data, res.logs[0].topics)
-        // console.log(JSON.stringify(agreementtx))
         const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
         expect(newBountyAddress).to.be.not.null
-        // console.log(JSON.stringify(res))
         const agreementFactory = await ethers.getContractFactory('Bounty')
-        // bountyContract = agreementFactory.attach(newAgreement.bountyContract.toString())
-        // const agreementDeployed = await bountyContract.deployed()
-        // const agreement = (await bountyContract.connect(wallets[0]))
-        // token.transferAndCall(agreement.address, ethers.utils.parseEther('1'), ...)
-        bountyContract = new Contract(newBountyAddress, agreementFactory.interface, wallets[0]) as Bounty
-        // const txa = await agreement.callStatic.a();
-        const txa = await bountyContract.a()
-        // console.log(txa)
-        console.log(await provider.getCode(bountyContract.address))
-        // const txareceipt = await txa.wait()
-        // console.log(txareceipt)
+        bounty = new Contract(newBountyAddress, agreementFactory.interface, wallets[0]) as Bounty
+        console.log(await bounty.unallocatedWei())
 
-        let tx = await token.transfer(bountyContract.address, ethers.utils.parseEther('1'))
+        let tx = await token.transfer(bounty.address, ethers.utils.parseEther('1'))
         await tx.wait()
-        tx = await bountyContract.join(brokerAddress)
+        tx = await bounty.join(brokerAddress)
         await tx.wait()
-        tx = await bountyContract.stake(brokerAddress, ethers.utils.parseEther('1'))
+        tx = await bounty.stake(brokerAddress, ethers.utils.parseEther('1'))
         await tx.wait()
-        // console.log(await agreement.unallocatedWei())
-    })
-
-    it('bounty directly', async (): Promise<void> => {
-        const agreementFactory = await ethers.getContractFactory('Bounty')
-        const agreement = await agreementFactory.deploy()
-        await agreement.deployed()
-        await (await agreement.initialize(ethers.constants.AddressZero, 0, 0, 10, 1, 100, 
-            joinPolicy.address, leavePolicy.address, allocationPolicy.address, ethers.constants.AddressZero)).wait()
-
-        // bountyContract = agreementFactory.attach(newAgreement.bountyContract.toString())
-        // const agreementDeployed = await bountyContract.deployed()
-        // const agreement = (await bountyContract.connect(wallets[0]))
-        // token.transferAndCall(agreement.address, ethers.utils.parseEther('1'), ...)
-        // const agreement = new Contract(newAgreement.bountyContract.toString(), agreementFactory.interface, wallets[0])
-        // const txa = await agreement.callStatic.a();
-        const txa = await agreement.a()
-        console.log(txa)
-        // const txareceipt = await txa.wait()
-        // console.log(txareceipt)
-
-        // let tx = await token.transfer(agreement.address, ethers.utils.parseEther('1'))
-        // await tx.wait()
-        // tx = await agreement.join(brokerAddress)
-        // await tx.wait()
-        // tx = await agreement.stake(brokerAddress, ethers.utils.parseEther('1'))
-        // await tx.wait()
-        // console.log(await agreement.unallocatedWei())
+        console.log(await bounty.unallocatedWei())
     })
 })
