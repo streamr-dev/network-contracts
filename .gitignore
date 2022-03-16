@@ -3,7 +3,6 @@
 **cache
 /packages/smartcontracts/bin/
 /packages/smartcontracts/artifacts/
-/packages/smartcontracts/typechain/
 /packages/smartcontracts/.openzeppelin/
 /packages/brubeck-migration-script/artifacts/
 /packages/brubeck-migration-script/typechain/

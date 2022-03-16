@@ -93,11 +93,11 @@ describe('StreamRegistry', (): void => {
         registryFromAdminV2 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV2
         // to upgrade the deployer must also have the trusted role
         // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
-        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        await registryFromAdminV2.grantRole(await registryFromAdminV2.TRUSTED_ROLE(), wallets[0].address)
         const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', wallets[0])
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address,
             streamregistryFactoryV3)
-        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        await registryFromAdminV2.revokeRole(await registryFromAdminV2.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
         registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
