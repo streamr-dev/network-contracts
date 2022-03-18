@@ -10,17 +10,17 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "string",
-        name: "streamId",
-        type: "string",
-      },
-      {
         internalType: "address",
         name: "broker",
         type: "address",
       },
+      {
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
     ],
-    name: "checkAbleToJoin",
+    name: "join",
     outputs: [
       {
         internalType: "bool",

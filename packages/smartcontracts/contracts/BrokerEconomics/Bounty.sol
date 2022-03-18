@@ -18,6 +18,9 @@ import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
+import "hardhat/console.sol";
+
+
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
  */
@@ -38,28 +41,37 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event SponsorshipReceived(address indexed sponsor, uint amount);
 
     IERC677 public token;
+    State public state;
+    address[] public brokers;
+    uint public brokersCount;
+    mapping(address => uint) public stakedWei;
+    uint public allocatedFunds;
+    // unallocated funds: totalFunds from tokencontract - allocatedFunds
+    // IJoinPolicy joinPolicy;
+    address joinPolicy;
+    ILeavePolicy leavePolicy;
+    IAllocationPolicy allocationPolicy;
+
+    // these into policy?
+    uint public minHorizonSeconds;
     uint public allocationWeiPerSecond;
     uint public minimumStakeWei;
     uint public minBrokerCount;
     uint public maxBrokerCount;
-    uint public minHorizonSeconds;
 
-    // whole-stream state, see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Global-State
-    address[] public brokers;
-    // uint public totalWeight; // TODO: weighting
-    uint public totalStakeWei;
+    // ???
     uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
     uint public cueTimestamp;
     uint public totalSponsorshipsAtCueTimestamp;
-    IJoinPolicy joinPolicy;
-    ILeavePolicy leavePolicy;
-    IAllocationPolicy allocationPolicy;
+    mapping(address => uint) public cueAtJoinWei;
+
+
+    // uint public totalWeight; // TODO: weighting
+    // whole-stream state, see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Global-State
     // uint public startCue;           // CUE when StateChanged(Running)
     // uint public startTimestamp;     // block.timestamp when StateChanged(Running)
 
     // broker-specific state
-    mapping(address => uint) public stakedWei;
-    mapping(address => uint) public cueAtJoinWei;
     // mapping(address => uint) public weight; // TODO: weighting
 
     // constructor(
@@ -98,7 +110,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         maxBrokerCount = initialMaxBrokerCount;
         minimumStakeWei = initialMinimumStakeWei;
         minHorizonSeconds = initialMinHorizonSeconds;
-        joinPolicy = IJoinPolicy(_joinPolicy);
+        joinPolicy = _joinPolicy;
         leavePolicy = ILeavePolicy(_leavePolicy);
         allocationPolicy = IAllocationPolicy(_allocationPolicy);
 
@@ -119,9 +131,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                         manned ? State.Warning : State.Closed;
     }
 
-    function getBalances() internal view returns (uint owedWei, uint remainingWei) {
+    function getBalances() internal view returns (uint owedWei, uint unallocatedFunds) {
         owedWei = allocationWeiPerSecond * (block.timestamp - cueTimestamp); // solhint-disable-line not-rely-on-time
-        remainingWei = token.balanceOf(address(this)) - totalStakeWei;
+        unallocatedFunds = token.balanceOf(address(this)) - allocatedFunds;
     }
 
     function withdrawableEarnings(address /*broker*/) public view returns (uint) {
@@ -153,15 +165,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _stake(address broker, uint amountTokenWei) internal {
         stakedWei[broker] += amountTokenWei;
-        totalStakeWei += amountTokenWei;
+        allocatedFunds += amountTokenWei;
         emit StakeAdded(broker, amountTokenWei, stakedWei[broker]);
-    }
-
-    function _join(address broker) internal {
-        brokers.push(broker);
-        emit BrokerJoined(broker);
-        cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
-        // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
     /**
@@ -182,30 +187,32 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /**
      * Broker needs to first add stake, OR give enough ERC20.allowance to stake up to minimumStakeWei
      */
-    function join(address broker) external {
-        require(brokers.length < maxBrokerCount, "error_maxBrokerCountLimit");
+    function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
+        console.log("onTokenTransfer", broker, amount);
+        require(_msgSender() == address(token), "error_onlyTokenContract");
+        (bool success, bytes memory data) = joinPolicy.delegatecall(
+            abi.encodeWithSignature("join(address,uint256)", broker, amount)
+        );
+        console.log("joinPolicy.delegatecall", success);
+        require(success, "error_join");
 
-        if (stakedWei[broker] < minimumStakeWei) {
-            uint missingStakeWei = minimumStakeWei - stakedWei[broker];
-            require(token.transferFrom(msg.sender, address(this), missingStakeWei), "error_transfer");
-            _stake(broker, missingStakeWei);
-        }
-
-        _join(broker);
+        // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
+        emit BrokerJoined(broker);
+        // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
     /**
      * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function
      */
-    function stake(address broker, uint amountTokenWei) public {
-        require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
-        _stake(broker, amountTokenWei);
+    // function stake(address broker, uint amountTokenWei) public {
+    //     // require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
+    //     _stake(broker, amountTokenWei);
 
-        // stakedWei is zero for non-joined brokers
-        if (brokers.length < maxBrokerCount && stakedWei[broker] >= minimumStakeWei) {
-            _join(broker);
-        }
-    }
+    //     // stakedWei is zero for non-joined brokers
+    //     if (brokers.length < maxBrokerCount && stakedWei[broker] >= minimumStakeWei) {
+    //         _join(broker);
+    //     }
+    // }
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
@@ -234,23 +241,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Sponsor a stream with ERC677.transferAndCall(agreement.address, amountTokenWei, "0x")
      * Stake for a broker (and join) with ERC677.transferAndCall(agreement.address, amountTokenWei, brokerAddress)
      */
-    function onTokenTransfer(address, uint256 value, bytes calldata data) override external {
-        require(msg.sender == address(token), "error_onlyTokenContract");
-        if (data.length == 0) {
-            refresh();
-        } else if (data.length == 20) {
-            address brokerAddress = address(bytes20(data));
-            stake(brokerAddress, value);
-        } else {
-            revert("error_badErc677TransferData");
-        }
-    }
+    // function onTokenTransfer(address, uint256 value, bytes calldata data) override external {
+    //     require(msg.sender == address(token), "error_onlyTokenContract");
+    //     if (data.length == 0) {
+    //         refresh();
+    //     } else if (data.length == 20) {
+    //         address brokerAddress = address(bytes20(data));
+    //         stake(brokerAddress, value);
+    //     } else {
+    //         revert("error_badErc677TransferData");
+    //     }
+    // }
 
     // TODO: withdrawAll, withdrawTo, withdrawToSigned, ... consider a withdraw module?
     function withdraw(uint amountTokenWei) external {
         address broker = msg.sender;
         stakedWei[broker] -= amountTokenWei;
-        totalStakeWei -= amountTokenWei;
+        allocatedFunds -= amountTokenWei;
         token.transfer(broker, amountTokenWei);
     }
 

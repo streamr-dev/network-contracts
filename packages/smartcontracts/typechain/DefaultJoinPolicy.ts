@@ -4,6 +4,7 @@
 import {
   BaseContract,
   BigNumber,
+  BigNumberish,
   BytesLike,
   CallOverrides,
   ContractTransaction,
@@ -12,39 +13,40 @@ import {
   Signer,
   utils,
 } from "ethers";
-import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
+import { FunctionFragment, Result } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
 export interface DefaultJoinPolicyInterface extends utils.Interface {
   contractName: "DefaultJoinPolicy";
   functions: {
-    "checkAbleToJoin(string,address)": FunctionFragment;
+    "brokersCount()": FunctionFragment;
+    "join(address,uint256)": FunctionFragment;
+    "stakedWei(address)": FunctionFragment;
+    "state()": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "checkAbleToJoin",
-    values: [string, string]
+    functionFragment: "brokersCount",
+    values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "join",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(functionFragment: "stakedWei", values: [string]): string;
+  encodeFunctionData(functionFragment: "state", values?: undefined): string;
 
   decodeFunctionResult(
-    functionFragment: "checkAbleToJoin",
+    functionFragment: "brokersCount",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "join", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "stakedWei", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "state", data: BytesLike): Result;
 
-  events: {
-    "Joining(string,address)": EventFragment;
-  };
-
-  getEvent(nameOrSignatureOrTopic: "Joining"): EventFragment;
+  events: {};
 }
-
-export type JoiningEvent = TypedEvent<
-  [string, string],
-  { streamID: string; broker: string }
->;
-
-export type JoiningEventFilter = TypedEventFilter<JoiningEvent>;
 
 export interface DefaultJoinPolicy extends BaseContract {
   contractName: "DefaultJoinPolicy";
@@ -74,51 +76,75 @@ export interface DefaultJoinPolicy extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    checkAbleToJoin(
-      streamId: string,
+    brokersCount(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    stakedWei(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    state(overrides?: CallOverrides): Promise<[number]>;
   };
 
-  checkAbleToJoin(
-    streamId: string,
+  brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+  join(
     broker: string,
+    amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  state(overrides?: CallOverrides): Promise<number>;
+
   callStatic: {
-    checkAbleToJoin(
-      streamId: string,
+    brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    state(overrides?: CallOverrides): Promise<number>;
   };
 
-  filters: {
-    "Joining(string,address)"(
-      streamID?: string | null,
-      broker?: string | null
-    ): JoiningEventFilter;
-    Joining(
-      streamID?: string | null,
-      broker?: string | null
-    ): JoiningEventFilter;
-  };
+  filters: {};
 
   estimateGas: {
-    checkAbleToJoin(
-      streamId: string,
+    brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
+
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    state(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    checkAbleToJoin(
-      streamId: string,
+    brokersCount(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
+
+    stakedWei(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    state(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

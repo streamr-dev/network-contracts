@@ -21,8 +21,10 @@ export interface BountyInterface extends utils.Interface {
   contractName: "Bounty";
   functions: {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
+    "allocatedFunds()": FunctionFragment;
     "allocationWeiPerSecond()": FunctionFragment;
     "brokers(uint256)": FunctionFragment;
+    "brokersCount()": FunctionFragment;
     "cueAtJoinWei(address)": FunctionFragment;
     "cueTimestamp()": FunctionFragment;
     "cumulativeUnitEarningsWei()": FunctionFragment;
@@ -33,7 +35,6 @@ export interface BountyInterface extends utils.Interface {
     "horizonSeconds()": FunctionFragment;
     "initialize(address,uint256,uint256,uint256,uint256,uint256,address,address,address,address)": FunctionFragment;
     "isTrustedForwarder(address)": FunctionFragment;
-    "join(address)": FunctionFragment;
     "leave(address)": FunctionFragment;
     "maxBrokerCount()": FunctionFragment;
     "minBrokerCount()": FunctionFragment;
@@ -44,12 +45,11 @@ export interface BountyInterface extends utils.Interface {
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
     "sponsor(uint256)": FunctionFragment;
-    "stake(address,uint256)": FunctionFragment;
     "stakedWei(address)": FunctionFragment;
+    "state()": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "token()": FunctionFragment;
     "totalSponsorshipsAtCueTimestamp()": FunctionFragment;
-    "totalStakeWei()": FunctionFragment;
     "unallocatedWei()": FunctionFragment;
     "withdraw(uint256)": FunctionFragment;
     "withdrawableEarnings(address)": FunctionFragment;
@@ -60,12 +60,20 @@ export interface BountyInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "allocatedFunds",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "allocationWeiPerSecond",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "brokers",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "brokersCount",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "cueAtJoinWei",
@@ -115,7 +123,6 @@ export interface BountyInterface extends utils.Interface {
     functionFragment: "isTrustedForwarder",
     values: [string]
   ): string;
-  encodeFunctionData(functionFragment: "join", values: [string]): string;
   encodeFunctionData(functionFragment: "leave", values: [string]): string;
   encodeFunctionData(
     functionFragment: "maxBrokerCount",
@@ -150,11 +157,8 @@ export interface BountyInterface extends utils.Interface {
     functionFragment: "sponsor",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(
-    functionFragment: "stake",
-    values: [string, BigNumberish]
-  ): string;
   encodeFunctionData(functionFragment: "stakedWei", values: [string]): string;
+  encodeFunctionData(functionFragment: "state", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
     values: [BytesLike]
@@ -162,10 +166,6 @@ export interface BountyInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "token", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "totalSponsorshipsAtCueTimestamp",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "totalStakeWei",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -186,10 +186,18 @@ export interface BountyInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "allocatedFunds",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "allocationWeiPerSecond",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "brokers", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "brokersCount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "cueAtJoinWei",
     data: BytesLike
@@ -218,7 +226,6 @@ export interface BountyInterface extends utils.Interface {
     functionFragment: "isTrustedForwarder",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "join", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "leave", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "maxBrokerCount",
@@ -247,8 +254,8 @@ export interface BountyInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sponsor", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "stake", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "stakedWei", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "state", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
@@ -256,10 +263,6 @@ export interface BountyInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "token", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalSponsorshipsAtCueTimestamp",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "totalStakeWei",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -375,9 +378,13 @@ export interface Bounty extends BaseContract {
   functions: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
+    allocatedFunds(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
+
+    brokersCount(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -422,11 +429,6 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
-    join(
-      broker: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     leave(
       broker: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -441,8 +443,8 @@ export interface Bounty extends BaseContract {
     minimumStakeWei(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     onTokenTransfer(
-      arg0: string,
-      value: BigNumberish,
+      broker: string,
+      amount: BigNumberish,
       data: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -468,13 +470,9 @@ export interface Bounty extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    stake(
-      broker: string,
-      amountTokenWei: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     stakedWei(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    state(overrides?: CallOverrides): Promise<[number]>;
 
     supportsInterface(
       interfaceId: BytesLike,
@@ -486,8 +484,6 @@ export interface Bounty extends BaseContract {
     totalSponsorshipsAtCueTimestamp(
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
-
-    totalStakeWei(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     unallocatedWei(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -504,9 +500,13 @@ export interface Bounty extends BaseContract {
 
   DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
+  allocatedFunds(overrides?: CallOverrides): Promise<BigNumber>;
+
   allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
   brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
+
+  brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
 
   cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -551,11 +551,6 @@ export interface Bounty extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  join(
-    broker: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   leave(
     broker: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -570,8 +565,8 @@ export interface Bounty extends BaseContract {
   minimumStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
   onTokenTransfer(
-    arg0: string,
-    value: BigNumberish,
+    broker: string,
+    amount: BigNumberish,
     data: BytesLike,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -597,13 +592,9 @@ export interface Bounty extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  stake(
-    broker: string,
-    amountTokenWei: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  state(overrides?: CallOverrides): Promise<number>;
 
   supportsInterface(
     interfaceId: BytesLike,
@@ -615,8 +606,6 @@ export interface Bounty extends BaseContract {
   totalSponsorshipsAtCueTimestamp(
     overrides?: CallOverrides
   ): Promise<BigNumber>;
-
-  totalStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
   unallocatedWei(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -633,9 +622,13 @@ export interface Bounty extends BaseContract {
   callStatic: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
+    allocatedFunds(overrides?: CallOverrides): Promise<BigNumber>;
+
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
     brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
+
+    brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -680,8 +673,6 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    join(broker: string, overrides?: CallOverrides): Promise<void>;
-
     leave(broker: string, overrides?: CallOverrides): Promise<void>;
 
     maxBrokerCount(overrides?: CallOverrides): Promise<BigNumber>;
@@ -693,8 +684,8 @@ export interface Bounty extends BaseContract {
     minimumStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
     onTokenTransfer(
-      arg0: string,
-      value: BigNumberish,
+      broker: string,
+      amount: BigNumberish,
       data: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -718,13 +709,9 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    stake(
-      broker: string,
-      amountTokenWei: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    state(overrides?: CallOverrides): Promise<number>;
 
     supportsInterface(
       interfaceId: BytesLike,
@@ -736,8 +723,6 @@ export interface Bounty extends BaseContract {
     totalSponsorshipsAtCueTimestamp(
       overrides?: CallOverrides
     ): Promise<BigNumber>;
-
-    totalStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
     unallocatedWei(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -825,9 +810,13 @@ export interface Bounty extends BaseContract {
   estimateGas: {
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
+    allocatedFunds(overrides?: CallOverrides): Promise<BigNumber>;
+
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
     brokers(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    brokersCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -875,11 +864,6 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    join(
-      broker: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     leave(
       broker: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -894,8 +878,8 @@ export interface Bounty extends BaseContract {
     minimumStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
     onTokenTransfer(
-      arg0: string,
-      value: BigNumberish,
+      broker: string,
+      amount: BigNumberish,
       data: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -921,13 +905,9 @@ export interface Bounty extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    stake(
-      broker: string,
-      amountTokenWei: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     stakedWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    state(overrides?: CallOverrides): Promise<BigNumber>;
 
     supportsInterface(
       interfaceId: BytesLike,
@@ -939,8 +919,6 @@ export interface Bounty extends BaseContract {
     totalSponsorshipsAtCueTimestamp(
       overrides?: CallOverrides
     ): Promise<BigNumber>;
-
-    totalStakeWei(overrides?: CallOverrides): Promise<BigNumber>;
 
     unallocatedWei(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -960,6 +938,8 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    allocatedFunds(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     allocationWeiPerSecond(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -968,6 +948,8 @@ export interface Bounty extends BaseContract {
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    brokersCount(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     cueAtJoinWei(
       arg0: string,
@@ -1020,11 +1002,6 @@ export interface Bounty extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    join(
-      broker: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     leave(
       broker: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1039,8 +1016,8 @@ export interface Bounty extends BaseContract {
     minimumStakeWei(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     onTokenTransfer(
-      arg0: string,
-      value: BigNumberish,
+      broker: string,
+      amount: BigNumberish,
       data: BytesLike,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
@@ -1066,16 +1043,12 @@ export interface Bounty extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    stake(
-      broker: string,
-      amountTokenWei: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     stakedWei(
       arg0: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    state(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     supportsInterface(
       interfaceId: BytesLike,
@@ -1087,8 +1060,6 @@ export interface Bounty extends BaseContract {
     totalSponsorshipsAtCueTimestamp(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    totalStakeWei(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     unallocatedWei(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

@@ -4,6 +4,7 @@
 import {
   BaseContract,
   BigNumber,
+  BigNumberish,
   BytesLike,
   CallOverrides,
   ContractTransaction,
@@ -19,18 +20,15 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 export interface IJoinPolicyInterface extends utils.Interface {
   contractName: "IJoinPolicy";
   functions: {
-    "checkAbleToJoin(string,address)": FunctionFragment;
+    "join(address,uint256)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "checkAbleToJoin",
-    values: [string, string]
+    functionFragment: "join",
+    values: [string, BigNumberish]
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "checkAbleToJoin",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "join", data: BytesLike): Result;
 
   events: {};
 }
@@ -63,23 +61,23 @@ export interface IJoinPolicy extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    checkAbleToJoin(
-      streamId: string,
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
 
-  checkAbleToJoin(
-    streamId: string,
+  join(
     broker: string,
+    amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    checkAbleToJoin(
-      streamId: string,
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
   };
@@ -87,17 +85,17 @@ export interface IJoinPolicy extends BaseContract {
   filters: {};
 
   estimateGas: {
-    checkAbleToJoin(
-      streamId: string,
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    checkAbleToJoin(
-      streamId: string,
+    join(
       broker: string,
+      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

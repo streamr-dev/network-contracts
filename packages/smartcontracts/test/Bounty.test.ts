@@ -7,7 +7,7 @@ import { expect, use } from 'chai'
 import type { BountyFactory } from '../typechain/BountyFactory'
 import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
-import { ERC20 } from '../typechain/ERC20'
+import { ERC677 } from '../typechain/ERC677'
 import { IAllocationPolicy, IJoinPolicy, ILeavePolicy } from '../typechain'
 
 // const { deployContract } = waffle
@@ -26,14 +26,14 @@ describe('Bounty', (): void => {
     let bountyFactory: BountyFactory
     let bounty: Bounty
     let tokenAddress: string
-    let token: ERC20
+    let token: ERC677
     let joinPolicy: IJoinPolicy
     let leavePolicy: ILeavePolicy
     let allocationPolicy: IAllocationPolicy
 
     before(async (): Promise<void> => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', wallets[0])
-        token = await tokenTxr.deploy() as ERC20
+        token = await tokenTxr.deploy() as ERC677
         tokenAddress = token.address
         // await token.mint(adminAddress, ethers.utils.parseEther('1000000'))
 
@@ -70,12 +70,14 @@ describe('Bounty', (): void => {
         bounty = new Contract(newBountyAddress, agreementFactory.interface, wallets[0]) as Bounty
         console.log(await bounty.unallocatedWei())
 
-        let tx = await token.transfer(bounty.address, ethers.utils.parseEther('1'))
+        // let tx = await token.transfer(bounty.address, ethers.utils.parseEther('1'))
+        // await tx.wait()
+        // tx = await bounty.join(brokerAddress)
+        // await tx.wait()
+        // tx = await bounty.stake(brokerAddress, ethers.utils.parseEther('1'))
+        // await tx.wait()
+        // console.log(await bounty.unallocatedWei())
+        let tx = await token.transferAndCall(bounty.address, ethers.utils.parseEther('1'), "0x")
         await tx.wait()
-        tx = await bounty.join(brokerAddress)
-        await tx.wait()
-        tx = await bounty.stake(brokerAddress, ethers.utils.parseEther('1'))
-        await tx.wait()
-        console.log(await bounty.unallocatedWei())
     })
 })
