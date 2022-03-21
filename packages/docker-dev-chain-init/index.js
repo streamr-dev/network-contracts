@@ -529,7 +529,7 @@ async function smartContractInitialization() {
 
     const marketDeployer3 = new ContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, sidechainWallet)
     const marketDeployTx3 = await marketDeployer3.deploy(
-        sidechainDataCoin.address,
+        sidechainDataCoin,
         sidechainWallet.address,
         '0x0000000000000000000000000000000000000000'
     )
