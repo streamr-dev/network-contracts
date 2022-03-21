@@ -526,6 +526,16 @@ async function smartContractInitialization() {
     }
 
     await deployStreamStorageRegistry(sidechainWallet)
+
+    const marketDeployer3 = new ContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, sidechainWallet)
+    const marketDeployTx3 = await marketDeployer3.deploy(
+        sidechainDataCoin.address,
+        sidechainWallet.address,
+        '0x0000000000000000000000000000000000000000'
+    )
+    const market2 = await marketDeployTx3.deployed()
+    log(`Marketplace2 deployed on sidechain at ${market2.address}`)
+
     //put additions here
 
     //all TXs should now be confirmed:
