@@ -102,7 +102,6 @@ const sidechainDataCoin = '0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF'
 const sidechainSingleTokenMediator = '0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F'
 const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
-let sidechainWalletStreamReg
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 
@@ -556,12 +555,12 @@ async function smartContractInitialization() {
         if (p.pricePerSecond == 0) {
             continue
         }
-        console.log(`create ${p.id}`)
+        log(`create ${p.id}`)
         const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
         //await tx.wait(1)
         if (p.state == "NOT_DEPLOYED") {
-            console.log(`delete ${p.id}`)
+            log(`delete ${p.id}`)
             await tx.wait(1)
             await market.deleteProduct(`0x${p.id}`)
             //await tx2.wait(1)
