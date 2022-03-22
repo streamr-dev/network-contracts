@@ -39,6 +39,7 @@
                 }
             ],
             "contracts": {
+                "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
                 "Token": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
                 "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
                 "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
