@@ -5,6 +5,7 @@ const {
     Contract,
     ContractFactory,
     utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
+    constants: {MaxUint256, AddressZero},
     Wallet,
     providers: {JsonRpcProvider}
 } = require("ethers4")
@@ -270,6 +271,30 @@ async function deployStreamRegistries() {
     log(`granting role ${role} ensaddress ${ensa}`)
     const grantRoleTx = await streamRegistry.grantRole(role, ensa)
     await grantRoleTx.wait()
+
+    const signer = streamRegistry.signer.address
+    log(`granting role ${role} signer ${signer}`)
+    const grantRoleTx2 = await streamRegistry.grantRole(role, signer)
+    await grantRoleTx2.wait()
+
+    log('Create storage node assignment stream')
+    const storageNodeAssignmentsStreamId = '0xde1112f631486cfc759a50196853011528bc5fa0/assignments'
+    const txCreateStream = await streamRegistry.trustedSetStreamMetadata(
+      storageNodeAssignmentsStreamId,
+      JSON.stringify({ partitions: 1}
+    ))
+    await txCreateStream.wait()
+
+    const txGrantPublicPermission = await streamRegistry.trustedSetPermissionsForUser(
+      storageNodeAssignmentsStreamId,
+      AddressZero,
+      false,
+      false,
+      MaxUint256,
+      MaxUint256,
+      false
+    )
+    await txGrantPublicPermission.wait()
 }
 
 async function smartContractInitialization() {
