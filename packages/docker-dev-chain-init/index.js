@@ -5,7 +5,7 @@ const {
     Contract,
     ContractFactory,
     utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
-    constants: {MaxUint256, AddressZero},
+    constants: {MaxUint256},
     Wallet,
     providers: {JsonRpcProvider}
 } = require("ethers4")
