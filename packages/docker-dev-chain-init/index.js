@@ -284,7 +284,6 @@ async function deployStreamRegistries() {
     const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
     await tx2.wait()
 
-    const role = await streamRegistry.TRUSTED_ROLE()
     const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
     const watcherWallet = new ethers.Wallet(watcherDevopsKey)
     log(`granting role ${role} to devops ${watcherWallet.address}`)
