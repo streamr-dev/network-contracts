@@ -18,7 +18,7 @@ import { Chains } from "@streamr/config"
 
 const {
     ethereum: {
-        id: chainId
+        id: chainId,
         contracts: {
             "DATA-token": dataTokenAddress
         }
