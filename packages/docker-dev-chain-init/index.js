@@ -260,12 +260,12 @@ async function deployStreamRegistries() {
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
-    
+
     log(`setting Streamregistry address in ENSCache`)
     const setStreamRegTx = await ensCache.setStreamRegistry(streamRegistry.address)
     await setStreamRegTx.wait()
     log(`setting enscache address as trusted role in streamregistry`)
-    
+
     const ensa = ensCache.address
     const role = await streamRegistry.TRUSTED_ROLE()
     log(`granting role ${role} ensaddress ${ensa}`)
@@ -283,6 +283,13 @@ async function deployStreamRegistries() {
     await tx1.wait()
     const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
     await tx2.wait()
+
+    const role = await streamRegistry.TRUSTED_ROLE()
+    const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
+    const watcherWallet = new ethers.Wallet(watcherDevopsKey)
+    log(`granting role ${role} to devops ${watcherWallet.address}`)
+    const grantRoleTx2 = await streamRegistry.grantRole(role, watcherWallet.address)
+    await grantRoleTx2.wait()
 }
 
 async function smartContractInitialization() {
