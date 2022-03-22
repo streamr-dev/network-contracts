@@ -5,6 +5,7 @@ const {
     Contract,
     ContractFactory,
     utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
+    constants: {MaxUint256},
     Wallet,
     providers: {JsonRpcProvider}
 } = require("ethers4")
@@ -270,6 +271,18 @@ async function deployStreamRegistries() {
     log(`granting role ${role} ensaddress ${ensa}`)
     const grantRoleTx = await streamRegistry.grantRole(role, ensa)
     await grantRoleTx.wait()
+
+    const storageNodePk = '0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747bce966'
+    const storageNodeWallet = new ethers.Wallet(storageNodePk, new ethers.providers.JsonRpcProvider(sidechainURL))
+    const streamRegistry2 = streamRegistry.connect(storageNodeWallet)
+
+    log('Create storage node assignment stream')
+    const storageNodeAssignmentPath = '/assignments'
+    const storageNodeAssignmentsStreamId = '0xde1112f631486cfc759a50196853011528bc5fa0/assignments'
+    const tx1 = await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}), { gasLimit: 5999990 })
+    await tx1.wait()
+    const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
+    await tx2.wait()
 }
 
 async function smartContractInitialization() {
