@@ -102,6 +102,7 @@ const sidechainDataCoin = '0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF'
 const sidechainSingleTokenMediator = '0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F'
 const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
+let sidechainWalletStreamReg
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 
@@ -527,7 +528,8 @@ async function smartContractInitialization() {
 
     await deployStreamStorageRegistry(sidechainWallet)
 
-    const marketDeployer3 = new ContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, sidechainWallet)
+    const newWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
+    const marketDeployer3 = await ethers.getContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, newWallet)
     const marketDeployTx3 = await marketDeployer3.deploy(
         sidechainDataCoin,
         sidechainWallet.address,
