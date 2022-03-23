@@ -104,6 +104,7 @@ const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
+let streamRegistryFromOwner
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -258,6 +259,7 @@ async function deployStreamRegistries() {
         kind: 'uups'
     })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
+    streamRegistryFromOwner = streamRegistry
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
 
@@ -284,11 +286,6 @@ async function deployStreamRegistries() {
     const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
     await tx2.wait()
 
-    const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
-    const watcherWallet = new ethers.Wallet(watcherDevopsKey)
-    log(`granting role ${role} to devops ${watcherWallet.address}`)
-    const grantRoleTx2 = await streamRegistry.grantRole(role, watcherWallet.address)
-    await grantRoleTx2.wait()
 }
 
 async function smartContractInitialization() {
@@ -542,6 +539,13 @@ async function smartContractInitialization() {
     )
     const market2 = await marketDeployTx3.deployed()
     log(`Marketplace2 deployed on sidechain at ${market2.address}`)
+
+    const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
+    const watcherWallet = new ethers.Wallet(watcherDevopsKey)
+    const role = await streamRegistryFromOwner.TRUSTED_ROLE()
+    log(`granting role ${role} to devops ${watcherWallet.address}`)
+    const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
+    await grantRoleTx2.wait()
 
     //put additions here
 
