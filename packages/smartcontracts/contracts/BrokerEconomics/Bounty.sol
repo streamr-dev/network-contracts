@@ -40,15 +40,19 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event StateChanged(State newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
 
+    struct GlobalState {
+        State state;
+        uint brokersCount;
+        mapping(address => uint) stakedWei;
+        uint allocatedFunds;
+    }
+   
+
     IERC677 public token;
-    State public state;
-    address[] public brokers;
-    uint public brokersCount;
-    mapping(address => uint) public stakedWei;
-    uint public allocatedFunds;
+    // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
     // IJoinPolicy joinPolicy;
-    address joinPolicy;
+    address joinPolicyAddress;
     ILeavePolicy leavePolicy;
     IAllocationPolicy allocationPolicy;
 
@@ -92,28 +96,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function initialize(address tokenAddress,
         uint initialAllocationWeiPerSecond,
-        uint initialMinBrokerCount,
-        uint initialMaxBrokerCount,
-        uint initialMinimumStakeWei,
         uint initialMinHorizonSeconds,
-        address _joinPolicy,
-        address _leavePolicy,
-        address _allocationPolicy,
         address trustedForwarderAddress) public initializer {
         // __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         allocationWeiPerSecond = initialAllocationWeiPerSecond;
-        minBrokerCount = initialMinBrokerCount;
-        maxBrokerCount = initialMaxBrokerCount;
-        minimumStakeWei = initialMinimumStakeWei;
         minHorizonSeconds = initialMinHorizonSeconds;
-        joinPolicy = _joinPolicy;
-        leavePolicy = ILeavePolicy(_leavePolicy);
-        allocationPolicy = IAllocationPolicy(_allocationPolicy);
-
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -124,24 +115,58 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return super._msgData();
     }
 
-    function getState() public view returns (State) {
-        bool funded = horizonSeconds() < minHorizonSeconds;
-        bool manned = brokers.length >= minBrokerCount;
-        return funded ? manned ? State.Running : State.Funded :
-                        manned ? State.Warning : State.Closed;
+    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public {
+        joinPolicyAddress = _joinPolicyAddress;
+        (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        require(success, "error_join");
     }
 
-    function getBalances() internal view returns (uint owedWei, uint unallocatedFunds) {
-        owedWei = allocationWeiPerSecond * (block.timestamp - cueTimestamp); // solhint-disable-line not-rely-on-time
-        unallocatedFunds = token.balanceOf(address(this)) - allocatedFunds;
+    function globalData() internal pure returns(GlobalState storage data) {
+        bytes32 storagePosition = keccak256("agreement.storage.globalState");
+        assembly {data.slot := storagePosition}
     }
 
-    function withdrawableEarnings(address /*broker*/) public view returns (uint) {
-        (uint owedWei, uint remainingWei) = getBalances();
-        uint payableWei = remainingWei > owedWei ? owedWei : remainingWei;
-        uint newUnitEarningsWei = payableWei / brokers.length; //  / totalWeight
-        return cumulativeUnitEarningsWei + newUnitEarningsWei; //  ) * weight[broker];
+    function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
+        console.log("onTokenTransfer", broker, amount);
+        require(_msgSender() == address(token), "error_onlyTokenContract");
+        (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
+            abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+        );
+        require(success, "error_join");
+        globalData().stakedWei[broker] += amount;
+        globalData().brokersCount += 1;
+        // if (brokers[broker] == address(0)) {
+        //     console.log("Adding broker ", broker, " amount ", amount);
+        //     brokers.push(broker);
+        // }
+        console.log("joinPolicy.delegatecall", success);
+
+        // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
+        emit BrokerJoined(broker);
+        console.log("BrokerJoined");
+        // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
+
+    // function getState() public view returns (State) {
+    //     bool funded = horizonSeconds() < minHorizonSeconds;
+    //     bool manned = brokers.length >= minBrokerCount;
+    //     return funded ? manned ? State.Running : State.Funded :
+    //                     manned ? State.Warning : State.Closed;
+    // }
+
+    // function getBalances() internal view returns (uint owedWei, uint unallocatedFunds) {
+    //     owedWei = allocationWeiPerSecond * (block.timestamp - cueTimestamp); // solhint-disable-line not-rely-on-time
+    //     unallocatedFunds = token.balanceOf(address(this)) - allocatedFunds;
+    // }
+
+    // function withdrawableEarnings(address /*broker*/) public view returns (uint) {
+    //     (uint owedWei, uint remainingWei) = getBalances();
+    //     uint payableWei = remainingWei > owedWei ? owedWei : remainingWei;
+    //     uint newUnitEarningsWei = payableWei / brokers.length; //  / totalWeight
+    //     return cumulativeUnitEarningsWei + newUnitEarningsWei; //  ) * weight[broker];
+    // }
 
     /**
      * Tokens available to distribute to brokers as earnings.
@@ -150,56 +175,39 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * TODO: should new sponsorships only pay new earnings and not "debt"?
      * Agreement will be closed only after enough brokers leave that there's less than minBrokerCount left
      */
-    function unallocatedWei() public view returns (uint) {
-        (uint owedWei, uint remainingWei) = getBalances();
-        return remainingWei > owedWei ? remainingWei - owedWei : 0;
-    }
+    // function unallocatedWei() public view returns (uint) {
+    //     (uint owedWei, uint remainingWei) = getBalances();
+    //     return remainingWei > owedWei ? remainingWei - owedWei : 0;
+    // }
 
     /**
      * Horizon is how long time the currently unallocated funds cover.
      * Horizon can be increased by sponsoring this stream.
      */
-    function horizonSeconds() public view returns (uint) {
-        return 1 ether * unallocatedWei() / allocationWeiPerSecond;
-    }
+    // function horizonSeconds() public view returns (uint) {
+    //     return 1 ether * unallocatedWei() / allocationWeiPerSecond;
+    // }
 
-    function _stake(address broker, uint amountTokenWei) internal {
-        stakedWei[broker] += amountTokenWei;
-        allocatedFunds += amountTokenWei;
-        emit StakeAdded(broker, amountTokenWei, stakedWei[broker]);
-    }
+    // function _stake(address broker, uint amountTokenWei) internal {
+    //     stakedWei[broker] += amountTokenWei;
+    //     allocatedFunds += amountTokenWei;
+    //     emit StakeAdded(broker, amountTokenWei, stakedWei[broker]);
+    // }
 
-    /**
-     * Can be called by anyone to update the cumulativeUnitEarningsWei
-     */
-    function refresh() public {
-        (, uint totalSponsorships) = getBalances();
-        uint newSponsorships = totalSponsorships - totalSponsorshipsAtCueTimestamp;
-        emit SponsorshipReceived(msg.sender, newSponsorships);
-    }
+    // /**
+    //  * Can be called by anyone to update the cumulativeUnitEarningsWei
+    //  */
+    // function refresh() public {
+    //     (, uint totalSponsorships) = getBalances();
+    //     uint newSponsorships = totalSponsorships - totalSponsorshipsAtCueTimestamp;
+    //     emit SponsorshipReceived(msg.sender, newSponsorships);
+    // }
 
-    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
-    function sponsor(uint amountTokenWei) external {
-        require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
-        refresh();
-    }
-
-    /**
-     * Broker needs to first add stake, OR give enough ERC20.allowance to stake up to minimumStakeWei
-     */
-    function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
-        console.log("onTokenTransfer", broker, amount);
-        require(_msgSender() == address(token), "error_onlyTokenContract");
-        (bool success, bytes memory data) = joinPolicy.delegatecall(
-            abi.encodeWithSignature("join(address,uint256)", broker, amount)
-        );
-        console.log("joinPolicy.delegatecall", success);
-        require(success, "error_join");
-
-        // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
-        emit BrokerJoined(broker);
-        // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
-    }
+    // /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
+    // function sponsor(uint amountTokenWei) external {
+    //     require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
+    //     refresh();
+    // }
 
     /**
      * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function
@@ -219,22 +227,22 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    function leave(address broker) external {
-        bool returnStake = horizonSeconds() < minHorizonSeconds;
-        if (returnStake) {
-            require(token.transfer(broker, stakedWei[broker]), "error_transfer");
-            emit BrokerLeft(broker, stakedWei[broker]);
-        } else {
-            // forfeited stake is added to unallocated tokens
-            // unallocatedWei += stakedWei[broker]; // solhint-disable-line reentrancy
-            emit SponsorshipReceived(broker, stakedWei[broker]);
-            emit BrokerLeft(broker, 0);
-        }
-        delete stakedWei[broker];
-        removeFromAddressArray(brokers, broker);
+    // function leave(address broker) external {
+    //     bool returnStake = horizonSeconds() < minHorizonSeconds;
+    //     if (returnStake) {
+    //         require(token.transfer(broker, stakedWei[broker]), "error_transfer");
+    //         emit BrokerLeft(broker, stakedWei[broker]);
+    //     } else {
+    //         // forfeited stake is added to unallocated tokens
+    //         // unallocatedWei += stakedWei[broker]; // solhint-disable-line reentrancy
+    //         emit SponsorshipReceived(broker, stakedWei[broker]);
+    //         emit BrokerLeft(broker, 0);
+    //     }
+    //     delete stakedWei[broker];
+    //     removeFromAddressArray(brokers, broker);
 
-        // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
-    }
+    //     // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
+    // }
 
     /**
      * Interpret the incoming ERC677 token transfer as follows:
@@ -254,32 +262,32 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // }
 
     // TODO: withdrawAll, withdrawTo, withdrawToSigned, ... consider a withdraw module?
-    function withdraw(uint amountTokenWei) external {
-        address broker = msg.sender;
-        stakedWei[broker] -= amountTokenWei;
-        allocatedFunds -= amountTokenWei;
-        token.transfer(broker, amountTokenWei);
-    }
+    // function withdraw(uint amountTokenWei) external {
+    //     address broker = msg.sender;
+    //     stakedWei[broker] -= amountTokenWei;
+    //     allocatedFunds -= amountTokenWei;
+    //     token.transfer(broker, amountTokenWei);
+    // }
 
-    /**
-     * Remove the listener from array by copying the last element into its place so that the arrays stay compact
-     */
-    function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
-        uint i = 0;
-        while (i < array.length && array[i] != element) { i += 1; }
-        return removeFromAddressArrayUsingIndex(array, i);
-    }
+    // /**
+    //  * Remove the listener from array by copying the last element into its place so that the arrays stay compact
+    //  */
+    // function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
+    //     uint i = 0;
+    //     while (i < array.length && array[i] != element) { i += 1; }
+    //     return removeFromAddressArrayUsingIndex(array, i);
+    // }
 
-    /**
-     * Remove the listener from array by copying the last element into its place so that the arrays stay compact
-     */
-    function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
-        // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
-        if (index < 0 || index >= array.length) return false;
-        if (index < array.length - 1) {
-            array[index] = array[array.length - 1];
-        }
-        array.pop();
-        return true;
-    }
+    // /**
+    //  * Remove the listener from array by copying the last element into its place so that the arrays stay compact
+    //  */
+    // function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
+    //     // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
+    //     if (index < 0 || index >= array.length) return false;
+    //     if (index < array.length - 1) {
+    //         array[index] = array[array.length - 1];
+    //     }
+    //     array.pop();
+    //     return true;
+    // }
 }

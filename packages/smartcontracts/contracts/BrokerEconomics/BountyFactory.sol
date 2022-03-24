@@ -42,13 +42,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function deployBountyAgreement(
         uint initialAllocationWeiPerSecond,
-        uint initialMinBrokerCount,
-        uint initialMaxBrokerCount,
-        uint initialMinimumStakeWei,
         uint initialMinHorizonSeconds,
-        address _joinPolicy,
-        address _leavePolicy,
-        address _allocationPolicy,
         string memory bountyName
     ) public returns (address) {
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
@@ -58,9 +52,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(tokenAddress, initialAllocationWeiPerSecond, initialMinBrokerCount,
-            initialMaxBrokerCount, initialMinimumStakeWei, initialMinHorizonSeconds,
-            _joinPolicy, _leavePolicy, _allocationPolicy, trustedForwarder);
+        bounty.initialize(tokenAddress, initialAllocationWeiPerSecond, initialMinHorizonSeconds,
+            trustedForwarder);
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }
