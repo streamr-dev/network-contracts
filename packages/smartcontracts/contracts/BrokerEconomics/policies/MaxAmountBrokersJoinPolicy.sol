@@ -8,7 +8,7 @@ import "../Bounty.sol";
 
 
 
-contract MinimumAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
+contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
     // event Joining(string indexed streamID, address indexed broker);
 
     struct LocalStorage {
@@ -26,9 +26,9 @@ contract MinimumAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
 
     function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
 
-        console.log("minimumBrokers checkabletojoin", globalData().brokersCount);
+        console.log("maxBrokers checkabletojoin", globalData().brokersCount);
 
-        require(globalData().brokersCount + 1 >= localData().minBrokers);
+        require(globalData().brokersCount + 1 <= localData().minBrokers, "error_max_brokers");
         return true;
 
         // if (stakedWei[broker] < minimumStakeWei) {

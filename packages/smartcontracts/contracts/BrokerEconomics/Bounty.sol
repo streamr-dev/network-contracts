@@ -52,7 +52,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
     // IJoinPolicy joinPolicy;
-    address joinPolicyAddress;
+    address[] joinPolicyAddresses;
     ILeavePolicy leavePolicy;
     IAllocationPolicy allocationPolicy;
 
@@ -116,11 +116,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function addJoinPolicy(address _joinPolicyAddress, uint256 param) public {
-        joinPolicyAddress = _joinPolicyAddress;
-        (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
+        joinPolicyAddresses.push(_joinPolicyAddress);
+        (bool success, bytes memory data) = _joinPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
-        require(success, "error_join");
+        require(success, "error adding join policy");
     }
 
     function globalData() internal pure returns(GlobalState storage data) {
@@ -131,17 +131,30 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
         console.log("onTokenTransfer", broker, amount);
         require(_msgSender() == address(token), "error_onlyTokenContract");
-        (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
-            abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
-        );
-        require(success, "error_join");
+        for (uint i = 0; i < joinPolicyAddresses.length; i++) {
+            address joinPolicyAddress = joinPolicyAddresses[i];
+            (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
+                abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+            );
+            if (!success) {
+                if (returndata.length == 0) revert();
+                assembly {
+                    revert(add(32, returndata), mload(returndata))
+                 }
+            }
+            require(success, "error adding broker");
+        }
+        // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
+        //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+        // );
+        // require(success, "error_join");
         globalData().stakedWei[broker] += amount;
         globalData().brokersCount += 1;
         // if (brokers[broker] == address(0)) {
         //     console.log("Adding broker ", broker, " amount ", amount);
         //     brokers.push(broker);
         // }
-        console.log("joinPolicy.delegatecall", success);
+        console.log("joinPolicy.delegatecall");
 
         // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
         emit BrokerJoined(broker);

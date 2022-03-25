@@ -27,7 +27,7 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
 
         console.log("minimumStake checkabletojoin", globalData().stakedWei[broker], localData().minimumStake);
 
-        require(globalData().stakedWei[broker] + amount >= localData().minimumStake);
+        require(globalData().stakedWei[broker] + amount >= localData().minimumStake, "error_minimum_stake");
         return true;
 
         // if (stakedWei[broker] < minimumStakeWei) {
