@@ -16,6 +16,7 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
     }
 
     function localData() internal pure returns(LocalStorage storage data) {
+        //TODO add address of this contract to hash
         bytes32 storagePosition = keccak256("agreement.storage.MinimumAmountBrokersJoinPolicy");
         assembly {data.slot := storagePosition}
     }
