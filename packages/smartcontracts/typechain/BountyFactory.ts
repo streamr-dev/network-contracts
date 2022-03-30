@@ -23,7 +23,7 @@ export interface BountyFactoryInterface extends utils.Interface {
   functions: {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "bountyContractTemplate()": FunctionFragment;
-    "deployBountyAgreement(uint256,uint256,uint256,uint256,uint256,address,address,address,string)": FunctionFragment;
+    "deployBountyAgreement(uint256,uint256,string)": FunctionFragment;
     "getRoleAdmin(bytes32)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
@@ -48,17 +48,7 @@ export interface BountyFactoryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "deployBountyAgreement",
-    values: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      string,
-      string,
-      string,
-      string
-    ]
+    values: [BigNumberish, BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "getRoleAdmin",
@@ -246,13 +236,7 @@ export interface BountyFactory extends BaseContract {
 
     deployBountyAgreement(
       initialAllocationWeiPerSecond: BigNumberish,
-      initialMinBrokerCount: BigNumberish,
-      initialMaxBrokerCount: BigNumberish,
-      initialMinimumStakeWei: BigNumberish,
       initialMinHorizonSeconds: BigNumberish,
-      _joinPolicy: string,
-      _leavePolicy: string,
-      _allocationPolicy: string,
       bountyName: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -322,13 +306,7 @@ export interface BountyFactory extends BaseContract {
 
   deployBountyAgreement(
     initialAllocationWeiPerSecond: BigNumberish,
-    initialMinBrokerCount: BigNumberish,
-    initialMaxBrokerCount: BigNumberish,
-    initialMinimumStakeWei: BigNumberish,
     initialMinHorizonSeconds: BigNumberish,
-    _joinPolicy: string,
-    _leavePolicy: string,
-    _allocationPolicy: string,
     bountyName: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -398,13 +376,7 @@ export interface BountyFactory extends BaseContract {
 
     deployBountyAgreement(
       initialAllocationWeiPerSecond: BigNumberish,
-      initialMinBrokerCount: BigNumberish,
-      initialMaxBrokerCount: BigNumberish,
-      initialMinimumStakeWei: BigNumberish,
       initialMinHorizonSeconds: BigNumberish,
-      _joinPolicy: string,
-      _leavePolicy: string,
-      _allocationPolicy: string,
       bountyName: string,
       overrides?: CallOverrides
     ): Promise<string>;
@@ -530,13 +502,7 @@ export interface BountyFactory extends BaseContract {
 
     deployBountyAgreement(
       initialAllocationWeiPerSecond: BigNumberish,
-      initialMinBrokerCount: BigNumberish,
-      initialMaxBrokerCount: BigNumberish,
-      initialMinimumStakeWei: BigNumberish,
       initialMinHorizonSeconds: BigNumberish,
-      _joinPolicy: string,
-      _leavePolicy: string,
-      _allocationPolicy: string,
       bountyName: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -614,13 +580,7 @@ export interface BountyFactory extends BaseContract {
 
     deployBountyAgreement(
       initialAllocationWeiPerSecond: BigNumberish,
-      initialMinBrokerCount: BigNumberish,
-      initialMaxBrokerCount: BigNumberish,
-      initialMinimumStakeWei: BigNumberish,
       initialMinHorizonSeconds: BigNumberish,
-      _joinPolicy: string,
-      _leavePolicy: string,
-      _allocationPolicy: string,
       bountyName: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;

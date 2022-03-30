@@ -41,7 +41,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event SponsorshipReceived(address indexed sponsor, uint amount);
 
     struct GlobalState {
-        State state;
+        State bountyState;
         uint brokersCount;
         /** how much each broker has staked, if 0 broker is considered not part of bounty */
         mapping(address => uint) stakedWei;
@@ -51,22 +51,17 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
         mapping(address => uint) joinTimeOfBroker;
     }
-   
 
+    mapping(address => bool) approvedPolicies;
     IERC677 public token;
+    address[] joinPolicyAddresses;
+    // IJoinPolicy joinPolicy;
     // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
-    // IJoinPolicy joinPolicy;
-    address[] joinPolicyAddresses;
-    ILeavePolicy leavePolicy;
-    IAllocationPolicy allocationPolicy;
 
     // these into policy?
     uint public minHorizonSeconds;
     uint public allocationWeiPerSecond;
-    uint public minimumStakeWei;
-    uint public minBrokerCount;
-    uint public maxBrokerCount;
 
     // ???
     uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit

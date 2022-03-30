@@ -17,12 +17,13 @@ import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
-export interface BountyInterface extends utils.Interface {
-  contractName: "Bounty";
+export interface MaxAmountBrokersJoinPolicyInterface extends utils.Interface {
+  contractName: "MaxAmountBrokersJoinPolicy";
   functions: {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "addJoinPolicy(address,uint256)": FunctionFragment;
     "allocationWeiPerSecond()": FunctionFragment;
+    "checkAbleToJoin(address,uint256)": FunctionFragment;
     "cueAtJoinWei(address)": FunctionFragment;
     "cueTimestamp()": FunctionFragment;
     "cumulativeUnitEarningsWei()": FunctionFragment;
@@ -38,6 +39,7 @@ export interface BountyInterface extends utils.Interface {
     "onTokenTransfer(address,uint256,bytes)": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
+    "setParam(uint256)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "token()": FunctionFragment;
     "totalSponsorshipsAtCueTimestamp()": FunctionFragment;
@@ -54,6 +56,10 @@ export interface BountyInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "allocationWeiPerSecond",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "checkAbleToJoin",
+    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "cueAtJoinWei",
@@ -116,6 +122,10 @@ export interface BountyInterface extends utils.Interface {
     values: [BytesLike, string]
   ): string;
   encodeFunctionData(
+    functionFragment: "setParam",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "supportsInterface",
     values: [BytesLike]
   ): string;
@@ -135,6 +145,10 @@ export interface BountyInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "allocationWeiPerSecond",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "checkAbleToJoin",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -185,6 +199,7 @@ export interface BountyInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setParam", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
     data: BytesLike
@@ -268,13 +283,13 @@ export type StateChangedEvent = TypedEvent<[number], { newState: number }>;
 
 export type StateChangedEventFilter = TypedEventFilter<StateChangedEvent>;
 
-export interface Bounty extends BaseContract {
-  contractName: "Bounty";
+export interface MaxAmountBrokersJoinPolicy extends BaseContract {
+  contractName: "MaxAmountBrokersJoinPolicy";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: BountyInterface;
+  interface: MaxAmountBrokersJoinPolicyInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -305,6 +320,12 @@ export interface Bounty extends BaseContract {
     ): Promise<ContractTransaction>;
 
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    checkAbleToJoin(
+      broker: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
 
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -366,6 +387,11 @@ export interface Bounty extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setParam(
+      minBrokers: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     supportsInterface(
       interfaceId: BytesLike,
       overrides?: CallOverrides
@@ -387,6 +413,12 @@ export interface Bounty extends BaseContract {
   ): Promise<ContractTransaction>;
 
   allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
+
+  checkAbleToJoin(
+    broker: string,
+    amount: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -448,6 +480,11 @@ export interface Bounty extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setParam(
+    minBrokers: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   supportsInterface(
     interfaceId: BytesLike,
     overrides?: CallOverrides
@@ -469,6 +506,12 @@ export interface Bounty extends BaseContract {
     ): Promise<void>;
 
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
+
+    checkAbleToJoin(
+      broker: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -527,6 +570,11 @@ export interface Bounty extends BaseContract {
     revokeRole(
       role: BytesLike,
       account: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setParam(
+      minBrokers: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -623,6 +671,12 @@ export interface Bounty extends BaseContract {
 
     allocationWeiPerSecond(overrides?: CallOverrides): Promise<BigNumber>;
 
+    checkAbleToJoin(
+      broker: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     cueAtJoinWei(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     cueTimestamp(overrides?: CallOverrides): Promise<BigNumber>;
@@ -686,6 +740,11 @@ export interface Bounty extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setParam(
+      minBrokers: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     supportsInterface(
       interfaceId: BytesLike,
       overrides?: CallOverrides
@@ -710,6 +769,12 @@ export interface Bounty extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     allocationWeiPerSecond(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    checkAbleToJoin(
+      broker: string,
+      amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -778,6 +843,11 @@ export interface Bounty extends BaseContract {
     revokeRole(
       role: BytesLike,
       account: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setParam(
+      minBrokers: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

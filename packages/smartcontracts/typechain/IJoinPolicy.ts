@@ -20,15 +20,24 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 export interface IJoinPolicyInterface extends utils.Interface {
   contractName: "IJoinPolicy";
   functions: {
-    "join(address,uint256)": FunctionFragment;
+    "checkAbleToJoin(address,uint256)": FunctionFragment;
+    "setParam(uint256)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "join",
+    functionFragment: "checkAbleToJoin",
     values: [string, BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "setParam",
+    values: [BigNumberish]
+  ): string;
 
-  decodeFunctionResult(functionFragment: "join", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "checkAbleToJoin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "setParam", data: BytesLike): Result;
 
   events: {};
 }
@@ -61,41 +70,63 @@ export interface IJoinPolicy extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    join(
+    checkAbleToJoin(
       broker: string,
       amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    setParam(
+      param: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
 
-  join(
+  checkAbleToJoin(
     broker: string,
     amount: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  setParam(
+    param: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    join(
+    checkAbleToJoin(
       broker: string,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    setParam(param: BigNumberish, overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {};
 
   estimateGas: {
-    join(
+    checkAbleToJoin(
       broker: string,
       amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    setParam(
+      param: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    join(
+    checkAbleToJoin(
       broker: string,
       amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    setParam(
+      param: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

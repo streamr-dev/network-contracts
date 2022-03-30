@@ -20,7 +20,7 @@ const _abi = [
         type: "uint256",
       },
     ],
-    name: "join",
+    name: "checkAbleToJoin",
     outputs: [
       {
         internalType: "bool",
@@ -28,6 +28,19 @@ const _abi = [
         type: "bool",
       },
     ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "param",
+        type: "uint256",
+      },
+    ],
+    name: "setParam",
+    outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
