@@ -25,6 +25,8 @@ describe('ERC20JoinPolicy', (): void => {
     const streamPath = '/foo/bar'
     const streamId = `${adminAddress}${streamPath}`.toLowerCase()
 
+    let delegatedAccessRegistry: Contract
+
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
@@ -53,10 +55,14 @@ describe('ERC20JoinPolicy', (): void => {
 
         const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
 
+        const DelegatedAccessRegistryFactory = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
+        delegatedAccessRegistry = await DelegatedAccessRegistryFactory.deploy()
+
         contract = await ERC20JoinPolicy.deploy(
+            delegatedAccessRegistry.address,
             token.address,
-            streamId,
             streamRegistryV3.address,
+            streamId,
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
@@ -132,6 +138,46 @@ describe('ERC20JoinPolicy', (): void => {
         expect(await streamRegistryV3.hasPermission(
             streamId,
             wallets[1].address,
+            PermissionType.Grant
+        )).to.equal(false)
+    })
+
+    it ('should fullfil requestDelegatedJoin', async () => {
+        const balance = await token.balanceOf(wallets[1].address)
+        expect(balance).to.equal(BigNumber.from(1))
+
+        await delegatedAccessRegistry.connect(wallets[1]).authorize(wallets[3].address, {from: wallets[1].address})
+
+        await contract.connect(wallets[1]).requestDelegatedJoin(wallets[3].address, {from: wallets[1].address})
+
+        const events = await contract.queryFilter(contract.filters.Accepted())
+        expect(events.length).to.equal(3)
+        expect(events[2].args).to.not.be.undefined
+        expect(events[2].args!.user).to.equal(wallets[3].address)
+
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[3].address,
+            PermissionType.Edit
+        )).to.equal(false)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[3].address,
+            PermissionType.Delete
+        )).to.equal(false)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[3].address,
+            PermissionType.Publish
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[3].address,
+            PermissionType.Subscribe
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[3].address,
             PermissionType.Grant
         )).to.equal(false)
     })

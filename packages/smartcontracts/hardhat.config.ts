@@ -58,7 +58,7 @@ const config: HardhatUserConfig = {
         // polygonMainnet: {
         //     chainId: 137,
         //     url: 'https://polygon-rpc.com',
-        // }
+        // },
     },
     dependencyCompiler: {
         paths: [

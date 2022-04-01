@@ -158,6 +158,8 @@ async function deployStreamRegistry() {
     // console.log('done setting enscache in streamregistry')
 }
 
+
+
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     log(`wallet address ${wallet.address}`)
@@ -165,7 +167,6 @@ async function main() {
     const initialMetadata: string[] = []
     // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
-
     await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()

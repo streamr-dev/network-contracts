@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./StreamRegistry/StreamRegistryV3.sol"; 
+import "./DelegatedAccessRegistry.sol";
 // Used only for testing purposes
 contract TestERC20 is ERC20 {
     constructor () ERC20("TestToken", "TST") {}
@@ -16,7 +17,7 @@ contract TestERC20 is ERC20 {
 
 contract ERC20JoinPolicy is Ownable{
     IERC20 public token;
-
+    DelegatedAccessRegistry public delegatedAccessRegistry;
     string public streamId;
     uint256 public minRequiredBalance;
 
@@ -27,17 +28,20 @@ contract ERC20JoinPolicy is Ownable{
     event Accepted (address indexed user);
 
     constructor(
-        address tokenAddress_,
+        address delegatedAccessRegistryAddress,
+        address tokenAddress,
+        address streamRegistryAddress,
         string memory streamId_,
-        address streamRegistryAddress_,
         StreamRegistryV3.PermissionType[] memory permissions_,
         uint256 minRequiredBalance_
     ) Ownable() {
-        token = IERC20(tokenAddress_);
+        delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
+        token = IERC20(tokenAddress);
+        streamRegistry = StreamRegistryV3(streamRegistryAddress);
+
         streamId = streamId_;
         permissions = permissions_;
         minRequiredBalance = minRequiredBalance_;
-        streamRegistry = StreamRegistryV3(streamRegistryAddress_);
     }
 
     function canJoin(address user_) public view returns (bool) {
@@ -47,6 +51,13 @@ contract ERC20JoinPolicy is Ownable{
     function requestJoin() public {
         require(canJoin(_msgSender()), "Not enough tokens");
         accept(_msgSender());
+    }
+
+    function requestDelegatedJoin(address user_) public {
+        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), user_), "Not authorized");
+        require(canJoin(_msgSender()), "Not enough tokens");
+	accept(_msgSender());
+        accept(user_);
     }
 
     function accept(address user_) internal {
