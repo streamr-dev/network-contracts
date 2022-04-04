@@ -56,7 +56,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     mapping(address => bool) public approvedPolicies;
     IERC677 public token;
     address[] public joinPolicyAddresses;
-    address public allocationPolicyAddress;
+    IAllocationPolicy public allocationPolicy;
     // IJoinPolicy joinPolicy;
     // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
@@ -128,7 +128,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
-        allocationPolicyAddress = _allocationPolicyAddress;
+        allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
         (bool success, bytes memory data) = _allocationPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
@@ -143,6 +143,49 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function getUnallocatedWei() public view returns(uint) {
         GlobalState storage data = globalData();
         return data.unallocatedFunds;
+    }
+
+    // function getAllocation(address broker) view public returns(uint) {
+    //     (bool success, bytes memory data) = allocationPolicyAddress.staticcall(
+    //         abi.encodeWithSignature("calculateAllocation(address)", broker)
+    //     );
+    //     if (success) {
+    //         // return sliceUint(data, 0);
+    //         console.log("success");
+    //         return abi.decode(data, (uint));
+    //         // return data;
+    //     } else {
+    //         console.log("error");
+    //         return 0;
+    //     }
+    // }
+    fallback() external  {
+        require(msg.sender == address(this));
+
+        (bool success, bytes memory data) = address(allocationPolicy).delegatecall(msg.data);
+        assembly {
+            switch success
+                // delegatecall returns 0 on error.
+                case 0 { revert(add(data, 32), returndatasize()) }
+                default { return(add(data, 32), returndatasize()) }
+        }
+    }
+
+    // to be able to use delegatecall in a view function we must go through the fallback with delegatecall
+    function getAllocation(address broker) public view returns(uint256) {
+        (bool success, bytes memory data) = address(this).staticcall(
+            abi.encodeWithSelector(
+                allocationPolicy.calculateAllocation.selector,
+                broker
+            )
+        );
+
+        assembly {
+            switch success
+                // delegatecall returns 0 on error.
+                case 0 { revert(add(data, 32), returndatasize()) }
+                default { return(add(data, 32), returndatasize()) }
+        }
     }
 
     function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
@@ -167,8 +210,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
             // );
             // require(success, "error_join");
+            globalData().stakedWei[broker] += amount;
             globalData().brokersCount += 1;
             globalData().totalStakedWei += amount;
+            globalData().joinTimeOfBroker[broker] = block.timestamp;
             // if (brokers[broker] == address(0)) {
             //     console.log("Adding broker ", broker, " amount ", amount);
             //     brokers.push(broker);
@@ -329,4 +374,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     array.pop();
     //     return true;
     // }
+    function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
+        require(bs.length >= start + 32, "slicing out of range");
+        uint x;
+        assembly {
+            x := mload(add(bs, add(0x20, start)))
+        }
+        return x;
+    }
 }

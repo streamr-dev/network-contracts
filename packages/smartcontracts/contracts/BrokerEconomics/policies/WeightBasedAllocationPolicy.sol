@@ -20,9 +20,13 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
         localData().horizon = horizon;
     }
 
-    function calculateAllocation(address broker) external returns (uint allocation) {
-        if (globalData().joinTimeOfBroker[broker] + localData().horizon > block.timestamp) {
+    function calculateAllocation(address broker) external view returns (uint allocation) {
+        console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
+        if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+            console.log("c1", globalData().totalStakedWei, globalData().stakedWei[broker]);
             uint allocationpart = globalData().totalStakedWei / globalData().stakedWei[broker];
+            console.log("calc ", globalData().totalStakedWei, globalData().stakedWei[broker], globalData().unallocatedFunds * allocationpart);
+            console.log("returning", globalData().unallocatedFunds * allocationpart);
             return globalData().unallocatedFunds * allocationpart;
         } else {
             return 0;

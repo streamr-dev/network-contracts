@@ -7,7 +7,7 @@ import { expect, use } from 'chai'
 import type { BountyFactory } from '../typechain/BountyFactory'
 import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
-import { ERC677 } from '../typechain/ERC677'
+import { IERC677 } from '../typechain/IERC677'
 import { IAllocationPolicy, IJoinPolicy, ILeavePolicy } from '../typechain'
 
 // const { deployContract } = waffle
@@ -29,7 +29,7 @@ describe('Bounty', (): void => {
     let bountyFactory: BountyFactory
     let bounty: Bounty
     let tokenAddress: string
-    let token: ERC677
+    let token: IERC677
     let minStakeJoinPolicy: IJoinPolicy
     let maxBrokersJoinPolicy: IJoinPolicy
     let leavePolicy: ILeavePolicy
@@ -37,7 +37,7 @@ describe('Bounty', (): void => {
 
     before(async (): Promise<void> => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', wallets[0])
-        token = await tokenTxr.deploy() as ERC677
+        token = await tokenTxr.deploy() as IERC677
         tokenAddress = token.address
         // await token.mint(adminAddress, ethers.utils.parseEther('1000000'))
 
@@ -114,7 +114,7 @@ describe('Bounty', (): void => {
         await expect(token.transferAndCall(bounty.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
     })
 
-    it('positivetest weightbased allocationpolicy', async function(): Promise<void> {
+    it.only('positivetest weightbased allocationpolicy', async function(): Promise<void> {
         const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
         const res = await agreementtx.wait()
 
@@ -123,16 +123,17 @@ describe('Bounty', (): void => {
         const agreementFactory = await ethers.getContractFactory('Bounty')
         bounty = new Contract(newBountyAddress, agreementFactory.interface, wallets[0]) as Bounty
 
-        // await token.approve(bounty.address, ethers.utils.parseEther('1'))
-
         const addpolicy2tx = await bounty.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
         const addpolicy2res = await addpolicy2tx.wait()
-        await token.transferAndCall(bounty.address, ethers.utils.parseEther('0'), "0x")
+        await token.transferAndCall(bounty.address, ethers.utils.parseEther('0.5'), "0x")
 
         await token.approve(bounty.address, ethers.utils.parseEther('1'))
         await bounty.sponsor(ethers.utils.parseEther('1'))
 
-        console.log((await bounty.getUnallocatedWei()).toString());
+        console.log("unallocated " + (await bounty.getUnallocatedWei()).toString());
+        const allocation = (await bounty.getAllocation(wallets[0].address))
+        // const allocation = JSON.stringify(await bounty.getAllocation(wallets[0].address))
+        expect (allocation).to.be.equal(ethers.utils.parseEther('1'))
         
     })
 })
