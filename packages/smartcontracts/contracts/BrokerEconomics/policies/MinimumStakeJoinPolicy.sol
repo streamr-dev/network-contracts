@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity ^0.8.13;
 
 import "./IJoinPolicy.sol";
 import "hardhat/console.sol";
 import "../Bounty.sol";
-
 
 
 contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
@@ -14,8 +13,8 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
         uint256 minimumStake;
     }
 
-    function localData() internal pure returns(LocalStorage storage data) {
-        bytes32 storagePosition = keccak256("agreement.storage.MinimumStakeJoinPolicy");
+    function localData() internal view returns(LocalStorage storage data) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MinimumStakeJoinPolicy", address(this)));
         assembly {data.slot := storagePosition}
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
 // import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -45,16 +45,18 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint brokersCount;
         /** how much each broker has staked, if 0 broker is considered not part of bounty */
         mapping(address => uint) stakedWei;
-        uint allocatedFunds;
+        uint totalStakedWei;
         /** the timestamp a broker joined, to determine how long he has been a member,
             - option 1: must be set to 0 once broker leaves, must always be checked for 0
             - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
         mapping(address => uint) joinTimeOfBroker;
+        uint unallocatedFunds;
     }
 
-    mapping(address => bool) approvedPolicies;
+    mapping(address => bool) public approvedPolicies;
     IERC677 public token;
-    address[] joinPolicyAddresses;
+    address[] public joinPolicyAddresses;
+    address public allocationPolicyAddress;
     // IJoinPolicy joinPolicy;
     // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
@@ -69,15 +71,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     uint public totalSponsorshipsAtCueTimestamp;
     mapping(address => uint) public cueAtJoinWei;
 
-
+    modifier isAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
+        _;
+    }
     // uint public totalWeight; // TODO: weighting
     // whole-stream state, see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Global-State
     // uint public startCue;           // CUE when StateChanged(Running)
     // uint public startTimestamp;     // block.timestamp when StateChanged(Running)
-
     // broker-specific state
     // mapping(address => uint) public weight; // TODO: weighting
-
     // constructor(
     //     address tokenAddress,
     //     uint initialAllocationWeiPerSecond,
@@ -94,12 +97,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     minHorizonSeconds = initialMinHorizonSeconds;
     // }
 
-    function initialize(address tokenAddress,
+    function initialize(address newOwner,
+        address tokenAddress,
         uint initialAllocationWeiPerSecond,
         uint initialMinHorizonSeconds,
         address trustedForwarderAddress) public initializer {
         // __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
         // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
@@ -115,9 +119,17 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return super._msgData();
     }
 
-    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public {
+    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
         joinPolicyAddresses.push(_joinPolicyAddress);
         (bool success, bytes memory data) = _joinPolicyAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        require(success, "error adding join policy");
+    }
+
+    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
+        allocationPolicyAddress = _allocationPolicyAddress;
+        (bool success, bytes memory data) = _allocationPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding join policy");
@@ -128,37 +140,50 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         assembly {data.slot := storagePosition}
     }
 
+    function getUnallocatedWei() public view returns(uint) {
+        GlobalState storage data = globalData();
+        return data.unallocatedFunds;
+    }
+
     function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
         console.log("onTokenTransfer", broker, amount);
         require(_msgSender() == address(token), "error_onlyTokenContract");
-        for (uint i = 0; i < joinPolicyAddresses.length; i++) {
-            address joinPolicyAddress = joinPolicyAddresses[i];
-            (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
-                abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
-            );
-            if (!success) {
-                if (returndata.length == 0) revert();
-                assembly {
-                    revert(add(32, returndata), mload(returndata))
-                 }
+        // not yet joined
+        if (globalData().stakedWei[broker] == 0) {
+            for (uint i = 0; i < joinPolicyAddresses.length; i++) {
+                address joinPolicyAddress = joinPolicyAddresses[i];
+                (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
+                    abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+                );
+                if (!success) {
+                    if (returndata.length == 0) revert();
+                    assembly {
+                        revert(add(32, returndata), mload(returndata))
+                    }
+                }
+                require(success, "error adding broker");
             }
-            require(success, "error adding broker");
-        }
-        // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
-        //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
-        // );
-        // require(success, "error_join");
-        globalData().stakedWei[broker] += amount;
-        globalData().brokersCount += 1;
-        // if (brokers[broker] == address(0)) {
-        //     console.log("Adding broker ", broker, " amount ", amount);
-        //     brokers.push(broker);
-        // }
-        console.log("joinPolicy.delegatecall");
+            // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
+            //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+            // );
+            // require(success, "error_join");
+            globalData().brokersCount += 1;
+            globalData().totalStakedWei += amount;
+            // if (brokers[broker] == address(0)) {
+            //     console.log("Adding broker ", broker, " amount ", amount);
+            //     brokers.push(broker);
+            // }
+            console.log("joinPolicy.delegatecall");
 
-        // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
-        emit BrokerJoined(broker);
-        console.log("BrokerJoined");
+            // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
+            emit BrokerJoined(broker);
+            console.log("BrokerJoined");
+
+        } else {
+        // already joinend, increasing stake
+            globalData().stakedWei[broker] += amount;
+            globalData().totalStakedWei += amount;
+        }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
@@ -216,11 +241,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     emit SponsorshipReceived(msg.sender, newSponsorships);
     // }
 
-    // /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
-    // function sponsor(uint amountTokenWei) external {
-    //     require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
-    //     refresh();
-    // }
+    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
+    function sponsor(uint amountTokenWei) external {
+        require(token.transferFrom(_msgSender(), address(this), amountTokenWei), "error_transfer");
+        globalData().unallocatedFunds += amountTokenWei;
+        // refresh();
+    }
 
     /**
      * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function

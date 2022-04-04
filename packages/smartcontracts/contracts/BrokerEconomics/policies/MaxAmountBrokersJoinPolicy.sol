@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import "./IJoinPolicy.sol";
 import "hardhat/console.sol";
@@ -15,9 +15,8 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
         uint256 minBrokers;
     }
 
-    function localData() internal pure returns(LocalStorage storage data) {
-        //TODO add address of this contract to hash
-        bytes32 storagePosition = keccak256("agreement.storage.MinimumAmountBrokersJoinPolicy");
+    function localData() internal view returns(LocalStorage storage data) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MaximumBrokersJoinPolicy", address(this)));
         assembly {data.slot := storagePosition}
     }
 
