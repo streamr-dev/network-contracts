@@ -45,6 +45,8 @@
                 "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
                 "DataUnionFactory": "0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927",
                 "DataUnionTemplate": "0x36afc8c9283CC866b8EB6a61C6e6862a83cd6ee8",
+                "UnichainDataUnionFactory": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
+                "UnichainDataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
                 "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
                 "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
                 "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",

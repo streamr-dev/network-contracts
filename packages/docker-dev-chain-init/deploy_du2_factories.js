@@ -103,13 +103,12 @@ async function deployDUFactories() {
     // Deploy unichain template + factory
 
     log(`Deploying DU unichain template contract from ${wallet_home.address}`)
-    deployer = new ContractTemplate(DataUnionTemplate.abi, DataUnionTemplate.bytecode, wallet_home)
+    deployer = new ContractFactory(DataUnionTemplate.abi, DataUnionTemplate.bytecode, wallet_home)
     dtx = await deployer.deploy(
-        wallet_home.address,
-        home_erc677,
         { gasLimit: 6000000 }
     )
     const unichainTemplate = await dtx.deployed()
+    console.log(`Unichain DataUnionTemplate: ${unichainTemplate.address}`)
     log(`Deploying DU unichain factory contract from ${wallet_home.address}`)
     deployer = new ContractFactory(DataUnionFactory.abi, DataUnionFactory.bytecode, wallet_home)
     dtx = await deployer.deploy(
@@ -117,6 +116,9 @@ async function deployDUFactories() {
         home_erc677,
         { gasLimit: 6000000 }
     )
+
+    const unichainFactory = await dtx.deployed()
+    console.log(`Unichain DataUnionFactory: ${unichainFactory.address}`)
 }
 
 async function start() {
