@@ -32,4 +32,12 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
             return 0;
         }
     }
+
+    function calculatePenaltyOnStake(address broker) external view returns (uint256 stake) {
+        if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+            return 0;
+        } else {
+            return globalData().stakedWei[broker] / 10;
+        }
+    }
 }

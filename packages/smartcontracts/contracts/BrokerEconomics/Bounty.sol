@@ -2,6 +2,8 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
+//TODO use safemath
+
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 // import "../metatx/ERC2771Context.sol";
 
@@ -57,19 +59,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     IERC677 public token;
     address[] public joinPolicyAddresses;
     IAllocationPolicy public allocationPolicy;
+    ILeavePolicy public leavePolicy;
     // IJoinPolicy joinPolicy;
     // address[] public brokers;
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
 
     // these into policy?
-    uint public minHorizonSeconds;
+    // uint public minHorizonSeconds;
     uint public allocationWeiPerSecond;
 
     // ???
-    uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
-    uint public cueTimestamp;
-    uint public totalSponsorshipsAtCueTimestamp;
-    mapping(address => uint) public cueAtJoinWei;
+    // uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
+    // uint public cueTimestamp;
+    // uint public totalSponsorshipsAtCueTimestamp;
+    // mapping(address => uint) public cueAtJoinWei;
 
     modifier isAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
@@ -108,7 +111,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         allocationWeiPerSecond = initialAllocationWeiPerSecond;
-        minHorizonSeconds = initialMinHorizonSeconds;
+        // minHorizonSeconds = initialMinHorizonSeconds;
+        allocationWeiPerSecond = initialAllocationWeiPerSecond;
+
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -133,6 +138,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding join policy");
+    }
+
+    function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
+        leavePolicy = ILeavePolicy(_leaveAddress);
+        (bool success, bytes memory data) = _leaveAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        require(success, "error adding leave policy");
     }
 
     function globalData() internal pure returns(GlobalState storage data) {
@@ -182,7 +195,21 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
         assembly {
             switch success
-                // delegatecall returns 0 on error.
+                case 0 { revert(add(data, 32), returndatasize()) }
+                default { return(add(data, 32), returndatasize()) }
+        }
+    }
+
+    function getPenaltyOnStake(address broker) public view returns(uint256) {
+        (bool success, bytes memory data) = address(this).staticcall(
+            abi.encodeWithSelector(
+                allocationPolicy.calculatePenaltyOnStake.selector,
+                broker
+            )
+        );
+
+        assembly {
+            switch success
                 case 0 { revert(add(data, 32), returndatasize()) }
                 default { return(add(data, 32), returndatasize()) }
         }
@@ -231,6 +258,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
+
 
     // function getState() public view returns (State) {
     //     bool funded = horizonSeconds() < minHorizonSeconds;
@@ -311,22 +339,31 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    // function leave(address broker) external {
-    //     bool returnStake = horizonSeconds() < minHorizonSeconds;
-    //     if (returnStake) {
-    //         require(token.transfer(broker, stakedWei[broker]), "error_transfer");
-    //         emit BrokerLeft(broker, stakedWei[broker]);
-    //     } else {
-    //         // forfeited stake is added to unallocated tokens
-    //         // unallocatedWei += stakedWei[broker]; // solhint-disable-line reentrancy
-    //         emit SponsorshipReceived(broker, stakedWei[broker]);
-    //         emit BrokerLeft(broker, 0);
-    //     }
-    //     delete stakedWei[broker];
-    //     removeFromAddressArray(brokers, broker);
+    function leave() external {
+        console.log("leaving1");
+        uint slashing = this.getPenaltyOnStake(_msgSender());
+        console.log("leaving1", _msgSender(), slashing);
+        uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
+        console.log("leaving2", returnFunds);
+        returnFunds += this.getAllocation(_msgSender());
+        console.log("leaving3", returnFunds);
+        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
+        console.log("leaving4", returnFunds);
+        emit BrokerLeft(_msgSender(), returnFunds);
 
-    //     // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
-    // }
+        // add forfeited stake to unallocated funds...
+        globalData().unallocatedFunds += slashing;
+        globalData().brokersCount -= 1;
+        globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
+        globalData().stakedWei[_msgSender()] = 0;
+        console.log("returned funds", _msgSender(), returnFunds);
+        // forfeited stake is added to unallocated tokens
+        emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
+        emit BrokerLeft(_msgSender(), 0);
+        // removeFromAddressArray(brokers, broker);
+
+        // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
+    }
 
     /**
      * Interpret the incoming ERC677 token transfer as follows:
