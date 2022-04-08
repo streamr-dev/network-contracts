@@ -34,13 +34,14 @@ describe('Bounty', (): void => {
     let maxBrokersJoinPolicy: IJoinPolicy
     let leavePolicy: ILeavePolicy
     let allocationPolicy: IAllocationPolicy
+    let bountyCounter: number = 0
+    let bounty: Contract
 
     before(async (): Promise<void> => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
         token = await tokenTxr.deploy() as IERC677
         tokenAddress = token.address
         tokenFromBroker = token.connect(brokerWallet)
-        // await token.mint(adminAddress, ethers.utils.parseEther('1000000'))
 
         const jpMS = await ethers.getContractFactory('MinimumStakeJoinPolicy', adminWallet)
         const jpMSC = await jpMS.deploy() as Contract
@@ -49,10 +50,6 @@ describe('Bounty', (): void => {
         const jpMaxB = await ethers.getContractFactory('MaxAmountBrokersJoinPolicy', adminWallet)
         const jpMaxBTx = await jpMaxB.deploy() as Contract
         maxBrokersJoinPolicy = await jpMaxBTx.connect(adminWallet).deployed() as IJoinPolicy
-
-        // const lpF = await ethers.getContractFactory('DefaultLeavePolicy', adminWallet)
-        // const lpTx = await lpF.deploy() as Contract
-        // leavePolicy = await lpTx.connect(adminWallet).deployed() as ILeavePolicy
 
         const apF = await ethers.getContractFactory('WeightBasedAllocationPolicy', adminWallet)
         const apTx = await apF.deploy() as Contract
@@ -66,10 +63,12 @@ describe('Bounty', (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory, 
             [ agreementTemplate.address, trustedForwarderAddress, tokenAddress ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+
+        await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('100'))).wait()
     })
 
-    it('positivetest deploy bounty through factory, join', async function(): Promise<void> {
-        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
+    beforeEach(async (): Promise<void> => {
+        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++)
         const res = await agreementtx.wait()
 
         const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
@@ -77,62 +76,27 @@ describe('Bounty', (): void => {
         console.log("bounty " + newBountyAddress)
 
         const agreementFactory = await ethers.getContractFactory('Bounty')
-        const bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
-        // console.log(await bounty.unallocatedWei())
+        bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
+    })
 
-        const addpolicytx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))
-        const addpolicyres = await addpolicytx.wait()
-        const addpolicy2tx = await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))
-        const addpolicy2res = await addpolicy2tx.wait()
-
+    it('positivetest deploy bounty through factory, join', async function(): Promise<void> {
+        await(await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
+        await(await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))).wait()
         let tx = await token.transferAndCall(bounty.address, ethers.utils.parseEther('2'), "0x")
         await tx.wait()
     })
 
     it('negativetest min stake join policy', async function(): Promise<void> {
-        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
-        const res = await agreementtx.wait()
-
-        const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
-        console.log("bounty " + newBountyAddress)
-
-        const agreementFactory = await ethers.getContractFactory('Bounty')
-        const bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
-        const addpolicytx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))
-        const addpolicyres = await addpolicytx.wait()
-
+        await(await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
         await expect(token.transferAndCall(bounty.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_minimum_stake')
     })
     
     it('negativetest max brokers join policy', async function(): Promise<void> {
-        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
-        const res = await agreementtx.wait()
-
-        const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
-        console.log("bounty " + newBountyAddress)
-
-        const agreementFactory = await ethers.getContractFactory('Bounty')
-        const bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
-
-        const addpolicy2tx = await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('0'))
-        const addpolicy2res = await addpolicy2tx.wait()
+        await(await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('0'))).wait()
         await expect(token.transferAndCall(bounty.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
     })
 
-    it('positivetest weightbased allocationpolicy', async function(): Promise<void> {
-        await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('10'))).wait()
-
-        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
-        const res = await agreementtx.wait()
-
-        const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
-        console.log("bounty " + newBountyAddress)
-        const agreementFactory = await ethers.getContractFactory('Bounty')
-        const bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
-
+    it.only('positivetest weightbased allocationpolicy single broker', async function(): Promise<void> {
         const addpolicy2tx = await bounty.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
         await addpolicy2tx.wait()
         
@@ -141,23 +105,20 @@ describe('Bounty', (): void => {
     
         await (await tokenFromBroker.transferAndCall(bounty.address, ethers.utils.parseEther('0.5'), "0x")).wait()
         console.log("unallocated " + (await bounty.getUnallocatedWei()).toString());
-        const allocation = (await bounty.getAllocation(brokerWallet.address))
+        let allocation = (await bounty.getAllocation(brokerWallet.address))
         // const allocation = JSON.stringify(await bounty.getAllocation(wallets[0].address))
-        expect (allocation).to.be.equal(ethers.utils.parseEther('1'))
+        expect (allocation).to.be.equal(0)
+        await ethers.provider.send("evm_increaseTime", [3600])
+        await ethers.provider.send('evm_mine', [0])
+
+        allocation = (await bounty.getAllocation(brokerWallet.address))
+        // const allocation = JSON.stringify(await bounty.getAllocation(wallets[0].address))
+        expect (allocation).to.be.equal(3600)
     })
 
     it('penalized leaving', async function(): Promise<void> {
         await (await tokenFromBroker.transfer(adminWallet.address, await token.balanceOf(brokerWallet.address))).wait()
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('10'))).wait()
-        const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, this.test?.fullTitle()!)
-        const res = await agreementtx.wait()
-
-        const newBountyAddress = res.events?.filter(e => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
-        console.log("bounty " + newBountyAddress)
-
-        const agreementFactory = await ethers.getContractFactory('Bounty')
-        const bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
 
         await (await bounty.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('100000'))).wait()
 

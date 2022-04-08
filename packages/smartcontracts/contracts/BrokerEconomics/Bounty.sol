@@ -241,6 +241,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             globalData().brokersCount += 1;
             globalData().totalStakedWei += amount;
             globalData().joinTimeOfBroker[broker] = block.timestamp;
+            (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+                abi.encodeWithSignature("onJoin(address)", broker)
+            );
+            if (!success) {
+                if (returndata.length == 0) revert();
+                assembly {
+                    revert(add(32, returndata), mload(returndata))
+                }
+            }
             // if (brokers[broker] == address(0)) {
             //     console.log("Adding broker ", broker, " amount ", amount);
             //     brokers.push(broker);
