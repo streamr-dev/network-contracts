@@ -92,6 +92,8 @@
                 "AMB": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
                 "DataUnionFactory": "0xFCE1FBFAaE61861B011B379442c8eE1DC868ABd0",
                 "DataUnionTemplate": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
+                "UnichainDataUnionFactory": "0x82F1b8a9521933ecC41A9062f1eb597D0Ad6e12F",
+                "UnichainDataUnionTemplate": "0xA7E64C07464DdC69dC1534C14c7c724E5807d42a",
                 "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
                 "BinanceAdapterDATA": "0x193888692673b5dD46e6BC90bA8cBFeDa515c8C1",
                 "BinanceAdapterXDATA": "0x0c1aF6edA561fbDA48E9A7B1Dd46D216F31A97cC",
@@ -128,6 +130,8 @@
                 "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
                 "ChainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
                 "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
+                "UnichainDataUnionFactory": "0x3dBDf6C439FC2C90F98C351c90682A7cCe3366E5",
+                "UnichainDataUnionTemplate": "0x6D73eDf9366c97ed12C78C41F02A9254e9184CB1",
                 "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
                 "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
                 "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
