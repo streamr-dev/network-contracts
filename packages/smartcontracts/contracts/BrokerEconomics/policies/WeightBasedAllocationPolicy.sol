@@ -12,7 +12,7 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
         uint256 weiPerSecond;
         uint256 cumulativeMemberEarnings;
         mapping(address => uint256) cmeOnJoin;
-        uint256 timeLastJoin;
+        uint256 timeLastJoinOrLeft;
         // mapping(address => uint256) earningsForMember;
         // uint256 distributedEarnings;
         // uint256 earningsToBeDistributed;
@@ -28,7 +28,7 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
     function setParam(uint256 horizon) external {
         localData().horizon = horizon;
         // TODO add these params to setter from bounty
-        localData().weiPerSecond = 1;
+        localData().weiPerSecond = 10;
 
     }
 
@@ -38,34 +38,48 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
         // t slope earningsPerMemberPerSecond
 
         localData().cmeOnJoin[broker] = localData().cumulativeMemberEarnings;
-    
-        uint newCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoin) + localData().cumulativeMemberEarnings;
-        localData().cumulativeMemberEarnings = newCME;
-        localData().timeLastJoin = block.timestamp;
-        localData().earningsPerMemberPerSecond = localData().weiPerSecond / globalData().brokersCount;
+        updateCME();
+    }
+
+    function onLeft(address broker) external {
+        localData().cmeOnJoin[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        updateCME();
+    }
+
+    function updateCME() private {
+        uint deltaCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft);
+        localData().cumulativeMemberEarnings += deltaCME;
+        localData().timeLastJoinOrLeft = block.timestamp;
+        if (globalData().brokersCount > 0) {
+            localData().earningsPerMemberPerSecond = localData().weiPerSecond / globalData().brokersCount;
+        } else {
+            localData().earningsPerMemberPerSecond = 0;
+        }
+        console.log("updateCME, earningsPerMemberPerSecond: ", localData().earningsPerMemberPerSecond);
     }
 
     function calculateAllocation(address broker) external view returns (uint allocation) {
         // console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
-        // if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+        if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
         //     console.log("c1", globalData().totalStakedWei, globalData().stakedWei[broker]);
         //     uint allocationpart = globalData().totalStakedWei / globalData().stakedWei[broker];
         //     console.log("calc ", globalData().totalStakedWei, globalData().stakedWei[broker], globalData().unallocatedFunds * allocationpart);
         //     console.log("returning", globalData().unallocatedFunds * allocationpart);
         //     return globalData().unallocatedFunds * allocationpart;
-        // } else {
-        //     return 0;
-        // }
-        console.log("getAllocation blocktime", block.timestamp);
-        uint additionalCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoin);
-        return localData().cmeOnJoin[broker] + additionalCME;
+            console.log("getAllocation blocktime", block.timestamp);
+            uint currentCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft);
+            return currentCME - localData().cmeOnJoin[broker];
+        } else {
+            return 0;
+        }
     }
 
     function calculatePenaltyOnStake(address broker) external view returns (uint256 stake) {
-        if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
-            return 0;
-        } else {
+        console.log("calculatePenaltyOnStake ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
+        if (block.timestamp < globalData().joinTimeOfBroker[broker] + localData().horizon) {
             return globalData().stakedWei[broker] / 10;
+        } else {
+            return 0;
         }
     }
 }

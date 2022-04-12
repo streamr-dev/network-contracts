@@ -2,8 +2,6 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-//TODO use safemath
-
 // import "@openzeppelin/contracts/access/AccessControl.sol";
 // import "../metatx/ERC2771Context.sol";
 
@@ -237,9 +235,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
             // );
             // require(success, "error_join");
+            console.log("join1 amount add", amount, broker);
             globalData().stakedWei[broker] += amount;
+            console.log("join1 stake", globalData().stakedWei[broker]);
             globalData().brokersCount += 1;
             globalData().totalStakedWei += amount;
+            console.log("join1 total stake", globalData().totalStakedWei);
             globalData().joinTimeOfBroker[broker] = block.timestamp;
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
@@ -353,22 +354,32 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint slashing = this.getPenaltyOnStake(_msgSender());
         console.log("leaving1", _msgSender(), slashing);
         uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
-        console.log("leaving2", returnFunds);
+        console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
+        console.log("leaving2 returnfunds", returnFunds);
         returnFunds += this.getAllocation(_msgSender());
         console.log("leaving3", returnFunds);
         require(token.transfer(_msgSender(), returnFunds), "error_transfer");
-        console.log("leaving4", returnFunds);
-        emit BrokerLeft(_msgSender(), returnFunds);
+        console.log("leaving4", globalData().unallocatedFunds);
 
         // add forfeited stake to unallocated funds...
         globalData().unallocatedFunds += slashing;
         globalData().brokersCount -= 1;
         globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
         globalData().stakedWei[_msgSender()] = 0;
+        console.log("leaving5", globalData().unallocatedFunds);
+        (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+            abi.encodeWithSignature("onLeft(address)", _msgSender())
+        );
+        if (!success) {
+            if (returndata.length == 0) revert();
+            assembly {
+                revert(add(32, returndata), mload(returndata))
+            }
+        }
         console.log("returned funds", _msgSender(), returnFunds);
         // forfeited stake is added to unallocated tokens
         emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
-        emit BrokerLeft(_msgSender(), 0);
+        emit BrokerLeft(_msgSender(), returnFunds);
         // removeFromAddressArray(brokers, broker);
 
         // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }

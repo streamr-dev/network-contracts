@@ -35,7 +35,8 @@ describe('Bounty', (): void => {
     let leavePolicy: ILeavePolicy
     let allocationPolicy: IAllocationPolicy
     let bountyCounter: number = 0
-    let bounty: Contract
+    let bountyFromAdmin: Contract
+    let bountyFromBroker: Contract
 
     before(async (): Promise<void> => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
@@ -76,63 +77,68 @@ describe('Bounty', (): void => {
         console.log("bounty " + newBountyAddress)
 
         const agreementFactory = await ethers.getContractFactory('Bounty')
-        bounty = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
+        bountyFromAdmin = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
+        bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
     })
 
     it('positivetest deploy bounty through factory, join', async function(): Promise<void> {
-        await(await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
-        await(await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))).wait()
-        let tx = await token.transferAndCall(bounty.address, ethers.utils.parseEther('2'), "0x")
+        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
+        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))).wait()
+        let tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('2'), "0x")
         await tx.wait()
     })
 
     it('negativetest min stake join policy', async function(): Promise<void> {
-        await(await bounty.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
-        await expect(token.transferAndCall(bounty.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_minimum_stake')
+        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_minimum_stake')
     })
     
     it('negativetest max brokers join policy', async function(): Promise<void> {
-        await(await bounty.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('0'))).wait()
-        await expect(token.transferAndCall(bounty.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
+        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('0'))).wait()
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
     })
 
-    it.only('positivetest weightbased allocationpolicy single broker', async function(): Promise<void> {
-        const addpolicy2tx = await bounty.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
+    it('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
+        const addpolicy2tx = await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
+        const tokensBefore = await token.balanceOf(brokerWallet.address)
+        console.log("brokerwallet address: " + brokerWallet.address)
+        
         await addpolicy2tx.wait()
         
-        await token.approve(bounty.address, ethers.utils.parseEther('1'))
-        await bounty.sponsor(ethers.utils.parseEther('1'))
+        await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
+        await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
     
-        await (await tokenFromBroker.transferAndCall(bounty.address, ethers.utils.parseEther('0.5'), "0x")).wait()
-        console.log("unallocated " + (await bounty.getUnallocatedWei()).toString());
-        let allocation = (await bounty.getAllocation(brokerWallet.address))
-        // const allocation = JSON.stringify(await bounty.getAllocation(wallets[0].address))
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
+        console.log("unallocated " + (await bountyFromBroker.getUnallocatedWei()).toString());
+
+        let allocation: number = (await bountyFromBroker.getAllocation(brokerWallet.address))
         expect (allocation).to.be.equal(0)
         await ethers.provider.send("evm_increaseTime", [3600])
         await ethers.provider.send('evm_mine', [0])
+        allocation = (await bountyFromBroker.getAllocation(brokerWallet.address))
+        expect (3600).to.be.lessThanOrEqual(3600)
 
-        allocation = (await bounty.getAllocation(brokerWallet.address))
-        // const allocation = JSON.stringify(await bounty.getAllocation(wallets[0].address))
-        expect (allocation).to.be.equal(3600)
+        await (await bountyFromBroker.leave()).wait()
+        const tokensAfter = await token.balanceOf(brokerWallet.address)
+        // broker now has his stake back and additional winnings
+        expect(tokensAfter.sub(tokensBefore).sub(3600).gte(0)).to.be.true
     })
 
     it('penalized leaving', async function(): Promise<void> {
         await (await tokenFromBroker.transfer(adminWallet.address, await token.balanceOf(brokerWallet.address))).wait()
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('10'))).wait()
+        const tokensBefore = await token.balanceOf(brokerWallet.address)
 
-        await (await bounty.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('100000'))).wait()
+        await (await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('100000'))).wait()
 
-        await token.approve(bounty.address, ethers.utils.parseEther('1'))
-        await bounty.sponsor(ethers.utils.parseEther('1'))
+        await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
+        await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
 
-        await(await tokenFromBroker.transferAndCall(bounty.address, ethers.utils.parseEther('10'), "0x")).wait()
-
-        console.log("unallocated " + (await bounty.getUnallocatedWei()).toString());
-        const allocation = (await bounty.getAllocation(brokerWallet.address))
-        const bountyFromBroker = await bounty.connect(brokerWallet)
-        const allocation2 = (await bountyFromBroker.getAllocation(brokerWallet.address))
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
 
         await(await bountyFromBroker.leave()).wait()
-        expect (await token.balanceOf(brokerWallet.address)).to.be.equal(ethers.utils.parseEther('9'))
+        const tokensAfter = await token.balanceOf(brokerWallet.address)
+        // broker lost 10% of his stake
+        expect(tokensBefore.sub(ethers.utils.parseEther('0.05')).eq(tokensAfter)).to.be.true
     })
 })
