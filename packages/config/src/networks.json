@@ -134,7 +134,9 @@
                 "UnichainDataUnionTemplate": "0x6D73eDf9366c97ed12C78C41F02A9254e9184CB1",
                 "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
                 "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
-                "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
+                "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
+                "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
+                "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
             }
         }
     }
