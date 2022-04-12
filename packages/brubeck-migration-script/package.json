@@ -38,6 +38,6 @@
     "@types/mysql": "^2.15.21",
     "@typescript-eslint/eslint-plugin": "^4.22.1",
     "@typescript-eslint/parser": "^4.22.1",
-    "typescript": "^4.4.4"
+    "typescript": "^4.6.3"
   }
 }
