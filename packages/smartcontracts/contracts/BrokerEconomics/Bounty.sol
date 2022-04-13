@@ -359,13 +359,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         returnFunds += this.getAllocation(_msgSender());
         console.log("leaving3", returnFunds);
         require(token.transfer(_msgSender(), returnFunds), "error_transfer");
-        console.log("leaving4", globalData().unallocatedFunds);
 
         // add forfeited stake to unallocated funds...
         globalData().unallocatedFunds += slashing;
+        console.log("leaving4", globalData().unallocatedFunds);
         globalData().brokersCount -= 1;
         globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
         globalData().stakedWei[_msgSender()] = 0;
+        globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
         console.log("leaving5", globalData().unallocatedFunds);
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
             abi.encodeWithSignature("onLeft(address)", _msgSender())

@@ -37,13 +37,13 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
         // y cumulativememberearnings
         // t slope earningsPerMemberPerSecond
 
-        localData().cmeOnJoin[broker] = localData().cumulativeMemberEarnings;
         updateCME();
+        localData().cmeOnJoin[broker] = localData().cumulativeMemberEarnings;
     }
 
     function onLeft(address broker) external {
-        localData().cmeOnJoin[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
         updateCME();
+        localData().cmeOnJoin[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     }
 
     function updateCME() private {
@@ -59,15 +59,22 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function calculateAllocation(address broker) external view returns (uint allocation) {
+        // uint currentTime = block.timestamp;
         // console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
-        if (globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+        if (globalData().joinTimeOfBroker[broker] != 0 && 
+            globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+            // console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
         //     console.log("c1", globalData().totalStakedWei, globalData().stakedWei[broker]);
         //     uint allocationpart = globalData().totalStakedWei / globalData().stakedWei[broker];
         //     console.log("calc ", globalData().totalStakedWei, globalData().stakedWei[broker], globalData().unallocatedFunds * allocationpart);
         //     console.log("returning", globalData().unallocatedFunds * allocationpart);
         //     return globalData().unallocatedFunds * allocationpart;
-            console.log("getAllocation blocktime", block.timestamp);
-            uint currentCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft);
+            // console.log("getAllocation blocktime", block.timestamp);
+            // if (currentTime - localData().timeLastJoinOrLeft == 0) {
+            //     currentTime += 1;
+            // }
+            uint currentCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft) + localData().cumulativeMemberEarnings;
+            console.log("calculateAllocation ", localData().earningsPerMemberPerSecond, block.timestamp - localData().timeLastJoinOrLeft, localData().cmeOnJoin[broker]);
             return currentCME - localData().cmeOnJoin[broker];
         } else {
             return 0;

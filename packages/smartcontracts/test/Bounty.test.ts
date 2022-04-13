@@ -24,6 +24,7 @@ describe('Bounty', (): void => {
     const wallets = provider.getWallets()
     const adminWallet = wallets[0]
     const brokerWallet = wallets[1]
+    const broker2Wallet = wallets[2]
     const trustedForwarderAddress: string = wallets[9].address
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
@@ -66,6 +67,7 @@ describe('Bounty', (): void => {
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
 
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('100'))).wait()
+        await (await token.transfer(broker2Wallet.address, ethers.utils.parseEther('100'))).wait()
     })
 
     beforeEach(async (): Promise<void> => {
@@ -98,7 +100,7 @@ describe('Bounty', (): void => {
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
     })
 
-    it('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
+    it.only('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
         const addpolicy2tx = await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
         const tokensBefore = await token.balanceOf(brokerWallet.address)
         console.log("brokerwallet address: " + brokerWallet.address)
@@ -108,20 +110,100 @@ describe('Bounty', (): void => {
         await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
         await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
     
+        const timeAtStart = Date.now()
+        const timeIncrease = 1000
+
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart])
+        await ethers.provider.send('evm_mine', [0])
+
         await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
         console.log("unallocated " + (await bountyFromBroker.getUnallocatedWei()).toString());
 
         let allocation: number = (await bountyFromBroker.getAllocation(brokerWallet.address))
         expect (allocation).to.be.equal(0)
-        await ethers.provider.send("evm_increaseTime", [3600])
+
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart + timeIncrease + 1])
         await ethers.provider.send('evm_mine', [0])
+
         allocation = (await bountyFromBroker.getAllocation(brokerWallet.address))
-        expect (3600).to.be.lessThanOrEqual(3600)
+        expect (allocation).to.be.equal(timeIncrease * 10)
 
         await (await bountyFromBroker.leave()).wait()
         const tokensAfter = await token.balanceOf(brokerWallet.address)
         // broker now has his stake back and additional winnings
-        expect(tokensAfter.sub(tokensBefore).sub(3600).gte(0)).to.be.true
+        expect(tokensAfter.sub(tokensBefore).sub((timeIncrease + 1) * 10).eq(0)).to.be.true
+    })
+
+    it.only('positivetest weightbased allocationpolicy two brokers, different join, leave times', async function(): Promise<void> {
+        // t0: broker1 joins
+        // t1 = t0 + 1000: broker2 joins
+        // t3 = t2 + 2000: broker 2 leaves
+        // t4 = t3 + 1000: broker1 leaves
+        // in the end 4000*(wei/sec) are winnings
+        // broker 1 should have half + half-of-half of the winnings
+        // broker 2 should have half-of-half = 25% of the winnings
+        const tokenFromBroker2 = token.connect(broker2Wallet)
+        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
+        const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
+        console.log("tokens before: " + tokensBroker1Before.toString())
+        const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
+        console.log("tokens before: " + tokensBroker2Before.toString())
+
+        const addpolicy2tx = await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
+        await addpolicy2tx.wait()
+        console.log("brokerwallet address: " + brokerWallet.address)
+        
+        await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
+        await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
+    
+        const timeAtStart = Date.now() + 10000
+        const timeIncrease = 1000
+
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart])
+        await ethers.provider.send('evm_mine', [0])
+
+        // broker1 joins
+        console.log("b1 alloc0 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc0 " + await token.balanceOf(brokerWallet.address))
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
+        // time advances
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart + timeIncrease + 1])
+        await ethers.provider.send('evm_mine', [0])
+        console.log("b1 alloc1 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc1 " + await token.balanceOf(brokerWallet.address))
+        // console.log("b2 alloc1 " + await bountyFromBroker2.getAllocation(broker2Wallet.address))
+        
+        // broker2 joins
+        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
+        console.log("b1 alloc2 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc2 " + await token.balanceOf(brokerWallet.address))
+        // console.log("b2 alloc2 " + await bountyFromBroker2.getAllocation(broker2Wallet.address))
+        // time advances
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart + (3 * timeIncrease) + 1])
+        await ethers.provider.send('evm_mine', [0])
+        console.log("b1 alloc3 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc3 " + await token.balanceOf(brokerWallet.address))
+        // console.log("b2 alloc3 " + await bountyFromBroker2.getAllocation(broker2Wallet.address))
+        // broker2 leaves
+        await (await bountyFromBroker2.leave()).wait()
+        console.log("b1 alloc4 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc4 " + await token.balanceOf(brokerWallet.address))
+        // console.log("b2 alloc4 " + await bountyFromBroker2.getAllocation(broker2Wallet.address))
+        // time advances
+        await ethers.provider.send("evm_setNextBlockTimestamp", [timeAtStart + (4 * timeIncrease) + 1])
+        await ethers.provider.send('evm_mine', [0])
+        console.log("b1 alloc5 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc5 " + await token.balanceOf(brokerWallet.address))
+        // broker1 leaves
+        await (await bountyFromBroker.leave()).wait()
+        console.log("b1 alloc6 " + await bountyFromBroker.getAllocation(brokerWallet.address))
+        console.log("b1 alloc6 " + await token.balanceOf(brokerWallet.address))
+        
+        const tokensBroker1After = await token.balanceOf(brokerWallet.address)
+        const tokensBroker2After = await token.balanceOf(broker2Wallet.address)
+
+        expect(tokensBroker1After.sub(tokensBroker1Before).sub(((timeIncrease * 3) + 1) * 10).eq(0)).to.be.true
+        expect(tokensBroker2After.sub(tokensBroker2Before).sub((timeIncrease) * 10).eq(0)).to.be.true
     })
 
     it('penalized leaving', async function(): Promise<void> {
