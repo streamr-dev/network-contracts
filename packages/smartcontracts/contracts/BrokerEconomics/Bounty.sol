@@ -156,20 +156,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return data.unallocatedFunds;
     }
 
-    // function getAllocation(address broker) view public returns(uint) {
-    //     (bool success, bytes memory data) = allocationPolicyAddress.staticcall(
-    //         abi.encodeWithSignature("calculateAllocation(address)", broker)
-    //     );
-    //     if (success) {
-    //         // return sliceUint(data, 0);
-    //         console.log("success");
-    //         return abi.decode(data, (uint));
-    //         // return data;
-    //     } else {
-    //         console.log("error");
-    //         return 0;
-    //     }
-    // }
+    
     fallback() external  {
         require(msg.sender == address(this));
 
@@ -269,6 +256,80 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
+        /**
+     * Broker stops servicing the stream and withdraws their stake + earnings.
+     * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
+     * If number of brokers falls below minBrokerCount, the stream is closed.
+     */
+    function leave() external {
+        console.log("leaving1");
+        uint slashing = this.getPenaltyOnStake(_msgSender());
+        console.log("leaving1", _msgSender(), slashing);
+        uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
+        console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
+        console.log("leaving2 returnfunds", returnFunds);
+        returnFunds += this.getAllocation(_msgSender());
+        console.log("leaving3", returnFunds);
+        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
+
+        // add forfeited stake to unallocated funds...
+        globalData().unallocatedFunds += slashing;
+        console.log("leaving4", globalData().unallocatedFunds);
+        globalData().brokersCount -= 1;
+        globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
+        globalData().stakedWei[_msgSender()] = 0;
+        globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+        console.log("leaving5", globalData().unallocatedFunds);
+        (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+            abi.encodeWithSignature("onLeft(address)", _msgSender())
+        );
+        if (!success) {
+            if (returndata.length == 0) revert();
+            assembly {
+                revert(add(32, returndata), mload(returndata))
+            }
+        }
+        console.log("returned funds", _msgSender(), returnFunds);
+        // forfeited stake is added to unallocated tokens
+        emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
+        emit BrokerLeft(_msgSender(), returnFunds);
+        // removeFromAddressArray(brokers, broker);
+
+        // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
+    }
+
+    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */    
+    function sponsor(uint amountTokenWei) external {
+        require(token.transferFrom(_msgSender(), address(this), amountTokenWei), "error_transfer");
+        globalData().unallocatedFunds += amountTokenWei;
+        // refresh();
+    }
+
+    function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
+        require(bs.length >= start + 32, "slicing out of range");
+        uint x;
+        assembly {
+            x := mload(add(bs, add(0x20, start)))
+        }
+        return x;
+    }
+
+    // function getAllocation(address broker) view public returns(uint) {
+    //     (bool success, bytes memory data) = allocationPolicyAddress.staticcall(
+    //         abi.encodeWithSignature("calculateAllocation(address)", broker)
+    //     );
+    //     if (success) {
+    //         // return sliceUint(data, 0);
+    //         console.log("success");
+    //         return abi.decode(data, (uint));
+    //         // return data;
+    //     } else {
+    //         console.log("error");
+    //         return 0;
+    //     }
+    // }
+
 
     // function getState() public view returns (State) {
     //     bool funded = horizonSeconds() < minHorizonSeconds;
@@ -324,12 +385,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     emit SponsorshipReceived(msg.sender, newSponsorships);
     // }
 
-    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
-    function sponsor(uint amountTokenWei) external {
-        require(token.transferFrom(_msgSender(), address(this), amountTokenWei), "error_transfer");
-        globalData().unallocatedFunds += amountTokenWei;
-        // refresh();
-    }
+    
 
     /**
      * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function
@@ -344,48 +400,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     }
     // }
 
-    /**
-     * Broker stops servicing the stream and withdraws their stake + earnings.
-     * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
-     * If number of brokers falls below minBrokerCount, the stream is closed.
-     */
-    function leave() external {
-        console.log("leaving1");
-        uint slashing = this.getPenaltyOnStake(_msgSender());
-        console.log("leaving1", _msgSender(), slashing);
-        uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
-        console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
-        console.log("leaving2 returnfunds", returnFunds);
-        returnFunds += this.getAllocation(_msgSender());
-        console.log("leaving3", returnFunds);
-        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
-
-        // add forfeited stake to unallocated funds...
-        globalData().unallocatedFunds += slashing;
-        console.log("leaving4", globalData().unallocatedFunds);
-        globalData().brokersCount -= 1;
-        globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
-        globalData().stakedWei[_msgSender()] = 0;
-        globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-
-        console.log("leaving5", globalData().unallocatedFunds);
-        (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
-            abi.encodeWithSignature("onLeft(address)", _msgSender())
-        );
-        if (!success) {
-            if (returndata.length == 0) revert();
-            assembly {
-                revert(add(32, returndata), mload(returndata))
-            }
-        }
-        console.log("returned funds", _msgSender(), returnFunds);
-        // forfeited stake is added to unallocated tokens
-        emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
-        emit BrokerLeft(_msgSender(), returnFunds);
-        // removeFromAddressArray(brokers, broker);
-
-        // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
-    }
 
     /**
      * Interpret the incoming ERC677 token transfer as follows:
@@ -433,12 +447,5 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     array.pop();
     //     return true;
     // }
-    function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
-        require(bs.length >= start + 32, "slicing out of range");
-        uint x;
-        assembly {
-            x := mload(add(bs, add(0x20, start)))
-        }
-        return x;
-    }
+
 }

@@ -59,10 +59,14 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function calculateAllocation(address broker) external view returns (uint allocation) {
-        // uint currentTime = block.timestamp;
-        // console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
         if (globalData().joinTimeOfBroker[broker] != 0 && 
             globalData().joinTimeOfBroker[broker] + localData().horizon <= block.timestamp) {
+            uint currentCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft) + localData().cumulativeMemberEarnings;
+            console.log("calculateAllocation ", localData().earningsPerMemberPerSecond, block.timestamp - localData().timeLastJoinOrLeft, localData().cmeOnJoin[broker]);
+            return currentCME - localData().cmeOnJoin[broker];
+        } else {
+            return 0;
+        }
             // console.log("calculateAllocation ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
         //     console.log("c1", globalData().totalStakedWei, globalData().stakedWei[broker]);
         //     uint allocationpart = globalData().totalStakedWei / globalData().stakedWei[broker];
@@ -73,12 +77,6 @@ contract WeightBasedAllocationPolicy is IAllocationPolicy, Bounty {
             // if (currentTime - localData().timeLastJoinOrLeft == 0) {
             //     currentTime += 1;
             // }
-            uint currentCME = localData().earningsPerMemberPerSecond * (block.timestamp - localData().timeLastJoinOrLeft) + localData().cumulativeMemberEarnings;
-            console.log("calculateAllocation ", localData().earningsPerMemberPerSecond, block.timestamp - localData().timeLastJoinOrLeft, localData().cmeOnJoin[broker]);
-            return currentCME - localData().cmeOnJoin[broker];
-        } else {
-            return 0;
-        }
     }
 
     function calculatePenaltyOnStake(address broker) external view returns (uint256 stake) {

@@ -100,7 +100,7 @@ describe('Bounty', (): void => {
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
     })
 
-    it.only('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
+    it('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
         const addpolicy2tx = await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
         const tokensBefore = await token.balanceOf(brokerWallet.address)
         console.log("brokerwallet address: " + brokerWallet.address)
@@ -134,7 +134,7 @@ describe('Bounty', (): void => {
         expect(tokensAfter.sub(tokensBefore).sub((timeIncrease + 1) * 10).eq(0)).to.be.true
     })
 
-    it.only('positivetest weightbased allocationpolicy two brokers, different join, leave times', async function(): Promise<void> {
+    it('positivetest weightbased allocationpolicy two brokers, different join, leave times', async function(): Promise<void> {
         // t0: broker1 joins
         // t1 = t0 + 1000: broker2 joins
         // t3 = t2 + 2000: broker 2 leaves
