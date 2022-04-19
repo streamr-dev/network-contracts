@@ -124,7 +124,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
         joinPolicyAddresses.push(_joinPolicyAddress);
-        (bool success, bytes memory data) = _joinPolicyAddress.delegatecall(
+        (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding join policy");
@@ -232,12 +232,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
-            if (!success) {
-                if (returndata.length == 0) revert();
-                assembly {
-                    revert(add(32, returndata), mload(returndata))
-                }
-            }
+            require(success, "error onjoin in joinpolicy");
             // if (brokers[broker] == address(0)) {
             //     console.log("Adding broker ", broker, " amount ", amount);
             //     brokers.push(broker);
@@ -306,14 +301,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // refresh();
     }
 
-    function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
-        require(bs.length >= start + 32, "slicing out of range");
-        uint x;
-        assembly {
-            x := mload(add(bs, add(0x20, start)))
-        }
-        return x;
-    }
+    // function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
+    //     require(bs.length >= start + 32, "slicing out of range");
+    //     uint x;
+    //     assembly {
+    //         x := mload(add(bs, add(0x20, start)))
+    //     }
+    //     return x;
+    // }
 
     // function getAllocation(address broker) view public returns(uint) {
     //     (bool success, bytes memory data) = allocationPolicyAddress.staticcall(
