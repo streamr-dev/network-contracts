@@ -20,7 +20,7 @@ use(waffle.solidity)
 // testcases to not forget:
 // - increase stake if already joined
 
-describe('Bounty', (): void => {
+describe('StakeWeightedAllocationPolicy', (): void => {
     const wallets = provider.getWallets()
     const adminWallet = wallets[0]
     const brokerWallet = wallets[1]
@@ -39,7 +39,7 @@ describe('Bounty', (): void => {
     let bountyFromAdmin: Contract
     let bountyFromBroker: Contract
 
-    before(async (): Promise<void> => {
+    before(async () => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
         token = await tokenTxr.deploy() as IERC677
         tokenAddress = token.address
@@ -70,7 +70,7 @@ describe('Bounty', (): void => {
         await (await token.transfer(broker2Wallet.address, ethers.utils.parseEther('100'))).wait()
     })
 
-    beforeEach(async (): Promise<void> => {
+    beforeEach(async () => {
         const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++)
         const res = await agreementtx.wait()
 
@@ -81,31 +81,13 @@ describe('Bounty', (): void => {
         const agreementFactory = await ethers.getContractFactory('Bounty')
         bountyFromAdmin = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
         bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
-    })
 
-    it('positivetest deploy bounty through factory, join', async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
-        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))).wait()
-        let tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('2'), "0x")
-        await tx.wait()
-    })
-
-    it('negativetest min stake join policy', async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
-        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_minimum_stake')
-    })
-
-    it('negativetest max brokers join policy', async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('0'))).wait()
-        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('0'), "0x")).to.be.revertedWith('error_max_brokers')
-    })
-
-    it('positivetest weightbased allocationpolicy single broker, unpenalised leaving', async function(): Promise<void> {
         const addpolicy2tx = await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('0'))
-        const tokensBefore = await token.balanceOf(brokerWallet.address)
-        console.log("brokerwallet address: " + brokerWallet.address)
-
         await addpolicy2tx.wait()
+    })
+
+    it('allocates correctly for single broker (positive test)', async () => {
+        const tokensBefore = await token.balanceOf(brokerWallet.address)
 
         await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
         await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
@@ -135,14 +117,14 @@ describe('Bounty', (): void => {
         expect(tokensAfter.sub(tokensBefore).sub((timestepSeconds + 1) * 10).eq(0)).to.be.true
     })
 
-    it('positivetest weightbased allocationpolicy two brokers, different join, leave times', async function(): Promise<void> {
+    it('allocates correctly for two brokers, same weight, different join, leave times (positive test)', async function(): Promise<void> {
         //      t0       : broker1 joins
         // t1 = t0 + 1000: broker2 joins
-        // t3 = t0 + 3000: broker 2 leaves
+        // t3 = t0 + 3000: broker2 leaves (stayed for half the time)
         // t4 = t0 + 4000: broker1 leaves
         // in the end 4000*(wei/sec) are winnings
-        // broker 1 should have half + half-of-half of the winnings
-        // broker 2 should have half-of-half = 25% of the winnings
+        // broker1 should have half + half-of-half = 75% of the winnings
+        // broker2 should have half-of-half = 25% of the winnings
         const tokenFromBroker2 = token.connect(broker2Wallet)
         const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
         const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
@@ -206,23 +188,5 @@ describe('Bounty', (): void => {
 
         expect(tokensBroker1After.sub(tokensBroker1Before).sub(((timestepSeconds * 3) + 1) * tokensPerSecond).eq(0)).to.be.true
         expect(tokensBroker2After.sub(tokensBroker2Before).sub((timestepSeconds) * tokensPerSecond).eq(0)).to.be.true
-    })
-
-    it('penalized leaving', async function(): Promise<void> {
-        await (await tokenFromBroker.transfer(adminWallet.address, await token.balanceOf(brokerWallet.address))).wait()
-        await (await token.transfer(brokerWallet.address, ethers.utils.parseEther('10'))).wait()
-        const tokensBefore = await token.balanceOf(brokerWallet.address)
-
-        await (await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, ethers.BigNumber.from('100000'))).wait()
-
-        await token.approve(bountyFromAdmin.address, ethers.utils.parseEther('1'))
-        await bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))
-
-        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, ethers.utils.parseEther('0.5'), "0x")).wait()
-
-        await(await bountyFromBroker.leave()).wait()
-        const tokensAfter = await token.balanceOf(brokerWallet.address)
-        // broker lost 10% of his stake
-        expect(tokensBefore.sub(ethers.utils.parseEther('0.05')).eq(tokensAfter)).to.be.true
     })
 })
