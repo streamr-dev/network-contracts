@@ -216,7 +216,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                         revert(add(32, returndata), mload(returndata))
                     }
                 }
-                require(success, "error adding broker");
+                require(success, "error_adding_broker");
             }
             // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
             //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
@@ -232,7 +232,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
-            require(success, "error onjoin in joinpolicy");
+            require(success, "error_in_onjoin");
             // if (brokers[broker] == address(0)) {
             //     console.log("Adding broker ", broker, " amount ", amount);
             //     brokers.push(broker);
@@ -296,7 +296,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */    
     function sponsor(uint amountTokenWei) external {
-        require(token.transferFrom(_msgSender(), address(this), amountTokenWei), "error_transfer");
+        token.transferFrom(_msgSender(), address(this), amountTokenWei);
         globalData().unallocatedFunds += amountTokenWei;
         // refresh();
     }

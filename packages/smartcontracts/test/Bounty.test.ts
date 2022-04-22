@@ -153,7 +153,7 @@ describe('Bounty', (): void => {
     })
 
     it('negativetest sponsor with no allowance', async function(): Promise<void> {
-        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))).to.be.revertedWith('error_no_allowance')
+        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))).to.be.revertedWith('')
     })
 
     it('positivetest weightbased allocationpolicy two brokers, different join, leave times', async function(): Promise<void> {
