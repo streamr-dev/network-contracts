@@ -83,12 +83,29 @@ describe('Bounty', (): void => {
         bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
     })
 
-    it('positivetest deploy bounty through factory, join', async function(): Promise<void> {
+    it('positivetest deploy bounty through factory, join bounty', async function(): Promise<void> {
         await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
         await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, ethers.BigNumber.from('1'))).wait()
         const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('2'), "0x")
         await tx.wait()
     })
+
+    it('negativetest addjoinpolicy from not-admin', async function(): Promise<void> {
+        await expect(bountyFromBroker.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).to.be.revertedWith('error_mustBeAdminRole')
+    })
+
+    it('negativetest trying to join with wrong token', async function(): Promise<void> {
+        const newtokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
+        const newToken = await newtokenTxr.deploy() as IERC677
+        const newTokenFromAdmin = newToken.connect(adminWallet)
+        // await expect(newTokenFromBroker.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_onlyTokenContract')
+        await expect(newTokenFromAdmin.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_onlyTokenContract')
+    })
+
+    // this should actually fail, but there might be a hardhat bug that allows calling functions on non-existing contracts, so we skip it for now
+    // it('negativetest setjoinpolicy pointing to nonexistant contract', async function(): Promise<void> {
+    //     await expect(bountyFromAdmin.addJoinPolicy(wallets[4].address, ethers.BigNumber.from('2000000000000000000'))).to.be.revertedWith('error adding join policy')
+    // })
 
     it('negativetest min stake join policy', async function(): Promise<void> {
         await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
