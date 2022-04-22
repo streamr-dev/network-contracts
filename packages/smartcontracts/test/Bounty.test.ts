@@ -30,11 +30,8 @@ describe('Bounty', (): void => {
     let bountyFactory: BountyFactory
     let tokenAddress: string
     let token: IERC677
-    let tokenFromBroker: IERC677
     let minStakeJoinPolicy: IJoinPolicy
     let maxBrokersJoinPolicy: IJoinPolicy
-    let leavePolicy: ILeavePolicy
-    let allocationPolicy: IAllocationPolicy
     let bountyCounter = 0
     let bountyFromAdmin: Contract
     let bountyFromBroker: Contract
@@ -43,7 +40,6 @@ describe('Bounty', (): void => {
         const tokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
         token = await tokenTxr.deploy() as IERC677
         tokenAddress = token.address
-        tokenFromBroker = token.connect(brokerWallet)
 
         const jpMS = await ethers.getContractFactory('MinimumStakeJoinPolicy', adminWallet)
         const jpMSC = await jpMS.deploy() as Contract
@@ -52,10 +48,6 @@ describe('Bounty', (): void => {
         const jpMaxB = await ethers.getContractFactory('MaxAmountBrokersJoinPolicy', adminWallet)
         const jpMaxBTx = await jpMaxB.deploy() as Contract
         maxBrokersJoinPolicy = await jpMaxBTx.connect(adminWallet).deployed() as IJoinPolicy
-
-        const apF = await ethers.getContractFactory('StakeWeightedAllocationPolicy', adminWallet)
-        const apTx = await apF.deploy() as Contract
-        allocationPolicy = await apTx.connect(adminWallet).deployed() as IAllocationPolicy
 
         const agreementFactory = await ethers.getContractFactory('Bounty')
         const agreementTemplate = await agreementFactory.deploy()
@@ -91,21 +83,29 @@ describe('Bounty', (): void => {
     })
 
     it('negativetest addjoinpolicy from not-admin', async function(): Promise<void> {
-        await expect(bountyFromBroker.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).to.be.revertedWith('error_mustBeAdminRole')
+        await expect(bountyFromBroker.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000')))
+            .to.be.revertedWith('error_mustBeAdminRole')
     })
 
     it('negativetest trying to join with wrong token', async function(): Promise<void> {
         const newtokenTxr = await ethers.getContractFactory('LinkToken', adminWallet)
         const newToken = await newtokenTxr.deploy() as IERC677
         const newTokenFromAdmin = newToken.connect(adminWallet)
-        // await expect(newTokenFromBroker.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_onlyTokenContract')
-        await expect(newTokenFromAdmin.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).to.be.revertedWith('error_onlyTokenContract')
+        // await expect(newTokenFromBroker.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x"))
+        //     .to.be.revertedWith('error_onlyTokenContract')
+        await expect(newTokenFromAdmin.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x"))
+            .to.be.revertedWith('error_onlyTokenContract')
     })
 
     // this should actually fail, but there might be a hardhat bug that allows calling functions on non-existing contracts, so we skip it for now
     // it('negativetest setjoinpolicy pointing to nonexistant contract', async function(): Promise<void> {
-    //     await expect(bountyFromAdmin.addJoinPolicy(wallets[4].address, ethers.BigNumber.from('2000000000000000000'))).to.be.revertedWith('error adding join policy')
+    //     await expect(bountyFromAdmin.addJoinPolicy(wallets[4].address, ethers.BigNumber.from('2000000000000000000')))
+    //         .to.be.revertedWith('error adding join policy')
     // })
+
+    it('negativetest sponsor with no allowance', async function(): Promise<void> {
+        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))).to.be.reverted
+    })
 
     it('negativetest min stake join policy', async function(): Promise<void> {
         await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, ethers.BigNumber.from('2000000000000000000'))).wait()
