@@ -27,7 +27,13 @@ echo "waiting 5s for chains to start up"
 sleep 5
 docker-compose up -d smart-contracts-init
 INITSTATUS=`docker wait streamr-dev-smart-contracts-init`
+
 docker logs streamr-dev-smart-contracts-init &> $LOG
+
+# remove timestamps in order to see in diffs if logs have changed
+sed "s/^2022-[^ ]* //g" $LOG > tmp.log
+cp tmp.log $LOG
+
 echo "streamr-dev-smart-contracts-init finished with status $INITSTATUS. Logs in $LOG"
 test $INITSTATUS -ne 0 && echo "streamr-dev-smart-contracts-init failed" && exit 1
 docker exec streamr-dev-parity-sidechain-node0 /bin/bash -c 'mv /home/parity/parity_data /home/parity/parity_data.default'
