@@ -338,6 +338,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
     function sponsor(uint amountTokenWei) external {
         token.transferFrom(_msgSender(), address(this), amountTokenWei);
+        _sponsor(amountTokenWei);
+    }
+
+    function _sponsor(uint amountTokenWei) internal {
         globalData().unallocatedFunds += amountTokenWei;
         // refresh();
         emit SponsorshipReceived(_msgSender(), amountTokenWei);
