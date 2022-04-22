@@ -26,11 +26,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         assembly {data.slot := storagePosition}
     }
 
-    function setParam(uint256 horizon) external {
-        localData().horizon = horizon;
-        // TODO add these params to setter from bounty
-        localData().earningsWeiPerSecond = 10;
-
+    function setParam(uint256 earningsWeiPerSecond) external {
+        localData().earningsWeiPerSecond = earningsWeiPerSecond;
     }
 
     function onJoin(address broker) external {
