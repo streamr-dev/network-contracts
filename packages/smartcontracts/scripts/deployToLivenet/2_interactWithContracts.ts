@@ -23,7 +23,7 @@ const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86d
 const MAINNETURL = 'http://localhost:8545'
 const SIDECHAINURL = 'http://localhost:8546'
 const LINKTOKEN = '0x3387F44140ea19100232873a5aAf9E46608c791E'
-const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEPLOYMENT_OWNER_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 
 // mumbai
 // const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
@@ -198,17 +198,7 @@ const upgradeStreamRegistry = async () => {
 }
 
 const setEnsCacheInStreamRegistry = async () => {
-    // test role setup by creating a stream as trusted entitiy
-    // console.log('##1')
-    // const tx4 = await registryFromOwner.trustedSetStreamMetadata('asdf/asdf', 'asdf')
-    // await tx4.wait()
-    // console.log('##2')
-    console.log('setting enscache address as trusted role in streamregistry')
-    const role = await registryFromOwner.TRUSTED_ROLE()
-    console.log(`granting role ${role} ensaddress ${ENSCACHEADDRESS}`)
-    const tx2 = await registryFromOwner.grantRole(role, ENSCACHEADDRESS)
-    await tx2.wait()
-    console.log('done granting role')
+    await grantTrustedRoleToAddress(ENSCACHEADDRESS)
     console.log('setting enscache in streamregistry to ' + ENSCACHEADDRESS)
     const tx = await registryFromOwner.setEnsCache(ENSCACHEADDRESS)
     await tx.wait()
@@ -262,6 +252,8 @@ async function main() {
     await connectToAllContracts()
 
     // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
+    // await grantTrustedRoleToAddress('0xa12Ccb60CaD03Ce838aC22EaF2Ce9850736F154f') // docker-dev "devops address" (marketplace watcher)
+    await grantTrustedRoleToAddress('0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1') // docker-dev "super admin address"
 
     // set up contracts
     // await setOracleFulfilmentPermission()
@@ -274,7 +266,7 @@ async function main() {
     // await upgradeStreamRegistry()
 
     // test stream creation
-    await createAndCheckStreamWithoutENS()
+    // await createAndCheckStreamWithoutENS()
 
     // await registerENSNameOnMainnet()
     // await triggerChainlinkSyncOfENSNameToSidechain()

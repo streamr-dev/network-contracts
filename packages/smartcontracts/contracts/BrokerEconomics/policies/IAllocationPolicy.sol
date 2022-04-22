@@ -6,5 +6,6 @@ interface IAllocationPolicy {
     function calculateAllocation(address broker) external returns (uint allocation);
     function calculatePenaltyOnStake(address broker) external view returns (uint256 stake);
     function onJoin(address broker) external;
-    function onLeft(address broker) external;
+    function onLeave(address broker) external;
+    function onStakeIncrease(address broker) external;
 }

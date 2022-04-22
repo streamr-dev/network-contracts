@@ -156,7 +156,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return data.unallocatedFunds;
     }
 
-    
+
     fallback() external  {
         require(msg.sender == address(this));
 
@@ -200,7 +200,37 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    function onTokenTransfer(address broker, uint amount, bytes calldata data) external {
+    /**
+     * ERC677 token callback
+     * If the data bytes contains an address, the incoming tokens are staked for that broker
+     */
+    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+        if (data.length == 20) {
+            // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
+            // (this is what abi.encodePacked would produce)
+            address stakeBeneficiary;
+            assembly {
+                stakeBeneficiary := shr(96, calldataload(data.offset))
+            }
+            _stake(stakeBeneficiary, amount);
+        } else if (data.length == 32) {
+            // assume the address was encoded by converting address -> uint -> bytes32 -> bytes (already in the least significant bytes)
+            // (this is what abi.encode would produce)
+            address stakeBeneficiary;
+            assembly {
+                stakeBeneficiary := calldataload(data.offset)
+            }
+            _stake(stakeBeneficiary, amount);
+        } else {
+            // TODO: maybe 0x or non-address data should always be sponsorship?
+            if (data.length == 0) {
+                _stake(sender, amount);
+            }
+            _sponsor(amount);
+        }
+    }
+
+    function _stake(address broker, uint amount) internal {
         console.log("onTokenTransfer", broker, amount);
         require(_msgSender() == address(token), "error_onlyTokenContract");
         // not yet joined
@@ -244,9 +274,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             console.log("BrokerJoined");
 
         } else {
-        // already joinend, increasing stake
+            // already joinend, increasing stake
             globalData().stakedWei[broker] += amount;
             globalData().totalStakedWei += amount;
+
+            // re-calculate the cumulative earnings for this broker
+            (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+                abi.encodeWithSignature("onStakeIncrease(address)", broker)
+            );
+            if (!success) {
+                if (returndata.length == 0) revert();
+                assembly {
+                    revert(add(32, returndata), mload(returndata))
+                }
+            }
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
@@ -277,7 +318,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
         console.log("leaving5", globalData().unallocatedFunds);
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
-            abi.encodeWithSignature("onLeft(address)", _msgSender())
+            abi.encodeWithSignature("onLeave(address)", _msgSender())
         );
         if (!success) {
             if (returndata.length == 0) revert();
@@ -294,11 +335,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
     }
 
-    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */    
+    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
     function sponsor(uint amountTokenWei) external {
         token.transferFrom(_msgSender(), address(this), amountTokenWei);
         globalData().unallocatedFunds += amountTokenWei;
         // refresh();
+        emit SponsorshipReceived(_msgSender(), amountTokenWei);
     }
 
     // function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
@@ -380,7 +422,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     emit SponsorshipReceived(msg.sender, newSponsorships);
     // }
 
-    
+
 
     /**
      * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function
