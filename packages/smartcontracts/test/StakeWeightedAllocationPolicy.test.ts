@@ -140,6 +140,8 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        const unallocatedWei = await bountyFromBroker.getUnallocatedWei() as BigNumber
+        expect(unallocatedWei.toString()).to.equal("100000000000000000000000")
     })
 
     it('allocates correctly for two brokers, different weight, different join, leave times (positive test)', async function(): Promise<void> {

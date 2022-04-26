@@ -121,4 +121,41 @@ describe('Bounty', (): void => {
         await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther('1'))).to.be.revertedWith('')
     })
 
+    it('negativetest error setting param on joinpolicy', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestJoinPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
+        await expect(bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, ethers.BigNumber.from('1'))) // it will throw with 1
+            .to.be.revertedWith('test-error: setting param join policy')
+    })
+
+    it('negativetest error joining on joinpolicy', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestJoinPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
+        await (await bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, ethers.BigNumber.from('2'))).wait()
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('0'), "0x"))
+            .to.be.revertedWith('test-error: checkAbleToJoin join policy')
+    })
+
+    it('negativetest error setting param on allocationPolicy', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('1'))) // it will thrown with 1
+            .to.be.revertedWith('test-error: setting param allocation policy')
+    })
+
+    it('negativetest error onJoin on allocationPolicy', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('2'))).wait()
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x"))
+            .to.be.revertedWith('test-error: onjoin allocation policy')
+    })
+
+    it('negativetest calling fallback function', async function(): Promise<void> {
+        await expect(adminWallet.sendTransaction({to: bountyFromAdmin.address})).to.be.revertedWith('error_mustBeThis')
+    })
 })
