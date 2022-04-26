@@ -9,6 +9,7 @@ import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
 import { IERC677 } from '../typechain/IERC677'
 import { IAllocationPolicy, IJoinPolicy, ILeavePolicy } from '../typechain'
+import { AbiCoder, defaultAbiCoder } from 'ethers/lib/utils'
 
 // const { deployContract } = waffle
 const { provider } = waffle
@@ -152,7 +153,44 @@ describe('Bounty', (): void => {
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('2'))).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x"))
-            .to.be.revertedWith('test-error: onjoin allocation policy')
+            .to.be.revertedWith('test-error: onJoin allocation policy')
+    })
+
+    it('negativetest error onleave on allocationPolicy', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('3'))).wait() // 3 -> will throw on leave
+        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'), "0x")).wait()
+        await expect(bountyFromBroker.leave()).to.be.revertedWith('test-error: onLeave allocation policy')
+    })
+
+    it('send 32 length data on transferAndCall', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('3'))).wait() // 3 -> will throw on leave
+        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'),
+            defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
+        expect(await bountyFromBroker.getMyStake()).to.be.equal(ethers.utils.parseEther('1'))
+    })
+
+    it.skip('send length data on transferAndCall', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('3'))).wait() // 3 -> will throw on leave
+        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther('1'),
+            defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
+        expect(await bountyFromBroker.getMyStake()).to.be.equal(ethers.utils.parseEther('1'))
+    })
+
+    it('handles empty errors from policies', async function(): Promise<void> {
+        const jpMS = await ethers.getContractFactory('TestAllocationPolicy', adminWallet)
+        const jpMSC = await jpMS.deploy() as Contract
+        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
+        await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from('4')))
+            .to.be.revertedWith('') // 4 -> will throw empty error
     })
 
     it('negativetest calling fallback function', async function(): Promise<void> {

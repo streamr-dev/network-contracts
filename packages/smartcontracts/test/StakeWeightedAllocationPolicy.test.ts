@@ -188,6 +188,46 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
     })
 
+    it.skip('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
+        //      t0       : both brokers join, stake 1
+        // t1 = t0 + 1000: broker 1 adds 2 to his stake
+        // t2 = t0 + 2000: both leave
+        // in the end 2000*(wei/sec) are winnings
+        // broker1 should have half of half + 3/4 of half = 5/8 of the winnings
+        // broker2 should have half of half + 1/4 of half = 3/8 of the winnings
+        const tokenFromBroker2 = token.connect(broker2Wallet)
+        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
+        const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
+        const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
+        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+
+        // t0: broker1 joins
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
+        await provider.send('evm_mine', [0])
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('1'), "0x")).wait()
+        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('1'), "0x")).wait()
+        
+        // t1: broker2 adds 2 his stake
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
+        await provider.send('evm_mine', [0])
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('2'), "0x")).wait()
+
+        // t2: both leave
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 2 * timestepSeconds])
+        await provider.send('evm_mine', [0])
+        await (await bountyFromBroker.leave()).wait()
+        await (await bountyFromBroker2.leave()).wait()
+
+        const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
+        const tokensBroker2Actual = (await token.balanceOf(broker2Wallet.address)).sub(tokensBroker2Before)
+        const totalTokensExpected = tokensPerSecond.mul(2 * timestepSeconds)
+        const tokensBroker1Expected = totalTokensExpected.div(8).mul(5)
+        const tokensBroker2Expected = totalTokensExpected.div(8).mul(3)
+
+        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
+        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+    })
+
     // TODO: add this required staying period feature
     it.skip('deducts penalty from a broker that leaves too early', async function(): Promise<void> {
         await (await tokenFromBroker.transfer(adminWallet.address, await token.balanceOf(brokerWallet.address))).wait()
@@ -206,5 +246,10 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         // broker lost 10% of his stake
         expect(tokensBefore.sub(parseEther('0.05')).eq(tokensAfter)).to.be.true
+    })
+
+    it('gets allocation 0 from unjoined broker', async function(): Promise<void> {
+        const allocation = await bountyFromAdmin.getAllocation(brokerWallet.address)
+        expect(allocation.toString()).to.equal('0')
     })
 })

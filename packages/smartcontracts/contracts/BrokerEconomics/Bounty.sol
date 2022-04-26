@@ -331,6 +331,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit SponsorshipReceived(_msgSender(), amountTokenWei);
     }
 
+    function getMyStake() external view returns (uint) {
+        return globalData().stakedWei[_msgSender()];
+    }
+
     function handleError(bytes memory errorData) public {
         if (errorData.length == 0) revert();
         assembly {
