@@ -299,9 +299,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      */
     function leave() external {
         console.log("leaving1");
-        uint slashing = this.getPenaltyOnStake(_msgSender());
-        console.log("leaving1", _msgSender(), slashing);
-        uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
+        uint slashPenaltyWei = this.getPenaltyOnStake(_msgSender());
+        console.log("leaving1", _msgSender(), slashPenaltyWei);
+        uint returnFunds = globalData().stakedWei[_msgSender()] - slashPenaltyWei;
         console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
         console.log("leaving2 returnfunds", returnFunds);
         returnFunds += this.getAllocation(_msgSender());
@@ -309,7 +309,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(token.transfer(_msgSender(), returnFunds), "error_transfer");
 
         // add forfeited stake to unallocated funds...
-        globalData().unallocatedFunds += slashing;
+        _sponsor(slashPenaltyWei);
         console.log("leaving4", globalData().unallocatedFunds);
         globalData().brokersCount -= 1;
         globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
@@ -327,8 +327,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             }
         }
         console.log("returned funds", _msgSender(), returnFunds);
-        // forfeited stake is added to unallocated tokens
-        emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
         emit BrokerLeft(_msgSender(), returnFunds);
         // removeFromAddressArray(brokers, broker);
 
