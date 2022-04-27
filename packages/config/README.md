@@ -14,7 +14,7 @@ npm install --save @streamr/config
 ### Typescript
 Import DATA token production Ethereum address as a variable in a Typescript project:
 ```typescript
-import { Chains } from "@streamr/config"
+import * as config from "@streamr/config"
 
 const {
     ethereum: {
@@ -23,7 +23,7 @@ const {
             "DATA": dataTokenAddress
         }
     }
-} = Chains.load("production")
+} = config.Chains.load("production")
 ```
 
 Find RPC endpoints:
