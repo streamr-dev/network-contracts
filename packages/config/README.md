@@ -20,7 +20,7 @@ const {
     ethereum: {
         id: chainId,
         contracts: {
-            "DATA-token": dataTokenAddress
+            "DATA": dataTokenAddress
         }
     }
 } = Chains.load("production")
