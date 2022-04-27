@@ -17,7 +17,7 @@ describe("Load configuration from JSON file", () => {
     })
     it("reads DATA token dev address from JSON", () => {
         const chains: config.Chains = config.Chains.load("development")
-        const address = chains.ethereum.contracts["DATA-token"]
+        const address = chains.ethereum.contracts["DATA"]
         const expected = "0xbAA81A0179015bE47Ad439566374F2Bae098686F"
         assert.equal(address, expected, `Expecting ethereum DATA token to equal ${expected}, got '${address}'`)
     })
