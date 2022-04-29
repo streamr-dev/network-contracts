@@ -205,6 +205,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+        require(_msgSender() == address(token), "error_onlyTokenContract");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -230,9 +231,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
+    /** Stake by first calling ERC20.approve(bounty.address, amountTokenWei) then this function */
+    function stake(address broker, uint amountTokenWei) external {
+        token.transferFrom(_msgSender(), address(this), amountTokenWei);
+        _stake(broker, amountTokenWei);
+    }
+
     function _stake(address broker, uint amount) internal {
-        console.log("onTokenTransfer", broker, amount);
-        require(_msgSender() == address(token), "error_onlyTokenContract");
         // not yet joined
         if (globalData().stakedWei[broker] == 0) {
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
