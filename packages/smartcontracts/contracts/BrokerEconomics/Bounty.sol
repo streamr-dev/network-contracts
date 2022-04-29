@@ -284,7 +284,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
-        /**
+    /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
