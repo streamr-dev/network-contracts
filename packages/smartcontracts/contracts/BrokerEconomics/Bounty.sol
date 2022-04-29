@@ -315,8 +315,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         console.log("leaving3", returnFunds);
         require(token.transfer(_msgSender(), returnFunds), "error_transfer");
 
-        // add forfeited stake to unallocated funds...
-        _sponsor(slashPenaltyWei);
+        if (slashPenaltyWei > 0) {
+            // add forfeited stake to unallocated funds
+            _sponsor(slashPenaltyWei);
+        }
+
         console.log("leaving4", globalData().unallocatedFunds);
         globalData().brokersCount -= 1;
         globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
