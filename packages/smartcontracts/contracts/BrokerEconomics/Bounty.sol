@@ -212,7 +212,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
-    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+    function onTokenTransfer(address, uint amount, bytes calldata data) external {
         require(_msgSender() == address(token), "error_onlyTokenContract");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
@@ -231,10 +231,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             }
             _stake(stakeBeneficiary, amount);
         } else {
-            // TODO: maybe 0x or non-address data should always be sponsorship?
-            if (data.length == 0) {
-                _stake(sender, amount);
-            }
             _sponsor(amount);
         }
     }
