@@ -131,7 +131,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         );
         if (!success) {
             if (returndata.length == 0) { revert("error_addJoinPolicyFailed"); }
-            assembly { revert(add(32, errorData), mload(returndata)) }
+            assembly { revert(add(32, returndata), mload(returndata)) }
         }
     }
 
@@ -142,7 +142,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         );
         if (!success) {
             if (returndata.length == 0) { revert("error_setAllocationPolicyFailed"); }
-            assembly { revert(add(32, errorData), mload(returndata)) }
+            assembly { revert(add(32, returndata), mload(returndata)) }
         }
     }
 
@@ -255,7 +255,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                 );
                 if (!success) {
                     if (returndata.length == 0) { revert("error_brokerJoinFailed"); }
-                    assembly { revert(add(32, errorData), mload(returndata)) }
+                    assembly { revert(add(32, returndata), mload(returndata)) }
                 }
             }
             globalData().stakedWei[broker] += amount;
@@ -267,7 +267,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             );
             if (!success) {
                 if (returndata.length == 0) { revert("error_joinFailed"); }
-                assembly { revert(add(32, errorData), mload(returndata)) }
+                assembly { revert(add(32, returndata), mload(returndata)) }
             }
             emit BrokerJoined(broker);
             console.log("BrokerJoined");
@@ -282,7 +282,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             );
             if (!success) {
                 if (returndata.length == 0) { revert("error_stakeIncreaseFailed"); }
-                assembly { revert(add(32, errorData), mload(returndata)) }
+                assembly { revert(add(32, returndata), mload(returndata)) }
             }
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
@@ -321,7 +321,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         );
         if (!success) {
             if (returndata.length == 0) { revert("error_brokerLeaveFailed"); }
-            assembly { revert(add(32, errorData), mload(returndata)) }
+            assembly { revert(add(32, returndata), mload(returndata)) }
         }
         console.log("returned funds", _msgSender(), returnFunds);
         emit BrokerLeft(_msgSender(), returnFunds);
