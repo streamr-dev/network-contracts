@@ -129,24 +129,24 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
-        require(success, "error adding join policy");
+        if (!success) handleError(returndata);
     }
 
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
         allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
-        (bool success, bytes memory data) = _allocationPolicyAddress.delegatecall(
+        (bool success, bytes memory returndata) = _allocationPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
-        require(success, "error adding join policy");
+        if (!success) handleError(returndata);
     }
 
-    function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
-        leavePolicy = ILeavePolicy(_leaveAddress);
-        (bool success, bytes memory data) = _leaveAddress.delegatecall(
-            abi.encodeWithSignature("setParam(uint256)", param)
-        );
-        require(success, "error adding leave policy");
-    }
+    // function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
+    //     leavePolicy = ILeavePolicy(_leaveAddress);
+    //     (bool success, bytes memory returndata) = _leaveAddress.delegatecall(
+    //         abi.encodeWithSignature("setParam(uint256)", param)
+    //     );
+    //     if (!success) handleError(returndata);
+    // }
 
     function globalData() internal pure returns(GlobalState storage data) {
         bytes32 storagePosition = keccak256("agreement.storage.globalState");
@@ -160,7 +160,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
 
     fallback() external  {
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "error_mustBeThis");
 
         (bool success, bytes memory data) = address(allocationPolicy).delegatecall(msg.data);
         assembly {
@@ -247,13 +247,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                 (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
                     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
                 );
-                if (!success) {
-                    if (returndata.length == 0) revert();
-                    assembly {
-                        revert(add(32, returndata), mload(returndata))
-                    }
-                }
-                require(success, "error_adding_broker");
+                if (!success) handleError(returndata);
             }
             // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
             //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
@@ -269,7 +263,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
-            require(success, "error_in_onjoin");
+            if (!success) handleError(returndata);
             // if (brokers[broker] == address(0)) {
             //     console.log("Adding broker ", broker, " amount ", amount);
             //     brokers.push(broker);
@@ -289,12 +283,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onStakeIncrease(address)", broker)
             );
-            if (!success) {
-                if (returndata.length == 0) revert();
-                assembly {
-                    revert(add(32, returndata), mload(returndata))
-                }
-            }
+            if (!success) handleError(returndata);
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
@@ -330,12 +319,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
             abi.encodeWithSignature("onLeave(address)", _msgSender())
         );
-        if (!success) {
-            if (returndata.length == 0) revert();
-            assembly {
-                revert(add(32, returndata), mload(returndata))
-            }
-        }
+        if (!success) handleError(returndata);
         console.log("returned funds", _msgSender(), returnFunds);
         emit BrokerLeft(_msgSender(), returnFunds);
         // removeFromAddressArray(brokers, broker);
@@ -355,6 +339,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit SponsorshipReceived(_msgSender(), amountTokenWei);
     }
 
+    function getMyStake() external view returns (uint) {
+        return globalData().stakedWei[_msgSender()];
+    }
+
+    function handleError(bytes memory errorData) public {
+        if (errorData.length == 0) revert();
+        assembly {
+            revert(add(32, errorData), mload(errorData))
+        }
+    }
     // function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
     //     require(bs.length >= start + 32, "slicing out of range");
     //     uint x;

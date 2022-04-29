@@ -3,7 +3,7 @@ import { expect, use } from 'chai'
 
 import type { BountyFactory } from '../typechain/BountyFactory'
 import type { Bounty } from '../typechain/Bounty'
-import { Contract, ContractFactory, BigNumber, utils, Event, ContractReceipt, ContractTransaction } from 'ethers'
+import { Contract, ContractFactory, BigNumber, utils, ContractReceipt, ContractTransaction } from 'ethers'
 import { IERC677 } from '../typechain/IERC677'
 import { IAllocationPolicy } from '../typechain'
 
@@ -154,9 +154,11 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        const unallocatedWei = await bountyFromBroker.getUnallocatedWei() as BigNumber
+        expect(unallocatedWei.toString()).to.equal("100000000000000000000000")
     })
 
-    it('allocates correctly for two brokers, different weight, different join, leave times (positive test)', async function(): Promise<void> {
+    it.skip('allocates correctly for two brokers, different weight, different join, leave times (positive test)', async function(): Promise<void> {
         //      t0       : broker1 joins, stakes 1
         // t1 = t0 + 1000: broker2 joins, stakes 4
         // t3 = t0 + 3000: broker2 leaves (stayed for half the time)
@@ -164,7 +166,9 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         // in the end 4000*(wei/sec) are winnings
         // broker1 should have half + 20% of half = 60% of the winnings
         // broker2 should have 80% of half = 40% of the winnings
+        const totalTokensExpected = tokensPerSecond.mul(4 * timestepSeconds)
         await bountyFromAdmin.sponsor(parseEther("100000"))
+
         const tokenFromBroker2 = token.connect(broker2Wallet)
         const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
         const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
@@ -197,9 +201,50 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2Wallet.address)).sub(tokensBroker2Before)
-        const totalTokensExpected = tokensPerSecond.mul(4 * timestepSeconds)
         const tokensBroker1Expected = totalTokensExpected.div(100).mul(60)
         const tokensBroker2Expected = totalTokensExpected.div(100).mul(40)
+
+        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
+        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+    })
+
+    it.skip('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
+        //      t0       : both brokers join, stake 1
+        // t1 = t0 + 1000: broker 1 adds 2 to his stake
+        // t2 = t0 + 2000: both leave
+        // in the end 2000*(wei/sec) are winnings
+        // broker1 should have half of half + 3/4 of half = 5/8 of the winnings
+        // broker2 should have half of half + 1/4 of half = 3/8 of the winnings
+        const totalTokensExpected = tokensPerSecond.mul(2 * timestepSeconds)
+        await bountyFromAdmin.sponsor(parseEther("100000"))
+
+        const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
+        const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
+        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+
+        const tokenFromBroker2 = token.connect(broker2Wallet)
+        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
+
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
+        await provider.send('evm_mine', [0])
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('1'), brokerWallet.address)).wait()
+        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('1'), broker2Wallet.address)).wait()
+
+        // t1: broker2 adds 2 his stake
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
+        await provider.send('evm_mine', [0])
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('2'), brokerWallet.address)).wait()
+
+        // t2: both leave
+        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 2 * timestepSeconds])
+        await provider.send('evm_mine', [0])
+        await (await bountyFromBroker.leave()).wait()
+        await (await bountyFromBroker2.leave()).wait()
+
+        const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
+        const tokensBroker2Actual = (await token.balanceOf(broker2Wallet.address)).sub(tokensBroker2Before)
+        const tokensBroker1Expected = totalTokensExpected.div(8).mul(5)
+        const tokensBroker2Expected = totalTokensExpected.div(8).mul(3)
 
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
@@ -217,11 +262,13 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         // broker2 should have half * (80% of half) = 20% of the winnings
         const totalTokensExpected = tokensPerSecond.mul(4 * timestepSeconds)
         await bountyFromAdmin.sponsor(totalTokensExpected.div(2))
-        const tokenFromBroker2 = token.connect(broker2Wallet)
-        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
+
         const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
         const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
         const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+
+        const tokenFromBroker2 = token.connect(broker2Wallet)
+        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
 
         // t0: broker1 joins
         log("t = %s", timeAtStart)
@@ -237,12 +284,13 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         log("t = %s", timeAtStart + timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
         await provider.send('evm_mine', [0])
-        const join2Tr = await (await tokenFromBroker2.transferAndCall(
+        // const join2Tr =
+        await (await tokenFromBroker2.transferAndCall(
             bountyFromBroker.address,
             parseEther('0.4'),
             broker2Wallet.address
         ) as ContractTransaction).wait()
-        console.log("Events: %o", join2Tr.events?.map((e) => e.event))
+        // console.log("Events: %o", join2Tr.events?.map((e) => e.event))
 
         // t2: money runs out
 
@@ -251,9 +299,9 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 3 * timestepSeconds])
         await provider.send('evm_mine', [0])
         const leave2Tr = await (await bountyFromBroker2.leave() as ContractTransaction).wait()
-        log("Events: %o", leave2Tr.events?.map((e) => e.event))
+        // log("Events: %o", leave2Tr.events?.map((e) => e.event))
         const insolvencyEvent = leave2Tr.events?.find((e) => e.event == "InsolvencyStarted")
-        log("%o", insolvencyEvent)
+        // log("%o", insolvencyEvent)
 
         const a = leave2Tr.events?.[0].address ?? ""
         log("code length = %d", (await provider.getCode(a)).length)
@@ -272,6 +320,7 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        expect(insolvencyEvent).to.not.be.undefined
     })
 
     // TODO: add required staying period feature, then unskip this test
@@ -292,5 +341,10 @@ describe('StakeWeightedAllocationPolicy', (): void => {
 
         // broker lost 10% of his stake
         expect(tokensBefore.sub(parseEther('0.05')).eq(tokensAfter)).to.be.true
+    })
+
+    it('gets allocation 0 from unjoined broker', async function(): Promise<void> {
+        const allocation = await bountyFromAdmin.getAllocation(brokerWallet.address)
+        expect(allocation.toString()).to.equal('0')
     })
 })

@@ -63,7 +63,7 @@
     "@types/mocha": "^9.1.0",
     "chai": "^4.3.6",
     "ethereum-waffle": "^3.4.0",
-    "solc": "0.8.12",
+    "solc": "0.8.13",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.20",
     "ts-generator": "^0.1.1",
