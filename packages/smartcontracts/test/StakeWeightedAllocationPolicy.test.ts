@@ -15,6 +15,12 @@ const { log } = console
 
 use(waffle.solidity)
 
+async function advanceToTimestamp(timestamp: number, message?: string) {
+    log("\nt = %s ", timestamp, message ?? "")
+    await provider.send("evm_setNextBlockTimestamp", [timestamp])
+    await provider.send('evm_mine', [0])
+}
+
 describe('StakeWeightedAllocationPolicy', (): void => {
     const wallets = waffleProvider.getWallets()
     const adminWallet = wallets[0]
@@ -85,17 +91,11 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const tokensBefore = await token.balanceOf(brokerWallet.address)
         const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
 
-        // t = 0: join
-        log("t = %s", timeAtStart)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart, "join")
         await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther("1"), brokerWallet.address)).wait()
         const allocationBefore = await bountyFromBroker.getAllocation(brokerWallet.address) as BigNumber
 
-        // t = timestep: leave
-        log("t = %s+%s+1 = %s", timeAtStart, timestepSeconds, timeAtStart + timestepSeconds + 1)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds + 1]) // TODO: why +1?
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + timestepSeconds + 1, "leave") // TODO: why +1?
         const allocationAfter = (await bountyFromBroker.getAllocation(brokerWallet.address))
 
         await (await bountyFromBroker.leave()).wait()
@@ -125,28 +125,16 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
         const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
 
-        // t = 0: broker1 joins
-        log("t = %s", timeAtStart)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart, "broker1 joins")
         await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther("1"), brokerWallet.address)).wait()
 
-        // t = timestep: broker2 joins
-        log("t = %s", timeAtStart + timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + timestepSeconds, "broker2 joins")
         await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther("1"), broker2Wallet.address)).wait()
 
-        // t = 3 * timestep: broker2 leaves
-        log("t = %s", timeAtStart + 3 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + (3 * timestepSeconds)])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + 3 * timestepSeconds, "broker2 leaves")
         await (await bountyFromBroker2.leave()).wait()
 
-        // t = 4 * timestep: broker1 leaves
-        log("t = %s", timeAtStart + 4 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + (4 * timestepSeconds)])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + 4 * timestepSeconds, "broker1 leaves")
         await (await bountyFromBroker.leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
@@ -178,25 +166,25 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
 
         // t0: broker1 joins
-        log("t = %s", timeAtStart)
+        log("\nt = %s", timeAtStart)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
         await provider.send('evm_mine', [0])
         await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('0.1'), brokerWallet.address)).wait()
 
         // t1: broker2 joins
-        log("t = %s", timeAtStart + timestepSeconds)
+        log("\nt = %s", timeAtStart + timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
         await provider.send('evm_mine', [0])
         await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('0.4'), broker2Wallet.address)).wait()
 
         // t2: broker2 leaves
-        log("t = %s", timeAtStart + 3 * timestepSeconds)
+        log("\nt = %s", timeAtStart + 3 * timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 3 * timestepSeconds])
         await provider.send('evm_mine', [0])
         await (await bountyFromBroker2.leave()).wait()
 
         // t3: broker1 leaves
-        log("t = %s", timeAtStart + 4 * timestepSeconds)
+        log("\nt = %s", timeAtStart + 4 * timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 4 * timestepSeconds])
         await provider.send('evm_mine', [0])
         await (await bountyFromBroker.leave()).wait()
@@ -210,15 +198,15 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
     })
 
-    it.skip('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
+    it('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
         //      t0       : broker1 joins, stakes 1 (1 : 0)
         // t1 = t0 + 2000: broker2 joins, stakes 1 (1 : 1)
-        // t2 = t0 + 4000: broker1 adds 2 stake => (3 : 1)
-        // t3 = t0 + 6000: broker2 adds 16 stake=> (3 : 17)
-        // t4 = t0 + 8000: broker2 leaves       => (3 : 0)
+        // t2 = t0 + 4000: broker1 adds 3 stake => (4 : 1)
+        // t3 = t0 + 6000: broker2 adds 3 stake => (4 : 4)
+        // t4 = t0 + 8000: broker2 leaves       => (4 : 0)
         // t5 = t0 +10000: broker1 leaves       => (0 : 0)
-        // broker1 should have 20% + 10% + 15% +  3% + 20% = 68% of the winnings
-        // broker2 should have  0% + 10% +  5% + 17% +  0% = 32% of the winnings
+        // broker1 should have 20% + 10% + 16% + 10% + 20% = 76% of the winnings
+        // broker2 should have  0% + 10% +  4% + 10% +  0% = 24% of the winnings
         const totalTokensExpected = tokensPerSecond.mul(10 * timestepSeconds)
         await bountyFromAdmin.sponsor(parseEther("100000"))
 
@@ -226,42 +214,30 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
         const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
         const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
-        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 1000) + 1) * 1000
 
-        log("t = %s: Broker 1 joins", timeAtStart)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('1'), brokerWallet.address)).wait()
 
-        log("t = %s: Broker 2 joins", timeAtStart + 2 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 2 * timestepSeconds])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + 2 * timestepSeconds, "Broker 2 joins")
         await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('1'), broker2Wallet.address)).wait()
 
-        log("t = %s: Broker 1 adds stake", timeAtStart + 4 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 4 * timestepSeconds])
-        await provider.send('evm_mine', [0])
-        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('2'), brokerWallet.address)).wait()
+        await advanceToTimestamp(timeAtStart + 4 * timestepSeconds, "Broker 1 adds stake 1 -> 4")
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('3'), brokerWallet.address)).wait()
 
-        log("t = %s: Broker 2 adds stake", timeAtStart + 6 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 6 * timestepSeconds])
-        await provider.send('evm_mine', [0])
-        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('16'), broker2Wallet.address)).wait()
+        await advanceToTimestamp(timeAtStart + 6 * timestepSeconds, "Broker 2 adds stake 1 -> 4")
+        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('3'), broker2Wallet.address)).wait()
 
-        log("t = %s: Broker 2 leaves", timeAtStart + 8 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 8 * timestepSeconds])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + 8 * timestepSeconds, "Broker 2 leaves")
         await (await bountyFromBroker2.leave()).wait()
 
-        log("t = %s: Broker 1 leaves", timeAtStart + 10 * timestepSeconds)
-        await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 10 * timestepSeconds])
-        await provider.send('evm_mine', [0])
+        await advanceToTimestamp(timeAtStart + 10 * timestepSeconds, "Broker 1 leaves")
         await (await bountyFromBroker.leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2Wallet.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = totalTokensExpected.div(100).mul(68)
-        const tokensBroker2Expected = totalTokensExpected.div(100).mul(32)
+        const tokensBroker1Expected = totalTokensExpected.div(100).mul(76)
+        const tokensBroker2Expected = totalTokensExpected.div(100).mul(24)
 
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
@@ -288,7 +264,7 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
 
         // t0: broker1 joins
-        log("t = %s", timeAtStart)
+        log("\nt = %s", timeAtStart)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart])
         await provider.send('evm_mine', [0])
         await (await tokenFromBroker.transferAndCall(
@@ -298,7 +274,7 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         )).wait()
 
         // t1: broker2 joins
-        log("t = %s", timeAtStart + timestepSeconds)
+        log("\nt = %s", timeAtStart + timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + timestepSeconds])
         await provider.send('evm_mine', [0])
         // const join2Tr =
@@ -312,7 +288,7 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         // t2: money runs out
 
         // t3: broker2 leaves
-        log("t = %s", timeAtStart + 3 * timestepSeconds)
+        log("\nt = %s", timeAtStart + 3 * timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 3 * timestepSeconds])
         await provider.send('evm_mine', [0])
         const leave2Tr = await (await bountyFromBroker2.leave() as ContractTransaction).wait()
@@ -320,11 +296,8 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         const insolvencyEvent = leave2Tr.events?.find((e) => e.event == "InsolvencyStarted")
         // log("%o", insolvencyEvent)
 
-        const a = leave2Tr.events?.[0].address ?? ""
-        log("code length = %d", (await provider.getCode(a)).length)
-
         // t4: broker1 leaves
-        log("t = %s", timeAtStart + 4 * timestepSeconds)
+        log("\nt = %s", timeAtStart + 4 * timestepSeconds)
         await provider.send("evm_setNextBlockTimestamp", [timeAtStart + 4 * timestepSeconds])
         await provider.send('evm_mine', [0])
         const leave1Tr = await (await bountyFromBroker.leave() as ContractTransaction).wait()
