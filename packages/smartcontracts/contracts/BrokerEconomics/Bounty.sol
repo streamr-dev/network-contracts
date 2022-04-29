@@ -18,8 +18,7 @@ import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-import "hardhat/console.sol";
-
+// import "hardhat/console.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
@@ -67,12 +66,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // these into policy?
     // uint public minHorizonSeconds;
     uint public allocationWeiPerSecond;
-
-    // ???
-    // uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
-    // uint public cueTimestamp;
-    // uint public totalSponsorshipsAtCueTimestamp;
-    // mapping(address => uint) public cueAtJoinWei;
 
     modifier isAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
@@ -126,7 +119,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
         joinPolicyAddresses.push(_joinPolicyAddress);
-        (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
+        (bool success,) = _joinPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding join policy");
@@ -134,7 +127,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
         allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
-        (bool success, bytes memory data) = _allocationPolicyAddress.delegatecall(
+        (bool success,) = _allocationPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding join policy");
@@ -142,7 +135,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
         leavePolicy = ILeavePolicy(_leaveAddress);
-        (bool success, bytes memory data) = _leaveAddress.delegatecall(
+        (bool success,) = _leaveAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
         require(success, "error adding leave policy");
@@ -158,9 +151,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return data.unallocatedFunds;
     }
 
-
-    fallback() external  {
-        require(msg.sender == address(this));
+    // solhint-disable payable-fallback
+    fallback() external {
+        require(msg.sender == address(this), "error_notAllowed");
 
         (bool success, bytes memory data) = address(allocationPolicy).delegatecall(msg.data);
         assembly {
@@ -206,29 +199,21 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
-    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+    function onTokenTransfer(address, uint amount, bytes calldata data) external {
         require(_msgSender() == address(token), "error_onlyTokenContract");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
             address stakeBeneficiary;
-            assembly {
-                stakeBeneficiary := shr(96, calldataload(data.offset))
-            }
+            assembly { stakeBeneficiary := shr(96, calldataload(data.offset)) }
             _stake(stakeBeneficiary, amount);
         } else if (data.length == 32) {
             // assume the address was encoded by converting address -> uint -> bytes32 -> bytes (already in the least significant bytes)
             // (this is what abi.encode would produce)
             address stakeBeneficiary;
-            assembly {
-                stakeBeneficiary := calldataload(data.offset)
-            }
+            assembly { stakeBeneficiary := calldataload(data.offset) }
             _stake(stakeBeneficiary, amount);
         } else {
-            // TODO: maybe 0x or non-address data should always be sponsorship?
-            if (data.length == 0) {
-                _stake(sender, amount);
-            }
             _sponsor(amount);
         }
     }
@@ -240,46 +225,29 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function _stake(address broker, uint amount) internal {
-        // not yet joined
+        // console.log("Staking ", amount, " for ", broker);
         if (globalData().stakedWei[broker] == 0) {
+            // not yet joined
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 address joinPolicyAddress = joinPolicyAddresses[i];
-                (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
+                (bool success1, bytes memory returndata) = joinPolicyAddress.delegatecall(
                     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
                 );
-                if (!success) {
-                    if (returndata.length == 0) revert();
-                    assembly {
-                        revert(add(32, returndata), mload(returndata))
-                    }
+                if (!success1) {
+                    if (returndata.length == 0) { revert("error_joinFailed"); }
+                    assembly { revert(add(32, returndata), mload(returndata)) }
                 }
-                require(success, "error_adding_broker");
             }
-            // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
-            //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
-            // );
-            // require(success, "error_join");
-            console.log("join1 amount add", amount, broker);
             globalData().stakedWei[broker] += amount;
-            console.log("join1 stake", globalData().stakedWei[broker]);
             globalData().brokersCount += 1;
             globalData().totalStakedWei += amount;
-            console.log("join1 total stake", globalData().totalStakedWei);
             globalData().joinTimeOfBroker[broker] = block.timestamp;
-            (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+            // console.log("total staked ", globalData().totalStakedWei, " before calling onJoin");
+            (bool success,) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
             require(success, "error_in_onjoin");
-            // if (brokers[broker] == address(0)) {
-            //     console.log("Adding broker ", broker, " amount ", amount);
-            //     brokers.push(broker);
-            // }
-            console.log("joinPolicy.delegatecall");
-
-            // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
             emit BrokerJoined(broker);
-            console.log("BrokerJoined");
-
         } else {
             // already joinend, increasing stake
             globalData().stakedWei[broker] += amount;
@@ -290,63 +258,66 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                 abi.encodeWithSignature("onStakeIncrease(address)", broker)
             );
             if (!success) {
-                if (returndata.length == 0) revert();
-                assembly {
-                    revert(add(32, returndata), mload(returndata))
-                }
+                if (returndata.length == 0) revert("error_stakeIncreaseFailed");
+                assembly { revert(add(32, returndata), mload(returndata)) }
             }
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
-        /**
+    /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
     function leave() external {
-        console.log("leaving1");
-        uint slashPenaltyWei = this.getPenaltyOnStake(_msgSender());
-        console.log("leaving1", _msgSender(), slashPenaltyWei);
-        uint returnFunds = globalData().stakedWei[_msgSender()] - slashPenaltyWei;
-        console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
-        console.log("leaving2 returnfunds", returnFunds);
-        returnFunds += this.getAllocation(_msgSender());
-        console.log("leaving3", returnFunds);
+        uint stakedWei = globalData().stakedWei[_msgSender()];
+        require(stakedWei > 0, "error_notStaked");
+
+        uint slashPenaltyWei = this.getPenaltyOnStake(_msgSender()); // TODO: this needed?
+        // console.log("leaving: slash penalty for ", _msgSender(), slashPenaltyWei);
+        uint returnFunds = stakedWei - slashPenaltyWei;
+        returnFunds += this.getAllocation(_msgSender()); // TODO: this needed?
+        // console.log("leaving: returnfunds", returnFunds);
         require(token.transfer(_msgSender(), returnFunds), "error_transfer");
 
-        // add forfeited stake to unallocated funds...
-        _sponsor(slashPenaltyWei);
-        console.log("leaving4", globalData().unallocatedFunds);
+        if (slashPenaltyWei > 0) {
+            // add forfeited stake to unallocated funds
+            _sponsor(slashPenaltyWei);
+        }
+
+        // console.log("leaving4", globalData().unallocatedFunds);
         globalData().brokersCount -= 1;
-        globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
+        globalData().totalStakedWei -= stakedWei;
         globalData().stakedWei[_msgSender()] = 0;
         globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-        console.log("leaving5", globalData().unallocatedFunds);
+        // console.log("leaving5", globalData().unallocatedFunds);
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
             abi.encodeWithSignature("onLeave(address)", _msgSender())
         );
         if (!success) {
-            if (returndata.length == 0) revert();
+            if (returndata.length == 0) { revert("error_onLeave"); }
             assembly {
                 revert(add(32, returndata), mload(returndata))
             }
         }
-        console.log("returned funds", _msgSender(), returnFunds);
+        // console.log("returned funds", _msgSender(), returnFunds);
         emit BrokerLeft(_msgSender(), returnFunds);
         // removeFromAddressArray(brokers, broker);
 
         // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
     }
 
-    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
+    /** Sponsor a stream by first calling ERC20.approve(bounty.address, amountTokenWei) then this function */
     function sponsor(uint amountTokenWei) external {
         token.transferFrom(_msgSender(), address(this), amountTokenWei);
         _sponsor(amountTokenWei);
     }
 
     function _sponsor(uint amountTokenWei) internal {
+        // TODO: sponsorship should probably notify the allocation policy
+        // TODO: check somehow would this be very expensive...?
         globalData().unallocatedFunds += amountTokenWei;
         // refresh();
         emit SponsorshipReceived(_msgSender(), amountTokenWei);
