@@ -8,7 +8,7 @@
         ],
         "function-max-lines": [
             "error",
-            35
+            50
         ],
         "max-states-count": [
             "error",
@@ -34,7 +34,7 @@
         "imports-on-top": "error",
         "visibility-modifier-order": "error",
         "avoid-call-value": "error",
-        "avoid-low-level-calls": "error",
+        "avoid-low-level-calls": "warn",
         "avoid-sha3": "error",
         "avoid-suicide": "error",
         "avoid-throw": "error",
@@ -42,7 +42,7 @@
         "check-send-result": "error",
         "multiple-sends": "error",
         "no-complex-fallback": "error",
-        "no-inline-assembly": "error",
+        "no-inline-assembly": "warn",
         "not-rely-on-block-hash": "error",
         "not-rely-on-time": "warn",
         "reentrancy": "error",
