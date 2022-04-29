@@ -8,8 +8,8 @@ import type { BountyFactory } from '../typechain/BountyFactory'
 import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory } from 'ethers'
 import { IERC677 } from '../typechain/IERC677'
-import { IAllocationPolicy, IJoinPolicy, ILeavePolicy } from '../typechain'
-import { AbiCoder, defaultAbiCoder } from 'ethers/lib/utils'
+import { IAllocationPolicy, IJoinPolicy } from '../typechain'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 
 // const { deployContract } = waffle
 const { provider } = waffle
