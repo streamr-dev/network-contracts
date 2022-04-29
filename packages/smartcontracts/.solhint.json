@@ -4,7 +4,7 @@
     "rules": {
         "code-complexity": [
             "error",
-            7
+            9
         ],
         "function-max-lines": [
             "error",
@@ -16,7 +16,7 @@
         ],
         "no-empty-blocks": "off",
         "no-unused-vars": "error",
-        "payable-fallback": "error",
+        "payable-fallback": "warn",
         "reason-string": [
             "error",
             {
@@ -41,7 +41,7 @@
         "avoid-tx-origin": "error",
         "check-send-result": "error",
         "multiple-sends": "error",
-        "no-complex-fallback": "error",
+        "no-complex-fallback": "warn",
         "no-inline-assembly": "warn",
         "not-rely-on-block-hash": "error",
         "not-rely-on-time": "warn",
