@@ -5,7 +5,7 @@ pragma solidity ^0.8.13;
 import "./IAllocationPolicy.sol";
 import "../Bounty.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
@@ -53,9 +53,9 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     /** Calculate earnings owed since last update, assuming normal operation */
     function owedPerStakeSinceLastUpdate() internal view returns(uint256 deltaEarnings) {
         uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
-        // console.log("deltaTime     = ", deltaTime);
+        console.log("deltaTime     = ", deltaTime);
         deltaEarnings = localData().incomePerSecondPerStake * deltaTime;
-        // console.log("deltaEarnings = ", deltaEarnings);
+        console.log("deltaEarnings = ", deltaEarnings);
     }
 
     /** Calculate the cumulative earnings per unit (full token stake) right now */
@@ -68,14 +68,14 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
         // working as normal
         uint owedWeiPerStake = owedPerStakeSinceLastUpdate();
-        uint owedWei = owedWeiPerStake * globalData().totalStakedWei / 1e18;
+        uint owedWei = owedWeiPerStake * localData().lastUpdateTotalStake / 1e18;
         uint remainingWei = globalData().unallocatedFunds;
         if (owedWei <= remainingWei) {
             return localData().cumulativeEarningsPerStake + owedWeiPerStake;
         }
 
         // gone insolvent since last update
-        uint perStakeWei = remainingWei * 1e18 / globalData().totalStakedWei;
+        uint perStakeWei = remainingWei * 1e18 / localData().lastUpdateTotalStake;
         return localData().cumulativeEarningsPerStake + perStakeWei;
     }
 
@@ -153,12 +153,17 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         if (globalData().joinTimeOfBroker[broker] == 0) { return 0; }
 
         // TODO: what is this check about? Don't give earnings for brokers younger than horizon? Why?
-        if (globalData().joinTimeOfBroker[broker] + localData().horizon > block.timestamp) {
-            return localData().earningsBeforeJoinWei[broker];
-        }
+        // if (globalData().joinTimeOfBroker[broker] + localData().horizon > block.timestamp) {
+        //     return localData().earningsBeforeJoinWei[broker];
+        // }
 
+        console.log("cumulative earnings ", getCumulativeEarnings());
+        console.log("c.e. at join", localData().cumulativeEarningsAtJoin[broker]);
         uint earningsPerFullToken = getCumulativeEarnings() - localData().cumulativeEarningsAtJoin[broker];
+        console.log("earningsPerFullToken", earningsPerFullToken);
         uint earningsAfterJoinWei = globalData().stakedWei[broker] * earningsPerFullToken / 1e18;
+        console.log("earningsAfterJoinWei", earningsAfterJoinWei);
+        console.log("earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
         return localData().earningsBeforeJoinWei[broker] + earningsAfterJoinWei;
     }
 
