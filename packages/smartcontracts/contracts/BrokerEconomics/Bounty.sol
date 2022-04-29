@@ -39,6 +39,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event StateChanged(State newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+    event InsolvencyStarted(uint startTimeStamp);
+    event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
     struct GlobalState {
         State bountyState;
