@@ -7,7 +7,7 @@
             9
         ],
         "function-max-lines": [
-            "error",
+            "warn",
             50
         ],
         "max-states-count": [

@@ -5,7 +5,7 @@ pragma solidity ^0.8.13;
 import "./IAllocationPolicy.sol";
 import "../Bounty.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
@@ -15,6 +15,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         uint256 cumulativeEarningsPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
         mapping(address => uint256) cumulativeEarningsAtJoin;
         mapping(address => uint256) earningsBeforeJoinWei;
+        mapping(address => uint256) stakedWei; // staked during last update: must remember this because allocations are based on stakes during update period
         uint256 lastUpdateTimestamp;
         uint256 lastUpdateBalance;
         uint256 lastUpdateTotalStake;
@@ -33,12 +34,18 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     function onJoin(address broker) external {
         updateCumulativeEarnings();
         localData().cumulativeEarningsAtJoin[broker] = localData().cumulativeEarningsPerStake;
+        localData().stakedWei[broker] = globalData().stakedWei[broker];
+        // console.log("onJoin", broker);
+        // console.log("  cme at join <-", localData().cumulativeEarningsAtJoin[broker]);
     }
 
     /** When broker leaves, its allocations so far are saved so that they continue to increase after next join */
     function onLeave(address broker) external {
         updateCumulativeEarnings();
         localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
+        localData().stakedWei[broker] = globalData().stakedWei[broker];
+        // console.log("onLeave", broker);
+        // console.log("  earnings before join <-", localData().earningsBeforeJoinWei[broker]);
     }
 
     /**
@@ -48,25 +55,28 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         updateCumulativeEarnings();
         localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
         localData().cumulativeEarningsAtJoin[broker] = localData().cumulativeEarningsPerStake;
+        localData().stakedWei[broker] = globalData().stakedWei[broker];
+        // console.log("onStakeIncrease", broker);
+        // console.log("  earnings before join <-", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  cme at join <-", localData().cumulativeEarningsAtJoin[broker]);
     }
 
     /** Calculate earnings owed since last update, assuming normal operation */
     function owedPerStakeSinceLastUpdate() internal view returns(uint256 deltaEarnings) {
         uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
-        console.log("deltaTime     = ", deltaTime);
+        // console.log("    deltaTime     = ", deltaTime);
         deltaEarnings = localData().incomePerSecondPerStake * deltaTime;
-        console.log("deltaEarnings = ", deltaEarnings);
+        // console.log("    deltaEarnings = ", deltaEarnings);
     }
 
     /** Calculate the cumulative earnings per unit (full token stake) right now */
     function getCumulativeEarnings() internal view returns(uint256) {
-        bool wasSolvent = localData().lastUpdateBalance > 0;
-        if (!wasSolvent) {
-            // in the state of insolvency
+        // in the state of insolvency: don't allocate new earnings
+        if (localData().lastUpdateBalance == 0) {
             return localData().cumulativeEarningsPerStake;
         }
 
-        // working as normal
+        // working as normal: allocate what is owed
         uint owedWeiPerStake = owedPerStakeSinceLastUpdate();
         uint owedWei = owedWeiPerStake * localData().lastUpdateTotalStake / 1e18;
         uint remainingWei = globalData().unallocatedFunds;
@@ -74,7 +84,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
             return localData().cumulativeEarningsPerStake + owedWeiPerStake;
         }
 
-        // gone insolvent since last update
+        // gone insolvent since last update: allocate all remaining funds
         uint perStakeWei = remainingWei * 1e18 / localData().lastUpdateTotalStake;
         return localData().cumulativeEarningsPerStake + perStakeWei;
     }
@@ -145,7 +155,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         } else {
             localData().incomePerSecondPerStake = 0;
         }
-        console.log("updateCumulativeEarnings, incomePerSecondPerStake = ", localData().incomePerSecondPerStake);
+        // console.log("    updateCumulativeEarnings done, incomePerSecondPerStake <-", localData().incomePerSecondPerStake);
     }
 
     function calculateAllocation(address broker) public view returns (uint allocation) {
@@ -157,13 +167,14 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         //     return localData().earningsBeforeJoinWei[broker];
         // }
 
-        console.log("cumulative earnings ", getCumulativeEarnings());
-        console.log("c.e. at join", localData().cumulativeEarningsAtJoin[broker]);
+        // console.log("Calculate allocation for", broker);
+        // console.log("  cumulative earnings ", getCumulativeEarnings());
+        // console.log("  cumulat. e. at join ", localData().cumulativeEarningsAtJoin[broker]);
         uint earningsPerFullToken = getCumulativeEarnings() - localData().cumulativeEarningsAtJoin[broker];
-        console.log("earningsPerFullToken", earningsPerFullToken);
-        uint earningsAfterJoinWei = globalData().stakedWei[broker] * earningsPerFullToken / 1e18;
-        console.log("earningsAfterJoinWei", earningsAfterJoinWei);
-        console.log("earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  earningsPerFullToken", earningsPerFullToken);
+        uint earningsAfterJoinWei = localData().stakedWei[broker] * earningsPerFullToken / 1e18;
+        // console.log("  earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  earningsAfterJoinWei", earningsAfterJoinWei);
         return localData().earningsBeforeJoinWei[broker] + earningsAfterJoinWei;
     }
 
