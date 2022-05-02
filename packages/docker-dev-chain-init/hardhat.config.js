@@ -61,10 +61,11 @@ module.exports = {
     },
     dependencyCompiler: {
         paths: [
-            'smartcontracts/contracts/NodeRegistry/NodeRegistry.sol',
-            'smartcontracts/contracts/NodeRegistry/TrackerRegistry.sol',
-            'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol',
-            'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
+            // TODO: uncomment for master branch
+            // 'smartcontracts/contracts/NodeRegistry/NodeRegistry.sol',
+            // 'smartcontracts/contracts/NodeRegistry/TrackerRegistry.sol',
+            // 'smartcontracts/contracts/StreamRegistry/StreamRegistryV3.sol',
+            // 'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol'

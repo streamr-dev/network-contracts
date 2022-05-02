@@ -14,9 +14,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     address public streamBrokerRegistryAddress;
     address public tokenAddress;
     address private trustedForwarder;
-    mapping(string => address) joinPolicies;
-    mapping(string => address) leavePolicies;
-    mapping(string => address) allocationPolicies;
+    mapping(string => address) public joinPolicies;
+    mapping(string => address) public leavePolicies;
+    mapping(string => address) public allocationPolicies;
 
     event NewBounty(address bountyContract);
 

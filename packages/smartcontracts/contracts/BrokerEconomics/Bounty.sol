@@ -18,7 +18,7 @@ import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 
 /**
@@ -39,6 +39,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event StateChanged(State newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+    event InsolvencyStarted(uint startTimeStamp);
+    event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
     struct GlobalState {
         State bountyState;
@@ -63,7 +65,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // unallocated funds: totalFunds from tokencontract - allocatedFunds
 
     // these into policy?
-    // uint public minHorizonSeconds;
+    uint public minHorizonSeconds;
     uint public allocationWeiPerSecond;
 
     // ???
@@ -109,7 +111,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         allocationWeiPerSecond = initialAllocationWeiPerSecond;
-        // minHorizonSeconds = initialMinHorizonSeconds;
+        minHorizonSeconds = initialMinHorizonSeconds;
         allocationWeiPerSecond = initialAllocationWeiPerSecond;
 
     }
@@ -127,7 +129,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
-        if (!success) handleError(returndata);
+        if (!success) {
+            if (returndata.length == 0) { revert("error_addJoinPolicyFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
     }
 
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
@@ -135,7 +140,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         (bool success, bytes memory returndata) = _allocationPolicyAddress.delegatecall(
             abi.encodeWithSignature("setParam(uint256)", param)
         );
-        if (!success) handleError(returndata);
+        if (!success) {
+            if (returndata.length == 0) { revert("error_setAllocationPolicyFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
     }
 
     // function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
@@ -204,7 +212,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
-    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+    function onTokenTransfer(address, uint amount, bytes calldata data) external {
+        require(_msgSender() == address(token), "error_onlyTokenContract");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -222,97 +231,92 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             }
             _stake(stakeBeneficiary, amount);
         } else {
-            // TODO: maybe 0x or non-address data should always be sponsorship?
-            if (data.length == 0) {
-                _stake(sender, amount);
-            }
             _sponsor(amount);
         }
     }
 
+    /** Stake by first calling ERC20.approve(bounty.address, amountTokenWei) then this function */
+    function stake(address broker, uint amountTokenWei) external {
+        token.transferFrom(_msgSender(), address(this), amountTokenWei);
+        _stake(broker, amountTokenWei);
+    }
+
     function _stake(address broker, uint amount) internal {
-        console.log("onTokenTransfer", broker, amount);
-        require(_msgSender() == address(token), "error_onlyTokenContract");
-        // not yet joined
         if (globalData().stakedWei[broker] == 0) {
+            // not yet joined
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 address joinPolicyAddress = joinPolicyAddresses[i];
                 (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
                     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
                 );
-                if (!success) handleError(returndata);
+                if (!success) {
+                    if (returndata.length == 0) { revert("error_brokerJoinFailed"); }
+                    assembly { revert(add(32, returndata), mload(returndata)) }
+                }
             }
-            // (bool success, bytes memory data) = joinPolicyAddress.delegatecall(
-            //     abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
-            // );
-            // require(success, "error_join");
-            console.log("join1 amount add", amount, broker);
             globalData().stakedWei[broker] += amount;
-            console.log("join1 stake", globalData().stakedWei[broker]);
             globalData().brokersCount += 1;
             globalData().totalStakedWei += amount;
-            console.log("join1 total stake", globalData().totalStakedWei);
             globalData().joinTimeOfBroker[broker] = block.timestamp;
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
-            if (!success) handleError(returndata);
-            // if (brokers[broker] == address(0)) {
-            //     console.log("Adding broker ", broker, " amount ", amount);
-            //     brokers.push(broker);
-            // }
-            console.log("joinPolicy.delegatecall");
-
-            // cueAtJoinWei[broker] = cumulativeUnitEarningsWei;
+            if (!success) {
+                if (returndata.length == 0) { revert("error_joinFailed"); }
+                assembly { revert(add(32, returndata), mload(returndata)) }
+            }
             emit BrokerJoined(broker);
-            console.log("BrokerJoined");
-
+            // console.log("BrokerJoined");
         } else {
-            // already joinend, increasing stake
+            // already joined, increasing stake
             globalData().stakedWei[broker] += amount;
             globalData().totalStakedWei += amount;
 
-            // re-calculate the cumulative earnings for this broker
+            // re-calculate the cumulative earnings
             (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onStakeIncrease(address)", broker)
             );
-            if (!success) handleError(returndata);
+            if (!success) {
+                if (returndata.length == 0) { revert("error_stakeIncreaseFailed"); }
+                assembly { revert(add(32, returndata), mload(returndata)) }
+            }
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
-        /**
+    /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
     function leave() external {
-        console.log("leaving1");
-        uint slashing = this.getPenaltyOnStake(_msgSender());
-        console.log("leaving1", _msgSender(), slashing);
-        uint returnFunds = globalData().stakedWei[_msgSender()] - slashing;
-        console.log("leaving2 stake", globalData().stakedWei[_msgSender()]);
-        console.log("leaving2 returnfunds", returnFunds);
-        returnFunds += this.getAllocation(_msgSender());
-        console.log("leaving3", returnFunds);
-        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
+        // console.log("leaving: ", _msgSender());
+        uint slashPenaltyWei = this.getPenaltyOnStake(_msgSender());
+        // console.log("  penalty ", slashPenaltyWei);
+        // console.log("  stake", globalData().stakedWei[_msgSender()]);
+        uint allocation = this.getAllocation(_msgSender());
+        uint returnFunds = globalData().stakedWei[_msgSender()] - slashPenaltyWei + allocation;
+        // console.log("  returned", returnFunds);
 
-        // add forfeited stake to unallocated funds...
-        globalData().unallocatedFunds += slashing;
-        console.log("leaving4", globalData().unallocatedFunds);
+        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
+        if (slashPenaltyWei > 0) {
+            // add forfeited stake to unallocated funds
+            _sponsor(slashPenaltyWei);
+        }
+
+        // console.log("Unallocated: ", globalData().unallocatedFunds);
         globalData().brokersCount -= 1;
         globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
         globalData().stakedWei[_msgSender()] = 0;
         globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-        console.log("leaving5", globalData().unallocatedFunds);
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
             abi.encodeWithSignature("onLeave(address)", _msgSender())
         );
-        if (!success) handleError(returndata);
-        console.log("returned funds", _msgSender(), returnFunds);
-        // forfeited stake is added to unallocated tokens
-        emit SponsorshipReceived(_msgSender(),globalData().stakedWei[_msgSender()]);
+        if (!success) {
+            if (returndata.length == 0) { revert("error_brokerLeaveFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
         emit BrokerLeft(_msgSender(), returnFunds);
         // removeFromAddressArray(brokers, broker);
 
@@ -335,12 +339,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[_msgSender()];
     }
 
-    function handleError(bytes memory errorData) public {
-        if (errorData.length == 0) revert();
-        assembly {
-            revert(add(32, errorData), mload(errorData))
-        }
-    }
     // function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
     //     require(bs.length >= start + 32, "slicing out of range");
     //     uint x;
