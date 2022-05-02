@@ -57,7 +57,7 @@
     "solidity-coverage": "0.7.20",
     "typechain": "4.0.3",
     "solhint": "3.3.6",
-    "@nomiclabs/hardhat-ethers": "2.0.4",
+    "@nomiclabs/hardhat-ethers": "2.0.5",
     "@typechain/ethers-v5": "6.0.5",
     "@types/debug": "4.1.7",
     "ethereum-waffle": "3.4.0",
