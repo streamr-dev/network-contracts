@@ -198,7 +198,7 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
     })
 
-    it.only('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
+    it('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
         //      t0       : broker1 joins, stakes 1 (1 : 0)
         // t1 = t0 + 2000: broker2 joins, stakes 1 (1 : 1)
         // t2 = t0 + 4000: broker1 adds 3 stake => (4 : 1)
