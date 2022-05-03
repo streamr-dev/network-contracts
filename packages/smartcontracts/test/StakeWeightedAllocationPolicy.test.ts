@@ -6,6 +6,7 @@ import type { Bounty } from '../typechain/Bounty'
 import { Contract, ContractFactory, BigNumber, utils, ContractReceipt, ContractTransaction } from 'ethers'
 import { IERC677 } from '../typechain/IERC677'
 import { IAllocationPolicy } from '../typechain'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 
 const { provider: waffleProvider } = waffle
 const { parseEther } = utils
@@ -311,6 +312,50 @@ describe('StakeWeightedAllocationPolicy', (): void => {
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
         expect(insolvencyEvent).to.not.be.undefined
+    })
+
+    it('allocates correctly for two brokers, different weight, with adding additional stake', async function(): Promise<void> {
+        //      t0       : both brokers join, stake 1
+        // t1 = t0 + 1000: broker 1 adds 2 to his stake
+        // t2 = t0 + 2000: both leave
+        // in the end 2000*(wei/sec) are winnings
+        // broker1 should have half of half + 3/4 of half = 5/8 of the winnings
+        // broker2 should have half of half + 1/4 of half = 3/8 of the winnings
+        const totalTokensExpected = tokensPerSecond.mul(2 * timestepSeconds)
+        await bountyFromAdmin.sponsor(totalTokensExpected.mul(2))
+
+        const tokenFromBroker2 = token.connect(broker2Wallet)
+        const bountyFromBroker2 = bountyFromAdmin.connect(broker2Wallet)
+        const tokensBroker1Before = await token.balanceOf(brokerWallet.address)
+        const tokensBroker2Before = await token.balanceOf(broker2Wallet.address)
+        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+
+        // t0: broker1 joins
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('1'), 
+            defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
+        await (await tokenFromBroker2.transferAndCall(bountyFromBroker.address, parseEther('1'), 
+            defaultAbiCoder.encode(["address"], [broker2Wallet.address]))).wait()
+        
+        // t1: broker2 adds 2 his stake
+        await advanceToTimestamp(timeAtStart + timestepSeconds, "Broker 1 joins")
+        await (await tokenFromBroker.transferAndCall(bountyFromBroker.address, parseEther('2'), 
+            defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
+        
+        // t2: both leave
+        await advanceToTimestamp(timeAtStart + (2 * timestepSeconds), "Broker 1 joins")
+        await (await bountyFromBroker.leave()).wait()
+        await (await bountyFromBroker2.leave()).wait()
+
+        const tokensBroker1Actual = (await token.balanceOf(brokerWallet.address)).sub(tokensBroker1Before)
+        const tokensBroker2Actual = (await token.balanceOf(broker2Wallet.address)).sub(tokensBroker2Before)
+        // 5/8 of the winnings, plus one transaction with tokenspersecond shared
+        const tokensBroker2Expected = totalTokensExpected.div(8).mul(3).add(tokensPerSecond.div(2))
+        // 3/8 of the winnings, plus one transaction with tokenspersecond shared
+        const tokensBroker1Expected = totalTokensExpected.div(8).mul(5).add(tokensPerSecond.div(2)) 
+
+        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
+        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
     })
 
     // TODO: add required staying period feature, then unskip this test
