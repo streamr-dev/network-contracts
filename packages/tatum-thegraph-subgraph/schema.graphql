@@ -11,18 +11,25 @@ type Bounty @entity {
 }
 
 type Stake @entity {
-  id: ID
-  member: Member
+  id: ID! # the eth address of the staker
   amount: Int!
   "date of the stake"
-  date: Date
+  date: Int
   bounty: Bounty
 }
+# type Stake @entity {
+#   id: ID!
+#   member: Member
+#   amount: Int!
+#   "date of the stake"
+#   date: Int
+#   bounty: Bounty
+# }
 
-type Member @entity {
-  id: ID!
-  address: Bytes!
-  addressString: String! # We need this to be String to enable partial match search
-  stakes: [Stake]! @derivedFrom(field: "member")
-  status: MemberStatus!
-}
+# type Member @entity {
+#   id: ID!
+#   address: Bytes!
+#   addressString: String! # We need this to be String to enable partial match search
+#   stakes: [Stake!]! @derivedFrom(field: "member")
+#   # status: MemberStatus!
+# }

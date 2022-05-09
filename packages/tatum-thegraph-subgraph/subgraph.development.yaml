@@ -1,0 +1,54 @@
+specVersion: 0.0.2
+description: Subgraph definitions for tatum bounty contracts 
+repository:
+schema:
+  file: ./schema.graphql
+dataSources:
+  # Old DU gnosis/xdai >>
+  - kind: ethereum/contract
+    name: BountyFactory
+    network: xDai
+    source:
+      address: '0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927'
+      abi: BountyFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/BountyFactory.ts
+      entities:
+        - Bounty
+      abis:
+        - name: BountyFactory
+          file: ./abis/BountyFactory.json
+      eventHandlers:
+        - event: NewBounty(address)
+          handler: handleBountyCreated
+  # Old DU gnosis/xdai <<
+
+templates:
+  # Old DU gnosis/xdai >>
+  - name: Bounty
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: Bounty
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/bounty.ts
+      entities:
+        - Member
+        - DataUnionStatsBucket
+      abis:
+        - name: Bounty
+          file: ./abis/Bounty.json
+      eventHandlers:
+        - event: BrokerJoined(indexed address)
+          handler: handleBrokerJoined
+        - event: BrokerLeft(indexed address,uint256)
+          handler: handleBrokerLeft
+  # Old DU gnosis/xdai <<
+
