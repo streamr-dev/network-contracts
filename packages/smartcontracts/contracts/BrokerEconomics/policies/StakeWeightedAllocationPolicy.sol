@@ -5,7 +5,7 @@ pragma solidity ^0.8.13;
 import "./IAllocationPolicy.sol";
 import "../Bounty.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {

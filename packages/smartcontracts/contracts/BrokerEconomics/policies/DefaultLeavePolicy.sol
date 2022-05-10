@@ -10,13 +10,13 @@ import "../Bounty.sol";
 contract DefaultLeavePolicy is ILeavePolicy, Bounty {
     function getLeavePenaltyWei(address broker) public override view returns (uint leavePenaltyWei) {
         uint stake = globalData().stakedWei[broker];
-        console.log("getLeavePenaltyWei, stake =", stake);
+        // console.log("getLeavePenaltyWei, stake =", stake);
         State bountyState = getState();
         if (bountyState == State.Running) {
-            console.log("Leaving a running bounty, lose stake");
+            // console.log("Leaving a running bounty, lose stake");
             return stake;
         }
-        console.log("Get stake back");
+        // console.log("Get stake back");
         return 0;
     }
 

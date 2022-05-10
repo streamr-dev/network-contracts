@@ -14,7 +14,7 @@ import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers

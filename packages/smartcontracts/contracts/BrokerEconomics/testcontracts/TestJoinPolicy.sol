@@ -3,9 +3,9 @@
 pragma solidity ^0.8.13;
 
 import "../policies/IJoinPolicy.sol";
-import "hardhat/console.sol";
 import "../Bounty.sol";
 
+// import "hardhat/console.sol";
 
 contract TestJoinPolicy is IJoinPolicy, Bounty {
 
