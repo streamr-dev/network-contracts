@@ -2,9 +2,6 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-// import "@openzeppelin/contracts/access/AccessControl.sol";
-// import "../metatx/ERC2771Context.sol";
-
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 
@@ -12,39 +9,41 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-// import "hardhat/console.sol";
-
+import "hardhat/console.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
-    enum State {
-        Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
-        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
-        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
-        Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
-    }
-
     event StakeAdded(address indexed broker, uint addedWei, uint totalWei);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
-    event StateChanged(State newState);
+    event StateChanged(State indexed newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+
+    // Emitted from the allocation policy
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
+    mapping(address => bool) public approvedPolicies;
+    IERC677 public token;
+    address[] public joinPolicyAddresses;
+    IAllocationPolicy public allocationPolicy;
+    ILeavePolicy public leavePolicy;
+
+    modifier isAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
+        _;
+    }
+
     struct GlobalState {
-        State bountyState;
-        uint brokersCount;
+        uint brokerCount;
         /** how much each broker has staked, if 0 broker is considered not part of bounty */
         mapping(address => uint) stakedWei;
         uint totalStakedWei;
@@ -53,106 +52,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
         mapping(address => uint) joinTimeOfBroker;
         uint unallocatedFunds;
+        uint minHorizonSeconds;
+        uint minBrokerCount;
     }
-
-    mapping(address => bool) public approvedPolicies;
-    IERC677 public token;
-    address[] public joinPolicyAddresses;
-    IAllocationPolicy public allocationPolicy;
-    ILeavePolicy public leavePolicy;
-    // IJoinPolicy joinPolicy;
-    // address[] public brokers;
-    // unallocated funds: totalFunds from tokencontract - allocatedFunds
-
-    // these into policy?
-    uint public minHorizonSeconds;
-    uint public allocationWeiPerSecond;
-
-    // ???
-    // uint public cumulativeUnitEarningsWei;  // CUE = how much earnings have accumulated per weight-unit
-    // uint public cueTimestamp;
-    // uint public totalSponsorshipsAtCueTimestamp;
-    // mapping(address => uint) public cueAtJoinWei;
-
-    modifier isAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
-        _;
-    }
-    // uint public totalWeight; // TODO: weighting
-    // whole-stream state, see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Global-State
-    // uint public startCue;           // CUE when StateChanged(Running)
-    // uint public startTimestamp;     // block.timestamp when StateChanged(Running)
-    // broker-specific state
-    // mapping(address => uint) public weight; // TODO: weighting
-    // constructor(
-    //     address tokenAddress,
-    //     uint initialAllocationWeiPerSecond,
-    //     uint initialMinBrokerCount,
-    //     uint initialMaxBrokerCount,
-    //     uint initialMinimumStakeWei,
-    //     uint initialMinHorizonSeconds
-    // ) {
-    //     token = IERC677(tokenAddress);
-    //     allocationWeiPerSecond = initialAllocationWeiPerSecond;
-    //     minBrokerCount = initialMinBrokerCount;
-    //     maxBrokerCount = initialMaxBrokerCount;
-    //     minimumStakeWei = initialMinimumStakeWei;
-    //     minHorizonSeconds = initialMinHorizonSeconds;
-    // }
-
-    function initialize(address newOwner,
-        address tokenAddress,
-        uint initialAllocationWeiPerSecond,
-        uint initialMinHorizonSeconds,
-        address trustedForwarderAddress) public initializer {
-        // __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
-        // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
-        token = IERC677(tokenAddress);
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
-        allocationWeiPerSecond = initialAllocationWeiPerSecond;
-        minHorizonSeconds = initialMinHorizonSeconds;
-        allocationWeiPerSecond = initialAllocationWeiPerSecond;
-
-    }
-
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
-        return super._msgSender();
-    }
-
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
-        joinPolicyAddresses.push(_joinPolicyAddress);
-        (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
-            abi.encodeWithSignature("setParam(uint256)", param)
-        );
-        if (!success) {
-            if (returndata.length == 0) { revert("error_addJoinPolicyFailed"); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-    }
-
-    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
-        allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
-        (bool success, bytes memory returndata) = _allocationPolicyAddress.delegatecall(
-            abi.encodeWithSignature("setParam(uint256)", param)
-        );
-        if (!success) {
-            if (returndata.length == 0) { revert("error_setAllocationPolicyFailed"); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-    }
-
-    // function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
-    //     leavePolicy = ILeavePolicy(_leaveAddress);
-    //     (bool success, bytes memory returndata) = _leaveAddress.delegatecall(
-    //         abi.encodeWithSignature("setParam(uint256)", param)
-    //     );
-    //     if (!success) handleError(returndata);
-    // }
 
     function globalData() internal pure returns(GlobalState storage data) {
         bytes32 storagePosition = keccak256("agreement.storage.globalState");
@@ -160,59 +62,50 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function getUnallocatedWei() public view returns(uint) {
-        GlobalState storage data = globalData();
-        return data.unallocatedFunds;
+        return globalData().unallocatedFunds;
     }
 
-
-    fallback() external  {
-        require(msg.sender == address(this), "error_mustBeThis");
-
-        (bool success, bytes memory data) = address(allocationPolicy).delegatecall(msg.data);
-        assembly {
-            switch success
-                // delegatecall returns 0 on error.
-                case 0 { revert(add(data, 32), returndatasize()) }
-                default { return(add(data, 32), returndatasize()) }
-        }
+    function initialize(
+        address newOwner,
+        address tokenAddress,
+        uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
+        address trustedForwarderAddress
+    ) public initializer {
+        // __AccessControl_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        token = IERC677(tokenAddress);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        globalData().minHorizonSeconds = initialMinHorizonSeconds;
+        globalData().minBrokerCount = initialMinBrokerCount;
     }
 
-    // to be able to use delegatecall in a view function we must go through the fallback with delegatecall
-    function getAllocation(address broker) public view returns(uint256) {
-        (bool success, bytes memory data) = address(this).staticcall(
-            abi.encodeWithSelector(
-                allocationPolicy.calculateAllocation.selector,
-                broker
-            )
-        );
-
-        assembly {
-            switch success
-                case 0 { revert(add(data, 32), returndatasize()) }
-                default { return(add(data, 32), returndatasize()) }
-        }
+    // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
+    enum State {
+        NotInitialized,
+        Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
+        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
+        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
+        Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
     }
 
-    function getPenaltyOnStake(address broker) public view returns(uint256) {
-        (bool success, bytes memory data) = address(this).staticcall(
-            abi.encodeWithSelector(
-                allocationPolicy.calculatePenaltyOnStake.selector,
-                broker
-            )
-        );
-
-        assembly {
-            switch success
-                case 0 { revert(add(data, 32), returndatasize()) }
-                default { return(add(data, 32), returndatasize()) }
+    function getState() public view returns (State) {
+        if (joinPolicyAddresses.length == 0
+            || address(allocationPolicy) == address(0)
+            || address(leavePolicy) == address(0)) {
+            return State.NotInitialized;
         }
+        bool funded = getHorizon() >= globalData().minHorizonSeconds;
+        bool manned = globalData().brokerCount >= globalData().minBrokerCount;
+        return funded ? manned ? State.Running : State.Funded :
+                        manned ? State.Warning : State.Closed;
     }
 
     /**
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
-    function onTokenTransfer(address, uint amount, bytes calldata data) external {
+    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(_msgSender() == address(token), "error_onlyTokenContract");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
@@ -231,7 +124,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             }
             _stake(stakeBeneficiary, amount);
         } else {
-            _sponsor(amount);
+            _addSponsorship(sender, amount);
         }
     }
 
@@ -242,6 +135,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function _stake(address broker, uint amount) internal {
+        // console.log("join at ", block.timestamp);
         if (globalData().stakedWei[broker] == 0) {
             // not yet joined
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
@@ -255,15 +149,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
                 }
             }
             globalData().stakedWei[broker] += amount;
-            globalData().brokersCount += 1;
+            globalData().brokerCount += 1;
             globalData().totalStakedWei += amount;
             globalData().joinTimeOfBroker[broker] = block.timestamp;
-            (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
+            (bool success2, bytes memory returndata2) = address(allocationPolicy).delegatecall(
                 abi.encodeWithSignature("onJoin(address)", broker)
             );
-            if (!success) {
-                if (returndata.length == 0) { revert("error_joinFailed"); }
-                assembly { revert(add(32, returndata), mload(returndata)) }
+            if (!success2) {
+                if (returndata2.length == 0) { revert("error_joinFailed"); }
+                assembly { revert(add(32, returndata2), mload(returndata2)) }
             }
             emit BrokerJoined(broker);
             // console.log("BrokerJoined");
@@ -284,180 +178,106 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
 
+    function leave() external {
+        _removeBroker(_msgSender());
+    }
+
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    function leave() external {
-        // console.log("leaving: ", _msgSender());
-        uint slashPenaltyWei = this.getPenaltyOnStake(_msgSender());
-        // console.log("  penalty ", slashPenaltyWei);
-        // console.log("  stake", globalData().stakedWei[_msgSender()]);
-        uint allocation = this.getAllocation(_msgSender());
-        uint returnFunds = globalData().stakedWei[_msgSender()] - slashPenaltyWei + allocation;
+    function _removeBroker(address broker) internal {
+        uint stakedWei = globalData().stakedWei[broker];
+        require(stakedWei > 0, "error_brokerNotStaked");
+
+        // console.log("now", block.timestamp);
+        // console.log("leaving: ", broker);
+        uint penaltyWei = getLeavePenalty(broker);
+        // console.log("  penalty ", penaltyWei);
+        // console.log("  stake", stakedWei);
+        uint allocation = getAllocation(broker);
+        // console.log("  allocation", allocation);
+        uint returnFunds = stakedWei - penaltyWei + allocation;
         // console.log("  returned", returnFunds);
 
-        require(token.transfer(_msgSender(), returnFunds), "error_transfer");
-        if (slashPenaltyWei > 0) {
+        require(token.transfer(broker, returnFunds), "error_transfer");
+        if (penaltyWei > 0) {
             // add forfeited stake to unallocated funds
-            _sponsor(slashPenaltyWei);
+            _addSponsorship(broker, penaltyWei);
         }
 
         // console.log("Unallocated: ", globalData().unallocatedFunds);
-        globalData().brokersCount -= 1;
-        globalData().totalStakedWei -= globalData().stakedWei[_msgSender()];
-        globalData().stakedWei[_msgSender()] = 0;
-        globalData().joinTimeOfBroker[_msgSender()] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        globalData().brokerCount -= 1;
+        globalData().totalStakedWei -= stakedWei;
+        globalData().stakedWei[broker] = 0;
+        globalData().joinTimeOfBroker[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
         (bool success, bytes memory returndata) = address(allocationPolicy).delegatecall(
-            abi.encodeWithSignature("onLeave(address)", _msgSender())
+            abi.encodeWithSignature("onLeave(address)", broker)
         );
         if (!success) {
             if (returndata.length == 0) { revert("error_brokerLeaveFailed"); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
-        emit BrokerLeft(_msgSender(), returnFunds);
+        emit BrokerLeft(broker, returnFunds);
         // removeFromAddressArray(brokers, broker);
 
         // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
+
     }
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
     function sponsor(uint amountTokenWei) external {
         token.transferFrom(_msgSender(), address(this), amountTokenWei);
-        _sponsor(amountTokenWei);
+        _addSponsorship(_msgSender(), amountTokenWei);
     }
 
-    function _sponsor(uint amountTokenWei) internal {
+    function _addSponsorship(address sponsorAddress, uint amountTokenWei) internal {
         globalData().unallocatedFunds += amountTokenWei;
-        // refresh();
-        emit SponsorshipReceived(_msgSender(), amountTokenWei);
+        emit SponsorshipReceived(sponsorAddress, amountTokenWei);
+    }
+
+    function getStake(address broker) external view returns (uint) {
+        return globalData().stakedWei[broker];
     }
 
     function getMyStake() external view returns (uint) {
         return globalData().stakedWei[_msgSender()];
     }
 
-    // function sliceUint(bytes memory bs, uint start) internal pure returns (uint) {
-    //     require(bs.length >= start + 32, "slicing out of range");
-    //     uint x;
-    //     assembly {
-    //         x := mload(add(bs, add(0x20, start)))
-    //     }
-    //     return x;
-    // }
+    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
+        allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
+        (bool success, bytes memory returndata) = _allocationPolicyAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        if (!success) {
+            if (returndata.length == 0) { revert("error_setAllocationPolicyFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
+    }
 
-    // function getAllocation(address broker) view public returns(uint) {
-    //     (bool success, bytes memory data) = allocationPolicyAddress.staticcall(
-    //         abi.encodeWithSignature("calculateAllocation(address)", broker)
-    //     );
-    //     if (success) {
-    //         // return sliceUint(data, 0);
-    //         console.log("success");
-    //         return abi.decode(data, (uint));
-    //         // return data;
-    //     } else {
-    //         console.log("error");
-    //         return 0;
-    //     }
-    // }
+    function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
+        leavePolicy = ILeavePolicy(_leaveAddress);
+        (bool success, bytes memory returndata) = _leaveAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        if (!success) {
+            if (returndata.length == 0) { revert("error_setAllocationPolicyFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
+    }
 
-
-    // function getState() public view returns (State) {
-    //     bool funded = horizonSeconds() < minHorizonSeconds;
-    //     bool manned = brokers.length >= minBrokerCount;
-    //     return funded ? manned ? State.Running : State.Funded :
-    //                     manned ? State.Warning : State.Closed;
-    // }
-
-    // function getBalances() internal view returns (uint owedWei, uint unallocatedFunds) {
-    //     owedWei = allocationWeiPerSecond * (block.timestamp - cueTimestamp); // solhint-disable-line not-rely-on-time
-    //     unallocatedFunds = token.balanceOf(address(this)) - allocatedFunds;
-    // }
-
-    // function withdrawableEarnings(address /*broker*/) public view returns (uint) {
-    //     (uint owedWei, uint remainingWei) = getBalances();
-    //     uint payableWei = remainingWei > owedWei ? owedWei : remainingWei;
-    //     uint newUnitEarningsWei = payableWei / brokers.length; //  / totalWeight
-    //     return cumulativeUnitEarningsWei + newUnitEarningsWei; //  ) * weight[broker];
-    // }
-
-    /**
-     * Tokens available to distribute to brokers as earnings.
-     * When this goes to zero, the contract is bankrupt and stops giving earnings until further sponsorships are received.
-     * New sponsorships pay first to brokers who were in contract while it was bankrupt.
-     * TODO: should new sponsorships only pay new earnings and not "debt"?
-     * Agreement will be closed only after enough brokers leave that there's less than minBrokerCount left
-     */
-    // function unallocatedWei() public view returns (uint) {
-    //     (uint owedWei, uint remainingWei) = getBalances();
-    //     return remainingWei > owedWei ? remainingWei - owedWei : 0;
-    // }
-
-    /**
-     * Horizon is how long time the currently unallocated funds cover.
-     * Horizon can be increased by sponsoring this stream.
-     */
-    // function horizonSeconds() public view returns (uint) {
-    //     return 1 ether * unallocatedWei() / allocationWeiPerSecond;
-    // }
-
-    // function _stake(address broker, uint amountTokenWei) internal {
-    //     stakedWei[broker] += amountTokenWei;
-    //     allocatedFunds += amountTokenWei;
-    //     emit StakeAdded(broker, amountTokenWei, stakedWei[broker]);
-    // }
-
-    // /**
-    //  * Can be called by anyone to update the cumulativeUnitEarningsWei
-    //  */
-    // function refresh() public {
-    //     (, uint totalSponsorships) = getBalances();
-    //     uint newSponsorships = totalSponsorships - totalSponsorshipsAtCueTimestamp;
-    //     emit SponsorshipReceived(msg.sender, newSponsorships);
-    // }
-
-
-
-    /**
-     * Stake for a broker by first calling ERC20.approve(agreement.address, amountTokenWei) then this function
-     */
-    // function stake(address broker, uint amountTokenWei) public {
-    //     // require(token.transferFrom(msg.sender, address(this), amountTokenWei), "error_transfer");
-    //     _stake(broker, amountTokenWei);
-
-    //     // stakedWei is zero for non-joined brokers
-    //     if (brokers.length < maxBrokerCount && stakedWei[broker] >= minimumStakeWei) {
-    //         _join(broker);
-    //     }
-    // }
-
-
-    /**
-     * Interpret the incoming ERC677 token transfer as follows:
-     * Sponsor a stream with ERC677.transferAndCall(agreement.address, amountTokenWei, "0x")
-     * Stake for a broker (and join) with ERC677.transferAndCall(agreement.address, amountTokenWei, brokerAddress)
-     */
-    // function onTokenTransfer(address, uint256 value, bytes calldata data) override external {
-    //     require(msg.sender == address(token), "error_onlyTokenContract");
-    //     if (data.length == 0) {
-    //         refresh();
-    //     } else if (data.length == 20) {
-    //         address brokerAddress = address(bytes20(data));
-    //         stake(brokerAddress, value);
-    //     } else {
-    //         revert("error_badErc677TransferData");
-    //     }
-    // }
-
-    // TODO: withdrawAll, withdrawTo, withdrawToSigned, ... consider a withdraw module?
-    // function withdraw(uint amountTokenWei) external {
-    //     address broker = msg.sender;
-    //     stakedWei[broker] -= amountTokenWei;
-    //     allocatedFunds -= amountTokenWei;
-    //     token.transfer(broker, amountTokenWei);
-    // }
+    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
+        joinPolicyAddresses.push(_joinPolicyAddress);
+        (bool success, bytes memory returndata) = _joinPolicyAddress.delegatecall(
+            abi.encodeWithSignature("setParam(uint256)", param)
+        );
+        if (!success) {
+            if (returndata.length == 0) { revert("error_addJoinPolicyFailed"); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
+    }
 
     // /**
     //  * Remove the listener from array by copying the last element into its place so that the arrays stay compact
@@ -481,4 +301,84 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     //     return true;
     // }
 
+    /**
+     * Workaround to delegatecall view functions in modules
+     * Suggested by https://ethereum.stackexchange.com/questions/82342/how-to-perform-delegate-call-inside-of-view-call-staticall
+     * Pass the target module address in an "extra argument" to the getter function
+     * @dev note the success value isn't parsed here; that would be double parsing here and then in the actual getter (below)
+     * @dev instead, success is determined by the length of returndata: too long means it was a revert
+     * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
+     */
+    fallback(bytes calldata args) external returns (bytes memory) {
+        require(msg.sender == address(this), "error_mustBeThis");
+
+        // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
+        uint len = args.length; // 4 byte selector + 32 bytes per argument
+        address target = address(bytes20(args[len - 20 : len])); // grab the address
+        bytes memory data = args[0 : len - 32]; // drop extra argument
+
+        (bool success, bytes memory returndata) = target.delegatecall(data);
+        if (!success) {
+            // parsing revert reason from returndata
+            // see https://ethereum.stackexchange.com/questions/83528/how-can-i-get-the-revert-reason-of-a-call-in-solidity-so-that-i-can-use-it-in-th
+            // see https://docs.soliditylang.org/en/v0.8.13/control-structures.html#revert
+            assembly { returndata := add(returndata, 4) }
+            string memory reason = abi.decode(returndata, (string));
+            // console.log("Revert", reason);
+            revert(reason);
+        }
+        return returndata;
+    }
+
+    function getHorizon() public view returns(uint256 horizon) {
+        (bool success, bytes memory returndata) = address(this).staticcall(
+            abi.encodeWithSelector(
+                allocationPolicy.getHorizonSeconds.selector,
+                allocationPolicy // call target address
+            )
+        );
+        if (!success) {
+            assembly { returndata := add(returndata, 4) }
+            revert(abi.decode(returndata, (string)));
+        }
+        assembly { horizon := mload(add(returndata, 32)) }
+    }
+
+    function getAllocation(address broker) public view returns(uint256 allocation) {
+        (bool success, bytes memory returndata) = address(this).staticcall(
+            abi.encodeWithSelector(
+                allocationPolicy.calculateAllocation.selector,
+                broker,
+                allocationPolicy // call target address
+            )
+        );
+        if (!success) {
+            assembly { returndata := add(returndata, 4) }
+            revert(abi.decode(returndata, (string)));
+        }
+        assembly { allocation := mload(add(returndata, 32)) }
+    }
+
+    function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {
+        (bool success, bytes memory returndata) = address(this).staticcall(
+            abi.encodeWithSelector(
+                leavePolicy.getLeavePenaltyWei.selector,
+                broker,
+                leavePolicy // call target address
+            )
+        );
+        if (!success) {
+            assembly { returndata := add(returndata, 4) }
+            revert(abi.decode(returndata, (string)));
+        }
+        assembly { leavePenalty := mload(add(returndata, 32)) }
+    }
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
+    }
 }

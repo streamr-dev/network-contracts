@@ -32,7 +32,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     function _authorizeUpgrade(address) internal override {}
 
 
-     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
@@ -41,8 +41,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     }
 
     function deployBountyAgreement(
-        uint initialAllocationWeiPerSecond,
         uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
         string memory bountyName
     ) public returns (address) {
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
@@ -52,8 +52,13 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(_msgSender(), tokenAddress, initialAllocationWeiPerSecond, initialMinHorizonSeconds,
-            trustedForwarder);
+        bounty.initialize(
+            _msgSender(),
+            tokenAddress,
+            initialMinHorizonSeconds,
+            initialMinBrokerCount,
+            trustedForwarder
+        );
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }

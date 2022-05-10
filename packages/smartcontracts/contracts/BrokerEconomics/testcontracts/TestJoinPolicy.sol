@@ -18,13 +18,14 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
     //     assembly {data.slot := storagePosition}
     // }
 
-    function setParam(uint256 minimumStake) external {
+    function setParam(uint256 minimumStake) external pure {
         if (minimumStake == 1) {
             require(false, "test-error: setting param join policy");
         }
     }
 
-    function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
+    function checkAbleToJoin(address /* broker */, uint256 /* amount */) external pure returns (bool) {
         require(false, "test-error: checkAbleToJoin join policy");
+        return false;
     }
 }

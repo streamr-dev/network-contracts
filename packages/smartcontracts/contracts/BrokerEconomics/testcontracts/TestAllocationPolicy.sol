@@ -29,16 +29,22 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onJoin(address broker) external {
+    function onJoin(address /*broker*/) view external {
         if (localData().failOnjoin) {
             require(false, "test-error: onJoin allocation policy");
         }
     }
 
-    function onLeave(address broker) external {
+    function onLeave(address /*broker*/) view external {
         if (localData().failOnLeave) {
             require(false, "test-error: onLeave allocation policy");
         }
+    }
+
+    /** Horizon means how long time the (unallocated) funds are going to still last */
+    function getHorizonSeconds() public override pure returns (uint256 horizonSeconds) {
+        return 2**256 - 1; // max uint256
+        // return 1;
     }
 
     /**

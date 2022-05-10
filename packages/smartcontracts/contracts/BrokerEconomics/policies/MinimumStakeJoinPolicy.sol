@@ -3,9 +3,9 @@
 pragma solidity ^0.8.13;
 
 import "./IJoinPolicy.sol";
-import "hardhat/console.sol";
 import "../Bounty.sol";
 
+// import "hardhat/console.sol";
 
 contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
 
@@ -24,9 +24,9 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
 
     function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
 
-        console.log("minimumStake checkabletojoin", globalData().stakedWei[broker], localData().minimumStake);
+        // console.log("minimumStake checkabletojoin", globalData().stakedWei[broker], localData().minimumStake);
 
-        require(globalData().stakedWei[broker] + amount >= localData().minimumStake, "error_minimum_stake");
+        require(globalData().stakedWei[broker] + amount >= localData().minimumStake, "error_stakeUnderMinimum");
         return true;
 
         // if (stakedWei[broker] < minimumStakeWei) {
