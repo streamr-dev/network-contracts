@@ -135,7 +135,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function _stake(address broker, uint amount) internal {
         // console.log("join at ", block.timestamp);
         if (globalData().stakedWei[broker] == 0) {
-            // not yet joined
+            // join the broker set
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 address joinPolicyAddress = joinPolicyAddresses[i];
                 (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(

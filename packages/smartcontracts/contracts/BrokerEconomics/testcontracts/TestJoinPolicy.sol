@@ -26,11 +26,12 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
         }
     }
 
-    function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
+    function checkAbleToJoin(address, uint256 amount) external pure returns (bool) {
         if (amount == 1) {
             require(false, "test-error: checkAbleToJoin join policy");
         } else if (amount == 2) {
             require(false);
         }
+        return true;
     }
 }

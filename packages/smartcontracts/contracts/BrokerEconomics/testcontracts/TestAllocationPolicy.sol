@@ -41,7 +41,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onJoin(address /*broker*/) view external {
+    function onJoin(address /*broker*/) external view {
         if (localData().failOnjoin) {
             require(false, "test-error: onJoin allocation policy");
         } else if (localData().failEmptyOnjoin) {
@@ -49,7 +49,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onLeave(address /*broker*/) view external {
+    function onLeave(address /*broker*/) external view {
         if (localData().failOnLeave) {
             require(false, "test-error: onLeave allocation policy");
         } else if (localData().failEmptyOnLeave) {
@@ -66,7 +66,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     /**
      * When stake changes, effectively do a leave + join, resetting the CE for this broker
      */
-    function onStakeIncrease(address broker) external {
+    function onStakeIncrease(address) external view {
         if (localData().failOnIncrease) {
             require(false, "test-error: onStakeIncrease allocation policy");
         } else if (localData().failEmptyOnIncrease) {
