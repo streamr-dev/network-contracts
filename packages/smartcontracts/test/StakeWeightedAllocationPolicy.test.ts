@@ -299,6 +299,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have half of half + 3/4 of half = 5/8 of the winnings
         // broker2 should have half of half + 1/4 of half = 3/8 of the winnings
         const totalTokensExpected = tokensPerSecond.mul(2 * timestepSeconds)
+        
+        // sponsor through token transferAndCall
+        const tokenFromAdmin = token.connect(adminWallet)
+        await (await tokenFromAdmin.transferAndCall(bountyFromBroker.address, parseEther('2'), "0x")).wait()
         await bountyFromAdmin.sponsor(totalTokensExpected.mul(2))
 
         const tokenFromBroker2 = token.connect(broker2Wallet)

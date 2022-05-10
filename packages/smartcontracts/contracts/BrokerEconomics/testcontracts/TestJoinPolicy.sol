@@ -21,11 +21,16 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
     function setParam(uint256 minimumStake) external pure {
         if (minimumStake == 1) {
             require(false, "test-error: setting param join policy");
+        } else if (minimumStake == 2) {
+            require(false);
         }
     }
 
-    function checkAbleToJoin(address /* broker */, uint256 /* amount */) external pure returns (bool) {
-        require(false, "test-error: checkAbleToJoin join policy");
-        return false;
+    function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
+        if (amount == 1) {
+            require(false, "test-error: checkAbleToJoin join policy");
+        } else if (amount == 2) {
+            require(false);
+        }
     }
 }
