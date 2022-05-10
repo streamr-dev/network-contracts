@@ -95,8 +95,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
         bool funded = getHorizon() >= globalData().minHorizonSeconds;
         bool manned = globalData().brokerCount >= globalData().minBrokerCount;
-        return funded ? manned ? State.Running : State.Funded :
-                        manned ? State.Warning : State.Closed;
+
+        if (funded) {
+            return manned ? State.Running : State.Funded;
+        } else {
+            return manned ? State.Warning : State.Closed;
+        }
     }
 
     /**
