@@ -203,7 +203,7 @@ describe("Bounty", (): void => {
         const jpMSC = await jpMS.deploy() as Contract
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from("3"))).wait() // 3 -> will throw on leave
-        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address)).wait()
+        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), brokerWallet.address)).wait()
         await expect(bountyFromBroker.leave()).to.be.revertedWith("test-error: onLeave allocation policy")
     })
 
@@ -211,8 +211,8 @@ describe("Bounty", (): void => {
         const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
         const jpMSC = await jpMS.deploy() as Contract
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from("6"))).wait() // 3 -> will throw on leave
-        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address)).wait()
+        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from("6"))).wait() // 6 -> throw empty on leave
+        await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), brokerWallet.address)).wait()
         await expect(bountyFromBroker.leave()).to.be.revertedWith("error_brokerLeaveFailed")
     })
 
