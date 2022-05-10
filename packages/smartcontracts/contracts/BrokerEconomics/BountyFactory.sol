@@ -13,7 +13,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     address public bountyContractTemplate;
     address public streamBrokerRegistryAddress;
     address public tokenAddress;
-    address private trustedForwarder;
+    address public trustedForwarder;
     mapping(string => address) public joinPolicies;
     mapping(string => address) public leavePolicies;
     mapping(string => address) public allocationPolicies;
