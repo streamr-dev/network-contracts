@@ -90,9 +90,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function getState() public view returns (State) {
-        if (joinPolicyAddresses.length == 0
-            || address(allocationPolicy) == address(0)
-            || address(leavePolicy) == address(0)) {
+        if (address(allocationPolicy) == address(0) || address(leavePolicy) == address(0)) {
             return State.NotInitialized;
         }
         bool funded = getHorizon() >= globalData().minHorizonSeconds;
