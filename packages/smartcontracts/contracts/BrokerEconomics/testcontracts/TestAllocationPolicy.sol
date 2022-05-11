@@ -21,22 +21,23 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         assembly {data.slot := storagePosition}
     }
 
-    function setParam(uint256 earningsWeiPerSecond) external {
-        if (earningsWeiPerSecond == 1) {
+    function setParam(uint256 testCase) external {
+        // console.log("setParam", testCase);
+        if (testCase == 1) {
             require(false, "test-error: setting param allocation policy");
-        } else if (earningsWeiPerSecond == 2) {
+        } else if (testCase == 2) {
             localData().failOnjoin = true;
-        } else if (earningsWeiPerSecond == 3) {
+        } else if (testCase == 3) {
             localData().failOnLeave = true;
-        } else if (earningsWeiPerSecond == 4) {
+        } else if (testCase == 4) {
             require(false);
-        } else if (earningsWeiPerSecond == 5) {
+        } else if (testCase == 5) {
             localData().failEmptyOnjoin = true;
-        } else if (earningsWeiPerSecond == 6) {
+        } else if (testCase == 6) {
             localData().failEmptyOnLeave = true;
-        } else if (earningsWeiPerSecond == 7) {
+        } else if (testCase == 7) {
             localData().failOnIncrease = true;
-        } else if (earningsWeiPerSecond == 8) {
+        } else if (testCase == 8) {
             localData().failEmptyOnIncrease = true;
         }
     }
