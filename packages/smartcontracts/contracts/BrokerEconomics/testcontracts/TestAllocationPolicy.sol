@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+/* solhint-disable reason-string */
 
 pragma solidity ^0.8.13;
 
