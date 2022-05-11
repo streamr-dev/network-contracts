@@ -15,6 +15,7 @@
     "upgradeImpl": "hardhat run --network hardhat scripts/upgradeProxy.ts",
     "localDeploy": "hardhat run --network localsidechain scripts/deploy.ts",
     "localDeployTatum": "hardhat run --network localsidechain scripts/tatum/1_deployBountyFactory.ts",
+    "localInteractTatum": "hardhat run --network localsidechain scripts/tatum/2_deployNewBounty.ts",
     "localDeployProxy": "hardhat run --network localsidechain scripts/deployWithProxy.ts",
     "localUpgradeImpl": "hardhat run --network localsidechain scripts/upgradeProxy.ts",
     "interactProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/2_interactWithContracts.ts",
