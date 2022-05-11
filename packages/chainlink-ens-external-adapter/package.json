@@ -15,7 +15,7 @@
     "@chainlink/external-adapter": "0.2.6",
     "@ensdomains/ens": "0.6.2",
     "body-parser": "1.19.1",
-    "dotenv": "16.0.0",
+    "dotenv": "16.0.1",
     "eth-ens-namehash": "2.0.8",
     "ethers": "5.5.3",
     "express": "4.17.2"
