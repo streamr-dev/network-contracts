@@ -8,7 +8,6 @@ import "../Bounty.sol";
 // import "hardhat/console.sol";
 
 contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
-
     struct LocalStorage {
         uint256 minimumStake;
     }
@@ -22,18 +21,7 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
         localData().minimumStake = minimumStake;
     }
 
-    function onJoin(address broker, uint256 amount) external view returns (bool) {
+    function onJoin(address broker, uint256 amount) external view {
         require(globalData().stakedWei[broker] + amount >= localData().minimumStake, "error_stakeUnderMinimum");
-        return true;
-
-        // if (stakedWei[broker] < minimumStakeWei) {
-        //     uint missingStakeWei = minimumStakeWei - stakedWei[broker];
-        //     // require(token.transferFrom(msg.sender, address(this), missingStakeWei), "error_transfer");
-        //     _stake(broker, missingStakeWei);
-        // }
-
-        // min, max number of brokers
-
-        // min stake
     }
 }

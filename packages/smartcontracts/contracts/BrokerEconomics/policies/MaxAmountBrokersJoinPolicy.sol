@@ -5,11 +5,9 @@ pragma solidity ^0.8.13;
 import "./IJoinPolicy.sol";
 import "../Bounty.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
-    // event Joining(string indexed streamID, address indexed broker);
-
     struct LocalStorage {
         uint256 maxBrokers;
     }
@@ -23,42 +21,8 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
         localData().maxBrokers = maxBrokers;
     }
 
-    function onJoin(address /*broker*/, uint256 /*amount*/) external view returns (bool) {
-        require(globalData().brokerCount + 1 <= localData().maxBrokers, "error_tooManyBrokers");
-        return true;
-
-        // if (stakedWei[broker] < minimumStakeWei) {
-        //     uint missingStakeWei = minimumStakeWei - stakedWei[broker];
-        //     // require(token.transferFrom(msg.sender, address(this), missingStakeWei), "error_transfer");
-        //     _stake(broker, missingStakeWei);
-        // }
-
-        // min, max number of brokers
-
-        // min stake
+    /** Check if there's room for one more */
+    function onJoin(address, uint256) external view {
+        require(globalData().brokerCount < localData().maxBrokers, "error_tooManyBrokers");
     }
-
-//     function join(address broker, uint amount) external returns (bool) {
-//         console.log("DefaultJoinPolicy.join()");
-//         stakedWei[broker] += value;
-//         console.log("stakedWei[broker] += value;", stakedWei[broker], minStake);
-//         require(stakedWei[broker] >= minStake);
-//         brokerCount += 1;
-//         require(brokerCount >= minBrokers);
-//         // if (brokers[broker] == 0) {
-//         //     console.log("Adding broker ", broker, " amount ", amount);
-//         //     brokers.push(broker);
-//         // }
-//         return true;
-
-//         // if (stakedWei[broker] < minimumStakeWei) {
-//         //     uint missingStakeWei = minimumStakeWei - stakedWei[broker];
-//         //     // require(token.transferFrom(msg.sender, address(this), missingStakeWei), "error_transfer");
-//         //     _stake(broker, missingStakeWei);
-//         // }
-
-//         // min, max number of brokers
-
-//         // min stake
-//     }
 }
