@@ -5,7 +5,7 @@ import { BigNumber, utils, ContractTransaction } from "ethers"
 import { IAllocationPolicy, TestToken, Bounty, BountyFactory, IJoinPolicy, ILeavePolicy } from "../typechain"
 
 const { provider: waffleProvider } = waffle
-const { parseEther, formatEther, defaultAbiCoder } = utils
+const { parseEther, formatEther } = utils
 const { provider, getContractFactory } = hardhatEthers
 
 const { log } = console // TODO: use pino for logging?
@@ -290,24 +290,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
         expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
         expect(insolvencyEvent).to.not.be.undefined
-    })
-
-    it("allocates correctly if money runs out, and then money is added", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1
-        // t1 = t0 + 1000: broker2 joins, stakes 4
-        // t2 = t0 + 2000: money runs out
-        // t3 = t0 + 3000: money is added
-        // t4 = t0 + 4000: broker2 leaves
-        // t5 = t0 + 5000: broker1 leaves
-        // in the end 4000*(wei/sec) are expected winnings i.e. owed to brokers
-        //            because between 2000...3000 no allocations were paid
-        const bounty = await deployBountyContract()
-        const totalTokensExpected = parseEther("4000")
-        await (await bounty.sponsor("2000")).wait()
-
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
-
     })
 
     // TODO: add required staying period feature, then unskip this test
