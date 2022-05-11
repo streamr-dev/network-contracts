@@ -1,143 +1,139 @@
 {
-    "development": {
-        "ethereum": {
-            "id": 8995,
-            "rpcEndpoints": [
-                {
-                    "url": "http://10.200.10.1:8545"
-                },
-                {
-                    "url": "ws://10.200.10.1:8545"
-                }
-            ],
-            "contracts": {
-                "DATA": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
-                "XDATA": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
-                "Marketplace": "0xF1371c0f40528406dc4f4cAf89924eA9Da49E866",
-                "UniswapAdapter": "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3",
-                "TrackerRegistry": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
-                "DataUnionFactory": "0x4bbcBeFBEC587f6C4AF9AF9B48847caEa1Fe81dA",
-                "DataUnionTemplate": "0x7bFBAe10AE5b5eF45e2aC396E0E605F6658eF3Bc",
-                "TokenMediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
-                "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
-                "ENS": "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03",
-                "FIFSRegistrar": "0x57B81a9442805f88c4617B506206531e72d96290",
-                "PublicResolver": "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c",
-                "core-api": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
-                "Uniswap2Router": "0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920",
-                "MigrationManager": "0xc7aaf6c62e86a36395d8108fe95d5f758794c16c"
+    "dev0": {
+        "id": 8995,
+        "rpcEndpoints": [
+            {
+                "url": "http://10.200.10.1:8545"
+            },
+            {
+                "url": "ws://10.200.10.1:8545"
             }
-        },
-        "streamr": {
-            "id": 8997,
-            "rpcEndpoints": [
-                {
-                    "url": "http://10.200.10.1:8546"
-                },
-                {
-                    "url": "ws://10.200.10.1:8546"
-                }
-            ],
-            "contracts": {
-                "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
-                "Token": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
-                "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
-                "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
-                "DataUnionFactory": "0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927",
-                "DataUnionTemplate": "0x36afc8c9283CC866b8EB6a61C6e6862a83cd6ee8",
-                "UnichainDataUnionFactory": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
-                "UnichainDataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
-                "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
-                "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
-                "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
-                "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415"
-            }
+        ],
+        "contracts": {
+            "DATA": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
+            "XDATA": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
+            "Marketplace": "0xF1371c0f40528406dc4f4cAf89924eA9Da49E866",
+            "UniswapAdapter": "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3",
+            "TrackerRegistry": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
+            "DataUnionFactory": "0x4bbcBeFBEC587f6C4AF9AF9B48847caEa1Fe81dA",
+            "DataUnionTemplate": "0x7bFBAe10AE5b5eF45e2aC396E0E605F6658eF3Bc",
+            "TokenMediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
+            "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
+            "ENS": "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03",
+            "FIFSRegistrar": "0x57B81a9442805f88c4617B506206531e72d96290",
+            "PublicResolver": "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c",
+            "core-api": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
+            "Uniswap2Router": "0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920",
+            "MigrationManager": "0xc7aaf6c62e86a36395d8108fe95d5f758794c16c"
         }
     },
-    "production": {
-        "ethereum": {
-            "id": 1,
-            "rpcEndpoints": [],
-            "contracts": {
-                "DATA": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
-                "XDATA": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
-                "Marketplace": "0xdc8d23092b93f9bb7416f45dea36f55996f34867",
-                "UniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
-                "TrackerRegistry": "0xab9BEb0e8B106078c953CcAB4D6bF9142BeF854d",
-                "DataUnionFactory": "0xE41439BF434F9CfBF0153f5231C205d4ae0C22e3",
-                "DataUnionTemplate": "0x67352e3F7dBA907aF877020aE7E9450C0029C70c",
-                "MediatorXDATA": "0x2eeeDdeECe91c9F4c5bA4C8E1d784A0234C6d015",
-                "MediatorDATA": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
-                "AMB": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
-                "ENS": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-                "core-api": "0xf3E5A65851C3779f468c9EcB32E6f25D9D68601a",
-                "MigrationManager": "0xf32219E61c840300D1B35c939ed9E54a86163334"
+    "dev1": {
+        "id": 8997,
+        "rpcEndpoints": [
+            {
+                "url": "http://10.200.10.1:8546"
+            },
+            {
+                "url": "ws://10.200.10.1:8546"
             }
-        },
-        "gnosis": {
-            "id": 100,
-            "rpcEndpoints": [
-                {
-                    "url": "https://rpc.gnosischain.com"
-                },
-                {
-                    "url": "wss://rpc.gnosischain.com/wss"
-                }
-            ],
-            "contracts": {
-                "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
-                "DATA": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
-                "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
-                "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
-                "AMB": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
-                "DataUnionFactory": "0xFCE1FBFAaE61861B011B379442c8eE1DC868ABd0",
-                "DataUnionTemplate": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
-                "UnichainDataUnionFactory": "0x82F1b8a9521933ecC41A9062f1eb597D0Ad6e12F",
-                "UnichainDataUnionTemplate": "0xA7E64C07464DdC69dC1534C14c7c724E5807d42a",
-                "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
-                "BinanceAdapterDATA": "0x193888692673b5dD46e6BC90bA8cBFeDa515c8C1",
-                "BinanceAdapterXDATA": "0x0c1aF6edA561fbDA48E9A7B1Dd46D216F31A97cC",
-                "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59"
+        ],
+        "contracts": {
+            "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
+            "DATA": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
+            "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
+            "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
+            "DataUnionFactory": "0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927",
+            "DataUnionTemplate": "0x36afc8c9283CC866b8EB6a61C6e6862a83cd6ee8",
+            "UnichainDataUnionFactory": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
+            "UnichainDataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
+            "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
+            "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
+            "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
+            "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415"
+        }
+    },
+    "ethereum": {
+        "id": 1,
+        "rpcEndpoints": [],
+        "contracts": {
+            "DATA": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
+            "XDATA": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
+            "Marketplace": "0xdc8d23092b93f9bb7416f45dea36f55996f34867",
+            "UniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
+            "TrackerRegistry": "0xab9BEb0e8B106078c953CcAB4D6bF9142BeF854d",
+            "DataUnionFactory": "0xE41439BF434F9CfBF0153f5231C205d4ae0C22e3",
+            "DataUnionTemplate": "0x67352e3F7dBA907aF877020aE7E9450C0029C70c",
+            "MediatorXDATA": "0x2eeeDdeECe91c9F4c5bA4C8E1d784A0234C6d015",
+            "MediatorDATA": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
+            "AMB": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
+            "ENS": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+            "core-api": "0xf3E5A65851C3779f468c9EcB32E6f25D9D68601a",
+            "MigrationManager": "0xf32219E61c840300D1B35c939ed9E54a86163334"
+        }
+    },
+    "gnosis": {
+        "id": 100,
+        "rpcEndpoints": [
+            {
+                "url": "https://rpc.gnosischain.com"
+            },
+            {
+                "url": "wss://rpc.gnosischain.com/wss"
             }
-        },
-        "binance": {
-            "id": 56,
-            "rpcEndpoints": [
-                {
-                    "url": "https://bsc-dataseed.binance.org"
-                },
-                {
-                    "url": "wss://bsc-dataseed.binance.org"
-                }
-            ],
-            "contracts": {
-                "DATA": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
-                "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
+        ],
+        "contracts": {
+            "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
+            "DATA": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
+            "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
+            "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
+            "AMB": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
+            "DataUnionFactory": "0xFCE1FBFAaE61861B011B379442c8eE1DC868ABd0",
+            "DataUnionTemplate": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
+            "UnichainDataUnionFactory": "0x82F1b8a9521933ecC41A9062f1eb597D0Ad6e12F",
+            "UnichainDataUnionTemplate": "0xA7E64C07464DdC69dC1534C14c7c724E5807d42a",
+            "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
+            "BinanceAdapterDATA": "0x193888692673b5dD46e6BC90bA8cBFeDa515c8C1",
+            "BinanceAdapterXDATA": "0x0c1aF6edA561fbDA48E9A7B1Dd46D216F31A97cC",
+            "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59"
+        }
+    },
+    "binance": {
+        "id": 56,
+        "rpcEndpoints": [
+            {
+                "url": "https://bsc-dataseed.binance.org"
+            },
+            {
+                "url": "wss://bsc-dataseed.binance.org"
             }
-        },
-        "polygon": {
-            "id": 137,
-            "rpcEndpoints": [
-                {
-                    "url": "https://polygon-rpc.com"
-                },
-                {
-                    "url": "wss://polygon-rpc.com"
-                }
-            ],
-            "contracts": {
-                "DATA": "0x3a9A81d576d83FF21f26f325066054540720fC34",
-                "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
-                "ChainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
-                "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
-                "UnichainDataUnionFactory": "0x3dBDf6C439FC2C90F98C351c90682A7cCe3366E5",
-                "UnichainDataUnionTemplate": "0x6D73eDf9366c97ed12C78C41F02A9254e9184CB1",
-                "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
-                "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
-                "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
-                "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
-                "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+        ],
+        "contracts": {
+            "DATA": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
+            "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
+        }
+    },
+    "polygon": {
+        "id": 137,
+        "rpcEndpoints": [
+            {
+                "url": "https://polygon-rpc.com"
+            },
+            {
+                "url": "wss://polygon-rpc.com"
             }
+        ],
+        "contracts": {
+            "DATA": "0x3a9A81d576d83FF21f26f325066054540720fC34",
+            "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+            "ChainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
+            "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
+            "UnichainDataUnionFactory": "0x3dBDf6C439FC2C90F98C351c90682A7cCe3366E5",
+            "UnichainDataUnionTemplate": "0x6D73eDf9366c97ed12C78C41F02A9254e9184CB1",
+            "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
+            "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
+            "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
+            "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
+            "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
         }
     }
 }
