@@ -42,6 +42,31 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _;
     }
 
+    // State of the bounty contract
+    // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
+    enum State {
+        NotInitialized,
+        Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
+        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
+        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
+        Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
+    }
+
+    function getState() public view returns (State) {
+        if (address(allocationPolicy) == address(0) || address(leavePolicy) == address(0)) {
+            return State.NotInitialized;
+        }
+        bool funded = getHorizon() >= globalData().minHorizonSeconds;
+        bool manned = globalData().brokerCount >= globalData().minBrokerCount;
+
+        if (funded) {
+            return manned ? State.Running : State.Funded;
+        } else {
+            return manned ? State.Warning : State.Closed;
+        }
+    }
+
+    // storage variables available to all modules
     struct GlobalState {
         uint brokerCount;
         /** how much each broker has staked, if 0 broker is considered not part of bounty */
@@ -78,29 +103,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
-    }
-
-    // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
-    enum State {
-        NotInitialized,
-        Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
-        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
-        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
-        Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
-    }
-
-    function getState() public view returns (State) {
-        if (address(allocationPolicy) == address(0) || address(leavePolicy) == address(0)) {
-            return State.NotInitialized;
-        }
-        bool funded = getHorizon() >= globalData().minHorizonSeconds;
-        bool manned = globalData().brokerCount >= globalData().minBrokerCount;
-
-        if (funded) {
-            return manned ? State.Running : State.Funded;
-        } else {
-            return manned ? State.Warning : State.Closed;
-        }
     }
 
     /**
