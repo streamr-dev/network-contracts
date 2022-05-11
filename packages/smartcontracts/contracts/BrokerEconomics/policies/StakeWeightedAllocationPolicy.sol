@@ -9,9 +9,8 @@ import "../Bounty.sol";
 
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
-        uint256 horizon;
-        uint256 incomePerSecond; // total income velocity, distributed to brokers
-        uint256 incomePerSecondPerStake; // time-income per stake FULL TOKEN unit (wei x 1e18)
+        uint256 incomePerSecond; // wei, total income velocity, distributed to brokers
+        uint256 incomePerSecondPerStake; // wei, time-income per stake FULL TOKEN unit (wei x 1e18)
         uint256 cumulativeEarningsPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
         mapping(address => uint256) cumulativeEarningsAtJoin;
         mapping(address => uint256) earningsBeforeJoinWei;
@@ -28,6 +27,21 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     function setParam(uint256 incomePerSecond) external {
         localData().incomePerSecond = incomePerSecond;
+    }
+
+    /** Horizon means how long time the (unallocated) funds are going to still last */
+    function getHorizonSeconds() public override(IAllocationPolicy) view returns (uint256) {
+        // console.log("    horizon: bounty income wei / sec", localData().incomePerSecond);
+        if (localData().incomePerSecond == 0) {
+            return 2**256 - 1; // max uint256
+        }
+        uint owedWeiPerStake = owedPerStakeSinceLastUpdate();
+        // console.log("    horizon: bounty owed wei / stake", owedWeiPerStake);
+        uint owedWei = owedWeiPerStake * localData().lastUpdateTotalStake / 1e18;
+        uint remainingWei = globalData().unallocatedFunds;
+        // console.log("    horizon: bounty remaining unallocated wei", remainingWei);
+        if (remainingWei < owedWei) { return 0; }
+        return (remainingWei - owedWei) / localData().incomePerSecond;
     }
 
     /** When broker joins, the current "water level" is saved and later its allocation can be measured from the difference */
@@ -64,7 +78,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     /** Calculate earnings owed since last update, assuming normal operation */
     function owedPerStakeSinceLastUpdate() internal view returns(uint256 deltaEarnings) {
         uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
-        // console.log("    deltaTime     = ", deltaTime);
+        // console.log("    time          = ", block.timestamp, localData().lastUpdateTimestamp);
         deltaEarnings = localData().incomePerSecondPerStake * deltaTime;
         // console.log("    deltaEarnings = ", deltaEarnings);
     }
@@ -103,12 +117,12 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         uint owedWeiPerStake = owedPerStakeSinceLastUpdate();
         uint owedWei = owedWeiPerStake * localData().lastUpdateTotalStake / 1e18; // "stake" is in full tokens
         // console.log("total staked  = ", localData().lastUpdateTotalStake);
-        // console.log("owedWei       = ", owedWei);
+        // console.log("    owedWei       = ", owedWei);
 
         if (wasSolvent) {
             uint solventUntilTimestamp = block.timestamp; // normally: solvent until the end of the update period i.e. now
             uint remainingWei = globalData().unallocatedFunds;
-            // console.log("remainingWei  =", remainingWei);
+            // console.log("    remainingWei  = ", remainingWei);
             if (owedWei <= remainingWei) {
                 // solvent: allocate out all owed earnings
                 remainingWei -= owedWei;
@@ -118,8 +132,11 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
                 // in case of insolvency: allocate all remaining funds according to weight up to the start of insolvency
                 // console.log("partial allocation", remainingWei);
                 uint forfeitedWei = owedWei - remainingWei;
+                // console.log("    forfeitedWei  = ", forfeitedWei);
+                // console.log("    time          = ", block.timestamp, localData().lastUpdateTimestamp);
                 uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
                 uint insolvencyStartTime = block.timestamp - deltaTime * forfeitedWei / owedWei;
+                // console.log("    insolvcyStart = ", insolvencyStartTime);
                 uint perStakeWei = remainingWei * 1e18 / localData().lastUpdateTotalStake;
 
                 solventUntilTimestamp = insolvencyStartTime;
@@ -127,6 +144,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
                 remainingWei = 0;
                 localData().cumulativeEarningsPerStake += perStakeWei;
             }
+            // console.log("    remainingWei  = ", remainingWei);
             globalData().unallocatedFunds = remainingWei;
             localData().lastUpdateBalance = remainingWei;
             localData().lastUpdateTotalStake = totalStakedWei;
@@ -176,15 +194,5 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // console.log("  earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
         // console.log("  earningsAfterJoinWei", earningsAfterJoinWei);
         return localData().earningsBeforeJoinWei[broker] + earningsAfterJoinWei;
-    }
-
-    function calculatePenaltyOnStake(address broker) external view returns (uint256 stake) {
-        return 0;
-        // console.log("calculatePenaltyOnStake ", globalData().joinTimeOfBroker[broker], localData().horizon, block.timestamp);
-        // if (block.timestamp < globalData().joinTimeOfBroker[broker] + localData().horizon) {
-        //     return globalData().stakedWei[broker] / 10;
-        // } else {
-        //     return 0;
-        // }
     }
 }
