@@ -9,7 +9,6 @@ import "../Bounty.sol";
 
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
-        uint256 horizon;
         uint256 incomePerSecond; // wei, total income velocity, distributed to brokers
         uint256 incomePerSecondPerStake; // wei, time-income per stake FULL TOKEN unit (wei x 1e18)
         uint256 cumulativeEarningsPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
