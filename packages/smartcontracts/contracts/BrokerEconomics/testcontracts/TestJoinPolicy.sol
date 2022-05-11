@@ -26,9 +26,9 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
         }
     }
 
-    function checkAbleToJoin(address, uint256 amount) external pure returns (bool) {
+    function onJoin(address, uint256 amount) external pure returns (bool) {
         if (amount == 1) {
-            require(false, "test-error: checkAbleToJoin join policy");
+            require(false, "test-error: onJoin join policy");
         } else if (amount == 2) {
             require(false);
         }

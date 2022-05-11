@@ -23,10 +23,7 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
         localData().maxBrokers = maxBrokers;
     }
 
-    function checkAbleToJoin(address /*broker*/, uint256 /*amount*/) external view returns (bool) {
-
-        // console.log("maxBrokers checkabletojoin", globalData().brokerCount);
-
+    function onJoin(address /*broker*/, uint256 /*amount*/) external view returns (bool) {
         require(globalData().brokerCount + 1 <= localData().maxBrokers, "error_tooManyBrokers");
         return true;
 

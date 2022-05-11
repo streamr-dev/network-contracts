@@ -140,7 +140,7 @@ describe("Bounty", (): void => {
         const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
         await (await bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, ethers.BigNumber.from("100"))).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, 1, adminWallet.address))
-            .to.be.revertedWith("test-error: checkAbleToJoin join policy")
+            .to.be.revertedWith("test-error: onJoin join policy")
     })
 
     it("negativetest error joining on joinpolicy, empty error", async function(): Promise<void> {

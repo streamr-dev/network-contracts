@@ -143,7 +143,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 address joinPolicyAddress = joinPolicyAddresses[i];
                 (bool success, bytes memory returndata) = joinPolicyAddress.delegatecall(
-                    abi.encodeWithSignature("checkAbleToJoin(address,uint256)", broker, amount)
+                    abi.encodeWithSignature("onJoin(address,uint256)", broker, amount)
                 );
                 if (!success) {
                     if (returndata.length == 0) { revert("error_brokerJoinFailed"); }
