@@ -149,7 +149,7 @@ describe("Bounty", (): void => {
         const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
         await (await bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, ethers.BigNumber.from("100"))).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, 2, adminWallet.address))
-            .to.be.revertedWith("error_brokerJoinFailed")
+            .to.be.revertedWith("error_joinPolicyOnJoin")
     })
 
     it("negativetest error setting param on allocationPolicy", async function(): Promise<void> {
@@ -175,7 +175,7 @@ describe("Bounty", (): void => {
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, ethers.BigNumber.from("5"))).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
-            .to.be.revertedWith("error_joinFailed")
+            .to.be.revertedWith("error_allocationPolicyOnJoin")
     })
 
     it("negativetest error onstakeIncrease", async function(): Promise<void> {
