@@ -28,7 +28,7 @@
                 "MigrationManager": "0xc7aaf6c62e86a36395d8108fe95d5f758794c16c"
             }
         },
-        "streamr": {
+        "dev1": {
             "id": 8997,
             "rpcEndpoints": [
                 {
