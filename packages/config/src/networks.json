@@ -1,6 +1,6 @@
 {
     "development": {
-        "ethereum": {
+        "dev0": {
             "id": 8995,
             "rpcEndpoints": [
                 {

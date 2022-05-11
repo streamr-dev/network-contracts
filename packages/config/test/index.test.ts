@@ -11,13 +11,13 @@ describe("Load configuration from JSON file", () => {
     })
     it("development chain id is 8995", () => {
         const chains: config.Chains = config.Chains.load("development")
-        const chainId: number = chains.ethereum.id
+        const chainId: number = chains.dev0.id
         const expected = 8995
         assert.equal(chainId, expected, `Expecting ethereum dev chain id to equal ${expected}, got '${chainId}'`)
     })
     it("reads DATA token dev address from JSON", () => {
         const chains: config.Chains = config.Chains.load("development")
-        const address = chains.ethereum.contracts["DATA"]
+        const address = chains.dev0.contracts["DATA"]
         const expected = "0xbAA81A0179015bE47Ad439566374F2Bae098686F"
         assert.equal(address, expected, `Expecting ethereum DATA token to equal ${expected}, got '${address}'`)
     })
@@ -45,7 +45,7 @@ describe("Load configuration based on NODE_ENV environment variable", () => {
     it("development chain id is 8995", () => {
         process.env.NODE_ENV = "development"
         const chains: config.Chains = config.Chains.loadFromNodeEnv()
-        const chainId: number = chains.ethereum.id
+        const chainId: number = chains.dev0.id
         const expected = 8995
         assert.equal(chainId, expected, `Expecting ethereum dev chain id to equal ${expected}, got '${chainId}'`)
     })
