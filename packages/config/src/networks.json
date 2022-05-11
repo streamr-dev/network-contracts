@@ -11,8 +11,8 @@
                 }
             ],
             "contracts": {
-                "DATA-token": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
-                "XDATA-token": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
+                "DATA": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
+                "XDATA": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
                 "Marketplace": "0xF1371c0f40528406dc4f4cAf89924eA9Da49E866",
                 "UniswapAdapter": "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3",
                 "TrackerRegistry": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
@@ -59,8 +59,8 @@
             "id": 1,
             "rpcEndpoints": [],
             "contracts": {
-                "DATA-token": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
-                "XDATA-token": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
+                "DATA": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
+                "XDATA": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
                 "Marketplace": "0xdc8d23092b93f9bb7416f45dea36f55996f34867",
                 "UniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
                 "TrackerRegistry": "0xab9BEb0e8B106078c953CcAB4D6bF9142BeF854d",
@@ -85,8 +85,8 @@
                 }
             ],
             "contracts": {
-                "XDATA-token": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
-                "DATA-token": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
+                "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
+                "DATA": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
                 "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
                 "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
                 "AMB": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
@@ -111,7 +111,7 @@
                 }
             ],
             "contracts": {
-                "DATA-token": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
+                "DATA": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
                 "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
             }
         },
@@ -126,7 +126,7 @@
                 }
             ],
             "contracts": {
-                "DATA-token": "0x3a9A81d576d83FF21f26f325066054540720fC34",
+                "DATA": "0x3a9A81d576d83FF21f26f325066054540720fC34",
                 "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
                 "ChainlinkOracle": "0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D",
                 "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
