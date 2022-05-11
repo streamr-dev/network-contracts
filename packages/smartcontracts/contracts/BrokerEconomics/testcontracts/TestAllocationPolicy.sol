@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 import "../policies/IAllocationPolicy.sol";
 import "../Bounty.sol";
 
+// import "hardhat/console.sol";
 
 contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
@@ -17,7 +18,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function localData() internal view returns(LocalStorage storage data) {
-        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.StakeWeightedAllocationPolicy", address(this)));
+        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.TestAllocationPolicy", address(this)));
         assembly {data.slot := storagePosition}
     }
 

@@ -14,7 +14,7 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
     // }
 
     // function localData() internal view returns(LocalStorage storage data) {
-    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MinimumStakeJoinPolicy", address(this)));
+    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.TestJoinPolicy", address(this)));
     //     assembly {data.slot := storagePosition}
     // }
 
