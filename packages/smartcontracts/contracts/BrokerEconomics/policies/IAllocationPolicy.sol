@@ -9,4 +9,5 @@ interface IAllocationPolicy {
     function onJoin(address broker) external;
     function onLeave(address broker) external;
     function onStakeIncrease(address broker) external;
+    function onSponsor(address sponsor, uint amountWei) external;
 }
