@@ -9,7 +9,7 @@ dataSources:
     name: BountyFactory
     network: xDai
     source:
-      address: '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
+      address: '0xDa7893ee6Ab31413ea734dd0B7c259eeD290bF2a'
       abi: BountyFactory
       startBlock: 0
     mapping:

@@ -5,20 +5,30 @@ import { BrokerLeft, SponsorshipReceived, StakeAdded } from '../generated/templa
 
 export function handleStakeAdded(event: StakeAdded): void {
     log.info('handleStakeAdded: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    // let bountyAddress = event.address
-    // let brokerAddress = event.params.broker
-    // let totalStake = event.params.totalWei
-    // log.warning('handleStakeAdded: member={} duAddress={}', [brokerAddress.toHexString(), bountyAddress.toHexString()])
+    let bountyAddress = event.address
+    let brokerAddress = event.params.broker
+    let totalStake = event.params.totalWei
+    log.warning('handleStakeAdded: member={} duAddress={}', [brokerAddress.toHexString(), bountyAddress.toHexString()])
 
-    // let stake = new Stake(brokerAddress.toHexString())
-    // stake.bounty = bountyAddress.toHexString()
-    // stake.amount = totalStake
-    // stake.id = brokerAddress.toHexString()
-    // // stake.address = brokerAddress
-    // // member.addressString = memberAddress.toHexString()
-    // // member.dataunion = bountyAddress.toHexString()
-    // // member.status = 'ACTIVE'
-    // stake.save()
+    let stakeID = bountyAddress.toHexString() + "-" + brokerAddress.toHexString()
+    let stake = Stake.load(stakeID)
+    if (stake === null) {
+        stake = new Stake(stakeID)
+        stake.bounty = bountyAddress.toHexString()
+        stake.id = stakeID
+    }
+    stake.date = event.block.timestamp
+    stake.amount = totalStake
+    stake.save()
+
+    let bounty = Bounty.load(bountyAddress.toHexString())
+    bounty!.totalStake += event.params.addedWei
+    bounty!.save()
+
+    // stake.address = brokerAddress
+    // member.addressString = memberAddress.toHexString()
+    // member.dataunion = bountyAddress.toHexString()
+    // member.status = 'ACTIVE'
 }
 export function handleSponsorshipReceived(event: SponsorshipReceived): void {
     log.info('handleSponsorshipReceived: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])

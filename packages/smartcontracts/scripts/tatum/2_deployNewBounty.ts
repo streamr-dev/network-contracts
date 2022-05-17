@@ -48,9 +48,10 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 // const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // addresses localsidechain
-const BOUNTYFACTORY = '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const ALLOCATIONPOLICY = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
+const BOUNTYFACTORY = '0xDa7893ee6Ab31413ea734dd0B7c259eeD290bF2a'
+const ALLOCATIONPOLICY = '0x699B4bE95614f017Bb622e427d3232837Cc814E6'
+let bountyAddress = "0x46d62a056966e61256f499ef9d1bea32db45ebb2"
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
@@ -65,7 +66,6 @@ let adminWallet: Wallet
 let bountyFactory: BountyFactory
 let bounty: Bounty
 let tokenFromOwner: LinkToken
-let bountyAddress = "0x"
 // let resolverFomAdmin : Contract
 
 const connectToAllContracts = async () => {
@@ -121,7 +121,7 @@ const joinBounty = async () => {
 
 async function main() {
     await connectToAllContracts()
-    await deployNewBounty()
+    // await deployNewBounty()
     await joinBounty()
 }
 
