@@ -144,13 +144,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             // join the broker set
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 IJoinPolicy joinPolicy = IJoinPolicy(joinPolicyAddresses[i]);
-                callWithAddressUint(joinPolicy.onJoin, broker, amount, "error_joinPolicyOnJoin");
+                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
             }
             globalData().stakedWei[broker] += amount;
             globalData().brokerCount += 1;
             globalData().totalStakedWei += amount;
             globalData().joinTimeOfBroker[broker] = block.timestamp;
-            callWithAddress(allocationPolicy.onJoin, broker, "error_allocationPolicyOnJoin");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
             // console.log("BrokerJoined");
         } else {
@@ -159,7 +159,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             globalData().totalStakedWei += amount;
 
             // re-calculate the cumulative earnings
-            callWithAddress(allocationPolicy.onStakeIncrease, broker, "error_stakeIncreaseFailed");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker), "error_stakeIncreaseFailed");
         }
         // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
     }
@@ -199,7 +199,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().stakedWei[broker] = 0;
         globalData().joinTimeOfBroker[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-        callWithAddress(allocationPolicy.onLeave, broker, "error_brokerLeaveFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
         emit BrokerLeft(broker, returnFunds);
         // removeFromAddressArray(brokers, broker);
 
@@ -216,7 +216,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function _addSponsorship(address sponsorAddress, uint amountTokenWei) internal {
         // TODO: sweep also unaccounted tokens into unallocated funds?
         globalData().unallocatedFunds += amountTokenWei;
-        callWithAddressUint(allocationPolicy.onSponsor, sponsorAddress, amountTokenWei, "error_sponsorFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
         emit SponsorshipReceived(sponsorAddress, amountTokenWei);
     }
 
@@ -230,18 +230,18 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
         allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
-        callWithUint(allocationPolicy.setParam, param, "error_setAllocationPolicyFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
     }
 
     function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
         leavePolicy = ILeavePolicy(_leaveAddress);
-        callWithUint(leavePolicy.setParam, param, "error_setLeavePolicyFailed");
+        moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
     function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
         joinPolicyAddresses.push(_joinPolicyAddress);
         IJoinPolicy joinPolicy = IJoinPolicy(_joinPolicyAddress);
-        callWithUint(joinPolicy.setParam, param, "error_addJoinPolicyFailed");
+        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
 
     function removeJoinPolicy(address _joinPolicyAddress) public isAdmin {
@@ -271,32 +271,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Delegate-call ("library call") a module's method: it will use this Bounty's storage */
-    function callWithAddress(function(address) external func, address arg, string memory defaultReason) internal {
-        (bool success, bytes memory returndata) = func.address.delegatecall(
-            abi.encodeWithSelector(func.selector, arg)
-        );
-        if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-    }
-
-    /** Delegate-call ("library call") a module's method: it will use this Bounty's storage */
-    function callWithUint(function(uint) external func, uint arg, string memory defaultReason) internal {
-        (bool success, bytes memory returndata) = func.address.delegatecall(
-            abi.encodeWithSelector(func.selector, arg)
-        );
-        if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-    }
-
-    /** Delegate-call ("library call") a module's method: it will use this Bounty's storage */
-    function callWithAddressUint(function(address, uint) external func, address arg1, uint arg2, string memory defaultReason) internal {
-        (bool success, bytes memory returndata) = func.address.delegatecall(
-            abi.encodeWithSelector(func.selector, arg1, arg2)
-        );
+    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal {
+        (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
@@ -324,11 +300,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return returndata;
     }
 
-    function getWithAddress(function(address) external returns (uint) func, address arg, string memory defaultReason) internal view returns (uint returnValue) {
-        // trampoline with the callback; the call target module address comes as an extra argument, see fallback code for why
-        (bool success, bytes memory returndata) = address(this).staticcall(
-            abi.encodeWithSelector(func.selector, arg, func.address)
-        );
+    function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
+        // trampoline through the above callback
+        (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
@@ -337,27 +311,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
-    function getWithNoArgs(function() external returns (uint) func, string memory defaultReason) internal view returns (uint returnValue) {
-        (bool success, bytes memory returndata) = address(this).staticcall(
-            abi.encodeWithSelector(func.selector, func.address)
-        );
-        if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-        assembly { returnValue := mload(add(returndata, 32)) }
-    }
-
     function getHorizon() public view returns(uint256 horizon) {
-        return getWithNoArgs(allocationPolicy.getHorizonSeconds, "error_getHorizonFailed");
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getHorizonSeconds.selector, address(allocationPolicy)), "error_getHorizonFailed");
     }
 
     function getAllocation(address broker) public view returns(uint256 allocation) {
-        return getWithAddress(allocationPolicy.calculateAllocation, broker, "error_getAllocationFailed");
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.calculateAllocation.selector, broker, address(allocationPolicy)), "error_getAllocationFailed");
     }
 
     function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {
-        return getWithAddress(leavePolicy.getLeavePenaltyWei, broker, "error_getLeavePenaltyFailed");
+        return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, broker, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
