@@ -81,11 +81,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     function getCumulativeEarnings() internal view returns(uint256) {
     }
 
-    /**
-     * Update the localData so that all subsequent calculations can use localData().cumulativeEarningsPerStake
-     * This should be called before/during changes that affect incomePerSecondPerStake (total staked, earnings velocity) which is that "slope of the cumulative earnings curve"
-     */
-    function updateCumulativeEarnings() private {
+    function onSponsor(address, uint) external {
     }
 
     function calculateAllocation(address broker) public view returns (uint allocation) {

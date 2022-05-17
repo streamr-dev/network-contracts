@@ -214,7 +214,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function _addSponsorship(address sponsorAddress, uint amountTokenWei) internal {
+        // TODO: sweep also unaccounted tokens into unallocated funds?
         globalData().unallocatedFunds += amountTokenWei;
+        callWithAddressUint(allocationPolicy.onSponsor, sponsorAddress, amountTokenWei, "error_sponsorFailed");
         emit SponsorshipReceived(sponsorAddress, amountTokenWei);
     }
 
