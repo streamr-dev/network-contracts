@@ -487,7 +487,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(newTokens)).to.equal("2000.0")
     })
 
-    it.only("allocates correctly if a broker leaves then joins during insolvency", async function(): Promise<void> {
+    it("allocates correctly if a broker leaves then joins during insolvency", async function(): Promise<void> {
         // t = t0       : broker1 joins, stakes 1000 tokens
         // t = t0 + 1000: broker2 joins, stakes 1000 tokens
         // t = t0 + 2000: money runs out
