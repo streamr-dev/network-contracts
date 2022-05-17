@@ -93,7 +93,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
             // has been insolvent but now has funds again => back to normal
             //   don't distribute anything yet but start counting again
-            if (oldBalanceWei == 0 && newBalanceWei > 0) {
+            if (local.forfeitedWei > 0 && newBalanceWei > 0) {
                 emit InsolvencyEnded(insolvencyStartTime, block.timestamp, local.forfeitedWeiPerStake, local.forfeitedWei);
                 local.forfeitedWeiPerStake = 0;
                 local.forfeitedWei = 0;
