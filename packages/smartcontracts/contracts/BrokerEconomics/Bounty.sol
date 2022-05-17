@@ -324,7 +324,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return returndata;
     }
 
-    function getWithAddress(function(address) external returns (uint) func, address arg, string memory defaultReason) public view returns (uint returnValue) {
+    function getWithAddress(function(address) external returns (uint) func, address arg, string memory defaultReason) internal view returns (uint returnValue) {
         // trampoline with the callback; the call target module address comes as an extra argument, see fallback code for why
         (bool success, bytes memory returndata) = address(this).staticcall(
             abi.encodeWithSelector(func.selector, arg, func.address)
@@ -337,7 +337,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
-    function getWithNoArgs(function() external returns (uint) func, string memory defaultReason) public view returns (uint returnValue) {
+    function getWithNoArgs(function() external returns (uint) func, string memory defaultReason) internal view returns (uint returnValue) {
         (bool success, bytes memory returndata) = address(this).staticcall(
             abi.encodeWithSelector(func.selector, func.address)
         );
