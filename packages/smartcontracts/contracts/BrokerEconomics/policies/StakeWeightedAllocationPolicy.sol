@@ -167,10 +167,18 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function onSponsor(address, uint) external {
-        // in case the bounty was previously insolvent, now it got a top-up => return from insolvency
-        if (localData().solventUntilTimestamp < block.timestamp) {
-            update();
-        }
+        // console.log("onSponsor, now got", globalData().unallocatedFunds);
+        update();
+
+        // Would be nice to avoid the above full update when tokens come in. TODO: Is it possible?
+        // Seems that by using solventUntilTimestamp instead of calculating solvency when needed, we need a full update()
+        //   otherwise lastUpdateBalance is not updated and this line breaks:
+        //       oldBalanceWei -= allocationWei;
+        //   the reason is: lastUpdateBalance might be very old, before this top-up, and hence not enough to cover the allocation,
+        //   yet clearly there is enough unallocated funds to cover when this top-up is included.
+        // The timing on this top-up matters as to if the bounty becomes insolvent for a time before the top-up or not,
+        //   this is another reason why not only solventUntilTimestamp but also lastUpdateBalance would need updating here,
+        //   or at least a check whether the bounty went insolvent before this top-up or not; but that's not far from doing the full update()
     }
 
     /** Calculate the cumulative earnings per unit (full token stake) right now */
