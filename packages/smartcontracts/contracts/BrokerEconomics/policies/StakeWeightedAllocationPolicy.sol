@@ -206,11 +206,6 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // never joined
         if (globalData().joinTimeOfBroker[broker] == 0) { return 0; }
 
-        // TODO: what is this check about? Don't give earnings for brokers younger than horizon? Why?
-        // if (globalData().joinTimeOfBroker[broker] + localData().horizon > block.timestamp) {
-        //     return localData().earningsBeforeJoinWei[broker];
-        // }
-
         // console.log("Calculate allocation for", broker);
         // console.log("  cumulative earnings ", getCumulativeEarnings());
         // console.log("  cumulat. e. at join ", localData().cumulativeEarningsAtJoin[broker]);
