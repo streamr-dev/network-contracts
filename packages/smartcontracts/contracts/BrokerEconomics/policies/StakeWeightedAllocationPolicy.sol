@@ -13,7 +13,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         uint256 incomePerSecondPerStake; // wei, time-income per stake FULL TOKEN unit (wei x 1e18)
         uint256 cumulativeEarningsPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
         mapping(address => uint256) cumulativeEarningsAtJoin;
-        mapping(address => uint256) earningsBeforeJoinWei;
+        mapping(address => uint256) unpaidEarningsWei;
         mapping(address => uint256) stakedWei; // staked during last update: must remember this because allocations are based on stakes during update period
 
         // when the current unallocated funds will run out if more sponsorship is not added; OR when insolvency started
@@ -146,7 +146,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     /** When broker leaves, its allocations so far are saved so that they continue to increase after next join */
     function onLeave(address broker) external {
         update();
-        localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
+        // all earnings are paid out when leaving in the Bounty.sol:_removeBroker currently
+        localData().unpaidEarningsWei[broker] = 0;
         localData().stakedWei[broker] = globalData().stakedWei[broker];
         // console.log("onLeave", broker);
         // console.log("  earnings before join <-", localData().earningsBeforeJoinWei[broker]);
@@ -157,7 +158,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      */
     function onStakeIncrease(address broker) external {
         update();
-        localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
+        localData().unpaidEarningsWei[broker] = calculateAllocation(broker);
         localData().cumulativeEarningsAtJoin[broker] = localData().cumulativeEarningsPerStake;
         localData().stakedWei[broker] = globalData().stakedWei[broker];
         // console.log("onStakeIncrease", broker);
@@ -208,8 +209,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         uint earningsPerFullToken = getCumulativeEarnings() - localData().cumulativeEarningsAtJoin[broker];
         // console.log("  earningsPerFullToken", earningsPerFullToken);
         uint earningsAfterJoinWei = localData().stakedWei[broker] * earningsPerFullToken / 1e18;
-        // console.log("  earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  unpaidEarningsWei", localData().unpaidEarningsWei[broker]);
         // console.log("  earningsAfterJoinWei", earningsAfterJoinWei);
-        return localData().earningsBeforeJoinWei[broker] + earningsAfterJoinWei;
+        return localData().unpaidEarningsWei[broker] + earningsAfterJoinWei;
     }
 }
