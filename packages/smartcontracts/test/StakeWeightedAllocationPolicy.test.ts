@@ -348,9 +348,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1Expected = totalTokensExpected.div(4).mul(3)
         const tokensBroker2Expected = totalTokensExpected.div(4)
 
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
-
         // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
         expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
             (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
@@ -358,15 +355,17 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("1000").div("2000").toString(),     // 2000 full token total stake
             parseEther("1000").toString()
         ])
+        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
+        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
     })
 
-    it("allocates correctly if broker joins while bounty is insolvent", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1000 tokens
-        // t2 = t0 + 1000: money runs out
-        // t1 = t0 + 2000: broker2 joins, stakes 1000 tokens
-        // t3 = t0 + 3000: money is added
-        // t4 = t0 + 4000: broker1 leaves
-        // t5 = t0 + 5000: broker2 leaves
+    it("allocates correctly if broker joins during insolvency", async function(): Promise<void> {
+        // t = t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: money runs out
+        // t = t0 + 2000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 3000: money is added
+        // t = t0 + 4000: broker1 leaves
+        // t = t0 + 5000: broker2 leaves
         // seconds between 0...1000...2000...3000...4000...5000  total
         // broker1 gets     1000   + 0    + 0   + 500    + 0    = 1500
         // broker2 gets        0   + 0    + 0   + 500 + 1000    = 1500
@@ -403,9 +402,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        expect(formatEther(tokensBroker1)).to.equal("1500.0")
-        expect(formatEther(tokensBroker2)).to.equal("1500.0")
-
         // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
         expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
             (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
@@ -413,6 +409,394 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("1.5").toString(),
             parseEther("2000").toString()
         ])
+        expect(formatEther(tokensBroker1)).to.equal("1500.0")
+        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+    })
+
+    it("allocates correctly if broker leaves during insolvency", async function(): Promise<void> {
+        //     t0       : broker joins
+        // t = t0 + 1000: money runs out
+        // t = t0 + 2000: broker leaves
+        // expecting to get 1000 tokens and forfeiting 1000
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("1000"))).wait()
+
+        const tokensBefore = await token.balanceOf(broker.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
+
+        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
+        const leaveTr = await (await bounty.connect(broker).leave()).wait()
+        const insolvencyEvent = leaveTr.events?.find((e) => e.event == "InsolvencyStarted")
+
+        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+
+        // event InsolvencyStarted(uint startTimeStamp);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(formatEther(newTokens)).to.equal("1000.0")
+    })
+
+    // TODO: this test will change once the bounty will stop allocations with too few brokers, see assert in the end
+    it.skip("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
+        // t = t0       : broker joins
+        // t = t0 + 1000: money runs out
+        // t = t0 + 2000: broker leaves
+        // t = t0 + 3000: broker joins
+        // t = t0 + 4000: money added
+        // t = t0 + 5000: broker leaves
+        // expecting to get 1000 + 1000 tokens and also forfeiting 1000 + 1000
+        //   (although forfeited tokens can't be read from anywhere because broker didn't stay through insolvency!)
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("1000"))).wait()
+
+        const tokensBefore = await token.balanceOf(broker.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
+
+        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 3000, "Broker joins again")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 4000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 5000, "Broker leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 4001).toString(),
+            // TODO: not sure what these should be?! Eventually the contract shouldn't run when there are not brokers, and this should be 2000
+            parseEther("2").toString(),
+            parseEther("2000").toString()
+        ])
+        expect(formatEther(newTokens)).to.equal("2000.0")
+    })
+
+    it.only("allocates correctly if a broker leaves then joins during insolvency", async function(): Promise<void> {
+        // t = t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out
+        // t = t0 + 3000: broker1 leaves
+        // t = t0 + 4000: broker1 joins, stakes 1000 tokens
+        // t = t0 + 5000: money is added
+        // t = t0 + 6000: broker1 leaves
+        // t = t0 + 7000: broker2 leaves
+        // seconds between 0...1000...2000...3000...4000...5000...6000...7000  total
+        // broker1 gets     1000 + 500 +   0  +   0  +   0  +  500 +    0     = 2000
+        // broker2 gets        0 + 500 +   0  +   0  +   0  +  500 + 1000     = 2000
+        // forfeited tokens             1000 + 1000  + 1000                   = 3000
+        // forfeited per stake           0.5 +  1.0  + 0.5                    = 2.0
+        // this means: if there wouldn't have been insolvency:
+        //   brokers would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
+        //   broker2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("2000"))).wait()
+
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+
+        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+
+        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 joins again")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 5000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 6000, "Broker 1 leaves again")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 7000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 5001).toString(),
+            parseEther("2.0").toString(),
+            parseEther("3000").toString()
+        ])
+        expect(formatEther(tokensBroker1)).to.equal("2000.0")
+        expect(formatEther(tokensBroker2)).to.equal("2000.0")
+    })
+
+    it("allocates correctly if incomePerSecond changes", async function(): Promise<void> {
+        //     t0       : broker joins
+        // t = t0 + 1000: incomePerSecond changes to 2
+        // t = t0 + 2000: broker leaves
+        // expecting to get 1000 + 2000 tokens
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("10000"))).wait()
+
+        const tokensBefore = await token.balanceOf(broker.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "IncomePerSecond changes")
+        await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
+
+        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+
+        expect(formatEther(newTokens)).to.equal("3000.0")
+    })
+
+    it("allocates correctly if incomePerSecond changes during insolvency", async function(): Promise<void> {
+        //     t0       : broker joins
+        // t = t0 + 1000: money runs out
+        // t = t0 + 2000: incomePerSecond changes to 2
+        // t = t0 + 3000: money is added
+        // t = t0 + 4000: broker leaves
+        // expecting to get 1000 + 2000 tokens
+        // expecting 1000 + 2000 forfeited tokens (1.0 + 2.0 per stake)
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("1000"))).wait()
+
+        const tokensBefore = await token.balanceOf(broker.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
+
+        await advanceToTimestamp(timeAtStart + 2000, "IncomePerSecond changes")
+        await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
+
+        await advanceToTimestamp(timeAtStart + 3000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 3001).toString(),
+            parseEther("3.0").toString(),
+            parseEther("3000").toString()
+        ])
+        expect(formatEther(newTokens)).to.equal("3000.0")
+    })
+
+    it("allocates correctly if money runs out exactly during join", async function(): Promise<void> {
+        // t = t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins while money runs out
+        // t = t0 + 2000: money is added
+        // t = t0 + 3000: broker1 leaves
+        // t = t0 + 4000: broker2 leaves
+        // broker1 should get 1000 +  500 tokens
+        // broker2 should get    0 + 1500 tokens
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("1000"))).wait()
+
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        // timeAtStart + 1001: money runs out AND broker2 joins
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 2000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 2001).toString(),
+            parseEther("0.5").toString(),
+            parseEther("1000").toString()
+        ])
+        expect(formatEther(tokensBroker1)).to.equal("1500.0")
+        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+    })
+
+    it("allocates correctly if money runs out exactly during leave", async function(): Promise<void> {
+        //     t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out AND broker1 leaves
+        // t = t0 + 3000: money is added
+        // t = t0 + 4000: broker2 leaves
+        // broker1 should have 1000 + 500 tokens
+        // broker2 should have 500 + 1000 tokens
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("2000"))).wait()
+
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+
+        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 3000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 3001).toString(),
+            parseEther("1.0").toString(),
+            parseEther("1000").toString()
+        ])
+        expect(formatEther(tokensBroker1)).to.equal("1500.0")
+        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+    })
+
+    it("allocates correctly if money runs out exactly during top-up (and emits no insolvency event)", async function(): Promise<void> {
+        //     t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out AND money is added
+        // t = t0 + 3000: broker1 leaves
+        // t = t0 + 4000: broker2 leaves
+        // broker1 should have 1000 + 500 + 500 +    0 = 2000 tokens
+        // broker2 should have    0 + 500 + 500 + 1000 = 2000 tokens
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("2000"))).wait()
+
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+
+        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+        await advanceToTimestamp(timeAtStart + 2000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
+
+        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
+        const tr2 = await (await bounty.connect(broker).leave()).wait()
+        const insolvencyEvent2 = tr2.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+
+        expect(insolvencyEvent).to.be.undefined
+        expect(insolvencyEvent2).to.be.undefined
+        expect(formatEther(tokensBroker1)).to.equal("2000.0")
+        expect(formatEther(tokensBroker2)).to.equal("2000.0")
+    })
+
+    it("allocates correctly if money runs out exactly during incomePerSecond change", async function(): Promise<void> {
+        //     t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out AND incomePerSecond changes to 2
+        // t = t0 + 3000: money is added
+        // t = t0 + 4000: broker1 leaves
+        // t = t0 + 5000: broker2 leaves
+        // broker1 should have 1000 + 500 + 1000 +    0 = 2500 tokens
+        // broker2 should have    0 + 500 + 1000 + 2000 = 3500 tokens
+        const bounty = await deployBountyContract()
+        await (await bounty.sponsor(parseEther("2000"))).wait()
+
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+
+        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+        await advanceToTimestamp(timeAtStart + 2000, "Money runs out AND incomePerSecond changes to 2")
+        await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
+
+        await advanceToTimestamp(timeAtStart + 3000, "Money is added")
+        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 5000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+
+        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
+            (timeAtStart + 3001).toString(),
+            parseEther("1.0").toString(),
+            parseEther("2000").toString()
+        ])
+        expect(formatEther(tokensBroker1)).to.equal("2500.0")
+        expect(formatEther(tokensBroker2)).to.equal("3500.0")
     })
 
     // TODO: add required staying period feature, then unskip this test
