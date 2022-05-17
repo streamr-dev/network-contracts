@@ -5,6 +5,7 @@ import { ethers, upgrades } from 'hardhat'
 import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
 
 import { Bounty, BountyFactory, LinkToken } from '../../typechain'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require('debug')('streamr:deploy-tatum')
@@ -47,9 +48,9 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 // const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // addresses localsidechain
-const BOUNTYFACTORY = '0x09177697FA5bA166CBA92B90fB26D72baEbC639C'
+const BOUNTYFACTORY = '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const ALLOCATIONPOLICY = '0x3BcDba28cDE7Ff5678fF616B6945c6Ae9Fcac94d'
+const ALLOCATIONPOLICY = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
@@ -64,6 +65,7 @@ let adminWallet: Wallet
 let bountyFactory: BountyFactory
 let bounty: Bounty
 let tokenFromOwner: LinkToken
+let bountyAddress = "0x"
 // let resolverFomAdmin : Contract
 
 const connectToAllContracts = async () => {
@@ -85,19 +87,36 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + Date.now)
+    const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + Date.now())
     const agreementReceipt = await agreementtx.wait()
     const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
     log("new bounty address: " + newBountyAddress)
     bounty = await ethers.getContractAt('Bounty', newBountyAddress, adminWallet) as Bounty
+    bountyAddress = bounty.address
     await (await bounty.setAllocationPolicy(ALLOCATIONPOLICY, ethers.BigNumber.from('1'))).wait() // 3 -> will throw on leave
     log("bounty deployed, alloctionpolicy set")
+    // sponsor with token approval
+    await (await tokenFromOwner.approve(bounty.address, ethers.BigNumber.from('10'))).wait()
+    const sponsorTx = await bounty.sponsor(ethers.BigNumber.from('1'))
+    const sponsorReceipt = await sponsorTx.wait()
+    log("sponsoded through token approval")
+    // log("sponsor tx: " + JSON.stringify(sponsorReceipt))
+    const sponsorTx2 = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
+        "0x")
+    const sponsorReceipt2 = await sponsorTx2.wait()
+    log("sponsored through token transfer and call")
+    // log("sponsor tx2: " + JSON.stringify(sponsorReceipt2))
+
 }
 
 const joinBounty = async () => {
-    const tx = await tokenFromOwner.transferAndCall(bounty.address, ethers.utils.parseEther('2'), userWallet.address)
-    await tx.wait()
-    log("joined bounty")
+    // const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther('2'), userWallet.address)
+    const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
+        defaultAbiCoder.encode(["address"], [userWallet.address]))
+    const receipt = await tx.wait()
+    const OnTTEvent = receipt.events?.filter((e) => e.event === "OnTT")[0]
+    log("staked in bounty with transfer and call")
+    // log("token transfer and call" + JSON.stringify(receipt))
 }
 
 async function main() {

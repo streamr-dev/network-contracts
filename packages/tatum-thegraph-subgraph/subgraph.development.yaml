@@ -9,7 +9,7 @@ dataSources:
     name: BountyFactory
     network: xDai
     source:
-      address: '0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927'
+      address: '0xEE2B6FBd2CB0806646e4220a5D1828B839C437eB'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -40,14 +40,18 @@ templates:
       language: wasm/assemblyscript
       file: ./src/bounty.ts
       entities:
-        - Member
-        - DataUnionStatsBucket
+        - Bounty
+        - Stake
       abis:
         - name: Bounty
           file: ./abis/Bounty.json
       eventHandlers:
-        - event: BrokerJoined(indexed address)
-          handler: handleBrokerJoined
+        - event: StakeAdded(indexed address,uint256,uint256)
+          handler: handleStakeAdded
+        - event: SponsorshipReceived(indexed address,uint256)
+          handler: handleSponsorshipReceived
+        # - event: BrokerJoined(indexed address)
+        #   handler: handleBrokerJoined
         - event: BrokerLeft(indexed address,uint256)
           handler: handleBrokerLeft
   # Old DU gnosis/xdai <<

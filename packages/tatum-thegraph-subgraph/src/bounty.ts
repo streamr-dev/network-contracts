@@ -1,23 +1,27 @@
 import { log, Address, BigInt } from '@graphprotocol/graph-ts'
 
 import { Bounty, Stake } from '../generated/schema'
-import { BrokerJoined, BrokerLeft } from '../generated/templates/Bounty/Bounty'
+import { BrokerLeft, SponsorshipReceived, StakeAdded } from '../generated/templates/Bounty/Bounty'
 
-export function handleMemberJoined(event: BrokerJoined): void {
-    let bountyAddress = event.address
-    let brokerAddress = event.params.broker
-    log.warning('handleMemberJoined: member={} duAddress={}', [brokerAddress.toHexString(), bountyAddress.toHexString()])
+export function handleStakeAdded(event: StakeAdded): void {
+    log.info('handleStakeAdded: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    // let bountyAddress = event.address
+    // let brokerAddress = event.params.broker
+    // let totalStake = event.params.totalWei
+    // log.warning('handleStakeAdded: member={} duAddress={}', [brokerAddress.toHexString(), bountyAddress.toHexString()])
 
-    let stake = new Stake(brokerAddress.toHexString())
-    // stake.address = brokerAddress
-    // member.addressString = memberAddress.toHexString()
-    // member.dataunion = bountyAddress.toHexString()
-    // member.status = 'ACTIVE'
-    stake.save()
-
-    // addToBucket(bountyAddress, event.block.timestamp, 'HOUR', 1)
-    // addToBucket(bountyAddress, event.block.timestamp, 'DAY', 1)
-    // addDUMemberCount(event.address, 1)
+    // let stake = new Stake(brokerAddress.toHexString())
+    // stake.bounty = bountyAddress.toHexString()
+    // stake.amount = totalStake
+    // stake.id = brokerAddress.toHexString()
+    // // stake.address = brokerAddress
+    // // member.addressString = memberAddress.toHexString()
+    // // member.dataunion = bountyAddress.toHexString()
+    // // member.status = 'ACTIVE'
+    // stake.save()
+}
+export function handleSponsorshipReceived(event: SponsorshipReceived): void {
+    log.info('handleSponsorshipReceived: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
 }
 
 export function handleMemberParted(event: BrokerLeft): void {

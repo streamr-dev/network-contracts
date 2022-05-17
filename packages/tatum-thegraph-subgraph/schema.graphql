@@ -12,7 +12,7 @@ type Bounty @entity {
 
 type Stake @entity {
   id: ID! # the eth address of the staker
-  amount: Int!
+  amount: BigInt!
   "date of the stake"
   date: Int
   bounty: Bounty

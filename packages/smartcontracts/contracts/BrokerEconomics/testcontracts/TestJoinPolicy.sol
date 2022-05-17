@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
+/* solhint-disable reason-string */
 
 pragma solidity ^0.8.13;
 
 import "../policies/IJoinPolicy.sol";
-import "hardhat/console.sol";
 import "../Bounty.sol";
 
+// import "hardhat/console.sol";
 
 contract TestJoinPolicy is IJoinPolicy, Bounty {
 
@@ -14,11 +15,11 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
     // }
 
     // function localData() internal view returns(LocalStorage storage data) {
-    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MinimumStakeJoinPolicy", address(this)));
+    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.TestJoinPolicy", address(this)));
     //     assembly {data.slot := storagePosition}
     // }
 
-    function setParam(uint256 minimumStake) external {
+    function setParam(uint256 minimumStake) external pure {
         if (minimumStake == 1) {
             require(false, "test-error: setting param join policy");
         } else if (minimumStake == 2) {
@@ -26,9 +27,9 @@ contract TestJoinPolicy is IJoinPolicy, Bounty {
         }
     }
 
-    function checkAbleToJoin(address broker, uint256 amount) external view returns (bool) {
+    function onJoin(address, uint256 amount) external pure {
         if (amount == 1) {
-            require(false, "test-error: checkAbleToJoin join policy");
+            require(false, "test-error: onJoin join policy");
         } else if (amount == 2) {
             require(false);
         }
