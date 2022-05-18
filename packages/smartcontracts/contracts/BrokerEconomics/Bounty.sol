@@ -66,6 +66,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
+    // TODO: rename to GlobalStorage
     // storage variables available to all modules
     struct GlobalState {
         uint brokerCount;
