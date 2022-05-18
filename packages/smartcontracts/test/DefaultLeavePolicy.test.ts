@@ -27,7 +27,7 @@ enum State {
     Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
 }
 
-describe("StakeWeightedAllocationPolicy", (): void => {
+describe("DefaultLeavePolicy", (): void => {
     const [
         admin,
         broker,

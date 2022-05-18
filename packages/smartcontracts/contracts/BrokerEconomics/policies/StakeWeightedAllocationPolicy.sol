@@ -13,7 +13,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         uint256 incomePerSecondPerStake; // wei, time-income per stake FULL TOKEN unit (wei x 1e18)
         uint256 cumulativeEarningsPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
         mapping(address => uint256) cumulativeEarningsAtJoin;
-        mapping(address => uint256) earningsBeforeJoinWei;
+        mapping(address => uint256) unpaidEarningsWei;
         mapping(address => uint256) stakedWei; // staked during last update: must remember this because allocations are based on stakes during update period
 
         // when the current unallocated funds will run out if more sponsorship is not added; OR when insolvency started
@@ -35,6 +35,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function setParam(uint256 incomePerSecond) external {
+        // console.log("Setting incomePerSecond to", incomePerSecond);
         update();
         localData().incomePerSecond = incomePerSecond;
         update();
@@ -47,81 +48,89 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      * TODO: to handle returning from insolvency immediately, this should also be called during _sponsor in main contract
      */
     function update() private {
-        uint oldBalanceWei = localData().lastUpdateBalance;
-        uint newBalanceWei = globalData().unallocatedFunds;
+        LocalStorage storage local = localData();
+        GlobalState storage global = globalData();
+        uint oldBalanceWei = local.lastUpdateBalance;
+        uint newBalanceWei = global.unallocatedFunds;
+        // console.log("    oldBalanceWei =", oldBalanceWei);
+        // console.log("    newBalanceWei =", newBalanceWei);
         require(oldBalanceWei <= newBalanceWei, "error_allocationLost"); // unallocated funds should never decrease outside this function
 
-        if (localData().incomePerSecond > 0) {
-            uint insolvencyStartTime = localData().solventUntilTimestamp;
-            uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
-            // console.log("    update period = ", localData().lastUpdateTimestamp, block.timestamp);
+        if (local.incomePerSecond > 0) {
+            uint insolvencyStartTime = local.solventUntilTimestamp;
+            uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
+            // console.log("    update period = ", local.lastUpdateTimestamp, block.timestamp);
 
             // was solvent in the start => calculate the past update period until insolvency if any
             if (oldBalanceWei > 0) {
-                uint allocationWeiPerStake = localData().incomePerSecondPerStake * deltaTime;
-                uint allocationWei = allocationWeiPerStake * localData().lastUpdateTotalStake / 1e18; // "stake" is in full tokens
-                // console.log("    total staked  = ", localData().lastUpdateTotalStake);
+                uint allocationWeiPerStake = local.incomePerSecondPerStake * deltaTime;
+                uint allocationWei = allocationWeiPerStake * local.lastUpdateTotalStake / 1e18; // "stake" is in full tokens
+                // console.log("    total staked  = ", local.lastUpdateTotalStake);
                 // console.log("    allocation    = ", allocationWei);
 
                 // in case of insolvency: allocate all remaining funds (according to weights) up to the start of insolvency
                 if (block.timestamp > insolvencyStartTime) {
                     uint insolvencySeconds = block.timestamp - insolvencyStartTime;
-                    assert(insolvencyStartTime > localData().lastUpdateTimestamp); // because there still were tokens during last update
-                    localData().forfeitedWeiPerStake = insolvencySeconds * localData().incomePerSecondPerStake;
-                    localData().forfeitedWei = allocationWei - oldBalanceWei;
+                    // console.log("    insolvcyStart = ", insolvencyStartTime, insolvencySeconds);
+                    assert(insolvencyStartTime > block.timestamp - deltaTime); // because there still were tokens during last update
+                    local.forfeitedWeiPerStake = insolvencySeconds * local.incomePerSecondPerStake;
+                    local.forfeitedWei = allocationWei - oldBalanceWei; // allocation should be >, otherwise insolvencyStartTime was wrong
+                    // console.log("    forf / stake  = ", local.forfeitedWeiPerStake);
+                    // console.log("    forfeited     = ", local.forfeitedWei);
 
                     allocationWei = oldBalanceWei;
-                    allocationWeiPerStake = oldBalanceWei * 1e18 / localData().lastUpdateTotalStake;
+                    allocationWeiPerStake = oldBalanceWei * 1e18 / local.lastUpdateTotalStake;
 
                     emit InsolvencyStarted(insolvencyStartTime);
-                    // console.log(" !> insolvcyStart = ", insolvencyStartTime);
                 }
 
                 oldBalanceWei -= allocationWei;
                 newBalanceWei -= allocationWei;
-                globalData().unallocatedFunds = newBalanceWei;
-                localData().cumulativeEarningsPerStake += allocationWeiPerStake;
+                global.unallocatedFunds = newBalanceWei;
+                local.cumulativeEarningsPerStake += allocationWeiPerStake;
+                // console.log("    newBalanceWei <-", newBalanceWei);
+                // console.log("    earnings / st <-", local.cumulativeEarningsPerStake);
             } else {
-                localData().forfeitedWeiPerStake += localData().incomePerSecondPerStake * deltaTime;
-                localData().forfeitedWei += localData().incomePerSecond * deltaTime;
-                // console.log("    income per st = ", localData().incomePerSecondPerStake);
-                // console.log("    forf / stake  = ", localData().forfeitedWeiPerStake);
-                // console.log("    forfeited     = ", localData().forfeitedWei);
+                local.forfeitedWeiPerStake += local.incomePerSecondPerStake * deltaTime;
+                local.forfeitedWei += local.incomePerSecond * deltaTime;
+                // console.log("    income per st = ", local.incomePerSecondPerStake);
+                // console.log("    forf / stake  = ", local.forfeitedWeiPerStake);
+                // console.log("    forfeited     = ", local.forfeitedWei);
             }
 
-            // was out of funds but now has funds again => back to normal
+            // has been insolvent but now has funds again => back to normal
             //   don't distribute anything yet but start counting again
-            if (oldBalanceWei == 0 && newBalanceWei > 0) {
-                emit InsolvencyEnded(insolvencyStartTime, block.timestamp, localData().forfeitedWeiPerStake, localData().forfeitedWei);
-                localData().forfeitedWeiPerStake = 0;
-                localData().forfeitedWei = 0;
+            if (local.forfeitedWei > 0 && newBalanceWei > 0) {
+                emit InsolvencyEnded(insolvencyStartTime, block.timestamp, local.forfeitedWeiPerStake, local.forfeitedWei);
+                local.forfeitedWeiPerStake = 0;
+                local.forfeitedWei = 0;
             }
         }
 
         // adjust income velocity for a possibly changed number of brokers
-        uint totalStakedWei = globalData().totalStakedWei;
+        uint totalStakedWei = global.totalStakedWei;
         if (totalStakedWei > 0) {
-            localData().incomePerSecondPerStake = localData().incomePerSecond * 1e18 / totalStakedWei;
+            local.incomePerSecondPerStake = local.incomePerSecond * 1e18 / totalStakedWei;
         } else {
-            localData().incomePerSecondPerStake = 0;
+            local.incomePerSecondPerStake = 0;
         }
 
         // these will be used for the next update period calculation
-        localData().lastUpdateTimestamp = block.timestamp;
-        localData().lastUpdateTotalStake = totalStakedWei;
-        localData().lastUpdateBalance = newBalanceWei;
+        local.lastUpdateTimestamp = block.timestamp;
+        local.lastUpdateTotalStake = totalStakedWei;
+        local.lastUpdateBalance = newBalanceWei;
 
         if (newBalanceWei > 0) {
-            if (localData().incomePerSecondPerStake > 0) {
+            if (local.incomePerSecondPerStake > 0) {
                 assert(totalStakedWei > 0); // because `totalStakedWei == 0` => `incomePerSecondPerStake == 0`
-                localData().solventUntilTimestamp = block.timestamp + newBalanceWei * 1e18 / totalStakedWei / localData().incomePerSecondPerStake;
+                local.solventUntilTimestamp = block.timestamp + newBalanceWei * 1e18 / totalStakedWei / local.incomePerSecondPerStake;
             } else {
-                localData().solventUntilTimestamp = 2**255; // indefinitely solvent
+                local.solventUntilTimestamp = 2**255; // indefinitely solvent
             }
         }
 
-        // console.log("    incomePerSecondPerStake <-", localData().incomePerSecondPerStake);
-        // console.log("    solventUntilTimestamp <-", localData().solventUntilTimestamp);
+        // console.log("  incomePerSecondPerStake <-", local.incomePerSecondPerStake);
+        // console.log("  solventUntilTimestamp   <-", local.solventUntilTimestamp);
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
@@ -134,40 +143,48 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     /** When broker joins, the current "water level" is saved and later its allocation can be measured from the difference */
     function onJoin(address broker) external {
+        // console.log("onJoin", broker);
         update();
         localData().cumulativeEarningsAtJoin[broker] = localData().cumulativeEarningsPerStake;
         localData().stakedWei[broker] = globalData().stakedWei[broker];
-        // console.log("onJoin", broker);
         // console.log("  cme at join <-", localData().cumulativeEarningsAtJoin[broker]);
     }
 
     /** When broker leaves, its allocations so far are saved so that they continue to increase after next join */
     function onLeave(address broker) external {
-        update();
-        localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
-        localData().stakedWei[broker] = globalData().stakedWei[broker];
         // console.log("onLeave", broker);
-        // console.log("  earnings before join <-", localData().earningsBeforeJoinWei[broker]);
+        update();
+        // all earnings are paid out when leaving in the Bounty.sol:_removeBroker currently
+        localData().unpaidEarningsWei[broker] = 0;
+        localData().stakedWei[broker] = globalData().stakedWei[broker];
     }
 
     /**
      * When stake changes, effectively do a leave + join, resetting the CE for this broker
      */
     function onStakeIncrease(address broker) external {
+        // console.log("onStakeIncrease", broker);
         update();
-        localData().earningsBeforeJoinWei[broker] = calculateAllocation(broker);
+        localData().unpaidEarningsWei[broker] = calculateAllocation(broker);
         localData().cumulativeEarningsAtJoin[broker] = localData().cumulativeEarningsPerStake;
         localData().stakedWei[broker] = globalData().stakedWei[broker];
-        // console.log("onStakeIncrease", broker);
-        // console.log("  earnings before join <-", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  earnings before join <-", localData().unpaidEarningsWei[broker]);
         // console.log("  cme at join <-", localData().cumulativeEarningsAtJoin[broker]);
     }
 
     function onSponsor(address, uint) external {
-        // in case the bounty was previously insolvent, now it got a top-up => return from insolvency
-        if (localData().solventUntilTimestamp < block.timestamp) {
-            update();
-        }
+        // console.log("onSponsor, now got", globalData().unallocatedFunds);
+        update();
+
+        // Would be nice to avoid the above full update when tokens come in. TODO: Is it possible?
+        // Seems that by using solventUntilTimestamp instead of calculating solvency when needed, we need a full update()
+        //   otherwise lastUpdateBalance is not updated and this line breaks:
+        //       oldBalanceWei -= allocationWei;
+        //   the reason is: lastUpdateBalance might be very old, before this top-up, and hence not enough to cover the allocation,
+        //   yet clearly there is enough unallocated funds to cover when this top-up is included.
+        // The timing on this top-up matters as to if the bounty becomes insolvent for a time before the top-up or not,
+        //   this is another reason why not only solventUntilTimestamp but also lastUpdateBalance would need updating here,
+        //   or at least a check whether the bounty went insolvent before this top-up or not; but that's not far from doing the full update()
     }
 
     /** Calculate the cumulative earnings per unit (full token stake) right now */
@@ -195,19 +212,14 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // never joined
         if (globalData().joinTimeOfBroker[broker] == 0) { return 0; }
 
-        // TODO: what is this check about? Don't give earnings for brokers younger than horizon? Why?
-        // if (globalData().joinTimeOfBroker[broker] + localData().horizon > block.timestamp) {
-        //     return localData().earningsBeforeJoinWei[broker];
-        // }
-
         // console.log("Calculate allocation for", broker);
         // console.log("  cumulative earnings ", getCumulativeEarnings());
         // console.log("  cumulat. e. at join ", localData().cumulativeEarningsAtJoin[broker]);
         uint earningsPerFullToken = getCumulativeEarnings() - localData().cumulativeEarningsAtJoin[broker];
         // console.log("  earningsPerFullToken", earningsPerFullToken);
         uint earningsAfterJoinWei = localData().stakedWei[broker] * earningsPerFullToken / 1e18;
-        // console.log("  earningsBeforeJoinWei", localData().earningsBeforeJoinWei[broker]);
+        // console.log("  unpaidEarningsWei", localData().unpaidEarningsWei[broker]);
         // console.log("  earningsAfterJoinWei", earningsAfterJoinWei);
-        return localData().earningsBeforeJoinWei[broker] + earningsAfterJoinWei;
+        return localData().unpaidEarningsWei[broker] + earningsAfterJoinWei;
     }
 }
