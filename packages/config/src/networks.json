@@ -82,6 +82,8 @@
             }
         ],
         "contracts": {
+            "Marketplace": "0x246dd6D96282c1ED9Ca69eF9f3e1f975fC1B8Bd5",
+            "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
             "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
             "DATA": "0x256eb8a51f382650B2A1e946b8811953640ee47D",
             "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
