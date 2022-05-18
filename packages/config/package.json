@@ -1,38 +1,38 @@
 {
-  "name": "@streamr/config",
-  "version": "2.0.0",
-  "description": "Zero dependency package that contains Streamr Network smart contract addresses",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
-  "directories": {
-    "lib": "./dist",
-    "src": "./src",
-    "test": "./test"
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "pretest": "tsc --project tsconfig-test.json",
-    "test": "mocha --config mocharc.json",
-    "lint": "eslint --ext .ts src test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/streamr-dev/network-contracts.git"
-  },
-  "keywords": [
-    "streamr network",
-    "ethereum",
-    "ethereum address",
-    "smart contract",
-    "smart contract address"
-  ],
-  "author": "Kare Nuorteva <kare.nuorteva@streamr.network>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/streamr-dev/network-contracts/issues"
-  },
-  "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme"
+    "name": "@streamr/config",
+    "version": "2.0.0",
+    "description": "Zero dependency package that contains Streamr Network smart contract addresses",
+    "main": "dist/src/index.js",
+    "types": "dist/src/index.d.ts",
+    "directories": {
+        "lib": "./dist",
+        "src": "./src",
+        "test": "./test"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc --project tsconfig.json",
+        "pretest": "tsc --project tsconfig-test.json",
+        "test": "mocha --config mocharc.json",
+        "lint": "eslint --ext .ts src test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/streamr-dev/network-contracts.git"
+    },
+    "keywords": [
+        "streamr network",
+        "ethereum",
+        "ethereum address",
+        "smart contract",
+        "smart contract address"
+    ],
+    "author": "Kare Nuorteva <kare.nuorteva@streamr.network>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/streamr-dev/network-contracts/issues"
+    },
+    "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme"
 }

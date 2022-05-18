@@ -1,5 +1,7 @@
 import networksAsJSON from "./networks.json"
 
+export { networksAsJSON as networks }
+
 interface ContractsJSON {
     readonly [name: string]: string
 }
@@ -21,7 +23,7 @@ export class RPCEndpoint implements RPCEndpointJSON {
         readonly url: string,
         //readonly readTimeoutSecond: int,
         //readonly writeTimeoutSecond: int,
-    ) {}
+    ) { }
 }
 
 interface ChainJSON {
@@ -77,7 +79,7 @@ export class Chains implements ChainsJSON {
 }
 
 class ChainsFactory {
-    private constructor() {}
+    private constructor() { }
     static create(chainsJson: ChainsJSON): Chains {
         const chains = new Chains()
         for (const key in chainsJson) {
