@@ -9,19 +9,19 @@ dataSources:
     name: BountyFactory
     network: xDai
     source:
-      address: '0xDa7893ee6Ab31413ea734dd0B7c259eeD290bF2a'
+      address: '0x2521E0480004056c35e199a1BBE2FdA9119032A0'
       abi: BountyFactory
       startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
       language: wasm/assemblyscript
-      file: ./src/BountyFactory.ts
+      file: ./src/bountyFactory.ts
       entities:
         - Bounty
       abis:
         - name: BountyFactory
-          file: ./abis/BountyFactory.json
+          file: ./artifacts/smartcontracts/contracts/BrokerEconomics/BountyFactory.sol/BountyFactory.json
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
@@ -44,7 +44,7 @@ templates:
         - Stake
       abis:
         - name: Bounty
-          file: ./abis/Bounty.json
+          file: ./artifacts/smartcontracts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
       eventHandlers:
         - event: StakeAdded(indexed address,uint256,uint256)
           handler: handleStakeAdded

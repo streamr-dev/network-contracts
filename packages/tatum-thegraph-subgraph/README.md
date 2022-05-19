@@ -5,8 +5,8 @@ Everything is already included in the streamr-docker-dev environment
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile.
-To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev", and then push the image
-with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
+To do so, run "docker build -t streamr/graph-deploy-tatum-subgraph:dev -f packages/tatum-thegraph-subgraph/Dockerfile ." from the root of this monorepo, so from outside the packages folder, and then push the image
+with "docker push streamr/graph-deploy-tatum-subgraph:dev"
 
 ## Prod deployment to the centralised theGraph
 First rename subgraph_prod.yaml to rename subgraph.yaml then follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev

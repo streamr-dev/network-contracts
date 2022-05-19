@@ -10,8 +10,9 @@ WORKDIR /home/node/app
 
 USER node
 
-COPY --chown=node:node . .
+COPY --chown=node:node ./../. .
 
 RUN npm i
+WORKDIR /home/node/app/packages/tatum-thegraph-subgraph/
 RUN chmod +x start.sh
 ENTRYPOINT [ "sh", "./start.sh" ]
