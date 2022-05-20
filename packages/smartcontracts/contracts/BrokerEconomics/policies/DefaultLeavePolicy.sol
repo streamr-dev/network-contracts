@@ -17,7 +17,7 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
      */
     function getLeavePenaltyWei(address broker) public override view returns (uint leavePenaltyWei) {
         uint joinTimestamp = globalData().joinTimeOfBroker[broker];
-        if (block.timestamp > joinTimestamp + penaltyPeriodSeconds) {
+        if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) {
             return 0;
         }
 
