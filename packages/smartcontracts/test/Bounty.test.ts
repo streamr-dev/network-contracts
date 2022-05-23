@@ -71,7 +71,7 @@ describe("Bounty", (): void => {
         bountyFromAdmin = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
         bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
 
-        await(await bountyFromAdmin.setLeavePolicy(leavePolicy.address, "0")).wait()
+        await(await bountyFromAdmin.setLeavePolicy(leavePolicy.address, "0")).wait() // always pay stake back
         await(await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, "2000000000000000000")).wait()
     })
 
@@ -105,7 +105,7 @@ describe("Bounty", (): void => {
     // })
 
     it("negativetest sponsor with no allowance", async function(): Promise<void> {
-        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther("1"))).to.be.reverted
+        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther("1"))).to.be.reverted // token.transferFrom fails without revert reason string
     })
 
     it("negativetest min stake join policy", async function(): Promise<void> {
@@ -116,8 +116,14 @@ describe("Bounty", (): void => {
 
     it("negativetest max brokers join policy", async function(): Promise<void> {
         await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "0")).wait()
-        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("0"), adminWallet.address))
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_tooManyBrokers")
+    })
+
+    it("negativetest zero stake", async function(): Promise<void> {
+        // await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "0")).wait()
+        await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("0"), adminWallet.address))
+            .to.be.revertedWith("error_cannotStakeZero")
     })
 
     it("negativetest sponsor with no allowance", async function(): Promise<void> {

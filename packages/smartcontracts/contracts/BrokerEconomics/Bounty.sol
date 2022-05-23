@@ -29,13 +29,36 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     // Emitted from the allocation policy
     event InsolvencyStarted(uint startTimeStamp);
-    event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+    event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
     mapping(address => bool) public approvedPolicies;
     IERC677 public token;
     address[] public joinPolicyAddresses;
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
+    State public previousState;
+
+    // storage variables available to all modules
+    struct GlobalStorage {
+        uint brokerCount;
+        /** how much each broker has staked, if 0 broker is considered not part of bounty */
+        mapping(address => uint) stakedWei;
+        uint totalStakedWei;
+        mapping(address => uint) withdrawnWei;
+        mapping(address => uint) joinTimeOfBroker;
+        uint unallocatedFunds;
+        uint minHorizonSeconds;
+        uint minBrokerCount;
+    }
+
+    function globalData() internal pure returns(GlobalStorage storage data) {
+        bytes32 storagePosition = keccak256("agreement.storage.GlobalStorage");
+        assembly {data.slot := storagePosition}
+    }
+
+    function getUnallocatedWei() public view returns(uint) {
+        return globalData().unallocatedFunds;
+    }
 
     modifier isAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
@@ -45,7 +68,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // State of the bounty contract
     // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
     enum State {
-        NotInitialized,
+        NotInitialized, // horizon = how much longer there are unallocated funds
         Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
         Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
         Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
@@ -56,7 +79,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (address(allocationPolicy) == address(0) || address(leavePolicy) == address(0)) {
             return State.NotInitialized;
         }
-        bool funded = getHorizon() >= globalData().minHorizonSeconds;
+        bool funded = solventUntil() > block.timestamp + globalData().minHorizonSeconds;
         bool manned = globalData().brokerCount >= globalData().minBrokerCount;
 
         if (funded) {
@@ -66,29 +89,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    // TODO: rename to GlobalStorage
-    // storage variables available to all modules
-    struct GlobalState {
-        uint brokerCount;
-        /** how much each broker has staked, if 0 broker is considered not part of bounty */
-        mapping(address => uint) stakedWei;
-        uint totalStakedWei;
-        /** the timestamp a broker joined, to determine how long he has been a member,
-            - option 1: must be set to 0 once broker leaves, must always be checked for 0
-            - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
-        mapping(address => uint) joinTimeOfBroker;
-        uint unallocatedFunds;
-        uint minHorizonSeconds;
-        uint minBrokerCount;
-    }
-
-    function globalData() internal pure returns(GlobalState storage data) {
-        bytes32 storagePosition = keccak256("agreement.storage.globalState");
-        assembly {data.slot := storagePosition}
-    }
-
-    function getUnallocatedWei() public view returns(uint) {
-        return globalData().unallocatedFunds;
+    /** See if the state has changed, emit a StateChanged event */
+    function checkStateChange() public {
+        State currentState = getState();
+        if (currentState != previousState) {
+            emit StateChanged(currentState);
+        }
+        previousState = currentState;
     }
 
     function initialize(
@@ -140,6 +147,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function _stake(address broker, uint amount) internal {
+        require(amount > 0, "error_cannotStakeZero");
         // console.log("join at ", block.timestamp);
         if (globalData().stakedWei[broker] == 0) {
             // join the broker set
@@ -160,9 +168,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             globalData().totalStakedWei += amount;
 
             // re-calculate the cumulative earnings
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker), "error_stakeIncreaseFailed");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");
         }
-        // TODO: if brokers.length > minBrokerCount { emit StateChanged(Running); }
+        checkStateChange();
     }
 
     function leave() external {
@@ -171,7 +179,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
-     * Stake is returned only if there's not enough unallocated tokens to cover minHorizonSeconds.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
     function _removeBroker(address broker) internal {
@@ -183,29 +190,47 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint penaltyWei = getLeavePenalty(broker);
         // console.log("  penalty ", penaltyWei);
         // console.log("  stake", stakedWei);
-        uint allocation = getAllocation(broker);
-        // console.log("  allocation", allocation);
-        uint returnFunds = stakedWei - penaltyWei + allocation;
+        uint returnFunds = stakedWei - penaltyWei;
         // console.log("  returned", returnFunds);
 
+        // TODO: transferAndCall
         require(token.transfer(broker, returnFunds), "error_transfer");
         if (penaltyWei > 0) {
             // add forfeited stake to unallocated funds
             _addSponsorship(broker, penaltyWei);
         }
 
-        // console.log("Unallocated: ", globalData().unallocatedFunds);
-        globalData().brokerCount -= 1;
-        globalData().totalStakedWei -= stakedWei;
-        globalData().stakedWei[broker] = 0;
-        globalData().joinTimeOfBroker[broker] = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+        _withdraw(broker);
+
+        GlobalStorage storage s = globalData();
+        s.brokerCount -= 1;
+        s.totalStakedWei -= stakedWei;
+        delete s.stakedWei[broker];
+        delete s.joinTimeOfBroker[broker];
+        delete s.withdrawnWei[broker];
+        // console.log("Unallocated: ", s.unallocatedFunds);
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
         emit BrokerLeft(broker, returnFunds);
+        checkStateChange();
         // removeFromAddressArray(brokers, broker);
+    }
 
-        // TODO: if (brokers.length < minBrokerCount) { emit StateChanged(Closed); }
+    function withdraw() external {
+        _withdraw(_msgSender());
+    }
 
+    function _withdraw(address broker) internal {
+        uint stakedWei = globalData().stakedWei[broker];
+        require(stakedWei > 0, "error_brokerNotStaked");
+
+        uint allocation = getAllocation(broker);
+        GlobalStorage storage s = globalData();
+        uint payoutWei = allocation - s.withdrawnWei[broker];
+        s.withdrawnWei[broker] += allocation;
+        // console.log("  allocation", allocation);
+        // TODO: transferAndCall
+        require(token.transfer(broker, payoutWei), "error_transfer");
     }
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
@@ -219,6 +244,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().unallocatedFunds += amountTokenWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
         emit SponsorshipReceived(sponsorAddress, amountTokenWei);
+        checkStateChange();
     }
 
     function getStake(address broker) external view returns (uint) {
@@ -232,6 +258,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
         allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
+        checkStateChange();
     }
 
     function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
@@ -312,8 +339,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
-    function getHorizon() public view returns(uint256 horizon) {
-        return moduleGet(abi.encodeWithSelector(allocationPolicy.getHorizonSeconds.selector, address(allocationPolicy)), "error_getHorizonFailed");
+    function solventUntil() public view returns(uint256 horizon) {
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
     function getAllocation(address broker) public view returns(uint256 allocation) {

@@ -168,10 +168,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1Expected = totalTokensExpected.div(4).mul(3)
         const tokensBroker2Expected = totalTokensExpected.div(4)
 
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
-        expect(unallocatedWeiBefore.toString()).to.equal(sponsorshipWei.toString())
-        expect(unallocatedWeiAfter.toString()).to.equal(sponsorshipWei.sub(totalTokensExpected).toString())
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(unallocatedWeiBefore)).to.equal(formatEther(sponsorshipWei))
+        expect(formatEther(unallocatedWeiAfter)).to.equal(formatEther(sponsorshipWei.sub(totalTokensExpected)))
     })
 
     it("allocates correctly for two brokers, different weight, different join, leave times (positive test)", async function(): Promise<void> {
@@ -207,22 +207,21 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1Expected = totalTokensExpected.div(100).mul(60)
         const tokensBroker2Expected = totalTokensExpected.div(100).mul(40)
 
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
     })
 
     it("allocates correctly for two brokers, different weight, with adding additional stake", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1 (1 : 0)
-        // t1 = t0 + 2000: broker2 joins, stakes 1 (1 : 1)
-        // t2 = t0 + 4000: broker1 adds 3 stake => (4 : 1)
-        // t3 = t0 + 6000: broker2 adds 3 stake => (4 : 4)
-        // t4 = t0 + 8000: broker2 leaves       => (4 : 0)
-        // t5 = t0 +10000: broker1 leaves       => (0 : 0)
-        // broker1 should have 20% + 10% + 16% + 10% + 20% = 76% of the winnings
-        // broker2 should have  0% + 10% +  4% + 10% +  0% = 24% of the winnings
+        //     t0       : broker1 joins, stakes 1 (1 : 0)
+        // t = t0 + 2000: broker2 joins, stakes 1 (1 : 1)
+        // t = t0 + 4000: broker1 adds 3 stake => (4 : 1)
+        // t = t0 + 6000: broker2 adds 3 stake => (4 : 4)
+        // t = t0 + 8000: broker2 leaves       => (4 : 0)
+        // t = t0 +10000: broker1 leaves       => (0 : 0)
+        // broker1 should have 2000 + 1000 + 1600 + 1000 + 2000 = 7600
+        // broker2 should have        1000 +  400 + 1000        = 2400
         const bounty = await deployBountyContract()
-        await (await bounty.sponsor(parseEther("100000"))).wait()
-        const totalTokensExpected = parseEther("10000")
+        await (await bounty.sponsor(parseEther("10000").add(8))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
@@ -248,11 +247,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = totalTokensExpected.div(100).mul(76)
-        const tokensBroker2Expected = totalTokensExpected.div(100).mul(24)
+        const tokensBroker1Expected = parseEther("7600")
+        const tokensBroker2Expected = parseEther("2400")
 
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
     })
 
     it("allocates correctly if money runs out", async function(): Promise<void> {
@@ -301,24 +300,22 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1Expected = totalTokensExpected.div(100).mul(30)
         const tokensBroker2Expected = totalTokensExpected.div(100).mul(20)
 
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
         expect(insolvencyEvent).to.not.be.undefined
     })
 
     it("allocates correctly if money runs out, and then money is added", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1000 tokens
-        // t1 = t0 + 1000: broker2 joins, stakes 1000 tokens
-        // t2 = t0 + 2000: money runs out
-        // t3 = t0 + 3000: money is added
-        // t4 = t0 + 4000: broker2 leaves
-        // t5 = t0 + 5000: broker1 leaves
-        // in the end 4000*(wei/sec) are expected winnings i.e. owed to brokers
-        //            because between 2000...3000 no allocations were paid
-        // broker1 should have half + half of half = 75% of the winnings
-        // broker2 should have half of half = 25% of the winnings
+        //     t0       : broker1 joins, stakes 1000 tokens
+        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out
+        // t = t0 + 3000: money is added
+        // t = t0 + 4000: broker2 leaves
+        // t = t0 + 5000: broker1 leaves
+        // in the end the expected winnings are 4000 tokens, because between 2000...3000 no allocations were paid
+        // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
+        // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
         const bounty = await deployBountyContract()
-        const totalTokensExpected = parseEther("4000")
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -335,7 +332,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
+        const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
         await (await bounty.connect(broker2).leave()).wait()
@@ -345,18 +343,20 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = totalTokensExpected.div(4).mul(3)
-        const tokensBroker2Expected = totalTokensExpected.div(4)
+        const tokensBroker1Expected = parseEther("3000")
+        const tokensBroker2Expected = parseEther("1000")
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            // timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
             (timeAtStart + 3001).toString(),
             parseEther("1000").div("2000").toString(),     // 2000 full token total stake
             parseEther("1000").toString()
         ])
-        expect(tokensBroker1Actual.toString()).to.equal(tokensBroker1Expected.toString())
-        expect(tokensBroker2Actual.toString()).to.equal(tokensBroker2Expected.toString())
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
     })
 
     it("allocates correctly if broker joins during insolvency", async function(): Promise<void> {
@@ -376,6 +376,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         //   broker1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("1000"))).wait()
+        await (await token.connect(broker2).approve(bounty.address, parseEther("100000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
@@ -387,11 +388,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+        const tr = await (await bounty.connect(broker2).stake(broker2.address, parseEther("1000"))).wait()
+        const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
-        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const tr2 = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
         await (await bounty.connect(broker).leave()).wait()
@@ -402,15 +404,18 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 3001).toString(),
+        expect(formatEther(tokensBroker1)).to.equal("1500.0")
+        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            // (timeAtStart + 1001).toString(),
+            (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("1.5").toString(),
             parseEther("2000").toString()
         ])
-        expect(formatEther(tokensBroker1)).to.equal("1500.0")
-        expect(formatEther(tokensBroker2)).to.equal("1500.0")
     })
 
     it("allocates correctly if broker leaves during insolvency", async function(): Promise<void> {
@@ -462,27 +467,29 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await bounty.connect(broker).leave()).wait()
+        const tr1 = await (await bounty.connect(broker).leave()).wait()
+        const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker joins again")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Money is added")
-        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const tr2 = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 5000, "Broker leaves")
         await (await bounty.connect(broker).leave()).wait()
 
         const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 4001).toString(),
-            // TODO: not sure what these should be?! Eventually the contract shouldn't run when there are not brokers, and this should be 2000
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            // (timeAtStart + 1001).toString(),
+            (timeAtStart + 4001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("2").toString(),
-            parseEther("2000").toString()
+            parseEther("4000").toString()
         ])
         expect(formatEther(newTokens)).to.equal("2000.0")
     })
@@ -520,14 +527,15 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        await (await bounty.connect(broker).leave()).wait()
+        const tr1 = await (await bounty.connect(broker).leave()).wait()
+        const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 joins again")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 5000, "Money is added")
-        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const tr2 = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 6000, "Broker 1 leaves again")
         await (await bounty.connect(broker).leave()).wait()
@@ -538,10 +546,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 5001).toString(),
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 5001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("2.0").toString(),
             parseEther("3000").toString()
         ])
@@ -594,21 +603,23 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 2000, "IncomePerSecond changes")
-        await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
+        const tr1 = await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
+        const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
-        const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const tr2 = await (await bounty.sponsor(parseEther("10000"))).wait()
+        const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker leaves")
         await (await bounty.connect(broker).leave()).wait()
 
         const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 3001).toString(),
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("3.0").toString(),
             parseEther("3000").toString()
         ])
@@ -639,7 +650,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart + 2000, "Money is added")
         const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
+        const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
         await (await bounty.connect(broker).leave()).wait()
@@ -650,10 +662,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 1001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 2001).toString(),
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("0.5").toString(),
             parseEther("1000").toString()
         ])
@@ -682,13 +695,14 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
 
-        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+        // timeAtStart + 2001: money runs out AND broker leaves
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
         await (await bounty.connect(broker).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
+        const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
         await (await bounty.connect(broker2).leave()).wait()
@@ -696,10 +710,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 3001).toString(),
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("1.0").toString(),
             parseEther("1000").toString()
         ])
@@ -771,13 +786,14 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
 
-        // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
+        // timeAtStart + 2001: money runs out AND incomePerSecond changes
         await advanceToTimestamp(timeAtStart + 2000, "Money runs out AND incomePerSecond changes to 2")
         await (await bounty.setAllocationPolicy(allocationPolicy.address, parseEther("2"))).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
-        const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
+        const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
+        const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
         await (await bounty.connect(broker).leave()).wait()
@@ -788,10 +804,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
 
-        // event InsolvencyEnded(uint startTimeStamp, uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
-            (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
-            (timeAtStart + 3001).toString(),
+        // event InsolvencyStarted(uint startTimeStamp);
+        // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+            (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("1.0").toString(),
             parseEther("2000").toString()
         ])
