@@ -61,15 +61,14 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
-    function getHorizonSeconds() public override pure returns (uint256 horizonSeconds) {
-        return 2**256 - 1; // max uint256
-        // return 1;
+    function getInsolvencyTimestamp() public override pure returns (uint256 horizonSeconds) {
+        return 2**255; // indefinitely solvent
     }
 
     /**
      * When stake changes, effectively do a leave + join, resetting the CE for this broker
      */
-    function onStakeIncrease(address) external view {
+    function onStakeIncrease(address, uint) external view {
         if (localData().failOnIncrease) {
             require(false, "test-error: onStakeIncrease allocation policy");
         } else if (localData().failEmptyOnIncrease) {
