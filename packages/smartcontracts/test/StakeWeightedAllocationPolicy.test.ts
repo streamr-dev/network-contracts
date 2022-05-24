@@ -315,6 +315,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end the expected winnings are 4000 tokens, because between 2000...3000 no allocations were paid
         // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
         // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
+        // between 2000...3000 the bounty will default on 1000 tokens, or 0.5 per stake
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
@@ -771,8 +772,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 3000: money is added
         // t = t0 + 4000: broker1 leaves
         // t = t0 + 5000: broker2 leaves
-        // broker1 should have 1000 + 500 + 1000 +    0 = 2500 tokens
-        // broker2 should have    0 + 500 + 1000 + 2000 = 3500 tokens
+        // broker1 should have 1000 + 500 + 0 + 1000 +    0 = 2500 tokens
+        // broker2 should have    0 + 500 + 0 + 1000 + 2000 = 3500 tokens
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
