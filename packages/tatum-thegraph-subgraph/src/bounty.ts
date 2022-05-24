@@ -1,4 +1,4 @@
-import { log, Address, BigInt } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 
 import { Bounty, Stake } from '../generated/schema'
 import { BrokerLeft, SponsorshipReceived, StakeAdded } from '../generated/templates/Bounty/Bounty'
@@ -34,7 +34,7 @@ export function handleSponsorshipReceived(event: SponsorshipReceived): void {
     log.info('handleSponsorshipReceived: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
 }
 
-export function handleMemberParted(event: BrokerLeft): void {
+export function handleMemberParted(/*event*/_: BrokerLeft): void {
     // let duAddress = event.address
     // let memberAddress = event.params.member
     // log.warning('handleMemberParted: member={} duAddress={}', [memberAddress.toHexString(), duAddress.toHexString()])
