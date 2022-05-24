@@ -73,10 +73,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         minHorizonSeconds = 200000, // this ensures that leaving doesn't incur stake penalties
         allocationWeiPerSecond = parseEther("1"),
     } = {}): Promise<Bounty> {
+        const joinPolicies = [minStakeJoinPolicy.address]
+        const joinPolicyParams = [parseEther("1")]
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
-            "Bounty-" + Date.now()
+            "Bounty-" + Date.now(),
+            joinPolicies, joinPolicyParams, allocationPolicy.address, allocationWeiPerSecond
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
@@ -86,12 +89,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         const bounty = bountyTemplate.attach(newBountyAddress)
 
-        const setAllocationPolicyTx = await bounty.setAllocationPolicy(allocationPolicy.address, allocationWeiPerSecond)
-        await setAllocationPolicyTx.wait()
-        const setJoinPolicyTx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, parseEther("1"))
-        await setJoinPolicyTx.wait()
-        const setLeavelPolicyTx = await bounty.setLeavePolicy(leavePolicy.address, "0")
-        await setLeavelPolicyTx.wait()
+        // const setAllocationPolicyTx = await bounty.setAllocationPolicy(allocationPolicy.address, allocationWeiPerSecond)
+        // await setAllocationPolicyTx.wait()
+        // const setJoinPolicyTx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, parseEther("1"))
+        // await setJoinPolicyTx.wait()
+        // const setLeavelPolicyTx = await bounty.setLeavePolicy(leavePolicy.address, "0")
+        // await setLeavelPolicyTx.wait()
 
         await (await token.approve(newBountyAddress, parseEther("100000"))).wait()
 
