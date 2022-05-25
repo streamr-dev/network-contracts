@@ -37,9 +37,9 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     function setParam(uint256 incomePerSecond) external {
         // console.log("Setting incomePerSecond to", incomePerSecond);
-        update(0);
+        update(0); // TODO: not needed if setParam can't be called again
         localData().incomePerSecond = incomePerSecond;
-        update(0);
+        update(0); // TODO: not needed if setParam can't be called again
     }
 
     /**
