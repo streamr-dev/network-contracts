@@ -87,8 +87,6 @@ describe("Bounty", (): void => {
     const createBounty = async (config: BountyConfig1 | BountyConfig2): Promise<Bounty> => {
         const joinPolicies = []
         const joinPolicyParams = []
-        const leavePolicies = []
-        const leavePolicyParams = []
         if (config.minStake) {
             joinPolicies.push(minStakeJoinPolicy.address)
             joinPolicyParams.push(config.minStake)
@@ -101,11 +99,7 @@ describe("Bounty", (): void => {
             joinPolicies.push(testJoinPolicy.address)
             joinPolicyParams.push(config.testJoinPol)
         }
-        if (config.leavePol) {
-            leavePolicies.push(leavePolicy.address)
-            leavePolicyParams.push(config.leavePol)
-        }
-        
+        const leavePolicyParam = config.leavePol ? config.leavePol : "0"
         const allocationPolicyAddr: string = (<BountyConfig2>config).testAllocPolicy ? testAllocationPolicy.address : allocationPolicy.address
         let allocPolicyParam = ""
         if ((<BountyConfig1>config).stakeWeight !== undefined) {
@@ -115,7 +109,7 @@ describe("Bounty", (): void => {
         }
         // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, joinPolicies,
-            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicies, leavePolicyParams)
+            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicy.address, leavePolicyParam)
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
         expect(newBountyAddress).to.be.not.null
@@ -126,22 +120,6 @@ describe("Bounty", (): void => {
         bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
         return bountyFromAdmin
     }
-
-    // beforeEach(async (): Promise<void> => {
-    //     const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++)
-    //     const bountyDeployReceipt = await bountyDeployTx.wait()
-
-    //     const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
-    //     expect(newBountyAddress).to.be.not.null
-    //     // console.log("bounty " + newBountyAddress)
-
-    //     const agreementFactory = await ethers.getContractFactory("Bounty")
-    //     bountyFromAdmin = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
-    //     bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
-
-    //     await(await bountyFromAdmin.setLeavePolicy(leavePolicy.address, "0")).wait() // always pay stake back
-    //     await(await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, "2000000000000000000")).wait()
-    // })
 
     it("positivetest deploy bounty through factory, join bounty", async function(): Promise<void> {
         // await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()

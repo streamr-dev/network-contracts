@@ -48,8 +48,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint[] memory bountyJoinPolicyParams,
         address allocationPolicy,
         uint allocationPolicyParam,
-        address[] memory bountyLeavePolicy,
-        uint[] memory bountyLeavePolicyParam
+        address bountyLeavePolicy,
+        uint bountyLeavePolicyParam
     ) public returns (address) {
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
@@ -69,9 +69,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             (Bounty(bountyAddress)).addJoinPolicy(bountyJoinPolicies[i], bountyJoinPolicyParams[i]);
         }
         (Bounty(bountyAddress)).setAllocationPolicy(allocationPolicy, allocationPolicyParam);
-        if (bountyLeavePolicy.length > 0) {
-            (Bounty(bountyAddress)).setLeavePolicy(bountyLeavePolicy[0], bountyLeavePolicyParam[0]);
-        }
+        (Bounty(bountyAddress)).setLeavePolicy(bountyLeavePolicy, bountyLeavePolicyParam);
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }

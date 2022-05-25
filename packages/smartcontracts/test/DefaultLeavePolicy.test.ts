@@ -14,7 +14,7 @@ const { log } = console
 use(waffle.solidity)
 
 async function advanceToTimestamp(timestamp: number, message?: string) {
-    log("\nt = %s ", timestamp, message ?? "")
+    // log("\nt = %s ", timestamp, message ?? "")
     await provider.send("evm_setNextBlockTimestamp", [timestamp])
     await provider.send("evm_mine", [0])
 }
@@ -82,22 +82,17 @@ describe("DefaultLeavePolicy", (): void => {
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
-            "Bounty-" + Date.now()
+            "Bounty-" + Date.now(),
+            [minStakeJoinPolicy.address], [parseEther("1")], allocationPolicy.address, allocationWeiPerSecond,
+            leavePolicy.address, "0"
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
         const newBountyAddress = newBountyEvent?.args?.bountyContract
         expect(newBountyAddress).not.to.be.undefined
-        log("Bounty deployed at %s", newBountyAddress)
+        // log("Bounty deployed at %s", newBountyAddress)
 
         const bounty = bountyTemplate.attach(newBountyAddress)
-
-        const setAllocationPolicyTx = await bounty.setAllocationPolicy(allocationPolicy.address, allocationWeiPerSecond)
-        await setAllocationPolicyTx.wait()
-        const setJoinPolicyTx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, parseEther("1"))
-        await setJoinPolicyTx.wait()
-        const setLeavelPolicyTx = await bounty.setLeavePolicy(leavePolicy.address, "1000")
-        await setLeavelPolicyTx.wait()
 
         await (await token.approve(newBountyAddress, parseEther("100000"))).wait()
 
