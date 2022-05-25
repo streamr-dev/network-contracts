@@ -47,9 +47,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address[] memory bountyJoinPolicies,
         uint[] memory bountyJoinPolicyParams,
         address allocationPolicy,
-        uint allocationPolicyParam
-        // address bountyLeavePolicy,
-        // uint bountyLeavePolicyParam
+        uint allocationPolicyParam,
+        address[] memory bountyLeavePolicy,
+        uint[] memory bountyLeavePolicyParam
     ) public returns (address) {
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
@@ -57,8 +57,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(
+        // Bounty bounty = ;
+        (Bounty(bountyAddress)).initialize(
             address(this),
             tokenAddress,
             initialMinHorizonSeconds,
@@ -66,10 +66,12 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             trustedForwarder
         );
         for (uint i = 0; i < bountyJoinPolicies.length; i++) {
-            bounty.addJoinPolicy(bountyJoinPolicies[i], bountyJoinPolicyParams[i]);
+            (Bounty(bountyAddress)).addJoinPolicy(bountyJoinPolicies[i], bountyJoinPolicyParams[i]);
         }
-        bounty.setAllocationPolicy(allocationPolicy, allocationPolicyParam);
-        // bounty.setLeavePolicy(bountyLeavePolicy, bountyLeavePolicyParam);
+        (Bounty(bountyAddress)).setAllocationPolicy(allocationPolicy, allocationPolicyParam);
+        if (bountyLeavePolicy.length > 0) {
+            (Bounty(bountyAddress)).setLeavePolicy(bountyLeavePolicy[0], bountyLeavePolicyParam[0]);
+        }
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }

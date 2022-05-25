@@ -87,6 +87,8 @@ describe("Bounty", (): void => {
     const createBounty = async (config: BountyConfig1 | BountyConfig2): Promise<Bounty> => {
         const joinPolicies = []
         const joinPolicyParams = []
+        const leavePolicies = []
+        const leavePolicyParams = []
         if (config.minStake) {
             joinPolicies.push(minStakeJoinPolicy.address)
             joinPolicyParams.push(config.minStake)
@@ -99,6 +101,10 @@ describe("Bounty", (): void => {
             joinPolicies.push(testJoinPolicy.address)
             joinPolicyParams.push(config.testJoinPol)
         }
+        if (config.leavePol) {
+            leavePolicies.push(leavePolicy.address)
+            leavePolicyParams.push(config.leavePol)
+        }
         
         const allocationPolicyAddr: string = (<BountyConfig2>config).testAllocPolicy ? testAllocationPolicy.address : allocationPolicy.address
         let allocPolicyParam = ""
@@ -109,7 +115,7 @@ describe("Bounty", (): void => {
         }
         // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, joinPolicies,
-            joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
+            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicies, leavePolicyParams)
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
         expect(newBountyAddress).to.be.not.null
