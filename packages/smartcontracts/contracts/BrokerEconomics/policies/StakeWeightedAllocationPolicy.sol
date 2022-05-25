@@ -52,7 +52,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         LocalStorage storage local = localData();
         GlobalStorage storage global = globalData();
 
-        if (local.incomePerSecondPerStake > 0) {
+        if (isRunning()) {
             uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
             // console.log("    update period = ", local.lastUpdateTimestamp, block.timestamp);
 
@@ -60,7 +60,6 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
             if (local.defaultedWei == 0) {
                 uint allocationWei = local.incomePerSecond * deltaTime;
                 uint allocationWeiPerStake = local.incomePerSecondPerStake * deltaTime;
-                // uint allocationWei = allocationWeiPerStake * local.lastUpdateTotalStake / 1e18; // "stake" is in full tokens
                 // console.log("    total staked  = ", local.lastUpdateTotalStake);
                 // console.log("    allocation    = ", allocationWei);
 
@@ -174,7 +173,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    /** Calculate the cumulative earnings per unit (full token stake) right now */
+    // TODO: DRY out this function by using it both in update and calculateAllocation
     function getCumulativeWeiPerStake() internal view returns(uint256) {
         // in the state of insolvency: don't allocate new earnings
         uint remainingWei = globalData().unallocatedFunds;
@@ -195,7 +194,10 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         return localData().cumulativeWeiPerStake + perStakeWei;
     }
 
-    // this works if stakedWei hasn't change since update() was last called
+    /**
+     * Calculate the cumulative earnings per unit (full token stake) right now
+     * It's important that stakedWei hasn't changed since update() was last called
+     */
     function calculateAllocation(address broker) public view returns (uint allocation) {
         if (globalData().stakedWei[broker] == 0) { return 0; }
 
@@ -204,9 +206,9 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // console.log("  reference  ", localData().cumulativeReference[broker]);
         uint weiPerStake = getCumulativeWeiPerStake() - localData().cumulativeReference[broker];
         // console.log("  alloc / full token", weiPerStake);
-        uint postReferenceWei = globalData().stakedWei[broker] * weiPerStake / 1e18; // full token = 1e18 wei
+        uint afterReferenceResetWei = globalData().stakedWei[broker] * weiPerStake / 1e18; // full token = 1e18 wei
         // console.log("  onReferenceResetWei", localData().onReferenceResetWei[broker]);
-        // console.log("  allocation ", postReferenceWei);
-        return localData().onReferenceResetWei[broker] + postReferenceWei;
+        // console.log("  allocation ", afterReferenceResetWei);
+        return localData().onReferenceResetWei[broker] + afterReferenceResetWei;
     }
 }

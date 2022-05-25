@@ -70,9 +70,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     enum State {
         NotInitialized, // horizon = how much longer there are unallocated funds
         Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
-        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
-        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
+        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty, expecting a top-up
+        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount, waiting for brokers
         Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
+    }
+
+    // TODO: should this be decided by a module?
+    function isRunning() public view returns (bool) {
+        return globalData().brokerCount >= globalData().minBrokerCount;
     }
 
     function getState() public view returns (State) {
@@ -80,12 +85,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             return State.NotInitialized;
         }
         bool funded = solventUntil() > block.timestamp + globalData().minHorizonSeconds;
-        bool manned = globalData().brokerCount >= globalData().minBrokerCount;
 
-        if (funded) {
-            return manned ? State.Running : State.Funded;
+        if (isRunning()) {
+            return funded ? State.Running : State.Warning;
         } else {
-            return manned ? State.Warning : State.Closed;
+            return funded ? State.Funded : State.Closed;
         }
     }
 
@@ -96,6 +100,22 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             emit StateChanged(currentState);
         }
         previousState = currentState;
+    }
+
+    // TODO: rename to GlobalStorage
+    // storage variables available to all modules
+    struct GlobalState {
+        uint brokerCount;
+        /** how much each broker has staked, if 0 broker is considered not part of bounty */
+        mapping(address => uint) stakedWei;
+        uint totalStakedWei;
+        /** the timestamp a broker joined, to determine how long he has been a member,
+            - option 1: must be set to 0 once broker leaves, must always be checked for 0
+            - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
+        mapping(address => uint) joinTimeOfBroker;
+        uint unallocatedFunds;
+        uint minHorizonSeconds;
+        uint minBrokerCount;
     }
 
     function initialize(
@@ -147,25 +167,26 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function _stake(address broker, uint amount) internal {
+        // console.log("join/stake at ", block.timestamp);
         require(amount > 0, "error_cannotStakeZero");
-        // console.log("join at ", block.timestamp);
-        if (globalData().stakedWei[broker] == 0) {
+        GlobalStorage storage s = globalData();
+        if (s.stakedWei[broker] == 0) {
             // join the broker set
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
                 IJoinPolicy joinPolicy = IJoinPolicy(joinPolicyAddresses[i]);
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
             }
-            globalData().stakedWei[broker] += amount;
-            globalData().brokerCount += 1;
-            globalData().totalStakedWei += amount;
-            globalData().joinTimeOfBroker[broker] = block.timestamp;
+            s.stakedWei[broker] += amount;
+            s.brokerCount += 1;
+            s.totalStakedWei += amount;
+            s.joinTimeOfBroker[broker] = block.timestamp;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
             // console.log("BrokerJoined");
         } else {
             // already joined, increasing stake
-            globalData().stakedWei[broker] += amount;
-            globalData().totalStakedWei += amount;
+            s.stakedWei[broker] += amount;
+            s.totalStakedWei += amount;
 
             // re-calculate the cumulative earnings
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");

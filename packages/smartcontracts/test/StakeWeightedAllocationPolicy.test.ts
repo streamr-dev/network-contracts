@@ -315,7 +315,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end the expected winnings are 4000 tokens, because between 2000...3000 no allocations were paid
         // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
         // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
-        // between 2000...3000 the bounty will default on 1000 tokens, or 0.5 per stake
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
@@ -447,7 +446,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
     })
 
     // TODO: this test will change once the bounty will stop allocations with too few brokers, see assert in the end
-    it.skip("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
+    it.only("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
         // t = t0       : broker joins
         // t = t0 + 1000: money runs out
         // t = t0 + 2000: broker leaves
@@ -455,6 +454,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 4000: money added
         // t = t0 + 5000: broker leaves
         // expecting to get 1000 + 1000 tokens and also forfeiting 1000 + 1000
+        // tokens should be counted as forfeited when the bounty isn't running (between 2000...3000)
         //   (although forfeited tokens can't be read from anywhere because broker didn't stay through insolvency!)
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("1000"))).wait()
@@ -467,7 +467,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
+        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
         const tr1 = await (await bounty.connect(broker).leave()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
@@ -772,8 +772,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 3000: money is added
         // t = t0 + 4000: broker1 leaves
         // t = t0 + 5000: broker2 leaves
-        // broker1 should have 1000 + 500 + 0 + 1000 +    0 = 2500 tokens
-        // broker2 should have    0 + 500 + 0 + 1000 + 2000 = 3500 tokens
+        // broker1 should have 1000 + 500 + 1000 +    0 = 2500 tokens
+        // broker2 should have    0 + 500 + 1000 + 2000 = 3500 tokens
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
