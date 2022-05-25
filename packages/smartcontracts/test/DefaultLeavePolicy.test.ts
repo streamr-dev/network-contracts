@@ -9,11 +9,12 @@ const { provider: waffleProvider } = waffle
 const { parseEther, formatEther } = utils
 const { provider, getContractFactory } = hardhatEthers
 
-const { log } = console
+// const { log } = console
 
 use(waffle.solidity)
 
-async function advanceToTimestamp(timestamp: number, message?: string) {
+// async function advanceToTimestamp(timestamp: number, message?: string) {
+async function advanceToTimestamp(timestamp: number) {
     // log("\nt = %s ", timestamp, message ?? "")
     await provider.send("evm_setNextBlockTimestamp", [timestamp])
     await provider.send("evm_mine", [0])
@@ -110,19 +111,19 @@ describe("DefaultLeavePolicy", (): void => {
         const balanceBefore = await token.balanceOf(broker.address)
         const balanceBefore2 = await token.balanceOf(broker2.address)
 
-        await advanceToTimestamp(timeAtStart, "broker 1 joins")
+        await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 100, "broker 2 joins")
+        await advanceToTimestamp(timeAtStart + 100)
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
         expect(await bounty.getState()).to.equal(State.Running)
 
-        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running")
+        await advanceToTimestamp(timeAtStart + 300)
         await (await bounty.connect(broker).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped")
+        await advanceToTimestamp(timeAtStart + 400)
         await (await bounty.connect(broker2).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
