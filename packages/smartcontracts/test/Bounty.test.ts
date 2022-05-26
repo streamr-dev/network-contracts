@@ -2,7 +2,7 @@ import { waffle, upgrades, ethers } from "hardhat"
 import { expect, use } from "chai"
 import { Contract, ContractFactory, utils } from "ethers"
 
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, StakeWeightedAllocationPolicy, TestToken } from "../typechain"
 import { AbiCoder } from "ethers/lib/utils"
 
 // const { deployContract } = waffle
@@ -116,8 +116,8 @@ describe("Bounty", (): void => {
                 allocPolicyParam, leavePolicy.address, leavePolicyParam])
         const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
         const bountyDeployReceipt = await bountyDeployTx.wait()
-        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
+        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        expect(newBountyAddress).to.be.not.undefined
         // console.log("bounty " + newBountyAddress)
 
         const agreementFactory = await ethers.getContractFactory("Bounty")
@@ -126,7 +126,17 @@ describe("Bounty", (): void => {
         return bountyFromAdmin
     }
 
-    it.only("positivetest deploy bounty through factory, join bounty", async function(): Promise<void> {
+    it.only("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
+        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
+            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"], 
+                allocationPolicy.address, "1", leavePolicy.address, "0"])
+        const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
+        const bountyDeployReceipt = await bountyDeployTx.wait()
+        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        expect(newBountyAddress).to.be.not.undefined
+    })
+
+    it("positivetest deploy bounty through factory, join bounty", async function(): Promise<void> {
         // await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()
         // await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "1")).wait()
         await createBounty({ minStake: "2000000000000000000", maxBrokers: "1", stakeWeight: "1" })
