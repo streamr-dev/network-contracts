@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
+import "hardhat/console.sol";
+
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
@@ -38,6 +40,37 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
+        // require(_msgSender() == address(token), "error_onlyTokenContract");
+        // uint lengt = param.length;
+        // uint initialMinHorizonSeconds = bytes32ToUint(param.slice(0, 32));
+        // deployBountyAgreement(data);
+        console.log("sender", sender);
+        console.log("amount", amount);
+        // console.log("data", param);
+        console.logBytes(param);
+        ( uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
+        string memory bountyName,
+        address[] memory bountyJoinPolicies,
+        uint[] memory bountyJoinPolicyParams,
+        address allocationPolicy,
+        uint allocationPolicyParam,
+        address bountyLeavePolicy,
+        uint bountyLeavePolicyParam) = abi.decode(param,
+            (uint256,uint256,string,address[],uint[],address,uint,address,uint)
+        );
+        console.log("initialMinHorizonSeconds", initialMinHorizonSeconds);
+        console.log("initialMinBrokerCount", initialMinBrokerCount);
+        console.log("bountyName", bountyName);
+        console.log("bountyJoinPolicies", bountyJoinPolicies.length);
+        console.log("bountyJoinPolicyParams", bountyJoinPolicyParams.length);
+        console.log("allocationPolicy", allocationPolicy);
+        console.log("allocationPolicyParam", allocationPolicyParam);
+        console.log("bountyLeavePolicy", bountyLeavePolicy);
+        console.log("bountyLeavePolicyParam", bountyLeavePolicyParam);
     }
 
     function deployBountyAgreement(
