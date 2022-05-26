@@ -85,7 +85,7 @@ describe("DefaultLeavePolicy", (): void => {
             minBrokerCount.toString(),
             "Bounty-" + Date.now(),
             [minStakeJoinPolicy.address], [parseEther("1")], allocationPolicy.address, allocationWeiPerSecond,
-            leavePolicy.address, "0"
+            leavePolicy.address, "1000"
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
@@ -149,19 +149,19 @@ describe("DefaultLeavePolicy", (): void => {
         const balanceBefore = await token.balanceOf(broker.address)
         const balanceBefore2 = await token.balanceOf(broker2.address)
 
-        await advanceToTimestamp(timeAtStart, "broker 1 joins")
+        await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 400, "broker 2 joins")
+        await advanceToTimestamp(timeAtStart + 400)
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
         expect(await bounty.getState()).to.equal(State.Running)
 
-        await advanceToTimestamp(timeAtStart + 1000, "broker 1 leaves while bounty is running")
+        await advanceToTimestamp(timeAtStart + 1000)
         await (await bounty.connect(broker).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 1700, "broker 2 leaves when bounty is stopped")
+        await advanceToTimestamp(timeAtStart + 1700)
         await (await bounty.connect(broker2).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
