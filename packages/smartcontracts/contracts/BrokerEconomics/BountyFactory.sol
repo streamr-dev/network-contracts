@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
 import "./IERC677.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
@@ -43,15 +43,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return super._msgData();
     }
 
-    function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
-        // require(_msgSender() == address(token), "error_onlyTokenContract");
-        // uint lengt = param.length;
-        // uint initialMinHorizonSeconds = bytes32ToUint(param.slice(0, 32));
-        // deployBountyAgreement(data);
-        console.log("sender", sender);
-        console.log("amount", amount);
-        // console.log("data", param);
-        console.logBytes(param);
+    function onTokenTransfer(address /*sender*/, uint amount, bytes calldata param) external {
         ( uint initialMinHorizonSeconds,
         uint initialMinBrokerCount,
         string memory bountyName,
@@ -63,19 +55,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint bountyLeavePolicyParam) = abi.decode(param,
             (uint256,uint256,string,address[],uint[],address,uint,address,uint)
         );
-        console.log("initialMinHorizonSeconds", initialMinHorizonSeconds);
-        console.log("initialMinBrokerCount", initialMinBrokerCount);
-        console.log("bountyName", bountyName);
-        console.log("bountyJoinPolicies", bountyJoinPolicies.length);
-        console.log("bountyJoinPolicyParams", bountyJoinPolicyParams.length);
-        console.log("allocationPolicy", allocationPolicy);
-        console.log("allocationPolicyParam", allocationPolicyParam);
-        console.log("bountyLeavePolicy", bountyLeavePolicy);
-        console.log("bountyLeavePolicyParam", bountyLeavePolicyParam);
         address bountyAddress = deployBountyAgreement(initialMinHorizonSeconds, initialMinBrokerCount, bountyName, 
             bountyJoinPolicies, bountyJoinPolicyParams, allocationPolicy, allocationPolicyParam, 
             bountyLeavePolicy, bountyLeavePolicyParam);
-        console.log("bountyAddress", bountyAddress);
         IERC677(tokenAddress).transferAndCall(bountyAddress, amount, "");
     }
 

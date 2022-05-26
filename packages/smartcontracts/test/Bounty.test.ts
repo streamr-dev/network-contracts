@@ -2,8 +2,7 @@ import { waffle, upgrades, ethers } from "hardhat"
 import { expect, use } from "chai"
 import { Contract, ContractFactory, utils } from "ethers"
 
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, StakeWeightedAllocationPolicy, TestToken } from "../typechain"
-import { AbiCoder } from "ethers/lib/utils"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
 
 // const { deployContract } = waffle
 const { provider } = waffle
@@ -109,14 +108,10 @@ describe("Bounty", (): void => {
             allocPolicyParam = (<BountyConfig2>config).testAllocPolicy
         }
         // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
-        // const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, joinPolicies,
-        //     joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicy.address, leavePolicyParam)
-        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
-            [0, 0, "Bounty-" + bountyCounter++, joinPolicies, joinPolicyParams, allocationPolicyAddr,
-                allocPolicyParam, leavePolicy.address, leavePolicyParam])
-        const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
+        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, joinPolicies,
+            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicy.address, leavePolicyParam)
         const bountyDeployReceipt = await bountyDeployTx.wait()
-        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
         expect(newBountyAddress).to.be.not.undefined
         // console.log("bounty " + newBountyAddress)
 
@@ -126,7 +121,7 @@ describe("Bounty", (): void => {
         return bountyFromAdmin
     }
 
-    it.only("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
+    it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
         const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
             [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"], 
                 allocationPolicy.address, "1", leavePolicy.address, "0"])
