@@ -277,4 +277,41 @@ describe("Bounty", (): void => {
     it("negativetest calling fallback function", async function(): Promise<void> {
         await expect(adminWallet.sendTransaction({to: bountyFromAdmin.address})).to.be.revertedWith("error_mustBeThis")
     })
+
+    it("negativetest try to create bounty with untrusted policies", async function(): Promise<void> {
+        // joinpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [ethers.Wallet.createRandom().address],
+            ["0"], allocationPolicy.address, "0", leavePolicy.address, "0"))
+            .to.be.revertedWith("error_joinPolicyNotTrusted")
+        // allocationpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
+            ["0"], ethers.Wallet.createRandom().address, "0", leavePolicy.address, "0"))
+            .to.be.revertedWith("error_allocPolicyNotTrusted")
+        // leavepolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
+            ["0"], allocationPolicy.address, "0", ethers.Wallet.createRandom().address, "0"))
+            .to.be.revertedWith("error_leavePolicyNotTrusted")
+    })
+
+    // must be last test, will remove all policies
+    it("positivetest remove trusted policies", async function(): Promise<void> {
+        expect(await bountyFactory.isTrustedPolicy(minStakeJoinPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(allocationPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(leavePolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(testAllocationPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(testJoinPolicy.address)).to.be.true
+        await (await bountyFactory.removeTrustedPolicy(minStakeJoinPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(maxBrokersJoinPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(allocationPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(leavePolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(testAllocationPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(testJoinPolicy.address)).wait()
+        expect(await bountyFactory.isTrustedPolicy(minStakeJoinPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(testAllocationPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(testJoinPolicy.address)).to.be.false
+    })
 })
