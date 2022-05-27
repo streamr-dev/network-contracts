@@ -4,7 +4,6 @@ import { Contract, ContractFactory, utils } from "ethers"
 
 import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
 
-// const { deployContract } = waffle
 const { provider } = waffle
 const { defaultAbiCoder } = utils
 
@@ -71,10 +70,8 @@ describe("Bounty", (): void => {
     type BaseBountyConfig = {
         minStake?: string,
         maxBrokers?: string,
-        // stakeWeight?: string,
         leavePol?: string,
         testJoinPol?: string,
-        // testAllocPol?: string
     }
     type BountyConfig1 = BaseBountyConfig & {
         stakeWeight: string
@@ -82,7 +79,6 @@ describe("Bounty", (): void => {
     type BountyConfig2 = BaseBountyConfig & {
         testAllocPolicy: string
     }
-    // type BountyConfig = BountyConfig1 | BountyConfig2
 
     const createBounty = async (config: BountyConfig1 | BountyConfig2): Promise<Bounty> => {
         const joinPolicies = []
@@ -132,8 +128,6 @@ describe("Bounty", (): void => {
     })
 
     it("positivetest deploy bounty through factory, join bounty", async function(): Promise<void> {
-        // await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()
-        // await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "1")).wait()
         await createBounty({ minStake: "2000000000000000000", maxBrokers: "1", stakeWeight: "1" })
         const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
         await tx.wait()
@@ -166,7 +160,6 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest min stake join policy", async function(): Promise<void> {
-        // await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()
         await createBounty({ minStake: "2000000000000000000", stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_stakeUnderMinimum")
