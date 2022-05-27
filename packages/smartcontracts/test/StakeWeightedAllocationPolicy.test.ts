@@ -76,7 +76,9 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
-            "Bounty-" + Date.now()
+            "Bounty-" + Date.now(),
+            [minStakeJoinPolicy.address], [parseEther("1")], allocationPolicy.address, allocationWeiPerSecond,
+            leavePolicy.address, "0"
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
@@ -85,13 +87,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         log("Bounty deployed at %s", newBountyAddress)
 
         const bounty = bountyTemplate.attach(newBountyAddress)
-
-        const setAllocationPolicyTx = await bounty.setAllocationPolicy(allocationPolicy.address, allocationWeiPerSecond)
-        await setAllocationPolicyTx.wait()
-        const setJoinPolicyTx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, parseEther("1"))
-        await setJoinPolicyTx.wait()
-        const setLeavelPolicyTx = await bounty.setLeavePolicy(leavePolicy.address, "0")
-        await setLeavelPolicyTx.wait()
 
         await (await token.approve(newBountyAddress, parseEther("100000"))).wait()
 
@@ -559,7 +554,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(tokensBroker2)).to.equal("2000.0")
     })
 
-    it("allocates correctly if incomePerSecond changes", async function(): Promise<void> {
+    it.skip("allocates correctly if incomePerSecond changes", async function(): Promise<void> {
         //     t0       : broker joins
         // t = t0 + 1000: incomePerSecond changes to 2
         // t = t0 + 2000: broker leaves
@@ -584,7 +579,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(newTokens)).to.equal("3000.0")
     })
 
-    it("allocates correctly if incomePerSecond changes during insolvency", async function(): Promise<void> {
+    it.skip("allocates correctly if incomePerSecond changes during insolvency", async function(): Promise<void> {
         //     t0       : broker joins
         // t = t0 + 1000: money runs out
         // t = t0 + 2000: incomePerSecond changes to 2
@@ -765,7 +760,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(tokensBroker2)).to.equal("2000.0")
     })
 
-    it("allocates correctly if money runs out exactly during incomePerSecond change", async function(): Promise<void> {
+    it.skip("allocates correctly if money runs out exactly during incomePerSecond change", async function(): Promise<void> {
         //     t0       : broker1 joins, stakes 1000 tokens
         // t = t0 + 1000: broker2 joins, stakes 1000 tokens
         // t = t0 + 2000: money runs out AND incomePerSecond changes to 2

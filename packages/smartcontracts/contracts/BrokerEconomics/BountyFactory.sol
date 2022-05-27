@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
+import "./IERC677.sol";
+
+// import "hardhat/console.sol";
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
@@ -22,7 +25,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         tokenAddress = _tokenAddress;
         bountyContractTemplate = templateAddress;
@@ -40,10 +43,34 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return super._msgData();
     }
 
+    function onTokenTransfer(address /*sender*/, uint amount, bytes calldata param) external {
+        ( uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
+        string memory bountyName,
+        address[] memory bountyJoinPolicies,
+        uint[] memory bountyJoinPolicyParams,
+        address allocationPolicy,
+        uint allocationPolicyParam,
+        address bountyLeavePolicy,
+        uint bountyLeavePolicyParam) = abi.decode(param,
+            (uint256,uint256,string,address[],uint[],address,uint,address,uint)
+        );
+        address bountyAddress = deployBountyAgreement(initialMinHorizonSeconds, initialMinBrokerCount, bountyName, 
+            bountyJoinPolicies, bountyJoinPolicyParams, allocationPolicy, allocationPolicyParam, 
+            bountyLeavePolicy, bountyLeavePolicyParam);
+        IERC677(tokenAddress).transferAndCall(bountyAddress, amount, "");
+    }
+
     function deployBountyAgreement(
         uint initialMinHorizonSeconds,
         uint initialMinBrokerCount,
-        string memory bountyName
+        string memory bountyName,
+        address[] memory bountyJoinPolicies,
+        uint[] memory bountyJoinPolicyParams,
+        address allocationPolicy,
+        uint allocationPolicyParam,
+        address bountyLeavePolicy,
+        uint bountyLeavePolicyParam
     ) public returns (address) {
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
@@ -51,14 +78,19 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
         // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(
-            _msgSender(),
+        // Bounty bounty = ;
+        (Bounty(bountyAddress)).initialize(
+            address(this),
             tokenAddress,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             trustedForwarder
         );
+        for (uint i = 0; i < bountyJoinPolicies.length; i++) {
+            (Bounty(bountyAddress)).addJoinPolicy(bountyJoinPolicies[i], bountyJoinPolicyParams[i]);
+        }
+        (Bounty(bountyAddress)).setAllocationPolicy(allocationPolicy, allocationPolicyParam);
+        (Bounty(bountyAddress)).setLeavePolicy(bountyLeavePolicy, bountyLeavePolicyParam);
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }
