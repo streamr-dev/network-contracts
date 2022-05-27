@@ -28,6 +28,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // it's important to call the update() when things that affect allocation change (like incomePerSecond or stakedWei)
         uint256 lastUpdateTimestamp;
         uint256 lastUpdateTotalStake;
+        bool lastUpdateWasRunning;
     }
 
     function localData() internal view returns(LocalStorage storage data) {
@@ -47,12 +48,15 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      * New funds that may have entered in the meanwhile are only counted after
      * This should be called BEFORE changes that affect incomePerSecondPerStake, such as total staked, incomePerSecond
      * insolvencyStartTimeOverride is needed when stake was increased before update, because insolvency must be calculated with the stake
+     * TODO: split update into updateAllocations and updateIncomes / prepareUpdate
+     *       that might also get rid of lastUpdateTotalStake and lastUpdateWasRunning
+     *         after changing the order of change and listener in Bounty->onJoin, like was done for onSponsor
      */
     function update(uint newFundsWei) private {
         LocalStorage storage local = localData();
         GlobalStorage storage global = globalData();
 
-        if (isRunning()) {
+        if (local.lastUpdateWasRunning) {
             uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
             // console.log("    update period = ", local.lastUpdateTimestamp, block.timestamp);
 
@@ -114,6 +118,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         } // else { local.incomePerSecondPerStake = 0; } // never used currently
         local.lastUpdateTimestamp = block.timestamp;
         local.lastUpdateTotalStake = totalStakedWei;
+        local.lastUpdateWasRunning = isRunning();
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
@@ -165,7 +170,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function onSponsor(address, uint amount) external {
-        // console.log("onSponsor, now got", globalData().unallocatedFunds);
+        // console.log("onSponsor: had before", globalData().unallocatedFunds);
+        // console.log("           got more  ", amount);
 
         // in case the bounty had gone insolvent, now it got a top-up => return from insolvency
         if (getInsolvencyTimestamp() < block.timestamp) {
