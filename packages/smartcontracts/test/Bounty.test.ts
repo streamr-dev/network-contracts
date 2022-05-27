@@ -286,7 +286,7 @@ describe("Bounty", (): void => {
         // allocationpolicy
         await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
             ["0"], ethers.Wallet.createRandom().address, "0", leavePolicy.address, "0"))
-            .to.be.revertedWith("error_allocPolicyNotTrusted")
+            .to.be.revertedWith("error_allocationPolicyNotTrusted")
         // leavepolicy
         await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
             ["0"], allocationPolicy.address, "0", ethers.Wallet.createRandom().address, "0"))

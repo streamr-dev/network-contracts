@@ -96,7 +96,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         for (uint i = 0; i < bountyJoinPolicies.length; i++) {
             require(isTrustedPolicy(bountyJoinPolicies[i]), "error_joinPolicyNotTrusted");
         }
-        require(isTrustedPolicy(allocationPolicy), "error_allocPolicyNotTrusted");
+        require(isTrustedPolicy(allocationPolicy), "error_allocationPolicyNotTrusted");
         require(isTrustedPolicy(bountyLeavePolicy), "error_leavePolicyNotTrusted");
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
