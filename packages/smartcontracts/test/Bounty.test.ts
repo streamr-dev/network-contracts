@@ -60,6 +60,8 @@ describe("Bounty", (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
             [ bountyTemplate.address, trustedForwarderAddress, token.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+            allocationPolicy.address, leavePolicy.address, testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         await (await token.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()

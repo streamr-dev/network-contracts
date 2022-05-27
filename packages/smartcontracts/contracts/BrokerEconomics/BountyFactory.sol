@@ -17,11 +17,14 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     address public streamBrokerRegistryAddress;
     address public tokenAddress;
     address public trustedForwarder;
-    mapping(string => address) public joinPolicies;
-    mapping(string => address) public leavePolicies;
-    mapping(string => address) public allocationPolicies;
+    mapping(address => bool) public trustedPolicies;
 
     event NewBounty(address bountyContract);
+
+    modifier isAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeTrustedRole");
+        _;
+    }
 
     function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
@@ -41,6 +44,24 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function addTrustedPolicy(address policyAddress) public isAdmin {
+        trustedPolicies[policyAddress] = true;
+    }
+
+    function addTrustedPolicies(address[] memory policyAddresses) public isAdmin {
+        for (uint i = 0; i < policyAddresses.length; i++) {
+            addTrustedPolicy(policyAddresses[i]);
+        }
+    }
+
+    function removeTrustedPolicy(address policyAddress) public isAdmin {
+        trustedPolicies[policyAddress] = false;
+    }
+
+    function isTrustedPolicy(address policyAddress) public view returns (bool) {
+        return trustedPolicies[policyAddress];
     }
 
     function onTokenTransfer(address /*sender*/, uint amount, bytes calldata param) external {
@@ -72,6 +93,11 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address bountyLeavePolicy,
         uint bountyLeavePolicyParam
     ) public returns (address) {
+        require(isTrustedPolicy(allocationPolicy), "error_policyNotTrusted");
+        require(isTrustedPolicy(bountyLeavePolicy), "error_policyNotTrusted");
+        for (uint i = 0; i < bountyJoinPolicies.length; i++) {
+            require(isTrustedPolicy(bountyJoinPolicies[i]), "error_policyNotTrusted");
+        }
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
         // ClonesUpgradeable.clone(bountyContractTemplate);
