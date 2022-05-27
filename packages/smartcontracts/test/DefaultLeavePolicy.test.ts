@@ -68,6 +68,8 @@ describe("DefaultLeavePolicy", (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
             [ bountyTemplate.address, trustedForwarder.address, token.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+            allocationPolicy.address, leavePolicy.address])).wait()
 
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
         await (await token.transfer(broker.address, parseEther("100000"))).wait()
