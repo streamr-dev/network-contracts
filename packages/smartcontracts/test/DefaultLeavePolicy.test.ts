@@ -119,22 +119,22 @@ describe("DefaultLeavePolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 100, "broker 2 joins")
+        await advanceToTimestamp(timeAtStart + 100, "broker 2 joins, both will earn 100")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
         expect(await bounty.getState()).to.equal(State.Running)
 
-        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running")
+        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 1000")
         await (await bounty.connect(broker).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped")
+        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped, keeps stake")
         await (await bounty.connect(broker2).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
         const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)
 
-        expect(formatEther(balanceChange)).to.equal("-800.0")
-        expect(formatEther(balanceChange2)).to.equal("200.0")
+        expect(formatEther(balanceChange)).to.equal("-900.0") // == 100 - 1000
+        expect(formatEther(balanceChange2)).to.equal("100.0") // == 100 - 0
     })
 })

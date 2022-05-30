@@ -186,6 +186,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
         // in the state of insolvency or not running: don't allocate new earnings
         uint remainingWei = globalData().unallocatedFunds;
+        if (remainingWei == 0 || !local.lastUpdateWasRunning) {
             return local.cumulativeWeiPerStake;
         }
 
