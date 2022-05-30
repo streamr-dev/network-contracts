@@ -119,6 +119,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         local.lastUpdateTimestamp = block.timestamp;
         local.lastUpdateTotalStake = totalStakedWei;
         local.lastUpdateWasRunning = isRunning();
+        // console.log("Is running: ", local.lastUpdateWasRunning ? "yes" : "no");
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
@@ -181,23 +182,24 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     // TODO: DRY out this function by using it both in update and calculateAllocation
     function getCumulativeWeiPerStake() internal view returns(uint256) {
-        // in the state of insolvency: don't allocate new earnings
+        LocalStorage storage local = localData();
+
+        // in the state of insolvency or not running: don't allocate new earnings
         uint remainingWei = globalData().unallocatedFunds;
-        if (remainingWei == 0) {
-            return localData().cumulativeWeiPerStake;
+            return local.cumulativeWeiPerStake;
         }
 
         // working as normal: allocate what is owed
-        uint deltaTime = block.timestamp - localData().lastUpdateTimestamp;
-        uint owedWeiPerStake = localData().incomePerSecondPerStake * deltaTime;
-        uint owedWei = owedWeiPerStake * localData().lastUpdateTotalStake / 1e18;
+        uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
+        uint owedWeiPerStake = local.incomePerSecondPerStake * deltaTime;
+        uint owedWei = owedWeiPerStake * local.lastUpdateTotalStake / 1e18;
         if (owedWei <= remainingWei) {
-            return localData().cumulativeWeiPerStake + owedWeiPerStake;
+            return local.cumulativeWeiPerStake + owedWeiPerStake;
         }
 
         // gone insolvent since last update: allocate all remaining funds
-        uint perStakeWei = remainingWei * 1e18 / localData().lastUpdateTotalStake;
-        return localData().cumulativeWeiPerStake + perStakeWei;
+        uint perStakeWei = remainingWei * 1e18 / local.lastUpdateTotalStake;
+        return local.cumulativeWeiPerStake + perStakeWei;
     }
 
     /**
