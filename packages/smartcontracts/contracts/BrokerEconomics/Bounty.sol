@@ -125,6 +125,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint initialMinBrokerCount,
         address trustedForwarderAddress
     ) public initializer {
+        require(initialMinBrokerCount > 0, "error_minBrokerCountMustBePositive");
         // __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
         token = IERC677(tokenAddress);

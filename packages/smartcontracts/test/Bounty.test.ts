@@ -119,9 +119,9 @@ describe("Bounty", (): void => {
         return bountyFromAdmin
     }
 
-    it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
+    it.only("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
         const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
-            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
+            [0, 1, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
                 allocationPolicy.address, "1", leavePolicy.address, "0"])
         const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
         const bountyDeployReceipt = await bountyDeployTx.wait()
@@ -133,6 +133,14 @@ describe("Bounty", (): void => {
         await createBounty({ minStake: "2000000000000000000", maxBrokers: "1", stakeWeight: "1" })
         const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
         await tx.wait()
+    })
+
+    it.only("negativetest zero minBrokerCount", async function(): Promise<void> {
+        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
+            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
+                allocationPolicy.address, "1", leavePolicy.address, "0"])
+        await expect(token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data))
+            .to.be.revertedWith("error_minBrokerCountMustBePositive")
     })
 
     it("negativetest addjoinpolicy from not-admin", async function(): Promise<void> {
