@@ -9,7 +9,8 @@ const { provider: waffleProvider } = waffle
 const { parseEther, formatEther } = utils
 const { provider, getContractFactory } = hardhatEthers
 
-const { log } = console
+const log = (..._: unknown[]) => { /* skip logging */ }
+// const { log } = console // TODO: use pino for logging?
 
 use(waffle.solidity)
 
@@ -67,6 +68,8 @@ describe("DefaultLeavePolicy", (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
             [ bountyTemplate.address, trustedForwarder.address, token.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+            allocationPolicy.address, leavePolicy.address])).wait()
 
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
         await (await token.transfer(broker.address, parseEther("100000"))).wait()
@@ -75,14 +78,16 @@ describe("DefaultLeavePolicy", (): void => {
     })
 
     async function deployBountyContract({
-        minBrokerCount = 2,
+        minBrokerCount = 1,
         minHorizonSeconds = 3600,
         allocationWeiPerSecond = parseEther("1"),
     } = {}): Promise<Bounty> {
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
-            "Bounty-" + Date.now()
+            "Bounty-" + Date.now(),
+            [minStakeJoinPolicy.address], [parseEther("1")], allocationPolicy.address, allocationWeiPerSecond,
+            leavePolicy.address, "1000"
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
@@ -92,20 +97,13 @@ describe("DefaultLeavePolicy", (): void => {
 
         const bounty = bountyTemplate.attach(newBountyAddress)
 
-        const setAllocationPolicyTx = await bounty.setAllocationPolicy(allocationPolicy.address, allocationWeiPerSecond)
-        await setAllocationPolicyTx.wait()
-        const setJoinPolicyTx = await bounty.addJoinPolicy(minStakeJoinPolicy.address, parseEther("1"))
-        await setJoinPolicyTx.wait()
-        const setLeavelPolicyTx = await bounty.setLeavePolicy(leavePolicy.address, "0")
-        await setLeavelPolicyTx.wait()
-
         await (await token.approve(newBountyAddress, parseEther("100000"))).wait()
 
         return bounty
     }
 
-    it("deducts penalty only from the broker that leaves while bounty is running", async function(): Promise<void> {
-        const bounty = await deployBountyContract()
+    it("penalizes only from the broker that leaves early while bounty is running", async function(): Promise<void> {
+        const bounty = await deployBountyContract({ minBrokerCount: 2 })
         expect(await bounty.getState()).to.equal(State.Closed)
 
         await bounty.sponsor(parseEther("10000"))
@@ -115,7 +113,7 @@ describe("DefaultLeavePolicy", (): void => {
         const balanceBefore = await token.balanceOf(broker.address)
         const balanceBefore2 = await token.balanceOf(broker2.address)
 
-        await advanceToTimestamp(timeAtStart, "broker 1 joins")
+        await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
@@ -136,5 +134,43 @@ describe("DefaultLeavePolicy", (): void => {
 
         expect(formatEther(balanceChange)).to.equal("-900.0") // == 100 - 1000
         expect(formatEther(balanceChange2)).to.equal("100.0") // == 100 - 0
+    })
+
+    it("doesn't penalize a broker that leaves after the leave period (even when contract is running)", async function(): Promise<void> {
+        // time:        0 ... 400 ... 1000 ... 1700
+        // join/leave: +b1    +b2      -b1      -b2
+        // broker1:       400  +  300               =  700
+        // broker2:               300  +  700       = 1000
+        const bounty = await deployBountyContract()
+        expect(await bounty.getState()).to.equal(State.Closed)
+
+        await bounty.sponsor(parseEther("10000"))
+        expect(await bounty.getState()).to.equal(State.Funded)
+
+        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+        const balanceBefore = await token.balanceOf(broker.address)
+        const balanceBefore2 = await token.balanceOf(broker2.address)
+
+        await advanceToTimestamp(timeAtStart)
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
+        expect(await bounty.getState()).to.equal(State.Running)
+
+        await advanceToTimestamp(timeAtStart + 400)
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
+        expect(await bounty.getState()).to.equal(State.Running)
+
+        await advanceToTimestamp(timeAtStart + 1000)
+        await (await bounty.connect(broker).leave()).wait()
+        expect(await bounty.getState()).to.equal(State.Running)
+
+        await advanceToTimestamp(timeAtStart + 1700)
+        await (await bounty.connect(broker2).leave()).wait()
+        expect(await bounty.getState()).to.equal(State.Funded)
+
+        const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
+        const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)
+
+        expect(formatEther(balanceChange)).to.equal("700.0")
+        expect(formatEther(balanceChange2)).to.equal("1000.0")
     })
 })

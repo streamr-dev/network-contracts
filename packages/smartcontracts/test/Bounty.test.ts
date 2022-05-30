@@ -2,9 +2,8 @@ import { waffle, upgrades, ethers } from "hardhat"
 import { expect, use } from "chai"
 import { Contract, ContractFactory, utils } from "ethers"
 
-import type { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
 
-// const { deployContract } = waffle
 const { provider } = waffle
 const { defaultAbiCoder } = utils
 
@@ -25,10 +24,12 @@ describe("Bounty", (): void => {
     let minStakeJoinPolicy: IJoinPolicy
     let maxBrokersJoinPolicy: IJoinPolicy
     let bountyCounter = 0
-    let bountyFromAdmin: Contract
-    let bountyFromBroker: Contract
+    let bountyFromAdmin: Bounty
+    let bountyFromBroker: Bounty
     let allocationPolicy: Contract
     let leavePolicy: Contract
+    let testJoinPolicy: Contract
+    let testAllocationPolicy: Contract
 
     before(async (): Promise<void> => {
         token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
@@ -46,6 +47,12 @@ describe("Bounty", (): void => {
         leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy", adminWallet)).deploy() as ILeavePolicy
         await leavePolicy.deployed()
 
+        testJoinPolicy = await (await ethers.getContractFactory("TestJoinPolicy", adminWallet)).deploy() as Contract
+        await testJoinPolicy.deployed()
+
+        testAllocationPolicy = await (await ethers.getContractFactory("TestAllocationPolicy", adminWallet)).deploy() as Contract
+        await testAllocationPolicy.deployed()
+
         const bountyTemplate = await (await ethers.getContractFactory("Bounty")).deploy() as Bounty
         await bountyTemplate.deployed()
 
@@ -53,31 +60,77 @@ describe("Bounty", (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
             [ bountyTemplate.address, trustedForwarderAddress, token.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+            allocationPolicy.address, leavePolicy.address, testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         await (await token.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
         await (await token.transfer(broker2Wallet.address, ethers.utils.parseEther("100000"))).wait()
     })
 
-    beforeEach(async (): Promise<void> => {
-        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++)
-        const bountyDeployReceipt = await bountyDeployTx.wait()
+    // stakeweight or testallocpolicy params must be set
+    type BaseBountyConfig = {
+        minStake?: string,
+        maxBrokers?: string,
+        leavePol?: string,
+        testJoinPol?: string,
+    }
+    type BountyConfig1 = BaseBountyConfig & {
+        stakeWeight: string
+    }
+    type BountyConfig2 = BaseBountyConfig & {
+        testAllocPolicy: string
+    }
 
+    const createBounty = async (config: BountyConfig1 | BountyConfig2): Promise<Bounty> => {
+        const joinPolicies = []
+        const joinPolicyParams = []
+        if (config.minStake) {
+            joinPolicies.push(minStakeJoinPolicy.address)
+            joinPolicyParams.push(config.minStake)
+        }
+        if (config.maxBrokers) {
+            joinPolicies.push(maxBrokersJoinPolicy.address)
+            joinPolicyParams.push(config.maxBrokers)
+        }
+        if (config.testJoinPol) {
+            joinPolicies.push(testJoinPolicy.address)
+            joinPolicyParams.push(config.testJoinPol)
+        }
+        const leavePolicyParam = config.leavePol ? config.leavePol : "0"
+        const allocationPolicyAddr: string = (<BountyConfig2>config).testAllocPolicy ? testAllocationPolicy.address : allocationPolicy.address
+        let allocPolicyParam = ""
+        if ((<BountyConfig1>config).stakeWeight !== undefined) {
+            allocPolicyParam = (<BountyConfig1>config).stakeWeight
+        } else {
+            allocPolicyParam = (<BountyConfig2>config).testAllocPolicy
+        }
+        // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
+        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++, joinPolicies,
+            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicy.address, leavePolicyParam)
+        const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
-        expect(newBountyAddress).to.be.not.null
+        expect(newBountyAddress).to.be.not.undefined
         // console.log("bounty " + newBountyAddress)
 
         const agreementFactory = await ethers.getContractFactory("Bounty")
         bountyFromAdmin = new Contract(newBountyAddress, agreementFactory.interface, adminWallet) as Bounty
         bountyFromBroker = new Contract(newBountyAddress, agreementFactory.interface, brokerWallet) as Bounty
+        return bountyFromAdmin
+    }
 
-        await(await bountyFromAdmin.setLeavePolicy(leavePolicy.address, "0")).wait() // always pay stake back
-        await(await bountyFromAdmin.setAllocationPolicy(allocationPolicy.address, "2000000000000000000")).wait()
+    it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
+        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
+            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
+                allocationPolicy.address, "1", leavePolicy.address, "0"])
+        const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
+        const bountyDeployReceipt = await bountyDeployTx.wait()
+        const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        expect(newBountyAddress).to.be.not.undefined
     })
 
     it("positivetest deploy bounty through factory, join bounty", async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()
-        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "1")).wait()
+        await createBounty({ minStake: "2000000000000000000", maxBrokers: "1", stakeWeight: "1" })
         const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
         await tx.wait()
     })
@@ -109,19 +162,19 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest min stake join policy", async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000")).wait()
+        await createBounty({ minStake: "2000000000000000000", stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_stakeUnderMinimum")
     })
 
     it("negativetest max brokers join policy", async function(): Promise<void> {
-        await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "0")).wait()
+        await createBounty({ maxBrokers: "0", stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_tooManyBrokers")
     })
 
     it("negativetest zero stake", async function(): Promise<void> {
-        // await(await bountyFromAdmin.addJoinPolicy(maxBrokersJoinPolicy.address, "0")).wait()
+        await createBounty({ stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("0"), adminWallet.address))
             .to.be.revertedWith("error_cannotStakeZero")
     })
@@ -131,122 +184,83 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest error setting param on joinpolicy", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestJoinPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
-        await expect(bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, "1")) // it will throw with 1
+        await expect(createBounty({ testJoinPol: "1", stakeWeight: "1" })) // it will throw with 1
             .to.be.revertedWith("test-error: setting param join policy")
-        await expect(bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, "2")) // 2: it will throw with empty error
+        await expect(createBounty({ testJoinPol: "2", stakeWeight: "1" })) // it will throw with 1
             .to.be.revertedWith("error_addJoinPolicyFailed")
     })
 
     it("negativetest error joining on joinpolicy", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestJoinPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
-        await (await bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, "100")).wait()
+        await createBounty({ testJoinPol: "100", stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, 1, adminWallet.address))
             .to.be.revertedWith("test-error: onJoin join policy")
     })
 
     it("negativetest error joining on joinpolicy, empty error", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestJoinPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testJoinPolicy = await jpMSC.connect(adminWallet).deployed() as IJoinPolicy
-        await (await bountyFromAdmin.addJoinPolicy(testJoinPolicy.address, "100")).wait()
+        await createBounty({ testJoinPol: "100", stakeWeight: "1" })
         await expect(token.transferAndCall(bountyFromAdmin.address, 2, adminWallet.address))
             .to.be.revertedWith("error_joinPolicyOnJoin")
     })
 
     it("negativetest error setting param on allocationPolicy", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "1")) // it will thrown with 1
+        await expect(createBounty({ testAllocPolicy: "1" }) ) // it will thrown with 1
             .to.be.revertedWith("test-error: setting param allocation policy")
     })
 
     it("negativetest error onJoin on allocationPolicy", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "2")).wait()
+        await createBounty({ testAllocPolicy: "2" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("test-error: onJoin allocation policy")
     })
 
     it("negativetest error onJoin on allocationPolicy, empty error", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "5")).wait()
+        await createBounty({ testAllocPolicy: "5" })
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_allocationPolicyOnJoin")
     })
 
     it("negativetest error onstakeIncrease", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "7")).wait()
+        await createBounty({ testAllocPolicy: "7" })
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address)).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("test-error: onStakeIncrease allocation policy")
     })
 
     it("negativetest error onstakeIncrease, empty error", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "8")).wait()
+        await createBounty({ testAllocPolicy: "8" })
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address)).wait()
         await expect(token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), adminWallet.address))
             .to.be.revertedWith("error_stakeIncreaseFailed")
     })
 
     it("negativetest error onleave on allocationPolicy", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "3")).wait() // 3 -> will throw on leave
+        await createBounty({ testAllocPolicy: "3" })        // 3 -> will throw on leave
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), brokerWallet.address)).wait()
         await expect(bountyFromBroker.leave()).to.be.revertedWith("test-error: onLeave allocation policy")
     })
 
     it("negativetest error onleave on allocationPolicy, empty error", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "6")).wait() // 6 -> throw empty on leave
+        await createBounty({ testAllocPolicy: "6" })// 6 -> throw empty on leave
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"), brokerWallet.address)).wait()
         await expect(bountyFromBroker.leave()).to.be.revertedWith("error_brokerLeaveFailed")
     })
 
     it("send 32 length data on transferAndCall", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "3")).wait() // 3 -> will throw on leave
+        await createBounty({ testAllocPolicy: "3" }) // 3 -> will throw on leave
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"),
             defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
         expect(await bountyFromBroker.getMyStake()).to.be.equal(ethers.utils.parseEther("1"))
     })
 
     it("stake through stake() function", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "3")).wait() // 3 -> will throw on leave
+        await createBounty({ testAllocPolicy: "3" }) // 3 -> will throw on leave
         await (await token.approve(bountyFromAdmin.address, ethers.utils.parseEther("1"))).wait()
         await (await bountyFromAdmin.stake(brokerWallet.address, ethers.utils.parseEther("1"))).wait()
         expect(await bountyFromBroker.getMyStake()).to.be.equal(ethers.utils.parseEther("1"))
     })
 
     it.skip("send length data on transferAndCall", async function(): Promise<void> {
-        const jpMS = await ethers.getContractFactory("TestAllocationPolicy", adminWallet)
-        const jpMSC = await jpMS.deploy() as Contract
-        const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
-        await (await bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "3")).wait() // 3 -> will throw on leave
+        await createBounty({ testAllocPolicy: "3" }) // 3 -> will throw on leave
         await (await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("1"),
             defaultAbiCoder.encode(["address"], [brokerWallet.address]))).wait()
         expect(await bountyFromBroker.getMyStake()).to.be.equal(ethers.utils.parseEther("1"))
@@ -262,5 +276,42 @@ describe("Bounty", (): void => {
 
     it("negativetest calling fallback function", async function(): Promise<void> {
         await expect(adminWallet.sendTransaction({to: bountyFromAdmin.address})).to.be.revertedWith("error_mustBeThis")
+    })
+
+    it("negativetest try to create bounty with untrusted policies", async function(): Promise<void> {
+        // joinpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [ethers.Wallet.createRandom().address],
+            ["0"], allocationPolicy.address, "0", leavePolicy.address, "0"))
+            .to.be.revertedWith("error_joinPolicyNotTrusted")
+        // allocationpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
+            ["0"], ethers.Wallet.createRandom().address, "0", leavePolicy.address, "0"))
+            .to.be.revertedWith("error_allocationPolicyNotTrusted")
+        // leavepolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
+            ["0"], allocationPolicy.address, "0", ethers.Wallet.createRandom().address, "0"))
+            .to.be.revertedWith("error_leavePolicyNotTrusted")
+    })
+
+    // must be last test, will remove all policies
+    it("positivetest remove trusted policies", async function(): Promise<void> {
+        expect(await bountyFactory.isTrustedPolicy(minStakeJoinPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(allocationPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(leavePolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(testAllocationPolicy.address)).to.be.true
+        expect(await bountyFactory.isTrustedPolicy(testJoinPolicy.address)).to.be.true
+        await (await bountyFactory.removeTrustedPolicy(minStakeJoinPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(maxBrokersJoinPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(allocationPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(leavePolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(testAllocationPolicy.address)).wait()
+        await (await bountyFactory.removeTrustedPolicy(testJoinPolicy.address)).wait()
+        expect(await bountyFactory.isTrustedPolicy(minStakeJoinPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(testAllocationPolicy.address)).to.be.false
+        expect(await bountyFactory.isTrustedPolicy(testJoinPolicy.address)).to.be.false
     })
 })
