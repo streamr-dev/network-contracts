@@ -140,7 +140,7 @@ describe("Bounty", (): void => {
             [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
                 allocationPolicy.address, "1", leavePolicy.address, "0"])
         await expect(token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data))
-            .to.be.revertedWith("error_minBrokerCountMustBePositive")
+            .to.be.revertedWith("error_minBrokerCountZero")
     })
 
     it("negativetest addjoinpolicy from not-admin", async function(): Promise<void> {
