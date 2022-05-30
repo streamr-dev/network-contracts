@@ -60,7 +60,7 @@ describe("Bounty", (): void => {
     })
 
     beforeEach(async (): Promise<void> => {
-        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++)
+        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++)
         const bountyDeployReceipt = await bountyDeployTx.wait()
 
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
