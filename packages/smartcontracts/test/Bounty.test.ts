@@ -119,7 +119,7 @@ describe("Bounty", (): void => {
         return bountyFromAdmin
     }
 
-    it.only("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
+    it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
         const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
             [0, 1, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
                 allocationPolicy.address, "1", leavePolicy.address, "0"])
@@ -135,7 +135,7 @@ describe("Bounty", (): void => {
         await tx.wait()
     })
 
-    it.only("negativetest zero minBrokerCount", async function(): Promise<void> {
+    it("negativetest zero minBrokerCount", async function(): Promise<void> {
         const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
             [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
                 allocationPolicy.address, "1", leavePolicy.address, "0"])
