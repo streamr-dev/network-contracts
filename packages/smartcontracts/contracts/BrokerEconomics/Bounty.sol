@@ -146,6 +146,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _stake(broker, amountTokenWei);
     }
 
+    function stakeWithPermit(address broker, uint amountTokenWei, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+        token.permit(_msgSender(), address(this), amountTokenWei, deadline,v,r,s);
+        token.transferFrom(_msgSender(), address(this), amountTokenWei);
+        _stake(broker, amountTokenWei);
+    }
+
     function _stake(address broker, uint amount) internal {
         require(amount > 0, "error_cannotStakeZero");
         // console.log("join at ", block.timestamp);

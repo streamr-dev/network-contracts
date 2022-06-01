@@ -52,4 +52,12 @@ contract TestToken is ERC20, IERC677 {
         }
         return true;
     }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v, bytes32 r, bytes32 s) external {}
+    function nonces(address owner) external view returns (uint256) {}
 }

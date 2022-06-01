@@ -1,8 +1,10 @@
 import { waffle, upgrades, ethers } from "hardhat"
 import { expect, use } from "chai"
 import { Contract, ContractFactory, utils } from "ethers"
+import { signTypedMessage, TypedDataUtils } from "eth-sig-util"
+import { fromRpcSig } from "ethereumjs-util"
 
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken, DATAv2 } from "../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, DATAv2 } from "../typechain"
 
 import ForwarderJson from '../test-contracts/MinimalForwarder.json'
 import { MinimalForwarder } from "../test-contracts/MinimalForwarder"
@@ -10,7 +12,7 @@ import { deployContract } from "ethereum-waffle"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { provider } = waffle
-const { defaultAbiCoder } = utils
+// const { defaultAbiCoder } = utils
 
 use(waffle.solidity)
 
@@ -29,16 +31,33 @@ const types = {
         { name: 'nonce', type: 'uint256' },
         { name: 'data', type: 'bytes' },
     ],
+    Permit: [
+        { name: 'owner', type: 'address' },
+        { name: 'spender', type: 'address' },
+        { name: 'value', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'deadline', type: 'uint256' },
+    ]
 }
 // testcases to not forget:
 // - increase stake if already joined
 
 describe("MetaTx", (): void => {
+    const chainId = 31337
+    const name = 'DATAv2'
+    const symbol = 'DATA'
+    const version = '1'
+
     const wallets = provider.getWallets()
     const adminWallet = wallets[0] // bountyadmin
     const brokerWallet = wallets[1]
     const trustedForwarderAddress: string = wallets[9].address
     const dataTokenAdminWallet = wallets[2]
+
+    const owner = wallets[3]
+    const spender = wallets[4]
+    const permitCaller = wallets[5]
+
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
     let datav2: DATAv2
@@ -53,13 +72,28 @@ describe("MetaTx", (): void => {
     let testAllocationPolicy: Contract
     let minimalForwarder: MinimalForwarder
 
+    async function domainSeparator (name, version, chainId, verifyingContract) {
+        return '0x' + TypedDataUtils.hashStruct(
+            'EIP712Domain',
+            { name, version, chainId, verifyingContract },
+            { EIP712Domain: types.EIP712Domain },
+        ).toString('hex')
+    }
+
+    const buildData = (chainId, verifyingContract, owner, spender, value, nonce, deadline = ethers.constants.MaxUint256): TypedMessage<any>=> ({
+        primaryType: 'Permit',
+        types: { EIP712Domain: types.EIP712Domain, Permit: types.Permit },
+        domain: { name, version, chainId, verifyingContract },
+        message: { owner, spender, value, nonce, deadline },
+    })
+
     before(async (): Promise<void> => {
 
         datav2 = await (await ethers.getContractFactory("DATAv2", dataTokenAdminWallet)).deploy() as DATAv2
         await datav2.deployed()
         await datav2.grantRole(await datav2.MINTER_ROLE(), dataTokenAdminWallet.address)
-        await (await datav2.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
-        // await (await datav2.transfer(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
+        await (await datav2.mint(adminWallet.address, ethers.utils.parseEther("10"))).wait()
+        await (await datav2.mint(brokerWallet.address, ethers.utils.parseEther("10"))).wait()
 
         minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy", adminWallet)).deploy() as IJoinPolicy
         await minStakeJoinPolicy.deployed()
@@ -151,7 +185,27 @@ describe("MetaTx", (): void => {
         expect (await bountyFromAdmin.getMyStake()).to.be.eq(ethers.utils.parseEther("2"))
     })
 
-    it.only('positivetest metatransaction', async (): Promise<void> => {
+    it.only('permit on token without metaTx', async (): Promise<void> => {
+        const nonce = 0
+        const data = buildData(chainId, datav2.address, owner, spender, ethers.utils.parseEther("1"), nonce, ethers.constants.MaxUint256)
+        const ownerPrivKeyBuffer = Buffer.from(owner.privateKey, "hex")
+        const signature = signTypedMessage(ownerPrivKeyBuffer, { data })
+        const { v, r, s } = fromRpcSig(signature)
+
+        const receipt = await datav2.permit(owner.address, spender.address, ethers.utils.parseEther("1"), ethers.constants.MaxUint256, v, r, s)
+
+        expect(await datav2.nonces(owner.address)).to.equal('1')
+        expect(await datav2.allowance(owner.address, spender.address)).to.equal('1')
+    })
+
+    it('stake with permit without metatx', async (): Promise<void> => {
+        // await createBounty({ minStake: "2000000000000000000", maxBrokers: "1", stakeWeight: "1" })
+        // const tx = await datav2.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
+        // await tx.wait()
+        // expect (await bountyFromAdmin.getMyStake()).to.be.eq(ethers.utils.parseEther("2"))
+    })
+
+    it('stake with permit through metatx', async (): Promise<void> => {
         // admin is creating and signing transaction, wallet 9 is posting it and paying for gas
         await createBounty({ minStake: "0", maxBrokers: "1", stakeWeight: "1" })
         // const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
@@ -160,9 +214,13 @@ describe("MetaTx", (): void => {
 
         // const data = await datav2.interface.encodeFunctionData("transferAndCall", 
         //     [bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address])
-        const dataAdminBefore = (await datav2.balanceOf(adminWallet.address)).toString()
-        const dataBrokerBefore = (await datav2.balanceOf(brokerWallet.address)).toString()
-        const data = await datav2.interface.encodeFunctionData("transfer", 
+        
+        //everything for permit
+        const dataForPermit = buildData(this.chainId, this.token.address)
+        const brokerWalletKeyBuffer = Buffer.from(brokerWallet.privateKey, "hex")
+        const signatureForPermit = signTypedMessage(brokerWalletKeyBuffer, { data: dataForPermit })
+
+        const data = await bountyFromBroker.interface.encodeFunctionData("stakeWithPermit", 
             [brokerWallet.address, ethers.utils.parseEther("2")])
         const req = {
             from: adminWallet.address,
