@@ -75,14 +75,16 @@ describe("Bounty", (): void => {
         leavePol?: string,
         testJoinPol?: string,
     }
-    type BountyConfig1 = BaseBountyConfig & {
+    type DefaultBountyConfig = BaseBountyConfig & {
         stakeWeight: string
     }
-    type BountyConfig2 = BaseBountyConfig & {
+    type TestBountyConfig = BaseBountyConfig & {
         testAllocPolicy: string
     }
+    const isDefaultBountyConfig = (config: BaseBountyConfig): config is DefaultBountyConfig => "stakeWeight" in config
+    // const isTestBountyConfig = (config: BaseBountyConfig): config is TestBountyConfig => "testAllocPolicy" in config
 
-    const createBounty = async (config: BountyConfig1 | BountyConfig2): Promise<Bounty> => {
+    const createBounty = async (config: DefaultBountyConfig | TestBountyConfig): Promise<Bounty> => {
         const joinPolicies = []
         const joinPolicyParams = []
         if (config.minStake) {
@@ -97,17 +99,33 @@ describe("Bounty", (): void => {
             joinPolicies.push(testJoinPolicy.address)
             joinPolicyParams.push(config.testJoinPol)
         }
-        const leavePolicyParam = config.leavePol ? config.leavePol : "0"
-        const allocationPolicyAddr: string = (<BountyConfig2>config).testAllocPolicy ? testAllocationPolicy.address : allocationPolicy.address
-        let allocPolicyParam = ""
-        if ((<BountyConfig1>config).stakeWeight !== undefined) {
-            allocPolicyParam = (<BountyConfig1>config).stakeWeight
-        } else {
-            allocPolicyParam = (<BountyConfig2>config).testAllocPolicy
-        }
+        const leavePolicyParam = config.leavePol ?? "0"
+        const chosenAllocationPolicy = isDefaultBountyConfig(config) ? allocationPolicy : testAllocationPolicy
+        const allocPolicyParam = isDefaultBountyConfig(config) ? config.stakeWeight : config.testAllocPolicy
+
         // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
-        const bountyDeployTx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++, joinPolicies,
-            joinPolicyParams, allocationPolicyAddr, allocPolicyParam, leavePolicy.address, leavePolicyParam)
+        // function deployBountyAgreement(
+        //     uint initialMinHorizonSeconds,
+        //     uint initialMinBrokerCount,
+        //     string memory bountyName,
+        //     address[] memory bountyJoinPolicies,
+        //     uint[] memory bountyJoinPolicyParams,
+        //     address allocationPolicy,
+        //     uint allocationPolicyParam,
+        //     address bountyLeavePolicy,
+        //     uint bountyLeavePolicyParam
+        // )
+        const bountyDeployTx = await bountyFactory.deployBountyAgreement(
+            0,
+            1,
+            "Bounty-" + bountyCounter++,
+            joinPolicies,
+            joinPolicyParams,
+            chosenAllocationPolicy.address,
+            allocPolicyParam,
+            leavePolicy.address,
+            leavePolicyParam
+        )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
         expect(newBountyAddress).to.be.not.undefined
