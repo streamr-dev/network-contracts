@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers } from "hardhat"
 import { expect, use } from "chai"
-import { Contract, ContractFactory, utils } from "ethers"
+import { BigNumber, Contract, ContractFactory, utils, Wallet } from "ethers"
 import { signTypedMessage, TypedDataUtils } from "eth-sig-util"
 import { fromRpcSig } from "ethereumjs-util"
 
@@ -72,7 +72,7 @@ describe("MetaTx", (): void => {
     let testAllocationPolicy: Contract
     let minimalForwarder: MinimalForwarder
 
-    async function domainSeparator (name, version, chainId, verifyingContract) {
+    async function domainSeparator (name: any, version: any, chainId: any, verifyingContract: any) {
         return '0x' + TypedDataUtils.hashStruct(
             'EIP712Domain',
             { name, version, chainId, verifyingContract },
@@ -80,7 +80,9 @@ describe("MetaTx", (): void => {
         ).toString('hex')
     }
 
-    const buildData = (chainId, verifyingContract, owner, spender, value, nonce, deadline = ethers.constants.MaxUint256): TypedMessage<any>=> ({
+    const buildData = (chainId: number, verifyingContract: string, owner: string,
+        spender: string, value: string, nonce: string,
+        deadline = ethers.constants.MaxUint256.toHexString()): TypedMessage<any>=> ({
         primaryType: 'Permit',
         types: { EIP712Domain: types.EIP712Domain, Permit: types.Permit },
         domain: { name, version, chainId, verifyingContract },
@@ -92,6 +94,7 @@ describe("MetaTx", (): void => {
         datav2 = await (await ethers.getContractFactory("DATAv2", dataTokenAdminWallet)).deploy() as DATAv2
         await datav2.deployed()
         await datav2.grantRole(await datav2.MINTER_ROLE(), dataTokenAdminWallet.address)
+        await (await datav2.mint(dataTokenAdminWallet.address, ethers.utils.parseEther("10"))).wait()
         await (await datav2.mint(adminWallet.address, ethers.utils.parseEther("10"))).wait()
         await (await datav2.mint(brokerWallet.address, ethers.utils.parseEther("10"))).wait()
 
@@ -186,13 +189,14 @@ describe("MetaTx", (): void => {
     })
 
     it.only('permit on token without metaTx', async (): Promise<void> => {
-        const nonce = 0
-        const data = buildData(chainId, datav2.address, owner, spender, ethers.utils.parseEther("1"), nonce, ethers.constants.MaxUint256)
-        const ownerPrivKeyBuffer = Buffer.from(owner.privateKey, "hex")
+        const data = buildData(chainId, datav2.address, owner.address, spender.address, ethers.utils.parseEther("1").toString(),
+            BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
+        const ownerPrivKeyBuffer = Buffer.from(owner.privateKey.slice(2), "hex")
         const signature = signTypedMessage(ownerPrivKeyBuffer, { data })
         const { v, r, s } = fromRpcSig(signature)
 
-        const receipt = await datav2.permit(owner.address, spender.address, ethers.utils.parseEther("1"), ethers.constants.MaxUint256, v, r, s)
+        const receipt = await datav2.permit(owner.address, spender.address, ethers.utils.parseEther("1").toString(),
+            ethers.constants.MaxUint256, v, r, s)
 
         expect(await datav2.nonces(owner.address)).to.equal('1')
         expect(await datav2.allowance(owner.address, spender.address)).to.equal('1')
@@ -216,12 +220,14 @@ describe("MetaTx", (): void => {
         //     [bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address])
         
         //everything for permit
-        const dataForPermit = buildData(this.chainId, this.token.address)
+        const dataForPermit = buildData(chainId, datav2.address, owner.address, spender.address,
+            ethers.utils.parseEther("1").toString(), BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
         const brokerWalletKeyBuffer = Buffer.from(brokerWallet.privateKey, "hex")
         const signatureForPermit = signTypedMessage(brokerWalletKeyBuffer, { data: dataForPermit })
+        const { v, r, s } = fromRpcSig(signatureForPermit)
 
         const data = await bountyFromBroker.interface.encodeFunctionData("stakeWithPermit", 
-            [brokerWallet.address, ethers.utils.parseEther("2")])
+            [brokerWallet.address, ethers.utils.parseEther("2"), ethers.constants.MaxInt256, v, r, s])
         const req = {
             from: adminWallet.address,
             to: datav2.address,
