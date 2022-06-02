@@ -60,8 +60,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().unallocatedFunds;
     }
 
-    modifier isAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
+    function isAdmin(address a) public view returns(bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, a);
+    }
+
+    modifier adminOnly() {
+        require(isAdmin(_msgSender()), "error_adminRoleRequired");
         _;
     }
 
@@ -277,24 +281,24 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[_msgSender()];
     }
 
-    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
+    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public adminOnly {
         allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
         checkStateChange();
     }
 
-    function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
+    function setLeavePolicy(address _leaveAddress, uint256 param) public adminOnly {
         leavePolicy = ILeavePolicy(_leaveAddress);
         moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
-    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
+    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public adminOnly {
         joinPolicyAddresses.push(_joinPolicyAddress);
         IJoinPolicy joinPolicy = IJoinPolicy(_joinPolicyAddress);
         moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
 
-    function removeJoinPolicy(address _joinPolicyAddress) public isAdmin {
+    function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
         removeFromAddressArray(joinPolicyAddresses, _joinPolicyAddress);
     }
 
