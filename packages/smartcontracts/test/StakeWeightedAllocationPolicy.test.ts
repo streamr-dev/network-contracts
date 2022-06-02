@@ -312,7 +312,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end the expected winnings are 4000 tokens, because between 2000...3000 no allocations were paid
         // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
         // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
-        // between 2000...3000 the bounty will default on 1000 tokens, or 0.5 per stake
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
@@ -367,8 +366,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // seconds between 0...1000...2000...3000...4000...5000  total
         // broker1 gets     1000   + 0    + 0   + 500    + 0    = 1500
         // broker2 gets        0   + 0    + 0   + 500 + 1000    = 1500
-        // forfeited tokens          1000 + 1000                = 2000
-        // forfeited per stake       1    + 0.5                 = 1.5
+        // defaulted tokens          1000 + 1000                = 2000
+        // defaulted per stake       1    + 0.5                 = 1.5
         // this means: if there wouldn't have been insolvency:
         //   brokers would've gotten 2000 tokens more, i.e. 3000 + 2000 tokens
         //   broker1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
@@ -420,7 +419,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         //     t0       : broker joins
         // t = t0 + 1000: money runs out
         // t = t0 + 2000: broker leaves
-        // expecting to get 1000 tokens and forfeiting 1000
+        // expecting to get 1000 tokens and defaulting 1000
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
@@ -443,16 +442,18 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(newTokens)).to.equal("1000.0")
     })
 
-    // TODO: this test will change once the bounty will stop allocations with too few brokers, see assert in the end
-    it.skip("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
+    it("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
         // t = t0       : broker joins
         // t = t0 + 1000: money runs out
         // t = t0 + 2000: broker leaves
         // t = t0 + 3000: broker joins
         // t = t0 + 4000: money added
         // t = t0 + 5000: broker leaves
-        // expecting to get 1000 + 1000 tokens and also forfeiting 1000 + 1000
-        //   (although forfeited tokens can't be read from anywhere because broker didn't stay through insolvency!)
+        // time between 0...1000...2000...3000...4000...5000  total
+        // broker gets   1000  + 0    + 0   +  0  + 1000    = 2000
+        // defaulted       0 + 1000   + 0  + 1000 +   0     = 2000
+        // tokens should NOT be counted as defaulted when the bounty isn't running (between 2000...3000)
+        //   (although defaulted tokens can't be read from anywhere because broker didn't stay through insolvency!)
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
@@ -464,7 +465,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
+        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
         const tr1 = await (await bounty.connect(broker).leave()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
@@ -487,7 +488,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             // (timeAtStart + 1001).toString(),
             (timeAtStart + 4001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("2").toString(),
-            parseEther("4000").toString()
+            parseEther("2000").toString()
         ])
         expect(formatEther(newTokens)).to.equal("2000.0")
     })
@@ -504,8 +505,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // seconds between 0...1000...2000...3000...4000...5000...6000...7000  total
         // broker1 gets     1000 + 500 +   0  +   0  +   0  +  500 +    0     = 2000
         // broker2 gets        0 + 500 +   0  +   0  +   0  +  500 + 1000     = 2000
-        // forfeited tokens             1000 + 1000  + 1000                   = 3000
-        // forfeited per stake           0.5 +  1.0  + 0.5                    = 2.0
+        // defaulted tokens             1000 + 1000  + 1000                   = 3000
+        // defaulted per stake           0.5 +  1.0  + 0.5                    = 2.0
         // this means: if there wouldn't have been insolvency:
         //   brokers would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
         //   broker2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
@@ -588,7 +589,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 3000: money is added
         // t = t0 + 4000: broker leaves
         // expecting to get 1000 + 2000 tokens
-        // expecting 1000 + 2000 forfeited tokens (1.0 + 2.0 per stake)
+        // expecting 1000 + 2000 defaulted tokens (1.0 + 2.0 per stake)
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
@@ -769,8 +770,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 3000: money is added
         // t = t0 + 4000: broker1 leaves
         // t = t0 + 5000: broker2 leaves
-        // broker1 should have 1000 + 500 + 0 + 1000 +    0 = 2500 tokens
-        // broker2 should have    0 + 500 + 0 + 1000 + 2000 = 3500 tokens
+        // broker1 should have 1000 + 500 + 1000 +    0 = 2500 tokens
+        // broker2 should have    0 + 500 + 1000 + 2000 = 3500 tokens
         const bounty = await deployBountyContract()
         await (await bounty.sponsor(parseEther("2000"))).wait()
 

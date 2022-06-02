@@ -9,13 +9,13 @@ const { provider: waffleProvider } = waffle
 const { parseEther, formatEther } = utils
 const { provider, getContractFactory } = hardhatEthers
 
-// const { log } = console
+const log = (..._: unknown[]) => { /* skip logging */ }
+// const { log } = console // TODO: use pino for logging?
 
 use(waffle.solidity)
 
-// async function advanceToTimestamp(timestamp: number, message?: string) {
-async function advanceToTimestamp(timestamp: number) {
-    // log("\nt = %s ", timestamp, message ?? "")
+async function advanceToTimestamp(timestamp: number, message?: string) {
+    log("\nt = %s ", timestamp, message ?? "")
     await provider.send("evm_setNextBlockTimestamp", [timestamp])
     await provider.send("evm_mine", [0])
 }
@@ -78,7 +78,7 @@ describe("DefaultLeavePolicy", (): void => {
     })
 
     async function deployBountyContract({
-        minBrokerCount = 2,
+        minBrokerCount = 1,
         minHorizonSeconds = 3600,
         allocationWeiPerSecond = parseEther("1"),
     } = {}): Promise<Bounty> {
@@ -93,7 +93,7 @@ describe("DefaultLeavePolicy", (): void => {
         const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
         const newBountyAddress = newBountyEvent?.args?.bountyContract
         expect(newBountyAddress).not.to.be.undefined
-        // log("Bounty deployed at %s", newBountyAddress)
+        log("Bounty deployed at %s", newBountyAddress)
 
         const bounty = bountyTemplate.attach(newBountyAddress)
 
@@ -103,7 +103,7 @@ describe("DefaultLeavePolicy", (): void => {
     }
 
     it("penalizes only from the broker that leaves early while bounty is running", async function(): Promise<void> {
-        const bounty = await deployBountyContract()
+        const bounty = await deployBountyContract({ minBrokerCount: 2 })
         expect(await bounty.getState()).to.equal(State.Closed)
 
         await bounty.sponsor(parseEther("10000"))
@@ -117,26 +117,26 @@ describe("DefaultLeavePolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 100)
+        await advanceToTimestamp(timeAtStart + 100, "broker 2 joins, both will earn 100")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
         expect(await bounty.getState()).to.equal(State.Running)
 
-        await advanceToTimestamp(timeAtStart + 300)
+        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 1000")
         await (await bounty.connect(broker).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
-        await advanceToTimestamp(timeAtStart + 400)
+        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped, keeps stake")
         await (await bounty.connect(broker2).leave()).wait()
         expect(await bounty.getState()).to.equal(State.Funded)
 
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
         const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)
 
-        expect(formatEther(balanceChange)).to.equal("-800.0")
-        expect(formatEther(balanceChange2)).to.equal("200.0")
+        expect(formatEther(balanceChange)).to.equal("-900.0") // == 100 - 1000
+        expect(formatEther(balanceChange2)).to.equal("100.0") // == 100 - 0
     })
 
-    it("doesn't penalize a broker that leaves after the leave period", async function(): Promise<void> {
+    it("doesn't penalize a broker that leaves after the leave period (even when contract is running)", async function(): Promise<void> {
         // time:        0 ... 400 ... 1000 ... 1700
         // join/leave: +b1    +b2      -b1      -b2
         // broker1:       400  +  300               =  700
@@ -153,7 +153,7 @@ describe("DefaultLeavePolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(await bounty.getState()).to.equal(State.Running)
 
         await advanceToTimestamp(timeAtStart + 400)
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
@@ -161,7 +161,7 @@ describe("DefaultLeavePolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart + 1000)
         await (await bounty.connect(broker).leave()).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(await bounty.getState()).to.equal(State.Running)
 
         await advanceToTimestamp(timeAtStart + 1700)
         await (await bounty.connect(broker2).leave()).wait()
