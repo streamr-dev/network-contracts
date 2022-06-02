@@ -1,5 +1,7 @@
 import networksAsJSON from "./networks.json"
 
+export { networksAsJSON as networks }
+
 interface ContractsJSON {
     readonly [name: string]: string
 }
@@ -21,7 +23,7 @@ export class RPCEndpoint implements RPCEndpointJSON {
         readonly url: string,
         //readonly readTimeoutSecond: int,
         //readonly writeTimeoutSecond: int,
-    ) {}
+    ) { }
 }
 
 interface ChainJSON {
@@ -63,39 +65,21 @@ export class Chain implements ChainJSON {
     }
 }
 
-export type Environment = "development" | "production"
-
-type NetworksJSON = {
-    readonly [env in Environment]: ChainsJSON
-}
-
 interface ChainsJSON {
     readonly [name: string]: ChainJSON
 }
 
 export class Chains implements ChainsJSON {
     [name: string]: Chain
-    public static load(env: Environment): Chains {
-        const networks: NetworksJSON = networksAsJSON
-        const chainsJson: ChainsJSON = networks[env]
+    public static load(): Chains {
+        const chainsJson: ChainsJSON = networksAsJSON
         const chains: Chains = ChainsFactory.create(chainsJson)
         return chains
-    }
-    public static loadFromNodeEnv(): Chains {
-        const nodeEnv = process.env.NODE_ENV
-        if (nodeEnv === undefined) {
-            throw new Error("NODE_ENV environment variable is not set")
-        }
-        if (nodeEnv !== "production" && nodeEnv !== "development") {
-            throw new Error("NODE_ENV environment variable value must be either 'production' or 'development'")
-        }
-        const env: Environment = nodeEnv
-        return Chains.load(env)
     }
 }
 
 class ChainsFactory {
-    private constructor() {}
+    private constructor() { }
     static create(chainsJson: ChainsJSON): Chains {
         const chains = new Chains()
         for (const key in chainsJson) {

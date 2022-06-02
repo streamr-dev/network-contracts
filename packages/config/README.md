@@ -16,25 +16,23 @@ Import DATA token production Ethereum address as a variable in a Typescript proj
 ```typescript
 import * as config from "@streamr/config"
 
-const chains: config.Chains = config.Chains.load("production")
-const contractAddress: string = chains.ethereum.contracts["DATA-token"]
-const chainId: number = chains.ethereum.id
-const httpRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.HTTP)
-const wsRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.WEBSOCKET)
+const {
+    ethereum: {
+        id: chainId,
+        contracts: {
+            "DATA": dataTokenAddress
+        }
+    }
+} = config.Chains.load()
 ```
 
-You can also load configuration based on `$NODE_ENV` environment variable:
+Find RPC endpoints:
 ```typescript
 import * as config from "@streamr/config"
 
-const chains: Chains = config.Chains.loadFromNodeEnv()
-```
-
-### Javascript
-Use in a Javascript project:
-```javascript
-const config = require("@streamr/config")
-const chains: config.Chains = config.Chains.loadFromNodeEnv()
+const chains: config.Chains = config.Chains.load()
+const httpRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.HTTP)
+const wsRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.WEBSOCKET)
 ```
 
 ### Other Languages

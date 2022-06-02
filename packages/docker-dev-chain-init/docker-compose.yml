@@ -38,7 +38,6 @@ services:
          depends_on:
            - parity-node0
            - parity-sidechain-node0
-         restart: on-failure # exits when successful
          environment:
             EE_URL: http://10.200.10.1
             CHAIN_URL: http://10.200.10.1:8545

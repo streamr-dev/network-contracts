@@ -11,6 +11,9 @@ const DataUnionFactorySidechain = require("./ethereumContractJSONs/DataUnionFact
 const DataUnionFactoryMainnet = require("./ethereumContractJSONs/DataUnionFactoryMainnet.json")
 const MainnetMigrationManager = require("./ethereumContractJSONs/MainnetMigrationManager.json")
 const SidechainMigrationManager = require("./ethereumContractJSONs/SidechainMigrationManager.json")
+// unichain
+const DataUnionFactory = require("./ethereumContractJSONs/DataUnionFactory.json")
+const DataUnionTemplate = require("./ethereumContractJSONs/DataUnionTemplate.json")
 
 const log = process.env.QUIET ? (() => { }) : console.log // eslint-disable-line no-console
 // class LoggingProvider extends JsonRpcProvider {
@@ -97,6 +100,25 @@ async function deployDUFactories() {
     let factMainnet = await dtx.deployed()
     console.log(`factMainnet: ${factMainnet.address}`)
 
+    // Deploy unichain template + factory
+
+    log(`Deploying DU unichain template contract from ${wallet_home.address}`)
+    deployer = new ContractFactory(DataUnionTemplate.abi, DataUnionTemplate.bytecode, wallet_home)
+    dtx = await deployer.deploy(
+        { gasLimit: 6000000 }
+    )
+    const unichainTemplate = await dtx.deployed()
+    console.log(`Unichain DataUnionTemplate: ${unichainTemplate.address}`)
+    log(`Deploying DU unichain factory contract from ${wallet_home.address}`)
+    deployer = new ContractFactory(DataUnionFactory.abi, DataUnionFactory.bytecode, wallet_home)
+    dtx = await deployer.deploy(
+        unichainTemplate.address,
+        home_erc677,
+        { gasLimit: 6000000 }
+    )
+
+    const unichainFactory = await dtx.deployed()
+    console.log(`Unichain DataUnionFactory: ${unichainFactory.address}`)
 }
 
 async function start() {
