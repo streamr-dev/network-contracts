@@ -11,39 +11,55 @@ import { MinimalForwarder } from "../test-contracts/MinimalForwarder"
 import { deployContract } from "ethereum-waffle"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
+const Ejwallet = require('ethereumjs-wallet').default
+
 const { provider } = waffle
 // const { defaultAbiCoder } = utils
 
 use(waffle.solidity)
 
-const types = {
-    EIP712Domain: [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'chainId', type: 'uint256' },
-        { name: 'verifyingContract', type: 'address' },
-    ],
-    ForwardRequest: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'gas', type: 'uint256' },
-        { name: 'nonce', type: 'uint256' },
-        { name: 'data', type: 'bytes' },
-    ],
-    Permit: [
-        { name: 'owner', type: 'address' },
-        { name: 'spender', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'nonce', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' },
-    ]
-}
+// const types = {
+//     EIP712Domain: [
+//         { name: 'name', type: 'string' },
+//         { name: 'version', type: 'string' },
+//         { name: 'chainId', type: 'uint256' },
+//         { name: 'verifyingContract', type: 'address' },
+//     ],
+//     ForwardRequest: [
+//         { name: 'from', type: 'address' },
+//         { name: 'to', type: 'address' },
+//         { name: 'value', type: 'uint256' },
+//         { name: 'gas', type: 'uint256' },
+//         { name: 'nonce', type: 'uint256' },
+//         { name: 'data', type: 'bytes' },
+//     ],
+//     Permit: [
+//         { name: 'owner', type: 'address' },
+//         { name: 'spender', type: 'address' },
+//         { name: 'value', type: 'uint256' },
+//         { name: 'nonce', type: 'uint256' },
+//         { name: 'deadline', type: 'uint256' },
+//     ]
+// }
+
+const Permit = [
+    { name: 'owner', type: 'address' },
+    { name: 'spender', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' },
+]
+
+const EIP712Domain = [
+    { name: 'name', type: 'string' },
+    { name: 'version', type: 'string' },
+    { name: 'chainId', type: 'uint256' },
+    { name: 'verifyingContract', type: 'address' },
+]
 // testcases to not forget:
 // - increase stake if already joined
 
 describe("MetaTx", (): void => {
-    const chainId = 31337
     const name = 'DATAv2'
     const symbol = 'DATA'
     const version = '1'
@@ -54,7 +70,8 @@ describe("MetaTx", (): void => {
     const trustedForwarderAddress: string = wallets[9].address
     const dataTokenAdminWallet = wallets[2]
 
-    const owner = wallets[3]
+    const owner = new Wallet("0x4ff28890735b38724ca97942d2d71ced2c5feab5932b81f9047fd76f4e9743a8")
+    // const owner = wallets[3]
     const spender = wallets[4]
     const permitCaller = wallets[5]
 
@@ -76,17 +93,28 @@ describe("MetaTx", (): void => {
         return '0x' + TypedDataUtils.hashStruct(
             'EIP712Domain',
             { name, version, chainId, verifyingContract },
-            { EIP712Domain: types.EIP712Domain },
+            { EIP712Domain },
         ).toString('hex')
     }
 
-    const buildData = (chainId: number, verifyingContract: string, owner: string,
-        spender: string, value: string, nonce: string,
-        deadline = ethers.constants.MaxUint256.toHexString()): TypedMessage<any>=> ({
+    // const buildData = (chainId: number, verifyingContract: string, owner: string,
+    //     spender: string, value: string, nonce: string,
+    //     deadline = ethers.constants.MaxUint256.toHexString()): TypedMessage<any>=> ({
+    //     primaryType: 'Permit',
+    //     types: { EIP712Domain: types.EIP712Domain, Permit: types.Permit },
+    //     domain: { name, version, chainId, verifyingContract },
+    //     message: { owner, spender, value, nonce, deadline },
+    // })
+    const chainId = 31337
+    const value = "1"
+    const nonce = "0"
+    const maxDeadline = ethers.constants.MaxUint256.toHexString()
+
+    const buildData = (chainId: number, verifyingContract: string, deadline = maxDeadline): TypedMessage<any> => ({
         primaryType: 'Permit',
-        types: { EIP712Domain: types.EIP712Domain, Permit: types.Permit },
+        types: { EIP712Domain, Permit },
         domain: { name, version, chainId, verifyingContract },
-        message: { owner, spender, value, nonce, deadline },
+        message: { owner: owner.address, spender: spender.address, value, nonce, deadline },
     })
 
     before(async (): Promise<void> => {
@@ -189,8 +217,9 @@ describe("MetaTx", (): void => {
     })
 
     it.only('permit on token without metaTx', async (): Promise<void> => {
-        const data = buildData(chainId, datav2.address, owner.address, spender.address, ethers.utils.parseEther("1").toString(),
-            BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
+        // const data = buildData(chainId, datav2.address, owner.address, spender.address, ethers.utils.parseEther("1").toString(),
+        //     BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
+        const data = buildData(chainId, datav2.address, owner.address)
         const ownerPrivKeyBuffer = Buffer.from(owner.privateKey.slice(2), "hex")
         const signature = signTypedMessage(ownerPrivKeyBuffer, { data })
         const { v, r, s } = fromRpcSig(signature)
@@ -209,57 +238,57 @@ describe("MetaTx", (): void => {
         // expect (await bountyFromAdmin.getMyStake()).to.be.eq(ethers.utils.parseEther("2"))
     })
 
-    it('stake with permit through metatx', async (): Promise<void> => {
-        // admin is creating and signing transaction, wallet 9 is posting it and paying for gas
-        await createBounty({ minStake: "0", maxBrokers: "1", stakeWeight: "1" })
-        // const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
-        // await tx.wait()
-        // const adminWallet = wallets[8]
+    // it('stake with permit through metatx', async (): Promise<void> => {
+    //     // admin is creating and signing transaction, wallet 9 is posting it and paying for gas
+    //     await createBounty({ minStake: "0", maxBrokers: "1", stakeWeight: "1" })
+    //     // const tx = await token.transferAndCall(bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address)
+    //     // await tx.wait()
+    //     // const adminWallet = wallets[8]
 
-        // const data = await datav2.interface.encodeFunctionData("transferAndCall", 
-        //     [bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address])
+    //     // const data = await datav2.interface.encodeFunctionData("transferAndCall", 
+    //     //     [bountyFromAdmin.address, ethers.utils.parseEther("2"), adminWallet.address])
         
-        //everything for permit
-        const dataForPermit = buildData(chainId, datav2.address, owner.address, spender.address,
-            ethers.utils.parseEther("1").toString(), BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
-        const brokerWalletKeyBuffer = Buffer.from(brokerWallet.privateKey, "hex")
-        const signatureForPermit = signTypedMessage(brokerWalletKeyBuffer, { data: dataForPermit })
-        const { v, r, s } = fromRpcSig(signatureForPermit)
+    //     //everything for permit
+    //     const dataForPermit = buildData(chainId, datav2.address, owner.address, spender.address,
+    //         ethers.utils.parseEther("1").toString(), BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
+    //     const brokerWalletKeyBuffer = Buffer.from(brokerWallet.privateKey, "hex")
+    //     const signatureForPermit = signTypedMessage(brokerWalletKeyBuffer, { data: dataForPermit })
+    //     const { v, r, s } = fromRpcSig(signatureForPermit)
 
-        const data = await bountyFromBroker.interface.encodeFunctionData("stakeWithPermit", 
-            [brokerWallet.address, ethers.utils.parseEther("2"), ethers.constants.MaxInt256, v, r, s])
-        const req = {
-            from: adminWallet.address,
-            to: datav2.address,
-            value: '0',
-            gas: '1000000',
-            nonce: (await minimalForwarder.getNonce(adminWallet.address)).toString(),
-            data
-        }
-        const d: TypedMessage<any> = {
-            types,
-            domain: {
-                name: 'MinimalForwarder',
-                version: '0.0.1',
-                chainId: (await provider.getNetwork()).chainId,
-                verifyingContract: minimalForwarder.address,
-            },
-            primaryType: 'ForwardRequest',
-            message: req,
-        }
-        const options = {
-            data: d,
-            privateKey: utils.arrayify(adminWallet.privateKey) as Buffer,
-            version: SignTypedDataVersion.V4,
-        }
-        const sign = signTypedData(options) // user0
+    //     const data = await bountyFromBroker.interface.encodeFunctionData("stakeWithPermit", 
+    //         [brokerWallet.address, ethers.utils.parseEther("2"), ethers.constants.MaxInt256, v, r, s])
+    //     const req = {
+    //         from: adminWallet.address,
+    //         to: datav2.address,
+    //         value: '0',
+    //         gas: '1000000',
+    //         nonce: (await minimalForwarder.getNonce(adminWallet.address)).toString(),
+    //         data
+    //     }
+    //     const d: TypedMessage<any> = {
+    //         types,
+    //         domain: {
+    //             name: 'MinimalForwarder',
+    //             version: '0.0.1',
+    //             chainId: (await provider.getNetwork()).chainId,
+    //             verifyingContract: minimalForwarder.address,
+    //         },
+    //         primaryType: 'ForwardRequest',
+    //         message: req,
+    //     }
+    //     const options = {
+    //         data: d,
+    //         privateKey: utils.arrayify(adminWallet.privateKey) as Buffer,
+    //         version: SignTypedDataVersion.V4,
+    //     }
+    //     const sign = signTypedData(options) // user0
 
-        const res = await minimalForwarder.verify(req, sign)
-        await expect(res).to.be.true
-        const tx = await minimalForwarder.execute(req, sign)
-        const receipt = await tx.wait()
-        const dataAdminAfter = (await datav2.balanceOf(adminWallet.address)).toString()
-        const dataBrokerAfter = (await datav2.balanceOf(brokerWallet.address)).toString()
-        expect(await bountyFromAdmin.getMyStake()).to.equal(2)
-    })
+    //     const res = await minimalForwarder.verify(req, sign)
+    //     await expect(res).to.be.true
+    //     const tx = await minimalForwarder.execute(req, sign)
+    //     const receipt = await tx.wait()
+    //     const dataAdminAfter = (await datav2.balanceOf(adminWallet.address)).toString()
+    //     const dataBrokerAfter = (await datav2.balanceOf(brokerWallet.address)).toString()
+    //     expect(await bountyFromAdmin.getMyStake()).to.equal(2)
+    // })
 })

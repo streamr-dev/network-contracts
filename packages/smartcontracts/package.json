@@ -47,6 +47,7 @@
     "eth-ens-namehash": "2.0.8",
     "eth-sig-util": "3.0.1",
     "ethereumjs-util": "5.2.1",
+    "ethereumjs-wallet": "1.0.2",
     "ethers": "5.5.3",
     "event-stream": "4.0.1",
     "hardhat": "2.8.2",

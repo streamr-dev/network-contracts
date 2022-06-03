@@ -1057,6 +1057,7 @@ library Counters {
  *
  * _Available since v3.4._
  */
+ import "hardhat/console.sol";
 abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712 {
     using Counters for Counters.Counter;
 
@@ -1094,6 +1095,8 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712 {
         bytes32 hash = _hashTypedDataV4(structHash);
 
         address signer = ECDSA.recover(hash, v, r, s);
+        console.log("signer:", signer);
+        console.log("owner:", owner);
         require(signer == owner, "ERC20Permit: invalid signature");
 
         _nonces[owner].increment();
