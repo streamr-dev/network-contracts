@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
+import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
 // import "hardhat/console.sol";
@@ -26,6 +27,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event StateChanged(State indexed newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+    event BrokerReported(address indexed reporter, address indexed broker);
+    event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
     event InsolvencyStarted(uint startTimeStamp);
@@ -33,9 +36,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     mapping(address => bool) public approvedPolicies;
     IERC677 public token;
-    address[] public joinPolicyAddresses;
+    IJoinPolicy[] public joinPolicyAddresses;
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
+    IKickPolicy public kickPolicy;
     State public previousState;
 
     // storage variables available to all modules
@@ -178,7 +182,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (s.stakedWei[broker] == 0) {
             // join the broker set
             for (uint i = 0; i < joinPolicyAddresses.length; i++) {
-                IJoinPolicy joinPolicy = IJoinPolicy(joinPolicyAddresses[i]);
+                IJoinPolicy joinPolicy = joinPolicyAddresses[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
             }
             s.stakedWei[broker] += amount;
@@ -200,22 +204,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function leave() external {
-        _removeBroker(_msgSender());
+        // console.log("now", block.timestamp);
+        // console.log("leaving:", broker);
+        address broker = _msgSender();
+        uint penaltyWei = getLeavePenalty(broker);
+        _removeBroker(broker, penaltyWei);
     }
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    function _removeBroker(address broker) internal {
+    function _removeBroker(address broker, uint penaltyWei) internal {
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        // console.log("now", block.timestamp);
-        // console.log("leaving: ", broker);
-        uint penaltyWei = getLeavePenalty(broker);
+        // console.log("  stake   ", stakedWei);
         // console.log("  penalty ", penaltyWei);
-        // console.log("  stake", stakedWei);
         uint returnFunds = stakedWei - penaltyWei;
         // console.log("  returned", returnFunds);
 
@@ -281,18 +286,35 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[_msgSender()];
     }
 
-    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public adminOnly {
-        allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
+    function report(address broker) external {
+        address reporter = _msgSender();
+        emit BrokerReported(broker, reporter);
+        uint penaltyWei = moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onReport.selector, broker, reporter), "error_kickPolicyFailed");
+        if (penaltyWei > 0) {
+            _removeBroker(broker, penaltyWei);
+            emit BrokerKicked(broker, penaltyWei);
+        }
+    }
+
+    /////////////////////////////////////////
+    // POLICY SETUP
+    // This should happen during initialization and be done by the BountyFactory
+    /////////////////////////////////////////
+
+    function setAllocationPolicy(IAllocationPolicy allocationPolicy, uint param) public adminOnly {
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
         checkStateChange();
     }
 
-    function setLeavePolicy(address _leaveAddress, uint256 param) public adminOnly {
-        leavePolicy = ILeavePolicy(_leaveAddress);
+    function setLeavePolicy(ILeavePolicy leavePolicy, uint param) public adminOnly {
         moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
-    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public adminOnly {
+    function setKickPolicy(IKickPolicy kickPolicy, uint param) public adminOnly {
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param), "error_setKickPolicyFailed");
+    }
+
+    function addJoinPolicy(IJoinPolicy _joinPolicyAddress, uint param) public adminOnly {
         joinPolicyAddresses.push(_joinPolicyAddress);
         IJoinPolicy joinPolicy = IJoinPolicy(_joinPolicyAddress);
         moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
