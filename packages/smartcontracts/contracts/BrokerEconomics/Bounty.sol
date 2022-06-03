@@ -298,34 +298,45 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
 
-    function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
-        removeFromAddressArray(joinPolicyAddresses, _joinPolicyAddress);
-    }
+    // TODO: remove
+    // function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
+    //     removeFromAddressArray(joinPolicyAddresses, _joinPolicyAddress);
+    // }
 
+    // TODO: remove
     /**
      * Remove the listener from array by copying the last element into its place so that the arrays stay compact
      */
-    function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
-        uint i = 0;
-        while (i < array.length && array[i] != element) { i += 1; }
-        return removeFromAddressArrayUsingIndex(array, i);
-    }
+    // function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
+    //     uint i = 0;
+    //     while (i < array.length && array[i] != element) { i += 1; }
+    //     return removeFromAddressArrayUsingIndex(array, i);
+    // }
 
+    // TODO: remove
     /**
      * Remove the listener from array by copying the last element into its place so that the arrays stay compact
      */
-    function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
-        // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
-        if (index < 0 || index >= array.length) return false;
-        if (index < array.length - 1) {
-            array[index] = array[array.length - 1];
-        }
-        array.pop();
-        return true;
-    }
+    // function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
+    //     // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
+    //     if (index < 0 || index >= array.length) return false;
+    //     if (index < array.length - 1) {
+    //         array[index] = array[array.length - 1];
+    //     }
+    //     array.pop();
+    //     return true;
+    // }
 
-    /** Delegate-call ("library call") a module's method: it will use this Bounty's storage */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal {
+    /////////////////////////////////////////
+    // MODULE CALLS
+    // moduleCall for transactions, moduleGet for view functions
+    /////////////////////////////////////////
+
+    /**
+     * Delegate-call ("library call") a module's method: it will use this Bounty's storage
+     * When calling from a view function (staticcall context), use moduleGet instead
+     */
+    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert(defaultReason); }
@@ -354,6 +365,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return returndata;
     }
 
+    /** Call a module's view function (staticcall) */
     function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
