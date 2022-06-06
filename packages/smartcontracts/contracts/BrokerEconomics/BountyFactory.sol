@@ -21,8 +21,12 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     event NewBounty(address bountyContract);
 
-    modifier isAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeTrustedRole");
+    function isAdmin(address a) public view returns(bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, a);
+    }
+
+    modifier adminOnly() {
+        require(isAdmin(_msgSender()), "error_adminRoleRequired");
         _;
     }
 
@@ -46,17 +50,17 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return super._msgData();
     }
 
-    function addTrustedPolicy(address policyAddress) public isAdmin {
+    function addTrustedPolicy(address policyAddress) public adminOnly {
         trustedPolicies[policyAddress] = true;
     }
 
-    function addTrustedPolicies(address[] memory policyAddresses) public isAdmin {
+    function addTrustedPolicies(address[] memory policyAddresses) public adminOnly {
         for (uint i = 0; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
 
-    function removeTrustedPolicy(address policyAddress) public isAdmin {
+    function removeTrustedPolicy(address policyAddress) public adminOnly {
         trustedPolicies[policyAddress] = false;
     }
 
