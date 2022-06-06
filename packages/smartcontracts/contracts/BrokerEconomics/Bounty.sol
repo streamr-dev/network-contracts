@@ -36,7 +36,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     mapping(address => bool) public approvedPolicies;
     IERC677 public token;
-    IJoinPolicy[] public joinPolicyAddresses;
+    IJoinPolicy[] public joinPolicies;
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
@@ -181,8 +181,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         GlobalStorage storage s = globalData();
         if (s.stakedWei[broker] == 0) {
             // join the broker set
-            for (uint i = 0; i < joinPolicyAddresses.length; i++) {
-                IJoinPolicy joinPolicy = joinPolicyAddresses[i];
+            for (uint i = 0; i < joinPolicies.length; i++) {
+                IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
             }
             s.stakedWei[broker] += amount;
@@ -301,28 +301,30 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // This should happen during initialization and be done by the BountyFactory
     /////////////////////////////////////////
 
-    function setAllocationPolicy(IAllocationPolicy allocationPolicy, uint param) public adminOnly {
+    function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public adminOnly {
+        allocationPolicy = newAllocationPolicy;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
         checkStateChange();
     }
 
-    function setLeavePolicy(ILeavePolicy leavePolicy, uint param) public adminOnly {
+    function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public adminOnly {
+        leavePolicy = newLeavePolicy;
         moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
-    function setKickPolicy(IKickPolicy kickPolicy, uint param) public adminOnly {
+    function setKickPolicy(IKickPolicy newKickPolicy, uint param) public adminOnly {
+        kickPolicy = newKickPolicy;
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param), "error_setKickPolicyFailed");
     }
 
-    function addJoinPolicy(IJoinPolicy _joinPolicyAddress, uint param) public adminOnly {
-        joinPolicyAddresses.push(_joinPolicyAddress);
-        IJoinPolicy joinPolicy = IJoinPolicy(_joinPolicyAddress);
-        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
+    function addJoinPolicy(IJoinPolicy newJoinPolicy, uint param) public adminOnly {
+        joinPolicies.push(newJoinPolicy);
+        moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
 
     // TODO: remove
     // function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
-    //     removeFromAddressArray(joinPolicyAddresses, _joinPolicyAddress);
+    //     removeFromAddressArray(joinPolicies, _joinPolicyAddress);
     // }
 
     // TODO: remove
@@ -358,12 +360,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Delegate-call ("library call") a module's method: it will use this Bounty's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint) {
+    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
+        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
+        // for the function that return nothing, the returnValue will just be garbage
+        assembly { returnValue := mload(add(returndata, 32)) }
     }
 
     /**
