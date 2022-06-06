@@ -85,46 +85,54 @@ describe("Bounty", (): void => {
     // const isTestBountyConfig = (config: BaseBountyConfig): config is TestBountyConfig => "testAllocPolicy" in config
 
     const createBounty = async (config: DefaultBountyConfig | TestBountyConfig): Promise<Bounty> => {
-        const joinPolicies = []
-        const joinPolicyParams = []
+        const joinPolicies: Contract[] = []
+        const joinPolicyParams: string[] = []
         if (config.minStake) {
-            joinPolicies.push(minStakeJoinPolicy.address)
+            joinPolicies.push(minStakeJoinPolicy)
             joinPolicyParams.push(config.minStake)
         }
         if (config.maxBrokers) {
-            joinPolicies.push(maxBrokersJoinPolicy.address)
+            joinPolicies.push(maxBrokersJoinPolicy)
             joinPolicyParams.push(config.maxBrokers)
         }
         if (config.testJoinPol) {
-            joinPolicies.push(testJoinPolicy.address)
+            joinPolicies.push(testJoinPolicy)
             joinPolicyParams.push(config.testJoinPol)
         }
         const leavePolicyParam = config.leavePol ?? "0"
         const chosenAllocationPolicy = isDefaultBountyConfig(config) ? allocationPolicy : testAllocationPolicy
         const allocPolicyParam = isDefaultBountyConfig(config) ? config.stakeWeight : config.testAllocPolicy
 
-        // console.log("deploying bounty with params: ", joinPolicies, joinPolicyParams, allocationPolicyAddr, allocPolicyParam)
-        // function deployBountyAgreement(
-        //     uint initialMinHorizonSeconds,
-        //     uint initialMinBrokerCount,
-        //     string memory bountyName,
-        //     address[] memory bountyJoinPolicies,
-        //     uint[] memory bountyJoinPolicyParams,
-        //     address allocationPolicy,
-        //     uint allocationPolicyParam,
-        //     address bountyLeavePolicy,
-        //     uint bountyLeavePolicyParam
-        // )
+        /**
+         * Policies array is interpreted as follows:
+         *   0: allocation policy (address(0) for none)
+         *   1: leave policy (address(0) for none)
+         *   2: kick policy (address(0) for none)
+         *   3+: join policies (leave out if none)
+         * @param policies smart contract addresses found in the trustedPolicies
+         function deployBountyAgreement(
+            uint initialMinHorizonSeconds,
+            uint initialMinBrokerCount,
+            string memory bountyName,
+            address[] memory policies,
+            uint[] memory initParams
+        )
+        */
         const bountyDeployTx = await bountyFactory.deployBountyAgreement(
             0,
             1,
             "Bounty-" + bountyCounter++,
-            joinPolicies,
-            joinPolicyParams,
-            chosenAllocationPolicy.address,
-            allocPolicyParam,
-            leavePolicy.address,
-            leavePolicyParam
+            [
+                chosenAllocationPolicy.address,
+                leavePolicy.address,
+                "0x0000000000000000000000000000000000000000",
+                ...joinPolicies.map((policy) => policy.address)
+            ], [
+                allocPolicyParam,
+                leavePolicyParam,
+                "0",
+                ...joinPolicyParams
+            ]
         )
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
@@ -138,9 +146,20 @@ describe("Bounty", (): void => {
     }
 
     it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
-        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
-            [0, 1, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
-                allocationPolicy.address, "1", leavePolicy.address, "0"])
+        // for bountyFactory.deployBountyAgreement arguments, see createBounty function
+        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]"],
+            [0, 1, "Bounty-" + bountyCounter++, [
+                allocationPolicy.address,
+                leavePolicy.address,
+                "0x0000000000000000000000000000000000000000",
+                minStakeJoinPolicy.address,
+            ], [
+                "2000000000000000000",
+                "0",
+                "0",
+                "1",
+            ]]
+        )
         const bountyDeployTx = await token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data)
         const bountyDeployReceipt = await bountyDeployTx.wait()
         const newBountyAddress = bountyDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
@@ -305,18 +324,45 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest try to create bounty with untrusted policies", async function(): Promise<void> {
-        // joinpolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [ethers.Wallet.createRandom().address],
-            ["0"], allocationPolicy.address, "0", leavePolicy.address, "0"))
-            .to.be.revertedWith("error_joinPolicyNotTrusted")
+        /**
+         * Policies array is interpreted as follows:
+         *   0: allocation policy (address(0) for none)
+         *   1: leave policy (address(0) for none)
+         *   2: kick policy (address(0) for none)
+         *   3+: join policies (leave out if none)
+         * @param policies smart contract addresses found in the trustedPolicies
+         function deployBountyAgreement(
+            uint initialMinHorizonSeconds,
+            uint initialMinBrokerCount,
+            string memory bountyName,
+            address[] memory policies,
+            uint[] memory initParams
+        ) */
+        const untrustedAddress = "0x1234567890123456789012345678901234567890"
+        const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
-            ["0"], ethers.Wallet.createRandom().address, "0", leavePolicy.address, "0"))
-            .to.be.revertedWith("error_allocationPolicyNotTrusted")
+        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+            [untrustedAddress, leavePolicy.address, kickPolicyAddress, testJoinPolicy.address],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + bountyCounter++, [],
-            ["0"], allocationPolicy.address, "0", ethers.Wallet.createRandom().address, "0"))
-            .to.be.revertedWith("error_leavePolicyNotTrusted")
+        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+            [allocationPolicy.address, untrustedAddress, kickPolicyAddress, testJoinPolicy.address],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+        // kickpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+            [allocationPolicy.address, leavePolicy.address, untrustedAddress, testJoinPolicy.address],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+        // joinpolicy
+        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+            [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+    })
+
+    it("negativetest try to create bounty with mismatching number of policies and params", async function(): Promise<void> {
+        const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
+        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+            [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })
 
     // must be last test, will remove all policies

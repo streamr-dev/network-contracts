@@ -1,25 +1,13 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
+import { waffle } from "hardhat"
 import { expect, use } from "chai"
 import { BigNumber, utils, ContractTransaction } from "ethers"
 
-import { IAllocationPolicy, TestToken, Bounty, BountyFactory, IJoinPolicy, ILeavePolicy } from "../typechain"
+import { deployBountyContract, deployTestContracts, TestContracts } from "./deployBountyContract.test"
+import { advanceToTimestamp, getBlockTimestamp } from "./utils"
 
-const { provider: waffleProvider } = waffle
 const { parseEther, formatEther } = utils
-const { provider, getContractFactory } = hardhatEthers
-
-// @ts-expect-error should use LogLevel.ERROR
-utils.Logger.setLogLevel("ERROR")
-const log = (..._: unknown[]) => { /* skip logging */ }
-// const { log } = console // TODO: use pino for logging?
 
 use(waffle.solidity)
-
-async function advanceToTimestamp(timestamp: number, message?: string) {
-    log("\nt = %s ", timestamp, message ?? "")
-    await provider.send("evm_setNextBlockTimestamp", [timestamp])
-    await provider.send("evm_mine", [0])
-}
 
 describe("StakeWeightedAllocationPolicy", (): void => {
     const [
@@ -27,79 +15,26 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         broker,
         broker2,
         broker3,
-        trustedForwarder
-    ] = waffleProvider.getWallets()
+        // trustedForwarder
+    ] = waffle.provider.getWallets()
 
-    let bountyFactory: BountyFactory
-    let token: TestToken
-    let bountyTemplate: Bounty
-    let minStakeJoinPolicy: IJoinPolicy
-    let maxBrokersJoinPolicy: IJoinPolicy
-    let allocationPolicy: IAllocationPolicy
-    let leavePolicy: ILeavePolicy
-
+    let contracts: TestContracts
     before(async (): Promise<void> => {
-        token = await (await getContractFactory("TestToken", admin)).deploy("TestToken", "TEST") as TestToken
-        await token.deployed()
+        contracts = await deployTestContracts(admin)
 
-        minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", admin)).deploy() as IJoinPolicy
-        await minStakeJoinPolicy.deployed()
-
-        maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", admin)).deploy() as IJoinPolicy
-        await maxBrokersJoinPolicy.deployed()
-
-        allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", admin)).deploy() as IAllocationPolicy
-        await allocationPolicy.deployed()
-
-        leavePolicy = await (await getContractFactory("DefaultLeavePolicy", admin)).deploy() as ILeavePolicy
-        await leavePolicy.deployed()
-
-        bountyTemplate = await (await getContractFactory("Bounty")).deploy() as Bounty
-        await bountyTemplate.deployed()
-
-        const bountyFactoryFactory = await getContractFactory("BountyFactory", admin)
-        const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-            [ bountyTemplate.address, trustedForwarder.address, token.address ])
-        bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
-        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
-            allocationPolicy.address, leavePolicy.address])).wait()
-
-        await (await token.mint(admin.address, parseEther("2000000"))).wait()
+        const { token } = contracts
+        await (await token.mint(admin.address, parseEther("1000000"))).wait()
         await (await token.transfer(broker.address, parseEther("100000"))).wait()
         await (await token.transfer(broker2.address, parseEther("100000"))).wait()
         await (await token.transfer(broker3.address, parseEther("100000"))).wait()
     })
 
-    async function deployBountyContract({
-        minBrokerCount = 1, // bounty will start paying out as soon as one broker joins
-        minHorizonSeconds = 200000, // this ensures that leaving doesn't incur stake penalties
-        allocationWeiPerSecond = parseEther("1"),
-    } = {}): Promise<Bounty> {
-        const bountyDeployTx = await bountyFactory.deployBountyAgreement(
-            minHorizonSeconds.toString(),
-            minBrokerCount.toString(),
-            "Bounty-" + Date.now(),
-            [minStakeJoinPolicy.address], [parseEther("1")], allocationPolicy.address, allocationWeiPerSecond,
-            leavePolicy.address, "0"
-        )
-        const bountyDeployReceipt = await bountyDeployTx.wait()
-        const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
-        const newBountyAddress = newBountyEvent?.args?.bountyContract
-        expect(newBountyAddress).not.to.be.undefined
-        log("Bounty deployed at %s", newBountyAddress)
-
-        const bounty = bountyTemplate.attach(newBountyAddress)
-
-        await (await token.approve(newBountyAddress, parseEther("100000"))).wait()
-
-        return bounty
-    }
-
     it("allocates correctly for single broker (positive test)", async () => {
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const balanceBefore = await token.balanceOf(broker.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 1000) + 1) * 1000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "broker joins")
         // this tx this happens at timeAtStart + 1
@@ -115,8 +50,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart + 100, "broker leaves")
         // this getter happens at timeAtStart + 100
-        // but this tx happens at timeAtStart + 101...
         // const allocationBeforeLeave = await bounty.getAllocation(broker.address)
+        // but this tx happens at timeAtStart + 101...
         await (await bounty.connect(broker).leave()).wait()
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
 
@@ -137,15 +72,16 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end 4000*(wei/sec) are winnings
         // broker1 should have half + half-of-half = 75% of the winnings
         // broker2 should have half-of-half = 25% of the winnings
-        const bounty = await deployBountyContract()
         const sponsorshipWei = parseEther("10000")
-        await (await token.transferAndCall(bounty.address, sponsorshipWei, "0x")).wait() // sponsor using ERC677
         const totalTokensExpected = parseEther("4000")
 
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await token.transferAndCall(bounty.address, sponsorshipWei, "0x")).wait() // sponsor using ERC677
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
         const unallocatedWeiBefore = await bounty.getUnallocatedWei() as BigNumber
-        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "broker1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
@@ -179,13 +115,15 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end 4000*(wei/sec) are winnings
         // broker1 should have half + 20% of half = 60% of the winnings
         // broker2 should have 80% of half = 40% of the winnings
-        const bounty = await deployBountyContract()
-        await (await bounty.sponsor(parseEther("100000"))).wait()
         const totalTokensExpected = parseEther("4000")
+
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("100000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = (await provider.getBlock("latest")).timestamp + 1
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
@@ -217,12 +155,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 +10000: broker1 leaves       => (0 : 0)
         // broker1 should have 2000 + 1000 + 1600 + 1000 + 2000 = 7600
         // broker2 should have        1000 +  400 + 1000        = 2400
-        const bounty = await deployBountyContract()
-        await (await bounty.sponsor(parseEther("10000").add(8))).wait()
-
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("10008"))).wait()
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
@@ -261,13 +199,14 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         //            but only half actually allocated and paid out
         // broker1 should have half * (half + 20% of half) = 30% of the expected winnings
         // broker2 should have half * (80% of half) = 20% of the expected winnings
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         const totalTokensExpected = parseEther("4000")
         await (await bounty.sponsor(totalTokensExpected.div(2))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(
@@ -312,12 +251,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // in the end the expected winnings are 4000 tokens, because between 2000...3000 no allocations were paid
         // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
         // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -371,13 +311,14 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // this means: if there wouldn't have been insolvency:
         //   brokers would've gotten 2000 tokens more, i.e. 3000 + 2000 tokens
         //   broker1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("1000"))).wait()
         await (await token.connect(broker2).approve(bounty.address, parseEther("100000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -420,11 +361,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 1000: money runs out
         // t = t0 + 2000: broker leaves
         // expecting to get 1000 tokens and defaulting 1000
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -454,11 +396,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // defaulted       0 + 1000   + 0  + 1000 +   0     = 2000
         // tokens should NOT be counted as defaulted when the bounty isn't running (between 2000...3000)
         //   (although defaulted tokens can't be read from anywhere because broker didn't stay through insolvency!)
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -510,12 +453,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // this means: if there wouldn't have been insolvency:
         //   brokers would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
         //   broker2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -562,11 +506,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 1000: incomePerSecond changes to 2
         // t = t0 + 2000: broker leaves
         // expecting to get 1000 + 2000 tokens
-        const bounty = await deployBountyContract()
+        const { token, allocationPolicy } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("10000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -590,11 +535,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 4000: broker leaves
         // expecting to get 1000 + 2000 tokens
         // expecting 1000 + 2000 defaulted tokens (1.0 + 2.0 per stake)
-        const bounty = await deployBountyContract()
+        const { token, allocationPolicy } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -633,12 +579,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 4000: broker2 leaves
         // broker1 should get 1000 +  500 tokens
         // broker2 should get    0 + 1500 tokens
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -681,12 +628,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 4000: broker2 leaves
         // broker1 should have 1000 + 500 tokens
         // broker2 should have 500 + 1000 tokens
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -729,12 +677,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 4000: broker2 leaves
         // broker1 should have 1000 + 500 + 500 +    0 = 2000 tokens
         // broker2 should have    0 + 500 + 500 + 1000 = 2000 tokens
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -772,12 +721,13 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 5000: broker2 leaves
         // broker1 should have 1000 + 500 + 1000 +    0 = 2500 tokens
         // broker2 should have    0 + 500 + 1000 + 2000 = 3500 tokens
-        const bounty = await deployBountyContract()
+        const { token, allocationPolicy } = contracts
+        const bounty = await deployBountyContract(contracts)
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
-        const timeAtStart = Math.floor(((await provider.getBlock("latest")).timestamp / 100000) + 1) * 100000
+        const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Broker 1 joins")
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
@@ -817,7 +767,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
     // TODO: add required staying period feature, then unskip this test
     it.skip("deducts penalty from a broker that leaves too early", async function(): Promise<void> {
-        const bounty = await deployBountyContract()
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
 
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait()
         await (await token.transfer(broker.address, parseEther("10"))).wait()
@@ -837,7 +788,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
     })
 
     it("gets allocation 0 from unjoined broker", async function(): Promise<void> {
-        const bounty = await deployBountyContract()
+        const bounty = await deployBountyContract(contracts)
         const allocation = await bounty.getAllocation(broker.address)
         expect(allocation.toString()).to.equal("0")
     })

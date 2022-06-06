@@ -24,7 +24,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
      * Note that it's guaranteed that a staked broker must have at least 1 wei stake
      * @return kickPenaltyWei zero means do not kick
      */
-    function onReport(address broker, address reporter) external returns (uint kickPenaltyWei) {
+    function onReport(address broker, address) external view returns (uint kickPenaltyWei) {
         return isAdmin(broker) ? 1 : 0;
     }
 }

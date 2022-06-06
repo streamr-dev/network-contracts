@@ -69,58 +69,69 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     }
 
     function onTokenTransfer(address /*sender*/, uint amount, bytes calldata param) external {
-        ( uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
-        string memory bountyName,
-        address[] memory bountyJoinPolicies,
-        uint[] memory bountyJoinPolicyParams,
-        address allocationPolicy,
-        uint allocationPolicyParam,
-        address bountyLeavePolicy,
-        uint bountyLeavePolicyParam) = abi.decode(param,
-            (uint256,uint256,string,address[],uint[],address,uint,address,uint)
+        (
+            uint initialMinHorizonSeconds,
+            uint initialMinBrokerCount,
+            string memory bountyName,
+            address[] memory policies,
+            uint[] memory initParams
+        ) = abi.decode(param,
+            (uint256,uint256,string,address[],uint[])
         );
-        address bountyAddress = deployBountyAgreement(initialMinHorizonSeconds, initialMinBrokerCount, bountyName, 
-            bountyJoinPolicies, bountyJoinPolicyParams, allocationPolicy, allocationPolicyParam, 
-            bountyLeavePolicy, bountyLeavePolicyParam);
+        address bountyAddress = deployBountyAgreement(
+            initialMinHorizonSeconds,
+            initialMinBrokerCount,
+            bountyName,
+            policies,
+            initParams
+        );
         IERC677(tokenAddress).transferAndCall(bountyAddress, amount, "");
     }
 
+    /**
+     * Policies array is interpreted as follows:
+     *   0: allocation policy (address(0) for none)
+     *   1: leave policy (address(0) for none)
+     *   2: kick policy (address(0) for none)
+     *   3+: join policies (leave out if none)
+     * @param policies smart contract addresses found in the trustedPolicies
+     */
     function deployBountyAgreement(
         uint initialMinHorizonSeconds,
         uint initialMinBrokerCount,
         string memory bountyName,
-        address[] memory bountyJoinPolicies,
-        uint[] memory bountyJoinPolicyParams,
-        address allocationPolicy,
-        uint allocationPolicyParam,
-        address bountyLeavePolicy,
-        uint bountyLeavePolicyParam
+        address[] memory policies,
+        uint[] memory initParams
     ) public returns (address) {
-        for (uint i = 0; i < bountyJoinPolicies.length; i++) {
-            require(isTrustedPolicy(bountyJoinPolicies[i]), "error_joinPolicyNotTrusted");
+        require(policies.length == initParams.length, "error_badArguments");
+        for (uint i = 0; i < policies.length; i++) {
+            address policyAddress = policies[i];
+            require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        require(isTrustedPolicy(allocationPolicy), "error_allocationPolicyNotTrusted");
-        require(isTrustedPolicy(bountyLeavePolicy), "error_leavePolicyNotTrusted");
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
-        // BountyAgreement bountyAgreement = BountyAgreement(_msgSender());
-        // ClonesUpgradeable.clone(bountyContractTemplate);
-        // StreamAgreement streamAgreement = StreamAgreement(_msgSender());
-        // StreamAgreement streamAgreement = new StreamAgreement(this);
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        // Bounty bounty = ;
-        (Bounty(bountyAddress)).initialize(
+        Bounty bounty = Bounty(bountyAddress);
+        bounty.initialize(
             address(this),
             tokenAddress,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             trustedForwarder
         );
-        for (uint i = 0; i < bountyJoinPolicies.length; i++) {
-            (Bounty(bountyAddress)).addJoinPolicy(bountyJoinPolicies[i], bountyJoinPolicyParams[i]);
+        if (policies[0] != address(0)) {
+            bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
         }
-        (Bounty(bountyAddress)).setAllocationPolicy(allocationPolicy, allocationPolicyParam);
-        (Bounty(bountyAddress)).setLeavePolicy(bountyLeavePolicy, bountyLeavePolicyParam);
+        if (policies[1] != address(0)) {
+            bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
+        }
+        if (policies[2] != address(0)) {
+            bounty.setKickPolicy(IKickPolicy(policies[2]), initParams[2]);
+        }
+        for (uint i = 3; i < policies.length; i++) {
+            if (policies[i] != address(0)) {
+                bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
+            }
+        }
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }
