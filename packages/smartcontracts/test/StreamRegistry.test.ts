@@ -57,7 +57,7 @@ const getBlocktime = async (): Promise<number> => {
 }
 
 use(waffle.solidity)
-describe('StreamRegistry', (): void => {
+describe.skip('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
     // let ensCacheFromAdmin: ENSCache
     let registryFromAdmin: StreamRegistry
