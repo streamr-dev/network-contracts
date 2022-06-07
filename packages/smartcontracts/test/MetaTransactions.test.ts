@@ -60,7 +60,7 @@ const EIP712Domain = [
 // - increase stake if already joined
 
 describe("MetaTx", (): void => {
-    const name = 'DATAv2'
+    const name = 'Streamr'
     const symbol = 'DATA'
     const version = '1'
 
@@ -70,8 +70,13 @@ describe("MetaTx", (): void => {
     const trustedForwarderAddress: string = wallets[9].address
     const dataTokenAdminWallet = wallets[2]
 
-    const owner = new Wallet("0x4ff28890735b38724ca97942d2d71ced2c5feab5932b81f9047fd76f4e9743a8")
+    // const owner = new Wallet("0x4ff28890735b38724ca97942d2d71ced2c5feab5932b81f9047fd76f4e9743a8")
     // const owner = wallets[3]
+
+    const key = Buffer.from("4ff28890735b38724ca97942d2d71ced2c5feab5932b81f9047fd76f4e9743a8", "hex")
+    const ejwallet = new Ejwallet(key)
+    const owner = ejwallet.getAddressString()
+
     const spender = wallets[4]
     const permitCaller = wallets[5]
 
@@ -114,7 +119,7 @@ describe("MetaTx", (): void => {
         primaryType: 'Permit',
         types: { EIP712Domain, Permit },
         domain: { name, version, chainId, verifyingContract },
-        message: { owner: owner.address, spender: spender.address, value, nonce, deadline },
+        message: { owner, spender: spender.address, value, nonce, deadline },
     })
 
     before(async (): Promise<void> => {
@@ -219,12 +224,12 @@ describe("MetaTx", (): void => {
     it.only('permit on token without metaTx', async (): Promise<void> => {
         // const data = buildData(chainId, datav2.address, owner.address, spender.address, ethers.utils.parseEther("1").toString(),
         //     BigNumber.from(0).toString(), ethers.constants.MaxUint256.toHexString())
-        const data = buildData(chainId, datav2.address, owner.address)
-        const ownerPrivKeyBuffer = Buffer.from(owner.privateKey.slice(2), "hex")
-        const signature = signTypedMessage(ownerPrivKeyBuffer, { data })
+        const data = buildData(chainId, datav2.address)
+        // const ownerPrivKeyBuffer = Buffer.from(owner.privateKey.slice(2), "hex")
+        const signature = signTypedMessage(key, { data })
         const { v, r, s } = fromRpcSig(signature)
 
-        const receipt = await datav2.permit(owner.address, spender.address, ethers.utils.parseEther("1").toString(),
+        const receipt = await datav2.permit(owner, spender.address, "42",
             ethers.constants.MaxUint256, v, r, s)
 
         expect(await datav2.nonces(owner.address)).to.equal('1')
