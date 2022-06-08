@@ -1,4 +1,4 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
+import { waffle } from "hardhat"
 import { expect, use } from "chai"
 import { utils } from "ethers"
 
