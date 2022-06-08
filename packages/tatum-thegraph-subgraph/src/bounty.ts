@@ -16,13 +16,14 @@ export function handleStakeAdded(event: StakeAdded): void {
         stake = new Stake(stakeID)
         stake.bounty = bountyAddress.toHexString()
         stake.id = stakeID
+        stake.broker = brokerAddress.toHexString()
     }
     stake.date = event.block.timestamp
     stake.amount = totalStake
     stake.save()
 
     let bounty = Bounty.load(bountyAddress.toHexString())
-    bounty!.totalStake += event.params.addedWei
+    bounty!.totalStakedWei += totalStake
     bounty!.save()
 
     // stake.address = brokerAddress
@@ -32,6 +33,11 @@ export function handleStakeAdded(event: StakeAdded): void {
 }
 export function handleSponsorshipReceived(event: SponsorshipReceived): void {
     log.info('handleSponsorshipReceived: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    let bountyAddress = event.address
+    let unallocatedWei = event.params.amount
+    let bounty = Bounty.load(bountyAddress.toHexString())
+    bounty!.unallocatedWei = unallocatedWei
+    bounty!.save()
 }
 
 export function handleMemberParted(/*event*/_: BrokerLeft): void {

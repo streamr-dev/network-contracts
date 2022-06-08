@@ -7,11 +7,13 @@ type Bounty @entity {
   address: Bytes!
   stakes: [Stake!]! @derivedFrom(field: "bounty")
   # memberCount: Int!
-  totalStake: BigInt!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
 }
 
 type Stake @entity {
-  id: ID! # the eth address of the staker
+  id: ID! # bountyId+brokerId
+  broker: String!
   amount: BigInt!
   "date of the stake"
   date: BigInt

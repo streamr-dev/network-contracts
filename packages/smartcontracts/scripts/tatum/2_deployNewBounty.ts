@@ -49,9 +49,9 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 
 // addresses localsidechain
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const BOUNTYFACTORY = '0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E'
-const ALLOCATIONPOLICY = '0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37'
-let bountyAddress = "0xa3E2b4B8B98D6310a27776a40F2FBd2Ee87C80Dc"
+const BOUNTYFACTORY = '0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3'
+const ALLOCATIONPOLICY = '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+let bountyAddress = "0x456148BF9e93f880a91d4F19680fa2ba6E03a1B0"
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
@@ -69,7 +69,8 @@ let tokenFromOwner: LinkToken
 // let resolverFomAdmin : Contract
 
 const connectToAllContracts = async () => {
-    userWallet = new Wallet(DEFAULTPRIVATEKEY, chainProvider)
+    // userWallet = new Wallet(DEFAULTPRIVATEKEY, chainProvider)
+    userWallet = Wallet.createRandom()
     adminWallet = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
 
     const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', adminWallet)
@@ -110,7 +111,7 @@ const sponsorNewBounty = async () => {
     await (await tokenFromOwner.approve(bountyAddress, ethers.BigNumber.from('10'))).wait()
     const sponsorTx = await bounty.sponsor(ethers.BigNumber.from('1'))
     const sponsorReceipt = await sponsorTx.wait()
-    log("sponsoded through token approval")
+    log("sponsored through token approval")
     // log("sponsor tx: " + JSON.stringify(sponsorReceipt))
     const sponsorTx2 = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
         "0x")
@@ -120,7 +121,7 @@ const sponsorNewBounty = async () => {
 
 }
 
-const joinBounty = async () => {
+const stakeOnBounty = async () => {
     // const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther('2'), userWallet.address)
     const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
         defaultAbiCoder.encode(["address"], [userWallet.address]))
@@ -132,9 +133,9 @@ const joinBounty = async () => {
 
 async function main() {
     await connectToAllContracts()
-    // await deployNewBounty()
+    await deployNewBounty()
     await sponsorNewBounty()
-    await joinBounty()
+    await stakeOnBounty()
 }
 
 main()

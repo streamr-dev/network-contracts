@@ -202,6 +202,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");
         }
         checkStateChange();
+        emit StakeAdded(broker, amount, s.stakedWei[broker]);
     }
 
     function leave() external {
@@ -275,7 +276,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: sweep also unaccounted tokens into unallocated funds?
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
         globalData().unallocatedFunds += amountTokenWei;
-        emit SponsorshipReceived(sponsorAddress, amountTokenWei);
+        emit SponsorshipReceived(sponsorAddress, globalData().unallocatedFunds);
         checkStateChange();
     }
 
