@@ -65,6 +65,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().unallocatedFunds;
     }
 
+    function getBrokerCount() public view returns(uint) {
+        return globalData().brokerCount;
     }
 
     function isAdmin(address a) public view returns(bool) {
