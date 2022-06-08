@@ -34,6 +34,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     IERC677 public token;
     IJoinPolicy[] public joinPolicies;
     IAllocationPolicy public allocationPolicy;
@@ -63,13 +65,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().unallocatedFunds;
     }
 
-    function isAdmin(address a) public view returns(bool) {
-        return hasRole(DEFAULT_ADMIN_ROLE, a);
     }
 
-    modifier adminOnly() {
-        require(isAdmin(_msgSender()), "error_adminRoleRequired");
-        _;
+    function isAdmin(address a) public view returns(bool) {
+        return hasRole(ADMIN_ROLE, a);
     }
 
     // State of the bounty contract
@@ -135,6 +134,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        _setupRole(ADMIN_ROLE, newOwner);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
@@ -301,23 +302,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // This should happen during initialization and be done by the BountyFactory
     /////////////////////////////////////////
 
-    function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public adminOnly {
+    function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         allocationPolicy = newAllocationPolicy;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
         checkStateChange();
     }
 
-    function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public adminOnly {
+    function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         leavePolicy = newLeavePolicy;
         moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
-    function setKickPolicy(IKickPolicy newKickPolicy, uint param) public adminOnly {
+    function setKickPolicy(IKickPolicy newKickPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         kickPolicy = newKickPolicy;
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param), "error_setKickPolicyFailed");
     }
 
-    function addJoinPolicy(IJoinPolicy newJoinPolicy, uint param) public adminOnly {
+    function addJoinPolicy(IJoinPolicy newJoinPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         joinPolicies.push(newJoinPolicy);
         moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }

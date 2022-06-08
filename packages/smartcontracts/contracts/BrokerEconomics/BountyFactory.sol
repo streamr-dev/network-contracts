@@ -21,15 +21,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     event NewBounty(address bountyContract);
 
-    function isAdmin(address a) public view returns(bool) {
-        return hasRole(DEFAULT_ADMIN_ROLE, a);
-    }
-
-    modifier adminOnly() {
-        require(isAdmin(_msgSender()), "error_adminRoleRequired");
-        _;
-    }
-
     function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -50,17 +41,17 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return super._msgData();
     }
 
-    function addTrustedPolicy(address policyAddress) public adminOnly {
+    function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
         trustedPolicies[policyAddress] = true;
     }
 
-    function addTrustedPolicies(address[] memory policyAddresses) public adminOnly {
+    function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint i = 0; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
 
-    function removeTrustedPolicy(address policyAddress) public adminOnly {
+    function removeTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
         trustedPolicies[policyAddress] = false;
     }
 
@@ -68,7 +59,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return trustedPolicies[policyAddress];
     }
 
-    function onTokenTransfer(address /*sender*/, uint amount, bytes calldata param) external {
+    function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
         (
             uint initialMinHorizonSeconds,
             uint initialMinBrokerCount,
@@ -78,7 +69,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         ) = abi.decode(param,
             (uint256,uint256,string,address[],uint[])
         );
-        address bountyAddress = deployBountyAgreement(
+        address bountyAddress = _deployBountyAgreement(
+            sender,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             bountyName,
@@ -103,6 +95,24 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
+        return _deployBountyAgreement(
+            _msgSender(),
+            initialMinHorizonSeconds,
+            initialMinBrokerCount,
+            bountyName,
+            policies,
+            initParams
+        );
+    }
+
+    function _deployBountyAgreement(
+        address bountyOwner,
+        uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
+        string memory bountyName,
+        address[] memory policies,
+        uint[] memory initParams
+    ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
@@ -112,7 +122,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
-            address(this),
+            address(this), // this is needed in order to set the policies
             tokenAddress,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
@@ -132,6 +142,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
                 bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
+        bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
+        bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
+        bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }
