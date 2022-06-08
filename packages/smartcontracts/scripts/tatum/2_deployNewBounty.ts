@@ -49,9 +49,9 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 
 // addresses localsidechain
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const BOUNTYFACTORY = '0xDa7893ee6Ab31413ea734dd0B7c259eeD290bF2a'
-const ALLOCATIONPOLICY = '0x699B4bE95614f017Bb622e427d3232837Cc814E6'
-let bountyAddress = "0x46d62a056966e61256f499ef9d1bea32db45ebb2"
+const BOUNTYFACTORY = '0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E'
+const ALLOCATIONPOLICY = '0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37'
+let bountyAddress = "0xa3E2b4B8B98D6310a27776a40F2FBd2Ee87C80Dc"
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
@@ -87,16 +87,27 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const agreementtx = await bountyFactory.deployBountyAgreement(0, 0, "Bounty-" + Date.now())
+    const agreementtx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+        [
+            ALLOCATIONPOLICY,
+            ethers.constants.AddressZero,
+            ethers.constants.AddressZero,
+        ], [
+            "1",
+            "0",
+            "0"
+        ]
+    )
     const agreementReceipt = await agreementtx.wait()
     const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
     log("new bounty address: " + newBountyAddress)
-    bounty = await ethers.getContractAt('Bounty', newBountyAddress, adminWallet) as Bounty
-    bountyAddress = bounty.address
-    await (await bounty.setAllocationPolicy(ALLOCATIONPOLICY, ethers.BigNumber.from('1'))).wait() // 3 -> will throw on leave
-    log("bounty deployed, alloctionpolicy set")
+    bountyAddress = newBountyAddress
+}
+    
+const sponsorNewBounty = async () => {
+    bounty = await ethers.getContractAt('Bounty', bountyAddress, adminWallet) as Bounty
     // sponsor with token approval
-    await (await tokenFromOwner.approve(bounty.address, ethers.BigNumber.from('10'))).wait()
+    await (await tokenFromOwner.approve(bountyAddress, ethers.BigNumber.from('10'))).wait()
     const sponsorTx = await bounty.sponsor(ethers.BigNumber.from('1'))
     const sponsorReceipt = await sponsorTx.wait()
     log("sponsoded through token approval")
@@ -122,6 +133,7 @@ const joinBounty = async () => {
 async function main() {
     await connectToAllContracts()
     // await deployNewBounty()
+    await sponsorNewBounty()
     await joinBounty()
 }
 
