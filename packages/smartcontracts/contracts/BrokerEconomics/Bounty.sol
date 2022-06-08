@@ -34,7 +34,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
-    mapping(address => bool) public approvedPolicies;
     IERC677 public token;
     IJoinPolicy[] public joinPolicies;
     IAllocationPolicy public allocationPolicy;
@@ -180,7 +179,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(amount > 0, "error_cannotStakeZero");
         GlobalStorage storage s = globalData();
         if (s.stakedWei[broker] == 0) {
-            // join the broker set
+            // console.log("Broker joins and stakes", broker, amount);
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
@@ -191,9 +190,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             s.joinTimeOfBroker[broker] = block.timestamp;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
-            // console.log("BrokerJoined");
         } else {
-            // already joined, increasing stake
+            // console.log("Broker already joined, increasing stake", broker, amount);
             s.stakedWei[broker] += amount;
             s.totalStakedWei += amount;
 
@@ -204,8 +202,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function leave() external {
-        // console.log("now", block.timestamp);
-        // console.log("leaving:", broker);
+        // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
         _removeBroker(broker, penaltyWei);
@@ -219,6 +216,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
+        // console.log("leaving:", broker);
         // console.log("  stake   ", stakedWei);
         // console.log("  penalty ", penaltyWei);
         uint returnFunds = stakedWei - penaltyWei;
@@ -287,10 +285,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function report(address broker) external {
+        // console.log("Reporting", broker);
         address reporter = _msgSender();
         emit BrokerReported(broker, reporter);
         uint penaltyWei = moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onReport.selector, broker, reporter), "error_kickPolicyFailed");
         if (penaltyWei > 0) {
+            // console.log("Kicking", broker);
             _removeBroker(broker, penaltyWei);
             emit BrokerKicked(broker, penaltyWei);
         }
