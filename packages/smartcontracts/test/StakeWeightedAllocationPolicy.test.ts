@@ -2,8 +2,7 @@ import { waffle } from "hardhat"
 import { expect, use } from "chai"
 import { BigNumber, utils, ContractTransaction } from "ethers"
 
-import { deployBountyContract, deployTestContracts, TestContracts } from "./deployBountyContract.test"
-import { advanceToTimestamp, getBlockTimestamp } from "./utils"
+import { advanceToTimestamp, getBlockTimestamp, deployBountyContract, deployTestContracts, TestContracts } from "./utils"
 
 const { parseEther, formatEther } = utils
 
