@@ -27,7 +27,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event StateChanged(State indexed newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
-    event BrokerReported(address indexed reporter, address indexed broker);
+    event BrokerReported(address indexed broker, address indexed reporter);
     event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
