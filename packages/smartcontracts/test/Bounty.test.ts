@@ -182,7 +182,10 @@ describe("Bounty", (): void => {
 
     it("negativetest addjoinpolicy from not-admin", async function(): Promise<void> {
         await expect(bountyFromBroker.addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000"))
-            .to.be.revertedWith("error_adminRoleRequired")
+            .to.be.revertedWith(
+                "AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 " +
+                "is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
+            )
     })
 
     it("negativetest trying to join with wrong token", async function(): Promise<void> {
