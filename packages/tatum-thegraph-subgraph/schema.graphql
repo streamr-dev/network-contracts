@@ -2,19 +2,21 @@
 # scalar Date
 
 type Bounty @entity {
-  id: ID!
-  "address of the bounty contract"
-  address: Bytes!
+  id: ID! # bounty address
+  isRunning: Boolean!
+  # address: Bytes!
   stakes: [Stake!]! @derivedFrom(field: "bounty")
-  # memberCount: Int!
+  memberCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
 }
 
 type Stake @entity {
   id: ID! # bountyId+brokerId
   broker: String!
   amount: BigInt!
+  allocatedWei: BigInt!
   "date of the stake"
   date: BigInt
   bounty: Bounty

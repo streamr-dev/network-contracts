@@ -22,11 +22,13 @@ import "./policies/IAllocationPolicy.sol";
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeAdded(address indexed broker, uint addedWei, uint totalWei);
+    event StakeUpdate(address indexed broker, uint totalWei, uint allocatedWei);
+    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 memberCount, bool isRunning);
+
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
-    event StateChanged(State indexed newState);
-    event SponsorshipReceived(address indexed sponsor, uint amount);
+    // event StateChanged(State indexed newState);
+    // event SponsorshipReceived(address indexed sponsor, uint amount);
     event BrokerReported(address indexed broker, address indexed reporter);
     event BrokerKicked(address indexed broker, uint slashedWei);
 
@@ -45,7 +47,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     // storage variables available to all modules
     struct GlobalStorage {
-        uint brokerCount;
+        uint32 brokerCount;
         /** how much each broker has staked, if 0 broker is considered not part of bounty */
         mapping(address => uint) stakedWei;
         uint totalStakedWei;
@@ -104,9 +106,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /** See if the state has changed, emit a StateChanged event */
     function checkStateChange() public {
         State currentState = getState();
-        if (currentState != previousState) {
-            emit StateChanged(currentState);
-        }
+        // if (currentState != previousState) {
+        //     emit StateChanged(currentState);
+        // }
         previousState = currentState;
     }
 
@@ -202,7 +204,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");
         }
         checkStateChange();
-        emit StakeAdded(broker, amount, s.stakedWei[broker]);
+        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
     }
 
     function leave() external {
@@ -244,6 +246,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // console.log("Unallocated: ", s.unallocatedFunds);
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
+        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         emit BrokerLeft(broker, returnFunds);
         checkStateChange();
         // removeFromAddressArray(brokers, broker);
@@ -264,6 +268,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // console.log("  allocation", allocation);
         // TODO: transferAndCall
         require(token.transfer(broker, payoutWei), "error_transfer");
+        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
@@ -276,8 +282,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: sweep also unaccounted tokens into unallocated funds?
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
         globalData().unallocatedFunds += amountTokenWei;
-        emit SponsorshipReceived(sponsorAddress, globalData().unallocatedFunds);
         checkStateChange();
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
     function getStake(address broker) external view returns (uint) {

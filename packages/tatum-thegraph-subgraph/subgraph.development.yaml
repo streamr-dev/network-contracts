@@ -9,7 +9,7 @@ dataSources:
     name: BountyFactory
     network: xDai
     source:
-      address: '0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3'
+      address: '0x42a9299fe8326c0E910A5B0733E379192D582Ccf'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -46,13 +46,17 @@ templates:
         - name: Bounty
           file: ./artifacts/smartcontracts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
       eventHandlers:
-        - event: StakeAdded(indexed address,uint256,uint256)
-          handler: handleStakeAdded
-        - event: SponsorshipReceived(indexed address,uint256)
-          handler: handleSponsorshipReceived
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+          - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
+            handler: handleBountyUpdated
+        # - event: StakeAdded(indexed address,uint256,uint256)
+        #   handler: handleStakeAdded
+        # - event: SponsorshipReceived(indexed address,uint256)
+        #   handler: handleSponsorshipReceived
         # - event: BrokerJoined(indexed address)
         #   handler: handleBrokerJoined
-        - event: BrokerLeft(indexed address,uint256)
-          handler: handleBrokerLeft
+        # - event: BrokerLeft(indexed address,uint256)
+        #   handler: handleBrokerLeft
   # Old DU gnosis/xdai <<
 

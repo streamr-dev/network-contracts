@@ -49,8 +49,8 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 
 // addresses localsidechain
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const BOUNTYFACTORY = '0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3'
-const ALLOCATIONPOLICY = '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+const BOUNTYFACTORY = '0x42a9299fe8326c0E910A5B0733E379192D582Ccf'
+const ALLOCATIONPOLICY = '0x699B4bE95614f017Bb622e427d3232837Cc814E6'
 let bountyAddress = "0x456148BF9e93f880a91d4F19680fa2ba6E03a1B0"
 
 // Polygon mainet contract addresses
@@ -66,6 +66,7 @@ let adminWallet: Wallet
 let bountyFactory: BountyFactory
 let bounty: Bounty
 let tokenFromOwner: LinkToken
+let deploymentOwner: Wallet
 // let resolverFomAdmin : Contract
 
 const connectToAllContracts = async () => {
@@ -79,7 +80,7 @@ const connectToAllContracts = async () => {
     bountyFactory = await bountyFactoryContact.connect(adminWallet) as BountyFactory
     // registryFromOwner = await registryContract.connect(deploymentOwner) as StreamRegistry
 
-    const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
+    deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
     const linkTokenFactory = await ethers.getContractFactory('LinkToken', adminWallet)
     const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
     const linkTokenContract = await linkTokenFactoryTx.deployed()
@@ -114,7 +115,7 @@ const sponsorNewBounty = async () => {
     log("sponsored through token approval")
     // log("sponsor tx: " + JSON.stringify(sponsorReceipt))
     const sponsorTx2 = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
-        "0x")
+        deploymentOwner.address)
     const sponsorReceipt2 = await sponsorTx2.wait()
     log("sponsored through token transfer and call")
     // log("sponsor tx2: " + JSON.stringify(sponsorReceipt2))

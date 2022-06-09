@@ -1,14 +1,13 @@
 import { log } from '@graphprotocol/graph-ts'
 
 import { Bounty, Stake } from '../generated/schema'
-import { BrokerLeft, SponsorshipReceived, StakeAdded } from '../generated/templates/Bounty/Bounty'
+import { BrokerLeft, StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
 
-export function handleStakeAdded(event: StakeAdded): void {
-    log.info('handleStakeAdded: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+export function handleStakeUpdated(event: StakeUpdate): void {
+    log.info('handleStakeUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     let bountyAddress = event.address
     let brokerAddress = event.params.broker
     let totalStake = event.params.totalWei
-    log.warning('handleStakeAdded: member={} duAddress={}', [brokerAddress.toHexString(), bountyAddress.toHexString()])
 
     let stakeID = bountyAddress.toHexString() + "-" + brokerAddress.toHexString()
     let stake = Stake.load(stakeID)
@@ -20,23 +19,27 @@ export function handleStakeAdded(event: StakeAdded): void {
     }
     stake.date = event.block.timestamp
     stake.amount = totalStake
+    stake.allocatedWei = event.params.allocatedWei
     stake.save()
 
-    let bounty = Bounty.load(bountyAddress.toHexString())
-    bounty!.totalStakedWei += totalStake
-    bounty!.save()
+    // let bounty = Bounty.load(bountyAddress.toHexString())
+    // bounty!.totalStakedWei += totalStake
+    // bounty!.save()
 
     // stake.address = brokerAddress
     // member.addressString = memberAddress.toHexString()
     // member.dataunion = bountyAddress.toHexString()
     // member.status = 'ACTIVE'
 }
-export function handleSponsorshipReceived(event: SponsorshipReceived): void {
+export function handleBountyUpdated(event: BountyUpdate): void {
     log.info('handleSponsorshipReceived: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     let bountyAddress = event.address
-    let unallocatedWei = event.params.amount
     let bounty = Bounty.load(bountyAddress.toHexString())
-    bounty!.unallocatedWei = unallocatedWei
+    bounty!.totalStakedWei = event.params.totalStakeWei
+    bounty!.unallocatedWei = event.params.unallocatedWei
+    bounty!.projectedInsolvency = event.params.projectedInsolvencyTime
+    bounty!.memberCount = event.params.memberCount.toI32()
+    bounty!.isRunning = event.params.isRunning
     bounty!.save()
 }
 
