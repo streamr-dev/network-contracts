@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
+import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
 // import "hardhat/console.sol";
@@ -26,16 +27,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event StateChanged(State indexed newState);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+    event BrokerReported(address indexed broker, address indexed reporter);
+    event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
-    mapping(address => bool) public approvedPolicies;
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     IERC677 public token;
-    address[] public joinPolicyAddresses;
+    IJoinPolicy[] public joinPolicies;
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
+    IKickPolicy public kickPolicy;
     State public previousState;
 
     // storage variables available to all modules
@@ -60,9 +65,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().unallocatedFunds;
     }
 
-    modifier isAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "error_mustBeAdminRole");
-        _;
+    function getBrokerCount() public view returns(uint) {
+        return globalData().brokerCount;
+    }
+
+    function isAdmin(address a) public view returns(bool) {
+        return hasRole(ADMIN_ROLE, a);
     }
 
     // State of the bounty contract
@@ -128,6 +136,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        _setupRole(ADMIN_ROLE, newOwner);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
@@ -172,9 +182,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(amount > 0, "error_cannotStakeZero");
         GlobalStorage storage s = globalData();
         if (s.stakedWei[broker] == 0) {
-            // join the broker set
-            for (uint i = 0; i < joinPolicyAddresses.length; i++) {
-                IJoinPolicy joinPolicy = IJoinPolicy(joinPolicyAddresses[i]);
+            // console.log("Broker joins and stakes", broker, amount);
+            for (uint i = 0; i < joinPolicies.length; i++) {
+                IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
             }
             s.stakedWei[broker] += amount;
@@ -183,9 +193,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             s.joinTimeOfBroker[broker] = block.timestamp;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
-            // console.log("BrokerJoined");
         } else {
-            // already joined, increasing stake
+            // console.log("Broker already joined, increasing stake", broker, amount);
             s.stakedWei[broker] += amount;
             s.totalStakedWei += amount;
 
@@ -196,22 +205,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function leave() external {
-        _removeBroker(_msgSender());
+        // console.log("timestamp now", block.timestamp);
+        address broker = _msgSender();
+        uint penaltyWei = getLeavePenalty(broker);
+        _removeBroker(broker, penaltyWei);
     }
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    function _removeBroker(address broker) internal {
+    function _removeBroker(address broker, uint penaltyWei) internal {
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        // console.log("now", block.timestamp);
-        // console.log("leaving: ", broker);
-        uint penaltyWei = getLeavePenalty(broker);
+        // console.log("leaving:", broker);
+        // console.log("  stake   ", stakedWei);
         // console.log("  penalty ", penaltyWei);
-        // console.log("  stake", stakedWei);
         uint returnFunds = stakedWei - penaltyWei;
         // console.log("  returned", returnFunds);
 
@@ -277,56 +287,91 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[_msgSender()];
     }
 
-    function setAllocationPolicy(address _allocationPolicyAddress, uint256 param) public isAdmin {
-        allocationPolicy = IAllocationPolicy(_allocationPolicyAddress);
+    function report(address broker) external {
+        // console.log("Reporting", broker);
+        address reporter = _msgSender();
+        emit BrokerReported(broker, reporter);
+        uint penaltyWei = moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onReport.selector, broker, reporter), "error_kickPolicyFailed");
+        if (penaltyWei > 0) {
+            // console.log("Kicking", broker);
+            _removeBroker(broker, penaltyWei);
+            emit BrokerKicked(broker, penaltyWei);
+        }
+    }
+
+    /////////////////////////////////////////
+    // POLICY SETUP
+    // This should happen during initialization and be done by the BountyFactory
+    /////////////////////////////////////////
+
+    function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        allocationPolicy = newAllocationPolicy;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
         checkStateChange();
     }
 
-    function setLeavePolicy(address _leaveAddress, uint256 param) public isAdmin {
-        leavePolicy = ILeavePolicy(_leaveAddress);
+    function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        leavePolicy = newLeavePolicy;
         moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
     }
 
-    function addJoinPolicy(address _joinPolicyAddress, uint256 param) public isAdmin {
-        joinPolicyAddresses.push(_joinPolicyAddress);
-        IJoinPolicy joinPolicy = IJoinPolicy(_joinPolicyAddress);
-        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
+    function setKickPolicy(IKickPolicy newKickPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        kickPolicy = newKickPolicy;
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param), "error_setKickPolicyFailed");
     }
 
-    function removeJoinPolicy(address _joinPolicyAddress) public isAdmin {
-        removeFromAddressArray(joinPolicyAddresses, _joinPolicyAddress);
+    function addJoinPolicy(IJoinPolicy newJoinPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        joinPolicies.push(newJoinPolicy);
+        moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
 
+    // TODO: remove
+    // function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
+    //     removeFromAddressArray(joinPolicies, _joinPolicyAddress);
+    // }
+
+    // TODO: remove
     /**
      * Remove the listener from array by copying the last element into its place so that the arrays stay compact
      */
-    function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
-        uint i = 0;
-        while (i < array.length && array[i] != element) { i += 1; }
-        return removeFromAddressArrayUsingIndex(array, i);
-    }
+    // function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
+    //     uint i = 0;
+    //     while (i < array.length && array[i] != element) { i += 1; }
+    //     return removeFromAddressArrayUsingIndex(array, i);
+    // }
 
+    // TODO: remove
     /**
      * Remove the listener from array by copying the last element into its place so that the arrays stay compact
      */
-    function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
-        // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
-        if (index < 0 || index >= array.length) return false;
-        if (index < array.length - 1) {
-            array[index] = array[array.length - 1];
-        }
-        array.pop();
-        return true;
-    }
+    // function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
+    //     // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
+    //     if (index < 0 || index >= array.length) return false;
+    //     if (index < array.length - 1) {
+    //         array[index] = array[array.length - 1];
+    //     }
+    //     array.pop();
+    //     return true;
+    // }
 
-    /** Delegate-call ("library call") a module's method: it will use this Bounty's storage */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal {
+    /////////////////////////////////////////
+    // MODULE CALLS
+    // moduleCall for transactions, moduleGet for view functions
+    /////////////////////////////////////////
+
+    /**
+     * Delegate-call ("library call") a module's method: it will use this Bounty's storage
+     * When calling from a view function (staticcall context), use moduleGet instead
+     */
+    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
+        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
+        // for the function that return nothing, the returnValue will just be garbage
+        assembly { returnValue := mload(add(returndata, 32)) }
     }
 
     /**
@@ -350,6 +395,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return returndata;
     }
 
+    /** Call a module's view function (staticcall) */
     function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);

@@ -1,4 +1,4 @@
-import { task } from 'hardhat/config'
+// import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
 import 'hardhat-typechain'
 import { HardhatUserConfig } from 'hardhat/types'
@@ -115,9 +115,9 @@ const config: HardhatUserConfig = {
                 },
             }],
     },
-    namedAccounts: {
-        deployer: 0,
-    },
+    // namedAccounts: {
+    //     deployer: 0,
+    // },
     typechain: {
         outDir: './typechain',
         target: 'ethers-v5',
