@@ -1,7 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
 
 import { Bounty, Stake } from '../generated/schema'
-import { BrokerLeft, StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
+import { StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: sidechainaddress={} allocation={}', [event.address.toHexString(),  event.params.allocatedWei.toString()])
