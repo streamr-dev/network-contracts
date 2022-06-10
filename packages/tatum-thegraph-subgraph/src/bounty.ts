@@ -30,7 +30,7 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     bounty!.totalStakedWei = event.params.totalStakeWei
     bounty!.unallocatedWei = event.params.unallocatedWei
     bounty!.projectedInsolvency = event.params.projectedInsolvencyTime
-    bounty!.memberCount = event.params.memberCount.toI32()
+    bounty!.brokerCount = event.params.brokerCount.toI32()
     bounty!.isRunning = event.params.isRunning
     bounty!.save()
 }
