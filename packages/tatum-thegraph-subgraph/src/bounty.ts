@@ -7,7 +7,6 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: sidechainaddress={} allocation={}', [event.address.toHexString(),  event.params.allocatedWei.toString()])
     let bountyAddress = event.address
     let brokerAddress = event.params.broker
-    let totalStake = event.params.totalWei
 
     let stakeID = bountyAddress.toHexString() + "-" + brokerAddress.toHexString()
     let stake = Stake.load(stakeID)
@@ -18,7 +17,7 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake.broker = brokerAddress.toHexString()
     }
     stake.date = event.block.timestamp
-    stake.amount = totalStake
+    stake.amount = event.params.totalWei
     stake.allocatedWei = event.params.allocatedWei
     stake.save()
 }
