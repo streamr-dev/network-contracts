@@ -62,6 +62,8 @@ async function deployBountyFactory() {
         [ agreementTemplate.address, trustedForwarderAddress, LINKTOKEN_ADDRESS ])
     const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
     log(`BountyFactory deployed at ${bountyFactory.address}`)
+    await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
+    log(`added allocation policy with address ${allocationPolicy.address} to BountyFactory`)
 }
 
 async function main() {

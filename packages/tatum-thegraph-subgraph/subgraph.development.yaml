@@ -4,12 +4,11 @@ repository:
 schema:
   file: ./schema.graphql
 dataSources:
-  # Old DU gnosis/xdai >>
   - kind: ethereum/contract
     name: BountyFactory
     network: xDai
     source:
-      address: '0x2521E0480004056c35e199a1BBE2FdA9119032A0'
+      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -25,10 +24,8 @@ dataSources:
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
-  # Old DU gnosis/xdai <<
 
 templates:
-  # Old DU gnosis/xdai >>
   - name: Bounty
     kind: ethereum/contract
     network: xDai
@@ -46,13 +43,16 @@ templates:
         - name: Bounty
           file: ./artifacts/smartcontracts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
       eventHandlers:
-        - event: StakeAdded(indexed address,uint256,uint256)
-          handler: handleStakeAdded
-        - event: SponsorshipReceived(indexed address,uint256)
-          handler: handleSponsorshipReceived
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+          - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
+            handler: handleBountyUpdated
+        # - event: StakeAdded(indexed address,uint256,uint256)
+        #   handler: handleStakeAdded
+        # - event: SponsorshipReceived(indexed address,uint256)
+        #   handler: handleSponsorshipReceived
         # - event: BrokerJoined(indexed address)
         #   handler: handleBrokerJoined
-        - event: BrokerLeft(indexed address,uint256)
-          handler: handleBrokerLeft
-  # Old DU gnosis/xdai <<
+        # - event: BrokerLeft(indexed address,uint256)
+        #   handler: handleBrokerLeft
 

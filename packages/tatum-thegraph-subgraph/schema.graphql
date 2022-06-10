@@ -1,35 +1,18 @@
-# TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
-# scalar Date
-
 type Bounty @entity {
-  id: ID!
-  "address of the bounty contract"
-  address: Bytes!
+  id: ID! # bounty address
+  isRunning: Boolean!
   stakes: [Stake!]! @derivedFrom(field: "bounty")
-  # memberCount: Int!
-  totalStake: BigInt!
+  brokerCount: Int!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
 }
 
 type Stake @entity {
-  id: ID! # the eth address of the staker
+  id: ID! # 0xbountyAddress-0xbrokerAddress
+  broker: String!
   amount: BigInt!
-  "date of the stake"
+  allocatedWei: BigInt!
   date: BigInt
   bounty: Bounty
 }
-# type Stake @entity {
-#   id: ID!
-#   member: Member
-#   amount: Int!
-#   "date of the stake"
-#   date: Int
-#   bounty: Bounty
-# }
-
-# type Member @entity {
-#   id: ID!
-#   address: Bytes!
-#   addressString: String! # We need this to be String to enable partial match search
-#   stakes: [Stake!]! @derivedFrom(field: "member")
-#   # status: MemberStatus!
-# }
