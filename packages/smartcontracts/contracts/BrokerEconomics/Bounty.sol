@@ -112,22 +112,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         previousState = currentState;
     }
 
-    // TODO: rename to GlobalStorage
-    // storage variables available to all modules
-    struct GlobalState {
-        uint brokerCount;
-        /** how much each broker has staked, if 0 broker is considered not part of bounty */
-        mapping(address => uint) stakedWei;
-        uint totalStakedWei;
-        /** the timestamp a broker joined, to determine how long he has been a member,
-            - option 1: must be set to 0 once broker leaves, must always be checked for 0
-            - option 2: must be set to MAXINT once broker leaves, must be checked if < than now()*/
-        mapping(address => uint) joinTimeOfBroker;
-        uint unallocatedFunds;
-        uint minHorizonSeconds;
-        uint minBrokerCount;
-    }
-
     function initialize(
         address newOwner,
         address tokenAddress,
