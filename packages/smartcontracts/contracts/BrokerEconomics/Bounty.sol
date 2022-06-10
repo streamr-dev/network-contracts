@@ -47,7 +47,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     // storage variables available to all modules
     struct GlobalStorage {
-        mapping(address => uint) withdrawnWei;
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
         mapping(address => uint) joinTimeOfBroker;
         uint32 brokerCount;
@@ -226,7 +225,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         s.totalStakedWei -= stakedWei;
         delete s.stakedWei[broker];
         delete s.joinTimeOfBroker[broker];
-        delete s.withdrawnWei[broker];
         // console.log("Unallocated: ", s.unallocatedFunds);
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
@@ -244,11 +242,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        uint allocation = getAllocation(broker);
-        GlobalStorage storage s = globalData();
-        uint payoutWei = allocation - s.withdrawnWei[broker];
-        s.withdrawnWei[broker] += allocation;
-        // console.log("  allocation", allocation);
+        uint payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
         // TODO: transferAndCall
         require(token.transfer(broker, payoutWei), "error_transfer");
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker)); // TODO: allocation will be zero after withdraw; write a test and then hardcode zeros
