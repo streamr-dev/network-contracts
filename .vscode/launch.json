@@ -37,7 +37,7 @@
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },
         {
-            "command": "npm run localInteractTatum",
+            "command": "npm run interact",
             "name": "Run interact",
             "request": "launch",
             "type": "node-terminal",

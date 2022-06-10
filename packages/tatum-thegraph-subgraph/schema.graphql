@@ -1,10 +1,6 @@
-# TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
-# scalar Date
-
 type Bounty @entity {
   id: ID! # bounty address
   isRunning: Boolean!
-  # address: Bytes!
   stakes: [Stake!]! @derivedFrom(field: "bounty")
   memberCount: Int!
   totalStakedWei: BigInt!
@@ -17,23 +13,6 @@ type Stake @entity {
   broker: String!
   amount: BigInt!
   allocatedWei: BigInt!
-  "date of the stake"
   date: BigInt
   bounty: Bounty
 }
-# type Stake @entity {
-#   id: ID!
-#   member: Member
-#   amount: Int!
-#   "date of the stake"
-#   date: Int
-#   bounty: Bounty
-# }
-
-# type Member @entity {
-#   id: ID!
-#   address: Bytes!
-#   addressString: String! # We need this to be String to enable partial match search
-#   stakes: [Stake!]! @derivedFrom(field: "member")
-#   # status: MemberStatus!
-# }

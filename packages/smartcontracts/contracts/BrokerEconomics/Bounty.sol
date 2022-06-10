@@ -205,6 +205,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
         checkStateChange();
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
     function leave() external {

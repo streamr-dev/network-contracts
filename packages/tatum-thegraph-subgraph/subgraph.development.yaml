@@ -4,12 +4,11 @@ repository:
 schema:
   file: ./schema.graphql
 dataSources:
-  # Old DU gnosis/xdai >>
   - kind: ethereum/contract
     name: BountyFactory
     network: xDai
     source:
-      address: '0x42a9299fe8326c0E910A5B0733E379192D582Ccf'
+      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -25,10 +24,8 @@ dataSources:
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
-  # Old DU gnosis/xdai <<
 
 templates:
-  # Old DU gnosis/xdai >>
   - name: Bounty
     kind: ethereum/contract
     network: xDai
@@ -58,5 +55,4 @@ templates:
         #   handler: handleBrokerJoined
         # - event: BrokerLeft(indexed address,uint256)
         #   handler: handleBrokerLeft
-  # Old DU gnosis/xdai <<
 
