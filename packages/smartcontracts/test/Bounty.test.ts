@@ -111,8 +111,8 @@ describe("Bounty", (): void => {
          *   3+: join policies (leave out if none)
          * @param policies smart contract addresses found in the trustedPolicies
          function deployBountyAgreement(
-            uint initialMinHorizonSeconds,
-            uint initialMinBrokerCount,
+            uint32 initialMinHorizonSeconds,
+            uint32 initialMinBrokerCount,
             string memory bountyName,
             address[] memory policies,
             uint[] memory initParams
@@ -147,7 +147,7 @@ describe("Bounty", (): void => {
 
     it("positivetest atomic fund and deploy bounty", async function(): Promise<void> {
         // for bountyFactory.deployBountyAgreement arguments, see createBounty function
-        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]"],
+        const data = ethers.utils.defaultAbiCoder.encode(["uint32", "uint32", "string", "address[]", "uint[]"],
             [0, 1, "Bounty-" + bountyCounter++, [
                 allocationPolicy.address,
                 leavePolicy.address,
@@ -173,9 +173,19 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest zero minBrokerCount", async function(): Promise<void> {
-        const data = ethers.utils.defaultAbiCoder.encode(["uint", "uint", "string", "address[]", "uint[]", "address", "uint", "address", "uint"],
-            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
-                allocationPolicy.address, "1", leavePolicy.address, "0"])
+        const data = ethers.utils.defaultAbiCoder.encode(["uint32", "uint32", "string", "address[]", "uint[]"],
+            [0, 0, "Bounty-" + bountyCounter++, [
+                allocationPolicy.address,
+                leavePolicy.address,
+                "0x0000000000000000000000000000000000000000",
+                minStakeJoinPolicy.address,
+            ], [
+                "2000000000000000000",
+                "0",
+                "0",
+                "1",
+            ]]
+        )
         await expect(token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data))
             .to.be.revertedWith("error_minBrokerCountZero")
     })

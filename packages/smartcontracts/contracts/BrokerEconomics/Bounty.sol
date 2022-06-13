@@ -47,15 +47,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     // storage variables available to all modules
     struct GlobalStorage {
-        uint32 brokerCount;
-        /** how much each broker has staked, if 0 broker is considered not part of bounty */
-        mapping(address => uint) stakedWei;
-        uint totalStakedWei;
-        mapping(address => uint) withdrawnWei;
+        mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
         mapping(address => uint) joinTimeOfBroker;
+        uint32 brokerCount;
+        uint32 minBrokerCount;
+        uint32 minHorizonSeconds;
         uint unallocatedFunds;
-        uint minHorizonSeconds;
-        uint minBrokerCount;
+        uint totalStakedWei;
     }
 
     function globalData() internal pure returns(GlobalStorage storage data) {
@@ -115,8 +113,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function initialize(
         address newOwner,
         address tokenAddress,
-        uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint32 initialMinHorizonSeconds,
+        uint32 initialMinBrokerCount,
         address trustedForwarderAddress
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
@@ -227,15 +225,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         s.totalStakedWei -= stakedWei;
         delete s.stakedWei[broker];
         delete s.joinTimeOfBroker[broker];
-        delete s.withdrawnWei[broker];
         // console.log("Unallocated: ", s.unallocatedFunds);
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
-        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker)); // TODO: stake and allocation will be zero after withdraw; write a test and then hardcode zeros
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         emit BrokerLeft(broker, returnFunds);
         checkStateChange();
-        // removeFromAddressArray(brokers, broker);
     }
 
     function withdraw() external {
@@ -246,14 +242,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        uint allocation = getAllocation(broker);
-        GlobalStorage storage s = globalData();
-        uint payoutWei = allocation - s.withdrawnWei[broker];
-        s.withdrawnWei[broker] += allocation;
-        // console.log("  allocation", allocation);
+        uint payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
         // TODO: transferAndCall
         require(token.transfer(broker, payoutWei), "error_transfer");
-        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker)); // TODO: allocation will be zero after withdraw; write a test and then hardcode zeros
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
@@ -316,35 +308,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         joinPolicies.push(newJoinPolicy);
         moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
     }
-
-    // TODO: remove
-    // function removeJoinPolicy(address _joinPolicyAddress) public adminOnly {
-    //     removeFromAddressArray(joinPolicies, _joinPolicyAddress);
-    // }
-
-    // TODO: remove
-    /**
-     * Remove the listener from array by copying the last element into its place so that the arrays stay compact
-     */
-    // function removeFromAddressArray(address[] storage array, address element) internal returns (bool success) {
-    //     uint i = 0;
-    //     while (i < array.length && array[i] != element) { i += 1; }
-    //     return removeFromAddressArrayUsingIndex(array, i);
-    // }
-
-    // TODO: remove
-    /**
-     * Remove the listener from array by copying the last element into its place so that the arrays stay compact
-     */
-    // function removeFromAddressArrayUsingIndex(address[] storage array, uint index) internal returns (bool success) {
-    //     // TODO: if broker order in array makes a difference, either move remaining items back (linear time) or use heap (log time)
-    //     if (index < 0 || index >= array.length) return false;
-    //     if (index < array.length - 1) {
-    //         array[index] = array[array.length - 1];
-    //     }
-    //     array.pop();
-    //     return true;
-    // }
 
     /////////////////////////////////////////
     // MODULE CALLS

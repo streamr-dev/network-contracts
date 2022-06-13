@@ -170,6 +170,19 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         // console.log("  cumulative reference <-", local.cumulativeReference[broker]);
     }
 
+    // TODO: DRY out commonalities with onStakeIncrease
+    function onWithdraw(address broker) external returns (uint payoutWei) {
+        // console.log("onWithdraw", broker);
+        update(0);
+
+        payoutWei = calculateAllocation(broker);
+
+        // reset reference point, also zero the "unpaid allocations" because they will be paid out
+        LocalStorage storage local = localData();
+        local.cumulativeReference[broker] = local.cumulativeWeiPerStake;
+        local.onReferenceResetWei[broker] = 0;
+    }
+
     function onSponsor(address, uint amount) external {
         // console.log("onSponsor: had before", globalData().unallocatedFunds);
         // console.log("           got more  ", amount);

@@ -76,6 +76,10 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
+    function onWithdraw(address broker) external returns (uint payoutWei) {
+        return 0;
+    }
+
     /** Calculate the cumulative earnings per unit (full token stake) right now */
     function getCumulativeEarnings() internal view returns(uint256) {
     }
