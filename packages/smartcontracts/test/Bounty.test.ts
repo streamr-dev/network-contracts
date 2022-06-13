@@ -174,8 +174,18 @@ describe("Bounty", (): void => {
 
     it("negativetest zero minBrokerCount", async function(): Promise<void> {
         const data = ethers.utils.defaultAbiCoder.encode(["uint32", "uint32", "string", "address[]", "uint[]"],
-            [0, 0, "Bounty-" + bountyCounter++, [minStakeJoinPolicy.address], ["2000000000000000000"],
-                allocationPolicy.address, "1", leavePolicy.address, "0"])
+            [0, 0, "Bounty-" + bountyCounter++, [
+                allocationPolicy.address,
+                leavePolicy.address,
+                "0x0000000000000000000000000000000000000000",
+                minStakeJoinPolicy.address,
+            ], [
+                "2000000000000000000",
+                "0",
+                "0",
+                "1",
+            ]]
+        )
         await expect(token.transferAndCall(bountyFactory.address, ethers.utils.parseEther("100"), data))
             .to.be.revertedWith("error_minBrokerCountZero")
     })
