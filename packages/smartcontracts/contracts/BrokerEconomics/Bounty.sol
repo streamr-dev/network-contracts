@@ -113,8 +113,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function initialize(
         address newOwner,
         address tokenAddress,
-        uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint32 initialMinHorizonSeconds,
+        uint32 initialMinBrokerCount,
         address trustedForwarderAddress
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");

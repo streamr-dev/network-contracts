@@ -61,13 +61,13 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
         (
-            uint initialMinHorizonSeconds,
-            uint initialMinBrokerCount,
+            uint32 initialMinHorizonSeconds,
+            uint32 initialMinBrokerCount,
             string memory bountyName,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint256,uint256,string,address[],uint[])
+            (uint32,uint32,string,address[],uint[])
         );
         address bountyAddress = _deployBountyAgreement(
             sender,
@@ -89,8 +89,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      * @param policies smart contract addresses found in the trustedPolicies
      */
     function deployBountyAgreement(
-        uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint32 initialMinHorizonSeconds,
+        uint32 initialMinBrokerCount,
         string memory bountyName,
         address[] memory policies,
         uint[] memory initParams
@@ -107,8 +107,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function _deployBountyAgreement(
         address bountyOwner,
-        uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint32 initialMinHorizonSeconds,
+        uint32 initialMinBrokerCount,
         string memory bountyName,
         address[] memory policies,
         uint[] memory initParams

@@ -103,8 +103,8 @@ export async function deployBountyContract(contracts: TestContracts, {
      *   3+: join policies (leave out if none)
      * @param policies smart contract addresses found in the trustedPolicies
      function deployBountyAgreement(
-        uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint32 initialMinHorizonSeconds,
+        uint32 initialMinBrokerCount,
         string memory bountyName,
         address[] memory policies,
         uint[] memory initParams
