@@ -6,7 +6,6 @@ import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -243,10 +242,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(stakedWei > 0, "error_brokerNotStaked");
 
         uint payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
-        // TODO: transferAndCall
-        require(token.transfer(broker, payoutWei), "error_transfer");
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker)); // TODO: allocation will be zero after withdraw; write a test and then hardcode zeros
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        // TODO: could there be useful data to send?
+        require(token.transferAndCall(broker, payoutWei, ""), "error_transfer");
     }
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
