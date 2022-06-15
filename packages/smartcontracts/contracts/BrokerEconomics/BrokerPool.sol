@@ -135,7 +135,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function stake(Bounty bounty, uint amountWei) external {
         require(_msgSender() == broker, "error_brokerOnly");
-        require(staked[bounty] == 0, "error_alreadyStaked");
         // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
         token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
