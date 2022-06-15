@@ -31,7 +31,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     IERC677 public token;
     address public broker;
     uint public minimumInvestmentWei;
-    uint public unallocatedWei;
+
+    // currently the whole token balance of the pool IS SAME AS the "free funds"
+    //   so there's no need to track the unallocated tokens separately
+    // uint public unallocatedWei;
 
     mapping(address => uint) public debt;
     mapping(address => uint) public earnings;
@@ -110,7 +113,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function _invest(address investor, uint amountWei) internal {
-        unallocatedWei += amountWei;
+        // unallocatedWei += amountWei;
         // TODO: mint pool tokens to investor
         emit InvestmentReceived(investor, amountWei);
     }
@@ -121,7 +124,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function _withdraw(address investor, uint amountWei) internal {
-        unallocatedWei -= amountWei;
+        // unallocatedWei -= amountWei;
         // TODO: burn investor's pool tokens
         emit InvestmentReturned(investor, amountWei);
     }
@@ -133,11 +136,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function stake(Bounty bounty, uint amountWei) external {
         require(_msgSender() == broker, "error_brokerOnly");
         require(staked[bounty] == 0, "error_alreadyStaked");
-        require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
+        // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
         token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
-        staked[bounty] = amountWei;
-        unallocatedWei -= amountWei;
+        staked[bounty] += amountWei;
+        // unallocatedWei -= amountWei;
         emit Staked(bounty, amountWei);
     }
 
@@ -150,7 +153,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         bounty.leave();
         uint receivedWei = token.balanceOf(address(this)) - balanceBefore;
 
-        unallocatedWei += receivedWei;
+        // unallocatedWei += receivedWei;
         if (receivedWei < staked[bounty]) {
             // TODO: slash handling
             uint lossesWei = staked[bounty] - receivedWei;

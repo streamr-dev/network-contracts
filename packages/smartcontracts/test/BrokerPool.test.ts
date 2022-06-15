@@ -39,11 +39,11 @@ describe("BrokerPool", (): void => {
         await (await token.connect(investor).approve(pool.address, parseEther("1000"))).wait()
         await expect(pool.connect(investor).invest(parseEther("1000")))
             .to.emit(pool, "InvestmentReceived").withArgs(investor.address, parseEther("1000"))
-        const freeFundsAfterInvest = await pool.unallocatedWei()
+        const freeFundsAfterInvest = await token.balanceOf(pool.address) // await pool.unallocatedWei()
 
         await expect(pool.connect(investor).withdraw(parseEther("1000")))
             .to.emit(pool, "InvestmentReturned").withArgs(investor.address, parseEther("1000"))
-        const freeFundsAfterWithdraw = await pool.unallocatedWei()
+        const freeFundsAfterWithdraw = await token.balanceOf(pool.address) // await pool.unallocatedWei()
 
         expect(formatEther(freeFundsAfterInvest)).to.equal("1000.0")
         expect(formatEther(freeFundsAfterWithdraw)).to.equal("0.0")
