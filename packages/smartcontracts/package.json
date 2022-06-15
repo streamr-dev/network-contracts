@@ -44,6 +44,7 @@
     "@openzeppelin/contracts-upgradeable": "4.4.2",
     "@openzeppelin/hardhat-upgrades": "1.13.0",
     "debug": "4.3.3",
+    "eth-crypto": "^2.3.0",
     "eth-ens-namehash": "2.0.8",
     "ethers": "5.5.3",
     "event-stream": "4.0.1",

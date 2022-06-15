@@ -2,16 +2,26 @@ import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, Contract} from 'ethers'
 
-import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
-import type { StreamRegistry } from '../typechain/StreamRegistry'
+import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
+import type { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
+import type { StreamRegistry } from '../../typechain/StreamRegistry'
+import EthCrypto from 'eth-crypto'
 
 const { deployContract } = waffle
 const { provider } = waffle
 
+
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
+const signDelegatedChallenge = (address: string) => {
+    const signerIdentity = EthCrypto.createIdentity();
+    const message = EthCrypto.hash.keccak256(address);
+    const signature = EthCrypto.sign(signerIdentity.privateKey, message)
+    return {
+        signerIdentity, message, signature
+    }
+}
 use(waffle.solidity)
 describe('ERC20JoinPolicy', (): void => {
     const wallets = provider.getWallets()
@@ -55,11 +65,8 @@ describe('ERC20JoinPolicy', (): void => {
 
         const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
 
-        const DelegatedAccessRegistryFactory = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
-        delegatedAccessRegistry = await DelegatedAccessRegistryFactory.deploy()
-
+       
         contract = await ERC20JoinPolicy.deploy(
-            delegatedAccessRegistry.address,
             token.address,
             streamRegistryV3.address,
             streamId,
@@ -86,7 +93,16 @@ describe('ERC20JoinPolicy', (): void => {
             const balance = await token.balanceOf(wallets[1].address)
             expect(balance).to.equal(BigNumber.from(0))
 
-            await contract.connect(wallets[1]).requestJoin({from: wallets[1].address})  
+            const {
+                signerIdentity, message, signature
+            } = signDelegatedChallenge(wallets[1].address)
+
+            await contract.connect(wallets[1]).requestDelegatedJoin(
+                signerIdentity.address,
+                message,
+                signature,
+                {from: wallets[1].address}
+            )  
         } catch (e: any){
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
@@ -103,82 +119,57 @@ describe('ERC20JoinPolicy', (): void => {
         expect(canJoin).to.equal(false)
     })
 
-    it ('should grant 1 token to a user and fullfil their requestJoin', async () => {
+    it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
         const balance = await token.balanceOf(wallets[1].address)
         expect(balance).to.equal(BigNumber.from(1))
-      
-        await contract.connect(wallets[1]).requestJoin({from: wallets[1].address})
 
-        const events = await contract.queryFilter(contract.filters.Accepted())
+        const {
+            signerIdentity, message, signature
+        } = signDelegatedChallenge(wallets[1].address)
+      
+        await contract.connect(wallets[1])
+        .requestDelegatedJoin(
+            signerIdentity.address,
+            message,
+            signature,
+            {from: wallets[1].address}
+        )
+
+        const events = await contract.queryFilter(
+            contract.filters.Accepted()
+        )
         expect(events.length).to.equal(1)
         expect(events[0].args).to.not.be.undefined
-        expect(events[0].args!.user).to.equal(wallets[1].address)
+        expect(events[0].args!.user).to.equal(
+            signerIdentity.address
+        )
         
         expect(await streamRegistryV3.hasPermission(
             streamId,
-            wallets[1].address,
+            signerIdentity.address,
             PermissionType.Edit
         )).to.equal(false)
 
         expect(await streamRegistryV3.hasPermission(
             streamId,
-            wallets[1].address,
+            signerIdentity.address,
             PermissionType.Delete
         )).to.equal(false)
         expect(await streamRegistryV3.hasPermission(
             streamId,
-            wallets[1].address,
+            signerIdentity.address,
             PermissionType.Publish
         )).to.equal(true)
         expect(await streamRegistryV3.hasPermission(
             streamId,
-            wallets[1].address,
+            signerIdentity.address,
             PermissionType.Subscribe
         )).to.equal(true)
         expect(await streamRegistryV3.hasPermission(
             streamId,
-            wallets[1].address,
+            signerIdentity.address,
             PermissionType.Grant
         )).to.equal(false)
     })
 
-    it ('should fullfil requestDelegatedJoin', async () => {
-        const balance = await token.balanceOf(wallets[1].address)
-        expect(balance).to.equal(BigNumber.from(1))
-
-        await delegatedAccessRegistry.connect(wallets[1]).authorize(wallets[3].address, {from: wallets[1].address})
-
-        await contract.connect(wallets[1]).requestDelegatedJoin(wallets[3].address, {from: wallets[1].address})
-
-        const events = await contract.queryFilter(contract.filters.Accepted())
-        expect(events.length).to.equal(3)
-        expect(events[2].args).to.not.be.undefined
-        expect(events[2].args!.user).to.equal(wallets[3].address)
-
-        expect(await streamRegistryV3.hasPermission(
-            streamId,
-            wallets[3].address,
-            PermissionType.Edit
-        )).to.equal(false)
-        expect(await streamRegistryV3.hasPermission(
-            streamId,
-            wallets[3].address,
-            PermissionType.Delete
-        )).to.equal(false)
-        expect(await streamRegistryV3.hasPermission(
-            streamId,
-            wallets[3].address,
-            PermissionType.Publish
-        )).to.equal(true)
-        expect(await streamRegistryV3.hasPermission(
-            streamId,
-            wallets[3].address,
-            PermissionType.Subscribe
-        )).to.equal(true)
-        expect(await streamRegistryV3.hasPermission(
-            streamId,
-            wallets[3].address,
-            PermissionType.Grant
-        )).to.equal(false)
-    })
 })
