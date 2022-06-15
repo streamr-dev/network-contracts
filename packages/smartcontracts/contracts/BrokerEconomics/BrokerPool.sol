@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./Bounty.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * Broker Pool receives a delegators' investments and pays out yields
@@ -71,8 +71,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * If not, the token sender is the investor
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        console.log("onTokenTransfer from", sender);
-        console.log("onTokenTransfer amount", amount);
+        // console.log("onTokenTransfer from", sender);
+        // console.log("onTokenTransfer amount", amount);
         require(_msgSender() == address(token), "error_onlyTokenContract");
 
         // check if sender is a bounty: only bounties may have tokens _staked_ on them
@@ -147,7 +147,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function unstake(Bounty bounty) external {
-        console.log("unstake", address(bounty));
+        // console.log("unstake", address(bounty));
         require(staked[bounty] > 0, "error_notStaked");
         require(_msgSender() == broker, "error_brokerOnly");
 
