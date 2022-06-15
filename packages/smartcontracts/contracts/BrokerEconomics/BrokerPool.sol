@@ -115,11 +115,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit InvestmentReceived(investor, amountWei);
     }
 
-    function withdrawAll() external {
-        uint amountWei = 1; // TODO
-        withdraw(amountWei);
-    }
-
     function withdraw(uint amountWei) public {
         token.transferAndCall(_msgSender(), amountWei, "0x");
         _withdraw(_msgSender(), amountWei);
