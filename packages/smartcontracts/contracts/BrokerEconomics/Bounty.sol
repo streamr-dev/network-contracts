@@ -189,7 +189,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
-    function leave() external {
+    /** Get both stake and allocations out */
+    function leave() external { // TODO: rename into unstake
         // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
@@ -203,21 +204,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function _removeBroker(address broker, uint penaltyWei) internal {
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
-
         // console.log("leaving:", broker);
+
+        _withdraw(broker);
+
         // console.log("  stake   ", stakedWei);
         // console.log("  penalty ", penaltyWei);
         uint returnFunds = stakedWei - penaltyWei;
         // console.log("  returned", returnFunds);
 
-        // TODO: transferAndCall
-        require(token.transfer(broker, returnFunds), "error_transfer");
+        require(token.transferAndCall(broker, returnFunds, "stake"), "error_transfer");
         if (penaltyWei > 0) {
             // add forfeited stake to unallocated funds
             _addSponsorship(broker, penaltyWei);
         }
-
-        _withdraw(broker);
 
         GlobalStorage storage s = globalData();
         s.brokerCount -= 1;
@@ -233,6 +233,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         checkStateChange();
     }
 
+    /** Get allocations out, leave stake in */
     function withdraw() external {
         _withdraw(_msgSender());
     }
@@ -242,10 +243,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(stakedWei > 0, "error_brokerNotStaked");
 
         uint payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
-        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker)); // TODO: allocation will be zero after withdraw; write a test and then hardcode zeros
-        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
-        // TODO: could there be useful data to send?
-        require(token.transferAndCall(broker, payoutWei, ""), "error_transfer");
+        if (payoutWei > 0) {
+            emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker)); // TODO: allocation will be zero after withdraw; write a test and then hardcode zeros
+            emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+            require(token.transferAndCall(broker, payoutWei, "allocation"), "error_transfer");
+        }
     }
 
     /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */

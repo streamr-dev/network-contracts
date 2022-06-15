@@ -1,8 +1,8 @@
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
-import { utils, Wallet } from "ethers"
+import { Contract, utils, Wallet } from "ethers"
 
-import type { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy } from "../typechain"
+import type { Bounty, BountyFactory, BrokerPool, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy } from "../typechain"
 import { TestToken } from "../typechain/TestToken"
 
 const { parseEther } = utils
@@ -82,6 +82,18 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
     return {
         token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, bountyTemplate, bountyFactory
     }
+}
+
+export async function deployBrokerPool(deployer: Wallet, token: Contract, trustedForwarder?: Wallet): Promise<BrokerPool> {
+    const brokerPool = await (await getContractFactory("BrokerPool", deployer)).deploy() as BrokerPool
+    await brokerPool.deployed()
+    await (await brokerPool.initialize(
+        token.address,
+        deployer.address,
+        trustedForwarder?.address ?? "0x0000000000000000000000000000000000000000",
+        "0",
+    ))
+    return brokerPool
 }
 
 export async function deployBountyContract(contracts: TestContracts, {
