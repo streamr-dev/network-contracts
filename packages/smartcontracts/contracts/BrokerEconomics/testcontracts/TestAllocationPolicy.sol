@@ -76,7 +76,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onWithdraw(address broker) external returns (uint payoutWei) {
+    function onWithdraw(address) external pure returns (uint payoutWei) {
         return 0;
     }
 
@@ -87,9 +87,9 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     function onSponsor(address, uint) external {
     }
 
-    function calculateAllocation(address broker) public view returns (uint allocation) {
+    function calculateAllocation(address) public view returns (uint allocation) {
     }
 
-    function calculatePenaltyOnStake(address broker) external view returns (uint256 stake) {
+    function calculatePenaltyOnStake(address) external view returns (uint256 stake) {
     }
 }
