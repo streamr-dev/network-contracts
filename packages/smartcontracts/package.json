@@ -25,8 +25,8 @@
     "deploylive": "hardhat run --network localsidechain scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts",
-    "deployJoinPolicy": "hardhat run --network streamrLocal scripts/deployToLivenet/3_deployJoinPolicyAndDelegatedAccessRegistry.ts",
-    "deployJoinPolicyProd": "hardhat run --network streamrLocal scripts/deployToLivenet/3_deployJoinPolicyAndDelegatedAccessRegistry.ts"
+    "deployJoinPolicy": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployERC20JoinPolicyRegistry.ts",
+    "deployJoinPolicyProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/3_deployERC20JoinPolicyRegistry.ts"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
