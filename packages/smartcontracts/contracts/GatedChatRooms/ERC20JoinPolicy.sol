@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../StreamRegistry/StreamRegistryV3.sol"; 
 import "./GatedJoinPolicy.sol";
+import "./DelegatedAccessRegistry.sol";
 
 // Used only for testing purposes
 contract TestERC20 is ERC20 {
@@ -19,14 +20,15 @@ contract TestERC20 is ERC20 {
 contract ERC20JoinPolicy is GatedJoinPolicy{
     IERC20 public token;
     uint256 public minRequiredBalance;
-
+    DelegatedAccessRegistry private delegatedAccessRegistry;
 
     constructor(
         address tokenAddress,
         address streamRegistryAddress,
         string memory streamId_,
         StreamRegistryV3.PermissionType[] memory permissions_,
-        uint256 minRequiredBalance_
+        uint256 minRequiredBalance_,
+        address delegatedAccessRegistryAddress
     ) GatedJoinPolicy(
         streamRegistryAddress,
         streamId_,
@@ -34,6 +36,7 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
     ) {
         token = IERC20(tokenAddress);
         minRequiredBalance = minRequiredBalance_;
+        delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
     function canJoin(address user_) public view returns (bool) {
@@ -41,15 +44,13 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
     }
 
     function requestDelegatedJoin(
-        address delegatedUser_,
-        bytes32 challenge_,
-        bytes memory signature_
+        address delegatedWallet
     ) public {
+        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Given wallet is not authorized in delegated registry");
         require(canJoin(_msgSender()), "Not enough tokens");
-        require(recoverSigner(challenge_, signature_) == delegatedUser_, "Signature is not valid");
-        accept(delegatedUser_);
+        accept(delegatedWallet);
     }
 
 
-    
+
 }
