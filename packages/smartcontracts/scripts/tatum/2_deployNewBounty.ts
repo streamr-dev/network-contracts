@@ -46,10 +46,10 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 
 // addresses localsidechain
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-const BOUNTYFACTORY = '0x2521E0480004056c35e199a1BBE2FdA9119032A0'
-const ALLOCATIONPOLICY = '0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2'
+const BOUNTYFACTORY = '0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2'
+const ALLOCATIONPOLICY = '0x3C841B9Aa08166e9B864972930703e878d25804B'
 // will be overwritten when deployNewBounty is called
-let bountyAddress = "0xB0825436b3A9F2E79dA69A1549cdEC0fE801F487"
+let bountyAddress = "0xcb41f39b991a8739d4f92b171605c669472f2abc"
 
 // Polygon mainet contract addresses
 // const ORACLEADDRESS = '0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D'
@@ -103,6 +103,7 @@ const deployNewBounty = async () => {
 const sponsorNewBounty = async () => {
     bounty = await ethers.getContractAt('Bounty', bountyAddress, adminWallet) as Bounty
     // sponsor with token approval
+    const tokenbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
     await (await tokenFromOwner.approve(bountyAddress, ethers.utils.parseEther("7"))).wait()
     const sponsorTx = await bounty.sponsor(ethers.utils.parseEther("7"))
     const sponsorReceipt = await sponsorTx.wait()

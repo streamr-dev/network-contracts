@@ -105,6 +105,7 @@ const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
+let linkTokenAddress = ''
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -210,6 +211,7 @@ async function deployStreamRegistries() {
     const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
     const linkToken = await linkTokenFactoryTx.deployed()
+    linkTokenAddress = linkToken.address
     log(`Link Token deployed at ${linkToken.address}`)
 
     const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
@@ -288,7 +290,7 @@ async function deployStreamRegistries() {
 
 }
 
-async function deployBountyFactory(tokenAddress) {
+async function deployBountyFactory() {
     const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // some random address
 
     const agreementTemplateFactory = await ethers.getContractFactory('Bounty')
@@ -303,7 +305,7 @@ async function deployBountyFactory(tokenAddress) {
 
     const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory')
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ agreementTemplate.address, trustedForwarderAddress, tokenAddress ])
+        [ agreementTemplate.address, trustedForwarderAddress, linkTokenAddress ])
     const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
     log(`BountyFactory deployed at ${bountyFactory.address}`)
     await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
@@ -569,7 +571,7 @@ async function smartContractInitialization() {
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
 
-    await deployBountyFactory(token.address)
+    await deployBountyFactory()
     
     //put additions here
 
