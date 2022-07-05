@@ -288,6 +288,28 @@ async function deployStreamRegistries() {
 
 }
 
+async function deployBountyFactory(tokenAddress) {
+    const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // some random address
+
+    const agreementTemplateFactory = await ethers.getContractFactory('Bounty')
+    const agreementTemplate = await agreementTemplateFactory.deploy()
+    await agreementTemplate.deployed()
+    log(`BountyTemplate deployed at ${agreementTemplate.address}`)
+
+    const allocationPolicyFactory = await ethers.getContractFactory('StakeWeightedAllocationPolicy')
+    const allocationPolicy = await allocationPolicyFactory.deploy()
+    await allocationPolicy.deployed()
+    log(`AllocationPolicyTemplate deployed at ${allocationPolicy.address}`)
+
+    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory')
+    const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
+        [ agreementTemplate.address, trustedForwarderAddress, tokenAddress ])
+    const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
+    log(`BountyFactory deployed at ${bountyFactory.address}`)
+    await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
+    log(`added allocation policy with address ${allocationPolicy.address} to BountyFactory`)
+}
+
 async function smartContractInitialization() {
     const wallet = await ethersWallet(chainURL, defaultPrivateKey)
     const sidechainWallet = await ethersWallet(sidechainURL, defaultPrivateKey)
@@ -547,6 +569,8 @@ async function smartContractInitialization() {
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
 
+    await deployBountyFactory(token.address)
+    
     //put additions here
 
     //all TXs should now be confirmed:

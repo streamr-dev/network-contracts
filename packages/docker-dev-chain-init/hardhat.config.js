@@ -67,11 +67,26 @@ module.exports = {
             'smartcontracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol'
+            '@chainlink/contracts/src/v0.6/Oracle.sol',
+            'smartcontracts/contracts/BrokerEconomics/BountyFactory.sol',
+            'smartcontracts/contracts/BrokerEconomics/policies/StakeWeightedAllocationPolicy.sol',
+            'smartcontracts/contracts/BrokerEconomics/policies/AdminKickPolicy.sol',
+            'smartcontracts/contracts/BrokerEconomics/policies/DefaultLeavePolicy.sol',
+            'smartcontracts/contracts/BrokerEconomics/policies/MaxAmountBrokersJoinPolicy.sol',
+            'smartcontracts/contracts/BrokerEconomics/policies/MinimumStakeJoinPolicy.sol'
         ],
     },
     solidity: {
         compilers: [
+            {
+                version: '0.8.13',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 100,
+                    },
+                },
+            },
             {
                 version: '0.8.9',
                 settings: {
