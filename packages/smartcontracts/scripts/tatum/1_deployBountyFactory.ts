@@ -1,8 +1,10 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from 'ethers'
+import { Chains } from "@streamr/config"
 import hhat from 'hardhat'
 
 // import { BountyFactory } from '../../typechain/BountyFactory'
+const config = Chains.load('development').streamr
 
 const { ethers, upgrades } = hhat
 
@@ -20,9 +22,9 @@ const { ethers, upgrades } = hhat
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 // localsidechain
-const chainURL = 'http://10.200.10.1:8546'
+const chainURL = config.rpcEndpoints[0].url
 const privKeyStreamRegistry = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
-const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localchain
+const LINKTOKEN_ADDRESS = config.contracts.LinkToken // localchain
 const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // some random address
 
 // hardhat
