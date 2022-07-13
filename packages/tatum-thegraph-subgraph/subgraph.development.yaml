@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: Subgraph definitions for tatum bounty contracts 
+description: Subgraph definitions for tatum bounty contracts
 repository:
 schema:
   file: ./schema.graphql
@@ -8,7 +8,8 @@ dataSources:
     name: BountyFactory
     network: xDai
     source:
-      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
+      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2'
       abi: BountyFactory
       startBlock: 0
     mapping:
