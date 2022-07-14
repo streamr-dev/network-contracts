@@ -2,11 +2,12 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
 import { Contract, utils, Wallet } from "ethers"
 
-import type { Bounty, BountyFactory, BrokerPool, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy } from "../typechain"
+import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy } from "../typechain"
 import { TestToken } from "../typechain/TestToken"
 
 const { parseEther } = utils
 const { getContractFactory } = hardhatEthers
+let poolindex = 0
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console // TODO: use pino for logging?
@@ -22,6 +23,10 @@ export async function getBlockTimestamp(): Promise<number> {
     return Math.floor(((await hardhatProvider.getBlock("latest")).timestamp / 1000000) + 1) * 1000000
 }
 
+export function newPoolName(): string {
+    return `Pool-${Date.now()}-${poolindex++}`
+}
+
 export type TestContracts = {
     token: TestToken;
     minStakeJoinPolicy: IJoinPolicy;
@@ -31,6 +36,7 @@ export type TestContracts = {
     kickPolicy: IKickPolicy;
     bountyFactory: BountyFactory;
     bountyTemplate: Bounty;
+    poolFactory: BrokerPoolFactory;
 }
 
 /**
@@ -79,22 +85,42 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
         maxBrokersJoinPolicy.address,
     ])).wait()
 
+    // initialize BrokerPoolFactory
+
+    const poolTemplate = await (await getContractFactory("BrokerPool")).deploy() as BrokerPool
+
+    const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
+    const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
+        poolTemplate.address,
+        bountyFactory.address,
+        token.address
+    ]) as BrokerPoolFactory
+    await poolFactory.deployed()
+    // await (await poolFactory.connect(deployer).addTrustedPolicies([
+    //     allocationPolicy.address,
+    //     leavePolicy.address,
+    //     kickPolicy.address,
+    //     minStakeJoinPolicy.address,
+    //     maxBrokersJoinPolicy.address,
+    // ])).wait()
+
     return {
-        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, bountyTemplate, bountyFactory
+        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, 
+        bountyTemplate, bountyFactory, poolFactory
     }
 }
 
-export async function deployBrokerPool(deployer: Wallet, token: Contract, trustedForwarder?: Wallet): Promise<BrokerPool> {
-    const brokerPool = await (await getContractFactory("BrokerPool", deployer)).deploy() as BrokerPool
-    await brokerPool.deployed()
-    await (await brokerPool.initialize(
-        token.address,
-        deployer.address,
-        trustedForwarder?.address ?? "0x0000000000000000000000000000000000000000",
-        "0",
-    ))
-    return brokerPool
-}
+// export async function deployBrokerPool(deployer: Wallet, token: Contract, trustedForwarder?: Wallet): Promise<BrokerPool> {
+//     const brokerPool = await (await getContractFactory("BrokerPool", deployer)).deploy() as BrokerPool
+//     await brokerPool.deployed()
+//     await (await brokerPool.initialize(
+//         token.address,
+//         deployer.address,
+//         trustedForwarder?.address ?? "0x0000000000000000000000000000000000000000",
+//         "0",
+//     ))
+//     return brokerPool
+// }
 
 export async function deployBountyContract(contracts: TestContracts, {
     minHorizonSeconds = 0,

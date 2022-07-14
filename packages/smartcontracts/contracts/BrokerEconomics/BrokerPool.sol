@@ -26,7 +26,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Losses(Bounty indexed bounty, uint amountWei);
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
 
-    // bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IERC677 public token;
     address public broker;
@@ -46,8 +46,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address trustedForwarderAddress,
         uint initialMinimumInvestmentWei
     ) public initializer {
-        // __AccessControl_init();
-        // _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        __AccessControl_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         // _setupRole(ADMIN_ROLE, newOwner);
         // _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);

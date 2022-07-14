@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
@@ -6,26 +7,26 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Bounty.sol";
+import "./BrokerPool.sol";
 import "./IERC677.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
-contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
+contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
-    address public bountyContractTemplate;
+    address public brokerPoolTemplate;
     address public tokenAddress;
     address public trustedForwarder;
     mapping(address => bool) public trustedPolicies;
 
-    event NewBounty(address bountyContract);
+    event NewBrokerPool(address poolAddress);
 
     function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         tokenAddress = _tokenAddress;
-        bountyContractTemplate = templateAddress;
+        brokerPoolTemplate = templateAddress;
         trustedForwarder = trustedForwarderAddress;
     }
 
@@ -58,26 +59,26 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return trustedPolicies[policyAddress];
     }
 
-    function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
-        (
-            uint32 initialMinHorizonSeconds,
-            uint32 initialMinBrokerCount,
-            string memory bountyName,
-            address[] memory policies,
-            uint[] memory initParams
-        ) = abi.decode(param,
-            (uint32,uint32,string,address[],uint[])
-        );
-        address bountyAddress = _deployBountyAgreement(
-            sender,
-            initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            bountyName,
-            policies,
-            initParams
-        );
-        IERC677(tokenAddress).transferAndCall(bountyAddress, amount, "");
-    }
+    // function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
+    //     (
+    //         uint32 initialMinHorizonSeconds,
+    //         uint32 initialMinBrokerCount,
+    //         string memory bountyName,
+    //         address[] memory policies,
+    //         uint[] memory initParams
+    //     ) = abi.decode(param,
+    //         (uint32,uint32,string,address[],uint[])
+    //     );
+    //     address bountyAddress = _deployBountyAgreement(
+    //         sender,
+    //         initialMinHorizonSeconds,
+    //         initialMinBrokerCount,
+    //         bountyName,
+    //         policies,
+    //         initParams
+    //     );
+    //     IERC677(tokenAddress).transferAndCall(bountyAddress, amount, "");
+    // }
 
     /**
      * Policies array is interpreted as follows:
@@ -87,27 +88,27 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      *   3+: join policies (leave out if none)
      * @param policies smart contract addresses found in the trustedPolicies
      */
-    function deployBountyAgreement(
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
-        string memory bountyName,
+    function deployBrokerPool(
+        // uint32 initialMinHorizonSeconds,
+        uint32 initialMinWeiInvestment,
+        string memory poolName,
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
-        return _deployBountyAgreement(
+        return _deployBrokerPool(
             _msgSender(),
-            initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            bountyName,
+            // initialMinHorizonSeconds,
+            initialMinWeiInvestment,
+            poolName,
             policies,
             initParams
         );
     }
 
-    function _deployBountyAgreement(
-        address bountyOwner,
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
+    function _deployBrokerPool(
+        address poolOwner,
+        // uint32 initialMinHorizonSeconds,
+        uint32 initialMinWeiInvestment,
         string memory bountyName,
         address[] memory policies,
         uint[] memory initParams
@@ -117,34 +118,37 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
+        console.log("################## 001");
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
-        address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        Bounty bounty = Bounty(bountyAddress);
-        bounty.initialize(
-            address(this), // this is needed in order to set the policies
+        address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
+        BrokerPool pool = BrokerPool(poolAddress);
+        pool.initialize(
+            // address(this), // this is needed in order to set the policies
             tokenAddress,
-            initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            trustedForwarder
+            _msgSender(),
+            // initialMinHorizonSeconds,
+            // initialMinBrokerCount,
+            trustedForwarder,
+            initialMinWeiInvestment
         );
-        if (policies[0] != address(0)) {
-            bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
-        }
-        if (policies[1] != address(0)) {
-            bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
-        }
-        if (policies[2] != address(0)) {
-            bounty.setKickPolicy(IKickPolicy(policies[2]), initParams[2]);
-        }
-        for (uint i = 3; i < policies.length; i++) {
-            if (policies[i] != address(0)) {
-                bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
-            }
-        }
-        bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
-        bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
-        bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
-        emit NewBounty(bountyAddress);
-        return bountyAddress;
+        // if (policies[0] != address(0)) {
+        //     // bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
+        // }
+        // if (policies[1] != address(0)) {
+        //     // bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
+        // }
+        // if (policies[2] != address(0)) {
+        //     // bounty.setKickPolicy(IKickPolicy(policies[2]), initParams[2]);
+        // }
+        // // for (uint i = 3; i < policies.length; i++) {
+        //     // if (policies[i] != address(0)) {
+        //     //     bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
+        //     // }
+        // // }
+        pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
+        pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
+        pool.renounceRole(pool.ADMIN_ROLE(), address(this));
+        emit NewBrokerPool(poolAddress);
+        return poolAddress;
     }
 }
