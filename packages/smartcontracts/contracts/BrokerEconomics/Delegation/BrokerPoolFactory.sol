@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./BrokerPool.sol";
-import "./IERC677.sol";
+import "../IERC677.sol";
 
 import "hardhat/console.sol";
 
@@ -131,9 +131,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             trustedForwarder,
             initialMinWeiInvestment
         );
-        // if (policies[0] != address(0)) {
-        //     // bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
-        // }
+        if (policies[0] != address(0)) {
+            pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0]);
+        }
         // if (policies[1] != address(0)) {
         //     // bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
         // }

@@ -37,6 +37,7 @@ export type TestContracts = {
     bountyFactory: BountyFactory;
     bountyTemplate: Bounty;
     poolFactory: BrokerPoolFactory;
+    defaultJoinPolicy: IJoinPolicy;
 }
 
 /**
@@ -49,23 +50,13 @@ export type TestContracts = {
  */
 export async function deployTestContracts(deployer: Wallet, trustedForwarder?: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
-    // await token.deployed()
 
+    // bounty and policies
     const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy() as IJoinPolicy
-    // await minStakeJoinPolicy.deployed()
-
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy() as IJoinPolicy
-    // await maxBrokersJoinPolicy.deployed()
-
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy() as IAllocationPolicy
-    // await allocationPolicy.deployed()
-
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy() as ILeavePolicy
-    // await leavePolicy.deployed()
-
     const kickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy() as IKickPolicy
-    // await kickPolicy.deployed()
-
     const bountyTemplate = await (await getContractFactory("Bounty")).deploy() as Bounty
     await bountyTemplate.deployed()
 
@@ -85,9 +76,9 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
         maxBrokersJoinPolicy.address,
     ])).wait()
 
-    // initialize BrokerPoolFactory
-
+    // broker pool and policies
     const poolTemplate = await (await getContractFactory("BrokerPool")).deploy() as BrokerPool
+    const defaultJoinPolicy = await (await getContractFactory("DefaultJoinPolicy", deployer)).deploy() as IJoinPolicy
 
     const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
@@ -96,17 +87,13 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
         token.address
     ]) as BrokerPoolFactory
     await poolFactory.deployed()
-    // await (await poolFactory.connect(deployer).addTrustedPolicies([
-    //     allocationPolicy.address,
-    //     leavePolicy.address,
-    //     kickPolicy.address,
-    //     minStakeJoinPolicy.address,
-    //     maxBrokersJoinPolicy.address,
-    // ])).wait()
+    await (await poolFactory.connect(deployer).addTrustedPolicies([
+        defaultJoinPolicy.address,
+    ])).wait()
 
     return {
         token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, 
-        bountyTemplate, bountyFactory, poolFactory
+        bountyTemplate, bountyFactory, poolFactory, defaultJoinPolicy
     }
 }
 

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../IERC677.sol";
+import "../IERC677Receiver.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";

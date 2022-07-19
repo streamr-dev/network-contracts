@@ -2,15 +2,17 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../IERC677.sol";
+import "../IERC677Receiver.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./Bounty.sol";
+import "../Bounties/Bounty.sol";
+import "./policies/IPoolJoinPolicy.sol";
+
 
 // import "hardhat/console.sol";
 
@@ -31,6 +33,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     IERC677 public token;
     address public broker;
     uint public minimumInvestmentWei;
+    IPoolJoinPolicy public joinPolicy;
+
+    struct GlobalStorage {
+        uint totalStakedWei;
+    }
 
     // currently the whole token balance of the pool IS SAME AS the "free funds"
     //   so there's no need to track the unallocated tokens separately
@@ -56,12 +63,37 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
+    function setJoinPolicy(IPoolJoinPolicy policy, uint param) public {
+        joinPolicy = policy;
+        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_setJoinPolicyFailed");
+    }
+
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+     function globalData() internal pure returns(GlobalStorage storage data) {
+        bytes32 storagePosition = keccak256("brokerpool.storage.GlobalStorage");
+        assembly {data.slot := storagePosition}
+    }
+
+    /**
+     * Delegate-call ("library call") a module's method: it will use this Bounty's storage
+     * When calling from a view function (staticcall context), use moduleGet instead
+     */
+    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
+        (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
+        if (!success) {
+            if (returndata.length == 0) { revert(defaultReason); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
+        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
+        // for the function that return nothing, the returnValue will just be garbage
+        assembly { returnValue := mload(add(returndata, 32)) }
     }
 
     /////////////////////////////////////////
@@ -79,6 +111,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(_msgSender() == address(token), "error_onlyTokenContract");
 
         // check if sender is a bounty: only bounties may have tokens _staked_ on them
+        // TODO check if bounty was deployed by THE bountyfactory contract!
+        
         Bounty bounty = Bounty(sender);
         if (staked[bounty] > 0) {
             // ignore returned tokens, handle it in unstake()

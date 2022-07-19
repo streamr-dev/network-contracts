@@ -36,7 +36,19 @@ describe.only("BrokerPool", (): void => {
     })
 
     beforeEach(async (): Promise<void> => {
-        const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(0, newPoolName(), [], [],)).wait()
+        const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(0, newPoolName(),
+            [contracts.defaultJoinPolicy.address], [0])).wait()
+        const newPoolAddress = brokerPoolRc.events?.filter((e) => e.event === "NewBrokerPool")[0]?.args?.poolAddress
+        pool = (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress) as BrokerPool
+    })
+
+    it("positivetest configure joinpolicy", async function(): Promise<void> {
+        const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(
+            0,
+            newPoolName(),
+            [contracts.defaultJoinPolicy.address],
+            [0],
+        )).wait()
         const newPoolAddress = brokerPoolRc.events?.filter((e) => e.event === "NewBrokerPool")[0]?.args?.poolAddress
         pool = (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress) as BrokerPool
     })
