@@ -134,12 +134,12 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0]);
         }
-        // if (policies[1] != address(0)) {
-        //     // bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
-        // }
-        // if (policies[2] != address(0)) {
-        //     // bounty.setKickPolicy(IKickPolicy(policies[2]), initParams[2]);
-        // }
+        if (policies[1] != address(0)) {
+            pool.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[1]);
+        }
+        if (policies[2] != address(0)) {
+            pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[2]);
+        }
         // // for (uint i = 3; i < policies.length; i++) {
         //     // if (policies[i] != address(0)) {
         //     //     bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);

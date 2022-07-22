@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.13;
 
-interface IPoolJoinPolicy {
+interface IPoolYieldPolicy {
     function setParam(uint256 param) external;
-    function onPoolJoin(address delegator, uint256 amount) external;
+    function onUnstake(uint256 amount) external;
 }

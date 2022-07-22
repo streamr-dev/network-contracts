@@ -2,7 +2,8 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
 import { Contract, utils, Wallet } from "ethers"
 
-import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy } from "../typechain"
+import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy,
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy } from "../typechain"
 import { TestToken } from "../typechain/TestToken"
 
 const { parseEther } = utils
@@ -37,7 +38,9 @@ export type TestContracts = {
     bountyFactory: BountyFactory;
     bountyTemplate: Bounty;
     poolFactory: BrokerPoolFactory;
-    defaultJoinPolicy: IJoinPolicy;
+    defaultPoolJoinPolicy: IPoolJoinPolicy;
+    defaultPoolYieldPolicy: IPoolYieldPolicy;
+    defaultPoolExitPolicy: IPoolExitPolicy;
 }
 
 /**
@@ -78,7 +81,9 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
 
     // broker pool and policies
     const poolTemplate = await (await getContractFactory("BrokerPool")).deploy() as BrokerPool
-    const defaultJoinPolicy = await (await getContractFactory("DefaultJoinPolicy", deployer)).deploy() as IJoinPolicy
+    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", deployer)).deploy() as IPoolJoinPolicy
+    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy() as IPoolYieldPolicy
+    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy() as IPoolExitPolicy
 
     const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
@@ -88,12 +93,14 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
     ]) as BrokerPoolFactory
     await poolFactory.deployed()
     await (await poolFactory.connect(deployer).addTrustedPolicies([
-        defaultJoinPolicy.address,
+        defaultPoolJoinPolicy.address,
+        defaultPoolYieldPolicy.address,
+        defaultPoolExitPolicy.address,
     ])).wait()
 
     return {
         token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, 
-        bountyTemplate, bountyFactory, poolFactory, defaultJoinPolicy
+        bountyTemplate, bountyFactory, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy
     }
 }
 

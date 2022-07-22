@@ -12,7 +12,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../Bounties/Bounty.sol";
 import "./policies/IPoolJoinPolicy.sol";
-
+import "./policies/IPoolYieldPolicy.sol";
+import "./policies/IPoolExitPolicy.sol";
 
 // import "hardhat/console.sol";
 
@@ -34,6 +35,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     address public broker;
     uint public minimumInvestmentWei;
     IPoolJoinPolicy public joinPolicy;
+    IPoolYieldPolicy public yieldPolicy;
+    IPoolExitPolicy public exitPolicy;
 
     struct GlobalStorage {
         uint totalStakedWei;
@@ -46,6 +49,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public debt;
     mapping(address => uint) public earnings;
     mapping(Bounty => uint) public staked;
+
+    modifier onlyBroker() {
+        require(msg.sender == broker, "error_only_broker");
+        _;
+    }
 
     function initialize(
         address tokenAddress,
@@ -66,6 +74,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function setJoinPolicy(IPoolJoinPolicy policy, uint param) public {
         joinPolicy = policy;
         moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_setJoinPolicyFailed");
+    }
+
+    function setYieldPolicy(IPoolYieldPolicy policy, uint param) public {
+        yieldPolicy = policy;
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
+    }
+
+    function setExitPolicy(IPoolExitPolicy policy, uint param) public {
+        exitPolicy = policy;
+        moduleCall(address(exitPolicy), abi.encodeWithSelector(exitPolicy.setParam.selector, param), "error_setExitPolicyFailed");
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -154,21 +172,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function withdraw(uint amountWei) public {
         token.transferAndCall(_msgSender(), amountWei, "0x");
-        _withdraw(_msgSender(), amountWei);
-    }
-
-    function _withdraw(address investor, uint amountWei) internal {
         // unallocatedWei -= amountWei;
         // TODO: burn investor's pool tokens
-        emit InvestmentReturned(investor, amountWei);
+        emit InvestmentReturned(_msgSender(), amountWei);
     }
 
     /////////////////////////////////////////
     // BROKER FUNCTIONS
     /////////////////////////////////////////
 
-    function stake(Bounty bounty, uint amountWei) external {
-        require(_msgSender() == broker, "error_brokerOnly");
+    function stake(Bounty bounty, uint amountWei) external onlyBroker {
         // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
         token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
@@ -177,7 +190,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit Staked(bounty, amountWei);
     }
 
-    function unstake(Bounty bounty) external {
+    function unstake(Bounty bounty) external onlyBroker {
         // console.log("unstake", address(bounty));
         require(staked[bounty] > 0, "error_notStaked");
         require(_msgSender() == broker, "error_brokerOnly");
