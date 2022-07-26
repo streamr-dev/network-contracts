@@ -11,7 +11,9 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         console.log("DefaultPoolJoinPolicy.setParam", param);
     }
 
-    function onPoolJoin(address delegator, uint256 amount) external {
+    function onPoolJoin(address delegator, uint256 amount) external returns (uint256 amountPoolTokens){
         console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, amount);
+        // constant function, one DATA = one pool token
+        return amount * 2;
     }
 }

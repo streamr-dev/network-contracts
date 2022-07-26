@@ -109,7 +109,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address poolOwner,
         // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        string memory bountyName,
+        string memory poolName,
         address[] memory policies,
         uint[] memory initParams
     ) private returns (address) {
@@ -119,13 +119,14 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
         console.log("################## 001");
-        bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
+        bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             // address(this), // this is needed in order to set the policies
             tokenAddress,
             _msgSender(),
+            poolName,
             // initialMinHorizonSeconds,
             // initialMinBrokerCount,
             trustedForwarder,

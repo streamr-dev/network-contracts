@@ -21,6 +21,7 @@ describe.only("BrokerPool", (): void => {
         admin,
         broker,
         investor,
+        investor2,
         sponsor,
     ] = waffle.provider.getWallets()
 
@@ -64,6 +65,26 @@ describe.only("BrokerPool", (): void => {
 
         await expect(pool.connect(investor).withdraw(parseEther("1000")))
             .to.emit(pool, "InvestmentReturned").withArgs(investor.address, parseEther("1000"))
+        const freeFundsAfterWithdraw = await token.balanceOf(pool.address) // await pool.unallocatedWei()
+
+        expect(formatEther(freeFundsAfterInvest)).to.equal("1000.0")
+        expect(formatEther(freeFundsAfterWithdraw)).to.equal("0.0")
+    })
+
+    it("allows invest, transfer of poolTokens, and withdraw by 2n party", async function(): Promise<void> {
+        const { token } = contracts
+        // const pool = await deployBrokerPool(broker, token)
+        await (await token.connect(investor).approve(pool.address, parseEther("1000"))).wait()
+        await expect(pool.connect(investor).invest(parseEther("1000")))
+            .to.emit(pool, "InvestmentReceived").withArgs(investor.address, parseEther("1000"))
+        const freeFundsAfterInvest = await token.balanceOf(pool.address) // await pool.unallocatedWei()
+
+        const pooltokensInvestor = await pool.connect(investor).balanceOf(investor.address)
+
+        await (await pool.connect(investor).transfer(investor2.address, parseEther("1000"))).wait()
+    
+        await expect(pool.connect(investor2).withdraw(parseEther("1000")))
+            .to.emit(pool, "InvestmentReturned").withArgs(investor2.address, parseEther("1000"))
         const freeFundsAfterWithdraw = await token.balanceOf(pool.address) // await pool.unallocatedWei()
 
         expect(formatEther(freeFundsAfterInvest)).to.equal("1000.0")

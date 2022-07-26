@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "../Bounties/Bounty.sol";
 import "./policies/IPoolJoinPolicy.sol";
@@ -21,7 +22,7 @@ import "./policies/IPoolExitPolicy.sol";
  * Broker Pool receives a delegators' investments and pays out yields
  * It also is an ERC20 token for the pool tokens
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
+contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable { //}, ERC2771Context {
 
     event InvestmentReceived(address indexed investor, uint amountWei);
     event InvestmentReturned(address indexed investor, uint amountWei);
@@ -47,7 +48,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // uint public unallocatedWei;
 
     mapping(address => uint) public debt;
-    mapping(address => uint) public earnings;
+    // mapping(address => uint) public earnings;
     mapping(Bounty => uint) public staked;
 
     modifier onlyBroker() {
@@ -58,6 +59,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function initialize(
         address tokenAddress,
         address brokerAddress,
+        string calldata poolName,
         address trustedForwarderAddress,
         uint initialMinimumInvestmentWei
     ) public initializer {
@@ -69,6 +71,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         broker = brokerAddress;
         minimumInvestmentWei = initialMinimumInvestmentWei;
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        ERC20Upgradeable.__ERC20_init(poolName, poolName);
     }
 
     function setJoinPolicy(IPoolJoinPolicy policy, uint param) public {
@@ -166,14 +169,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function _invest(address investor, uint amountWei) internal {
         // unallocatedWei += amountWei;
-        // TODO: mint pool tokens to investor
+        uint256 amountPoolToken = moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onPoolJoin.selector, investor, amountWei), "error_joinPolicyFailed");
+
+
+        _mint(investor, amountPoolToken);
         emit InvestmentReceived(investor, amountWei);
     }
 
     function withdraw(uint amountWei) public {
-        token.transferAndCall(_msgSender(), amountWei, "0x");
+        // token.transferAndCall(_msgSender(), amountWei, "0x");
+        token.transfer(_msgSender(), amountWei);
         // unallocatedWei -= amountWei;
-        // TODO: burn investor's pool tokens
+        _burn(_msgSender(), amountWei);
         emit InvestmentReturned(_msgSender(), amountWei);
     }
 
