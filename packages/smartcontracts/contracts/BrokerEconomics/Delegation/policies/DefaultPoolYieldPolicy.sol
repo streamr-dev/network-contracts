@@ -7,11 +7,54 @@ import "../BrokerPool.sol";
 import "hardhat/console.sol";
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
-    function setParam(uint256 param) external {
-        console.log("DefaultPoolYieldPolicy.setParam", param);
+    struct LocalStorage {
+        uint256 percentBrokerEarnings;
     }
 
-    function onUnstake(uint256 amount) external {
-        console.log("DefaultPoolYieldPolicy.onUnstake", amount);
+     function localData() internal view returns(LocalStorage storage data) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("brokerPool.storage.DefaultPoolYieldPolicy", address(this)));
+        assembly {data.slot := storagePosition}
+    }
+
+    function setParam(uint256 percentBrokerEarnings) external {
+        console.log("DefaultPoolYieldPolicy.setParam", percentBrokerEarnings);
+        localData().percentBrokerEarnings = percentBrokerEarnings;
+    }
+
+    function handleBountyWithdrawl(uint256 dataWei) external {
+        console.log("DefaultPoolYieldPolicy.getBrokerEarnings", dataWei);
+        uint256 brokersShare = dataWei * localData().percentBrokerEarnings / 100;
+        globalData().token.transfer(globalData().broker, brokersShare);
+    }
+
+    function pooltokenToData(uint256 poolTokenWei) external view returns (uint256 dataWei) {
+        if (this.totalSupply() == 0) {
+            console.log("total supply is 0");
+            return poolTokenWei;
+        }
+        console.log("DefaultPoolYieldPolicy.pooltokenToData", poolTokenWei);
+        console.log("data balance of this", globalData().token.balanceOf(address(this)));
+        console.log("totalStakedWei", globalData().totalStakedWei);
+        console.log("this totlasupply", this.totalSupply());
+        uint256 poolValueData = globalData().token.balanceOf(address(this)) + globalData().totalStakedWei;
+        console.log("poolValueData", poolValueData);
+        return poolTokenWei * poolValueData / this.totalSupply();
+    }
+
+    function dataToPooltoken(uint256 dataWei) external view returns (uint256 poolTokenWei) {
+        if (this.totalSupply() == 0) {
+            console.log("total supply is 0");
+            return dataWei;
+        }
+        console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
+        console.log("data balance of this", globalData().token.balanceOf(address(this)));
+        console.log("totalStakedWei", globalData().totalStakedWei);
+        console.log("this totlasupply", this.totalSupply());
+        uint256 poolValueData = globalData().token.balanceOf(address(this)) + globalData().totalStakedWei;
+        console.log("poolValueData", poolValueData);
+        if (poolValueData == 0) {
+            return dataWei;
+        }
+        return dataWei * this.totalSupply() / poolValueData;
     }
 }

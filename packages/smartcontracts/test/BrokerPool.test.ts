@@ -62,6 +62,7 @@ describe.only("BrokerPool", (): void => {
         await expect(pool.connect(investor).invest(parseEther("1000")))
             .to.emit(pool, "InvestmentReceived").withArgs(investor.address, parseEther("1000"))
         const freeFundsAfterInvest = await token.balanceOf(pool.address) // await pool.unallocatedWei()
+        const pooltokensInvestor = await pool.connect(investor).balanceOf(investor.address)
 
         await expect(pool.connect(investor).withdraw(parseEther("1000")))
             .to.emit(pool, "InvestmentReturned").withArgs(investor.address, parseEther("1000"))
@@ -92,6 +93,29 @@ describe.only("BrokerPool", (): void => {
     })
 
     it("stakes, and unstakes with gains", async function(): Promise<void> {
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        // const pool = await deployBrokerPool(broker, token)
+        await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+        const balanceBefore = await token.balanceOf(pool.address)
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+
+        await advanceToTimestamp(timeAtStart + 1000, "Unstake from bounty")
+        await expect(pool.unstake(bounty.address))
+            .to.emit(pool, "Unstaked").withArgs(bounty.address, parseEther("1000"), parseEther("1000"))
+
+        const gains = (await token.balanceOf(pool.address)).sub(balanceBefore)
+        expect(formatEther(gains)).to.equal("1000.0")
+    })
+
+    // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
+    it("revenue sharing szenario", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
         // const pool = await deployBrokerPool(broker, token)
