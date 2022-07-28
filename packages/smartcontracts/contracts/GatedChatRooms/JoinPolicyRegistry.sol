@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../StreamRegistry/StreamRegistryV3.sol"; 
 import "./GatedJoinPolicy.sol";
 import "./ERC20JoinPolicy.sol";
+import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
 
 contract JoinPolicyRegistry is Ownable {
@@ -19,9 +20,16 @@ contract JoinPolicyRegistry is Ownable {
 
     mapping(address => address) public erc20TokensToJoinPolicies;
     mapping(address => mapping(uint256 => address)) public erc1155TokensToJoinPolicies;
-
+    mapping(address => mapping(uint256 => address)) public erc721TokensToJoinPolicies;
    
     mapping(bytes32 => address) public registeredPolicies;
+
+    event Registered(
+        string indexed streamId, 
+        address indexed tokenAddress, 
+        address policyAddress, 
+        bytes32 policyId
+    );
 
     constructor(
         address streamRegistryAddress_,
@@ -37,10 +45,9 @@ contract JoinPolicyRegistry is Ownable {
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_
-    ) public returns (address deployedPolicy) {
-        require(minRequiredBalance_ > 0, "minRequiredBalance must be greater than 0");
-        bytes32 policyKey = keccak256(abi.encode(tokenAddress, streamId_));
-        require(registeredPolicies[policyKey] == address(0x0), "Join policy already registered");
+    ) public {
+        bytes32 policyId = keccak256(abi.encode(tokenAddress, streamId_));
+        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
 
         ERC20JoinPolicy instance = new ERC20JoinPolicy(
             tokenAddress,
@@ -50,10 +57,15 @@ contract JoinPolicyRegistry is Ownable {
             minRequiredBalance_,
             delegatedAccessRegistryAddress
         );
-        deployedPolicy = address(instance);
+        address deployedPolicy = address(instance);
         erc20TokensToJoinPolicies[tokenAddress] = deployedPolicy;
-        registeredPolicies[policyKey] = deployedPolicy;
-        return deployedPolicy;
+        registeredPolicies[policyId] = deployedPolicy;
+        emit Registered(
+            streamId_,
+            tokenAddress,
+            deployedPolicy,
+            policyId
+        );
     }
 
     function registerERC1155Policy(
@@ -62,8 +74,9 @@ contract JoinPolicyRegistry is Ownable {
         string memory streamId_,
         uint256[] memory tokenIds_,
         uint256[] memory minRequiredBalances_
-    ) public returns (address deployedPolicy) {
-        bytes32 policyKey = keccak256(abi.encode(tokenAddress, tokenId, streamId_));
+    ) public {
+        bytes32 policyId = keccak256(abi.encode(tokenAddress, tokenId, streamId_));
+        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
 
         ERC1155JoinPolicy instance = new ERC1155JoinPolicy(
             tokenAddress,
@@ -75,9 +88,43 @@ contract JoinPolicyRegistry is Ownable {
             delegatedAccessRegistryAddress
         );
 
-        deployedPolicy = address(instance);
+        address deployedPolicy = address(instance);
         erc1155TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
-        registeredPolicies[policyKey] = deployedPolicy;
-        return deployedPolicy;
+        registeredPolicies[policyId] = deployedPolicy;
+        emit Registered(
+            streamId_,
+            tokenAddress,
+            deployedPolicy,
+            policyId
+        );
     }
+
+    function registerERC721Policy(
+        address tokenAddress,
+        uint256 tokenId,
+        string memory streamId_,
+        uint256[] memory 
+    ) public {
+        bytes32 policyId = keccak256(abi.encode(tokenAddress, tokenId, streamId_));
+        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
+
+        ERC721JoinPolicy instance = new ERC721JoinPolicy(
+            tokenAddress,
+            streamRegistryAddress,
+            streamId_,
+            defaultPermissions,
+            delegatedAccessRegistryAddress
+        );
+
+        address deployedPolicy = address(instance);
+        erc721TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
+        registeredPolicies[policyId] = deployedPolicy;
+        emit Registered(
+            streamId_,
+            tokenAddress,
+            deployedPolicy,
+            policyId
+        );
+    }
+    // check compatibility with erc777
 }
