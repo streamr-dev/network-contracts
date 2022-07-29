@@ -21,8 +21,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         localData().percentBrokerEarnings = percentBrokerEarnings;
     }
 
-    function handleBountyWithdrawl(uint256 dataWei) external {
-        console.log("DefaultPoolYieldPolicy.getBrokerEarnings", dataWei);
+    function deductBrokersShare(uint256 dataWei) external {
+        console.log("DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
         uint256 brokersShare = dataWei * localData().percentBrokerEarnings / 100;
         globalData().token.transfer(globalData().broker, brokersShare);
     }

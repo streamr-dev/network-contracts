@@ -47,9 +47,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     //   so there's no need to track the unallocated tokens separately
     // uint public unallocatedWei;
 
+    mapping(address => uint) public queuedPayoutsWei;
     mapping(address => uint) public debt;
-    // mapping(address => uint) public earnings;
     mapping(Bounty => uint) public staked;
+    // mapping(address => uint) public earnings;
 
     modifier onlyBroker() {
         require(msg.sender == globalData().broker, "error_only_broker");
@@ -180,9 +181,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function withdraw(uint amountPoolTokenWei) public {
         // token.transferAndCall(_msgSender(), amountWei, "0x");
+        console.log("withdraw amountPoolTokenWei", amountPoolTokenWei);
+        console.log("balance msgSender ", balanceOf(_msgSender()));
         uint256 calculatedAmountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
             amountPoolTokenWei), "error_yieldPolicyFailed");
+        console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
         _burn(_msgSender(), amountPoolTokenWei);
+        uint poolDataBalance = globalData().token.balanceOf(address(this));
+        console.log("withdraw poolDataBalance", poolDataBalance);
+        if (calculatedAmountDataWei > poolDataBalance) {
+            queuedPayoutsWei[_msgSender()] = calculatedAmountDataWei - poolDataBalance;
+            console.log("withdraw #", calculatedAmountDataWei - poolDataBalance);
+            console.log("msgSender", _msgSender(), "queuedPayoutsWei", queuedPayoutsWei[_msgSender()]);
+            calculatedAmountDataWei = poolDataBalance;
+        }
+        console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
         globalData().token.transfer(_msgSender(), calculatedAmountDataWei);
         emit InvestmentReturned(_msgSender(), calculatedAmountDataWei);
         // unallocatedWei -= amountWei;
@@ -197,18 +210,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         staked[bounty] += amountWei;
+        globalData().totalStakedWei += amountWei;
         // unallocatedWei -= amountWei;
         emit Staked(bounty, amountWei);
     }
 
     function unstake(Bounty bounty) external onlyBroker {
-        console.log("unstake", address(bounty));
+        console.log("unstake bounty", address(bounty));
         require(staked[bounty] > 0, "error_notStaked");
-        require(_msgSender() == globalData().broker, "error_brokerOnly");
-
         uint balanceBefore = globalData().token.balanceOf(address(this));
+        console.log("unstake balanceBefore", balanceBefore);
         bounty.leave();
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
+        console.log("unstake receivedWei", receivedWei);
 
         // unallocatedWei += receivedWei;
         if (receivedWei < staked[bounty]) {
@@ -221,6 +235,27 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             uint gainsWei = receivedWei - staked[bounty];
             emit Unstaked(bounty, staked[bounty], gainsWei);
         }
+        console.log("unstake totalstakedWei", globalData().totalStakedWei);
+        globalData().totalStakedWei -= staked[bounty];
+        uint winnings = receivedWei - staked[bounty];
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
+            winnings), "error_yieldPolicy_deductBrokersPart_Failed");
         staked[bounty] = 0;
+    }
+
+    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
+        require(staked[bounty] > 0, "error_notStaked");
+        uint balanceBefore = globalData().token.balanceOf(address(this));
+        console.log("withdrawWinnings balanceBefore", balanceBefore);
+        bounty.withdraw();
+        console.log("withdrawWinnings balanceAfter", globalData().token.balanceOf(address(this)));
+        uint winnings = globalData().token.balanceOf(address(this)) - balanceBefore;
+        console.log("withdrawWinnings winnings", winnings);
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
+            winnings), "error_yieldPolicy_deductBrokersPart_Failed");
+    }
+
+    function getQueuedDataPayout() public view returns (uint256) {
+        return queuedPayoutsWei[_msgSender()];
     }
 }

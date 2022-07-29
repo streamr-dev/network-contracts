@@ -51,7 +51,7 @@ export type TestContracts = {
  * @param trustedForwarder given as argument to BountyFactory; set to zero if not given
  * @returns mapping: name string -> ethers.Contract object
  */
-export async function deployTestContracts(deployer: Wallet, trustedForwarder?: Wallet): Promise<TestContracts> {
+export async function deployTestContracts(deployer: Wallet, trustedForwarder?: Wallet, brokerPercentage?: number): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
 
     // bounty and policies
