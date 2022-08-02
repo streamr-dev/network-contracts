@@ -114,7 +114,7 @@ describe.only("BrokerPool", (): void => {
     })
 
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
-    it.only("revenue sharing szenario", async function(): Promise<void> {
+    it("revenue sharing szenario", async function(): Promise<void> {
         const { token: dataToken } = contracts
         const balanceInvestorBefore = await dataToken.balanceOf(investor.address)
         // 1
@@ -158,5 +158,37 @@ describe.only("BrokerPool", (): void => {
             add(parseEther("20").sub(parseEther("5"))))
         const investorQueuedPayout = await pool.connect(investor).getQueuedDataPayout()
         expect(investorQueuedPayout).to.equal(parseEther("5"))
+    })
+
+    it("queue payout, increase, decrease, payout all", async function(): Promise<void> {
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        // const pool = await deployBrokerPool(broker, token)
+        await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+        const balanceBefore = await token.balanceOf(pool.address)
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+
+        await advanceToTimestamp(timeAtStart + 1000, "Unstake from bounty")
+        await expect(pool.unstake(bounty.address))
+            .to.emit(pool, "Unstaked").withArgs(bounty.address, parseEther("1000"), parseEther("1000"))
+
+        const gains = (await token.balanceOf(pool.address)).sub(balanceBefore)
+        expect(formatEther(gains)).to.equal("1000.0")
+        // queue payout
+        await pool.connect(investor).queueDataPayout(parseEther("1000"))
+        const investorQueuedPayout = await pool.connect(investor).getQueuedDataPayout()
+        expect(investorQueuedPayout).to.equal(parseEther("1000"))
+        // increase
+        await pool.connect(investor).increaseDataPayout(parseEther("1000"))
+        const investorQueuedPayout2 = await pool.connect(investor).getQueuedDataPayout()
+        expect(investorQueuedPayout2).to.equal(investorQueuedPayout.add(parseEther("1000")))
+        // decrease
+        await pool.connect(investor).decreaseDataPayout(parseEther("1000"))
     })
 })

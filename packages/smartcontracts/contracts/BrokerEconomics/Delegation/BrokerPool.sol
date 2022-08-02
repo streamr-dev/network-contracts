@@ -29,6 +29,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Staked(Bounty indexed bounty, uint amountWei);
     event Losses(Bounty indexed bounty, uint amountWei);
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
+    event QueuedDataPayout(address user, uint amountDataWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
@@ -47,9 +48,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     //   so there's no need to track the unallocated tokens separately
     // uint public unallocatedWei;
 
-    mapping(address => uint) public queuedPayoutsWei;
     mapping(address => uint) public debt;
     mapping(Bounty => uint) public staked;
+
+    mapping(uint => address) public payoutQueue;
+    mapping(address => uint) public queuedPayoutsDataWei;
+    uint public queuedPayoutsCount;
+    uint public payoutIndex;
     // mapping(address => uint) public earnings;
 
     modifier onlyBroker() {
@@ -115,6 +120,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
         // for the function that return nothing, the returnValue will just be garbage
+        assembly { returnValue := mload(add(returndata, 32)) }
+    }
+
+    /** Call a module's view function via staticcall to local fallback */
+    function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
+        // trampoline through the above callback
+        (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
+        if (!success) {
+            if (returndata.length == 0) { revert(defaultReason); }
+            assembly { revert(add(32, returndata), mload(returndata)) }
+        }
+        // assume a successful call returns precisely one uint256, so take that out and drop the rest
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
@@ -255,7 +272,32 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             winnings), "error_yieldPolicy_deductBrokersPart_Failed");
     }
 
-    function getQueuedDataPayout() public view returns (uint256) {
-        return queuedPayoutsWei[_msgSender()];
+    function getQueuedDataPayout() public view returns (uint256 amountDataWei) {
+        return queuedPayoutsDataWei[_msgSender()];
+    }
+
+    function getWithdrawableData() public view returns (uint256 amountDataWei) {
+        uint poolTokenBalance = balanceOf(_msgSender());
+        return moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance), "error_getWithdrawableData_Failed");
+    }
+
+    function queueDataPayout(uint amountPoolTokenWei) external {
+        require(amountPoolTokenWei > 0, "error_payout_amount_zero");
+        require(balanceOf(_msgSender()) > 0, "error_notPoolTokens");
+        uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+            amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
+        _burn(_msgSender(), amountPoolTokenWei);
+        queuedPayoutsDataWei[_msgSender()] += amountDataWei;
+        payoutQueue[payoutIndex] = _msgSender();
+        payoutIndex++;
+        emit QueuedDataPayout(_msgSender(), amountDataWei);
+    }
+
+    function unqueueDataPayout(uint amountDataWei) external {
+        require(amountDataWei > 0, "error_payout_amount_zero");
+        require(queuedPayoutsDataWei[_msgSender()] >= amountDataWei, "error_notEnoughData");
+        queuedPayoutsDataWei[_msgSender()] -= amountDataWei;
+        _mint(_msgSender(), amountDataWei);
+        emit UnqueuedDataPayout(_msgSender(), amountDataWei);
     }
 }
