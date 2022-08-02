@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Launch index.js",
             "program": "${workspaceFolder}/packages/docker-dev-chain-init/index.js",
@@ -18,13 +19,14 @@
             "cwd": "${workspaceFolder}/packages/docker-dev-chain-init/",
         },
         {
-            "command": "npm run start -w=streamr-smart-contracts-init",
+            "command": "npm run preload -w=docker-dev-chain-init",
             "name": "run init",
             "request": "launch",
             "type": "node-terminal",
             "env": {
                 "DEBUG": "*,-mocha:*"
             },
+            "cwd": "${workspaceFolder}"
         },
         {
             "command": "npm run deploylive2",

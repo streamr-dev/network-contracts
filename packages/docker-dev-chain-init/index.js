@@ -14,7 +14,6 @@ const TestTokenJson = require("./ethereumContractJSONs/TestToken.json")
 const OldTokenJson = require("./ethereumContractJSONs/CrowdsaleToken.json")
 const MarketplaceJson = require("./ethereumContractJSONs/Marketplace.json")
 const Marketplace2Json = require("./ethereumContractJSONs/Marketplace2.json")
-const MarketplaceV3Json = require("./ethereumContractJSONs/MarketplaceV3.json")
 const UniswapAdaptor = require("./ethereumContractJSONs/UniswapAdaptor.json")
 const Uniswap2Adapter = require("./ethereumContractJSONs/Uniswap2Adapter.json")
 const NodeRegistry = require("./ethereumContractJSONs/NodeRegistry.json")
@@ -548,7 +547,7 @@ async function smartContractInitialization() {
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
 
-    const marketV3Deployer = await ethers.getContractFactory(MarketplaceV3Json.abi, MarketplaceV3Json.bytecode, newWallet)
+    const marketV3Deployer = await ethers.getContractFactory("MarketplaceV3", newWallet)
     const marketV3DeployTx = await upgrades.deployProxy(marketV3Deployer, [], {
         kind: 'uups'
     })
@@ -576,11 +575,15 @@ async function smartContractInitialization() {
         log(`create ${p.id}`)
         const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
-        //await tx.wait(1)
+        await tx.wait()
+        const txV3 = await marketV3DeployTxStr.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
+            token.address, p.minimumSubscriptionInSeconds)
+        await txV3.wait()
         if (p.state == "NOT_DEPLOYED") {
             log(`delete ${p.id}`)
-            await tx.wait(1)
-            await market.deleteProduct(`0x${p.id}`)
+            // await tx.wait(1)
+            await (await market.deleteProduct(`0x${p.id}`)).wait()
+            await (await marketV3DeployTxStr.deleteProduct(`0x${p.id}`)).wait()
             //await tx2.wait(1)
         }
     }
