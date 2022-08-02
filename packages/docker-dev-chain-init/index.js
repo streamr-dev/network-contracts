@@ -14,6 +14,7 @@ const TestTokenJson = require("./ethereumContractJSONs/TestToken.json")
 const OldTokenJson = require("./ethereumContractJSONs/CrowdsaleToken.json")
 const MarketplaceJson = require("./ethereumContractJSONs/Marketplace.json")
 const Marketplace2Json = require("./ethereumContractJSONs/Marketplace2.json")
+const MarketplaceV3Json = require("./ethereumContractJSONs/MarketplaceV3.json")
 const UniswapAdaptor = require("./ethereumContractJSONs/UniswapAdaptor.json")
 const Uniswap2Adapter = require("./ethereumContractJSONs/Uniswap2Adapter.json")
 const NodeRegistry = require("./ethereumContractJSONs/NodeRegistry.json")
@@ -546,6 +547,13 @@ async function smartContractInitialization() {
     log(`granting role ${role} to devops ${watcherWallet.address}`)
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
+
+    const marketV3Deployer = await ethers.getContractFactory(MarketplaceV3Json.abi, MarketplaceV3Json.bytecode, newWallet)
+    const marketV3DeployTx = await upgrades.deployProxy(marketV3Deployer, [], {
+        kind: 'uups'
+    })
+    const marketV3DeployTxStr = await marketV3DeployTx.deployed()
+    log(`MarketplaceV3 deployed on sidechain at ${marketV3DeployTxStr.address}`)
 
     //put additions here
 
