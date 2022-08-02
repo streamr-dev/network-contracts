@@ -54,3 +54,4 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
 
 
 }
+
