@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract} from 'ethers'
+import { BigNumber, Contract, Wallet} from 'ethers'
 
 import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
@@ -11,15 +11,15 @@ const { deployContract } = waffle
 const { provider } = waffle
 
 
+
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
-const signDelegatedChallenge = (address: string) => {
-    const signerIdentity = EthCrypto.createIdentity();
+const signDelegatedChallenge = (address: string, signer: {privateKey: string}, ) => {
     const message = EthCrypto.hash.keccak256(address);
-    const signature = EthCrypto.sign(signerIdentity.privateKey, message)
+    const signature = EthCrypto.sign(signer.privateKey, message)
     return {
-        signerIdentity, message, signature
+        message, signature
     }
 }
 use(waffle.solidity)
@@ -36,6 +36,9 @@ describe('ERC20JoinPolicy', (): void => {
     const streamId = `${adminAddress}${streamPath}`.toLowerCase()
 
     let delegatedAccessRegistry: Contract
+
+    const signerIdentity = EthCrypto.createIdentity();
+
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
@@ -65,7 +68,16 @@ describe('ERC20JoinPolicy', (): void => {
 
         const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
 
-       
+        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
+        delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
+        
+        /*
+        const { signature } = signDelegatedChallenge(wallets[0].address, signerIdentity)
+        await delegatedAccessRegistry.authorize(
+            signerIdentity.address,
+            signature
+        )*/
+
         contract = await ERC20JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
@@ -73,7 +85,8 @@ describe('ERC20JoinPolicy', (): void => {
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
-            1 // minRequiredBalance    
+            1, // minRequiredBalance
+            delegatedAccessRegistry.address
         )
 
         await streamRegistryV3.grantPermission(
@@ -94,16 +107,21 @@ describe('ERC20JoinPolicy', (): void => {
             expect(balance).to.equal(BigNumber.from(0))
 
             const {
-                signerIdentity, message, signature
-            } = signDelegatedChallenge(wallets[1].address)
+                message, signature
+            } = signDelegatedChallenge(wallets[1].address, signerIdentity)
 
-            await contract.connect(wallets[1]).requestDelegatedJoin(
+            await delegatedAccessRegistry.authorize(
                 signerIdentity.address,
-                message,
-                signature,
+                signature
+            )
+
+            await contract.connect(wallets[1])
+            .requestDelegatedJoin(
+                signerIdentity.address,
                 {from: wallets[1].address}
             )  
         } catch (e: any){
+            console.log(e.message)
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
@@ -124,8 +142,8 @@ describe('ERC20JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(1))
 
         const {
-            signerIdentity, message, signature
-        } = signDelegatedChallenge(wallets[1].address)
+            message, signature
+        } = signDelegatedChallenge(wallets[1].address, signerIdentity)
       
         await contract.connect(wallets[1])
         .requestDelegatedJoin(
