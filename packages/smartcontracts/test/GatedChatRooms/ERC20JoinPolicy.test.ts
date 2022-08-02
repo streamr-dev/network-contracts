@@ -32,7 +32,6 @@ const signDelegatedChallenge = (
 
     return sign(delegatedPrivateKey, message)
 }
-
 use(waffle.solidity)
 describe('ERC20JoinPolicy', (): void => {
     const wallets = provider.getWallets()
@@ -81,13 +80,6 @@ describe('ERC20JoinPolicy', (): void => {
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
-        
-        /*
-        const { signature } = signDelegatedChallenge(wallets[0].address, signerIdentity)
-        await delegatedAccessRegistry.authorize(
-            signerIdentity.address,
-            signature
-        )*/
 
         contract = await ERC20JoinPolicy.deploy(
             token.address,
@@ -123,22 +115,22 @@ describe('ERC20JoinPolicy', (): void => {
                 ChallengeType.Authorize
             )
 
-            await delegatedAccessRegistry.authorize(
+            await delegatedAccessRegistry.connect(wallets[1]).authorize(
                 signerIdentity.address,
                 signature
             )
-                /*
+
             await contract.connect(wallets[1])
             .requestDelegatedJoin(
                 signerIdentity.address,
                 {from: wallets[1].address}
-            )  */
+            )  
         } catch (e: any){
             console.log(e.message)
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
-/*
+
     it ('should check positively that a user can request join', async () => {
         await token.mint(wallets[1].address, BigNumber.from(1))
         const canJoin = await contract.canJoin(wallets[1].address)
@@ -154,15 +146,9 @@ describe('ERC20JoinPolicy', (): void => {
         const balance = await token.balanceOf(wallets[1].address)
         expect(balance).to.equal(BigNumber.from(1))
 
-        const {
-            message, signature
-        } = signDelegatedChallenge(wallets[1].address, signerIdentity)
-      
         await contract.connect(wallets[1])
         .requestDelegatedJoin(
             signerIdentity.address,
-            message,
-            signature,
             {from: wallets[1].address}
         )
 
@@ -202,5 +188,5 @@ describe('ERC20JoinPolicy', (): void => {
             PermissionType.Grant
         )).to.equal(false)
     })
-*/
+
 })
