@@ -5,7 +5,7 @@ import { BigNumber, Contract} from 'ethers'
 import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
 import type { StreamRegistry } from '../../typechain/StreamRegistry'
-import EthCrypto from 'eth-crypto'
+import {sign, hash, createIdentity} from 'eth-crypto'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -14,13 +14,22 @@ const { provider } = waffle
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
-const signDelegatedChallenge = (address: string) => {
-    const signerIdentity = EthCrypto.createIdentity();
-    const message = EthCrypto.hash.keccak256(address);
-    const signature = EthCrypto.sign(signerIdentity.privateKey, message)
-    return {
-        signerIdentity, message, signature
-    }
+enum ChallengeType {
+    Authorize = 0,
+    Revoke = 1,
+}
+
+const signDelegatedChallenge = (
+    mainAddress: string,
+    delegatedPrivateKey: string,
+    challengeType: ChallengeType
+) => {
+    const message = hash.keccak256([
+        { type: 'uint256', value: challengeType.toString() },
+        { type: 'address', value: mainAddress },
+    ])
+
+    return sign(delegatedPrivateKey, message)
 }
 use(waffle.solidity)
 describe('ERC1155JoinPolicy', (): void => {
@@ -36,6 +45,9 @@ describe('ERC1155JoinPolicy', (): void => {
     const streamId = `${adminAddress}${streamPath}`.toLowerCase()
 
     enum TokenIds { A = 1, B, C}
+    const signerIdentity = createIdentity();
+
+    let delegatedAccessRegistry: Contract
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
@@ -63,6 +75,21 @@ describe('ERC1155JoinPolicy', (): void => {
             '{}',
         )
 
+        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
+        delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
+        
+        const signature = signDelegatedChallenge(
+            wallets[0].address, 
+            signerIdentity.privateKey,
+            ChallengeType.Authorize
+        )
+
+        await delegatedAccessRegistry.connect(wallets[0]).authorize(
+            signerIdentity.address,
+            signature
+        )
+
+
         const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
        
         contract = await ERC1155JoinPolicy.deploy(
@@ -72,8 +99,9 @@ describe('ERC1155JoinPolicy', (): void => {
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
-            [ TokenIds.A ],
-            [1] // minRequiredBalance    
+            [ TokenIds.A, TokenIds.B, TokenIds.C],
+            [1, 2, 3], // minRequiredBalance    
+            delegatedAccessRegistry.address
         )
 
         await streamRegistryV3.grantPermission(
@@ -93,23 +121,16 @@ describe('ERC1155JoinPolicy', (): void => {
             const balance = await token.balanceOf(wallets[1].address, TokenIds.A)
             expect(balance).to.equal(BigNumber.from(0))
 
-            const {
-                signerIdentity, message, signature
-            } = signDelegatedChallenge(wallets[1].address)
-
-            await contract.connect(wallets[1]).requestDelegatedJoin(
-                TokenIds.A,
+            await contract.connect(wallets[0])
+            .requestDelegatedJoin(
                 signerIdentity.address,
-                message,
-                signature,
-                {from: wallets[1].address}
+                TokenIds.A,
+                {from: wallets[0].address}
             )  
         } catch (e: any){
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
-
-   
 
     it ('should check and fail when a user has not enough balance upon canJoin', async () => {
         const canJoin = await contract.canJoin(wallets[1].address, TokenIds.A)
@@ -117,27 +138,21 @@ describe('ERC1155JoinPolicy', (): void => {
     })
 
     it ('should check positively that a user can request join', async () => {
-        await token.mint(wallets[1].address, TokenIds.A, BigNumber.from(1))
-        const canJoin = await contract.canJoin(wallets[1].address, TokenIds.A)
+        await token.mint(wallets[0].address, TokenIds.A, BigNumber.from(1))
+        const canJoin = await contract.canJoin(wallets[0].address, TokenIds.A)
         expect(canJoin).to.equal(true)
     })
-
     
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
-        const balance = await token.balanceOf(wallets[1].address, TokenIds.A)
+        const balance = await token.balanceOf(wallets[0].address, TokenIds.A)
         expect(balance).to.equal(BigNumber.from(1))
 
-        const {
-            signerIdentity, message, signature
-        } = signDelegatedChallenge(wallets[1].address)
-      
-        await contract.connect(wallets[1])
+            
+        await contract.connect(wallets[0])
         .requestDelegatedJoin(
-            TokenIds.A,
             signerIdentity.address,
-            message,
-            signature,
-            {from: wallets[1].address}
+            TokenIds.A,
+            {from: wallets[0].address}
         )
 
         const events = await contract.queryFilter(
@@ -176,5 +191,4 @@ describe('ERC1155JoinPolicy', (): void => {
             PermissionType.Grant
         )).to.equal(false)
     })
-    
 })

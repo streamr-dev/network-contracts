@@ -25,8 +25,8 @@ contract JoinPolicyRegistry is Ownable {
     mapping(bytes32 => address) public registeredPolicies;
 
     event Registered(
-        string indexed streamId, 
         address indexed tokenAddress, 
+        string indexed streamId, 
         address policyAddress, 
         bytes32 policyId
     );
@@ -61,8 +61,8 @@ contract JoinPolicyRegistry is Ownable {
         erc20TokensToJoinPolicies[tokenAddress] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
-            streamId_,
             tokenAddress,
+            streamId_,
             deployedPolicy,
             policyId
         );
@@ -92,8 +92,8 @@ contract JoinPolicyRegistry is Ownable {
         erc1155TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
-            streamId_,
             tokenAddress,
+            streamId_,
             deployedPolicy,
             policyId
         );
@@ -120,8 +120,8 @@ contract JoinPolicyRegistry is Ownable {
         erc721TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
-            streamId_,
             tokenAddress,
+            streamId_,
             deployedPolicy,
             policyId
         );

@@ -33,7 +33,7 @@ const signDelegatedChallenge = (
     return sign(delegatedPrivateKey, message)
 }
 use(waffle.solidity)
-describe('ERC20JoinPolicy', (): void => {
+describe('ERC721JoinPolicy', (): void => {
     const wallets = provider.getWallets()
     let token: any 
     let contract: Contract
@@ -49,6 +49,7 @@ describe('ERC20JoinPolicy', (): void => {
 
     const signerIdentity = createIdentity();
 
+    const TokenId = 1234567890
 
     before(async (): Promise<void> => {
         minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
@@ -68,27 +69,37 @@ describe('ERC20JoinPolicy', (): void => {
         // eslint-disable-next-line require-atomic-updates
         streamRegistryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
 
-        const ERC20 = await ethers.getContractFactory('TestERC20')
-        token = await ERC20.deploy()
+        const ERC721 = await ethers.getContractFactory('TestERC721')
+        token = await ERC721.deploy()
 
         await streamRegistryV3.createStream(
             streamPath,
             '{}',
         )
 
-        const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
+        const ERC721JoinPolicy = await ethers.getContractFactory('ERC721JoinPolicy', wallets[0])
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
 
-        contract = await ERC20JoinPolicy.deploy(
+        const signature = signDelegatedChallenge(
+            wallets[0].address, 
+            signerIdentity.privateKey,
+            ChallengeType.Authorize
+        )
+
+        await delegatedAccessRegistry.connect(wallets[0]).authorize(
+            signerIdentity.address,
+            signature
+        )
+
+        contract = await ERC721JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
             streamId,
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
-            1, // minRequiredBalance
             delegatedAccessRegistry.address
         )
 
@@ -101,6 +112,11 @@ describe('ERC20JoinPolicy', (): void => {
         await streamRegistryV3.getPermissionsForUser(
             streamId,
             wallets[0].address
+        )
+
+        await token.mint(
+            wallets[0].address,
+            TokenId
         )
     })
 
@@ -123,6 +139,7 @@ describe('ERC20JoinPolicy', (): void => {
             await contract.connect(wallets[1])
             .requestDelegatedJoin(
                 signerIdentity.address,
+                TokenId, // tokenId
                 {from: wallets[1].address}
             )  
         } catch (e: any){
@@ -131,24 +148,31 @@ describe('ERC20JoinPolicy', (): void => {
     })
 
     it ('should check positively that a user can request join', async () => {
-        await token.mint(wallets[1].address, BigNumber.from(1))
-        const canJoin = await contract.canJoin(wallets[1].address)
+        const canJoin = await contract.canJoin(
+            wallets[0].address,
+            TokenId 
+        )
         expect(canJoin).to.equal(true)
     })
 
     it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(wallets[2].address)   
+        const canJoin = await contract.canJoin(
+            wallets[2].address,
+            TokenId 
+        )   
         expect(canJoin).to.equal(false)
     })
 
-    it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
-        const balance = await token.balanceOf(wallets[1].address)
-        expect(balance).to.equal(BigNumber.from(1))
+    it ('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {
+        const owner = await token.ownerOf(
+            TokenId
+        )
+        expect(owner).to.equal(wallets[0].address)
 
-        await contract.connect(wallets[1])
+        await contract.connect(wallets[0])
         .requestDelegatedJoin(
             signerIdentity.address,
-            {from: wallets[1].address}
+            TokenId
         )
 
         const events = await contract.queryFilter(

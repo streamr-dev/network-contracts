@@ -87,17 +87,21 @@ describe('ERC20JoinPolicyRegistry', (): void => {
 
     })
 
-    it ('should properly exercise `registerERC20Policy`', async () => {
-        const tx = await contract.registerERC20Policy(
+    it ('should properly exercise `registerERC20Policy`', (done) => {
+        contract.on('Registered', async (
+            tokenAddress,streamId, policyAddress, policyId
+        ) => {
+            expect(tokenAddress).to.equal(erc20Token.address)
+            const deployedPolicyAddress = await contract.registeredPolicies(policyId)
+            expect(policyAddress).to.equal(deployedPolicyAddress)
+            done()
+        })
+        
+        contract.registerERC20Policy(
             erc20Token.address,
             streamId,
             1
-        )
-
-        const event: any = contract.filters.Registered(erc20Token.address)
-
-        const registeredPolicyAddress = await contract.registeredPolicies(event.topics[1])
-        expect(registeredPolicyAddress).to.equal(event.topics[0])
+        )      
     })
 
 })

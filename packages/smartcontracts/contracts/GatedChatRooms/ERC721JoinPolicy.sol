@@ -12,8 +12,8 @@ import "./DelegatedAccessRegistry.sol";
 contract TestERC721 is ERC721 {
     constructor () ERC721("TestToken", "TST") {}
 
-    function mint(address account, uint256 amount) public {
-        _mint(account, amount);
+    function mint(address account, uint256 tokenId) public {
+        _mint(account, tokenId);
     }
 }
 
