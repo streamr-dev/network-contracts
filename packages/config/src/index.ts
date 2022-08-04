@@ -34,10 +34,12 @@ interface ChainJSON {
 
 export class Chain implements ChainJSON {
     constructor(
+        public readonly name: string,
         public readonly id: number,
         public rpcEndpoints: RPCEndpoint[],
         public contracts: Contracts,
     ) {
+        this.name = name
         this.id = id
         this.rpcEndpoints = new Array<RPCEndpoint>()
         for (const rpcEndpoint of rpcEndpoints) {
@@ -48,6 +50,7 @@ export class Chain implements ChainJSON {
             this.contracts[key] = contracts[key]
         }
     }
+
     getRPCEndpointsByProtocol(protocol: RPCProtocol): RPCEndpoint[] {
         const endpoints = new Array<RPCEndpoint>()
         for (const rpcEndpoint of this.rpcEndpoints) {
@@ -62,6 +65,10 @@ export class Chain implements ChainJSON {
             }
         }
         return endpoints
+    }
+
+    toString(): string {
+        return this.name
     }
 }
 
@@ -92,7 +99,7 @@ class ChainsFactory {
             for (const key of Object.keys(chainJson.contracts)) {
                 contracts[key] = chainJson.contracts[key]
             }
-            chains[key] = new Chain(chainJson.id, rpcEndpoints, contracts)
+            chains[key] = new Chain(key, chainJson.id, rpcEndpoints, contracts)
         }
         return chains
     }
