@@ -33,4 +33,9 @@ describe("Load configuration from JSON file", () => {
         assert.equal(endpoints.length, 1)
         assert.equal(endpoints[0].url, "https://bsc-dataseed.binance.org")
     })
+    it("Chain.toString() returns the name of the chain", () => {
+        const chains: config.Chains = config.Chains.load()
+        const chain = chains["polygon"]
+        assert.equal(chain.toString(), "polygon")
+    })
 })
