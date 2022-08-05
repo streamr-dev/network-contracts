@@ -42,4 +42,63 @@ describe("Load configuration from JSON file", () => {
         const chain = new config.Chain("GNOSIS", 123, new Array<config.RPCEndpoint>(), new config.Contracts())
         assert.equal(chain.toString(), "gnosis")
     })
+    describe("Chain constructor", () => {
+        const testCases: {
+            name: string;
+            chain: {
+                name: string;
+                id: number;
+                rpcEndpoints: config.RPCEndpoint[];
+                contracts: config.Contracts;
+            };
+            expectedErrorMessage: string;
+        }[] = [
+            {
+                name: "name cannot be empty",
+                chain: {
+                    name: "",
+                    id: 0,
+                    rpcEndpoints: new Array<config.RPCEndpoint>(),
+                    contracts: new config.Contracts(),
+                },
+                expectedErrorMessage: "Chain name is required",
+            },
+            {
+                name: "id cannot be negative",
+                chain: {
+                    name: "ethereum",
+                    id: -1,
+                    rpcEndpoints: new Array<config.RPCEndpoint>(),
+                    contracts: new config.Contracts(),
+                },
+                expectedErrorMessage: "Chain ID cannot be negative",
+            },
+            {
+                name: "all good",
+                chain: {
+                    name: "ethereum",
+                    id: 1,
+                    rpcEndpoints: new Array<config.RPCEndpoint>(),
+                    contracts: new config.Contracts(),
+                },
+                expectedErrorMessage: "",
+            },
+        ]
+        testCases.forEach((tc) => {
+            it(tc.name, async () => {
+                try {
+                    new config.Chain(tc.chain.name, tc.chain.id, tc.chain.rpcEndpoints, tc.chain.contracts)
+                    if (tc.expectedErrorMessage !== "") {
+                        assert.fail("expecting error")
+                    }
+                } catch (err: any) {
+                    if (tc.expectedErrorMessage !== "") {
+                        assert.equal(err.message, tc.expectedErrorMessage)
+                    } else {
+                        assert.fail(`unexpected error: "${err}"`)
+                    }
+                }
+            })
+        })
+    })
 })

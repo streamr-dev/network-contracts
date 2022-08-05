@@ -39,7 +39,13 @@ export class Chain implements ChainJSON {
         public rpcEndpoints: RPCEndpoint[],
         public contracts: Contracts,
     ) {
+        if (name === "") {
+            throw new Error("Chain name is required")
+        }
         this.name = name
+        if (id < 0) {
+            throw new Error("Chain ID cannot be negative")
+        }
         this.id = id
         this.rpcEndpoints = new Array<RPCEndpoint>()
         for (const rpcEndpoint of rpcEndpoints) {
