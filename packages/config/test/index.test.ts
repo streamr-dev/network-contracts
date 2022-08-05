@@ -38,4 +38,8 @@ describe("Load configuration from JSON file", () => {
         const chain = chains["polygon"]
         assert.equal(chain.toString(), "polygon")
     })
+    it("Chain.toString() returns the name of the chain in lowercase", () => {
+        const chain = new config.Chain("GNOSIS", 123, new Array<config.RPCEndpoint>(), new config.Contracts())
+        assert.equal(chain.toString(), "gnosis")
+    })
 })

@@ -68,7 +68,7 @@ export class Chain implements ChainJSON {
     }
 
     toString(): string {
-        return this.name
+        return this.name.toLowerCase()
     }
 }
 
