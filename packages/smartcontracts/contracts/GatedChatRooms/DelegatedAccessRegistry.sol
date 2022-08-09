@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DelegatedAccessRegistry is Ownable {
+
     mapping(address => mapping(address => bool)) public mainToDelegatedWallets;
     mapping(address => address) private delegatedToMainWallets;
 

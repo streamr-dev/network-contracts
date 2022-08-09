@@ -6,27 +6,30 @@ const { ethers, upgrades } = hhat
 
 // localsidechain
 const chainURL = 'http://10.200.10.1:8546'
-const privKeyStreamRegistry = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const privKeyStreamRegistry = ''
 let wallet: Wallet 
+
+const DelegatedAccessRegistryAddress = '0xB3042ecFC4Ba4ef213A38B1C2541E9234a6189cc'
 
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
-async function deployERC20JoinPolicyRegistry({
+async function deployJoinPolicyRegistry({
     permissions, streamRegistryAddress
 } : {
     permissions: PermissionType[],
     streamRegistryAddress: string,
 }){
-    const ERC20JoinPolicyRegistry = await ethers.getContractFactory('ERC20JoinPolicyRegistry', wallet)
+    const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyRegistry', wallet)
 
-    const tx = await ERC20JoinPolicyRegistry.deploy(
+    const tx = await JoinPolicyRegistry.deploy(
         streamRegistryAddress,
-        permissions
+        permissions,
+        DelegatedAccessRegistryAddress
     )
 
     const instance = await tx.deployed()
 
-    console.log(`ERC20JoinPolicyRegistry deployed at ${instance.address}`)
+    console.log(`JoinPolicyRegistry deployed at ${instance.address}`)
 
 }
 
@@ -36,22 +39,20 @@ async function main() {
     console.log(`wallet address ${wallet.address}`)
     
     // streamr-docker-dev 
-     
-        await deployERC20JoinPolicyRegistry({
+        await deployJoinPolicyRegistry({
             permissions: [PermissionType.Publish, PermissionType.Subscribe],
             streamRegistryAddress: '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
         })
 
-    
 
     // Polygon Mainnet
     /*
-    await deployERC20JoinPolicyRegistry({
+    await deployJoinPolicyRegistry({
             permissions: [PermissionType.Publish, PermissionType.Subscribe],
-            streamRegistryAddress: '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-        })
+            streamRegistryAddress: '0xB3042ecFC4Ba4ef213A38B1C2541E9234a6189cc'
+        })*/
 
-*/
+
     
 
 }
