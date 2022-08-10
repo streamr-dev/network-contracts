@@ -23,7 +23,9 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
     function deductBrokersShare(uint256 dataWei) external {
         console.log("DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
+        console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().percentBrokerEarnings);
         uint256 brokersShare = dataWei * localData().percentBrokerEarnings / 100;
+        console.log("DefaultPoolYieldPolicy.deductBrokersShare sending", brokersShare);
         globalData().token.transfer(globalData().broker, brokersShare);
     }
 

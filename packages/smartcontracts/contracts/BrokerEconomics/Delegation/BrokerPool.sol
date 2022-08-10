@@ -30,6 +30,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Losses(Bounty indexed bounty, uint amountWei);
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
     event QueuedDataPayout(address user, uint amountDataWei);
+    event UnqueuedDataPayout(address user, uint amountDataWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
@@ -51,11 +52,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public debt;
     mapping(Bounty => uint) public staked;
 
-    mapping(uint => address) public payoutQueue;
-    mapping(address => uint) public queuedPayoutsDataWei;
+    struct PayoutQueueEntry {
+        address user;
+        uint amountPoolTokenWei;
+    }
+    mapping(uint => PayoutQueueEntry) public payoutQueue;
+    // answers 'how much do i have queued in total to be paid out'
+    mapping(address => uint) public queuedPayoutsPerUser;
     uint public queuedPayoutsCount;
     uint public payoutIndex;
-    // mapping(address => uint) public earnings;
 
     modifier onlyBroker() {
         require(msg.sender == globalData().broker, "error_only_broker");
@@ -196,27 +201,27 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit InvestmentReceived(investor, amountWei);
     }
 
-    function withdraw(uint amountPoolTokenWei) public {
-        // token.transferAndCall(_msgSender(), amountWei, "0x");
-        console.log("withdraw amountPoolTokenWei", amountPoolTokenWei);
-        console.log("balance msgSender ", balanceOf(_msgSender()));
-        uint256 calculatedAmountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokenWei), "error_yieldPolicyFailed");
-        console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
-        _burn(_msgSender(), amountPoolTokenWei);
-        uint poolDataBalance = globalData().token.balanceOf(address(this));
-        console.log("withdraw poolDataBalance", poolDataBalance);
-        if (calculatedAmountDataWei > poolDataBalance) {
-            queuedPayoutsWei[_msgSender()] = calculatedAmountDataWei - poolDataBalance;
-            console.log("withdraw #", calculatedAmountDataWei - poolDataBalance);
-            console.log("msgSender", _msgSender(), "queuedPayoutsWei", queuedPayoutsWei[_msgSender()]);
-            calculatedAmountDataWei = poolDataBalance;
-        }
-        console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
-        globalData().token.transfer(_msgSender(), calculatedAmountDataWei);
-        emit InvestmentReturned(_msgSender(), calculatedAmountDataWei);
-        // unallocatedWei -= amountWei;
-    }
+    // function withdraw(uint amountPoolTokenWei) public {
+    //     // token.transferAndCall(_msgSender(), amountWei, "0x");
+    //     console.log("withdraw amountPoolTokenWei", amountPoolTokenWei);
+    //     console.log("balance msgSender ", balanceOf(_msgSender()));
+    //     uint256 calculatedAmountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+    //         amountPoolTokenWei), "error_yieldPolicyFailed");
+    //     console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
+    //     _burn(_msgSender(), amountPoolTokenWei);
+    //     uint poolDataBalance = globalData().token.balanceOf(address(this));
+    //     console.log("withdraw poolDataBalance", poolDataBalance);
+    //     if (calculatedAmountDataWei > poolDataBalance) {
+    //         queuedPayoutsDataWei[_msgSender()] = calculatedAmountDataWei - poolDataBalance;
+    //         console.log("withdraw #", calculatedAmountDataWei - poolDataBalance);
+    //         console.log("msgSender", _msgSender(), "queuedPayoutsWei", queuedPayoutsDataWei[_msgSender()]);
+    //         calculatedAmountDataWei = poolDataBalance;
+    //     }
+    //     console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
+    //     globalData().token.transfer(_msgSender(), calculatedAmountDataWei);
+    //     emit InvestmentReturned(_msgSender(), calculatedAmountDataWei);
+    //     // unallocatedWei -= amountWei;
+    // }
 
     /////////////////////////////////////////
     // BROKER FUNCTIONS
@@ -224,6 +229,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
         // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
+        console.log("stake amountWei", amountWei);
+        console.log("stake balanceOf this", globalData().token.balanceOf(address(this)));
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         staked[bounty] += amountWei;
@@ -270,34 +277,72 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         console.log("withdrawWinnings winnings", winnings);
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
             winnings), "error_yieldPolicy_deductBrokersPart_Failed");
+        payOutQueueWithFreeFunds();
+    }
+
+    function payOutQueueWithFreeFunds() internal {
+        while (globalData().token.balanceOf(address(this)) > 0 && queuedPayoutsCount - payoutIndex > 0) {
+            uint amountPoolTokens = payoutQueue[payoutIndex].amountPoolTokenWei;
+            address user = payoutQueue[payoutIndex].user;
+            console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
+            uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+                amountPoolTokens), "error_yieldPolicy_pooltokenToData_Failed");
+            console.log("payOutQueueWithFreeFunds amountDataWei", amountDataWei);
+            console.log("payOutQueueWithFreeFunds balanceBefore", globalData().token.balanceOf(address(this)));
+            if (globalData().token.balanceOf(address(this)) >= amountDataWei) {
+                // whole amountDataWei is paid out
+                console.log("payOutQueueWithFreeFunds whole amountDataWei");
+                queuedPayoutsPerUser[user] -= amountPoolTokens;
+                payoutIndex++;
+                globalData().token.transfer(user, amountDataWei);
+                emit InvestmentReturned(user, amountDataWei);
+            } else {
+                // partial amountDataWei is paid out
+                // TODO make shorter, optimize memory usage
+                uint256 partialAmountDataWei = globalData().token.balanceOf(address(this));
+                console.log("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
+                // uint256 remainingAmountDataWei = amountDataWei - partialAmountDataWei;
+                uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
+                    partialAmountDataWei), "error_yieldPolicy_dataToPooltoken_Failed");
+                queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
+                PayoutQueueEntry memory oldEntry = payoutQueue[payoutIndex];
+                payoutQueue[payoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens);
+                _burn(address(this), partialAmountPoolTokens);
+                globalData().token.transfer(user, partialAmountDataWei);
+                emit InvestmentReturned(user, partialAmountDataWei);
+            }
+        }
     }
 
     function getQueuedDataPayout() public view returns (uint256 amountDataWei) {
-        return queuedPayoutsDataWei[_msgSender()];
+        return queuedPayoutsPerUser[_msgSender()];
     }
 
-    function getWithdrawableData() public view returns (uint256 amountDataWei) {
+    function getMyBalanceInData() public view returns (uint256 amountDataWei) {
         uint poolTokenBalance = balanceOf(_msgSender());
-        return moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance), "error_getWithdrawableData_Failed");
+        return moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance), "error_pooltokenToData_Failed");
     }
 
     function queueDataPayout(uint amountPoolTokenWei) external {
         require(amountPoolTokenWei > 0, "error_payout_amount_zero");
-        require(balanceOf(_msgSender()) > 0, "error_notPoolTokens");
-        uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
-        _burn(_msgSender(), amountPoolTokenWei);
-        queuedPayoutsDataWei[_msgSender()] += amountDataWei;
-        payoutQueue[payoutIndex] = _msgSender();
-        payoutIndex++;
-        emit QueuedDataPayout(_msgSender(), amountDataWei);
+        // require(balanceOf(_msgSender()) >= amountPoolTokenWei, "error_noEnoughPoolTokens");
+        console.log("queueDataPayout amountPoolTokenWei", amountPoolTokenWei);
+        _transfer(_msgSender(), address(this), amountPoolTokenWei);
+        // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+        //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
+        // _burn(_msgSender(), amountPoolTokenWei);
+        queuedPayoutsPerUser[_msgSender()] += amountPoolTokenWei;
+        payoutQueue[payoutIndex] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei);
+        queuedPayoutsCount++;
+        payOutQueueWithFreeFunds();
+        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
     }
 
-    function unqueueDataPayout(uint amountDataWei) external {
-        require(amountDataWei > 0, "error_payout_amount_zero");
-        require(queuedPayoutsDataWei[_msgSender()] >= amountDataWei, "error_notEnoughData");
-        queuedPayoutsDataWei[_msgSender()] -= amountDataWei;
-        _mint(_msgSender(), amountDataWei);
-        emit UnqueuedDataPayout(_msgSender(), amountDataWei);
-    }
+    // function unqueueDataPayout(uint amountDataWei) external {
+    //     require(amountDataWei > 0, "error_payout_amount_zero");
+    //     require(queuedPayoutsDataWei[_msgSender()] >= amountDataWei, "error_notEnoughData");
+    //     queuedPayoutsDataWei[_msgSender()] -= amountDataWei;
+    //     _mint(_msgSender(), amountDataWei);
+    //     emit UnqueuedDataPayout(_msgSender(), amountDataWei);
+    // }
 }
