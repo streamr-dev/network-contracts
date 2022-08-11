@@ -59,8 +59,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(uint => PayoutQueueEntry) public payoutQueue;
     // answers 'how much do i have queued in total to be paid out'
     mapping(address => uint) public queuedPayoutsPerUser;
-    uint public queuedPayoutsCount;
-    uint public payoutIndex;
+    uint public queueLength;
+    uint public queuePayoutIndex;
 
     modifier onlyBroker() {
         require(msg.sender == globalData().broker, "error_only_broker");
@@ -281,9 +281,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function payOutQueueWithFreeFunds() internal {
-        while (globalData().token.balanceOf(address(this)) > 0 && queuedPayoutsCount - payoutIndex > 0) {
-            uint amountPoolTokens = payoutQueue[payoutIndex].amountPoolTokenWei;
-            address user = payoutQueue[payoutIndex].user;
+        // logging out queue
+        uint i = queuePayoutIndex;
+        while (i <= queueLength) {
+            console.log("# queuePrint", i, payoutQueue[i].user, payoutQueue[i].amountPoolTokenWei);
+            i++;
+        }
+
+        while (globalData().token.balanceOf(address(this)) > 0 && queueLength - queuePayoutIndex > 0) {
+            uint amountPoolTokens = payoutQueue[queuePayoutIndex].amountPoolTokenWei;
+            address user = payoutQueue[queuePayoutIndex].user;
             console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
             uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
                 amountPoolTokens), "error_yieldPolicy_pooltokenToData_Failed");
@@ -293,7 +300,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 // whole amountDataWei is paid out
                 console.log("payOutQueueWithFreeFunds whole amountDataWei");
                 queuedPayoutsPerUser[user] -= amountPoolTokens;
-                payoutIndex++;
+                queuePayoutIndex++;
                 globalData().token.transfer(user, amountDataWei);
                 emit InvestmentReturned(user, amountDataWei);
             } else {
@@ -305,8 +312,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                     partialAmountDataWei), "error_yieldPolicy_dataToPooltoken_Failed");
                 queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
-                PayoutQueueEntry memory oldEntry = payoutQueue[payoutIndex];
-                payoutQueue[payoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens);
+                PayoutQueueEntry memory oldEntry = payoutQueue[queuePayoutIndex];
+                payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens);
                 _burn(address(this), partialAmountPoolTokens);
                 globalData().token.transfer(user, partialAmountDataWei);
                 emit InvestmentReturned(user, partialAmountDataWei);
@@ -332,8 +339,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
         // _burn(_msgSender(), amountPoolTokenWei);
         queuedPayoutsPerUser[_msgSender()] += amountPoolTokenWei;
-        payoutQueue[payoutIndex] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei);
-        queuedPayoutsCount++;
+        payoutQueue[queueLength] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei);
+        queueLength++;
         payOutQueueWithFreeFunds();
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
     }

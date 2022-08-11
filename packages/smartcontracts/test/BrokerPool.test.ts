@@ -115,7 +115,7 @@ describe.only("BrokerPool", (): void => {
     })
 
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
-    it.only("revenue sharing szenario", async function(): Promise<void> {
+    it("revenue sharing szenario", async function(): Promise<void> {
         const { token: dataToken } = contracts
         const balanceInvestorBefore = await dataToken.balanceOf(investor.address)
         // 1
@@ -152,8 +152,10 @@ describe.only("BrokerPool", (): void => {
         // investor has 5 still staked, was able to withdraw 20
         expect(balanceInvestorAfter).to.equal(balanceInvestorBefore.
             add(parseEther("20").sub(parseEther("5"))))
+        // poolvalue is 5stake + 20 = 25; total of 5 pooltoken exist
+        // pool can pay out 20 = 4 pooltoken, 1 will still be staked
         const investorQueuedPayout = await pool.connect(investor).getQueuedDataPayout()
-        expect(investorQueuedPayout).to.equal(parseEther("5"))
+        expect(investorQueuedPayout).to.equal(parseEther("1"))
     })
 
     it("1 queue entry, is payed out full on winnings withdraw from bounty", async function(): Promise<void> {
@@ -211,17 +213,17 @@ describe.only("BrokerPool", (): void => {
         // 800 can be payed out
         // poolvalue is 1000 stake + 800 winnings = 1800, 1 PT worth 1.8 DATA
         // PT worth 800 DATA = 800/1.8 = 444.444444444 PT
-        // 1000 - 444.444444444 PT = 555.5555555556 PT
+        // 1000 - 444.444444444... PT = 555.5555555...556 PT
         const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther("800"))
         const balanceAfter = await token.balanceOf(investor.address)
         expect(balanceAfter).to.equal(expectedBalance)
 
         const investorQueuedPayoutAfter = await pool.connect(investor).getQueuedDataPayout()
-        expect(investorQueuedPayoutAfter).to.equal(parseEther("555555555555555555556"))
+        expect(investorQueuedPayoutAfter.toString()).to.equal("555555555555555555556")
 
     })
 
-    it("multiple queue places, before and after withdrawwinnings from bounty", async function(): Promise<void> {
+    it("multiple queue places, before and after withdraw winnings from bounty", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
         const balanceBefore = await token.balanceOf(investor.address)
@@ -245,10 +247,12 @@ describe.only("BrokerPool", (): void => {
         // TODO: enable next line
         await pool.connect(investor).queueDataPayout(parseEther("100"))
         // now queue should have been paid out from winnings
-        // should equal balance before - 1000 (stake still staked) + 1000 (yield)
-        expect (await token.balanceOf(investor.address)).to.equal(balanceBefore)
+        // should equal balance before - 1000 (stake still staked) + 8000 (yield)
+        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther("800"))
+        const balanceAfter = await token.balanceOf(investor.address)
+        expect(balanceAfter).to.equal(expectedBalance)
+
+        const investorQueuedPayoutAfter = await pool.connect(investor).getQueuedDataPayout()
+        expect(investorQueuedPayoutAfter.toString()).to.equal("555555555555555555556")
     })
 })
-
-// 999000 000000000000000000
-//   1000 000000000000000000
