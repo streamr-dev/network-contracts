@@ -1,5 +1,4 @@
 #!/bin/bash -eux
-npm run clean
 cd `dirname $0`
 LOG=smartContractInit.log
 
