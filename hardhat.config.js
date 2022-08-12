@@ -44,6 +44,11 @@ module.exports = {
             url: 'http://localhost:8546',
             accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
         },
+        localmainchain: {
+            chainId: 8995,
+            url: 'http://localhost:8995',
+            accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
+        },
         polygonTestMumbai1: {
             chainId: 80001,
             url: 'https://rpc-mumbai.maticvigil.com',

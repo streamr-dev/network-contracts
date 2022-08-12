@@ -44,6 +44,11 @@ module.exports = {
             url: 'http://10.200.10.1:8546',
             accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
         },
+        localmainchain: {
+            chainId: 8995,
+            url: "http://localhost:8545",
+            accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
+        },
         polygonTestMumbai1: {
             chainId: 80001,
             url: 'https://rpc-mumbai.maticvigil.com',
@@ -68,7 +73,8 @@ module.exports = {
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
-            'docker-dev-chain-init/ethereumContractSouces/MarketplaceV3.sol'
+            'docker-dev-chain-init/ethereumContractSouces/MarketplaceV3.sol',
+            'docker-dev-chain-init/ethereumContractSouces/Uniswap2AdapterForMarketplaceV3.sol'
         ],
     },
     solidity: {

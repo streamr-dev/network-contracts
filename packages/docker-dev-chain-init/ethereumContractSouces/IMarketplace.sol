@@ -24,8 +24,15 @@ interface IMarketplace {
         uint minimumSubscriptionSeconds
     ) external;
 
-    function getStablecoinAddress() external view returns (address);
-    function setStablecoinAddress(address _stablecoin) external;
+    function ownerCreateProduct(
+        bytes32 id,
+        string memory name,
+        address beneficiary,
+        uint pricePerSecond,
+        address pricingToken,
+        uint minimumSubscriptionSeconds,
+        address productOwner
+    ) external;
 
     // product events
     event ProductCreated(address indexed owner, bytes32 indexed id, string name, address beneficiary, uint pricePerSecond, address pricingTokenAddress, uint minimumSubscriptionSeconds);

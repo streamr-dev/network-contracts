@@ -47,9 +47,6 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     /** fraction of the purchase revenue that goes to marketplace.owner (1e18 means 100%) */
     uint256 public txFee;
 
-    /** Stablecoin for the USD pricing of products */
-    address public stablecoin;
-
 	/** Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address. */
 	address public pendingOwner;
 
@@ -77,22 +74,10 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         __Ownable_init();
         __UUPSUpgradeable_init();
 
-        // USDC in Ethereum mainnet, owner can change it with setStablecoinAddress
-        stablecoin = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
         halted = false;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    ////////////////// USD price peg /////////////////
-
-    function getStablecoinAddress() public view returns (address) {
-        return stablecoin;
-    }
-
-    function setStablecoinAddress(address _stablecoin) public onlyOwner {
-        stablecoin = _stablecoin;
-    }
 
     ////////////////// Product management /////////////////
 
@@ -125,16 +110,16 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     }
 
     function createProduct(bytes32 id, string memory name, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds) public whenNotHalted {
-        _createProduct(id, name, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, false);
+        _createProduct(id, name, msg.sender, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, false);
     }
 
     function createProductWithWhitelist(bytes32 id, string memory name, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds) public whenNotHalted {
-        _createProduct(id, name, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, true);
+        _createProduct(id, name, msg.sender, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, true);
         emit WhitelistEnabled(id);
     }
 
 
-    function _createProduct(bytes32 id, string memory name, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, bool requiresWhitelist) internal {
+    function _createProduct(bytes32 id, string memory name, address productOwner, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, bool requiresWhitelist) internal {
         require(id != 0x0, "error_nullProductId");
         require(pricePerSecond > 0, "error_freeProductsNotSupported");
         (,address _owner,,,,,,) = getProduct(id);
@@ -142,7 +127,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         Product storage p = products[id];
         p.id = id;
         p.name = name;
-        p.owner = msg.sender;
+        p.owner = productOwner;
         p.beneficiary = beneficiary;
         p.pricePerSecond = pricePerSecond;
         p.pricingTokenAddress = pricingToken;
@@ -151,7 +136,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         p.newOwnerCandidate = address(0);
         p.requiresWhitelist = requiresWhitelist;
 
-        emit ProductCreated(msg.sender, id, name, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds);
+        emit ProductCreated(productOwner, id, name, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds);
     }
 
     /**
@@ -421,5 +406,13 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         require(newTxFee <= 1 ether, "error_invalidTxFee");
         txFee = newTxFee;
         emit TxFeeChanged(txFee);
+    }
+
+    /**
+     * Allow the marketplace owner to create products for others.
+     * This enables the marketplace owner to (manually) migrate products from old (mainnet) Marketplace to the new one(s).
+     */
+    function ownerCreateProduct(bytes32 id, string memory name, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, address productOwner) public onlyOwner{
+        _createProduct(id, name, productOwner, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, false);
     }
 }

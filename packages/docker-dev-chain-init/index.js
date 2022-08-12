@@ -4,7 +4,7 @@ const { ethers, upgrades } = require('hardhat')
 const {
     Contract,
     ContractFactory,
-    utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
+    utils: {computeAddress, parseEther, formatEther, hexlify, namehash, id, bigNumberify, zeroPad, toUtf8Bytes},
     constants: {MaxUint256},
     Wallet,
     providers: {JsonRpcProvider}
@@ -51,7 +51,8 @@ const chainURL = process.env.CHAIN_URL || "http://10.200.10.1:8545"
 const sidechainURL = process.env.SIDECHAIN_URL || "http://10.200.10.1:8546"
 
 // const streamrUrl = process.env.EE_URL || "http://10.200.10.1:8081/streamr-core" // production: "https://www.streamr.com"
-const log = require("debug")("eth-init")
+// const log = require("debug")("eth-init")
+const { log } = console // TODO: use pino for logging?
 const futureTime = 4449513600
 
 // DATAv1 token supply before the upgrade (real mainnet number)
@@ -289,7 +290,9 @@ async function deployStreamRegistries() {
 }
 
 async function smartContractInitialization() {
+    // mainchain
     const wallet = await ethersWallet(chainURL, defaultPrivateKey)
+    // sidechain
     const sidechainWallet = await ethersWallet(sidechainURL, defaultPrivateKey)
 
     // log(`Deploying test DATAv2 from ${wallet.address}`)
@@ -304,35 +307,35 @@ async function smartContractInitialization() {
     const token = await tokenDeployTx.deployed()
     log(`New DATAv2 ERC20 deployed at ${token.address}`)
 
-    // log(`Deploying Marketplace1 contract from ${wallet.address}`)
-    const marketDeployer1 = new ContractFactory(MarketplaceJson.abi, MarketplaceJson.bytecode, wallet)
-    const marketDeployTx1 = await marketDeployer1.deploy(token.address, wallet.address)
-    const market1 = await marketDeployTx1.deployed()
-    log(`Marketplace1 deployed at ${market1.address}`)
+    // // log(`Deploying Marketplace1 contract from ${wallet.address}`)
+    // const marketDeployer1 = new ContractFactory(MarketplaceJson.abi, MarketplaceJson.bytecode, wallet)
+    // const marketDeployTx1 = await marketDeployer1.deploy(token.address, wallet.address)
+    // const market1 = await marketDeployTx1.deployed()
+    // log(`Marketplace1 deployed at ${market1.address}`)
 
-    // log(`Deploying Marketplace2 contract from ${wallet.address}`)
-    const marketDeployer2 = new ContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, wallet)
-    const marketDeployTx2 = await marketDeployer2.deploy(token.address, wallet.address, market1.address)
-    const market = await marketDeployTx2.deployed()
-    log(`Marketplace2 deployed at ${market.address}`)
+    // // log(`Deploying Marketplace2 contract from ${wallet.address}`)
+    // const marketDeployer2 = new ContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, wallet)
+    // const marketDeployTx2 = await marketDeployer2.deploy(token.address, wallet.address, market1.address)
+    // const market = await marketDeployTx2.deployed()
+    // log(`Marketplace2 deployed at ${market.address}`)
 
-    // log(`Deploying Uniswap Factory contract from ${wallet.address}`)
+    log(`Deploying Uniswap Factory contract from ${wallet.address}`)
     const uniswapFactoryDeployer = new ContractFactory(uniswap_factory_abi, uniswap_factory_bytecode, wallet)
     const uniswapFactoryDeployTx = await uniswapFactoryDeployer.deploy()
     const uniswapFactory = await uniswapFactoryDeployTx.deployed()
     log(`Uniswap factory deployed at ${uniswapFactory.address}`)
 
-    // log(`Deploying Uniswap Exchange template contract from ${wallet.address}`)
-    const uniswapExchangeDeployer = new ContractFactory(uniswap_exchange_abi, uniswap_exchange_bytecode, wallet)
-    const uniswapExchangeDeployTx = await uniswapExchangeDeployer.deploy()
-    const uniswapExchangeTemplate = await uniswapExchangeDeployTx.deployed()
-    log(`Uniswap exchange template deployed at ${uniswapExchangeTemplate.address}`)
+    // // log(`Deploying Uniswap Exchange template contract from ${wallet.address}`)
+    // const uniswapExchangeDeployer = new ContractFactory(uniswap_exchange_abi, uniswap_exchange_bytecode, wallet)
+    // const uniswapExchangeDeployTx = await uniswapExchangeDeployer.deploy()
+    // const uniswapExchangeTemplate = await uniswapExchangeDeployTx.deployed()
+    // log(`Uniswap exchange template deployed at ${uniswapExchangeTemplate.address}`)
 
-    // log(`Deploying UniswapAdaptor contract from ${wallet.address}`)
-    const uniswapAdaptorDeployer = new ContractFactory(UniswapAdaptor.abi, UniswapAdaptor.bytecode, wallet)
-    const uniswapAdaptorDeployTx = await uniswapAdaptorDeployer.deploy(market.address, uniswapFactory.address, token.address)
-    const uniswapAdaptor = await uniswapAdaptorDeployTx.deployed()
-    log(`UniswapAdaptor deployed at ${uniswapAdaptor.address}`)
+    // // log(`Deploying UniswapAdaptor contract from ${wallet.address}`)
+    // const uniswapAdaptorDeployer = new ContractFactory(UniswapAdaptor.abi, UniswapAdaptor.bytecode, wallet)
+    // const uniswapAdaptorDeployTx = await uniswapAdaptorDeployer.deploy(market.addrxess, uniswapFactory.address, token.address)
+    // const uniswapAdaptor = await uniswapAdaptorDeployTx.deployed()
+    // log(`UniswapAdaptor deployed at ${uniswapAdaptor.address}`)
 
     //another ERC20 that's not datacoin for testing buy with Uniswap
     // log(`Deploying test OTHERcoin from ${wallet.address}`)
@@ -340,6 +343,7 @@ async function smartContractInitialization() {
     const tokenDeployTx2 = await tokenDeployer2.deploy("Test OTHERcoin", "COIN")
     const token2 = await tokenDeployTx2.deployed()
     log(`Test OTHERcoin deployed at ${token2.address}`)
+    log(`   - tokens (${token2.address}) to owner (${wallet.address}): ${await token2.balanceOf(wallet.address)}`)
 
     //Note: TestToken contract automatically mints 100000 to owner
 
@@ -353,20 +357,20 @@ async function smartContractInitialization() {
         await token.mint(address, mintTokenAmount)
     }
 
-    log("Init Uniswap1 factory")
-    await uniswapFactory.initializeFactory(uniswapExchangeTemplate.address)
-    log(`Init Uniswap1 exchange for DATAcoin token ${token.address}`)
-    await uniswapFactory.createExchange(token.address, {gasLimit: 6000000})
-    log(`Init Uniswap1 exchange for OTHERcoin token ${token2.address}`)
-    const uniswapTx = await uniswapFactory.createExchange(token2.address, {gasLimit: 6000000})
-    await uniswapTx.wait() // need wait here to call read methods below
+    // log("Init Uniswap1 factory")
+    // await uniswapFactory.initializeFactory(uniswapExchangeTemplate.address)
+    // log(`Init Uniswap1 exchange for DATAcoin token ${token.address}`)
+    // await uniswapFactory.createExchange(token.address, {gasLimit: 6000000})
+    // log(`Init Uniswap1 exchange for OTHERcoin token ${token2.address}`)
+    // const uniswapTx = await uniswapFactory.createExchange(token2.address, {gasLimit: 6000000})
+    // await uniswapTx.wait() // need wait here to call read methods below
 
-    let datatoken_exchange_address = await uniswapFactory.getExchange(token.address)
-    log(`DATAcoin traded at Uniswap1 exchange ${datatoken_exchange_address}`)
-    let othertoken_exchange_address = await uniswapFactory.getExchange(token2.address)
-    log(`OTHERcoin traded at Uniswap1 exchange ${othertoken_exchange_address}`)
-    let datatokenExchange = new Contract(datatoken_exchange_address, uniswap_exchange_abi, wallet)
-    let othertokenExchange = new Contract(othertoken_exchange_address, uniswap_exchange_abi, wallet)
+    // let datatoken_exchange_address = await uniswapFactory.getExchange(token.address)
+    // log(`DATAcoin traded at Uniswap1 exchange ${datatoken_exchange_address}`)
+    // let othertoken_exchange_address = await uniswapFactory.getExchange(token2.address)
+    // log(`OTHERcoin traded at Uniswap1 exchange ${othertoken_exchange_address}`)
+    // let datatokenExchange = new Contract(datatoken_exchange_address, uniswap_exchange_abi, wallet)
+    // let othertokenExchange = new Contract(othertoken_exchange_address, uniswap_exchange_abi, wallet)
 
     // wallet starts with 1000 ETH and 100000 of each token
     // add 10 ETH liquidity to tokens, set initial exchange rates
@@ -374,118 +378,140 @@ async function smartContractInitialization() {
     let amt_token = parseEther("1000") // 1 ETH ~= 10 DATAcoin
     let amt_token2 = parseEther("10000") // 1 ETH ~= 100 OTHERcoin
 
-    await token.approve(datatoken_exchange_address, amt_token)
-    await token2.approve(othertoken_exchange_address, amt_token2)
+    // await token.approve(datatoken_exchange_address, amt_token)
+    // await token2.approve(othertoken_exchange_address, amt_token2)
 
-    await datatokenExchange.addLiquidity(amt_token, amt_token, futureTime, {gasLimit: 6000000, value: amt_eth})
-    await othertokenExchange.addLiquidity(amt_token2, amt_token2, futureTime, {gasLimit: 6000000, value: amt_eth})
+    // await datatokenExchange.addLiquidity(amt_token, amt_token, futureTime, {gasLimit: 6000000, value: amt_eth})
+    // await othertokenExchange.addLiquidity(amt_token2, amt_token2, futureTime, {gasLimit: 6000000, value: amt_eth})
 
-    log(`Added liquidity to uniswap exchanges: ${formatEther(amt_token)} DATAcoin, ${formatEther(amt_token2)} OTHERcoin`)
+    // log(`Added liquidity to uniswap exchanges: ${formatEther(amt_token)} DATAcoin, ${formatEther(amt_token2)} OTHERcoin`)
 
-    log(`Deploying NodeRegistry contract 1 (tracker registry) from ${wallet.address}`)
-    let initialNodes = []
-    let initialMetadata = []
-    initialNodes.push('0xb9e7cEBF7b03AE26458E32a059488386b05798e8')
-    initialMetadata.push('{"ws": "ws://10.200.10.1:30301", "http": "http://10.200.10.1:30301"}')
-    initialNodes.push('0x0540A3e144cdD81F402e7772C76a5808B71d2d30')
-    initialMetadata.push('{"ws": "ws://10.200.10.1:30302", "http": "http://10.200.10.1:30302"}')
-    initialNodes.push('0xf2C195bE194a2C91e93Eacb1d6d55a00552a85E2')
-    initialMetadata.push('{"ws": "ws://10.200.10.1:30303", "http": "http://10.200.10.1:30303"}')
-    //1st NodeRegistry deployed here. 2nd below
-    await deployNodeRegistry(wallet, initialNodes, initialMetadata)
+    // log(`Deploying NodeRegistry contract 1 (tracker registry) from ${wallet.address}`)
+    // let initialNodes = []
+    // let initialMetadata = []
+    // initialNodes.push('0xb9e7cEBF7b03AE26458E32a059488386b05798e8')
+    // initialMetadata.push('{"ws": "ws://10.200.10.1:30301", "http": "http://10.200.10.1:30301"}')
+    // initialNodes.push('0x0540A3e144cdD81F402e7772C76a5808B71d2d30')
+    // initialMetadata.push('{"ws": "ws://10.200.10.1:30302", "http": "http://10.200.10.1:30302"}')
+    // initialNodes.push('0xf2C195bE194a2C91e93Eacb1d6d55a00552a85E2')
+    // initialMetadata.push('{"ws": "ws://10.200.10.1:30303", "http": "http://10.200.10.1:30303"}')
+    // //1st NodeRegistry deployed here. 2nd below
+    // await deployNodeRegistry(wallet, initialNodes, initialMetadata)
 
-    const ethwei = parseEther("1")
-    let rate = await datatokenExchange.getTokenToEthInputPrice(ethwei)
-    log(`1 DATAtoken buys ${formatEther(rate)} ETH`)
-    rate = await othertokenExchange.getTokenToEthInputPrice(ethwei)
-    log(`1 OTHERtoken buys ${formatEther(rate)} ETH`)
+    // const ethwei = parseEther("1")
+    // let rate = await datatokenExchange.getTokenToEthInputPrice(ethwei)
+    // log(`1 DATAtoken buys ${formatEther(rate)} ETH`)
+    // rate = await othertokenExchange.getTokenToEthInputPrice(ethwei)
+    // log(`1 OTHERtoken buys ${formatEther(rate)} ETH`)
 
-    //deployment steps based on https://github.com/ensdomains/ens/blob/2a6785c3b5fc27269eb3bb18b9d1245d1f01d6c8/migrations/2_deploy_contracts.js#L30
-    log("Deploying ENS")
-    const ensDeploy = new ContractFactory(ENSRegistry.abi, ENSRegistry.bytecode, wallet)
-    const ensDeployTx = await ensDeploy.deploy()
-    const ens = await ensDeployTx.deployed()
-    log(`ENS deployed at ${ens.address}`)
-    const rootNode = getRootNodeFromTLD('eth')
-    log("Deploying FIFSRegistrar")
-    const fifsDeploy = new ContractFactory(FIFSRegistrar.abi, FIFSRegistrar.bytecode, wallet)
-    const fifsDeployTx = await fifsDeploy.deploy(ens.address, rootNode.namehash)
-    const fifs = await fifsDeployTx.deployed()
-    log(`FIFSRegistrar deployed at ${fifs.address}`)
-    let tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
-    await tx.wait()
-    const resDeploy = new ContractFactory(PublicResolver.abi, PublicResolver.bytecode, wallet)
-    const resDeployTx = await resDeploy.deploy(ens.address)
-    const resolver = await resDeployTx.deployed()
-    log(`PublicResolver deployed at ${resolver.address}`)
+    // //deployment steps based on https://github.com/ensdomains/ens/blob/2a6785c3b5fc27269eb3bb18b9d1245d1f01d6c8/migrations/2_deploy_contracts.js#L30
+    // log("Deploying ENS")
+    // const ensDeploy = new ContractFactory(ENSRegistry.abi, ENSRegistry.bytecode, wallet)
+    // const ensDeployTx = await ensDeploy.deploy()
+    // const ens = await ensDeployTx.deployed()
+    // log(`ENS deployed at ${ens.address}`)
+    // const rootNode = getRootNodeFromTLD('eth')
+    // log("Deploying FIFSRegistrar")
+    // const fifsDeploy = new ContractFactory(FIFSRegistrar.abi, FIFSRegistrar.bytecode, wallet)
+    // const fifsDeployTx = await fifsDeploy.deploy(ens.address, rootNode.namehash)
+    // const fifs = await fifsDeployTx.deployed()
+    // log(`FIFSRegistrar deployed at ${fifs.address}`)
+    // let tx = await ens.setSubnodeOwner('0x0000000000000000000000000000000000000000000000000000000000000000', rootNode.sha3, fifs.address)
+    // await tx.wait()
+    // const resDeploy = new ContractFactory(PublicResolver.abi, PublicResolver.bytecode, wallet)
+    // const resDeployTx = await resDeploy.deploy(ens.address)
+    // const resolver = await resDeployTx.deployed()
+    // log(`PublicResolver deployed at ${resolver.address}`)
 
-    const domains = ['testdomain1', 'testdomain2']
-    const addresses = ['0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0', '0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB']
-    for (var i = 0; i < domains.length; i++){
-        const domain = domains[i]
-        const owner = wallet.address
-        const domainAddress = addresses[i]
-        const fullname = domain + ".eth"
-        const fullhash = namehash(fullname)
+    // const domains = ['testdomain1', 'testdomain2']
+    // const addresses = ['0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0', '0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB']
+    // for (var i = 0; i < domains.length; i++){
+    //     const domain = domains[i]
+    //     const owner = wallet.address
+    //     const domainAddress = addresses[i]
+    //     const fullname = domain + ".eth"
+    //     const fullhash = namehash(fullname)
 
-        log(`setting up ENS domain ${domain} with owner ${owner}, pointing to address ${domainAddress}`)
-        tx = await fifs.register(Web3.utils.sha3(domain), owner)
-        tr = await tx.wait()
-        log(`called regsiter`)
+    //     log(`setting up ENS domain ${domain} with owner ${owner}, pointing to address ${domainAddress}`)
+    //     tx = await fifs.register(Web3.utils.sha3(domain), owner)
+    //     tr = await tx.wait()
+    //     log(`called regsiter`)
 
-        tx = await ens.setResolver(fullhash, resolver.address)
-        tr = await tx.wait()
-        log('called setResolver')
+    //     tx = await ens.setResolver(fullhash, resolver.address)
+    //     tr = await tx.wait()
+    //     log('called setResolver')
 
-        //Ethers wont call the 2-arg setAddr. 60 is default = COIN_TYPE_ETH.
-        //see https://github.com/ensdomains/resolvers/blob/master/contracts/profiles/AddrResolver.sol
-        tx = await resolver.setAddr(fullhash, 60, domainAddress)
-        tr = await tx.wait()
-        log(`called setAddr. done registering ${fullname} as ${domainAddress}`)
+    //     //Ethers wont call the 2-arg setAddr. 60 is default = COIN_TYPE_ETH.
+    //     //see https://github.com/ensdomains/resolvers/blob/master/contracts/profiles/AddrResolver.sol
+    //     tx = await resolver.setAddr(fullhash, 60, domainAddress)
+    //     tr = await tx.wait()
+    //     log(`called setAddr. done registering ${fullname} as ${domainAddress}`)
 
-        //transfer ownership
-        tx = await ens.setOwner(fullhash, addresses[i])
-        tr = await tx.wait()
-        log(`transferred ownership to ${addresses[i]}`)
-    }
-    log("ENS init complete")
+    //     //transfer ownership
+    //     tx = await ens.setOwner(fullhash, addresses[i])
+    //     tr = await tx.wait()
+    //     log(`transferred ownership to ${addresses[i]}`)
+    // }
+    // log("ENS init complete")
 
-    // deploy 2nd NodeRegistry:
-    // TODO remove this node registry deployment
-    // this is not used any more, but still needs to be here because otherwise all following addresses would change
-    // currently used ones is in deployRegistries() and is deployed proxified
-    log(`Deploying OLD UNUSED NodeRegistry contract 2 (storage node registry) to sidechain from ${sidechainWallet.address}`)
-    initialNodes = []
-    initialMetadata = []
-    initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
-    await deployNodeRegistry(sidechainWallet, initialNodes, initialMetadata)
+    // // deploy 2nd NodeRegistry:
+    // // TODO remove this node registry deployment
+    // // this is not used any more, but still needs to be here because otherwise all following addresses would change
+    // // currently used ones is in deployRegistries() and is deployed proxified
+    // log(`Deploying OLD UNUSED NodeRegistry contract 2 (storage node registry) to sidechain from ${sidechainWallet.address}`)
+    // initialNodes = []
+    // initialMetadata = []
+    // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
+    // initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
+    // await deployNodeRegistry(sidechainWallet, initialNodes, initialMetadata)
 
     log(`deploy Uniswap2 mainnet`)
     const router = await deployUniswap2(wallet)
-    log(`deploy Uniswap2 sidechain`)
-    const uniswapRouterSidechain = await deployUniswap2(sidechainWallet)
+    // log(`deploy Uniswap2 sidechain`)
+    // const uniswapRouterSidechain = await deployUniswap2(sidechainWallet)
 
-    tx = await token.approve(router.address, amt_token)
+    let tx = await token.approve(router.address, amt_token)
     //await tx.wait()
     tx = await token2.approve(router.address, amt_token2)
     await tx.wait()
     log(`addLiquidity Uniswap2 mainnet`)
     tx = await router.addLiquidity(token.address, token2.address, amt_token, amt_token2, 0, 0, wallet.address, futureTime)
+    await tx.wait()
+    
+    /*
+    const tokenIn = 50
+    const amountsOut = await router.getAmountsOut(tokenIn, [token.address, token2.address])
+    const tokenOut = amountsOut[1].toNumber() // ~= 10 dataToken
+    log(`Uniswap conversion rate for DATA/OtherToken: ${tokenIn} tokensIn => ${tokenOut} tokensOut`)
 
-    let cf = new ContractFactory(Uniswap2Adapter.abi, Uniswap2Adapter.bytecode, wallet)
-    let dtx = await cf.deploy(market.address, router.address, token.address)
-    const uniswap2Adapter = await dtx.deployed()
-    log(`Uniswap2Adapter ${uniswap2Adapter.address}`)
+    await(await token.approve(router.address, tokenIn)).wait()
+    const allowanceData = await token.allowance(wallet.address, router.address)
+    console.log('allowance DATA:', allowanceData)
 
-    cf = new ContractFactory(BinanceAdapter.abi, BinanceAdapter.bytecode, sidechainWallet)
-    //constructor(address dataCoin_, address honeyswapRouter_, address bscBridge_, address convertToCoin_, address liquidityToken_) public {
-    dtx = await cf.deploy(sidechainDataCoin, uniswapRouterSidechain.address, sidechainSingleTokenMediator, sidechainDataCoin, sidechainDataCoin)
-    const binanceAdapter = await dtx.deployed()
-    log(`sidechain binanceAdapter ${binanceAdapter.address}`)
+    // await(await token2.approve(router.address, tokenIn)).wait()
+    const allowanceOther = await token2.allowance(wallet.address, router.address)
+    console.log('allowance OtherToekn:', allowanceOther)
 
-    await deployStreamRegistries()
+    console.log('balance DATA before', await token.balanceOf(wallet.address))   // 999000000000000000000000
+    console.log('balance Other before', await token2.balanceOf(wallet.address)) // 990000000000000000000000
+    await (await router.swapExactTokensForTokens(tokenIn, 0, [token.address, token2.address], wallet.address, 16725239990)).wait()
+    console.log('balance DATA after', await token.balanceOf(wallet.address))   // 998999999999999999999950
+    console.log('balance Other after', await token2.balanceOf(wallet.address)) // 990000000000000000000498
+    */
 
+    // let cf = new ContractFactory(Uniswap2Adapter.abi, Uniswap2Adapter.bytecode, wallet)
+    // let dtx = await cf.deploy(market.address, router.address, token.address)
+    // const uniswap2Adapter = await dtx.deployed()
+    // log(`Uniswap2Adapter ${uniswap2Adapter.address}`)
+
+    // cf = new ContractFactory(BinanceAdapter.abi, BinanceAdapter.bytecode, sidechainWallet)
+    // //constructor(address dataCoin_, address honeyswapRouter_, address bscBridge_, address convertToCoin_, address liquidityToken_) public {
+    // dtx = await cf.deploy(sidechainDataCoin, uniswapRouterSidechain.address, sidechainSingleTokenMediator, sidechainDataCoin, sidechainDataCoin)
+    // const binanceAdapter = await dtx.deployed()
+    // log(`sidechain binanceAdapter ${binanceAdapter.address}`)
+
+    // await deployStreamRegistries()
+    /*
     // TODO: move these deployments to the top once address change pains are solved
     log(`Deploying test DATAv1 from ${wallet.address}`)
     const oldTokenDeployer = new ContractFactory(OldTokenJson.abi, OldTokenJson.bytecode, wallet)
@@ -527,32 +553,42 @@ async function smartContractInitialization() {
             await token.mint(testWallet.address, mintTokenAmount)
         }
     }
+*/
+    // await deployStreamStorageRegistry(sidechainWallet)
 
-    await deployStreamStorageRegistry(sidechainWallet)
+    const newWallet = new ethers.Wallet(defaultPrivateKey, new ethers.providers.JsonRpcProvider(chainURL))
+    // const marketDeployer3 = await ethers.getContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, newWallet)
+    // const marketDeployTx3 = await marketDeployer3.deploy(
+    //     sidechainDataCoin,
+    //     sidechainWallet.address,
+    //     '0x0000000000000000000000000000000000000000'
+    // )
+    // const market2 = await marketDeployTx3.deployed()
+    // log(`Marketplace2 deployed on sidechain at ${market2.address}`)
 
-    const newWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
-    const marketDeployer3 = await ethers.getContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, newWallet)
-    const marketDeployTx3 = await marketDeployer3.deploy(
-        sidechainDataCoin,
-        sidechainWallet.address,
-        '0x0000000000000000000000000000000000000000'
-    )
-    const market2 = await marketDeployTx3.deployed()
-    log(`Marketplace2 deployed on sidechain at ${market2.address}`)
+    // const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
+    // const watcherWallet = new ethers.Wallet(watcherDevopsKey)
+    // const role = await streamRegistryFromOwner.TRUSTED_ROLE()
+    // log(`granting role ${role} to devops ${watcherWallet.address}`)
+    // const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
+    // await grantRoleTx2.wait()
 
-    const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
-    const watcherWallet = new ethers.Wallet(watcherDevopsKey)
-    const role = await streamRegistryFromOwner.TRUSTED_ROLE()
-    log(`granting role ${role} to devops ${watcherWallet.address}`)
-    const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
-    await grantRoleTx2.wait()
-
+    // const newWalletMainChain = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(chainURL))
+    log("Deploy MarketplaceV3 on mainchain:")
     const marketV3Deployer = await ethers.getContractFactory("MarketplaceV3", newWallet)
     const marketV3DeployTx = await upgrades.deployProxy(marketV3Deployer, [], {
         kind: 'uups'
     })
     const marketV3DeployTxStr = await marketV3DeployTx.deployed()
-    log(`MarketplaceV3 deployed on sidechain at ${marketV3DeployTxStr.address}`)
+    log(`MarketplaceV3 deployed on mainchain at ${marketV3DeployTxStr.address}`)
+
+    log(`Deploying Uniswap2AdaptorForMarketplaceV3 contract from ${newWallet.address}`)
+    const Uniswap2AdaptorDeployer = await ethers.getContractFactory("Uniswap2AdapterForMarketplaceV3", newWallet)
+    // const uniswap2AdaptorDeployTx = await Uniswap2AdaptorDeployer.deploy(marketV3DeployTxStr.address, router.address)
+    const uniswap2AdaptorDeployTx = await Uniswap2AdaptorDeployer.deploy(marketV3DeployTxStr.address, "0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920")
+    const Uniswap2Adaptor = await uniswap2AdaptorDeployTx.deployed()
+    log(`Uniswap2Adaptor for MarketplaceV3 deployed on mainchain at ${Uniswap2Adaptor.address}`)
+    
 
     //put additions here
 
@@ -573,20 +609,25 @@ async function smartContractInitialization() {
             continue
         }
         log(`create ${p.id}`)
-        const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
-            p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
-        await tx.wait()
-        const txV3 = await marketV3DeployTxStr.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
-            token.address, p.minimumSubscriptionInSeconds)
+        // const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
+        //     p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
+        // await tx.wait()
+        const productIdbytes = `0x${p.id}`
+        const pricingTokenAddress = `0xbAA81A0179015bE47Ad439566374F2Bae098686F` // DATAv2
+        const txV3 = await marketV3DeployTxStr.createProduct(productIdbytes, p.name, wallet.address, p.pricePerSecond, 
+            pricingTokenAddress, p.minimumSubscriptionInSeconds)
         await txV3.wait()
         if (p.state == "NOT_DEPLOYED") {
             log(`delete ${p.id}`)
             // await tx.wait(1)
-            await (await market.deleteProduct(`0x${p.id}`)).wait()
-            await (await marketV3DeployTxStr.deleteProduct(`0x${p.id}`)).wait()
+            // await (await market.deleteProduct(`0x${p.id}`)).wait()
+            await (await marketV3DeployTxStr.deleteProduct(productIdbytes)).wait()
             //await tx2.wait(1)
         }
     }
+    log("marketplace address from adapter: ", await Uniswap2Adaptor.marketplace())
+    // function buyWithERC20(bytes32 productId, uint minSubscriptionSeconds,uint timeWindow, address erc20_address, uint amount) public {
+    // await(await Uniswap2Adaptor.buyWithERC20(`0x300edc545c7f5315c132e3ce472cc63ce7fdb71515ed07431ff4c9434c97c04f`, 0, 8400, DATAv2.address, 1)).wait()
 }
 
 smartContractInitialization()
