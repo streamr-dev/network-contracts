@@ -29,9 +29,9 @@ contract Uniswap2AdapterForMarketplaceV3 {
         require(erc20_address != address(0), "use buyWithETH instead");
         (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(productId);
 
-        if(pricePerSecond == 0x0){
+        if (pricePerSecond == 0x0) {
             //subscription is free. return payment and subscribe
-            marketplace.buyFor(productId,minSubscriptionSeconds,msg.sender);
+            marketplace.buyFor(productId, minSubscriptionSeconds, msg.sender);
             return;
         }
 
@@ -51,7 +51,7 @@ contract Uniswap2AdapterForMarketplaceV3 {
             if (msg.value > 0x0) {
                 payable(msg.sender).transfer(msg.value);
             }
-            marketplace.buyFor(productId,minSubscriptionSeconds,msg.sender);
+            marketplace.buyFor(productId, minSubscriptionSeconds, msg.sender);
             return;
         }
 
@@ -77,7 +77,7 @@ contract Uniswap2AdapterForMarketplaceV3 {
 
         // swapExactETHForTokens/swapExactTokensForTokens returns the input token amount and all subsequent output token amounts.
         uint receivedTokens;
-        if(fromToken == address(uniswapRouter.WETH())) {
+        if (fromToken == address(uniswapRouter.WETH())) {
             receivedTokens = uniswapRouter.swapExactETHForTokens{ value: amount }(amountOutMin, path, to, deadline)[path.length - 1];
         }
         else {
@@ -92,7 +92,7 @@ contract Uniswap2AdapterForMarketplaceV3 {
     }
 
     function _uniswapPath(address fromCoin, address toCoin) internal view returns (address[] memory path) {
-        if(liquidityToken == address(0)){
+        if (liquidityToken == address(0)) {
             //no intermediate
             path = new address[](2);
             path[0] = fromCoin;
@@ -105,5 +105,35 @@ contract Uniswap2AdapterForMarketplaceV3 {
         path[1] = liquidityToken;
         path[2] = toCoin;
         return path;
+    }
+
+    /**
+     * ERC677 token callback
+     * If the data bytes contains a product id, the subscription is extended for that product
+     * @dev The amount transferred is in pricingTokenAddress.
+     * @dev msg.sender is the contract which supports ERC677.
+     * @param sender The EOA initiating the transaction through transferAndCall.
+     * @param amount The amount to be transferred (in wei).
+     * @param data The extra data to be passed to the contract. Contains the product id.
+     */
+    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+        require(data.length == 32, "error_badProductId");
+        
+        bytes32 productId;
+        assembly { productId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
+
+        IERC20 fromToken = IERC20(msg.sender);
+        require(fromToken.approve(address(uniswapRouter), 0), "approval failed");
+        require(fromToken.approve(address(uniswapRouter), amount), "approval failed"); // current contract has amount tokens and can approve the router to spend them
+
+        (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(productId);
+
+        address[] memory path = _uniswapPath(msg.sender, pricingTokenAddress);
+        uint receivedTokens = uniswapRouter.swapExactTokensForTokens(amount, 1, path, address(this), block.timestamp + 86400)[path.length - 1];
+
+        require(IERC20(pricingTokenAddress).approve(address(marketplace), 0), "approval failed");
+        require(IERC20(pricingTokenAddress).approve(address(marketplace), receivedTokens), "approval failed");
+        uint subscriptionSeconds = receivedTokens / pricePerSecond;
+        marketplace.buyFor(productId, subscriptionSeconds, sender);
     }
 }

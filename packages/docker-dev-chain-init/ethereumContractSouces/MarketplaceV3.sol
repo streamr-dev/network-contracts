@@ -122,8 +122,11 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     function _createProduct(bytes32 id, string memory name, address productOwner, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, bool requiresWhitelist) internal {
         require(id != 0x0, "error_nullProductId");
         require(pricePerSecond > 0, "error_freeProductsNotSupported");
+        require(bytes(ERC20(pricingToken).symbol()).length > 0, "error_invalidPricingTokenSymbol");
+
         (,address _owner,,,,,,) = getProduct(id);
         require(_owner == address(0), "error_alreadyExists");
+        
         Product storage p = products[id];
         p.id = id;
         p.name = name;
@@ -275,12 +278,12 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      * Enforces payment rules, triggers PurchaseListener event
      * Extends subscription endTimestamp by addSeconds amounts
      */
-    function _subscribe(bytes32 productId, uint addSeconds, address subscriber, bool requirePayment) internal {
+    function _subscribe(bytes32 productId, uint addSeconds, address subscriber) internal {
         (Product storage p, TimeBasedSubscription storage oldSub) = _getSubscription(productId, subscriber);
         require(p.state == ProductState.Deployed, "error_notDeployed");
         require(!p.requiresWhitelist || p.whitelist[subscriber] == WhitelistState.Approved, "error_whitelistNotAllowed");
+        
         uint endTimestamp;
-
         if (oldSub.endTimestamp > block.timestamp) {
             require(addSeconds > 0, "error_topUpTooSmall");
             endTimestamp = oldSub.endTimestamp + addSeconds;
@@ -293,24 +296,27 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
             p.subscriptions[subscriber] = newSub;
             emit NewSubscription(p.id, subscriber, endTimestamp);
         }
-        emit Subscribed(p.id, subscriber, endTimestamp);
 
-        uint256 price = 0;
-        uint256 fee = 0;
+        emit Subscribed(p.id, subscriber, endTimestamp);
+    }
+
+    /**
+     * Transfer the product payment to product beneficiary and the fee to contract owner
+     * @param subscriber is the address for which the product subscription is extended
+     */
+    function _handleProductPurchase(bytes32 productId, uint addSeconds, address subscriber) internal {
+        (Product storage p, TimeBasedSubscription storage oldSub) = _getSubscription(productId, subscriber);
+        
+        uint256 price = addSeconds * p.pricePerSecond;
+        uint256 fee = (txFee * price) / 1 ether;
         address recipient = p.beneficiary;
-        if (requirePayment) {
-            price = addSeconds * p.pricePerSecond;
-            fee = (txFee * price) / 1 ether;
-            // TODO: replace with datacoin.transferAndCall
-            ERC20 productToken = ERC20(p.pricingTokenAddress);
-            require(productToken.transferFrom(msg.sender, recipient, price - fee), "error_paymentFailed");
-            if (fee > 0) {
-                // TODO: replace with datacoin.transferAndCall
-                require(productToken.transferFrom(msg.sender, owner(), fee), "error_paymentFailed");
-            }
+        ERC20 productToken = ERC20(p.pricingTokenAddress);
+        require(productToken.transferFrom(msg.sender, recipient, price - fee), "error_paymentFailed");
+        if (fee > 0) {
+            require(productToken.transferFrom(msg.sender, owner(), fee), "error_paymentFailed");
         }
 
-        // TODO: replace with datacoin.transferAndCall
+        // Notify purchase listener
         uint256 codeSize;
         assembly { codeSize := extcodesize(recipient) }  // solhint-disable-line no-inline-assembly
         if (codeSize > 0) {
@@ -329,12 +335,13 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     /** Product owner can give access to product also to non-buyers, TODO: owner can give access through StreamRegistry directly, is this function needed? */
     function grantSubscription(bytes32 productId, uint subscriptionSeconds, address recipient) public whenNotHalted onlyProductOwner(productId){
-        return _subscribe(productId, subscriptionSeconds, recipient, false);
+        _subscribe(productId, subscriptionSeconds, recipient);
     }
 
     /** Pay subscription for someone else */
     function buyFor(bytes32 productId, uint subscriptionSeconds, address recipient) public override whenNotHalted {
-        return _subscribe(productId, subscriptionSeconds, recipient, true);
+        _subscribe(productId, subscriptionSeconds, recipient);
+        _handleProductPurchase(productId, subscriptionSeconds, recipient);
     }
 
 
@@ -359,6 +366,31 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     function _isValid(TimeBasedSubscription storage s) internal view returns (bool) {
         return s.endTimestamp >= block.timestamp;  // solhint-disable-line not-rely-on-time
     }
+
+    /**
+     * ERC677 token callback
+     * If the data bytes contains a product id, the subscription is extended for that product
+     * @dev The amount transferred is in pricingTokenAddress.
+     * @param sender The EOA initiating the transaction through transferAndCall.
+     * @param amount The amount to be transferred (in wei).
+     * @param data Product id in bytes32.
+     */
+    function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
+        require(data.length == 32, "error_badProductId");
+        
+        bytes32 productId;
+        assembly { productId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
+
+        (Product storage p,) = _getSubscription(productId, sender);
+        require(msg.sender == p.pricingTokenAddress, "error_wrongPricingToken");
+
+        address recipient = p.beneficiary;
+        uint pricePerSecond = p.pricePerSecond;
+
+        uint subscriptionSeconds = amount / pricePerSecond / 1 ether;
+        _subscribe(productId, subscriptionSeconds, recipient);
+    }
+
 
     // TODO: transfer allowance to another Marketplace contract
     // Mechanism basically is that this Marketplace draws from the allowance and credits
