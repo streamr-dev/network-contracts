@@ -42,7 +42,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     struct GlobalStorage {
         address broker;  
         IERC677 token;
-        uint totalStakedWei;
     }
 
     // currently the whole token balance of the pool IS SAME AS the "free funds"
@@ -50,7 +49,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // uint public unallocatedWei;
 
     mapping(address => uint) public debt;
-    mapping(Bounty => uint) public staked;
+    // mapping(Bounty => uint) public staked;
+    Bounty[] public bounties;
+    mapping(Bounty => uint) public indexOfBounties; // start with 1! use 0 as "is it already in the array?" check
 
     struct PayoutQueueEntry {
         address user;
@@ -140,6 +141,27 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
+     /**
+     * Workaround to delegatecall view functions in modules
+     * Suggested by https://ethereum.stackexchange.com/questions/82342/how-to-perform-delegate-call-inside-of-view-call-staticall
+     * Pass the target module address in an "extra argument" to the getter function
+     * @dev note the success value isn't parsed here; that would be double parsing here and then in the actual getter (below)
+     * @dev instead, success is determined by the length of returndata: too long means it was a revert
+     * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
+     */
+    fallback(bytes calldata args) external returns (bytes memory) {
+        require(msg.sender == address(this), "error_mustBeThis");
+
+        // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
+        uint len = args.length; // 4 byte selector + 32 bytes per argument
+        address target = address(bytes20(args[len - 20 : len])); // grab the address
+        bytes memory data = args[0 : len - 32]; // drop extra argument
+
+        (bool success, bytes memory returndata) = target.delegatecall(data);
+        if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
+        return returndata;
+    }
+
     /////////////////////////////////////////
     // INVESTOR FUNCTIONS
     /////////////////////////////////////////
@@ -157,8 +179,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // check if sender is a bounty: only bounties may have tokens _staked_ on them
         // TODO check if bounty was deployed by THE bountyfactory contract!
         
+
         Bounty bounty = Bounty(sender);
-        if (staked[bounty] > 0) {
+        if (indexOfBounties[bounty] != 0) {
             // ignore returned tokens, handle it in unstake()
             return;
         }
@@ -182,6 +205,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         } else {
             _invest(sender, amount);
         }
+    }
+
+    function _addBounty(Bounty bounty) internal {
+        require(indexOfBounties[bounty] == 0, "error_bountyAlreadyExists");
+        bounties.push(bounty);
+        indexOfBounties[bounty] = bounties.length;
+    }
+
+    function _removeBounty(Bounty bounty) internal {
+        require(indexOfBounties[bounty] != 0, "error_bountyDoesNotExist");
+        uint index = indexOfBounties[bounty];
+        indexOfBounties[bounty] = 0;
+        bounties[index - 1] = bounties[bounties.length - 1];
+        indexOfBounties[bounties[index - 1]] = index;
+        bounties.pop();
     }
 
     /** Invest by first calling ERC20.approve(brokerPool.address, amountWei) then this function */
@@ -233,15 +271,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         console.log("stake balanceOf this", globalData().token.balanceOf(address(this)));
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
-        staked[bounty] += amountWei;
-        globalData().totalStakedWei += amountWei;
+        _addBounty(bounty);
         // unallocatedWei -= amountWei;
         emit Staked(bounty, amountWei);
     }
 
     function unstake(Bounty bounty) external onlyBroker {
         console.log("unstake bounty", address(bounty));
-        require(staked[bounty] > 0, "error_notStaked");
+        uint amountStaked = bounty.getMyStake();
+        require(amountStaked > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
         console.log("unstake balanceBefore", balanceBefore);
         bounty.leave();
@@ -249,26 +287,24 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         console.log("unstake receivedWei", receivedWei);
 
         // unallocatedWei += receivedWei;
-        if (receivedWei < staked[bounty]) {
+        if (receivedWei < amountStaked) {
             // TODO: slash handling
-            uint lossesWei = staked[bounty] - receivedWei;
-            emit Unstaked(bounty, staked[bounty], 0);
+            uint lossesWei = amountStaked - receivedWei;
+            emit Unstaked(bounty, receivedWei, 0);
             emit Losses(bounty, lossesWei);
         } else {
-            // TODO: gains handling
-            uint gainsWei = receivedWei - staked[bounty];
-            emit Unstaked(bounty, staked[bounty], gainsWei);
+            // // TODO: gains handling
+            // uint gainsWei = receivedWei - amountStaked;
+            uint winnings = receivedWei - amountStaked;
+            moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
+                winnings), "error_yieldPolicy_deductBrokersPart_Failed");
+            emit Unstaked(bounty, amountStaked, winnings);
         }
-        console.log("unstake totalstakedWei", globalData().totalStakedWei);
-        globalData().totalStakedWei -= staked[bounty];
-        uint winnings = receivedWei - staked[bounty];
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
-            winnings), "error_yieldPolicy_deductBrokersPart_Failed");
-        staked[bounty] = 0;
+        _removeBounty(bounty);
     }
 
     function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
-        require(staked[bounty] > 0, "error_notStaked");
+        // require(staked[bounty] > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
         console.log("withdrawWinnings balanceBefore", balanceBefore);
         bounty.withdraw();
@@ -321,13 +357,27 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
-    function getQueuedDataPayout() public view returns (uint256 amountDataWei) {
+    function getQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
         return queuedPayoutsPerUser[_msgSender()];
     }
 
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
         uint poolTokenBalance = balanceOf(_msgSender());
         return moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance), "error_pooltokenToData_Failed");
+    }
+
+    function calculatePoolValueInData() public view returns (uint256 poolValue) {
+        poolValue = globalData().token.balanceOf(address(this));
+        console.log("calculatePoolValueInData poolValue1", poolValue);
+        for (uint i = 0; i < bounties.length; i++) {
+            poolValue += bounties[i].getMyStake();
+            console.log("calculatePoolValueInData poolValue2", poolValue);
+            uint alloc = bounties[i].getAllocation(address(this));
+            console.log("calculatePoolValueInData alloc", alloc);
+            (uint share) = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
+            console.log("calculatePoolValueInData share", share);
+            poolValue += (alloc - share);
+        }
     }
 
     function queueDataPayout(uint amountPoolTokenWei) external {

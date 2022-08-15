@@ -21,6 +21,12 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         localData().percentBrokerEarnings = percentBrokerEarnings;
     }
 
+    function calculateBrokersShare(uint dataWei) external view returns(uint dataWeiBrokersShare) {
+        console.log("DefaultPoolYieldPolicy.calculateBrokersShare", dataWei);
+        console.log("DefaultPoolYieldPolicy.calculateBrokersShare absolute", dataWei * localData().percentBrokerEarnings / 100);
+        return dataWei * localData().percentBrokerEarnings / 100;
+    }
+
     function deductBrokersShare(uint256 dataWei) external {
         console.log("DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
         console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().percentBrokerEarnings);
@@ -36,9 +42,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         }
         console.log("DefaultPoolYieldPolicy.pooltokenToData", poolTokenWei);
         console.log("data balance of this", globalData().token.balanceOf(address(this)));
-        console.log("totalStakedWei", globalData().totalStakedWei);
         console.log("this totlasupply", this.totalSupply());
-        uint256 poolValueData = globalData().token.balanceOf(address(this)) + globalData().totalStakedWei;
+        uint poolValueData = this.calculatePoolValueInData();
         console.log("poolValueData", poolValueData);
         return poolTokenWei * poolValueData / this.totalSupply();
     }
@@ -50,9 +55,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         }
         console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
         console.log("data balance of this", globalData().token.balanceOf(address(this)));
-        console.log("totalStakedWei", globalData().totalStakedWei);
+        uint poolValueData = this.calculatePoolValueInData();
         console.log("this totlasupply", this.totalSupply());
-        uint256 poolValueData = globalData().token.balanceOf(address(this)) + globalData().totalStakedWei;
         console.log("poolValueData", poolValueData);
         if (poolValueData == 0) {
             return dataWei;
