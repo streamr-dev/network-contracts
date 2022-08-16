@@ -363,7 +363,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
         uint poolTokenBalance = balanceOf(_msgSender());
-        return moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance), "error_pooltokenToData_Failed");
+        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, address(yieldPolicy)), "error_pooltokenToData_Failed");
+        console.log("getMyBalanceInData dataWei", dataWei);
+        return dataWei;
     }
 
     function calculatePoolValueInData() public view returns (uint256 poolValue) {

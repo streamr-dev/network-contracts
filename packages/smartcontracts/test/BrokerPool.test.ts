@@ -124,6 +124,7 @@ describe.only("BrokerPool", (): void => {
         // const pool = await deployBrokerPool(broker, token)
         await (await dataToken.connect(investor).transferAndCall(pool.address, parseEther("5"), "0x")).wait()
         await (await dataToken.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+        expect (await pool.connect(investor).getMyBalanceInData()).to.equal(parseEther("5"))
 
         // 2
         const balanceBefore = await dataToken.balanceOf(pool.address)
