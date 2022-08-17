@@ -3,16 +3,15 @@
 pragma solidity ^0.8.9;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; // TODO: remove
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./IMarketplace.sol";
-import "hardhat/console.sol";
 
 contract Uniswap2AdapterForMarketplaceV3 {
 
     IMarketplace public marketplace;
     IUniswapV2Router02 public uniswapRouter;
-    address public liquidityToken; // TODO: how is this initiated?
+    address public liquidityToken;
 
     constructor(address _marketplace, address _uniswapRouter) {
         marketplace = IMarketplace(_marketplace);

@@ -4,13 +4,11 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol"; // TODO: replace with AccessControlUpgradeable
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol"; // TODO: remove
-
-import "./IPurchaseListener.sol"; // Keep for now and deprecate in v4
+import "./IPurchaseListener.sol"; // deprecate in v4
 import "./IMarketplace.sol";
 
 /**
