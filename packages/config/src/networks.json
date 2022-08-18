@@ -85,11 +85,13 @@
             "DataUnionFactory": "0x82F1b8a9521933ecC41A9062f1eb597D0Ad6e12F",
             "DataUnionTemplate": "0xA7E64C07464DdC69dC1534C14c7c724E5807d42a",
             "Marketplace": "0x246dd6D96282c1ED9Ca69eF9f3e1f975fC1B8Bd5",
+            "MarketplaceV3": "0x2022E1F7749D355726Fb65285E29605A098bcb52",
             "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
             "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
             "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
             "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
             "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
+            "Uniswap2AdapterForMarketplaceV3": "0xec92c5f94d45D1a4D917f2E07dD959b33e1AFe38",
             "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548"
         }
     },
@@ -131,11 +133,13 @@
             "DataUnionTemplate": "0x6D73eDf9366c97ed12C78C41F02A9254e9184CB1",
             "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
+            "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
             "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
             "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
             "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
             "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-            "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13"
+            "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
+            "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         }
     }
 }
