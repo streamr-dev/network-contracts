@@ -73,8 +73,8 @@ module.exports = {
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
-            'docker-dev-chain-init/ethereumContractSouces/MarketplaceV3.sol',
-            'docker-dev-chain-init/ethereumContractSouces/Uniswap2AdapterForMarketplaceV3.sol'
+            'docker-dev-chain-init/ethereumContractSources/MarketplaceV3.sol',
+            'docker-dev-chain-init/ethereumContractSources/Uniswap2AdapterForMarketplaceV3.sol'
         ],
     },
     solidity: {
