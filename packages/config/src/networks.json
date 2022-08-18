@@ -15,12 +15,14 @@
             "ENS": "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03",
             "FIFSRegistrar": "0x57B81a9442805f88c4617B506206531e72d96290",
             "Marketplace": "0xF1371c0f40528406dc4f4cAf89924eA9Da49E866",
+            "MarketplaceV3": "0x56e57Bf7422eDe1ED75520D4387829feEe8a8319",
             "MigrationManager": "0xc7aaf6c62e86a36395d8108fe95d5f758794c16c",
             "PublicResolver": "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c",
             "TokenMediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "TrackerRegistry": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
             "Uniswap2Router": "0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920",
             "UniswapAdapter": "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3",
+            "Uniswap2AdapterForMarketplaceV3": "0xDbcdfB708A006A9AebC592C4520289cD87a95938",
             "XDATA": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
             "core-api": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c"
         }
