@@ -46,7 +46,7 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
     function requestDelegatedJoin(
         address delegatedWallet
     ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Given wallet is not authorized in delegated registry");
+        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
         require(canJoin(_msgSender()), "Not enough tokens");
         accept(delegatedWallet);
     }

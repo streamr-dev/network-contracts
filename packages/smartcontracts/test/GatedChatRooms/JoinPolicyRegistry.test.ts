@@ -1,8 +1,6 @@
-
 import { waffle, ethers, upgrades } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract} from 'ethers'
-import EthCrypto from 'eth-crypto'
+import { Contract} from 'ethers'
 import { StreamRegistry } from '../../typechain'
 import { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
 import { deployContract } from 'ethereum-waffle'
@@ -10,15 +8,6 @@ import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
 
 const { provider } = waffle
 
-
-const signDelegatedChallenge = (address: string) => {
-    const signerIdentity = EthCrypto.createIdentity();
-    const message = EthCrypto.hash.keccak256(address);
-    const signature = EthCrypto.sign(signerIdentity.privateKey, message)
-    return {
-        signerIdentity, message, signature
-    }
-}
 use(waffle.solidity)
 describe('ERC20JoinPolicyRegistry', (): void => {
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
@@ -26,12 +15,7 @@ describe('ERC20JoinPolicyRegistry', (): void => {
     const wallets = provider.getWallets()
     let contract: Contract
 
-    let signerIdentity: any 
-    let message: string 
-    let signature: string
-    let token: Contract 
     let erc20Token: Contract
-    let erc1155Token: Contract
 
     let streamRegistryV3: StreamRegistry
     let minimalForwarderFromUser0: MinimalForwarder
@@ -65,7 +49,7 @@ describe('ERC20JoinPolicyRegistry', (): void => {
         erc20Token = await ERC20.deploy()
 
         const ERC1155 = await ethers.getContractFactory('TestERC1155')
-        erc1155Token = await ERC1155.deploy()
+        await ERC1155.deploy()
 
         // create the stream
         await streamRegistryV3.createStream(

@@ -37,10 +37,11 @@ contract GatedJoinPolicy is Ownable{
        pure
        returns (uint8, bytes32, bytes32)
    {
-       require(sig.length == 65);
+       require(sig.length == 65, "Sig length mismatch");
        bytes32 r;
        bytes32 s;
        uint8 v;
+       // eslint-disable-next-line
        assembly {
            // first 32 bytes, after the length prefix
            r := mload(add(sig, 32))

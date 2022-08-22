@@ -1,4 +1,3 @@
-
 import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { Contract} from 'ethers'
@@ -17,8 +16,8 @@ describe('GatedJoinPolicy', (): void => {
     let message: string 
     let signature: string
     before(async (): Promise<void> => {
-        signerIdentity = EthCrypto.createIdentity();
-        message = EthCrypto.hash.keccak256(wallets[0].address);
+        signerIdentity = EthCrypto.createIdentity()
+        message = EthCrypto.hash.keccak256(wallets[0].address)
         signature = EthCrypto.sign(signerIdentity.privateKey, message)
 
         const GatedJoinPolicy = await ethers.getContractFactory('GatedJoinPolicy', wallets[0])

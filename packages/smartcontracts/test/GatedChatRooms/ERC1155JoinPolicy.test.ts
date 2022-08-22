@@ -10,7 +10,6 @@ import {sign, hash, createIdentity} from 'eth-crypto'
 const { deployContract } = waffle
 const { provider } = waffle
 
-
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
@@ -45,7 +44,7 @@ describe('ERC1155JoinPolicy', (): void => {
     const streamId = `${adminAddress}${streamPath}`.toLowerCase()
 
     enum TokenIds { A = 1, B, C}
-    const signerIdentity = createIdentity();
+    const signerIdentity = createIdentity()
 
     let delegatedAccessRegistry: Contract
 
@@ -89,7 +88,6 @@ describe('ERC1155JoinPolicy', (): void => {
             signature
         )
 
-
         const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
        
         contract = await ERC1155JoinPolicy.deploy(
@@ -122,11 +120,11 @@ describe('ERC1155JoinPolicy', (): void => {
             expect(balance).to.equal(BigNumber.from(0))
 
             await contract.connect(wallets[0])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                TokenIds.A,
-                {from: wallets[0].address}
-            )  
+                .requestDelegatedJoin(
+                    signerIdentity.address,
+                    TokenIds.A,
+                    {from: wallets[0].address}
+                )  
         } catch (e: any){
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
@@ -146,14 +144,13 @@ describe('ERC1155JoinPolicy', (): void => {
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
         const balance = await token.balanceOf(wallets[0].address, TokenIds.A)
         expect(balance).to.equal(BigNumber.from(1))
-
             
         await contract.connect(wallets[0])
-        .requestDelegatedJoin(
-            signerIdentity.address,
-            TokenIds.A,
-            {from: wallets[0].address}
-        )
+            .requestDelegatedJoin(
+                signerIdentity.address,
+                TokenIds.A,
+                {from: wallets[0].address}
+            )
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()

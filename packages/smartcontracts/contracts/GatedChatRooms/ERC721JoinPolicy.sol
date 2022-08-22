@@ -44,7 +44,7 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
         address delegatedWallet,
         uint256 tokenId_
     ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Given wallet is not authorized in delegated registry");
+        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
         require(canJoin(_msgSender(), tokenId_), "Not enough tokens");
         accept(delegatedWallet);
     }

@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract, Wallet} from 'ethers'
+import { BigNumber, Contract} from 'ethers'
 
 import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
@@ -9,8 +9,6 @@ import {sign, hash, createIdentity} from 'eth-crypto'
 
 const { deployContract } = waffle
 const { provider } = waffle
-
-
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
@@ -47,7 +45,7 @@ describe('ERC721JoinPolicy', (): void => {
 
     let delegatedAccessRegistry: Contract
 
-    const signerIdentity = createIdentity();
+    const signerIdentity = createIdentity()
 
     const TokenId = 1234567890
 
@@ -137,11 +135,11 @@ describe('ERC721JoinPolicy', (): void => {
             )
 
             await contract.connect(wallets[1])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                TokenId, // tokenId
-                {from: wallets[1].address}
-            )  
+                .requestDelegatedJoin(
+                    signerIdentity.address,
+                    TokenId, // tokenId
+                    {from: wallets[1].address}
+                )  
         } catch (e: any){
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
@@ -170,10 +168,10 @@ describe('ERC721JoinPolicy', (): void => {
         expect(owner).to.equal(wallets[0].address)
 
         await contract.connect(wallets[0])
-        .requestDelegatedJoin(
-            signerIdentity.address,
-            TokenId
-        )
+            .requestDelegatedJoin(
+                signerIdentity.address,
+                TokenId
+            )
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()
