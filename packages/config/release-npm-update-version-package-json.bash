@@ -30,3 +30,5 @@ fi
 
 sed -i '' -e 's/"version": ".*",$/"version": "'"$version"'",/g' package.json
 git add package.json
+make npm-install -C ../..
+git add ../../package-lock.json

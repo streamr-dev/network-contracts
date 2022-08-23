@@ -31,7 +31,7 @@ fi
 ./release-npm-update-version-package-json.bash "$version"
 
 # Create release commit
-git commit --message="release: @streamr/config ${version}"
+git commit --message="release(config): @streamr/config ${version}"
 git push
 # Create tag
 git tag --message="Release config/${version}" --annotate "config/v${version}"

@@ -11,24 +11,31 @@ npm install --save @streamr/config
 ```
 
 ## Examples
+### Typescript
 Import DATA token production Ethereum address as a variable in a Typescript project:
 ```typescript
-import * as config from "config"
+import * as config from "@streamr/config"
 
-const chains: config.Chains = config.Chains.load("production")
-const contractAddress: string = chains.ethereum.contracts["DATA-token"]
-const chainId: number = chains.ethereum.id
-const httpRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(RPCProtocol.HTTP)
-const wsRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(RPCProtocol.WEBSOCKET)
+const {
+    ethereum: {
+        id: chainId,
+        contracts: {
+            "DATA": dataTokenAddress
+        }
+    }
+} = config.Chains.load()
 ```
 
-You can also load configuration based on `$NODE_ENV` environment variable:
+Find RPC endpoints:
 ```typescript
-import * as config from "config"
+import * as config from "@streamr/config"
 
-const chains: Chains = config.Chains.loadFromNodeEnv()
+const chains: config.Chains = config.Chains.load()
+const httpRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.HTTP)
+const wsRpcEndpoints: RPCEndpoint[] = chains.ethereum.getRPCEndpointsByProtocol(config.RPCProtocol.WEBSOCKET)
 ```
 
+### Other Languages
 Other languages can read the [JSON file](./src/networks.json) directly.
 
 ## Development
@@ -73,22 +80,16 @@ make clean
 ```
 
 ### Publish Release
-Start with [Common Setup](#common-setup) before continuing.
-
-Login to Npmjs.com:
-```bash
-npm login --registry https://registry.npmjs.org --scope @streamr
-```
-
-Run build:
-```bash
-make clean build
-```
-
-Create a new release on Npmjs.com, update version in package.json, push a release commit, and tag it on GitHub:
-```bash
-./release.bash 0.0.1
-```
-
+1. Start with [Common Setup](#common-setup) before continuing.
+1. Login to Npmjs.com:
+    ```bash
+    npm login --registry https://registry.npmjs.org --scope @streamr
+    ```
+1. Run clean build, create a new release on Npmjs.com, update version in `package.json`, push a release commit, and tag it on GitHub:
+    ```bash
+    ./release.bash 0.0.2
+    ```
+1. Draft a new release on GitHub [network-contracts](https://github.com/streamr-dev/network-contracts/releases) repository with the generated tag `config/0.0.2`
+	![Draft a new release on GitHub](./docs/draft-release-github.png "Drafting a new release")
 ## License
 [MIT](LICENSE)

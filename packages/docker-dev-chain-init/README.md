@@ -80,7 +80,9 @@ Build and tag required docker images.
  2. git clone https://github.com/streamr-dev/tokenbridge-contracts.git; cd tokenbridge-contracts; docker build . -t 'streamr/tokenbridge-contracts'
 
 To build images:
-./preload_parity_images.sh
+
+From the root of the monorepo:
+./clean_and_preload_parity_images.sh
 
 This will tag the images locally and echo the command to push to dockerhub.
 Note that you MUST remove the parity docker volumes to delete old chain data from docker and then restart `streamr-docker-dev` to see preload changes.
