@@ -2,7 +2,7 @@
 
 This is a monorepo containing various smart contracts and subgraphs used by the Streamr Network, as well as potential other Ethereum-related bits and pieces that relate to the Network.
 
-## Interesting packages
+## Main packages
 
 - [smartcontracts](https://github.com/streamr-dev/network-contracts/tree/master/packages/smartcontracts) The actual smart contracts used by the Streamr Network
 - [streamregistry-thegraph-subgraph](https://github.com/streamr-dev/network-contracts/tree/master/packages/streamregistry-thegraph-subgraph) The Graph subgraphs for many contracts in the `smartcontracts` package
