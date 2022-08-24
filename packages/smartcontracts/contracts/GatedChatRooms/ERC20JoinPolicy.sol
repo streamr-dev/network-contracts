@@ -8,15 +8,6 @@ import "../StreamRegistry/StreamRegistryV3.sol";
 import "./GatedJoinPolicy.sol";
 import "./DelegatedAccessRegistry.sol";
 
-// Used only for testing purposes
-contract TestERC20 is ERC20 {
-    constructor () ERC20("TestToken", "TST") {}
-
-    function mint(address account, uint256 amount) public {
-        _mint(account, amount);
-    }
-}
-
 contract ERC20JoinPolicy is GatedJoinPolicy{
     IERC20 public token;
     uint256 public minRequiredBalance;

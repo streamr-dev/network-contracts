@@ -2,20 +2,10 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../StreamRegistry/StreamRegistryV3.sol"; 
 import "./GatedJoinPolicy.sol";
 import "./DelegatedAccessRegistry.sol";
-
-// Used only for testing purposes
-contract TestERC721 is ERC721 {
-    constructor () ERC721("TestToken", "TST") {}
-
-    function mint(address account, uint256 tokenId) public {
-        _mint(account, tokenId);
-    }
-}
 
 contract ERC721JoinPolicy is GatedJoinPolicy{
     IERC721 public token;
