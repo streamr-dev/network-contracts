@@ -8,7 +8,7 @@
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "lint": "eslint test/**/*.* && solhint contracts/*/*.sol",
+    "lint": "eslint test/**/*.* && eslint scripts/**/*.* && solhint contracts/*/*.sol",
     "deploy": "hardhat run --network hardhat scripts/deploy.ts",
     "deployLocalWithExport": "hardhat --network localsidechain deploy",
     "deployProxy": "hardhat run --network hardhat scripts/deployWithProxy.ts",

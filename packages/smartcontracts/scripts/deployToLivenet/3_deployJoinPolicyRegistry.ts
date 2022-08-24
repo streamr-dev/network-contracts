@@ -1,8 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { constants, Contract, Wallet } from 'ethers'
-import { parseEther } from 'ethers/lib/utils'
+import { Wallet } from 'ethers'
 import hhat from 'hardhat'
-const { ethers, upgrades } = hhat
+const { ethers } = hhat
 
 // localsidechain
 const chainURL = 'http://10.200.10.1:8546'
@@ -15,7 +14,7 @@ enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
 async function deployJoinPolicyRegistry({
     permissions, streamRegistryAddress
-} : {
+}: {
     permissions: PermissionType[],
     streamRegistryAddress: string,
 }){
@@ -33,17 +32,15 @@ async function deployJoinPolicyRegistry({
 
 }
 
-
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     console.log(`wallet address ${wallet.address}`)
     
     // streamr-docker-dev 
-        await deployJoinPolicyRegistry({
-            permissions: [PermissionType.Publish, PermissionType.Subscribe],
-            streamRegistryAddress: '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
-        })
-
+    await deployJoinPolicyRegistry({
+        permissions: [PermissionType.Publish, PermissionType.Subscribe],
+        streamRegistryAddress: '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+    })
 
     // Polygon Mainnet
     /*
@@ -51,9 +48,6 @@ async function main() {
             permissions: [PermissionType.Publish, PermissionType.Subscribe],
             streamRegistryAddress: '0xB3042ecFC4Ba4ef213A38B1C2541E9234a6189cc'
         })*/
-
-
-    
 
 }
 
