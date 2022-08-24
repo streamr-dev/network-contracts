@@ -35,6 +35,7 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         permissions_
     ) {
         token = IERC20(tokenAddress);
+        require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
         minRequiredBalance = minRequiredBalance_;
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }

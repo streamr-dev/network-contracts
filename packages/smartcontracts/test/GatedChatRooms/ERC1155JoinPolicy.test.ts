@@ -97,8 +97,8 @@ describe('ERC1155JoinPolicy', (): void => {
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
-            [ TokenIds.A, TokenIds.B, TokenIds.C],
-            [1, 2, 3], // minRequiredBalance    
+            TokenIds.A,
+            1, // minRequiredBalance    
             delegatedAccessRegistry.address
         )
 
@@ -112,6 +112,38 @@ describe('ERC1155JoinPolicy', (): void => {
             streamId,
             wallets[0].address
         )
+    })
+
+    it ('should fail to deploy a policy with 0 as minimum required balance', async () => {
+        try {
+            const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
+            await ERC1155JoinPolicy.deploy(
+                token.address,
+                streamRegistryV3.address,
+                streamId + '/fail',
+                [
+                    PermissionType.Publish, PermissionType.Subscribe
+                ],
+                TokenIds.B,
+                0, // minRequiredBalance    
+                delegatedAccessRegistry.address
+            )
+        } catch (e: any){
+            expect(e.message.includes(
+                'VM Exception while processing transaction: reverted with reason string \'minReqBalance must be > 0\''
+            )).to.equal(true)
+        }
+    })
+
+    it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
+        try {
+            await contract.requestDelegatedJoin(
+                wallets[2].address,
+                TokenIds.B,
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+        }
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
@@ -136,7 +168,8 @@ describe('ERC1155JoinPolicy', (): void => {
     })
 
     it ('should check positively that a user can request join', async () => {
-        await token.mint(wallets[0].address, TokenIds.A, BigNumber.from(1))
+        const tx = await token.mint(wallets[0].address, TokenIds.A, BigNumber.from(1))
+        await tx.wait()
         const canJoin = await contract.canJoin(wallets[0].address, TokenIds.A)
         expect(canJoin).to.equal(true)
     })

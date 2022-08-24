@@ -118,6 +118,17 @@ describe('ERC721JoinPolicy', (): void => {
         )
     })
 
+    it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
+        try {
+            await contract.requestDelegatedJoin(
+                wallets[2].address,
+                TokenId
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+        }
+    })
+
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
         try {
             const balance = await token.balanceOf(wallets[1].address)

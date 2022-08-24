@@ -20,18 +20,17 @@ contract TestERC1155 is ERC1155 {
 contract ERC1155JoinPolicy is GatedJoinPolicy {
 
     IERC1155 public token;
-
+    // tokenId => minRequiredBalance
     mapping(uint256 => uint256) public tokenIdsToMinRequiredBalances;
     DelegatedAccessRegistry private delegatedAccessRegistry;
-
 
     constructor(
         address tokenAddress,
         address streamRegistryAddress,
         string memory streamId_,
         StreamRegistryV3.PermissionType[] memory permissions_,
-        uint256[] memory tokenIds_,
-        uint256[] memory minRequiredBalances_,
+        uint256 tokenId_,
+        uint256 minRequiredBalance_,
         address delegatedAccessRegistryAddress
 
     ) GatedJoinPolicy(
@@ -39,17 +38,14 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         streamId_,
         permissions_
     ) {
-        require(tokenIds_.length == minRequiredBalances_.length, "ids and balances length diff");
-
-        for (uint256 i = 0; i < tokenIds_.length; i++) {
-            tokenIdsToMinRequiredBalances[tokenIds_[i]] = minRequiredBalances_[i];
-        }
+        require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
+        tokenIdsToMinRequiredBalances[tokenId_] = minRequiredBalance_;
         token = IERC1155(tokenAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
     function canJoin(address user_, uint256 tokenId_) public view returns (bool) {
-        return (token.balanceOf(user_, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]);
+        return (tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(user_, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]);
     }
     
     function requestDelegatedJoin(

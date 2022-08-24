@@ -221,4 +221,62 @@ describe('DelegatedAccessRegistry', (): void => {
         expect(isDelegatedWalletKnown).to.equal(false)
     })
 
+    // test coverage
+    it ('should trigger an error when a signature with invalid length is provided to `verifyDelegationChallenge`', async () => {
+        try {
+ 
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                0 // authorize type 
+            )
+    
+            await contract.authorize(
+                delegated.address,
+                signature.slice(0, -2)
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+        }
+    })
+
+    // test coverage 
+    it ('should trigger an error when the signature\'s version is wrong', async () => {
+        try {
+
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                0 // authorize type 
+            )
+        
+            // trick the version number in the formatted signature
+            const mockSignature = signature.slice(0, -2) + '02'
+
+            await contract.authorize(
+                delegated.address,
+                mockSignature
+            )
+
+        }   catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureVersion\'')
+        }
+    })
+
+    // test coverage 
+    it ('should trigger the require when invalid signature provided to `revoke` method', async () => {
+        try {
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                1 // revoke type
+            )
+            await contract.revoke(
+                delegated.address,
+                signature.slice(0, -2)
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+        }
+    })
 })
