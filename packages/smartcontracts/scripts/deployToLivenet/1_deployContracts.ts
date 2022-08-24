@@ -1,6 +1,8 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from 'ethers'
 import hhat from 'hardhat'
+import debug from 'debug'
+const log = debug('Streamr:eth-init')
 
 const { ethers, upgrades } = hhat
 
@@ -37,9 +39,6 @@ const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localc
 // const chainURL = 'https://polygon-rpc.com'
 // const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const log = require('debug')('Streamr:eth-init')
 
 // this wallet will deploy all contracts and "own" them if applicable
 
