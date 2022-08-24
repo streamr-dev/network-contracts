@@ -10,7 +10,7 @@ import "./ERC20JoinPolicy.sol";
 import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
 
-contract JoinPolicyRegistry is Ownable {
+contract JoinPolicyFactory is Ownable {
 
     address public streamRegistryAddress;
     StreamRegistryV3 public streamRegistry;
