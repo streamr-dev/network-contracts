@@ -1,9 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { constants, Wallet } from 'ethers'
-import { parseEther } from 'ethers/lib/utils'
+import { Wallet } from 'ethers'
 import hhat from 'hardhat'
-
-import { StreamRegistry } from '../../typechain/StreamRegistry'
 
 const { ethers, upgrades } = hhat
 
@@ -41,6 +38,7 @@ const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localc
 // const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require('debug')('Streamr:eth-init')
 
 // this wallet will deploy all contracts and "own" them if applicable
@@ -165,7 +163,6 @@ async function main() {
     const initialMetadata: string[] = []
     // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
-
     await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()

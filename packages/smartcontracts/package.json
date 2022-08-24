@@ -8,7 +8,7 @@
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "lint": "eslint test/*.* && solhint contracts/*/*.sol",
+    "lint": "eslint test/**/*.* && eslint scripts/**/*.* && solhint contracts/*/*.sol",
     "deploy": "hardhat run --network hardhat scripts/deploy.ts",
     "deployLocalWithExport": "hardhat --network localsidechain deploy",
     "deployProxy": "hardhat run --network hardhat scripts/deployWithProxy.ts",
@@ -24,7 +24,9 @@
     "deploylive1": "hardhat run --network polygonTestMumbai1 scripts/deployToLivenet/1_deployContracts.ts",
     "deploylive": "hardhat run --network localsidechain scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/1_deployContracts.ts",
-    "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts"
+    "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts",
+    "deployJoinPolicy": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts",
+    "deployJoinPolicyProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
@@ -42,6 +44,7 @@
     "@openzeppelin/contracts-upgradeable": "4.4.2",
     "@openzeppelin/hardhat-upgrades": "1.13.0",
     "debug": "4.3.3",
+    "eth-crypto": "^2.3.0",
     "eth-ens-namehash": "2.0.8",
     "ethers": "5.5.3",
     "event-stream": "4.0.1",
@@ -53,14 +56,14 @@
   },
   "devDependencies": {
     "@metamask/eth-sig-util": "4.0.0",
-    "solc": "0.8.6",
-    "solidity-coverage": "0.7.20",
-    "typechain": "4.0.3",
-    "solhint": "3.3.6",
     "@nomiclabs/hardhat-ethers": "2.0.4",
     "@typechain/ethers-v5": "6.0.5",
     "@types/debug": "4.1.7",
     "ethereum-waffle": "3.4.0",
-    "ts-generator": "0.1.1"
+    "solc": "0.8.6",
+    "solhint": "3.3.6",
+    "solidity-coverage": "0.7.20",
+    "ts-generator": "0.1.1",
+    "typechain": "4.0.3"
   }
 }

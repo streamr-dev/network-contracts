@@ -56,15 +56,22 @@ const config: HardhatUserConfig = {
         //     url: 'https://matic-mumbai.chainstacklabs.com/',
         // },
         // polygonMainnet: {
-        //     chainId: 137,
-        //     url: 'https://polygon-rpc.com',
-        // }
+        //      chainId: 137,
+        //      url: 'https://polygon-rpc.com',
+        //      accounts: []
+        //  },
     },
     dependencyCompiler: {
         paths: [
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol'
+            '@chainlink/contracts/src/v0.6/Oracle.sol',
+            '@openzeppelin/contracts/token/ERC20/ERC20.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC20TestToken.sol',
+            '@openzeppelin/contracts/token/ERC721/ERC721.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC721TestToken.sol',
+            '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol'
         ],
     },
     solidity: {
