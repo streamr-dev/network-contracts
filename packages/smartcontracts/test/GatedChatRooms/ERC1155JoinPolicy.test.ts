@@ -2,8 +2,8 @@ import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { BigNumber, Contract} from 'ethers'
 
-import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
-import type { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
+import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
+import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../../typechain/StreamRegistry'
 import {sign, hash, createIdentity} from 'eth-crypto'
 

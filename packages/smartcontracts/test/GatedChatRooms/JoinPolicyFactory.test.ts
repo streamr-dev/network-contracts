@@ -2,9 +2,9 @@ import { waffle, ethers, upgrades } from 'hardhat'
 import { expect, use } from 'chai'
 import { Contract} from 'ethers'
 import { StreamRegistry } from '../../typechain'
-import { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
 import { deployContract } from 'ethereum-waffle'
-import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
+import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
+import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 
 const { provider } = waffle
 
