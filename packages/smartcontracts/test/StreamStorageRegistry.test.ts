@@ -3,8 +3,8 @@ import { expect, use } from 'chai'
 
 // import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
 // import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
-import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
+import type { MinimalForwarder } from '../typechain/MinimalForwarder'
 import type { StreamStorageRegistry, StreamRegistry, NodeRegistry } from '../typechain'
 
 const { deployContract, provider } = waffle

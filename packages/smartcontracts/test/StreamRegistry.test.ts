@@ -3,8 +3,8 @@ import { expect, use } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import ForwarderJson from '../test-contracts/MinimalForwarder.json'
-import type { MinimalForwarder } from '../test-contracts/MinimalForwarder'
+import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
+import type { MinimalForwarder } from '../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
 const { deployContract } = waffle
@@ -684,7 +684,7 @@ describe('StreamRegistry', (): void => {
         const sign = signTypedData(options) // user0
 
         const res = await minimalForwarderFromUser0.verify(req, sign)
-        await expect(res).to.be.true
+        await expect(res).to.be .true
         const tx = await minimalForwarderFromUser0.execute(req, sign)
         const tx2 = await tx.wait()
         expect(tx2.logs.length).to.equal(2)

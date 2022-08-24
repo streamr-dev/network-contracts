@@ -62,7 +62,8 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            // '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol'
         ],
