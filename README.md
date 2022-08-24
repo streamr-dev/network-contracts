@@ -1,5 +1,3 @@
-# network-contracts
-
 This is a monorepo containing various smart contracts and subgraphs used by the Streamr Network, as well as potential other Ethereum-related bits and pieces that relate to the Network.
 
 ## Main packages
