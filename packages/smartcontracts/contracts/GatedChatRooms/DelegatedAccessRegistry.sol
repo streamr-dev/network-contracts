@@ -4,7 +4,9 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DelegatedAccessRegistry is Ownable {
+    // mainWallet => mapping(delegatedWallet => isRegistered)
     mapping(address => mapping(address => bool)) public mainToDelegatedWallets;
+    // delegatedWallet => mainWallet
     mapping(address => address) private delegatedToMainWallets;
 
     uint256 constant public AUTHORIZE_CHALLENGE_TYPE = 0;
@@ -13,6 +15,7 @@ contract DelegatedAccessRegistry is Ownable {
     event Authorized(address indexed mainWallet, address delegatedWallet);
     event Revoked (address indexed mainWallet, address delegatedWallet);
 
+    // mainWallet => isKnown 
     mapping(address=>bool) public mainWallets;
 
     constructor() Ownable(){}
@@ -34,6 +37,7 @@ contract DelegatedAccessRegistry is Ownable {
         if (v < 27) {
             v += 27;
         }
+        
         require(v == 27 || v == 28, "error_badSignatureVersion");
 
         bytes32 messageHash = keccak256(abi.encodePacked(
@@ -44,7 +48,6 @@ contract DelegatedAccessRegistry is Ownable {
         return delegatedUser_ == ecrecover(messageHash, v, r, s);
     }
 
-    
     function authorize(address delegatedUser_, bytes memory signature_) public {
         require(verifyDelegationChallenge(delegatedUser_, AUTHORIZE_CHALLENGE_TYPE, signature_), "Invalid challenge signature");
         mainToDelegatedWallets[_msgSender()][delegatedUser_] = true;

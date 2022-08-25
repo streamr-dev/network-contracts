@@ -11,6 +11,9 @@ const DataUnionFactorySidechain = require("./ethereumContractJSONs/DataUnionFact
 const DataUnionFactoryMainnet = require("./ethereumContractJSONs/DataUnionFactoryMainnet.json")
 const MainnetMigrationManager = require("./ethereumContractJSONs/MainnetMigrationManager.json")
 const SidechainMigrationManager = require("./ethereumContractJSONs/SidechainMigrationManager.json")
+// unichain
+const DataUnionFactory = require("./ethereumContractJSONs/DataUnionFactory.json")
+const DataUnionTemplate = require("./ethereumContractJSONs/DataUnionTemplate.json")
 
 const log = process.env.QUIET ? (() => { }) : console.log // eslint-disable-line no-console
 // class LoggingProvider extends JsonRpcProvider {
@@ -44,32 +47,32 @@ async function deployDUFactories() {
     let deployer = new ContractFactory(DataUnionSidechain.abi, DataUnionSidechain.bytecode, wallet_home)
     let dtx = await deployer.deploy({ gasLimit: 6000000 })
     let duhome = await dtx.deployed()
-    console.log(`duhome template: ${duhome.address}`)
+    log(`duhome template: ${duhome.address}`)
 
     log(`Deploying template DU mainnet contract from ${wallet_foreign.address}`)
     deployer = new ContractFactory(DataUnionMainnet.abi, DataUnionMainnet.bytecode, wallet_foreign)
     dtx = await deployer.deploy({ gasLimit: 6000000 })
     let duforeign = await dtx.deployed()
-    console.log(`duforeign template: ${duforeign.address}`)
+    log(`duforeign template: ${duforeign.address}`)
 
     log(`Deploying MainnetMigrationManager contract from ${wallet_foreign.address}`)
     deployer = new ContractFactory(MainnetMigrationManager.abi, MainnetMigrationManager.bytecode, wallet_foreign)
     dtx = await deployer.deploy(foreign_erc20, foreign_erc_mediator, { gasLimit: 6000000 })
     let mainnetMigrationMgr = await dtx.deployed()
-    console.log(`MainnetMigrationManager template: ${mainnetMigrationMgr.address}`)
+    log(`MainnetMigrationManager template: ${mainnetMigrationMgr.address}`)
 
     log(`Deploying SidechainMigrationManager contract from ${wallet_foreign.address}`)
     deployer = new ContractFactory(SidechainMigrationManager.abi, SidechainMigrationManager.bytecode, wallet_home)
     dtx = await deployer.deploy(home_erc677, zeroAddress, home_erc_mediator, { gasLimit: 6000000 })
     let sidechainMigrationMgr = await dtx.deployed()
-    console.log(`SidechainMigrationManager template: ${sidechainMigrationMgr.address}`)
+    log(`SidechainMigrationManager template: ${sidechainMigrationMgr.address}`)
 
     // constructor( address _token_mediator, address _data_union_sidechain_template) public {
     log(`Deploying sidechain DU factory contract from ${wallet_home.address}`)
     deployer = new ContractFactory(DataUnionFactorySidechain.abi, DataUnionFactorySidechain.bytecode, wallet_home)
     dtx = await deployer.deploy(duhome.address, { gasLimit: 6000000 })
     let factSidechain = await dtx.deployed()
-    console.log(`factorySidechain: ${factSidechain.address}`)
+    log(`factorySidechain: ${factSidechain.address}`)
 
     /*  constructor(
             address _dataUnionMainnetTemplate,
@@ -95,8 +98,27 @@ async function deployDUFactories() {
         { gasLimit: 6000000 }
     )
     let factMainnet = await dtx.deployed()
-    console.log(`factMainnet: ${factMainnet.address}`)
+    log(`factMainnet: ${factMainnet.address}`)
 
+    // Deploy unichain template + factory
+
+    log(`Deploying DU unichain template contract from ${wallet_home.address}`)
+    deployer = new ContractFactory(DataUnionTemplate.abi, DataUnionTemplate.bytecode, wallet_home)
+    dtx = await deployer.deploy(
+        { gasLimit: 6000000 }
+    )
+    const unichainTemplate = await dtx.deployed()
+    log(`Unichain DataUnionTemplate: ${unichainTemplate.address}`)
+    log(`Deploying DU unichain factory contract from ${wallet_home.address}`)
+    deployer = new ContractFactory(DataUnionFactory.abi, DataUnionFactory.bytecode, wallet_home)
+    dtx = await deployer.deploy(
+        unichainTemplate.address,
+        home_erc677,
+        { gasLimit: 6000000 }
+    )
+
+    const unichainFactory = await dtx.deployed()
+    log(`Unichain DataUnionFactory: ${unichainFactory.address}`)
 }
 
 async function start() {

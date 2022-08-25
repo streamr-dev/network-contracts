@@ -7,7 +7,7 @@ for (i = 1; i <= 1000; i++) {
     const hexString = i.toString(16)
     privkey = '0x' + hexString.padStart(64, '0')
     const wallet = new Wallet(privkey)
-    console.log(wallet.address)
+    // console.log(wallet.address)
     const content = `"${wallet.address}": {
         "balance": "1000000000000000000000000"
     },

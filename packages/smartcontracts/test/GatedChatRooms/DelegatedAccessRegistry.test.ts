@@ -1,34 +1,13 @@
-
-import { waffle, ethers, upgrades } from 'hardhat'
+import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import EthCrypto from 'eth-crypto'
-import { StreamRegistry } from '../../typechain'
-import { MinimalForwarder } from '../../test-contracts/MinimalForwarder'
-import { deployContract } from 'ethereum-waffle'
-import ForwarderJson from '../../test-contracts/MinimalForwarder.json'
-import { BigNumber, Wallet, Contract, utils, BigNumberish } from "ethers"
-
-const { hexZeroPad, parseEther, arrayify } = utils
+import { BigNumber, Wallet, Contract } from "ethers"
 
 const { provider } = waffle
 export type TypedValue = {
-    value: string | Number | BigNumber,
+    value: string | number | BigNumber,
     type: 'string' | 'uint256' | 'int256' | 'bool' | 'bytes' | 'bytes32' | 'address'
 };
-
-async function getWithdrawSignature(
-    signer: Wallet,
-    to: Wallet,
-    amountTokenWei: BigNumberish,
-    duContract: Contract
-) {
-    const previouslyWithdrawn = await duContract.getWithdrawn(signer.address) as BigNumber
-    const message = to.address
-        + hexZeroPad(BigNumber.from(amountTokenWei).toHexString(), 32).slice(2)
-        + duContract.address.slice(2)
-        + hexZeroPad(previouslyWithdrawn.toHexString(), 32).slice(2)
-    return signer.signMessage(arrayify(message))
-}
 
 const signDelegatedChallenge = async (
     main: Wallet, 
@@ -36,22 +15,19 @@ const signDelegatedChallenge = async (
     challengeType: 0 | 1 // 0 = authorize | 1 = revoke
 ) => {
 
-
     const message = EthCrypto.hash.keccak256([
         { type: 'uint256', value: challengeType.toString()},
         {type: 'address', value: main.address}
     ])
-
-        const signature = EthCrypto.sign(delegated.privateKey, message)
+    const signature = EthCrypto.sign(delegated.privateKey, message)
      
-        return {
+    return {
         delegated, message, signature
     }
 }
 
 use(waffle.solidity)
 describe('DelegatedAccessRegistry', (): void => {
-    enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
     const wallets = provider.getWallets()
 
@@ -59,23 +35,7 @@ describe('DelegatedAccessRegistry', (): void => {
 
     let contract: Contract
 
-    let signerIdentity: any 
-    let message: string 
-    let signature: string
-    let token: Contract 
-
-
-    let streamRegistryV3: StreamRegistry
-    let minimalForwarderFromUser0: MinimalForwarder
-    const adminAddress: string = wallets[0].address
-
-    const streamPath = '/foo/bar'
-    const streamId = `${adminAddress}${streamPath}`.toLowerCase()
-
-    let delegatedAccessRegistry: Contract
-
     before(async (): Promise<void> => {
-        
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
         
@@ -95,19 +55,18 @@ describe('DelegatedAccessRegistry', (): void => {
 
     it ('should exercise the `isAuthorized` method when not set', async () => {
         const isAuthorized = await contract.connect(wallets[0])
-        .isAuthorized(
-            delegated.address
-        )
+            .isAuthorized(
+                delegated.address
+            )
         expect(isAuthorized).to.equal(false)
     })
 
     it ('happy-path for `authorize` method', async() => {
-        const { message, signature } = await signDelegatedChallenge(
+        const { signature } = await signDelegatedChallenge(
             wallets[0], 
             delegated,
             0 // authorize type 
         )
-        
 
         await contract.authorize(
             delegated.address,
@@ -130,13 +89,11 @@ describe('DelegatedAccessRegistry', (): void => {
 
     it ('should exercise the `isAuthorized` method when set', async () => {
         const isAuthorized = await contract.connect(wallets[0])
-        .isAuthorized(
-            delegated.address
-        )
+            .isAuthorized(
+                delegated.address
+            )
         expect(isAuthorized).to.equal(true)
     })
-
-   
     
     it ('happy-path for `getMainWalletFor`', async () => {
         const mainWallet = await contract.getMainWalletFor(
@@ -264,7 +221,62 @@ describe('DelegatedAccessRegistry', (): void => {
         expect(isDelegatedWalletKnown).to.equal(false)
     })
 
+    // test coverage
+    it ('should trigger an error when a signature with invalid length is provided to `verifyDelegationChallenge`', async () => {
+        try {
+ 
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                0 // authorize type 
+            )
+    
+            await contract.authorize(
+                delegated.address,
+                signature.slice(0, -2)
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+        }
+    })
 
+    // test coverage 
+    it ('should trigger an error when the signature\'s version is wrong', async () => {
+        try {
 
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                0 // authorize type 
+            )
+        
+            // trick the version number in the formatted signature
+            const mockSignature = signature.slice(0, -2) + '02'
 
+            await contract.authorize(
+                delegated.address,
+                mockSignature
+            )
+
+        }   catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureVersion\'')
+        }
+    })
+
+    // test coverage 
+    it ('should trigger the require when invalid signature provided to `revoke` method', async () => {
+        try {
+            const { signature } = await signDelegatedChallenge(
+                wallets[0], 
+                delegated,
+                1 // revoke type
+            )
+            await contract.revoke(
+                delegated.address,
+                signature.slice(0, -2)
+            )
+        } catch (e: any){
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+        }
+    })
 })

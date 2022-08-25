@@ -8,7 +8,7 @@
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "lint": "eslint test/*.* && solhint contracts/*/*.sol",
+    "lint": "eslint scripts/**/* test/**/* && eslint scripts/**/*.* && solhint contracts/*/*.sol",
     "deploy": "hardhat run --network hardhat scripts/deploy.ts",
     "deployLocalWithExport": "hardhat --network localsidechain deploy",
     "deployProxy": "hardhat run --network hardhat scripts/deployWithProxy.ts",
@@ -25,9 +25,10 @@
     "deploylive": "hardhat run --network localsidechain scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network localsidechain scripts/registerStorageNode.ts",
+    "deployJoinPolicy": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts",
+    "deployJoinPolicyProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts",
     "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
     "deployDelegatedAccessRegistryProd": "hardhat run --network polygonMainnet scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts"
-
   },
   "author": "Streamr Network AG",
   "license": "ISC",

@@ -5,6 +5,7 @@ const {
     Contract,
     ContractFactory,
     utils: {computeAddress, parseEther, formatEther, namehash, id, bigNumberify},
+    constants: {MaxUint256},
     Wallet,
     providers: {JsonRpcProvider}
 } = require("ethers4")
@@ -103,6 +104,7 @@ const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
+let streamRegistryFromOwner
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -257,19 +259,33 @@ async function deployStreamRegistries() {
         kind: 'uups'
     })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
+    streamRegistryFromOwner = streamRegistry
     streamRegistryAddress = streamRegistry.address
     log(`Streamregistry deployed at ${streamRegistry.address}`)
-    
+
     log(`setting Streamregistry address in ENSCache`)
     const setStreamRegTx = await ensCache.setStreamRegistry(streamRegistry.address)
     await setStreamRegTx.wait()
     log(`setting enscache address as trusted role in streamregistry`)
-    
+
     const ensa = ensCache.address
     const role = await streamRegistry.TRUSTED_ROLE()
     log(`granting role ${role} ensaddress ${ensa}`)
     const grantRoleTx = await streamRegistry.grantRole(role, ensa)
     await grantRoleTx.wait()
+
+    const storageNodePk = '0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747bce966'
+    const storageNodeWallet = new ethers.Wallet(storageNodePk, new ethers.providers.JsonRpcProvider(sidechainURL))
+    const streamRegistry2 = streamRegistry.connect(storageNodeWallet)
+
+    log('Create storage node assignment stream')
+    const storageNodeAssignmentPath = '/assignments'
+    const storageNodeAssignmentsStreamId = '0xde1112f631486cfc759a50196853011528bc5fa0/assignments'
+    const tx1 = await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}), { gasLimit: 5999990 })
+    await tx1.wait()
+    const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
+    await tx2.wait()
+
 }
 
 async function smartContractInitialization() {
@@ -513,6 +529,24 @@ async function smartContractInitialization() {
     }
 
     await deployStreamStorageRegistry(sidechainWallet)
+
+    const newWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
+    const marketDeployer3 = await ethers.getContractFactory(Marketplace2Json.abi, Marketplace2Json.bytecode, newWallet)
+    const marketDeployTx3 = await marketDeployer3.deploy(
+        sidechainDataCoin,
+        sidechainWallet.address,
+        '0x0000000000000000000000000000000000000000'
+    )
+    const market2 = await marketDeployTx3.deployed()
+    log(`Marketplace2 deployed on sidechain at ${market2.address}`)
+
+    const watcherDevopsKey = '0x628acb12df34bb30a0b2f95ec2e6a743b386c5d4f63aa9f338bec6f613160e78'
+    const watcherWallet = new ethers.Wallet(watcherDevopsKey)
+    const role = await streamRegistryFromOwner.TRUSTED_ROLE()
+    log(`granting role ${role} to devops ${watcherWallet.address}`)
+    const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
+    await grantRoleTx2.wait()
+
     //put additions here
 
     //all TXs should now be confirmed:
@@ -531,15 +565,13 @@ async function smartContractInitialization() {
         if (p.pricePerSecond == 0) {
             continue
         }
-        console.log(`create ${p.id}`)
+        log(`create ${p.id}`)
         const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
-        //await tx.wait(1)
+        await tx.wait()
         if (p.state == "NOT_DEPLOYED") {
-            console.log(`delete ${p.id}`)
-            await tx.wait(1)
-            await market.deleteProduct(`0x${p.id}`)
-            //await tx2.wait(1)
+            log(`delete ${p.id}`)
+            await (await market.deleteProduct(`0x${p.id}`)).wait()
         }
     }
 }

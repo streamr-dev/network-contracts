@@ -2,13 +2,13 @@
 // scripts/deploy.js
 
 import { ethers, upgrades } from 'hardhat'
-import { BigNumber, Contract, providers, utils, Wallet } from 'ethers'
+import { Contract, providers, Wallet, utils } from 'ethers'
 
-import { ENSCache, LinkToken, Oracle, StreamRegistry } from '../../typechain'
+import { ENSCache, Oracle, StreamRegistry } from '../../typechain'
 
 // const { ethers } = hhat
-const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
-const fifsAbi = require('@ensdomains/ens/build/contracts/FIFSRegistrar.json')
+// import ensAbi from '@ensdomains/ens/build/contracts/ENS.json'
+// import fifsAbi from '@ensdomains/ens/build/contracts/FIFSRegistrar.json'
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
 
 // hardhat
@@ -62,24 +62,24 @@ const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 // const CHAINLINK_NODE_ADDRESS = '0xc244dA783A3B96f4D420A4eEfb105CD0Db4bE01a'
 
 // ens on mainnet
-const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
-const FIFSADDRESS = '0x57B81a9442805f88c4617B506206531e72d96290'
+// const ENSADDRESS = '0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03'
+// const FIFSADDRESS = '0x57B81a9442805f88c4617B506206531e72d96290'
 const RESOLVERADDRESS = '0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c'
 
 const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
 const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
-let walletMainnet : Wallet
-let walletSidechain : Wallet
-let registryFromUser : StreamRegistry
-let registryFromOwner : StreamRegistry
-let ensCacheFromOwner : ENSCache
-let linkTokenFromOwner : LinkToken
-let oracleFromOwner : Oracle
-let ensFomAdmin : Contract
-let fifsFromAdmin : Contract
+let walletMainnet: Wallet
+let walletSidechain: Wallet
+let registryFromUser: StreamRegistry
+let registryFromOwner: StreamRegistry
+let ensCacheFromOwner: ENSCache
+// let linkTokenFromOwner: LinkToken
+let oracleFromOwner: Oracle
+let ensFomAdmin: Contract
+let fifsFromAdmin: Contract
 // let resolverFomAdmin : Contract
-let randomENSName : string
-let stringIdWithoutENS : string
+let randomENSName: string
+let stringIdWithoutENS: string
 const metadata1 = 'metadata1'
 
 const connectToAllContracts = async () => {
@@ -93,11 +93,11 @@ const connectToAllContracts = async () => {
     registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistry
     registryFromOwner = await registryContract.connect(deploymentOwner) as StreamRegistry
 
-    const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
-    ensFomAdmin = await ensContract.connect(walletMainnet)
+    // const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
+    // ensFomAdmin = await ensContract.connect(walletMainnet)
 
-    const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
-    fifsFromAdmin = await fifsContract.connect(walletMainnet)
+    // const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
+    // fifsFromAdmin = await fifsContract.connect(walletMainnet)
 
     // const resolverContract = new ethers.Contract(RESOLVERADDRESS, resolverAbi.abi, mainnetProvider)
     // resolverFomAdmin = await resolverContract.connect(walletMainnet)
@@ -108,10 +108,10 @@ const connectToAllContracts = async () => {
     ensCacheFromOwner = await enscacheContract.connect(deploymentOwner) as ENSCache
     // ensCacheFromOwner = await enscacheContract.connect(walletSidechain) as ENSCache
 
-    const linkTokenFactory = await ethers.getContractFactory('LinkToken', walletSidechain)
-    const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
-    const linkTokenContract = await linkTokenFactoryTx.deployed()
-    linkTokenFromOwner = await linkTokenContract.connect(deploymentOwner) as LinkToken
+    // const linkTokenFactory = await ethers.getContractFactory('LinkToken', walletSidechain)
+    // const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
+    // const linkTokenContract = await linkTokenFactoryTx.deployed()
+    // linkTokenFromOwner = await linkTokenContract.connect(deploymentOwner) as LinkToken
 
     const oracleFactory = await ethers.getContractFactory('Oracle', walletSidechain)
     const oracleFactoryTx = await oracleFactory.attach(ORACLEADDRESS)
@@ -147,29 +147,29 @@ const setOracleFulfilmentPermission = async () => {
 
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
-    randomENSName = 'sam.eth'
-    // randomENSName = randomDomain + '.eth'
-    // console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
-    // const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
-    // const nameHashedENSName = utils.namehash(randomENSName)
-    // let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
+    // randomENSName = 'sam.eth'
+    randomENSName = randomDomain + '.eth'
+    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
+    const nameHashedENSName = utils.namehash(randomENSName)
+    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
+    await tx.wait()
+    console.log('seting resolver for ens')
+
+    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    await tx.wait(2)
+    console.log('setting owner for ens')
+
+    // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
     // await tx.wait()
-    // console.log('seting resolver for ens')
+    // console.log('3')
 
-    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    // await tx.wait(2)
-    // console.log('setting owner for ens')
+    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    await tx.wait()
+    console.log('querying owner from mainchain')
 
-    // // tx = await resolverFomAdmin.setAddr(nameHashedENSName, '0x4178baBE9E5148c6D5fd431cD72884B07Ad855a0')
-    // // await tx.wait()
-    // // console.log('3')
-
-    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    // await tx.wait()
-    // console.log('querying owner from mainchain')
-
-    // const addr = await ensFomAdmin.owner(nameHashedENSName)
-    // console.log('queried owner of', randomENSName, ': ', addr)
+    const addr = await ensFomAdmin.owner(nameHashedENSName)
+    console.log('queried owner of', randomENSName, ': ', addr)
 }
 
 const setChainlinkTokenAddressinENSCache = async () => {
@@ -261,23 +261,23 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 async function main() {
     await connectToAllContracts()
 
-    // await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
+    await grantTrustedRoleToAddress('0x1D16f9833d458007D3eD7C843FBeF59A73988109')
 
     // set up contracts
-    // await setOracleFulfilmentPermission()
-    // await setChainlinkTokenAddressinENSCache()
-    // await setStreamRegistryInEnsCache()
-    // await setEnsCacheInStreamRegistry()
-    // await setChainlinkJobId()
+    await setOracleFulfilmentPermission()
+    await setChainlinkTokenAddressinENSCache()
+    await setStreamRegistryInEnsCache()
+    await setEnsCacheInStreamRegistry()
+    await setChainlinkJobId()
 
     // upgrade Contracts
-    // await upgradeStreamRegistry()
+    await upgradeStreamRegistry()
 
     // test stream creation
     await createAndCheckStreamWithoutENS()
 
-    // await registerENSNameOnMainnet()
-    // await triggerChainlinkSyncOfENSNameToSidechain()
+    await registerENSNameOnMainnet()
+    await triggerChainlinkSyncOfENSNameToSidechain()
 }
 
 main()
