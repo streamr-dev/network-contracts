@@ -155,8 +155,6 @@ async function deployStreamRegistry() {
     // console.log('done setting enscache in streamregistry')
 }
 
-
-
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     log(`wallet address ${wallet.address}`)
