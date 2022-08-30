@@ -1,3 +1,7 @@
+/**
+ * Not yet deployed
+ */
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
@@ -241,7 +245,12 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
+    // legacy typoed method name
     function setPermissionsMultipleStreans(string[] calldata streamIds, address[][] calldata users, Permission[][] calldata permissions) public {
+        setPermissionsMultipleStreams(streamIds, users, permissions);
+    }
+
+    function setPermissionsMultipleStreams(string[] calldata streamIds, address[][] calldata users, Permission[][] calldata permissions) public {
         require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
         uint arrayLength = streamIds.length;
         for (uint i=0; i<arrayLength; i++) {

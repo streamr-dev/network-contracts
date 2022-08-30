@@ -58,7 +58,7 @@ const getBlocktime = async (): Promise<number> => {
 }
 
 use(waffle.solidity)
-describe.only('StreamRegistry', (): void => {
+describe('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
     // let ensCacheFromAdmin: ENSCache
     let registryFromAdmin: StreamRegistry | StreamRegistryV4
@@ -698,7 +698,6 @@ describe.only('StreamRegistry', (): void => {
         const tx = await minimalForwarderFromUser0.execute(req, sign)
         const tx2 = await tx.wait()
         expect(tx2.logs.length).to.equal(2)
-        //internal call will have failed
         const id = adminAdress.toLowerCase() + path
         expect(await registryFromAdmin.getStreamMetadata(id)).to.equal(metadata)
     })
