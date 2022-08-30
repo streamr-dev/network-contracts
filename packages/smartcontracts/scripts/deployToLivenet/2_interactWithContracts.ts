@@ -3,8 +3,10 @@
 
 import { ethers, upgrades } from 'hardhat'
 import { Contract, providers, Wallet, utils } from 'ethers'
+import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import { ENSCache, Oracle, StreamRegistry } from '../../typechain'
+import { ENSCache, MinimalForwarder, Oracle, StreamRegistryV4 } from '../../typechain'
+import { assert } from 'console'
 
 // const { ethers } = hhat
 // import ensAbi from '@ensdomains/ens/build/contracts/ENS.json'
@@ -48,9 +50,10 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 // const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
 // addresses localsidechain
+const FORWARDER = '0xEaa9846004d98BC4aa79059cF70d528235e59a6E'
 const ORACLEADDRESS = '0xD94D41F23F1D42C51Ab61685e5617BBC858e5871'
 const ENSCACHEADDRESS = '0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3'
-const STREAMREGISTRYADDRESS = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
+const STREAMREGISTRYADDRESS = '0x382b486B81FefB1F280166f2000a53b961b9840d'
 const CHAINLINK_JOBID = 'c99333d032ed4cb8967b956c7f0329b5' // https://github.com/streamr-dev/smart-contracts-init#running
 const CHAINLINK_NODE_ADDRESS = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 
@@ -70,13 +73,14 @@ const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
 const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
 let walletMainnet: Wallet
 let walletSidechain: Wallet
-let registryFromUser: StreamRegistry
-let registryFromOwner: StreamRegistry
+let registryFromUser: StreamRegistryV4
+let registryFromOwner: StreamRegistryV4
 let ensCacheFromOwner: ENSCache
 // let linkTokenFromOwner: LinkToken
 let oracleFromOwner: Oracle
 let ensFomAdmin: Contract
 let fifsFromAdmin: Contract
+let forwarderFromAdmin: MinimalForwarder
 // let resolverFomAdmin : Contract
 let randomENSName: string
 let stringIdWithoutENS: string
@@ -87,11 +91,17 @@ const connectToAllContracts = async () => {
     walletSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
     const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, sideChainProvider)
 
-    const streamregistryFactory = await ethers.getContractFactory('StreamRegistry', walletSidechain)
+    // const streamregistryFactory = await ethers.getContractFactory('StreamRegistry', walletSidechain)
+    const streamregistryFactory = await ethers.getContractFactory('StreamRegistryV4', walletSidechain)
     const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
     const registryContract = await registry.deployed()
-    registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistry
-    registryFromOwner = await registryContract.connect(deploymentOwner) as StreamRegistry
+    registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistryV4
+    registryFromOwner = await registryContract.connect(deploymentOwner) as StreamRegistryV4
+
+    const forwarderFactory = await ethers.getContractFactory('MinimalForwarder', walletSidechain)
+    const forwarder = await forwarderFactory.attach(FORWARDER)
+    const forwarderContract = await forwarder.deployed()
+    forwarderFromAdmin = await forwarderContract.connect(deploymentOwner) as MinimalForwarder
 
     // const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
     // ensFomAdmin = await ensContract.connect(walletMainnet)
@@ -191,7 +201,7 @@ const setStreamRegistryInEnsCache = async () => {
 
 const upgradeStreamRegistry = async () => {
     const deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, sideChainProvider)
-    const streamregistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', deploymentOwner)
+    const streamregistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV4', deploymentOwner)
     console.log('upgrading Streamregistry: proxyaddress: ' + STREAMREGISTRYADDRESS)
     const streamRegistryUpgraded = await upgrades.upgradeProxy(STREAMREGISTRYADDRESS, streamregistryFactoryV2)
     console.log('streamregistry upgraded, address is (should be same): ' + streamRegistryUpgraded.address)
@@ -258,6 +268,88 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     console.log('SUCCESS, everything worked!')
 }
 
+const setForwarderAndTestMeatTx = async () => {
+    const types = {
+        EIP712Domain: [
+            {
+                name: 'name', type: 'string'
+            },
+            {
+                name: 'version', type: 'string'
+            },
+            {
+                name: 'chainId', type: 'uint256'
+            },
+            {
+                name: 'verifyingContract', type: 'address'
+            },
+        ],
+        ForwardRequest: [
+            {
+                name: 'from', type: 'address'
+            },
+            {
+                name: 'to', type: 'address'
+            },
+            {
+                name: 'value', type: 'uint256'
+            },
+            {
+                name: 'gas', type: 'uint256'
+            },
+            {
+                name: 'nonce', type: 'uint256'
+            },
+            {
+                name: 'data', type: 'bytes'
+            },
+        ],
+    }
+
+    console.log('setting forwarder to ' + FORWARDER)
+    await (registryFromOwner as StreamRegistryV4).setTrustedForwarder(FORWARDER)
+    const randomPath = getRandomPath()
+    stringIdWithoutENS = walletSidechain.address.toLowerCase() + randomPath
+    console.log('creating stream with MetaTx, user signs, admin forwards tx: id: ', stringIdWithoutENS, ' and metadata ', metadata1)
+    // user, walletsidechain signs, deploymentowner forwards tx
+    const userAddress = walletSidechain.address
+
+    const data = await registryFromOwner.interface.encodeFunctionData('createStream', [randomPath, metadata1])
+    const req = {
+        from: userAddress,
+        to: registryFromUser.address,
+        value: '0',
+        gas: '1000000',
+        nonce: (await forwarderFromAdmin.getNonce(userAddress)).toString(),
+        data
+    }
+    const d: TypedMessage<any> = {
+        types,
+        domain: {
+            name: 'MinimalForwarder',
+            version: '0.0.1',
+            chainId: (await sideChainProvider.getNetwork()).chainId,
+            verifyingContract: forwarderFromAdmin.address,
+        },
+        primaryType: 'ForwardRequest',
+        message: req,
+    }
+    const options = {
+        data: d,
+        privateKey: utils.arrayify(walletSidechain.privateKey) as Buffer,
+        version: SignTypedDataVersion.V4,
+    }
+    const sign = signTypedData(options)
+
+    const res = await forwarderFromAdmin.verify(req, sign)
+    assert(res, 'Forwarder: signature does not match request')
+    const tx = await forwarderFromAdmin.execute(req, sign)
+    await tx.wait()
+    console.log('Getting metadata of new stream: ' + await registryFromUser.getStreamMetadata(stringIdWithoutENS))
+    assert(await registryFromUser.getStreamMetadata(stringIdWithoutENS) === metadata1, 'metadata is not correct')
+    console.log('SUCCESS creating stream with metaTX worked')
+}
+
 async function main() {
     await connectToAllContracts()
 
@@ -272,6 +364,7 @@ async function main() {
 
     // upgrade Contracts
     await upgradeStreamRegistry()
+    await setForwarderAndTestMeatTx()
 
     // test stream creation
     await createAndCheckStreamWithoutENS()
