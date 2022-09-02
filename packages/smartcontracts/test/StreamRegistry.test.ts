@@ -175,6 +175,79 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata1)
     })
 
+    it('positivetest createStreamWithPermissions', async (): Promise<void> => {
+        const newStreamPath = '/' + Wallet.createRandom().address
+        const newStreamId = adminAdress.toLowerCase() + newStreamPath
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: false,
+            publishExpiration: 7,
+            subscribeExpiration: 7,
+            canGrant: false
+        }
+        await expect(await registryFromAdmin.createStreamWithPermissions(newStreamPath, metadata1,
+            [adminAdress, trustedAddress], [permissionA, permissionB]))
+            // [trustedAddress], [permissionB]))
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId, metadata1)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, trustedAddress, false, false, 7, 7, false)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId)).to.equal(metadata1)
+    })
+
+    it('positivetest createMultipleStreamsWithPermissions', async (): Promise<void> => {
+        const newStreamPath1 = '/' + Wallet.createRandom().address 
+        const newStreamPath2 = '/' + Wallet.createRandom().address
+        const newStreamId1 = adminAdress.toLowerCase() + newStreamPath1
+        const newStreamId2 = adminAdress.toLowerCase() + newStreamPath2
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: false,
+            publishExpiration: 7,
+            subscribeExpiration: 7,
+            canGrant: false
+        }
+        await expect(await registryFromAdmin.createMultipleStreamsWithPermissions(
+            [newStreamPath1, newStreamPath2], [metadata1, metadata1], [[adminAdress, trustedAddress],
+                [adminAdress, trustedAddress]], [[permissionA, permissionB], [permissionA, permissionB]]))
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId1, metadata1)
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId2, metadata1)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, trustedAddress, false, false, 7, 7, false)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, trustedAddress, false, false, 7, 7, false)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId1)).to.equal(metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId2)).to.equal(metadata1)
+    })
+
     it('negativetest updateStreamMetadata, not exist, no right', async (): Promise<void> => {
         await expect(registryFromAdmin.updateStreamMetadata(streamId1, metadata0))
             .to.be.revertedWith('error_streamDoesNotExist')

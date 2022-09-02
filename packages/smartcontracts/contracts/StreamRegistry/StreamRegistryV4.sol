@@ -41,7 +41,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) private streamIdToVersion;
 
-    modifier hasGrantPermission(string calldata streamId) {
+    modifier hasGrantPermission(string memory streamId) {
         require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canGrant, "error_noSharePermission"); //||
         _;
     }
@@ -104,6 +104,19 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
+    function createStreamWithPermissions(string calldata streamIdPath, string calldata metadataJsonString, address[] calldata users, Permission[] calldata permissions) public {
+        string memory ownerstring = addressToString(_msgSender());
+        string memory streamId = _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
+        // external call so that memry is copied into calldata
+        setPermissions(streamId, users, permissions);
+    }
+
+    function createMultipleStreamsWithPermissions(string[] calldata streamIdPaths, string[] calldata metadataJsonStrings, address[][] calldata users, Permission[][] calldata permissions) public {
+        for (uint i = 0; i < streamIdPaths.length; i++) {
+            createStreamWithPermissions(streamIdPaths[i], metadataJsonStrings[i], users[i], permissions[i]);
+        }
+    }
+
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
     }
@@ -117,7 +130,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
     }
 
-    function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal {
+    function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal returns (string memory) {
         require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
 
         bytes memory pathBytes = bytes(streamIdPath);
@@ -146,6 +159,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         });
         emit StreamCreated(streamId, metadataJsonString);
         emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
+        return streamId;
     }
 
     function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
@@ -187,7 +201,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     }
 
-    function _setPermissionBooleans(string calldata streamId, address user, bool canEdit,
+    function _setPermissionBooleans(string memory streamId, address user, bool canEdit,
         bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant) private {
         require(user != address(0) || !(canEdit || deletePerm || canGrant),
             "error_publicCanOnlySubsPubl");
@@ -235,13 +249,13 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
-    function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
+    function setPermissions(string memory streamId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
         require(users.length == permissions.length, "error_invalidInputArrayLengths");
         uint arrayLength = users.length;
         for (uint i=0; i<arrayLength; i++) {
             Permission memory permission = permissions[i];
             _setPermissionBooleans(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
-            emit PermissionUpdated(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
+            // emit PermissionUpdated(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
         }
     }
 
@@ -289,7 +303,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
-    function _cleanUpIfAllFalse(string calldata streamId, address user, Permission memory perm) private {
+    function _cleanUpIfAllFalse(string memory streamId, address user, Permission memory perm) private {
         if (!perm.canEdit && !perm.canDelete && !perm.canGrant && perm.publishExpiration < block.timestamp && perm.subscribeExpiration < block.timestamp) {
             delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
         }
@@ -414,8 +428,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         return TRUSTED_ROLE;
     }
 
-    function setTrustedForwarder(address forwarder) public {
-        require(hasRole(TRUSTED_ROLE, msg.sender), "error_mustBeTrustedRole");
+    function setTrustedForwarder(address forwarder) public isTrusted() {
         _setTrustedForwarder(forwarder);
     }
 }

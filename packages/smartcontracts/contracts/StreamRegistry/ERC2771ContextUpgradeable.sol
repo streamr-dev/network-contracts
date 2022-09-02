@@ -11,11 +11,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 abstract contract ERC2771ContextUpgradeable is Initializable, ContextUpgradeable {
     address private _trustedForwarder;
 
+    // solhint-disable-next-line func-name-mixedcase
     function __ERC2771Context_init(address trustedForwarder) internal onlyInitializing {
         __Context_init_unchained();
         __ERC2771Context_init_unchained(trustedForwarder);
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __ERC2771Context_init_unchained(address trustedForwarder) internal onlyInitializing {
         _trustedForwarder = trustedForwarder;
     }
@@ -27,6 +29,7 @@ abstract contract ERC2771ContextUpgradeable is Initializable, ContextUpgradeable
     function _msgSender() internal view virtual override returns (address sender) {
         if (isTrustedForwarder(msg.sender)) {
             // The assembly code is more direct than the Solidity version using `abi.decode`.
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 sender := shr(96, calldataload(sub(calldatasize(), 20)))
             }
