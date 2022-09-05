@@ -1,34 +1,56 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { Wallet } from 'ethers'
+import { BigNumber, Wallet } from 'ethers'
 import hhat from 'hardhat'
 const { ethers } = hhat
+import axios from 'axios'
 
 // localsidechain
 const chainURL = 'http://10.200.10.1:8546'
 const privKeyStreamRegistry = ''
 let wallet: Wallet 
 
-const DelegatedAccessRegistryAddress = '0xB3042ecFC4Ba4ef213A38B1C2541E9234a6189cc'
+const DelegatedAccessRegistryAddress = '0x1CF4ee3a493f9B07AE9394F78E1407c2682B0e8C'
 
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
-async function deployJoinPolicyRegistry({
+async function getGasStationPrices(): Promise<{maxFeePerGas: BigNumber, maxPriorityFeePerGas: BigNumber}> {
+    const { data } = await axios({
+        method: 'get',
+        url: 'https://gasstation-mainnet.matic.network/v2'
+    })
+    const maxFeePerGas = ethers.utils.parseUnits(
+        Math.ceil(data.fast.maxFee) + '',
+        'gwei'
+    )
+    const maxPriorityFeePerGas = ethers.utils.parseUnits(
+        Math.ceil(data.fast.maxPriorityFee) + '',
+        'gwei'
+    )
+
+    return { maxFeePerGas, maxPriorityFeePerGas }
+}
+
+async function deployJoinPolicyFactory({
     permissions, streamRegistryAddress
 }: {
     permissions: PermissionType[],
     streamRegistryAddress: string,
 }){
-    const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyRegistry', wallet)
+    const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory', wallet)
 
-    const tx = await JoinPolicyRegistry.deploy(
+    const { maxFeePerGas, maxPriorityFeePerGas } = await getGasStationPrices()
+
+    const tx = await JoinPolicyFactory.deploy(
         streamRegistryAddress,
         permissions,
         DelegatedAccessRegistryAddress
-    )
+    , {
+        maxFeePerGas, maxPriorityFeePerGas
+    })
 
     const instance = await tx.deployed()
 
-    console.log(`JoinPolicyRegistry deployed at ${instance.address}`)
+    console.log(`JoinPolicyFactory deployed at ${instance.address}`)
 
 }
 
@@ -37,18 +59,17 @@ async function main() {
     console.log(`wallet address ${wallet.address}`)
     
     // streamr-docker-dev 
-    await deployJoinPolicyRegistry({
+    await deployJoinPolicyFactory({
         permissions: [PermissionType.Publish, PermissionType.Subscribe],
         streamRegistryAddress: '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
     })
-
-    // Polygon Mainnet
     /*
-    await deployJoinPolicyRegistry({
+    // Polygon Mainnet
+    await deployJoinPolicyFactory({
             permissions: [PermissionType.Publish, PermissionType.Subscribe],
-            streamRegistryAddress: '0xB3042ecFC4Ba4ef213A38B1C2541E9234a6189cc'
-        })*/
-
+            streamRegistryAddress: '0x0D483E10612F327FC11965Fc82E90dC19b141641'
+        })
+    */
 }
 
 main()
