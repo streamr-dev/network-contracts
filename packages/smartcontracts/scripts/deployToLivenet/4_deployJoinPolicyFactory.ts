@@ -44,9 +44,9 @@ async function deployJoinPolicyFactory({
         streamRegistryAddress,
         permissions,
         DelegatedAccessRegistryAddress
-    , {
-        maxFeePerGas, maxPriorityFeePerGas
-    })
+        , {
+            maxFeePerGas, maxPriorityFeePerGas
+        })
 
     const instance = await tx.deployed()
 
