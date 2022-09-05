@@ -8,6 +8,7 @@ import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
+require('@nomiclabs/hardhat-etherscan')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -60,6 +61,9 @@ const config: HardhatUserConfig = {
         //      url: 'https://polygon-rpc.com',
         //      accounts: []
         //  },
+    },
+    etherscan: {
+        apiKey: ''
     },
     dependencyCompiler: {
         paths: [
