@@ -62,7 +62,7 @@
             "type": "node",
             "request": "launch",
             "name": "Hardhat test this file",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
+            "runtimeExecutable": "${workspaceFolder}/packages/smartcontracts/node_modules/.bin/hardhat",
             "env": {
                 "DEBUG": "*,-mocha:*"
             },

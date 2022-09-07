@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 
+// We forked this from OpenZeppelin's ERC2771ContextUpgradeable.sol and added the _setTrustedForwarder 
+// function to be able to set the trusted forwarder address after deployment.
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
