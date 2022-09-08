@@ -125,7 +125,7 @@ async function deployStreamRegistry() {
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     log('deploying Streamregistry')
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV3', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
         [ensCache.address, Wallet.createRandom().address], { kind: 'uups' })

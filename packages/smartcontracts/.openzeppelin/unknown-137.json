@@ -224,13 +224,13 @@
             "contract": "ERC2771ContextUpgradeable",
             "label": "_trustedForwarder",
             "type": "t_address",
-            "src": "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol:13"
+            "src": "contracts/StreamRegistry/ERC2771ContextUpgradeable.sol:15"
           },
           {
             "contract": "ERC2771ContextUpgradeable",
             "label": "__gap",
             "type": "t_array(t_uint256)49_storage",
-            "src": "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol:46"
+            "src": "contracts/StreamRegistry/ERC2771ContextUpgradeable.sol:51"
           },
           {
             "contract": "ERC165Upgradeable",
@@ -253,42 +253,42 @@
           {
             "contract": "StreamRegistryV3",
             "label": "streamIdToPermissions",
-            "type": "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)10857_storage))",
-            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:37"
+            "type": "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)15002_storage))",
+            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:40"
           },
           {
             "contract": "StreamRegistryV3",
             "label": "streamIdToMetadata",
             "type": "t_mapping(t_string_memory_ptr,t_string_storage)",
-            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:38"
+            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:41"
           },
           {
             "contract": "StreamRegistryV3",
             "label": "ensCache",
-            "type": "t_contract(ENSCache)13757",
-            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:39"
+            "type": "t_contract(ENSCache)20551",
+            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:42"
           },
           {
             "contract": "StreamRegistryV3",
             "label": "streamIdToVersion",
             "type": "t_mapping(t_string_memory_ptr,t_uint32)",
-            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:42"
+            "src": "contracts/StreamRegistry/StreamRegistryV3.sol:45"
           }
         ],
         "types": {
-          "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)10857_storage))": {
+          "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)15002_storage))": {
             "label": "mapping(string => mapping(bytes32 => struct StreamRegistryV3.Permission))"
           },
           "t_string_storage": {
             "label": "string"
           },
-          "t_mapping(t_bytes32,t_struct(Permission)10857_storage)": {
+          "t_mapping(t_bytes32,t_struct(Permission)15002_storage)": {
             "label": "mapping(bytes32 => struct StreamRegistryV3.Permission)"
           },
           "t_bytes32": {
             "label": "bytes32"
           },
-          "t_struct(Permission)10857_storage": {
+          "t_struct(Permission)15002_storage": {
             "label": "struct StreamRegistryV3.Permission",
             "members": [
               {
@@ -322,7 +322,184 @@
           "t_mapping(t_string_memory_ptr,t_string_storage)": {
             "label": "mapping(string => string)"
           },
-          "t_contract(ENSCache)13757": {
+          "t_contract(ENSCache)20551": {
+            "label": "contract ENSCache"
+          },
+          "t_mapping(t_string_memory_ptr,t_uint32)": {
+            "label": "mapping(string => uint32)"
+          },
+          "t_uint32": {
+            "label": "uint32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)2219_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_struct(RoleData)2219_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "337bd19561b0d1fff648557b577f7882cad6f76f638b7f2a49aac4b467f3d7f3": {
+      "address": "0x93FC7f799078bC6f0575bC0586B2d9182dA6c3C5",
+      "txHash": "0x4ea4bb87495811ec34d7ea5d37c42dbc5181424df6b31d0753f93c45c32f6282",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "ERC2771ContextUpgradeable",
+            "label": "_trustedForwarder",
+            "type": "t_address",
+            "src": "contracts/StreamRegistry/ERC2771ContextUpgradeable.sol:15"
+          },
+          {
+            "contract": "ERC2771ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "contracts/StreamRegistry/ERC2771ContextUpgradeable.sol:51"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:36"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)2219_storage)",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:64"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:232"
+          },
+          {
+            "contract": "StreamRegistryV4",
+            "label": "streamIdToPermissions",
+            "type": "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)17167_storage))",
+            "src": "contracts/StreamRegistry/StreamRegistryV4.sol:36"
+          },
+          {
+            "contract": "StreamRegistryV4",
+            "label": "streamIdToMetadata",
+            "type": "t_mapping(t_string_memory_ptr,t_string_storage)",
+            "src": "contracts/StreamRegistry/StreamRegistryV4.sol:37"
+          },
+          {
+            "contract": "StreamRegistryV4",
+            "label": "ensCache",
+            "type": "t_contract(ENSCache)20551",
+            "src": "contracts/StreamRegistry/StreamRegistryV4.sol:38"
+          },
+          {
+            "contract": "StreamRegistryV4",
+            "label": "streamIdToVersion",
+            "type": "t_mapping(t_string_memory_ptr,t_uint32)",
+            "src": "contracts/StreamRegistry/StreamRegistryV4.sol:41"
+          }
+        ],
+        "types": {
+          "t_mapping(t_string_memory_ptr,t_mapping(t_bytes32,t_struct(Permission)17167_storage))": {
+            "label": "mapping(string => mapping(bytes32 => struct StreamRegistryV4.Permission))"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_mapping(t_bytes32,t_struct(Permission)17167_storage)": {
+            "label": "mapping(bytes32 => struct StreamRegistryV4.Permission)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(Permission)17167_storage": {
+            "label": "struct StreamRegistryV4.Permission",
+            "members": [
+              {
+                "label": "canEdit",
+                "type": "t_bool"
+              },
+              {
+                "label": "canDelete",
+                "type": "t_bool"
+              },
+              {
+                "label": "publishExpiration",
+                "type": "t_uint256"
+              },
+              {
+                "label": "subscribeExpiration",
+                "type": "t_uint256"
+              },
+              {
+                "label": "canGrant",
+                "type": "t_bool"
+              }
+            ]
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_string_memory_ptr,t_string_storage)": {
+            "label": "mapping(string => string)"
+          },
+          "t_contract(ENSCache)20551": {
             "label": "contract ENSCache"
           },
           "t_mapping(t_string_memory_ptr,t_uint32)": {
