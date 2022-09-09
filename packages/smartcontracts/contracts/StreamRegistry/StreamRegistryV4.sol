@@ -1,5 +1,5 @@
 /**
- * Not yet deployed
+ * Deployed on polygon on 2022-09-08
  */
 
 // SPDX-License-Identifier: MIT

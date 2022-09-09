@@ -1,5 +1,5 @@
 /**
- * Not yet deployed
+ * Deployed on polygon on 2022-09-09
  */
 
 // SPDX-License-Identifier: MIT
@@ -19,7 +19,6 @@ contract StreamStorageRegistryV2 is Initializable, UUPSUpgradeable, ERC2771Conte
     StreamRegistryV4 public streamRegistry;
     NodeRegistry public nodeRegistry;
 
-    // metadata attached to stream-storagenode-pairs, TODO: use it for something? Add getter?
     struct StreamNodePair {
         uint dateCreated;
     }
