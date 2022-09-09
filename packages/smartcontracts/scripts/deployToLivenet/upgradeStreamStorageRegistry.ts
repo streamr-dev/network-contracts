@@ -11,12 +11,12 @@ const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
 // const STREAMSTORAGEREGISTRYADDRESS = networks.dev1.contracts.StreamStorageRegistry
 // const STREAMSTORAGEREGISTRYADDRESS = '0xd57E7d0915c117A1510546b48f6beC551FDa9B93'
 
-async function forceImport() {
-    const streamStorageRegistryFactory = await ethers.getContractFactory('StreamStorageRegistry')
-    await upgrades.forceImport(STREAMSTORAGEREGISTRYADDRESS, 
-        streamStorageRegistryFactory, {kind: 'uups'})
-    console.log('StreamStorageRegistry imported, check file in .openzeppelin')
-}
+// async function forceImport() {
+//     const streamStorageRegistryFactory = await ethers.getContractFactory('StreamStorageRegistry')
+//     await upgrades.forceImport(STREAMSTORAGEREGISTRYADDRESS, 
+//         streamStorageRegistryFactory, {kind: 'uups'})
+//     console.log('StreamStorageRegistry imported, check file in .openzeppelin')
+// }
 
 async function main() {
     // await forceImport()
