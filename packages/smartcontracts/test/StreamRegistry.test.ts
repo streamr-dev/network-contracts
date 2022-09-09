@@ -6,6 +6,7 @@ import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth
 import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
+import type { StreamRegistryV4 } from '../typechain/StreamRegistryV4'
 
 const { deployContract } = waffle
 const { provider } = waffle
@@ -60,10 +61,10 @@ use(waffle.solidity)
 describe('StreamRegistry', (): void => {
     const wallets = provider.getWallets()
     // let ensCacheFromAdmin: ENSCache
-    let registryFromAdmin: StreamRegistry
-    let registryFromUser0: StreamRegistry
-    let registryFromUser1: StreamRegistry
-    let registryFromMigrator: StreamRegistry
+    let registryFromAdmin: StreamRegistry | StreamRegistryV4
+    let registryFromUser0: StreamRegistry | StreamRegistryV4
+    let registryFromUser1: StreamRegistry | StreamRegistryV4
+    let registryFromMigrator: StreamRegistry | StreamRegistryV4
     let minimalForwarderFromUser0: MinimalForwarder
     let MAX_INT: BigNumber
     let blocktime: number
@@ -88,16 +89,21 @@ describe('StreamRegistry', (): void => {
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
                 kind: 'uups'
             })
-        registryFromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
+        registryFromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV4
         // to upgrade the deployer must also have the trusted role
         // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
         const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', wallets[0])
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address,
             streamregistryFactoryV3)
+        await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
+        //also upgrade the registry to V4
+        const streamregistryFactoryV4 = await ethers.getContractFactory('StreamRegistryV4', wallets[0])
+        const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address,
+            streamregistryFactoryV4)
         await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
-        registryFromAdmin = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
+        registryFromAdmin = await streamRegistryFactoryV4Tx.deployed() as StreamRegistry
         registryFromUser0 = registryFromAdmin.connect(wallets[1])
         registryFromUser1 = registryFromAdmin.connect(wallets[2])
         registryFromMigrator = registryFromAdmin.connect(wallets[3])
@@ -167,6 +173,79 @@ describe('StreamRegistry', (): void => {
             .to.emit(registryFromAdmin, 'StreamUpdated')
             .withArgs(streamId0, metadata1)
         expect(await registryFromAdmin.getStreamMetadata(streamId0)).to.equal(metadata1)
+    })
+
+    it('positivetest createStreamWithPermissions', async (): Promise<void> => {
+        const newStreamPath = '/' + Wallet.createRandom().address
+        const newStreamId = adminAdress.toLowerCase() + newStreamPath
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: false,
+            publishExpiration: 7,
+            subscribeExpiration: 7,
+            canGrant: false
+        }
+        await expect(await registryFromAdmin.createStreamWithPermissions(newStreamPath, metadata1,
+            [adminAdress, trustedAddress], [permissionA, permissionB]))
+            // [trustedAddress], [permissionB]))
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId, metadata1)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId, trustedAddress, false, false, 7, 7, false)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId)).to.equal(metadata1)
+    })
+
+    it('positivetest createMultipleStreamsWithPermissions', async (): Promise<void> => {
+        const newStreamPath1 = '/' + Wallet.createRandom().address 
+        const newStreamPath2 = '/' + Wallet.createRandom().address
+        const newStreamId1 = adminAdress.toLowerCase() + newStreamPath1
+        const newStreamId2 = adminAdress.toLowerCase() + newStreamPath2
+        const permissionA = {
+            canEdit: true,
+            canDelete: false,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        }
+        const permissionB = {
+            canEdit: false,
+            canDelete: false,
+            publishExpiration: 7,
+            subscribeExpiration: 7,
+            canGrant: false
+        }
+        await expect(await registryFromAdmin.createMultipleStreamsWithPermissions(
+            [newStreamPath1, newStreamPath2], [metadata1, metadata1], [[adminAdress, trustedAddress],
+                [adminAdress, trustedAddress]], [[permissionA, permissionB], [permissionA, permissionB]]))
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId1, metadata1)
+            .to.emit(registryFromAdmin, 'StreamCreated')
+            .withArgs(newStreamId2, metadata1)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId1, trustedAddress, false, false, 7, 7, false)
+            .to.emit(registryFromAdmin, 'PermissionUpdated')
+            .withArgs(newStreamId2, trustedAddress, false, false, 7, 7, false)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId1)).to.equal(metadata1)
+        expect(await registryFromAdmin.getStreamMetadata(newStreamId2)).to.equal(metadata1)
     })
 
     it('negativetest updateStreamMetadata, not exist, no right', async (): Promise<void> => {
@@ -652,17 +731,17 @@ describe('StreamRegistry', (): void => {
             .to.equal(true)
     })
 
-    it('positivetest metatransaction', async (): Promise<void> => {
+    async function prepareMetatx(forwarder: MinimalForwarder, signKey: string, gas?: string) {
         // admin is creating and signing transaction, user0 is posting it and paying for gas
-        const path = '/path'
+        const path = '/path' + Wallet.createRandom().address
         const metadata = 'metadata'
         const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
         const req = {
             from: adminAdress,
             to: registryFromAdmin.address,
             value: '0',
-            gas: '1000000',
-            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
+            gas: gas ? gas : '1000000',
+            nonce: (await forwarder.getNonce(adminAdress)).toString(),
             data
         }
         const d: TypedMessage<any> = {
@@ -671,18 +750,22 @@ describe('StreamRegistry', (): void => {
                 name: 'MinimalForwarder',
                 version: '0.0.1',
                 chainId: (await provider.getNetwork()).chainId,
-                verifyingContract: minimalForwarderFromUser0.address,
+                verifyingContract: forwarder.address,
             },
             primaryType: 'ForwardRequest',
             message: req,
         }
         const options = {
             data: d,
-            privateKey: utils.arrayify(wallets[0].privateKey) as Buffer,
+            privateKey: utils.arrayify(signKey) as Buffer,
             version: SignTypedDataVersion.V4,
         }
         const sign = signTypedData(options) // user0
+        return {req, sign, path, metadata}
+    }
 
+    it('positivetest metatransaction', async (): Promise<void> => {
+        const {req, sign, path, metadata} = await prepareMetatx(minimalForwarderFromUser0, wallets[0].privateKey)
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be .true
         const tx = await minimalForwarderFromUser0.execute(req, sign)
@@ -692,37 +775,28 @@ describe('StreamRegistry', (): void => {
         expect(await registryFromAdmin.getStreamMetadata(id)).to.equal(metadata)
     })
 
-    it('negativetest metatransaction', async (): Promise<void> => {
-        const path = '/path1'
-        const metadata = 'metadata1'
-        const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
-        const req = {
-            from: adminAdress,
-            to: registryFromAdmin.address,
-            value: '0',
-            gas: '1000000',
-            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
-            data
-        }
-        // signing with user1 (walletindex 2)
-        const d: TypedMessage<any> = {
-            types,
-            domain: {
-                name: 'MinimalForwarder',
-                version: '0.0.1',
-                chainId: (await provider.getNetwork()).chainId,
-                verifyingContract: minimalForwarderFromUser0.address,
-            },
-            primaryType: 'ForwardRequest',
-            message: req,
-        }
-        const options = {
-            data: d,
-            privateKey: utils.arrayify(wallets[2].privateKey) as Buffer,
-            version: SignTypedDataVersion.V4,
-        }
-        const sign = signTypedData(options) // user0
+    it('negativetest metatransaction, wrong forwarder', async (): Promise<void> => {
+        // deploy second minimal forwarder
+        const wrongFrowarder = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        await wrongFrowarder.deployed()
+        // check that forwarder is set
+        expect(await registryFromAdmin.isTrustedForwarder(minimalForwarderFromUser0.address)).to.be.true
+        expect(await registryFromAdmin.isTrustedForwarder(wrongFrowarder.address)).to.be.false
+        // check that metatx works with new forwarder
+        const {req, sign, path} = await prepareMetatx(wrongFrowarder, wallets[0].privateKey)
+        const res = await wrongFrowarder.verify(req, sign)
+        await expect(res).to.be.true
+        const tx = await wrongFrowarder.execute(req, sign)
+        const tx2 = await tx.wait()
+        expect(tx2.logs.length).to.equal(2)
+        //internal call will have failed
+        const id = adminAdress.toLowerCase() + path
+        await expect(registryFromAdmin.getStreamMetadata(id)).to.be.revertedWith('error_streamDoesNotExist')
+    })
 
+    it('negativetest metatransaction, wrong signature', async (): Promise<void> => {
+        const wrongKey = wallets[2].privateKey //wallets[0].privateKey would be correct
+        const {req, sign} = await prepareMetatx(minimalForwarderFromUser0, wrongKey)
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be.false
         await expect(minimalForwarderFromUser0.execute(req, sign))
@@ -730,36 +804,7 @@ describe('StreamRegistry', (): void => {
     })
 
     it('negativetest metatransaction not enough gas in internal transaction call', async (): Promise<void> => {
-        const path = '/path2'
-        const metadata = 'metadata2'
-        const data = await registryFromAdmin.interface.encodeFunctionData('createStream', [path, metadata])
-        const req = {
-            from: adminAdress,
-            to: registryFromAdmin.address,
-            value: '0',
-            gas: '1000',
-            nonce: (await minimalForwarderFromUser0.getNonce(adminAdress)).toString(),
-            data
-        }
-        // signing with user1 (walletindex 2)
-        const d: TypedMessage<any> = {
-            types,
-            domain: {
-                name: 'MinimalForwarder',
-                version: '0.0.1',
-                chainId: (await provider.getNetwork()).chainId,
-                verifyingContract: minimalForwarderFromUser0.address,
-            },
-            primaryType: 'ForwardRequest',
-            message: req,
-        }
-        const options = {
-            data: d,
-            privateKey: utils.arrayify(wallets[0].privateKey) as Buffer,
-            version: SignTypedDataVersion.V4,
-        }
-        const sign = signTypedData(options) // user0
-
+        const {req, sign, path} = await prepareMetatx(minimalForwarderFromUser0, wallets[0].privateKey, '1000')
         const res = await minimalForwarderFromUser0.verify(req, sign)
         await expect(res).to.be.true
         const tx = await minimalForwarderFromUser0.execute(req, sign)
@@ -768,6 +813,33 @@ describe('StreamRegistry', (): void => {
         const id = adminAdress.toLowerCase() + path
         await expect(registryFromAdmin.getStreamMetadata(id))
             .to.be.revertedWith('error_streamDoesNotExist')
+    })
+
+    it('positivetest reset trusted forwarder, then test metatx', async (): Promise<void> => {
+        // deploy second minimal forwarder
+        const newForwarder = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        await newForwarder.deployed()
+        // set forwarder
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        await registryFromAdmin.setTrustedForwarder(newForwarder.address)
+        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        // check that forwarder is set
+        expect(await registryFromAdmin.isTrustedForwarder(minimalForwarderFromUser0.address)).to.be.false
+        expect(await registryFromAdmin.isTrustedForwarder(newForwarder.address)).to.be.true
+        // check that metatx works with new forwarder
+        const {req, sign, path, metadata} = await prepareMetatx(newForwarder, wallets[0].privateKey)
+        const res = await newForwarder.verify(req, sign)
+        await expect(res).to.be.true
+        const tx = await newForwarder.execute(req, sign)
+        const tx2 = await tx.wait()
+        expect(tx2.logs.length).to.equal(2)
+        const id = adminAdress.toLowerCase() + path
+        expect(await registryFromAdmin.getStreamMetadata(id)).to.equal(metadata)
+    })
+
+    it('negativetest reset trusted forwarder, caller not trusted', async (): Promise<void> => {
+        await expect(registryFromUser0.setTrustedForwarder(Wallet.createRandom().address))
+            .to.be.revertedWith('error_mustBeTrustedRole')
     })
 
     it('positivetest revoke own permissions without share', async (): Promise<void> => {
