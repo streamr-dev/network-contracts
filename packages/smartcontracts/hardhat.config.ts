@@ -8,6 +8,7 @@ import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
+require('@nomiclabs/hardhat-etherscan')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -68,6 +69,9 @@ const config: HardhatUserConfig = {
             url: "https://mainnet.infura.io/v3/" + process.env.INFURA_KEY || "",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         }
+    },
+    etherscan: {
+        apiKey: ''
     },
     dependencyCompiler: {
         paths: [

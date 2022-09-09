@@ -16,8 +16,11 @@
     "deploylive": "hardhat run --network dev1 scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
-    "deployJoinPolicy": "hardhat run --network dev1 scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts",
-    "deployJoinPolicyProd": "hardhat run --network polygon scripts/deployToLivenet/3_deployJoinPolicyRegistry.ts"
+   "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
+    "deployDelegatedAccessRegistryProd": "hardhat run --network polygon scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
+    "deployJoinPolicy": "hardhat run --network dev1 scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
+    "deployJoinPolicyProd": "hardhat run --network polygon scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
+    "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
@@ -48,6 +51,7 @@
   "devDependencies": {
     "@metamask/eth-sig-util": "4.0.0",
     "@nomiclabs/hardhat-ethers": "2.0.4",
+    "@nomiclabs/hardhat-etherscan": "3.1.0",
     "@typechain/ethers-v5": "6.0.5",
     "@types/debug": "4.1.7",
     "ethereum-waffle": "3.4.0",
