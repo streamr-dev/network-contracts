@@ -4,7 +4,7 @@ This repo is used to build the parity images streamr/open-ethereum-poa-mainchain
    * Also test products are loaded (see products.json)
  * Marketplace Uniswap Adapter
  * The token bridge (AMB) and mediator
- * the DU2 factories and templates.
+ * the DU3 factories and templates.
 
 ## Dev docker pre-funded account keys
 
@@ -23,52 +23,9 @@ Private Keys:
 * `0x2cd9855d17e01ce041953829398af7e48b24ece04ff9d0e183414de54dc52285`
 * `0x0000000000000000000000000000000000000000000000000000000000000nnn` where `nnn` = 000...3e7 (that's 1000 in decimal)
 
-## Dev docker addresses
+## Smart Contract addresses
 
-This script generates the following Ethereum addresses:
-
-### Dev "mainnet" (localhost:8545):
-* DATAcoin address: 0xbAA81A0179015bE47Ad439566374F2Bae098686F
-* Marketplace2 address: 0xF1371c0f40528406dc4f4cAf89924eA9Da49E866
-* OTHERcoin address: 0x642D2B84A32A9A92FEc78CeAA9488388b3704898
-* UniswapAdaptor address: 0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3
-* UniswapFactory address: 0xd2D23b73A67208a90CBfEE1381415329954f54E2
-* Tracker NodeRegistry: 0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF
-* ENS: 0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03
-* FIFSRegistrar for TLD (top level domain) 'eth': 0x57B81a9442805f88c4617B506206531e72d96290
-* PublicResolver (reusable): 0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c
-* Uniswap2 router: 0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920
-* Uniswap2Adapter: 0x0bADa0acE1d16ABf1ce1aAED9Bc7Ce231ECc35b5
-
-Bridge related:
-* foreign_amb: 0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64
-* dedicated DATA foreign_erc_mediator: 0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F
-* foreign omnibridge: 0x6346Ed242adE018Bd9320D5E3371c377BAB29c31
-* foreign_erc20: 0xbAA81A0179015bE47Ad439566374F2Bae098686F
-
-DataUnion related:
-* foreign_du_factory: 0x4bbcBeFBEC587f6C4AF9AF9B48847caEa1Fe81dA
-
-
-### Dev "xdai" (localhost:8546)
-* Storage NodeRegistry: 0xbAA81A0179015bE47Ad439566374F2Bae098686F
-* Uniswap2 router: 0xd2D23b73A67208a90CBfEE1381415329954f54E2
-* BinanceAdapter: 0xdc5F6368cd31330adC259386e78604a5E29E9415
-* StreamRegistry: 0xa86863053cECFD9f6f861e0Fd39a042238411b75
-* Chainlink oracle: 0xD94D41F23F1D42C51Ab61685e5617BBC858e5871
-* LINK token contract: 0x3387F44140ea19100232873a5aAf9E46608c791E
-* ENScache: 0xD1d514082ED630687a5DCB85406130eD0745fA06
-* Stream Storage Registry: 0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3
-
-Bridge related:
-* home_amb: 0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64
-* home_erc677: 0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF
-* dedicated DATA home_erc_mediator: 0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F
-* home omnibridge: 0x41B89Db86BE735c03A9296437E39F5FDAdC4c678
-
-DataUnion related:
-* home_du_factory: 0x4A4c4759eb3b7ABee079f832850cD3D0dC48D927
-
+Please refer to the [config package](https://github.com/streamr-dev/network-contracts/tree/master/packages/config) to find out the addresses of smart contracts deployed to the local dev chains.
 
 ## Running
 

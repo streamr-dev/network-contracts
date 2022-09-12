@@ -594,12 +594,10 @@ async function smartContractInitialization() {
         log(`create ${p.id}`)
         const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
-        //await tx.wait(1)
+        await tx.wait()
         if (p.state == "NOT_DEPLOYED") {
             log(`delete ${p.id}`)
-            await tx.wait(1)
-            await market.deleteProduct(`0x${p.id}`)
-            //await tx2.wait(1)
+            await (await market.deleteProduct(`0x${p.id}`)).wait()
         }
     }
 }

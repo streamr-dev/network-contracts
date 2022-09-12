@@ -15,7 +15,7 @@ import { BrokerPool } from "../typechain"
 const { parseEther, formatEther } = utils
 use(waffle.solidity)
 
-describe.only("BrokerPool", (): void => {
+describe("BrokerPool", (): void => {
     const [
         admin,
         broker,

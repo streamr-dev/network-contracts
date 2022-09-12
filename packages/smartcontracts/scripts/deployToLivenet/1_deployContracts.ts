@@ -1,9 +1,8 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { constants, Wallet } from 'ethers'
-import { parseEther } from 'ethers/lib/utils'
+import { Wallet } from 'ethers'
 import hhat from 'hardhat'
-
-import { StreamRegistry } from '../../typechain/StreamRegistry'
+import debug from 'debug'
+const log = debug('Streamr:eth-init')
 
 const { ethers, upgrades } = hhat
 
@@ -40,8 +39,6 @@ const LINKTOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E' // localc
 // const chainURL = 'https://polygon-rpc.com'
 // const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
-
-const log = require('debug')('Streamr:eth-init')
 
 // this wallet will deploy all contracts and "own" them if applicable
 
@@ -90,6 +87,12 @@ async function deployStreamRegistry() {
     // LINKTOKEN_ADDRESS = linkToken.address
     // log(`Link Token deployed at ${linkToken.address}`)
 
+    // deploy MinimalForwarder
+    const minimalForwarderFactory = await ethers.getContractFactory('MinimalForwarder', wallet)
+    const minimalForwarderFactoryTx = await minimalForwarderFactory.deploy()
+    const minimalForwarder = await minimalForwarderFactoryTx.deployed()
+    log(`MinimalForwarder deployed at ${minimalForwarder.address}`)
+
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
     // const oracleFactoryTx = await oracleFactory.attach('0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D')
@@ -122,7 +125,7 @@ async function deployStreamRegistry() {
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     log('deploying Streamregistry')
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV3', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
         [ensCache.address, Wallet.createRandom().address], { kind: 'uups' })
@@ -165,7 +168,6 @@ async function main() {
     const initialMetadata: string[] = []
     // initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
     // initialMetadata.push('{"http": "http://10.200.10.1:8891/api/v1"}')
-
     await deployNodeRegistry(initialNodes, initialMetadata)
 
     await deployStreamRegistry()

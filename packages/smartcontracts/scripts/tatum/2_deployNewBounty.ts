@@ -107,17 +107,17 @@ const deployNewBounty = async () => {
 const sponsorNewBounty = async () => {
     bounty = await ethers.getContractAt('Bounty', bountyAddress, adminWallet) as Bounty
     // sponsor with token approval
-    const tokenbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
+    await tokenFromOwner.balanceOf(deploymentOwner.address)
     await (await tokenFromOwner.approve(bountyAddress, ethers.utils.parseEther("7"))).wait()
     const sponsorTx = await bounty.sponsor(ethers.utils.parseEther("7"))
-    const sponsorReceipt = await sponsorTx.wait()
+    await sponsorTx.wait()
     log("sponsored through token approval")
 }
 
 const stakeOnBounty = async () => {
     const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
         userWallet.address)
-    const receipt = await tx.wait()
+    await tx.wait()
     log("staked in bounty with transfer and call")
 }
 

@@ -1,0 +1,13 @@
+//SPDX-License-Identifier: Unlicense
+pragma solidity ^0.8.9;
+
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+
+// Used only for testing purposes
+contract TestERC1155 is ERC1155 {
+    constructor () ERC1155("TestToken") {}
+
+    function mint(address account, uint256 id, uint256 amount) public {
+        _mint(account, id, amount, "0x00");
+    }
+}

@@ -27,8 +27,8 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            'smartcontracts/contracts/BrokerEconomics/Bounty.sol',
-            'smartcontracts/contracts/BrokerEconomics/BountyFactory.sol',
+            'smartcontracts/contracts/BrokerEconomics/Bounties/Bounty.sol',
+            'smartcontracts/contracts/BrokerEconomics/Bounties/BountyFactory.sol',
         ],
     },
     solidity: {

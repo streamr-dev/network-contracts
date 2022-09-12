@@ -8,6 +8,7 @@ import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
+require('@nomiclabs/hardhat-etherscan')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -42,29 +43,48 @@ const config: HardhatUserConfig = {
             blockGasLimit: 0x1fffffffffffff,
             allowUnlimitedContractSize: true
         },
-        localsidechain: {
+        dev1: {
             chainId: 8997,
-            url: 'http://10.200.10.1:8546',
-            accounts: ['0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0']
+            url: "http://localhost:8546",
+            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
-        // polygonTestMumbai1: {
-        //     chainId: 80001,
-        //     url: 'https://rpc-mumbai.maticvigil.com',
-        // },
-        // polygonTestMumbai2: {
-        //     chainId: 80001,
-        //     url: 'https://matic-mumbai.chainstacklabs.com/',
-        // },
-        // polygonMainnet: {
-        //     chainId: 137,
-        //     url: 'https://polygon-rpc.com',
-        // }
+        dev0: {
+            chainId: 8995,
+            url: "http://localhost:8545",
+            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+        },
+        gnosis: {
+            chainId: 100,
+            url: "https://rpc.gnosischain.com",
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
+        polygon: {
+            chainId: 137,
+            url: "https://polygon-rpc.com",
+            gasPrice: 80000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
+        ethereum: {
+            chainId: 1,
+            url: "https://mainnet.infura.io/v3/" + process.env.INFURA_KEY || "",
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        }
+    },
+    etherscan: {
+        apiKey: ''
     },
     dependencyCompiler: {
         paths: [
-            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            // '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol'
+            '@chainlink/contracts/src/v0.6/Oracle.sol',
+            '@openzeppelin/contracts/token/ERC20/ERC20.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC20TestToken.sol',
+            '@openzeppelin/contracts/token/ERC721/ERC721.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC721TestToken.sol',
+            '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
+            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol'
         ],
     },
     solidity: {
