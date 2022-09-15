@@ -1,16 +1,13 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../StreamRegistry/StreamRegistryV3.sol"; 
-import "./GatedJoinPolicy.sol";
 import "./ERC20JoinPolicy.sol";
 import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract JoinPolicyFactory is Ownable {
+contract UpgradeableJoinPolicyFactory is Initializable {
 
     address public streamRegistryAddress;
     StreamRegistryV3 public streamRegistry;
@@ -34,11 +31,12 @@ contract JoinPolicyFactory is Ownable {
         bytes32 policyId
     );
 
-    constructor(
+
+    function initialize (
         address streamRegistryAddress_,
         StreamRegistryV3.PermissionType[] memory defaultPermissions_,
         address delegatedAccessRegistryAddress_
-    ) Ownable(){
+    ) public initializer {
         streamRegistryAddress = streamRegistryAddress_;
         defaultPermissions = defaultPermissions_;
         delegatedAccessRegistryAddress = delegatedAccessRegistryAddress_;

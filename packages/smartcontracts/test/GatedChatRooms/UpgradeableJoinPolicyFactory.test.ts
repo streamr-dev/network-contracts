@@ -9,7 +9,7 @@ import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 const { provider } = waffle
 
 use(waffle.solidity)
-describe('JoinPolicyFactory', (): void => {
+describe('UpgradeableJoinPolicyFactory', (): void => {
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
     const wallets = provider.getWallets()
@@ -65,16 +65,18 @@ describe('JoinPolicyFactory', (): void => {
         )
 
         // deploy the delegatedAccessRegistry
-        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
+        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
         
-        // deploy the JoinPolicyFactory
-        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory', wallets[0])
-        contract = await JoinPolicyFactory.deploy(
+        // deploy the UpgradeableJoinPolicyFactory
+        const UpgradeableJoinPolicyFactory = await ethers.getContractFactory('UpgradeableJoinPolicyFactory')
+        contract = await upgrades.deployProxy(UpgradeableJoinPolicyFactory, [
             streamRegistryV3.address,
             [PermissionType.Subscribe, PermissionType.Publish],
             delegatedAccessRegistry.address
-        )
+        ])
+
+        
 
     })
 
