@@ -76,8 +76,6 @@ describe('UpgradeableJoinPolicyFactory', (): void => {
             delegatedAccessRegistry.address
         ])
 
-        
-
     })
 
     it ('should properly exercise `registerERC20Policy`', async() => {
