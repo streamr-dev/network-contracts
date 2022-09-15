@@ -44,7 +44,7 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
     ) public {
         require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
         require(canJoin(_msgSender(), tokenId_), "Not enough tokens");
-        accept(delegatedWallet);
+        accept(_msgSender(), delegatedWallet);
     }
     
     

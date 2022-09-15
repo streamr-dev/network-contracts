@@ -57,7 +57,6 @@ async function deployJoinPolicyFactory({
 async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     console.log(`wallet address ${wallet.address}`)
-    
     // streamr-docker-dev 
     await deployJoinPolicyFactory({
         permissions: [PermissionType.Publish, PermissionType.Subscribe],
@@ -69,7 +68,7 @@ async function main() {
             permissions: [PermissionType.Publish, PermissionType.Subscribe],
             streamRegistryAddress: '0x0D483E10612F327FC11965Fc82E90dC19b141641'
         })
-    */
+        */
 }
 
 main()

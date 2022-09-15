@@ -18,12 +18,12 @@ contract JoinPolicyFactory is Ownable {
 
     address public delegatedAccessRegistryAddress;
 
-    // erc20Token => ERC20JoinPolicy
-    mapping(address => address) public erc20TokensToJoinPolicies;
-    // erc721Token => mapping(tokenId => ERC721JoinPolicy)
-    mapping(address => mapping(uint256 => address)) public erc721TokensToJoinPolicies;
-    // erc1155Token => mapping(tokenId => ERC1155JoinPolicy)
-    mapping(address => mapping(uint256 => address)) public erc1155TokensToJoinPolicies;
+    // erc20Token => mapping(streamId => ERC20JoinPolicy)
+    mapping(address => mapping(string => address)) public erc20TokensToJoinPolicies;
+    // erc721Token => mapping(tokenId => mapping(streamId => ERC721JoinPolicy))
+    mapping(address => mapping(uint256 => mapping(string => address))) public erc721TokensToJoinPolicies;
+    // erc1155Token => mapping(tokenId => mapping(streamId => ERC1155JoinPolicy))
+    mapping(address => mapping(uint256 => mapping(string => address))) public erc1155TokensToJoinPolicies;
     // policyId => JoinPolicy
     mapping(bytes32 => address) public registeredPolicies;
 
@@ -61,7 +61,7 @@ contract JoinPolicyFactory is Ownable {
             delegatedAccessRegistryAddress
         );
         address deployedPolicy = address(instance);
-        erc20TokensToJoinPolicies[tokenAddress] = deployedPolicy;
+        erc20TokensToJoinPolicies[tokenAddress][streamId_] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
             tokenAddress,
@@ -88,7 +88,7 @@ contract JoinPolicyFactory is Ownable {
         );
 
         address deployedPolicy = address(instance);
-        erc721TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
+        erc721TokensToJoinPolicies[tokenAddress][tokenId][streamId_] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
             tokenAddress,
@@ -118,7 +118,7 @@ contract JoinPolicyFactory is Ownable {
         );
 
         address deployedPolicy = address(instance);
-        erc1155TokensToJoinPolicies[tokenAddress][tokenId] = deployedPolicy;
+        erc1155TokensToJoinPolicies[tokenAddress][tokenId][streamId_] = deployedPolicy;
         registeredPolicies[policyId] = deployedPolicy;
         emit Registered(
             tokenAddress,

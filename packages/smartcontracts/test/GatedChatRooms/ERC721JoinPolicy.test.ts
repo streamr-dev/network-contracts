@@ -187,9 +187,9 @@ describe('ERC721JoinPolicy', (): void => {
         const events = await contract.queryFilter(
             contract.filters.Accepted()
         )
-        expect(events.length).to.equal(1)
-        expect(events[0].args).to.not.be.undefined
-        expect(events[0].args!.user).to.equal(
+        expect(events.length).to.equal(2)
+        expect(events[1].args).to.not.be.undefined
+        expect(events[1].args!.user).to.equal(
             signerIdentity.address
         )
         
