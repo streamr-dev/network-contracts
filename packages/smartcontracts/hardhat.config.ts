@@ -84,7 +84,8 @@ const config: HardhatUserConfig = {
             '@openzeppelin/contracts/token/ERC721/ERC721.sol',
             'contracts/GatedChatRooms/TestTokens/ERC721TestToken.sol',
             '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
-            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol'
+            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol',
+            '@opengsn/contracts/src/forwarder/Forwarder.sol',
         ],
     },
     solidity: {
