@@ -21,7 +21,7 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - name: cache node_modules
+      - name: Cache node_modules
         id: cache-node-modules
         uses: actions/cache@v3
         with:
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit
-      # - name: Build and lint
-      #   run: npm run build && npm run lint
-      # - name: Unit tests
-      #   run: npm run test
+      - name: Build and lint
+        run: npm run build && npm run lint
+      - name: Unit tests
+        run: npm run test
