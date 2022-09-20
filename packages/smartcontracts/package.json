@@ -1,8 +1,11 @@
 {
-  "name": "smartcontracts",
-  "version": "0.0.4",
+  "name": "@streamr/network-contracts",
+  "version": "2.4.0",
   "description": "Smart contracts for Streamr Network",
-  "private": true,
+  "files": [
+    "contracts",
+    ".openzeppelin"
+  ],
   "scripts": {
     "build": "hardhat compile",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
@@ -16,7 +19,7 @@
     "deploylive": "hardhat run --network dev1 scripts/deployToLivenet/1_deployContracts.ts",
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
-   "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
+    "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
     "deployDelegatedAccessRegistryProd": "hardhat run --network polygon scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
     "deployJoinPolicy": "hardhat run --network dev1 scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
     "deployJoinPolicyProd": "hardhat run --network polygon scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
