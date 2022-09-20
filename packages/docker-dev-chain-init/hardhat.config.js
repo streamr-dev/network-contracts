@@ -67,9 +67,9 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             '@streamr/network-contracts/contracts/NodeRegistry/NodeRegistry.sol',
-            '@streamr/network-contracts/NodeRegistry/TrackerRegistry.sol',
-            '@streamr/network-contracts/StreamRegistry/StreamRegistryV3.sol',
-            '@streamr/network-contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
+            '@streamr/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
+            '@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol',
+            '@streamr/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
