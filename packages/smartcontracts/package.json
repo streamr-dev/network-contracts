@@ -6,6 +6,10 @@
     "contracts",
     ".openzeppelin"
   ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "hardhat compile",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
