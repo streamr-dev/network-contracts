@@ -22,6 +22,6 @@
     "@graphprotocol/graph-cli": "0.26.0"
   },
   "dependencies": {
-    "@graphprotocol/graph-ts": "0.24.1"
+    "@graphprotocol/graph-ts": "0.28.0"
   }
 }
