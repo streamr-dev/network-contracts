@@ -25,8 +25,8 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
         token = IERC721(tokenAddress);
     }
 
-    modifier canJoin(address user_, uint256 tokenId_){
-        require(token.ownerOf(tokenId_) == user_, "Not enough tokens");
+    modifier canJoin(uint256 tokenId_){
+        require(token.ownerOf(tokenId_) == msg.sender, "Not enough tokens");
         _;
     }
 
@@ -34,8 +34,8 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
         address delegatedWallet,
         uint256 tokenId_
     ) 
-        canJoin(delegatedWallet, tokenId_) 
-        isUserAuthorized(delegatedWallet) 
+        isUserAuthorized(delegatedWallet)
+        canJoin(tokenId_)
         public 
     {
         accept(msg.sender, delegatedWallet);

@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract} from 'ethers'
+import { BigNumber, Contract, Wallet} from 'ethers'
 
 import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
@@ -29,6 +29,23 @@ const signDelegatedChallenge = (
     ])
 
     return sign(delegatedPrivateKey, message)
+}
+
+const authorizeDelegatedWallet = async (
+    wallet: Wallet,
+    signerIdentity: { privateKey: string, publicKey: string, address: string },
+    delegatedAccessRegistry: Contract
+) => {
+    const signature = signDelegatedChallenge(
+        wallet.address,
+        signerIdentity.privateKey,
+        ChallengeType.Authorize
+    )
+
+    await delegatedAccessRegistry.connect(wallet).authorize(
+        signerIdentity.address,
+        signature
+    )
 }
 use(waffle.solidity)
 describe('ERC721JoinPolicy', (): void => {
@@ -80,17 +97,6 @@ describe('ERC721JoinPolicy', (): void => {
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
 
-        const signature = signDelegatedChallenge(
-            wallets[0].address, 
-            signerIdentity.privateKey,
-            ChallengeType.Authorize
-        )
-
-        await delegatedAccessRegistry.connect(wallets[0]).authorize(
-            signerIdentity.address,
-            signature
-        )
-
         contract = await ERC721JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
@@ -106,16 +112,19 @@ describe('ERC721JoinPolicy', (): void => {
             contract.address,
             PermissionType.Grant
         )
-        // ??????????    
+
         await streamRegistryV3.getPermissionsForUser(
             streamId,
             wallets[0].address
         )
 
         await token.mint(
-            wallets[0].address,
+            wallets[1].address,
             TokenId
         )
+
+        await authorizeDelegatedWallet(wallets[1], signerIdentity, delegatedAccessRegistry)
+
     })
 
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
@@ -131,54 +140,33 @@ describe('ERC721JoinPolicy', (): void => {
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
         try {
-            const balance = await token.balanceOf(wallets[1].address)
+            const balance = await token.balanceOf(wallets[0].address)
             expect(balance).to.equal(BigNumber.from(0))
 
-            const signature = signDelegatedChallenge(
-                wallets[1].address, 
-                signerIdentity.privateKey,
-                ChallengeType.Authorize
-            )
+            await authorizeDelegatedWallet(wallets[0], signerIdentity, delegatedAccessRegistry)
 
-            await delegatedAccessRegistry.connect(wallets[1]).authorize(
-                signerIdentity.address,
-                signature
-            )
 
-            await contract.connect(wallets[1])
+            await contract.connect(wallets[0])
                 .requestDelegatedJoin(
                     signerIdentity.address,
                     TokenId, // tokenId
-                    {from: wallets[1].address}
+                    {from: wallets[0].address}
                 )  
         } catch (e: any){
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
 
-    it ('should check positively that a user can request join', async () => {
-        const canJoin = await contract.canJoin(
-            wallets[0].address,
-            TokenId 
-        )
-        expect(canJoin).to.equal(true)
-    })
-
-    it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(
-            wallets[2].address,
-            TokenId 
-        )   
-        expect(canJoin).to.equal(false)
-    })
-
     it ('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {
+
+
         const owner = await token.ownerOf(
             TokenId
         )
-        expect(owner).to.equal(wallets[0].address)
 
-        await contract.connect(wallets[0])
+        expect(owner).to.equal(wallets[1].address)
+
+        await contract.connect(wallets[1])
             .requestDelegatedJoin(
                 signerIdentity.address,
                 TokenId
@@ -187,9 +175,13 @@ describe('ERC721JoinPolicy', (): void => {
         const events = await contract.queryFilter(
             contract.filters.Accepted()
         )
-        expect(events.length).to.equal(2)
-        expect(events[1].args).to.not.be.undefined
-        expect(events[1].args!.user).to.equal(
+        expect(events.length).to.equal(1)
+        expect(events[0].args).to.not.be.undefined
+
+        expect(events[0].args!.mainWallet).to.equal(
+            wallets[1].address
+        )
+        expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
         
