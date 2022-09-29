@@ -25,6 +25,7 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
 
     ) GatedJoinPolicy(
         streamRegistryAddress,
+        delegatedAccessRegistryAddress,
         streamId_,
         permissions_
     ) {
@@ -33,6 +34,8 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         token = IERC1155(tokenAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
+
+    /*
 
     function canJoin(address user_, uint256 tokenId_) public view returns (bool) {
         return (tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(user_, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]);
@@ -47,5 +50,5 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         accept(_msgSender(), delegatedWallet);
     }
     
-    
+    */
 }

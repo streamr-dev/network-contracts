@@ -11,7 +11,6 @@ import "./DelegatedAccessRegistry.sol";
 contract ERC20JoinPolicy is GatedJoinPolicy{
     IERC20 public token;
     uint256 public minRequiredBalance;
-    DelegatedAccessRegistry private delegatedAccessRegistry;
 
     constructor(
         address tokenAddress,
@@ -22,25 +21,28 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         address delegatedAccessRegistryAddress
     ) GatedJoinPolicy(
         streamRegistryAddress,
+        delegatedAccessRegistryAddress,
         streamId_,
         permissions_
     ) {
         token = IERC20(tokenAddress);
         require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
         minRequiredBalance = minRequiredBalance_;
-        delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-    function canJoin(address user_) public view returns (bool) {
-        return (token.balanceOf(user_) >= minRequiredBalance);
+    modifier canJoin{
+        require(token.balanceOf(msg.sender) >= minRequiredBalance, "Not enough tokens");
+        _;
     }
 
     function requestDelegatedJoin(
         address delegatedWallet
-    ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
-        require(canJoin(_msgSender()), "Not enough tokens");
-        accept(_msgSender(), delegatedWallet);
+    ) 
+        isUserAuthorized(delegatedWallet) 
+        canJoin() 
+        public 
+    {
+        accept(msg.sender, delegatedWallet);
     }
 
 

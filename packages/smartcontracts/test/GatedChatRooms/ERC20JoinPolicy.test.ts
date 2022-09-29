@@ -155,18 +155,10 @@ describe('ERC20JoinPolicy', (): void => {
         }
     })
 
-    it ('should check positively that a user can request join', async () => {
-        await token.mint(wallets[1].address, BigNumber.from(1))
-        const canJoin = await contract.canJoin(wallets[1].address)
-        expect(canJoin).to.equal(true)
-    })
-
-    it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(wallets[2].address)   
-        expect(canJoin).to.equal(false)
-    })
+  
 
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
+        await token.mint(wallets[1].address, BigNumber.from(1))
         const balance = await token.balanceOf(wallets[1].address)
         expect(balance).to.equal(BigNumber.from(1))
 
@@ -179,9 +171,13 @@ describe('ERC20JoinPolicy', (): void => {
         const events = await contract.queryFilter(
             contract.filters.Accepted()
         )
-        expect(events.length).to.equal(2)
-        expect(events[1].args).to.not.be.undefined
-        expect(events[1].args!.user).to.equal(
+        expect(events.length).to.equal(1)
+        expect(events[0].args).to.not.be.undefined
+        
+        expect(events[0].args!.mainWallet).to.equal(
+            wallets[1].address
+        )
+        expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
         
