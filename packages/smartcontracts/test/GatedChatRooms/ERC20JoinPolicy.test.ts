@@ -99,6 +99,17 @@ describe('ERC20JoinPolicy', (): void => {
             streamId,
             wallets[0].address
         )
+
+        const signature = signDelegatedChallenge(
+            wallets[1].address,
+            signerIdentity.privateKey,
+            ChallengeType.Authorize
+        )
+
+        await delegatedAccessRegistry.connect(wallets[1]).authorize(
+            signerIdentity.address,
+            signature
+        )
     })
 
     it ('should fail to deploy a policy with 0 as minimumRequiredBalance', async () => {
@@ -134,16 +145,7 @@ describe('ERC20JoinPolicy', (): void => {
             const balance = await token.balanceOf(wallets[1].address)
             expect(balance).to.equal(BigNumber.from(0))
 
-            const signature = signDelegatedChallenge(
-                wallets[1].address, 
-                signerIdentity.privateKey,
-                ChallengeType.Authorize
-            )
-
-            await delegatedAccessRegistry.connect(wallets[1]).authorize(
-                signerIdentity.address,
-                signature
-            )
+            
 
             await contract.connect(wallets[1])
                 .requestDelegatedJoin(

@@ -35,20 +35,19 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-    /*
-
-    function canJoin(address user_, uint256 tokenId_) public view returns (bool) {
-        return (tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(user_, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]);
+     modifier canJoin(uint256 tokenId_){
+        require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "Not enough tokens");
+        _;
     }
-    
+
     function requestDelegatedJoin(
         address delegatedWallet,
         uint256 tokenId_
-    ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
-        require(canJoin(_msgSender(), tokenId_), "Not enough tokens");
-        accept(_msgSender(), delegatedWallet);
+    )
+        isUserAuthorized(delegatedWallet)
+        canJoin(tokenId_)
+        public
+    {
+        accept(msg.sender, delegatedWallet);
     }
-    
-    */
 }

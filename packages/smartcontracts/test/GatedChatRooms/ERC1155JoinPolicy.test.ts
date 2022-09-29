@@ -161,20 +161,9 @@ describe('ERC1155JoinPolicy', (): void => {
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
-
-    it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(wallets[1].address, TokenIds.A)
-        expect(canJoin).to.equal(false)
-    })
-
-    it ('should check positively that a user can request join', async () => {
-        const tx = await token.mint(wallets[0].address, TokenIds.A, BigNumber.from(1))
-        await tx.wait()
-        const canJoin = await contract.canJoin(wallets[0].address, TokenIds.A)
-        expect(canJoin).to.equal(true)
-    })
     
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
+        await token.mint(wallets[0].address, TokenIds.A, 1)
         const balance = await token.balanceOf(wallets[0].address, TokenIds.A)
         expect(balance).to.equal(BigNumber.from(1))
             
@@ -188,12 +177,16 @@ describe('ERC1155JoinPolicy', (): void => {
         const events = await contract.queryFilter(
             contract.filters.Accepted()
         )
-        expect(events.length).to.equal(2)
-        expect(events[1].args).to.not.be.undefined
-        expect(events[1].args!.user).to.equal(
+        expect(events.length).to.equal(1)
+        expect(events[0].args).to.not.be.undefined
+
+        expect(events[0].args!.mainWallet).to.equal(
+            wallets[0].address
+        )
+        expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
-        
+
         expect(await streamRegistryV3.hasPermission(
             streamId,
             signerIdentity.address,
