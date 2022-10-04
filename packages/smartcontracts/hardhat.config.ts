@@ -61,7 +61,7 @@ const config: HardhatUserConfig = {
         polygon: {
             chainId: 137,
             url: "https://polygon-rpc.com",
-            gasPrice: 80000000000,
+            // gasPrice: 80000000000,
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
         ethereum: {

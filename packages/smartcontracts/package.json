@@ -16,6 +16,8 @@
     "upgradeStreamRegistry": "hardhat run --network dev1 scripts/deployToLivenet/upgradeStreamRegistry.ts",
     "upgradeStreamStorageRegistry": "hardhat run --network dev1 scripts/deployToLivenet/upgradeStreamStorageRegistry.ts",
     "deploylive": "hardhat run --network dev1 scripts/deployToLivenet/1_deployContracts.ts",
+    "deployGSN": "hardhat run --network polygon scripts/deployGSN.ts",
+    "interactThroughGSN": "hardhat run --network polygon scripts/transactThroughGSN.ts",
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
     "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
