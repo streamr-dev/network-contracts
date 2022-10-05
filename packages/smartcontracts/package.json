@@ -14,8 +14,6 @@
     "build": "hardhat compile",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "test": "hardhat test",
-    "testgsn": "run-with-testrpc --testrpc-cmd ./scripts/hardhat-node 'hardhat test test/GasStationNetwork.test.ts' ",
-    "run-with-hardhat-node": "./node_modules/.bin/run-with-testrpc --testrpc-cmd ./scripts/hardhat-node",
     "coverage": "hardhat coverage",
     "lint": "eslint scripts/**/* test/**/* && eslint scripts/**/*.* && solhint contracts/*/*.sol",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",
