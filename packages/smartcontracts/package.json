@@ -1,8 +1,15 @@
 {
-  "name": "smartcontracts",
-  "version": "0.0.4",
+  "name": "@streamr/network-contracts",
+  "version": "2.4.0",
   "description": "Smart contracts for Streamr Network",
-  "private": true,
+  "files": [
+    "contracts",
+    ".openzeppelin"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "hardhat compile",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
@@ -30,8 +37,10 @@
   "license": "ISC",
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
-    "@ensdomains/ens": "0.6.2",
-    "@ensdomains/resolver": "0.2.4",
+    "@openzeppelin/contracts": "4.4.2",
+    "@openzeppelin/contracts-upgradeable": "4.4.2"
+  },
+  "devDependencies": {
     "@ethersproject/bignumber": "5.5.0",
     "@ethersproject/contracts": "5.5.0",
     "@ethersproject/experimental": "5.5.0",
@@ -41,9 +50,9 @@
     "@opengsn/contracts": "2.2.6",
     "@opengsn/dev": "2.2.6",
     "@opengsn/provider": "2.2.6",
-    "@openzeppelin/contracts": "4.4.2",
-    "@openzeppelin/contracts-upgradeable": "4.4.2",
     "@openzeppelin/hardhat-upgrades": "1.20.0",
+    "@ensdomains/ens": "0.6.2",
+    "@ensdomains/resolver": "0.2.4",
     "debug": "4.3.3",
     "eth-crypto": "^2.3.0",
     "eth-ens-namehash": "2.0.8",
@@ -54,21 +63,17 @@
     "hardhat-deploy": "0.7.11",
     "hardhat-deploy-ethers": "0.3.0-beta.13",
     "hardhat-typechain": "0.3.5",
-    "sha3": "2.1.4",
-    "web3-providers-http": "1.8.0"
-  },
-  "devDependencies": {
     "@metamask/eth-sig-util": "4.0.0",
     "@nomiclabs/hardhat-ethers": "2.0.4",
     "@nomiclabs/hardhat-etherscan": "3.1.0",
     "@typechain/ethers-v5": "6.0.5",
     "@types/debug": "4.1.7",
     "ethereum-waffle": "3.4.0",
-    "run-with-testrpc": "^0.3.1",
     "solc": "0.8.6",
     "solhint": "3.3.6",
     "solidity-coverage": "0.7.20",
     "ts-generator": "0.1.1",
-    "typechain": "4.0.3"
+    "typechain": "4.0.3",
+    "web3-providers-http": "1.8.0"
   }
 }

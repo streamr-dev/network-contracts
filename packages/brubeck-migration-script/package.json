@@ -1,7 +1,8 @@
 {
   "name": "brubeck-migration-script",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "description": "Script to migrate stream data from core to brubeck",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "test": "echo \"No tests in migration script.\"",
