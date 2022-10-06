@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "../StreamRegistry/StreamRegistryV3.sol"; 
@@ -7,7 +7,7 @@ import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract UpgradeableJoinPolicyFactory is Initializable {
+contract JoinPolicyFactory is Initializable {
 
     address public streamRegistryAddress;
     StreamRegistryV3 public streamRegistry;

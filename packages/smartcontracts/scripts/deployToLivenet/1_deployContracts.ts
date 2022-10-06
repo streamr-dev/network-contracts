@@ -87,6 +87,12 @@ async function deployStreamRegistry() {
     // LINKTOKEN_ADDRESS = linkToken.address
     // log(`Link Token deployed at ${linkToken.address}`)
 
+    // deploy MinimalForwarder
+    const minimalForwarderFactory = await ethers.getContractFactory('MinimalForwarder', wallet)
+    const minimalForwarderFactoryTx = await minimalForwarderFactory.deploy()
+    const minimalForwarder = await minimalForwarderFactoryTx.deployed()
+    log(`MinimalForwarder deployed at ${minimalForwarder.address}`)
+
     // oracle
     const oracleFactory = await ethers.getContractFactory('Oracle', wallet)
     // const oracleFactoryTx = await oracleFactory.attach('0x36BF71D0ba2e449fc14f9C4cF51468948E4ED27D')
@@ -119,7 +125,7 @@ async function deployStreamRegistry() {
     // await linkToken.transfer(ensCache.address, bigNumberify('1000000000000000000000')) // 1000 link
 
     log('deploying Streamregistry')
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry', wallet)
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV3', wallet)
     // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
         [ensCache.address, Wallet.createRandom().address], { kind: 'uups' })

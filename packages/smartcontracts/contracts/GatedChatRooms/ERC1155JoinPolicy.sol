@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -43,8 +43,7 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
     function requestDelegatedJoin(
         address delegatedWallet,
         uint256 tokenId_
-    )
-        public
+    public
         isUserAuthorized(delegatedWallet)
         canJoin(tokenId_)
     {
