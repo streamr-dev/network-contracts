@@ -65,16 +65,16 @@ describe('JoinPolicyFactory', (): void => {
         )
 
         // deploy the delegatedAccessRegistry
-        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
+        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
         
         // deploy the JoinPolicyFactory
-        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory', wallets[0])
-        contract = await JoinPolicyFactory.deploy(
+        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory')
+        contract = await upgrades.deployProxy(JoinPolicyFactory, [
             streamRegistryV3.address,
             [PermissionType.Subscribe, PermissionType.Publish],
             delegatedAccessRegistry.address
-        )
+        ])
 
     })
 
