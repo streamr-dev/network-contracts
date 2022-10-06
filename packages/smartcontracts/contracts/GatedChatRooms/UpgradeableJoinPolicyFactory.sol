@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "../StreamRegistry/StreamRegistryV3.sol"; 
@@ -48,7 +48,7 @@ contract JoinPolicyFactory is Initializable {
         uint256 minRequiredBalance_
     ) public {
         bytes32 policyId = keccak256(abi.encode(tokenAddress, streamId_));
-        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
+        require(registeredPolicies[policyId] == address(0x0), "error_alreadyRegistered");
 
         ERC20JoinPolicy instance = new ERC20JoinPolicy(
             tokenAddress,
@@ -75,7 +75,7 @@ contract JoinPolicyFactory is Initializable {
         string memory streamId_
     ) public {
         bytes32 policyId = keccak256(abi.encode(tokenAddress, tokenId, streamId_));
-        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
+        require(registeredPolicies[policyId] == address(0x0), "error_alreadyRegistered");
 
         ERC721JoinPolicy instance = new ERC721JoinPolicy(
             tokenAddress,
@@ -103,7 +103,7 @@ contract JoinPolicyFactory is Initializable {
         uint256 minRequiredBalance_
     ) public {
         bytes32 policyId = keccak256(abi.encode(tokenAddress, tokenId, streamId_));
-        require(registeredPolicies[policyId] == address(0x0), "Join policy already registered");
+        require(registeredPolicies[policyId] == address(0x0), "error_alreadyRegistered");
 
         ERC1155JoinPolicy instance = new ERC1155JoinPolicy(
             tokenAddress,

@@ -1,7 +1,8 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
+
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// Used only for testing purposes
+
 contract TestERC20 is ERC20 {
     constructor () ERC20("TestToken", "TST") {}
 

@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -25,27 +25,29 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
 
     ) GatedJoinPolicy(
         streamRegistryAddress,
+        delegatedAccessRegistryAddress,
         streamId_,
         permissions_
     ) {
-        require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
+        require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
         tokenIdsToMinRequiredBalances[tokenId_] = minRequiredBalance_;
         token = IERC1155(tokenAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-    function canJoin(address user_, uint256 tokenId_) public view returns (bool) {
-        return (tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(user_, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]);
+    modifier canJoin(uint256 tokenId_){
+        require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "error_notEnoughTokens");
+        _;
     }
-    
+
     function requestDelegatedJoin(
         address delegatedWallet,
         uint256 tokenId_
-    ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
-        require(canJoin(_msgSender(), tokenId_), "Not enough tokens");
-        accept(_msgSender(), delegatedWallet);
+    )
+        public
+        isUserAuthorized(delegatedWallet)
+        canJoin(tokenId_)
+    {
+        accept(msg.sender, delegatedWallet);
     }
-    
-    
 }

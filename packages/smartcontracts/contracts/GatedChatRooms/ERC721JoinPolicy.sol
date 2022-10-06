@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+//SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -9,7 +9,6 @@ import "./DelegatedAccessRegistry.sol";
 
 contract ERC721JoinPolicy is GatedJoinPolicy{
     IERC721 public token;
-    DelegatedAccessRegistry private delegatedAccessRegistry;
 
     constructor(
         address tokenAddress,
@@ -19,23 +18,28 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
         address delegatedAccessRegistryAddress
     ) GatedJoinPolicy(
         streamRegistryAddress,
+        delegatedAccessRegistryAddress,
         streamId_,
         permissions_
     ) {
         token = IERC721(tokenAddress);
-        delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-    function canJoin(address user_, uint256 tokenId_) public view returns (bool) {
-        return (token.ownerOf(tokenId_) == user_);
+    modifier canJoin(uint256 tokenId_){
+        require(token.ownerOf(tokenId_) == msg.sender, "error_notEnoughTokens");
+        _;
     }
 
     function requestDelegatedJoin(
         address delegatedWallet,
         uint256 tokenId_
-    ) public {
-        require(delegatedAccessRegistry.isUserAuthorized(_msgSender(), delegatedWallet), "Unauthorized");
-        require(canJoin(_msgSender(), tokenId_), "Not enough tokens");
-        accept(_msgSender(), delegatedWallet);
+    )
+        public
+        isUserAuthorized(delegatedWallet)
+        canJoin(tokenId_)
+    {
+        accept(msg.sender, delegatedWallet);
     }
+
+    
 }
