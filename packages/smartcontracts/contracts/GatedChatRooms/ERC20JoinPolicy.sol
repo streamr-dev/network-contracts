@@ -25,13 +25,13 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         streamId_,
         permissions_
     ) {
+        require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
         token = IERC20(tokenAddress);
-        require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
         minRequiredBalance = minRequiredBalance_;
     }
 
     modifier canJoin{
-        require(token.balanceOf(msg.sender) >= minRequiredBalance, "Not enough tokens");
+        require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
 

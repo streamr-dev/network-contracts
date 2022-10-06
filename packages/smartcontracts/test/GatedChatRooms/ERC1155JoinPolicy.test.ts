@@ -130,7 +130,7 @@ describe('ERC1155JoinPolicy', (): void => {
             )
         } catch (e: any){
             expect(e.message.includes(
-                'VM Exception while processing transaction: reverted with reason string \'minReqBalance must be > 0\''
+                'VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\''
             )).to.equal(true)
         }
     })
@@ -142,7 +142,7 @@ describe('ERC1155JoinPolicy', (): void => {
                 TokenIds.B,
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
         }
     })
 
@@ -158,7 +158,7 @@ describe('ERC1155JoinPolicy', (): void => {
                     {from: wallets[0].address}
                 )  
         } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
         }
     })
     

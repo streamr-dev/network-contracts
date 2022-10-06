@@ -134,7 +134,7 @@ describe('ERC721JoinPolicy', (): void => {
                 TokenId
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
         }
     })
 
@@ -152,7 +152,7 @@ describe('ERC721JoinPolicy', (): void => {
                     {from: wallets[0].address}
                 )  
         } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
         }
     })
 

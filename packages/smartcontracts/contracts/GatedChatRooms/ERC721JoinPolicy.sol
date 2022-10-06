@@ -26,7 +26,7 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
     }
 
     modifier canJoin(uint256 tokenId_){
-        require(token.ownerOf(tokenId_) == msg.sender, "Not enough tokens");
+        require(token.ownerOf(tokenId_) == msg.sender, "error_notEnoughTokens");
         _;
     }
 

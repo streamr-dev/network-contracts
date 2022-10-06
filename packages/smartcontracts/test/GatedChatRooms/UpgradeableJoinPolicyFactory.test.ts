@@ -79,7 +79,6 @@ describe('UpgradeableJoinPolicyFactory', (): void => {
     })
 
     it ('should properly exercise `registerERC20Policy`', async() => {
-        
         await contract.registerERC20Policy(
             erc20Token.address,
             streamId,
@@ -98,7 +97,7 @@ describe('UpgradeableJoinPolicyFactory', (): void => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 
@@ -121,7 +120,7 @@ describe('UpgradeableJoinPolicyFactory', (): void => {
                 streamId
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 
@@ -151,7 +150,7 @@ describe('UpgradeableJoinPolicyFactory', (): void => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 })

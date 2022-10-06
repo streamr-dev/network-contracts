@@ -29,14 +29,14 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         streamId_,
         permissions_
     ) {
-        require(minRequiredBalance_ > 0, "minReqBalance must be > 0");
+        require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
         tokenIdsToMinRequiredBalances[tokenId_] = minRequiredBalance_;
         token = IERC1155(tokenAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
     modifier canJoin(uint256 tokenId_){
-        require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "Not enough tokens");
+        require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "error_notEnoughTokens");
         _;
     }
 

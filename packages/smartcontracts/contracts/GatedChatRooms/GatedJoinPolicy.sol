@@ -27,7 +27,7 @@ contract GatedJoinPolicy{
     }
 
     modifier isUserAuthorized(address delegatedWallet){
-        require(delegatedAccessRegistry.isUserAuthorized(msg.sender, delegatedWallet), "Unauthorized");
+        require(delegatedAccessRegistry.isUserAuthorized(msg.sender, delegatedWallet), "error_notAuthorized");
         _;
     }
 

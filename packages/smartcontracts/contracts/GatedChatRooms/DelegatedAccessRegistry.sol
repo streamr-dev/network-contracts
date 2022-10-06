@@ -49,7 +49,7 @@ contract DelegatedAccessRegistry is Ownable {
     }
 
     function authorize(address delegatedUser_, bytes memory signature_) public {
-        require(verifyDelegationChallenge(delegatedUser_, AUTHORIZE_CHALLENGE_TYPE, signature_), "Invalid challenge signature");
+        require(verifyDelegationChallenge(delegatedUser_, AUTHORIZE_CHALLENGE_TYPE, signature_), "error_badChallengeSignature");
         mainToDelegatedWallets[_msgSender()][delegatedUser_] = true;
         delegatedToMainWallets[delegatedUser_] = _msgSender();
         mainWallets[_msgSender()] = true;
@@ -57,7 +57,7 @@ contract DelegatedAccessRegistry is Ownable {
     }
     
     function revoke(address delegatedUser_, bytes memory signature_) public {
-        require(verifyDelegationChallenge(delegatedUser_, REVOKE_CHALLENGE_TYPE, signature_), "Invalid challenge signature");
+        require(verifyDelegationChallenge(delegatedUser_, REVOKE_CHALLENGE_TYPE, signature_), "error_badChallengeSignature");
         mainToDelegatedWallets[_msgSender()][delegatedUser_] = false;
         delegatedToMainWallets[delegatedUser_] = address(0x0);
         mainWallets[_msgSender()] = false;
