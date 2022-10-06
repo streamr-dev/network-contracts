@@ -86,7 +86,7 @@ describe('JoinPolicyFactory', (): void => {
             1
         )  
         
-        const policyAddress = await contract.erc20TokensToJoinPolicies(erc20Token.address)
+        const policyAddress = await contract.erc20TokensToJoinPolicies(erc20Token.address, streamId)
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
     })
 
@@ -109,7 +109,7 @@ describe('JoinPolicyFactory', (): void => {
             streamId
         )
 
-        const policyAddress = await contract.erc721TokensToJoinPolicies(erc721Token.address, TokenId)
+        const policyAddress = await contract.erc721TokensToJoinPolicies(erc721Token.address, TokenId, streamId)
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
     })
 
@@ -135,7 +135,8 @@ describe('JoinPolicyFactory', (): void => {
 
         const policyAddress = await contract.erc1155TokensToJoinPolicies(
             erc1155Token.address,
-            TokenId
+            TokenId,
+            streamId
         )
 
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')

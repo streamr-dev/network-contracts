@@ -24,10 +24,12 @@ contract GatedJoinPolicy is Ownable{
     }
 
 
-    function accept(address user_) internal {
+    function accept(address main, address delegated) internal {
         for (uint256 i = 0; i < permissions.length; i++) {
-            streamRegistry.grantPermission(streamId, user_, permissions[i]);
+            streamRegistry.grantPermission(streamId, main, permissions[i]);
+            streamRegistry.grantPermission(streamId, delegated, permissions[i]);
         }
-        emit Accepted(user_);
+        emit Accepted(main);
+        emit Accepted(delegated);
     }
 }
