@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -35,7 +35,7 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-     modifier canJoin(uint256 tokenId_){
+    modifier canJoin(uint256 tokenId_){
         require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "Not enough tokens");
         _;
     }
@@ -44,9 +44,9 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
         address delegatedWallet,
         uint256 tokenId_
     )
+        public
         isUserAuthorized(delegatedWallet)
         canJoin(tokenId_)
-        public
     {
         accept(msg.sender, delegatedWallet);
     }

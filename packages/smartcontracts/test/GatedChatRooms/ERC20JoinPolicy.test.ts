@@ -145,8 +145,6 @@ describe('ERC20JoinPolicy', (): void => {
             const balance = await token.balanceOf(wallets[1].address)
             expect(balance).to.equal(BigNumber.from(0))
 
-            
-
             await contract.connect(wallets[1])
                 .requestDelegatedJoin(
                     signerIdentity.address,
@@ -156,8 +154,6 @@ describe('ERC20JoinPolicy', (): void => {
             expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
         }
     })
-
-  
 
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
         await token.mint(wallets[1].address, BigNumber.from(1))

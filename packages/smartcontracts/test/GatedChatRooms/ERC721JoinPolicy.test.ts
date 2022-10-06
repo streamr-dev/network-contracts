@@ -145,7 +145,6 @@ describe('ERC721JoinPolicy', (): void => {
 
             await authorizeDelegatedWallet(wallets[0], signerIdentity, delegatedAccessRegistry)
 
-
             await contract.connect(wallets[0])
                 .requestDelegatedJoin(
                     signerIdentity.address,
@@ -158,8 +157,6 @@ describe('ERC721JoinPolicy', (): void => {
     })
 
     it ('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {
-
-
         const owner = await token.ownerOf(
             TokenId
         )

@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -33,10 +33,10 @@ contract ERC721JoinPolicy is GatedJoinPolicy{
     function requestDelegatedJoin(
         address delegatedWallet,
         uint256 tokenId_
-    ) 
+    )
+        public
         isUserAuthorized(delegatedWallet)
         canJoin(tokenId_)
-        public 
     {
         accept(msg.sender, delegatedWallet);
     }
