@@ -7,7 +7,7 @@ import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract UpgradeableJoinPolicyFactory is Initializable {
+contract JoinPolicyFactory is Initializable {
 
     address public streamRegistryAddress;
     StreamRegistryV3 public streamRegistry;
