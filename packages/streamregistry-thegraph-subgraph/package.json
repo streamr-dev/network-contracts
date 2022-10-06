@@ -1,7 +1,8 @@
 {
   "name": "streamregistry-thegraph-subgraph",
-  "version": "0.0.1",
+  "version": "2.4.0",
   "description": "Subgraph definitions for the stream permission registry",
+  "private": true,
   "scripts": {
     "clean": "rm -rf build generated",
     "codegen": "graph codegen",

@@ -1,6 +1,7 @@
 {
   "name": "chainlink-ens-external-adapter",
-  "version": "0.1.0",
+  "version": "2.4.0",
+  "private": true,
   "description": "An external adapter for a chainlink node to get the owner address of an ENS name.",
   "author": "Streamr Network AG",
   "license": "ISC",
