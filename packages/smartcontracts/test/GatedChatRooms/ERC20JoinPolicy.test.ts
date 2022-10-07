@@ -113,23 +113,17 @@ describe('ERC20JoinPolicy', (): void => {
     })
 
     it ('should fail to deploy a policy with 0 as minimumRequiredBalance', async () => {
-        try {
-            const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
-            await ERC20JoinPolicy.deploy(
-                token.address,
-                streamRegistryV3.address,
-                streamId,
-                [
-                    PermissionType.Publish, PermissionType.Subscribe
-                ],
-                0, // minRequiredBalance
-                delegatedAccessRegistry.address
-            )
-        } catch (e: any){
-            expect(e.message.includes(
-                'VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\''
-            )).to.equal(true)
-        }
+        const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
+        await expect(ERC20JoinPolicy.deploy(
+            token.address,
+            streamRegistryV3.address,
+            streamId,
+            [
+                PermissionType.Publish, PermissionType.Subscribe
+            ],
+            0, // minRequiredBalance
+            delegatedAccessRegistry.address
+        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
 
     it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
