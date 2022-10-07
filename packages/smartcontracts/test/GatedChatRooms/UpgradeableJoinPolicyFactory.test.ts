@@ -65,28 +65,27 @@ describe('JoinPolicyFactory', (): void => {
         )
 
         // deploy the delegatedAccessRegistry
-        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
+        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
         
         // deploy the JoinPolicyFactory
-        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory', wallets[0])
-        contract = await JoinPolicyFactory.deploy(
+        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory')
+        contract = await upgrades.deployProxy(JoinPolicyFactory, [
             streamRegistryV3.address,
             [PermissionType.Subscribe, PermissionType.Publish],
             delegatedAccessRegistry.address
-        )
+        ])
 
     })
 
     it ('should properly exercise `registerERC20Policy`', async() => {
-        
         await contract.registerERC20Policy(
             erc20Token.address,
             streamId,
             1
         )  
         
-        const policyAddress = await contract.erc20TokensToJoinPolicies(erc20Token.address)
+        const policyAddress = await contract.erc20TokensToJoinPolicies(erc20Token.address, streamId)
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
     })
 
@@ -98,7 +97,7 @@ describe('JoinPolicyFactory', (): void => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 
@@ -109,7 +108,7 @@ describe('JoinPolicyFactory', (): void => {
             streamId
         )
 
-        const policyAddress = await contract.erc721TokensToJoinPolicies(erc721Token.address, TokenId)
+        const policyAddress = await contract.erc721TokensToJoinPolicies(erc721Token.address, TokenId, streamId)
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
     })
 
@@ -121,7 +120,7 @@ describe('JoinPolicyFactory', (): void => {
                 streamId
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 
@@ -135,7 +134,8 @@ describe('JoinPolicyFactory', (): void => {
 
         const policyAddress = await contract.erc1155TokensToJoinPolicies(
             erc1155Token.address,
-            TokenId
+            TokenId,
+            streamId
         )
 
         expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
@@ -150,7 +150,7 @@ describe('JoinPolicyFactory', (): void => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Join policy already registered\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
         }
     })
 })

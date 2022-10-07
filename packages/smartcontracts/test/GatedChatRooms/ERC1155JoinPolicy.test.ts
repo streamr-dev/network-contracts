@@ -130,7 +130,7 @@ describe('ERC1155JoinPolicy', (): void => {
             )
         } catch (e: any){
             expect(e.message.includes(
-                'VM Exception while processing transaction: reverted with reason string \'minReqBalance must be > 0\''
+                'VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\''
             )).to.equal(true)
         }
     })
@@ -142,7 +142,7 @@ describe('ERC1155JoinPolicy', (): void => {
                 TokenIds.B,
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
         }
     })
 
@@ -158,23 +158,12 @@ describe('ERC1155JoinPolicy', (): void => {
                     {from: wallets[0].address}
                 )  
         } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
         }
-    })
-
-    it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(wallets[1].address, TokenIds.A)
-        expect(canJoin).to.equal(false)
-    })
-
-    it ('should check positively that a user can request join', async () => {
-        const tx = await token.mint(wallets[0].address, TokenIds.A, BigNumber.from(1))
-        await tx.wait()
-        const canJoin = await contract.canJoin(wallets[0].address, TokenIds.A)
-        expect(canJoin).to.equal(true)
     })
     
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
+        await token.mint(wallets[0].address, TokenIds.A, 1)
         const balance = await token.balanceOf(wallets[0].address, TokenIds.A)
         expect(balance).to.equal(BigNumber.from(1))
             
@@ -190,10 +179,14 @@ describe('ERC1155JoinPolicy', (): void => {
         )
         expect(events.length).to.equal(1)
         expect(events[0].args).to.not.be.undefined
-        expect(events[0].args!.user).to.equal(
+
+        expect(events[0].args!.mainWallet).to.equal(
+            wallets[0].address
+        )
+        expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
-        
+
         expect(await streamRegistryV3.hasPermission(
             streamId,
             signerIdentity.address,

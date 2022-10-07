@@ -75,7 +75,6 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            // '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
@@ -86,6 +85,9 @@ const config: HardhatUserConfig = {
             '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
             'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol',
             '@opengsn/contracts/src/forwarder/Forwarder.sol',
+            '@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol',
+            '@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol',
+            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
         ],
     },
     solidity: {
