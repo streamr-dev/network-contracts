@@ -1,6 +1,6 @@
 {
   "name": "network-contracts",
-  "version": "0.0.4",
+  "version": "2.4.0",
   "description": "Network Contracts with chainlink oracle and The Graph",
   "author": "Streamr Network AG",
   "private": true,

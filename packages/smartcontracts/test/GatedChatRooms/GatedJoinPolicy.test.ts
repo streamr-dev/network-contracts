@@ -17,6 +17,7 @@ describe('GatedJoinPolicy', (): void => {
         
         contract = await GatedJoinPolicy.deploy(
             '0x0000000000000000000000000000000000000000',
+            '0x0000000000000000000000000000000000000000',
             'stream_id',
             [PermissionType.Subscribe, PermissionType.Publish]
         )

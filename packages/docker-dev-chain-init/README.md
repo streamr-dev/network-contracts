@@ -9,16 +9,16 @@ This repo is used to build the parity images streamr/open-ethereum-poa-mainchain
 ## Dev docker pre-funded account keys
 
 Parity Default Private Key
-* `0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7`
+* `0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7` // ???
 
 Private Keys:
-* `0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0`
+* `0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0` // deployer of contracts in docker env
 * `0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb`
 * `0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae`
 * `0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9`
 * `0x957a8212980a9a39bf7c03dcbeea3c722d66f2b359c669feceb0e3ba8209a297`
 * `0xfe1d528b7e204a5bdfb7668a1ed3adfee45b4b96960a175c9ef0ad16dd58d728`
-* `0xd7609ae3a29375768fac8bc0f8c2f6ac81c5f2ffca2b981e6cf15460f01efe14`
+* `0xd7609ae3a29375768fac8bc0f8c2f6ac81c5f2ffca2b981e6cf15460f01efe14` // DU DAO beneficiary
 * `0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7`
 * `0x2cd9855d17e01ce041953829398af7e48b24ece04ff9d0e183414de54dc52285`
 * `0x0000000000000000000000000000000000000000000000000000000000000nnn` where `nnn` = 000...3e7 (that's 1000 in decimal)
@@ -39,7 +39,7 @@ Build and tag required docker images.
 To build images:
 
 From the root of the monorepo:
-./clean_and_preload_parity_images.sh
+./preload_parity_images.sh
 
 This will tag the images locally and echo the command to push to dockerhub.
 Note that you MUST remove the parity docker volumes to delete old chain data from docker and then restart `streamr-docker-dev` to see preload changes.

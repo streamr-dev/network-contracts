@@ -61,7 +61,7 @@ const config: HardhatUserConfig = {
         polygon: {
             chainId: 137,
             url: "https://polygon-rpc.com",
-            gasPrice: 80000000000,
+            // gasPrice: 80000000000,
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
         ethereum: {
@@ -75,7 +75,6 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            // '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
@@ -84,7 +83,11 @@ const config: HardhatUserConfig = {
             '@openzeppelin/contracts/token/ERC721/ERC721.sol',
             'contracts/GatedChatRooms/TestTokens/ERC721TestToken.sol',
             '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
-            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol'
+            'contracts/GatedChatRooms/TestTokens/ERC1155TestToken.sol',
+            '@opengsn/contracts/src/forwarder/Forwarder.sol',
+            '@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol',
+            '@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol',
+            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
         ],
     },
     solidity: {

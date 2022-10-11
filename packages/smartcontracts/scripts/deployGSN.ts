@@ -1,55 +1,49 @@
 // scripts/deploy.js
-import { Contract } from 'ethers'
-import hhat from 'hardhat'
+import { Wallet } from 'ethers'
+import { ethers, upgrades } from 'hardhat'
+import { WhitelistPaymaster } from '../typechain'
+import { Forwarder } from '../typechain/Forwarder'
 
-import { StreamRegistry } from '../typechain/StreamRegistry'
+import { StreamRegistryV4 } from '../typechain/StreamRegistryV4'
 
-const { ethers } = hhat
+const log = console.log
+// const FORWARDER = "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d"
 
 async function main() {
-    const forwaderFactory = await ethers.getContractFactory('Forwarder')
-    console.log('Deploying Forwarder...')
-    const forwarder = await forwaderFactory.deploy() as Contract
-    console.log('Forwarder deployed to:', forwarder.address)
+    // const forwaderFactory = await ethers.getContractFactory('Forwarder')
+    // log('Deploying Forwarder...')
+    // const forwarder = await forwaderFactory.deploy() as Forwarder
+    // await forwarder.deployed()
+    // log('Forwarder deployed to:', forwarder.address)
 
-    // const relayhubFactory = await ethers.getContractFactory('RelayHub')
-    // console.log('Deploying Relayhub...')
-    // const relayHub = await relayhubFactory.deploy() as Contract
-    // console.log('Relayhub deployed to:', relayHub.address)
+    // // const relayhubFactory = await ethers.getContractFactory('RelayHub')
+    // // log('Deploying Relayhub...')
+    // // const relayHub = await relayhubFactory.deploy() as Contract
+    // // log('Relayhub deployed to:', relayHub.address)
 
-    const paymasterFactory = await ethers.getContractFactory('NaivePaymaster')
-    console.log('Deploying Paymaster...')
-    const paymaster = await paymasterFactory.deploy() as Contract
-    console.log('Paymaster deployed to:', paymaster.address)
+    const paymasterFactory = await ethers.getContractFactory('WhitelistPaymaster')
+    log('Deploying Paymaster...')
+    const paymaster = await paymasterFactory.deploy() as WhitelistPaymaster
+    await paymaster.deployed()
+    log('Paymaster deployed to:', paymaster.address)
 
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistry')
-    console.log('Deploying StreamRegistry...')
-    const streamRegistry = await streamRegistryFactory.deploy(
-        streamRegistryFactory.signer.getAddress(), streamRegistryFactory.signer.getAddress(),
-        streamRegistryFactory.signer.getAddress()
-    ) as StreamRegistry
-    console.log('StreamRegistry deployed to:', streamRegistry.address)
+    // const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV4')
+    // // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)
+    // const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
+    //     [Wallet.createRandom().address, forwarder.address], { kind: 'uups' })
+    // const streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
+    // log(`Streamregistry deployed at ${streamRegistry.address}`)
+    // log('setting relay hub in paymaster')
+    // await (await paymaster.setRelayHub(streamRegistry.signer.getAddress())).wait()
+    // log('sending 1 eth to paymaster')
+    // const [owner] = await ethers.getSigners();
+    // // const balance = (await ethers.getDefaultProvider().getBalance(owner.address)).toString()
+    // // const tx = await owner.sendTransaction({ to: paymaster.address,
+    // //     value: 10 })
+    // // await tx.wait()
 
-    await paymaster.setRelayHub(streamRegistry.signer.getAddress())
-    streamRegistryFactory.signer.sendTransaction({
-        to: paymaster.address,
-        value: ethers.utils.parseEther('1')
-    })
-
-    const tx = await paymaster.setTarget(forwarder.address)
-    tx.wait()
-    // deploy proxyAdmin contract
-    // const ProxyAdmin = await ethers.getContractFactory('ProxyAdmin')
-    // console.log('Deploying ProxyAdmin...')
-    // const proxyAdmin = await ProxyAdmin.deploy()
-    // console.log('ProxyAdmin deployed to:', proxyAdmin.address)
-
-    // // deploy proxy contract
-    // const TransparentUpgradeableProxy = await ethers.getContractFactory('TransparentUpgradeableProxy')
-    // console.log('Deploying StreamRegistry Proxy...')
-    // const transparentUpgradeableProxy = await TransparentUpgradeableProxy
-    //     .deploy(streamRegistry.address, proxyAdmin.address, [])
-    // console.log('StreamRegistry Proxy deployed to:', transparentUpgradeableProxy.address)
+    // log('setting target in paymaster')
+    // await (await paymaster.setTrustedForwarder(forwarder.address)).wait()
 }
 
 main()

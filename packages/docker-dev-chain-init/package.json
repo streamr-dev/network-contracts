@@ -1,12 +1,14 @@
 {
   "name": "docker-dev-chain-init",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "description": "Locally run Ethereum client for developing the Streamr services",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./*.js",
     "preload": "hardhat run --network localsidechain index.js",
-    "preloadMain": "hardhat run --network localmainchain deployMarketplaceMainnet.js",
+    "deploy-marketplace-v3": "hardhat run --network localmainchain deployMarketplaceMainnet.js",
+    "deploy-du3": "hardhat run --network localmainchain deploy_du3_factories.js",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "build": "hardhat compile"
   },
@@ -25,13 +27,16 @@
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.4.2",
     "@openzeppelin/hardhat-upgrades": "1.13.0",
+    "@streamr/network-contracts": "2.4.0",
     "@uniswap/v2-core": "1.0.1",
     "@uniswap/v2-periphery": "1.1.0-beta.0",
     "debug": "4.3.3",
     "ethers4": "npm:ethers@4.0.49",
     "hardhat-dependency-compiler": "1.1.2",
     "node-fetch": "2.6.1",
-    "smartcontracts": "0.0.4",
     "web3": "1.2.4"
+  },
+  "devDependencies": {
+    "@dataunions/contracts": "3.0.5"
   }
 }

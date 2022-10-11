@@ -99,33 +99,38 @@ describe('ERC20JoinPolicy', (): void => {
             streamId,
             wallets[0].address
         )
+
+        const signature = signDelegatedChallenge(
+            wallets[1].address,
+            signerIdentity.privateKey,
+            ChallengeType.Authorize
+        )
+
+        await delegatedAccessRegistry.connect(wallets[1]).authorize(
+            signerIdentity.address,
+            signature
+        )
     })
 
     it ('should fail to deploy a policy with 0 as minimumRequiredBalance', async () => {
-        try {
-            const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
-            await ERC20JoinPolicy.deploy(
-                token.address,
-                streamRegistryV3.address,
-                streamId,
-                [
-                    PermissionType.Publish, PermissionType.Subscribe
-                ],
-                0, // minRequiredBalance
-                delegatedAccessRegistry.address
-            )
-        } catch (e: any){
-            expect(e.message.includes(
-                'VM Exception while processing transaction: reverted with reason string \'minReqBalance must be > 0\''
-            )).to.equal(true)
-        }
+        const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
+        await expect(ERC20JoinPolicy.deploy(
+            token.address,
+            streamRegistryV3.address,
+            streamId,
+            [
+                PermissionType.Publish, PermissionType.Subscribe
+            ],
+            0, // minRequiredBalance
+            delegatedAccessRegistry.address
+        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
 
     it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
         try {
             await contract.requestDelegatedJoin(wallets[2].address)
         } catch (e: any) {
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'Unauthorized\'')
+            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
         }
     })
 
@@ -134,39 +139,18 @@ describe('ERC20JoinPolicy', (): void => {
             const balance = await token.balanceOf(wallets[1].address)
             expect(balance).to.equal(BigNumber.from(0))
 
-            const signature = signDelegatedChallenge(
-                wallets[1].address, 
-                signerIdentity.privateKey,
-                ChallengeType.Authorize
-            )
-
-            await delegatedAccessRegistry.connect(wallets[1]).authorize(
-                signerIdentity.address,
-                signature
-            )
-
             await contract.connect(wallets[1])
                 .requestDelegatedJoin(
                     signerIdentity.address,
                     {from: wallets[1].address}
                 )  
         } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Not enough tokens'")
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
         }
     })
 
-    it ('should check positively that a user can request join', async () => {
-        await token.mint(wallets[1].address, BigNumber.from(1))
-        const canJoin = await contract.canJoin(wallets[1].address)
-        expect(canJoin).to.equal(true)
-    })
-
-    it ('should check and fail when a user has not enough balance upon canJoin', async () => {
-        const canJoin = await contract.canJoin(wallets[2].address)   
-        expect(canJoin).to.equal(false)
-    })
-
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
+        await token.mint(wallets[1].address, BigNumber.from(1))
         const balance = await token.balanceOf(wallets[1].address)
         expect(balance).to.equal(BigNumber.from(1))
 
@@ -181,7 +165,11 @@ describe('ERC20JoinPolicy', (): void => {
         )
         expect(events.length).to.equal(1)
         expect(events[0].args).to.not.be.undefined
-        expect(events[0].args!.user).to.equal(
+        
+        expect(events[0].args!.mainWallet).to.equal(
+            wallets[1].address
+        )
+        expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
         
