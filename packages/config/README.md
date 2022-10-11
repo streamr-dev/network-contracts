@@ -93,3 +93,7 @@ make clean
 	![Draft a new release on GitHub](./docs/draft-release-github.png "Drafting a new release")
 ## License
 [MIT](LICENSE)
+
+## Changelog
+
+2.5.0: DataUnionFactory address in dev1 updated
