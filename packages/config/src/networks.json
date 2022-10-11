@@ -12,6 +12,9 @@
         "contracts": {
             "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
             "DATA": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
+            "DataUnionFactory": "0x90a0480c6fA6b2dC967d8F03660c81C8a5A7c465",
+            "DataUnionTemplate": "0x07a4CaF6064ACFe4c279e32e5ed2F376B36DcB3F",
+            "DefaultFeeOracle": "0x454E0fEcCf4611eA9E41C986E4A2949CFD4b53d4",
             "ENS": "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03",
             "FIFSRegistrar": "0x57B81a9442805f88c4617B506206531e72d96290",
             "Marketplace": "0xF1371c0f40528406dc4f4cAf89924eA9Da49E866",
@@ -40,7 +43,8 @@
         "contracts": {
             "AMB": "0xaFA0dc5Ad21796C9106a36D68f69aAD69994BB64",
             "DATA": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
-            "DataUnionFactory": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
+            "DataUnionFactory": "0x50aAa135AeBAC61E8394F80fF2Df091fcb66b072",
+            "DefaultFeeOracle": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
             "DataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
             "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
             "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",

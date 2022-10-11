@@ -1,8 +1,13 @@
+// TODO: when dev1 chain is removed, all of this file can be scrapped
+// DU2 needs not be supported, and DU3 stuff ("unichain") is deployed already in dev0 with `npm run deploy-du3`
+// also the JSON files in ethereumContractJSONs can be deleted,
+//   since DU3 scripts take their deps from npm packages using the hardhat dependencyCompiler
+
 const {
     ContractFactory,
     Wallet,
     providers: { JsonRpcProvider },
-    utils: { getAddress },
+    utils: { getAddress, parseEther },
 } = require("ethers")
 
 const DataUnionMainnet = require("./ethereumContractJSONs/DataUnionMainnet.json")
@@ -12,6 +17,7 @@ const DataUnionFactoryMainnet = require("./ethereumContractJSONs/DataUnionFactor
 const MainnetMigrationManager = require("./ethereumContractJSONs/MainnetMigrationManager.json")
 const SidechainMigrationManager = require("./ethereumContractJSONs/SidechainMigrationManager.json")
 // unichain
+const DefaultFeeOracle = require("./ethereumContractJSONs/DefaultFeeOracle.json")
 const DataUnionFactory = require("./ethereumContractJSONs/DataUnionFactory.json")
 const DataUnionTemplate = require("./ethereumContractJSONs/DataUnionTemplate.json")
 
@@ -104,21 +110,23 @@ async function deployDUFactories() {
 
     log(`Deploying DU unichain template contract from ${wallet_home.address}`)
     deployer = new ContractFactory(DataUnionTemplate.abi, DataUnionTemplate.bytecode, wallet_home)
-    dtx = await deployer.deploy(
-        { gasLimit: 6000000 }
-    )
+    dtx = await deployer.deploy({ gasLimit: 6000000 })
     const unichainTemplate = await dtx.deployed()
-    log(`Unichain DataUnionTemplate: ${unichainTemplate.address}`)
+    log(`Deployed DataUnionTemplate @ dev1: ${unichainTemplate.address}`)
+
+    log(`Deploying DefaultFeeOracle contract from ${wallet_home.address}`)
+    deployer = new ContractFactory(DefaultFeeOracle.abi, DefaultFeeOracle.bytecode, wallet_home)
+    dtx = await deployer.deploy({ gasLimit: 6000000 })
+    const defaultFeeOracle = await dtx.deployed()
+    await (await defaultFeeOracle.initialize(parseEther("0.01"), wallet_home.address)).wait()
+    log(`Deployed DefaultFeeOracle @ dev1: ${defaultFeeOracle.address}`)
+
     log(`Deploying DU unichain factory contract from ${wallet_home.address}`)
     deployer = new ContractFactory(DataUnionFactory.abi, DataUnionFactory.bytecode, wallet_home)
-    dtx = await deployer.deploy(
-        unichainTemplate.address,
-        home_erc677,
-        { gasLimit: 6000000 }
-    )
-
+    dtx = await deployer.deploy({ gasLimit: 6000000 })
     const unichainFactory = await dtx.deployed()
-    log(`Unichain DataUnionFactory: ${unichainFactory.address}`)
+    await (await unichainFactory.initialize(unichainTemplate.address, home_erc677, defaultFeeOracle.address)).wait()
+    log(`Deployed DataUnionFactory @ dev1: ${unichainFactory.address}`)
 }
 
 async function start() {

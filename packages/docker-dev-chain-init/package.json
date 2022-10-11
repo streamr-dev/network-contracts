@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint ./*.js",
     "preload": "hardhat run --network localsidechain index.js",
-    "preloadMain": "hardhat run --network localmainchain deployMarketplaceMainnet.js",
+    "deploy-marketplace-v3": "hardhat run --network localmainchain deployMarketplaceMainnet.js",
+    "deploy-du3": "hardhat run --network localmainchain deploy_du3_factories.js",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "build": "hardhat compile"
   },
@@ -34,5 +35,8 @@
     "hardhat-dependency-compiler": "1.1.2",
     "node-fetch": "2.6.1",
     "web3": "1.2.4"
+  },
+  "devDependencies": {
+    "@dataunions/contracts": "3.0.5"
   }
 }

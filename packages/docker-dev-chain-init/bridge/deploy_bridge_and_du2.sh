@@ -1,6 +1,8 @@
 #!/bin/bash -eux
 cd `dirname $0`
 
+# TODO: once we remove dev1, we can also just throw away all of this file. DU2 and bridge aren't needed in dev env anymore.
+
 # we replace the default mediator with a mediator that calls transferAndCall()
 # this is a temp fix and should be removed when tokenbridge supports callback
 # pointer to the Tokenbridge contracts image:
