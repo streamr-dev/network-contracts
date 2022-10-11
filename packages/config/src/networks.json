@@ -137,6 +137,8 @@
             "DataUnionFactory": "0xd0B3a09A6bCee8446d10e6E7e12c78F8725C9B18",
             "DataUnionTemplate": "0xdb022696Db26d4cA55de12968c38044320653023",
             "DataUnionFeeOracle": "0x369Be397b3Cfe914728Bbd2329c0e5D1FE2E4202",
+            "GSNPayMaster": "0x43E69adABC664617EB9C5E19413a335e9cd4A243",
+            "GSNForwarder": "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d",
             "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
