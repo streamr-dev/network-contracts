@@ -4,8 +4,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DelegatedAccessRegistry is Ownable {
-    // mainWallet => mapping(delegatedWallet => isRegistered)
-    mapping(address => mapping(address => bool)) public mainToDelegatedWallets;
+    // mainWallet => delegatedWallet)
+    mapping(address => address) public mainToDelegatedWallets;
     // delegatedWallet => mainWallet
     mapping(address => address) private delegatedToMainWallets;
 
@@ -50,7 +50,7 @@ contract DelegatedAccessRegistry is Ownable {
 
     function authorize(address delegatedUser_, bytes memory signature_) public {
         require(verifyDelegationChallenge(delegatedUser_, AUTHORIZE_CHALLENGE_TYPE, signature_), "error_badChallengeSignature");
-        mainToDelegatedWallets[_msgSender()][delegatedUser_] = true;
+        mainToDelegatedWallets[_msgSender()] = delegatedUser_;
         delegatedToMainWallets[delegatedUser_] = _msgSender();
         mainWallets[_msgSender()] = true;
         emit Authorized(_msgSender(), delegatedUser_);
@@ -58,22 +58,26 @@ contract DelegatedAccessRegistry is Ownable {
     
     function revoke(address delegatedUser_, bytes memory signature_) public {
         require(verifyDelegationChallenge(delegatedUser_, REVOKE_CHALLENGE_TYPE, signature_), "error_badChallengeSignature");
-        mainToDelegatedWallets[_msgSender()][delegatedUser_] = false;
+        mainToDelegatedWallets[_msgSender()] = address(0x0);
         delegatedToMainWallets[delegatedUser_] = address(0x0);
         mainWallets[_msgSender()] = false;
         emit Revoked(_msgSender(), delegatedUser_);
     }
     
-    function isAuthorized(address delegatedUser_) public view returns (bool) {
-        return mainToDelegatedWallets[_msgSender()][delegatedUser_];
-    }
-    
     function isUserAuthorized(address mainUser_, address delegatedUser_) public view returns (bool) {
-        return mainToDelegatedWallets[mainUser_][delegatedUser_];
+        return mainToDelegatedWallets[mainUser_] == delegatedUser_;
+    }
+
+    function isAuthorized(address delegatedUser_) public view returns (bool) {
+        return isUserAuthorized(_msgSender(), delegatedUser_);
     }
     
     function getMainWalletFor(address delegatedUser_) public view returns (address){
         return delegatedToMainWallets[delegatedUser_];
+    }
+
+    function getDelegatedWalletFor(address mainUser_) public view returns (address){
+        return mainToDelegatedWallets[mainUser_];
     }
     
     function isMainWallet(address wallet) public view returns (bool) {
