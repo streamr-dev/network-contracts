@@ -86,14 +86,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
     }
 
-    function setJoinPolicy(IPoolJoinPolicy policy, uint param) public {
+    function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public {
         joinPolicy = policy;
-        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, param), "error_setJoinPolicyFailed");
+        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setJoinPolicyFailed");
     }
 
-    function setYieldPolicy(IPoolYieldPolicy policy, uint param) public {
+    function setYieldPolicy(IPoolYieldPolicy policy,
+        uint256 initialMargin,
+        uint256 maintenanceMarginPercent,
+        uint256 minimumMarginPercent,
+        uint256 brokerSharePercent,
+        uint256 brokerShareMaxDivertPercent) public {
         yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, 
+            initialMargin, maintenanceMarginPercent, minimumMarginPercent, brokerSharePercent, 
+            brokerShareMaxDivertPercent), "error_setYieldPolicyFailed");
     }
 
     function setExitPolicy(IPoolExitPolicy policy, uint param) public {
@@ -231,6 +238,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function _invest(address investor, uint amountWei) internal {
         // unallocatedWei += amountWei;
         console.log("_invest investor", investor, "amountWei", amountWei);
+        // if we have a join policy
+        if (address(joinPolicy) != address(0)) {
+            // check if the investor is allowed to join
+            (uint allowed) = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, investor, address(joinPolicy)), "error_joinPolicyFailed");
+            console.log("_invest allowed", allowed);
+            require(allowed == 1, "error_joinPolicyFailed");
+        }
         uint256 amountPoolToken = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
             amountWei), "error_yieldPolicy_dataToPooltoken_Failed");
 

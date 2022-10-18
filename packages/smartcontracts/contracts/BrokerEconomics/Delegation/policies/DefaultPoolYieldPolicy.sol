@@ -8,7 +8,11 @@ import "hardhat/console.sol";
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
     struct LocalStorage {
-        uint256 percentBrokerEarnings;
+        uint256 initialMargin;
+        uint256 maintenanceMarginPercent;
+        uint256 minimumMarginPercent;
+        uint256 brokerSharePercent;
+        uint256 brokerShareMaxDivertPercent;
     }
 
      function localData() internal view returns(LocalStorage storage data) {
@@ -16,21 +20,25 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         assembly {data.slot := storagePosition}
     }
 
-    function setParam(uint256 percentBrokerEarnings) external {
-        console.log("DefaultPoolYieldPolicy.setParam", percentBrokerEarnings);
-        localData().percentBrokerEarnings = percentBrokerEarnings;
+    function setParam(uint256 initialMargin, uint256 maintenanceMarginPercent, uint256 minimumMarginPercent, uint256 brokerSharePercent, uint256 brokerShareMaxDivertPercent) external {
+        LocalStorage storage data = localData();
+        data.initialMargin = initialMargin;
+        data.maintenanceMarginPercent = maintenanceMarginPercent;
+        data.minimumMarginPercent = minimumMarginPercent;
+        data.brokerSharePercent = brokerSharePercent;
+        data.brokerShareMaxDivertPercent = brokerShareMaxDivertPercent;
     }
 
     function calculateBrokersShare(uint dataWei) external view returns(uint dataWeiBrokersShare) {
         console.log("DefaultPoolYieldPolicy.calculateBrokersShare", dataWei);
-        console.log("DefaultPoolYieldPolicy.calculateBrokersShare absolute", dataWei * localData().percentBrokerEarnings / 100);
-        return dataWei * localData().percentBrokerEarnings / 100;
+        console.log("DefaultPoolYieldPolicy.calculateBrokersShare absolute", dataWei * localData().brokerSharePercent / 100);
+        return dataWei * localData().brokerSharePercent / 100;
     }
 
     function deductBrokersShare(uint256 dataWei) external {
         console.log("DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
-        console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().percentBrokerEarnings);
-        uint256 brokersShare = dataWei * localData().percentBrokerEarnings / 100;
+        console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().brokerSharePercent);
+        uint256 brokersShare = dataWei * localData().brokerSharePercent / 100;
         console.log("DefaultPoolYieldPolicy.deductBrokersShare sending", brokersShare);
         globalData().token.transfer(globalData().broker, brokersShare);
     }

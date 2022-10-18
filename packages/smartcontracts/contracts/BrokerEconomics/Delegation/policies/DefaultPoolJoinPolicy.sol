@@ -7,13 +7,37 @@ import "../BrokerPool.sol";
 import "hardhat/console.sol";
 contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
 
-    function setParam(uint256 param) external {
-        console.log("DefaultPoolJoinPolicy.setParam", param);
+    struct LocalStorage {
+        uint256 initialMargin;
+        uint256 minimumMarginPercent;
     }
 
-    function onPoolJoin(address delegator, uint256 amount) external returns (uint256 amountPoolTokens){
-        console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, amount);
-        // constant function, one DATA = one pool token
-        return amount * 2;
+     function localData() internal view returns(LocalStorage storage data) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("brokerPool.storage.DefaultPoolJoinPolicy", address(this)));
+        assembly {data.slot := storagePosition}
+    }
+
+    function setParam(uint256 initialMargin, uint256 minimumMarginPercent) external {
+        LocalStorage storage data = localData();
+        data.initialMargin = initialMargin;
+        data.minimumMarginPercent = minimumMarginPercent;
+    }
+
+    function canJoin(address delegator) external view returns (uint canJoin){
+        console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
+        console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
+        console.log("DefaultPoolJoinPolicy.onPoolJoin brokers balance", balanceOf(globalData().broker));
+        console.log("DefaultPoolJoinPolicy.onPoolJoin total supply", totalSupply());
+        console.log("DefaultPoolJoinPolicy.onPoolJoin initalMargin", localData().initialMargin);
+        if (delegator == globalData().broker || localData().minimumMarginPercent == 0) {
+            return 1;
+        }
+        if (totalSupply() == 0) {
+            return 0;
+        }
+        bool allowed = balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent;
+        console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, allowed);
+        return allowed ? 1 : 0;
+        // return 1;
     }
 }
