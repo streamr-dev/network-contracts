@@ -201,4 +201,20 @@ describe('ERC20JoinPolicy', (): void => {
         )).to.equal(false)
     })
 
+    it ('should grant requestJoin to a user with enough balance', async () => {
+        await contract.connect(wallets[1]).requestJoin()
+
+        const events = await contract.queryFilter(
+            contract.filters.Accepted()
+        )
+        expect(events.length).to.equal(2)
+        expect(events[1].args).to.not.be.undefined
+        expect(events[1].args!.mainWallet).to.equal(
+            wallets[1].address
+        )
+        expect(events[1].args!.delegatedWallet).to.equal(
+            '0x0000000000000000000000000000000000000000'
+        )
+    })
+
 })

@@ -31,6 +31,12 @@ contract GatedJoinPolicy{
         _;
     }
 
+    function accept(address mainWallet) internal {
+        for (uint256 i = 0; i < permissions.length; i++) {
+            streamRegistry.grantPermission(streamId, mainWallet, permissions[i]);
+        }
+        emit Accepted(mainWallet, address(0x0));
+    }
 
     function accept(address mainWallet, address delegatedWallet) internal {
         for (uint256 i = 0; i < permissions.length; i++) {

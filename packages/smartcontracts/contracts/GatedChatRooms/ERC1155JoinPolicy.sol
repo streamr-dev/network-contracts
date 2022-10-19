@@ -50,4 +50,11 @@ contract ERC1155JoinPolicy is GatedJoinPolicy {
     {
         accept(msg.sender, delegatedWallet);
     }
+
+    function requestJoin(uint256 tokenId_)
+        public
+        canJoin(tokenId_)
+    {
+        accept(msg.sender);
+    }
 }

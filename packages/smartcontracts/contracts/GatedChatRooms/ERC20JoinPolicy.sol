@@ -45,6 +45,13 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         accept(msg.sender, delegatedWallet);
     }
 
+    function requestJoin()
+        public
+        canJoin()
+    {
+        accept(msg.sender);
+    }
+
 
 
 }
