@@ -13,17 +13,24 @@ contract GatedJoinPolicy{
     DelegatedAccessRegistry private delegatedAccessRegistry;
     
     event Accepted (address indexed mainWallet, address delegatedWallet);
+    event Revoked (address indexed mainWallet, address delegatedWallet);
+
+    bool public stakingEnabled;
 
     constructor (
         address streamRegistryAddress,
         address delegatedAccessRegistryAddress,
         string memory streamId_,
-        StreamRegistryV3.PermissionType[] memory permissions_
+        StreamRegistryV3.PermissionType[] memory permissions_,
+        bool stakingEnabled_
+
     ) {
         streamRegistry = StreamRegistryV3(streamRegistryAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
         streamId = streamId_;
         permissions = permissions_;
+        stakingEnabled = stakingEnabled_;
+
     }
 
     modifier isUserAuthorized(address delegatedWallet){
@@ -31,6 +38,10 @@ contract GatedJoinPolicy{
         _;
     }
 
+    modifier isStakingEnabled {
+        require(stakingEnabled, "error_stakingDisabled");
+        _;
+    }
 
     function accept(address mainWallet, address delegatedWallet) internal {
         for (uint256 i = 0; i < permissions.length; i++) {
@@ -39,4 +50,14 @@ contract GatedJoinPolicy{
         }
         emit Accepted(mainWallet, delegatedWallet);
     }
+
+    function revoke(address mainWallet, address delegatedWallet) internal {
+        for (uint256 i = 0; i < permissions.length; i++) {
+            streamRegistry.revokePermission(streamId, mainWallet, permissions[i]);
+            streamRegistry.revokePermission(streamId, delegatedWallet, permissions[i]);
+        }
+        emit Revoked(mainWallet, delegatedWallet);
+    }
+
+
 }
