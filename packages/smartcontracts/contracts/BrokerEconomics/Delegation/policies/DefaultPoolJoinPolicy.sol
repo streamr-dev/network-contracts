@@ -30,9 +30,11 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         console.log("DefaultPoolJoinPolicy.onPoolJoin total supply", totalSupply());
         console.log("DefaultPoolJoinPolicy.onPoolJoin initalMargin", localData().initialMargin);
         if (delegator == globalData().broker || localData().minimumMarginPercent == 0) {
+            console.log("DefaultPoolJoinPolicy.onPoolJoin is broker or minimumMarginPercent is 0");
             return 1;
         }
         if (totalSupply() == 0) {
+            console.log("DefaultPoolJoinPolicy.onPoolJoin total supply is 0");
             return 0;
         }
         bool allowed = balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent;

@@ -245,12 +245,28 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             console.log("_invest allowed", allowed);
             require(allowed == 1, "error_joinPolicyFailed");
         }
-        uint256 amountPoolToken = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-            amountWei), "error_yieldPolicy_dataToPooltoken_Failed");
-
+        // uint256 amountPoolToken = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
+        //     amountWei), "error_yieldPolicy_dataToPooltoken_Failed");
+        uint256 amountPoolToken = dataToPooltokenBeforeTransfer(amountWei);
         _mint(investor, amountPoolToken);
-        console.log("_invest amountWei", amountWei, "amountPoolToken", amountPoolToken);
+        console.log("minting", amountPoolToken, "to", investor);
         emit InvestmentReceived(investor, amountWei);
+    }
+
+     function dataToPooltokenBeforeTransfer(uint256 dataWei) public view returns (uint256 poolTokenWei) {
+        if (this.totalSupply() == 0) {
+            console.log("total supply is 0");
+            return dataWei;
+        }
+        console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
+        console.log("data balance of this", globalData().token.balanceOf(address(this)));
+        uint poolValueData = this.calculatePoolValueInData(dataWei);
+        console.log("this totlasupply", this.totalSupply());
+        console.log("poolValueData", poolValueData);
+        if (poolValueData == 0) {
+            return dataWei;
+        }
+        return dataWei * this.totalSupply() / poolValueData;
     }
 
     // function withdraw(uint amountPoolTokenWei) public {
@@ -382,7 +398,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return dataWei;
     }
 
-    function calculatePoolValueInData() public view returns (uint256 poolValue) {
+    function calculatePoolValueInData(uint256 substractWei) public view returns (uint256 poolValue) {
         poolValue = globalData().token.balanceOf(address(this));
         console.log("calculatePoolValueInData poolValue1", poolValue);
         for (uint i = 0; i < bounties.length; i++) {
@@ -394,6 +410,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             console.log("calculatePoolValueInData share", share);
             poolValue += (alloc - share);
         }
+        poolValue -= substractWei;
     }
 
     function queueDataPayout(uint amountPoolTokenWei) external {

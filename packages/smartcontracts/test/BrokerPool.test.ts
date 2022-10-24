@@ -36,22 +36,23 @@ describe.only("BrokerPool", (): void => {
     })
 
     // beforeEach(async (): Promise<void> => {
-    //     const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(0, newPoolName(),
+    //     const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(100, 0, 0, newPoolName(),
     //         [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
     //         [0, 0, 0, 0, 0, 20, 0, 0])).wait()
     //     const newPoolAddress = brokerPoolRc.events?.filter((e) => e.event === "NewBrokerPool")[0]?.args?.poolAddress
     //     pool = (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress) as BrokerPool
     // })
-    const deployBrokerPool = async (brokerWallet: Wallet, minBrokerStakePercent: number, brokerSharePercent: number): Promise<BrokerPool> => {
-        const brokerPoolRc = await (await contracts.poolFactory.connect(brokerWallet).deployBrokerPool(0, newPoolName(),
+    const deployBrokerPool = async (maintenanceMarginPercent: number, maxBrokerDivertPercent: number, minBrokerStakePercent: number,
+        brokerSharePercent: number): Promise<BrokerPool> => {
+        const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(0, newPoolName(),
             [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
-            [0, minBrokerStakePercent, 0, 0, minBrokerStakePercent, brokerSharePercent, 0, 0])).wait()
+            [0, minBrokerStakePercent, 0, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, 0, maxBrokerDivertPercent])).wait()
         const newPoolAddress = brokerPoolRc.events?.filter((e) => e.event === "NewBrokerPool")[0]?.args?.poolAddress
-        return (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress).connect(brokerWallet) as BrokerPool
+        return (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress).connect(broker) as BrokerPool
     }
 
     // it("positivetest configure joinpolicy", async function(): Promise<void> {
-    //     const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(
+    //     const brokerPoolRc = await (await contracts.poolFactory.deployBrokerPool(100, 0, 
     //         0,
     //         newPoolName(),
     //         [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
@@ -63,7 +64,7 @@ describe.only("BrokerPool", (): void => {
 
     it("allows invest and withdraw", async function(): Promise<void> {
         const { token } = contracts
-        const pool = await deployBrokerPool(broker, 0,20)
+        const pool = await deployBrokerPool(100, 0, 0,20)
         await (await token.connect(investor).approve(pool.address, parseEther("1000"))).wait()
         await expect(pool.connect(investor).invest(parseEther("1000")))
             .to.emit(pool, "InvestmentReceived").withArgs(investor.address, parseEther("1000"))
@@ -81,7 +82,7 @@ describe.only("BrokerPool", (): void => {
 
     it("allows invest, transfer of poolTokens, and withdraw by 2n party", async function(): Promise<void> {
         const { token } = contracts
-        const pool = await deployBrokerPool(broker, 0,20)
+        const pool = await deployBrokerPool(100, 0, 0,20)
         await (await token.connect(investor).approve(pool.address, parseEther("1000"))).wait()
         await expect(pool.connect(investor).invest(parseEther("1000")))
             .to.emit(pool, "InvestmentReceived").withArgs(investor.address, parseEther("1000"))
@@ -102,7 +103,7 @@ describe.only("BrokerPool", (): void => {
     it("stakes, and unstakes with gains", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
-        const pool = await deployBrokerPool(broker, 0, 20)
+        const pool = await deployBrokerPool(100, 0, 0, 20)
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
 
@@ -123,23 +124,45 @@ describe.only("BrokerPool", (): void => {
 
     it("negativetest minbrokerstakepercent, cannot join when brokers stake too small", async function(): Promise<void> {
         const { token } = contracts
-        const pool = await deployBrokerPool(broker, 10, 20)
+        const pool = await deployBrokerPool(100, 0, 10, 20)
         await expect (token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x"))
             .to.be.revertedWith("error_joinPolicyFailed")
     })
 
     it("positivetest minbrokerstakepercent, can join", async function(): Promise<void> {
         const { token } = contracts
-        const pool = await deployBrokerPool(broker, 10, 20)
+        const pool = await deployBrokerPool(100, 0, 10, 20)
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
     })
 
-    it("negativetest minbrokerstakepercent, can't join if brokers stake would fall too low", async function(): Promise<void> {
+    it("negativetest minbrokerstakepercent, can't join if brokers stake falls too low", async function(): Promise<void> {
         const { token } = contracts
-        const pool = await deployBrokerPool(broker, 10, 20)
+        const pool = await deployBrokerPool(100, 0, 10, 20)
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("10000"), "0x")).wait()
+        await expect (token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x"))
+            .to.be.revertedWith("error_joinPolicyFailed")
+    })
+    // 1000000000000000000000
+    // 1909090909090909090909
+
+    it.only("positivetest maintenance margin", async function(): Promise<void> {
+        const { token: dataToken } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await dataToken.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+
+        const pool = await deployBrokerPool(50, 50, 10, 20)
+        await (await dataToken.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await dataToken.connect(investor).transferAndCall(pool.address, parseEther("3000"), "0x")).wait()
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("4000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("4000"))
+        await advanceToTimestamp(timeAtStart + 25, "Unstake from bounty")
+        await pool.withdrawWinningsFromBounty(bounty.address)
     })
 
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
@@ -149,7 +172,7 @@ describe.only("BrokerPool", (): void => {
         // 1
 
         const bounty = await deployBountyContract(contracts)
-        const pool = await deployBrokerPool(broker, 0,20)
+        const pool = await deployBrokerPool(100, 0, 0,20)
         await (await dataToken.connect(investor).transferAndCall(pool.address, parseEther("5"), "0x")).wait()
         await (await dataToken.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
         expect (await pool.connect(investor).getMyBalanceInData()).to.equal(parseEther("5"))
@@ -194,7 +217,7 @@ describe.only("BrokerPool", (): void => {
     it("1 queue entry, is payed out full on winnings withdraw from bounty", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
-        const pool = await deployBrokerPool(broker, 0, 20)
+        const pool = await deployBrokerPool(100, 0, 0, 20)
         const balanceBefore = await token.balanceOf(investor.address)
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
@@ -226,7 +249,7 @@ describe.only("BrokerPool", (): void => {
     it("1 queue entry, is payed out partially on winnings withdraw from bounty", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
-        const pool = await deployBrokerPool(broker, 0, 20)
+        const pool = await deployBrokerPool(100, 0, 0, 20)
         const balanceBefore = await token.balanceOf(investor.address)
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
@@ -261,7 +284,7 @@ describe.only("BrokerPool", (): void => {
     it("multiple queue places, before and after withdraw winnings from bounty", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts)
-        const pool = await deployBrokerPool(broker, 0, 20)
+        const pool = await deployBrokerPool(100, 0, 0, 20)
         const balanceBefore = await token.balanceOf(investor.address)
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
