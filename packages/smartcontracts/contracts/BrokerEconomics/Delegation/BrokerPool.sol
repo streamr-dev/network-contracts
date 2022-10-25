@@ -359,7 +359,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             address user = payoutQueue[queuePayoutIndex].user;
             console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
             uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-                amountPoolTokens), "error_yieldPolicy_pooltokenToData_Failed");
+                amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
             console.log("payOutQueueWithFreeFunds amountDataWei", amountDataWei);
             console.log("payOutQueueWithFreeFunds balanceBefore", globalData().token.balanceOf(address(this)));
             if (globalData().token.balanceOf(address(this)) >= amountDataWei) {
@@ -376,7 +376,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 console.log("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
                 // uint256 remainingAmountDataWei = amountDataWei - partialAmountDataWei;
                 uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                    partialAmountDataWei), "error_yieldPolicy_dataToPooltoken_Failed");
+                    partialAmountDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
                 queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
                 PayoutQueueEntry memory oldEntry = payoutQueue[queuePayoutIndex];
                 payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens);
@@ -393,7 +393,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
         uint poolTokenBalance = balanceOf(_msgSender());
-        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, address(yieldPolicy)), "error_pooltokenToData_Failed");
+        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
         console.log("getMyBalanceInData dataWei", dataWei);
         return dataWei;
     }
