@@ -168,6 +168,13 @@ async function deployStreamStorageRegistry(wallet) {
     log(`StreamStorageRegistry deployed at ${str.address}`)
 }
 
+async function deployProjectRegistry(wallet) {
+    const projectRegistryFactory = await ethers.getContractFactory("ProjectRegistry", wallet)
+    const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [streamRegistryAddress], { kind: 'uups' })
+    const projectRegistry = await projectRegistryFactoryTx.deployed()
+    log(`ProjectRegistry deployed at ${projectRegistry.address}`)
+}
+
 async function deployUniswap2(wallet) {
     let deployer = new ContractFactory(WETH9.abi, WETH9.bytecode, wallet)
     let tx = await deployer.deploy()
@@ -546,6 +553,8 @@ async function smartContractInitialization() {
     log(`granting role ${role} to devops ${watcherWallet.address}`)
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
+
+    await deployProjectRegistry(sidechainWallet)
 
     //put additions here
 
