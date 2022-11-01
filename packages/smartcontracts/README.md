@@ -9,6 +9,7 @@ npm run localDeploy
 to deploy the contracts into a locally running eth environment.
 Then follow the README in the streamregistry-thegraph-subgraph folder.
 
+ test 
 
 <h3>Proxy contracts</h3>
 
