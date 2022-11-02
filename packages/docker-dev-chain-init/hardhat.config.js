@@ -77,7 +77,8 @@ module.exports = {
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
             'docker-dev-chain-init/ethereumContractSources/MarketplaceV3.sol',
-            'docker-dev-chain-init/ethereumContractSources/Uniswap2AdapterForMarketplaceV3.sol'
+            'docker-dev-chain-init/ethereumContractSources/Uniswap2AdapterForMarketplaceV3.sol',
+            'docker-dev-chain-init/ethereumContractSources/ProjectRegistry.sol'
         ],
     },
     solidity: {
