@@ -34,7 +34,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
+
     uint public minimumInvestmentWei;
+    uint public gracePeriodSeconds;
+    uint constant MAX_SLASH_TIME = 30 days;
     IPoolJoinPolicy public joinPolicy;
     IPoolYieldPolicy public yieldPolicy;
     IPoolExitPolicy public exitPolicy;
@@ -48,7 +51,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     //   so there's no need to track the unallocated tokens separately
     // uint public unallocatedWei;
 
-    mapping(address => uint) public debt;
+    // mapping(address => uint) public debt;
     // mapping(Bounty => uint) public staked;
     Bounty[] public bounties;
     mapping(Bounty => uint) public indexOfBounties; // start with 1! use 0 as "is it already in the array?" check
@@ -56,6 +59,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     struct PayoutQueueEntry {
         address user;
         uint amountPoolTokenWei;
+        uint timestamp;
     }
     mapping(uint => PayoutQueueEntry) public payoutQueue;
     // answers 'how much do i have queued in total to be paid out'
@@ -73,7 +77,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address brokerAddress,
         string calldata poolName,
         address trustedForwarderAddress,
-        uint initialMinimumInvestmentWei
+        uint initialMinimumInvestmentWei,
+        uint gracePeriodSeconds_
     ) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -84,6 +89,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         minimumInvestmentWei = initialMinimumInvestmentWei;
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
+        require(gracePeriodSeconds_ >= MAX_SLASH_TIME, "error_gracePeriodTooShort");
+        gracePeriodSeconds = gracePeriodSeconds_;
     }
 
     function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public {
@@ -307,6 +314,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function unstake(Bounty bounty) external onlyBroker {
+        _unstake(bounty);
+    }
+
+    function _unstake(Bounty bounty) private {
         console.log("unstake bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
@@ -379,7 +390,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                     partialAmountDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
                 queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
                 PayoutQueueEntry memory oldEntry = payoutQueue[queuePayoutIndex];
-                payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens);
+                payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens, oldEntry.timestamp);
                 _burn(address(this), partialAmountPoolTokens);
                 globalData().token.transfer(user, partialAmountDataWei);
                 emit InvestmentReturned(user, partialAmountDataWei);
@@ -422,17 +433,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
         // _burn(_msgSender(), amountPoolTokenWei);
         queuedPayoutsPerUser[_msgSender()] += amountPoolTokenWei;
-        payoutQueue[queueLength] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei);
+        payoutQueue[queueLength] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp);
         queueLength++;
         payOutQueueWithFreeFunds();
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
     }
 
-    // function unqueueDataPayout(uint amountDataWei) external {
-    //     require(amountDataWei > 0, "error_payout_amount_zero");
-    //     require(queuedPayoutsDataWei[_msgSender()] >= amountDataWei, "error_notEnoughData");
-    //     queuedPayoutsDataWei[_msgSender()] -= amountDataWei;
-    //     _mint(_msgSender(), amountDataWei);
-    //     emit UnqueuedDataPayout(_msgSender(), amountDataWei);
-    // }
+    function forceUnstakeAndPayout(Bounty bounty) external {
+        require(payoutQueue[queuePayoutIndex].timestamp + MAX_SLASH_TIME < block.timestamp, "error_forceTimeNotReached");
+        console.log("forceUnstakeAndPayout triggered, time difference is", block.timestamp - payoutQueue[queuePayoutIndex].timestamp - MAX_SLASH_TIME);
+        _unstake(bounty);
+        payOutQueueWithFreeFunds();
+    }
 }

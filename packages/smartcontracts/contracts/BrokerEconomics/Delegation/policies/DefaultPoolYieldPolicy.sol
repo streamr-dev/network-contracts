@@ -15,7 +15,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         uint256 brokerShareMaxDivertPercent;
     }
 
-     function localData() internal view returns(LocalStorage storage data) {
+    function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("brokerPool.storage.DefaultPoolYieldPolicy", address(this)));
         assembly {data.slot := storagePosition}
     }
@@ -113,9 +113,3 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         console.log("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);
     }
 }
-
-
-// 1  3  4
-// 3  3  6
-
-// 3/50 = ?/100-50    nonBrokerStake/noBrokerGoalPercent = ?/maintenanceMarginPercent

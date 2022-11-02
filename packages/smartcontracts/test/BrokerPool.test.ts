@@ -44,9 +44,11 @@ describe.only("BrokerPool", (): void => {
     // })
     const deployBrokerPool = async (maintenanceMarginPercent: number, maxBrokerDivertPercent: number, minBrokerStakePercent: number,
         brokerSharePercent: number): Promise<BrokerPool> => {
-        const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(0, newPoolName(),
+        // const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(0, 2592000, newPoolName(),
+        const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(0, 2592000, newPoolName(),
             [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
-            [0, minBrokerStakePercent, 0, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent, 0])).wait()
+            [0, minBrokerStakePercent, 0, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent, 0]
+        )).wait()
         const newPoolAddress = brokerPoolRc.events?.filter((e) => e.event === "NewBrokerPool")[0]?.args?.poolAddress
         return (await ethers.getContractFactory("BrokerPool")).attach(newPoolAddress).connect(broker) as BrokerPool
     }
@@ -344,5 +346,37 @@ describe.only("BrokerPool", (): void => {
 
         const investorQueuedPayoutAfter = await pool.connect(investor).getQueuedPayoutPoolTokens()
         expect(investorQueuedPayoutAfter.toString()).to.equal("555555555555555555556")
+    })
+
+    it("1 queue entry, is payed out full on winnings withdraw from bounty", async function(): Promise<void> {
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        const pool = await deployBrokerPool(0, 0, 0, 20)
+        const balanceBefore = await token.balanceOf(investor.address)
+        await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+
+        // queue payout
+        await pool.connect(investor).queueDataPayout(parseEther("100"))
+        const investorQueuedPayout = await pool.connect(investor).getQueuedPayoutPoolTokens()
+        expect(investorQueuedPayout).to.equal(parseEther("100"))
+
+        // advance time beyond may age of queue spot
+        await advanceToTimestamp(timeAtStart + 2591000, "withdraw winnings from bounty")
+        await expect (pool.connect(investor).forceUnstakeAndPayout(bounty.address)).to.be.revertedWith("error_forceTimeNotReached")
+        await advanceToTimestamp(timeAtStart + 2592002, "withdraw winnings from bounty")
+        
+        // now anyone can trigger the unstake and payout of the queue
+        await (await pool.connect(investor).forceUnstakeAndPayout(bounty.address)).wait()
+        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther("180"))
+        const balanceAfter = await token.balanceOf(investor.address)
+
+        expect(balanceAfter).to.equal(expectedBalance)
     })
 })
