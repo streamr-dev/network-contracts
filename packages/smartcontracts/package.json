@@ -57,7 +57,7 @@
     "event-stream": "4.0.1",
     "hardhat": "2.11.2",
     "hardhat-dependency-compiler": "1.1.2",
-    "hardhat-deploy": "0.7.11",
+    "hardhat-deploy": "0.11.20",
     "hardhat-deploy-ethers": "0.3.0-beta.13",
     "hardhat-typechain": "0.3.5",
     "@metamask/eth-sig-util": "4.0.0",
