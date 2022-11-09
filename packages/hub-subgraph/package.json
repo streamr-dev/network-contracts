@@ -1,5 +1,5 @@
 {
-  "name": "@network-contracts/hub-subgraph",
+  "name": "@streamr-contracts/hub-subgraph",
   "version": "1.0.0",
   "description": "Subgraph definitions for the hub contracts",
   "scripts": {

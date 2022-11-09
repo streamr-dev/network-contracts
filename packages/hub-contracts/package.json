@@ -1,5 +1,5 @@
 {
-  "name": "marketplace-multichain-contracts",
+  "name": "@streamr-contracts/hub-contracts",
   "version": "0.1.0",
   "description": "Smart contracts for the Streamr multi-chain Marketplace",
   "private": true,
