@@ -1,5 +1,5 @@
 {
-  "name": "@streamr/network-contracts",
+  "name": "@streamr-contracts/network-contracts",
   "version": "2.4.0",
   "description": "Smart contracts for Streamr Network",
   "files": [
@@ -67,7 +67,7 @@
     "@types/debug": "4.1.7",
     "ethereum-waffle": "3.4.0",
     "solc": "0.8.6",
-    "solhint": "3.3.6",
+    "solhint": "3.3.7",
     "solidity-coverage": "0.7.20",
     "ts-generator": "0.1.1",
     "typechain": "4.0.3",
