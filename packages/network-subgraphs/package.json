@@ -7,7 +7,7 @@
     "clean": "rm -rf build generated",
     "codegen": "graph codegen",
     "graphbuild": "graph build",
-    "build": "npm run codegen && npm run graphbuild",
+    "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
     "lint": "eslint ./src/*.ts",
     "create-docker-dev": "graph create streamr-dev/network-contracts --node http://streamr-dev-thegraph-node:8020",
     "deploy-docker-dev": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
@@ -19,9 +19,9 @@
     "doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "0.26.0"
+    "@graphprotocol/graph-cli": "0.35.0"
   },
   "dependencies": {
-    "@graphprotocol/graph-ts": "0.24.1"
+    "@graphprotocol/graph-ts": "0.29.0"
   }
 }
