@@ -75,6 +75,13 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
             require(false);
         }
     }
+    function onStakeDecrease(address, uint) external view {
+        // if (localData().failOnDecrease) {
+        //     require(false, "test-error: onStakeIncrease allocation policy");
+        // } else if (localData().failEmptyOnIncrease) {
+        //     require(false);
+        // }
+    }
 
     function onWithdraw(address) external pure returns (uint payoutWei) {
         return 0;

@@ -8,7 +8,7 @@ const { parseEther, formatEther } = utils
 
 use(waffle.solidity)
 
-describe("StakeWeightedAllocationPolicy", (): void => {
+describe.only("StakeWeightedAllocationPolicy", (): void => {
     const [
         admin,
         broker,
@@ -183,6 +183,79 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
         const tokensBroker1Expected = parseEther("7600")
         const tokensBroker2Expected = parseEther("2400")
+
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+    })
+
+    it.only("allocates correctly for one broker, reducing stake without slashing", async function(): Promise<void> {
+        //     t0       : broker joins, stakes 4
+        // t = t0 + 1000: broker reduces 2 stake
+        // t = t0 + 2000: broker leaves
+        // broker should have 2000
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("10008"))).wait()
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("4"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 1000, "Broker 1 reduces stake 2 -> 1")
+        // await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1"), broker2.address)).wait()
+
+
+        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker1Expected = parseEther("2000")
+
+        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+    })
+
+    it("allocates correctly for two brokers, different weight, reducing stake without slashing", async function(): Promise<void> {
+        //     t0       : broker1 joins, stakes 3 (3 : 0)
+        // t = t0 + 2000: broker2 joins, stakes 3 (3 : 3)
+        // t = t0 + 4000: broker2 reduces 2 stake => (3 : 1)
+        // t = t0 + 6000: broker1 reduces 2 stake => (1 : 1)
+        // t = t0 + 8000: broker2 leaves       => (1 : 0)
+        // t = t0 +10000: broker1 leaves       => (0 : 0)
+        // broker1 should have 2000 + 1000 + 1500 + 1000 + 2000 = 7500
+        // broker2 should have        1000 +  500 + 1000        = 2500
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("10008"))).wait()
+        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("3"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 2000, "Broker 2 joins")
+        await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 reduces stake 3 -> 1")
+        await (await bounty.connect(broker2).reduceStake(parseEther("2"))).wait()
+        // await (await token.connect(broker).transferAndCall(bounty.address, parseEther("3"), broker.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 6000, "Broker 1 reduces stake 2 -> 1")
+        await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
+        // await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
+
+        await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")
+        await (await bounty.connect(broker2).leave()).wait()
+
+        await advanceToTimestamp(timeAtStart + 10000, "Broker 1 leaves")
+        await (await bounty.connect(broker).leave()).wait()
+
+        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
+        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensBroker1Expected = parseEther("7500")
+        const tokensBroker2Expected = parseEther("2500")
 
         expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
         expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))

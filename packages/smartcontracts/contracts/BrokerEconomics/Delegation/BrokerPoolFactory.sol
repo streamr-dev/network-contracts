@@ -120,7 +120,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        console.log("################## 001");
         bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
         BrokerPool pool = BrokerPool(poolAddress);

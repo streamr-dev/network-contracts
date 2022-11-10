@@ -24,21 +24,21 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
     }
 
     function canJoin(address delegator) external view returns (uint canJoin){
-        console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
-        console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
-        console.log("DefaultPoolJoinPolicy.onPoolJoin brokers balance", balanceOf(globalData().broker));
-        console.log("DefaultPoolJoinPolicy.onPoolJoin total supply", totalSupply());
-        console.log("DefaultPoolJoinPolicy.onPoolJoin initalMargin", localData().initialMargin);
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin brokers balance", balanceOf(globalData().broker));
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin total supply", totalSupply());
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin initalMargin", localData().initialMargin);
         if (delegator == globalData().broker || localData().minimumMarginPercent == 0) {
-            console.log("DefaultPoolJoinPolicy.onPoolJoin is broker or minimumMarginPercent is 0");
+            // console.log("DefaultPoolJoinPolicy.onPoolJoin is broker or minimumMarginPercent is 0");
             return 1;
         }
         if (totalSupply() == 0) {
-            console.log("DefaultPoolJoinPolicy.onPoolJoin total supply is 0");
+            // console.log("DefaultPoolJoinPolicy.onPoolJoin total supply is 0");
             return 0;
         }
         bool allowed = balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent;
-        console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, allowed);
+        // console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, allowed);
         return allowed ? 1 : 0;
         // return 1;
     }

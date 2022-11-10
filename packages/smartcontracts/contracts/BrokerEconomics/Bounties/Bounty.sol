@@ -14,7 +14,7 @@ import "./policies/ILeavePolicy.sol";
 import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
@@ -178,6 +178,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             emit BrokerJoined(broker);
         } else {
             // console.log("Broker already joined, increasing stake", broker, amount);
+            console.log("###############################");
             s.stakedWei[broker] += amount;
             s.totalStakedWei += amount;
 
@@ -195,6 +196,28 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
         _removeBroker(broker, penaltyWei);
+    }
+
+    function reduceStake(uint amountWei) external {
+        address broker = _msgSender();
+        require(amountWei <= globalData().stakedWei[broker], "error_cannotReduceStake");
+        uint penaltyWei = getLeavePenalty(broker);
+        if (amountWei == globalData().stakedWei[broker]) {
+            _removeBroker(broker, penaltyWei);
+        } else {
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+            globalData().stakedWei[broker] -= amountWei;
+            globalData().totalStakedWei -= amountWei;
+            uint returnFunds = amountWei - penaltyWei;
+            if (returnFunds > 0) {
+                token.transfer(broker, returnFunds);
+            }
+            if (penaltyWei > 0) {
+                _addSponsorship(address(this), penaltyWei);
+            }
+            emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
+            emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        }
     }
 
     /**

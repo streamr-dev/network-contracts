@@ -8,10 +8,10 @@ import "hardhat/console.sol";
 contract DefaultPoolExitPolicy is IPoolExitPolicy, BrokerPool {
 
     function setParam(uint256 param) external {
-        console.log("DefaultPoolExitPolicy.setParam", param);
+        // console.log("DefaultPoolExitPolicy.setParam", param);
     }
 
     function onPoolExit(address delegator, uint256 amount) external {
-        console.log("DefaultPoolExitPolicy.onPoolExit", delegator, amount);
+        // console.log("DefaultPoolExitPolicy.onPoolExit", delegator, amount);
     }
 }
