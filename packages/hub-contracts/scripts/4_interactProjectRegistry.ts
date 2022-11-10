@@ -22,7 +22,7 @@ const {
     contracts: {
         DATA: DATA_V2_ADDRESS,
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
-        ProjectRegistry: PROJECT_REGISTRY_ADDRESS = "0x36368Be8Cde49558Ab6ceEf2632984b282Db8775", // TODO: add address to config package
+        ProjectRegistry: PROJECT_REGISTRY_ADDRESS
     }
 } = Chains.load()[CHAIN]
 
