@@ -17,6 +17,7 @@
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces --if-present",
+    "test:subgraph": "graph test -d",
     "graph1_build": "npm run deployLocalWithExport -w=smartcontracts",
     "graph2_copyInfo": "./scripts/copyAbis.sh && ./scripts/generateYaml.sh",
     "graph3_build": "npm run doAll --workspace=streamregistry-thegraph-subgraph",
