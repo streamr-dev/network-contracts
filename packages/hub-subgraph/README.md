@@ -96,34 +96,8 @@ example queries:
 
 ## Unit testing with [matchstick-as](https://thegraph.com/docs/en/developing/unit-testing-framework/#getting-started)
 
-- Add the following to the Dockerfile file in the root folder of your subgraph project. It will initialize a docker bind mount which will not rebuild the docker image eveytime the "graph test -d" command is run.
-```Dockerfile
-FROM --platform=linux/x86_64 ubuntu:20.04
-
-ARG DEBIAN_FRONTEND=noninteractive
-
-ENV ARGS=""
-
-RUN apt update \
-  && apt install -y sudo curl postgresql \
-  && curl -fsSL https://deb.nodesource.com/setup_16.x | sudo bash - \
-  && sudo apt install -y nodejs
-
-RUN curl -OL https://github.com/LimeChain/matchstick/releases/download/0.5.0/binary-linux-20 \
-  && chmod a+x binary-linux-20
-
-RUN mkdir matchstick
-WORKDIR /matchstick
-
-# Commenting out for now as it seems there's no need to copy when using bind mount
-# COPY ./ .
-
-CMD ../binary-linux-20 ${ARGS}
-```
-
-- Build a Matchstick image:
-`docker build -t matchstick .`
-
-- instantiate the docker bind mount:
+- build image:
+`docker build -t matchstick -f Dockerfile.matchstick .`
+- start container:
 `docker run -it --rm --mount type=bind,source=<absolute-path-to-subgraph-folder>,target=/matchstick matchstick`
-- run tests using docker: `graph test -d`
+- run tests (using docker): `graph test -d`

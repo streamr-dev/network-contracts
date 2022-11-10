@@ -1,21 +1,17 @@
-FROM --platform=linux/x86_64 ubuntu:20.04
+FROM node:16-buster
 
-ARG DEBIAN_FRONTEND=noninteractive
+# RUN apk add libsecret-dev
+RUN apt update
+RUN apt install -y libsecret-1-dev
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 
-ENV ARGS=""
+WORKDIR /home/node/app
 
-RUN apt update \
-  && apt install -y sudo curl postgresql \
-  && curl -fsSL https://deb.nodesource.com/setup_16.x | sudo bash - \
-  && sudo apt install -y nodejs
+USER node
 
-RUN curl -OL https://github.com/LimeChain/matchstick/releases/download/0.5.0/binary-linux-20 \
-  && chmod a+x binary-linux-20
+COPY --chown=node:node . .
 
-RUN mkdir matchstick
-WORKDIR /matchstick
-
-# Commenting out for now as it seems there's no need to copy when using bind mount
-# COPY ./ .
-
-CMD ../binary-linux-20 ${ARGS}
+RUN npm i
+RUN chmod +x first-run-docker-setup.sh
+ENTRYPOINT [ "sh", "./first-run-docker-setup.sh" ]
