@@ -14,7 +14,7 @@ import "./policies/ILeavePolicy.sol";
 import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * Stream Agreement holds the sponsors' tokens and allocates them to brokers
@@ -165,7 +165,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(amount > 0, "error_cannotStakeZero");
         GlobalStorage storage s = globalData();
         if (s.stakedWei[broker] == 0) {
-            // console.log("Broker joins and stakes", broker, amount);
+           // console.log("Broker joins and stakes", broker, amount);
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
@@ -177,8 +177,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
         } else {
-            // console.log("Broker already joined, increasing stake", broker, amount);
-            console.log("###############################");
+           // console.log("Broker already joined, increasing stake", broker, amount);
             s.stakedWei[broker] += amount;
             s.totalStakedWei += amount;
 
@@ -205,9 +204,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (amountWei == globalData().stakedWei[broker]) {
             _removeBroker(broker, penaltyWei);
         } else {
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
             globalData().stakedWei[broker] -= amountWei;
             globalData().totalStakedWei -= amountWei;
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
             uint returnFunds = amountWei - penaltyWei;
             if (returnFunds > 0) {
                 token.transfer(broker, returnFunds);
