@@ -22,6 +22,9 @@ describe("BrokerPool", (): void => {
         investor,
         investor2,
         sponsor,
+        delegator1,
+        delegator2,
+        delegator3
     ] = waffle.provider.getWallets() as Wallet[]
 
     let contracts: TestContracts
@@ -381,7 +384,7 @@ describe("BrokerPool", (): void => {
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
-    it.skip("forced example scenario ", async function(): Promise<void> {
+    it("forced example scenario ", async function(): Promise<void> {
         const { token } = contracts
         const bounty1 = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from("0") })
         const bounty2 = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from("0") })
@@ -390,20 +393,24 @@ describe("BrokerPool", (): void => {
         // const pool = await deployBrokerPool(0, 0, 0, 0, 7*24*60*60)
         const pool = await deployBrokerPool({ })
         // const balanceBefore = await token.balanceOf(investor.address)
-        const delegator1 = Wallet.createRandom()
-        const delegator2 = Wallet.createRandom()
-        const delegator3 = Wallet.createRandom()
-        await (await token.mint(delegator1.address, parseEther("10"))).wait()
-        await (await token.mint(delegator2.address, parseEther("10"))).wait()
-        await (await token.mint(delegator3.address, parseEther("10"))).wait()
+        await (await token.mint(delegator1.address, parseEther("100"))).wait()
+        await (await token.mint(delegator2.address, parseEther("100"))).wait()
+        await (await token.mint(delegator3.address, parseEther("100"))).wait()
         await (await token.connect(delegator1).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
         await (await token.connect(delegator2).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
         await (await token.connect(delegator3).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
+
+        // all delegators have 10 pooltokens
+        expect(await pool.balanceOf(delegator1.address)).to.equal(parseEther("10"))
+        expect(await pool.balanceOf(delegator2.address)).to.equal(parseEther("10"))
+        expect(await pool.balanceOf(delegator3.address)).to.equal(parseEther("10"))
 
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Stake to bounty")
         await expect(pool.stake(bounty1.address, parseEther("20")))
+            .to.emit(pool, "Staked").withArgs(bounty1.address, parseEther("20"))
+        await expect(pool.stake(bounty2.address, parseEther("10")))
             .to.emit(pool, "Staked").withArgs(bounty2.address, parseEther("10"))
 
         // t = 0 queue payout
@@ -415,17 +422,15 @@ describe("BrokerPool", (): void => {
         await expect (pool.connect(delegator1).forceUnstakeAndPayout(bounty1.address)).to.be.revertedWith("error_forceTimeNotReached")
 
         // t = 2592000
-        await advanceToTimestamp(timeAtStart + 2592002, "withdraw winnings from bounty")
-        await (await pool.connect(delegator1).forceUnstakeAndPayout(bounty1.address)).wait()
+        await advanceToTimestamp(timeAtStart + 3000000, "withdraw winnings from bounty")
         
         // broker unstakes 5 data from bounty1
-        await pool.connect(broker).unstake(bounty1.address, parseEther("5"))
+        await pool.connect(broker).reduceStake(bounty1.address, parseEther("5"))
 
         // now anyone can trigger the unstake and payout of the queue
-        await (await pool.connect(investor).forceUnstakeAndPayout(bounty.address)).wait()
-        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther("180"))
-        const balanceAfter = await token.balanceOf(investor.address)
-
-        expect(balanceAfter).to.equal(expectedBalance)
+        await (await pool.connect(investor).forceUnstakeAndPayout(bounty1.address)).wait()
+        expect(await token.balanceOf(delegator1.address)).to.equal(parseEther("100"))
+        expect(await token.balanceOf(delegator2.address)).to.equal(parseEther("100"))
+        expect(await pool.balanceOf(delegator3.address)).to.equal(parseEther("10"))
     })
 })

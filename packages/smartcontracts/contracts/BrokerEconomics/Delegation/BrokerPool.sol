@@ -16,7 +16,7 @@ import "./policies/IPoolJoinPolicy.sol";
 import "./policies/IPoolYieldPolicy.sol";
 import "./policies/IPoolExitPolicy.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * Broker Pool receives a delegators' investments and pays out yields
@@ -344,6 +344,26 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _removeBounty(bounty);
     }
 
+    function reduceStake(Bounty bounty, uint amountWei) external onlyBroker {
+        // console.log("reduceStake amountWei", amountWei);
+        // console.log("reduceStake balanceOf this", globalData().token.balanceOf(address(this)));
+        uint amountStaked = bounty.getMyStake();
+        require(amountStaked > 0, "error_notStaked");
+        require(amountWei <= amountStaked, "error_notEnoughStaked");
+        uint balanceBefore = globalData().token.balanceOf(address(this));
+        // console.log("reduceStake balanceBefore", balanceBefore);
+        bounty.reduceStake(amountWei);
+        uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
+        // console.log("reduceStake receivedWei", receivedWei);
+        // unallocatedWei += receivedWei;
+        if (receivedWei < amountStaked) {
+            // TODO: slash handling
+            uint lossesWei = amountStaked - receivedWei;
+            emit Unstaked(bounty, receivedWei, 0);
+            emit Losses(bounty, lossesWei);
+        }
+    }
+
     function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
         // require(staked[bounty] > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
@@ -378,6 +398,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 // console.log("payOutQueueWithFreeFunds whole amountDataWei");
                 queuedPayoutsPerUser[user] -= amountPoolTokens;
                 queuePayoutIndex++;
+                _burn(address(this), amountPoolTokens);
                 globalData().token.transfer(user, amountDataWei);
                 emit InvestmentReturned(user, amountDataWei);
             } else {

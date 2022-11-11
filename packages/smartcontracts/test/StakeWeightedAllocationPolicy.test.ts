@@ -8,7 +8,7 @@ const { parseEther, formatEther } = utils
 
 use(waffle.solidity)
 
-describe.only("StakeWeightedAllocationPolicy", (): void => {
+describe("StakeWeightedAllocationPolicy", (): void => {
     const [
         admin,
         broker,
