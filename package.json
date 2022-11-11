@@ -7,6 +7,7 @@
   "license": "ISC",
   "workspaces": [
     "./packages/config",
+    "./packages/docker-dev-chain-init",
     "./packages/network-contracts",
     "./packages/hub-contracts",
     "./packages/network-subgraphs",
@@ -18,11 +19,11 @@
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces --if-present",
     "test:subgraph": "graph test -d",
-    "graph1_build": "npm run deployLocalWithExport -w=smartcontracts",
+    "graph1_build": "npm run deployLocalWithExport -w=network-contracts",
     "graph2_copyInfo": "./scripts/copyAbis.sh && ./scripts/generateYaml.sh",
-    "graph3_build": "npm run doAll --workspace=streamregistry-thegraph-subgraph",
+    "graph3_build": "npm run doAll --workspace=network-subgraphs",
     "graph": "npm run graph1_build && npm run graph2_copyInfo && npm run graph3_build",
-    "e2etest": "npm run e2etest --workspace=smartcontracts",
+    "e2etest": "npm run e2etest --workspace=network-contracts",
     "migration-build": "npm run build -w=brubeck-migration-script",
     "migration-run": "npm run migration -w=brubeck-migration-script"
   },

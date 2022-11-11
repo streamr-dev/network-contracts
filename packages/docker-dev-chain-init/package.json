@@ -1,5 +1,5 @@
 {
-  "name": "docker-dev-chain-init",
+  "name": "@streamr-contracts/docker-dev-chain-init",
   "version": "2.4.0",
   "description": "Locally run Ethereum client for developing the Streamr services",
   "private": true,
