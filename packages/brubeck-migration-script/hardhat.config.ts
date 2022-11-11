@@ -62,7 +62,7 @@ module.exports = {
     },
     dependencyCompiler: {
         paths: [
-            '@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol'
+            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol'
         ],
     },
     solidity: {
