@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
-import { Chains } from "@streamr/config"
+import { Chains } from "@streamr-contracts/config"
 import { DATAv2, ProjectRegistry, StreamRegistryV3 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
@@ -155,8 +155,8 @@ async function main() {
     const streamId = await createStream()
     await addStream(projectId, streamId)
     await grantSubscription(projectId)
-    await removeStream(projectId, streamId)
-    await deleteProject(projectId)
+    // await removeStream(projectId, streamId)
+    // await deleteProject(projectId)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

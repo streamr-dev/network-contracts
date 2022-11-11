@@ -1,7 +1,7 @@
 import { IMarketplace } from "../typechain/IMarketplace"
 import IMarketplaceJson from "../artifacts/contracts/IMarketplace.sol/IMarketplace.json"
 
-import { Chains } from "@streamr/config"
+import { Chains } from "@streamr-contracts/config"
 import { Contract, providers } from "ethers"
 
 const { log } = console

@@ -1,5 +1,5 @@
 import { ethers as hhEthers, upgrades } from "hardhat"
-import { Chains } from "@streamr/config"
+import { Chains } from "@streamr-contracts/config"
 
 const { log } = console
 

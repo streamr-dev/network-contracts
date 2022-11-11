@@ -1,5 +1,5 @@
 import { ethers, upgrades } from 'hardhat'
-import { networks } from "@streamr/config"
+import { networks } from "@streamr-contracts/config"
 import { parseUnits } from 'ethers/lib/utils'
 
 // Polygon mainet
