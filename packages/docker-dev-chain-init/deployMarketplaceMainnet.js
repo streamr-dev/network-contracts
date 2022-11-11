@@ -24,7 +24,7 @@ async function smartContractInitialization() {
     log(`MarketplaceV3 deployed on mainchain at ${marketV3DeployTxStr.address}`)
 
     log(`Deploying Uniswap2AdaptorForMarketplaceV3 contract from ${newWallet.address}`)
-    const Uniswap2AdaptorDeployer = await ethers.getContractFactory("Uniswap2AdapterForMarketplaceV3", newWallet)
+    const Uniswap2AdaptorDeployer = await ethers.getContractFactory("Uniswap2Adapter", newWallet)
     // const uniswap2AdaptorDeployTx = await Uniswap2AdaptorDeployer.deploy(marketV3DeployTxStr.address, router.address)
     const uniswap2AdaptorDeployTx = await Uniswap2AdaptorDeployer.deploy(marketV3DeployTxStr.address, "0xeE1bC9a7BFF1fFD913f4c97B6177D47E804E1920")
     const Uniswap2Adaptor = await uniswap2AdaptorDeployTx.deployed()
