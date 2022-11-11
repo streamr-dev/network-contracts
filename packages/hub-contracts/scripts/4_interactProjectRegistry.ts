@@ -155,8 +155,8 @@ async function main() {
     const streamId = await createStream()
     await addStream(projectId, streamId)
     await grantSubscription(projectId)
-    // await removeStream(projectId, streamId)
-    // await deleteProject(projectId)
+    await removeStream(projectId, streamId)
+    await deleteProject(projectId)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
