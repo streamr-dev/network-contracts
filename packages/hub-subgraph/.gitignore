@@ -5,3 +5,4 @@
 /tests/.docker/
 /generated/
 /abis/
+/tests/.latest.json
