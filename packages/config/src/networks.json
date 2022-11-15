@@ -47,6 +47,7 @@
             "DefaultFeeOracle": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
             "DataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
             "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
+            "MarketplaceV3": "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2",
             "ProjectRegistry": "0x3C841B9Aa08166e9B864972930703e878d25804B",
             "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
