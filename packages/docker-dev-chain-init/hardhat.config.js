@@ -66,19 +66,19 @@ module.exports = {
     },
     dependencyCompiler: {
         paths: [
-            '@streamr/network-contracts/contracts/NodeRegistry/NodeRegistry.sol',
-            '@streamr/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
-            '@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol',
-            '@streamr/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
+            '@streamr-contracts/network-contracts/contracts/NodeRegistry/NodeRegistry.sol',
+            '@streamr-contracts/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
+            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol',
+            '@streamr-contracts/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
             '@dataunions/contracts/contracts/DataUnionFactory.sol',
             '@dataunions/contracts/contracts/DataUnionTemplate.sol',
             '@dataunions/contracts/contracts/DefaultFeeOracle.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
-            'docker-dev-chain-init/ethereumContractSources/MarketplaceV3.sol',
-            'docker-dev-chain-init/ethereumContractSources/Uniswap2AdapterForMarketplaceV3.sol',
-            'docker-dev-chain-init/ethereumContractSources/ProjectRegistry.sol'
+            '@streamr-contracts/hub-contracts/contracts/MarketplaceV3.sol',
+            '@streamr-contracts/hub-contracts/contracts/Uniswap2Adapter.sol',
+            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistry.sol'
         ],
     },
     solidity: {

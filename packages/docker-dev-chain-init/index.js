@@ -120,7 +120,7 @@ async function getProducts() {
 // AutoNonceWallet allows for omitting .wait()ing for the transactions as long as no reads are done
 // from https://github.com/ethers-io/ethers.js/issues/319
 class AutoNonceWallet extends Wallet {
-    noncePromise = null;
+    noncePromise = null
     sendTransaction(transaction) {
         if (transaction.nonce == null) {
             if (this.noncePromise == null) {

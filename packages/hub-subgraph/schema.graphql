@@ -1,0 +1,54 @@
+type Permission @entity {
+  "permission id = projectId + '-' + userAddress"
+  id: ID!
+  "Ethereum address, owner of this permission"
+  userAddress: Bytes!
+  "Target project this permission applies to"
+  project: Project!
+  "Buy permission enables a user to buy the project"
+  canBuy: Boolean
+  "canDelete permission allows deleting the project from the ProjectRegistry"
+  canDelete: Boolean
+  "Edit permission enables changing the project's fields"
+  canEdit: Boolean
+  "Grant permission allows granting and revoking permissions to this project"
+  canGrant: Boolean
+}
+
+type TimeBasedSubscription @entity {
+  "subscription id = projectId + '-' + subscriberAddress"
+  id: ID!
+  "Target project this permission applies to"
+  project: Project!
+  "Ethereum address, owner of this subscription"
+  userAddress: Bytes!
+  "Subscription expiration time. This is a timestamp in seconds"
+  endTimestamp: BigInt
+}
+
+type Project @entity {
+  "project id = bytes32"
+  id: ID!
+  "Ethereum address, account where revenue is directed to for project purchases"
+  beneficiary: Bytes!
+  "Project price per second. This is a wei denominated amount"
+  pricePerSecond: BigInt!
+  "Ethereum address, the token in which the project is paid to project beneficiary"
+  pricingTokenAddress: Bytes!
+  "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
+  minimumSubscriptionSeconds: BigInt!
+  "Subscriptions mapping (address => TimeBasedSubscription)"
+  subscriptions: [TimeBasedSubscription!]! @derivedFrom(field: "project")
+  "Project metadata JSON"
+  metadata: String!
+  "Project version. This is a normal int value (not wei)"
+  version: BigInt
+  "Streams added to the project"
+  streams: [String!]!
+  "Permissions mapping (bytes32 => Permission)"
+  permissions: [Permission!]! @derivedFrom(field: "project")
+  "date created. This is a timestamp in seconds"
+  createdAt: BigInt
+  "date updated. This is a timestamp in seconds"
+  updatedAt: BigInt
+}
