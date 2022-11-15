@@ -1,3 +1,10 @@
+/**
+ * Upgraded on: not yet deployed
+ * https://polygonscan.com/tx/ not yet deployed
+ * DO NOT EDIT
+ * Instead, make a copy with new version number
+ */
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.9;
@@ -32,7 +39,7 @@ interface IProjectRegistry {
  *   All prices and exchange rates are in "decimal fixed-point", that is, scaled by 10^18, like ETH vs wei.
  *  Seconds are integers as usual.
  */
-contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4 {
+contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4 {
 
     // MarketplaceV3 storage
 

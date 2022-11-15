@@ -4,7 +4,7 @@ import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, Marketplace, MinimalForwarder, ProjectRegistry, StreamRegistryV3, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV3, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { provider: waffleProvider } = waffle
@@ -67,7 +67,7 @@ describe("Uniswap2Adapter", () => {
     let dataToken: DATAv2 // the token in which the product is paid to product beneficiary
     let erc677Token: DATAv2
     let fromToken: ERC20Mintable
-    let market: Marketplace
+    let market: MarketplaceV4
     let streamRegistry: StreamRegistryV3
     let projectRegistry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
@@ -163,10 +163,10 @@ describe("Uniswap2Adapter", () => {
         const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
         const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
 
-        // upgrade the marketplace contract to the latest version
-        const marketFactory = await getContractFactory("Marketplace")
-        const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-        market = await marketFactoryTx.deployed() as Marketplace
+        // upgrade the marketplace contract from V3 to V4
+        const marketFactoryV4 = await getContractFactory("MarketplaceV4")
+        const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+        market = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
         // initialize project registry contract for marketplace
         await market.setProjectRegistry(projectRegistry.address)
