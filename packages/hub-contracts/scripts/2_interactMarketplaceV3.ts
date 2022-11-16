@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 import { waffle, ethers, upgrades } from 'hardhat'
 import { BigNumber, Overrides, providers, utils, Wallet } from 'ethers'
 import { Marketplace, Uniswap2Adapter, IERC20, DATAv2, IUniswapV2Router02, StreamRegistryV3 } from '../typechain'
-import { Chains } from '@streamr-contracts/config'
+import { Chains } from '@streamr/config'
 
 import * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
