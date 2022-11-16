@@ -97,5 +97,7 @@ make clean
 ## Changelog
 
 2.5.0: DataUnionFactory address in dev1 updated
+
 2.5.3: ProjectRegistry address in dev1 added
-2.5.4: MarketpalceV3 address in dev1 added
+
+2.5.4: MarketplaceV3 address in dev1 added
