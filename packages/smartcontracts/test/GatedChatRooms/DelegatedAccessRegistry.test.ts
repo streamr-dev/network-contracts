@@ -103,11 +103,19 @@ describe('DelegatedAccessRegistry', (): void => {
         expect(mainWallet).to.equal(wallets[0].address)
     })
 
+    it ('happy-path for `getDelegatedWalletFor`', async () => {
+        const delegatedWallet = await contract.getDelegatedWalletFor(
+            wallets[0].address
+        )
+        
+        expect(delegatedWallet).to.equal(delegated.address)
+    })
+
     it ('happy-path for `isMainWallet`', async () => {
         const isMainWallet = await contract.isMainWallet(
             wallets[0].address
         )
-        
+
         expect(isMainWallet).to.equal(true)
     })
 
