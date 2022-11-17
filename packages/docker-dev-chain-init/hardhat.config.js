@@ -77,6 +77,7 @@ module.exports = {
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
             '@streamr-contracts/hub-contracts/contracts/MarketplaceV3.sol',
+            '@streamr-contracts/hub-contracts/contracts/MarketplaceV4.sol',
             '@streamr-contracts/hub-contracts/contracts/Uniswap2Adapter.sol',
             '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistry.sol'
         ],

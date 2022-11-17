@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { utils } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, Marketplace, MarketplaceV3, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV3, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -64,7 +64,7 @@ describe("Marketplace", () => {
     let projectId: string
     let token: DATAv2
     let otherToken: ERC20Mintable
-    let marketplace: Marketplace
+    let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
     let projectRegistry: ProjectRegistry
     let streamRegistry: StreamRegistryV3
@@ -125,15 +125,15 @@ describe("Marketplace", () => {
         log("   - ProjectRegistry deployed at: ", projectRegistry.address)
     }
 
-    async function deployMarketplace(): Promise<Marketplace> {
+    async function deployMarketplace(): Promise<MarketplaceV4> {
         // deploy the first upgradeable marketplace contract
         const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
         const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
 
         // upgrade the marketplace contract to the latest version
-        const marketFactory = await getContractFactory("Marketplace")
+        const marketFactory = await getContractFactory("MarketplaceV4")
         const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-        const market = await marketFactoryTx.deployed() as Marketplace
+        const market = await marketFactoryTx.deployed() as MarketplaceV4
 
         // initialize project registry contract for marketplace
         await market.setProjectRegistry(projectRegistry.address)
@@ -158,14 +158,14 @@ describe("Marketplace", () => {
             const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
             const marketplaceV3 = await marketFactoryV3Tx.deployed() as MarketplaceV3
 
-            const marketFactory = await getContractFactory("Marketplace")
-            const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-            const marketplace = await marketFactoryTx.deployed() as Marketplace
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
+            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
-            await marketplace.setProjectRegistry(projectRegistry.address)
+            await marketplaceV4.setProjectRegistry(projectRegistry.address)
             
             expect(marketplaceV3.address)
-                .to.equal(marketplace.address)
+                .to.equal(marketplaceV4.address)
         })
     })
 
@@ -268,10 +268,10 @@ describe("Marketplace", () => {
             // deploy the first upgradeable marketplace contract
             const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
             const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-            // upgrade the marketplace contract to the latest version
-            const marketFactory = await getContractFactory("Marketplace")
-            const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-            const market = await marketFactoryTx.deployed() as Marketplace
+            // upgrade the marketplace contract from V3 to V4
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
+            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // initialize project registry contract for marketplace
             await market.setProjectRegistry(projectRegistry.address)
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers

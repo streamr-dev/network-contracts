@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
-import { Chains } from "@streamr-contracts/config"
+import { Chains } from "@streamr/config"
 import { DATAv2, ProjectRegistry, StreamRegistryV3 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
