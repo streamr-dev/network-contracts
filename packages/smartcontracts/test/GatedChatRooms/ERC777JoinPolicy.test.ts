@@ -30,8 +30,9 @@ const signDelegatedChallenge = (
 
     return sign(delegatedPrivateKey, message)
 }
+
 use(waffle.solidity)
-describe('ERC20JoinPolicy', (): void => {
+describe('ERC777JoinPolicy', (): void => {
     const wallets = provider.getWallets()
     let token: any 
     let contract: Contract
@@ -65,20 +66,20 @@ describe('ERC20JoinPolicy', (): void => {
         // eslint-disable-next-line require-atomic-updates
         streamRegistryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
 
-        const ERC20 = await ethers.getContractFactory('TestERC20')
-        token = await ERC20.deploy()
+        const ERC777 = await ethers.getContractFactory('TestERC777')
+        token = await ERC777.deploy()
 
         await streamRegistryV3.createStream(
             streamPath,
             '{}',
         )
 
-        const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
+        const ERC777JoinPolicy = await ethers.getContractFactory('ERC777JoinPolicy', wallets[0])
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
 
-        contract = await ERC20JoinPolicy.deploy(
+        contract = await ERC777JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
             streamId,
@@ -87,18 +88,13 @@ describe('ERC20JoinPolicy', (): void => {
             ],
             1, // minRequiredBalance
             delegatedAccessRegistry.address,
-            false // disable staking
+            false // stakingEnabled
         )
 
         await streamRegistryV3.grantPermission(
             streamId,
             contract.address,
             PermissionType.Grant
-        )
-
-        await streamRegistryV3.getPermissionsForUser(
-            streamId,
-            wallets[0].address
         )
 
         const signature = signDelegatedChallenge(
@@ -114,8 +110,8 @@ describe('ERC20JoinPolicy', (): void => {
     })
 
     it ('should fail to deploy a policy with 0 as minimumRequiredBalance', async () => {
-        const ERC20JoinPolicy = await ethers.getContractFactory('ERC20JoinPolicy', wallets[0])
-        await expect(ERC20JoinPolicy.deploy(
+        const ERC777JoinPolicy = await ethers.getContractFactory('ERC777JoinPolicy', wallets[0])
+        await expect(ERC777JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
             streamId,
@@ -124,7 +120,7 @@ describe('ERC20JoinPolicy', (): void => {
             ],
             0, // minRequiredBalance
             delegatedAccessRegistry.address,
-            false // disable staking
+            false
         )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
 
@@ -132,22 +128,19 @@ describe('ERC20JoinPolicy', (): void => {
         await expect(contract.requestDelegatedJoin(
             wallets[2].address, 
             0 // trivial tokenId
-            ))
-        .to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
+        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
             const balance = await token.balanceOf(wallets[1].address)
             expect(balance).to.equal(BigNumber.from(0))
-        await expect(
-            contract.connect(wallets[1])
+
+            await expect(contract.connect(wallets[1])
                 .requestDelegatedJoin(
                     signerIdentity.address,
                     0, // trivial tokenId
-
                     {from: wallets[1].address}
-                )  
-        ).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+                )).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
@@ -203,24 +196,123 @@ describe('ERC20JoinPolicy', (): void => {
         )).to.equal(false)
     })
 
-    describe('ERC20PolicyDeployer', (): void => {
-        let erc20PolicyDeployer: Contract
+    /*
+
+    describe ('ERC777JoinPolicy - StakeGate', async () => {
+        const mainWallet = wallets[2]
+        const delegatedWallet = createIdentity()
+
+        let stakedContract: Contract
+
         before(async (): Promise<void> => {
 
-            const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyFactory')
-            const joinPolicyRegistry = await upgrades.deployProxy(JoinPolicyFactory, [
-                streamRegistryV3.address,
-                delegatedAccessRegistry.address
-            ])
-            
-            const ERC20PolicyDeployer = await ethers.getContractFactory('ERC20PolicyDeployer', wallets[0])
-            erc20PolicyDeployer = await ERC20PolicyDeployer.deploy(
-                joinPolicyRegistry.address,
-                streamRegistryV3.address,
+            const ERC777JoinPolicy = await ethers.getContractFactory('ERC777JoinPolicy', wallets[0])
 
-                delegatedAccessRegistry.address
+            stakedContract = await ERC777JoinPolicy.deploy(
+                token.address,
+                streamRegistryV3.address,
+                streamId,
+                [
+                    PermissionType.Publish, PermissionType.Subscribe
+                ],
+                1, // minRequiredBalance
+                delegatedAccessRegistry.address,
+                true // stakingEnabled
+            )
+
+            await streamRegistryV3.grantPermission(
+                streamId,
+                stakedContract.address,
+                PermissionType.Grant
+            )
+
+            const signature = signDelegatedChallenge(
+                mainWallet.address,
+                delegatedWallet.privateKey,
+                ChallengeType.Authorize
+            )
+
+            await delegatedAccessRegistry.connect(mainWallet).authorize(
+                delegatedWallet.address,
+                signature
             )
         })
-    })
+
+        it ('should exercise the stakeIn method, happy-path', async () => {
+            const tokenBalance = BigNumber.from(10)
+            await token.mint(mainWallet.address, tokenBalance)
+            const balance = await token.balanceOf(mainWallet.address)
+            expect(balance).to.equal(tokenBalance)
+            await token.connect(mainWallet).authorizeOperator(stakedContract.address)
+            await stakedContract.connect(mainWallet)
+            .stakeIn(
+                tokenBalance,
+                delegatedWallet.address,
+                {from: mainWallet.address}
+            )
+            
+            const afterBalance = await token.balanceOf(mainWallet.address)
+            expect(afterBalance).to.equal(0)
+
+            const events = await stakedContract.queryFilter(
+                stakedContract.filters.Accepted()
+            )
+            expect(events.length).to.equal(1)
+            expect(events[0].args).to.not.be.undefined
+            
+            expect(events[0].args!.mainWallet).to.equal(
+                mainWallet.address
+            )
+            expect(events[0].args!.delegatedWallet).to.equal(
+                delegatedWallet.address
+            )
+            
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Edit
+            )).to.equal(false)
+
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Delete
+            )).to.equal(false)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Publish
+            )).to.equal(true)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Subscribe
+            )).to.equal(true)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Grant
+            )).to.equal(false)
+
+           
+        })
+
+        it ('should exercise the stakeOut, happy-path', async () => {
+            const initialBalance = await token.balanceOf(mainWallet.address)
+            expect(initialBalance).to.equal(0)
+
+            const contractBalance = await token.balanceOf(stakedContract.address)
+            expect(contractBalance).to.equal(10)
+
+            await stakedContract.connect(mainWallet).stakeOut(
+                10,
+                delegatedWallet.address,
+                {from: mainWallet.address}
+            )
+
+            const afterBalance = await token.balanceOf(mainWallet.address)
+            expect(afterBalance).to.equal(10)
+        })
+    })*/
 
 })

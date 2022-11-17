@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../StreamRegistry/StreamRegistryV3.sol"; 
-import "./GatedJoinPolicy.sol";
-import "./DelegatedAccessRegistry.sol";
+import "../../StreamRegistry/StreamRegistryV3.sol"; 
+import "./JoinPolicy.sol";
+import "../DelegatedAccessRegistry.sol";
 
-contract ERC20JoinPolicy is GatedJoinPolicy{
+contract ERC20JoinPolicy is JoinPolicy{
     IERC20 public token;
     uint256 public minRequiredBalance;
     // owner => tokenBalance
@@ -23,7 +23,7 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         uint256 minRequiredBalance_,
         address delegatedAccessRegistryAddress,
         bool stakingEnabled_
-    ) GatedJoinPolicy(
+    ) JoinPolicy (
         streamRegistryAddress,
         delegatedAccessRegistryAddress,
         streamId_,
@@ -35,29 +35,36 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         minRequiredBalance = minRequiredBalance_;
     }
 
-    modifier canJoin{
+    modifier canJoin(uint256 /*tokenId_*/) override {
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
 
     function requestDelegatedJoin(
-        address delegatedWallet
+        address delegatedWallet,
+        uint256 /*tokenId_*/
     ) 
         public
+        override
         isUserAuthorized(delegatedWallet) 
-        canJoin() 
+        canJoin(0) 
     {
         accept(msg.sender, delegatedWallet);
+    }
+
+    function requestJoin(uint256 /*tokenId_*/) public override canJoin(0) {
+        accept(msg.sender);
     }
 
     function depositStake(
         uint256 amount,
         address delegatedWallet
     ) 
+        override
         public 
         isStakingEnabled()
         isUserAuthorized(delegatedWallet) 
-        canJoin() 
+        canJoin(0) 
     {
         token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
@@ -68,10 +75,11 @@ contract ERC20JoinPolicy is GatedJoinPolicy{
         uint256 amount,
         address delegatedWallet
     ) 
+        override
         public 
         isStakingEnabled()
         isUserAuthorized(delegatedWallet) 
-        canJoin() 
+        canJoin(0) 
     {
         token.transfer(msg.sender, amount);
         balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);

@@ -104,7 +104,8 @@ describe('ERC721JoinPolicy', (): void => {
             [
                 PermissionType.Publish, PermissionType.Subscribe
             ],
-            delegatedAccessRegistry.address
+            delegatedAccessRegistry.address,
+            false //disable staking
         )
 
         await streamRegistryV3.grantPermission(
@@ -128,32 +129,24 @@ describe('ERC721JoinPolicy', (): void => {
     })
 
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
-        try {
-            await contract.requestDelegatedJoin(
-                wallets[2].address,
-                TokenId
-            )
-        } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
-        }
+        await expect(contract.requestDelegatedJoin(
+            wallets[2].address,
+            TokenId
+        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
-        try {
-            const balance = await token.balanceOf(wallets[0].address)
-            expect(balance).to.equal(BigNumber.from(0))
+        const balance = await token.balanceOf(wallets[0].address)
+        expect(balance).to.equal(BigNumber.from(0))
 
-            await authorizeDelegatedWallet(wallets[0], signerIdentity, delegatedAccessRegistry)
+        await authorizeDelegatedWallet(wallets[0], signerIdentity, delegatedAccessRegistry)
 
-            await contract.connect(wallets[0])
-                .requestDelegatedJoin(
-                    signerIdentity.address,
-                    TokenId, // tokenId
-                    {from: wallets[0].address}
-                )  
-        } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
-        }
+        await expect(contract.connect(wallets[0])
+        .requestDelegatedJoin(
+            signerIdentity.address,
+            TokenId, // tokenId
+            {from: wallets[0].address}
+        )).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
     it ('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {

@@ -99,7 +99,8 @@ describe('ERC1155JoinPolicy', (): void => {
             ],
             TokenIds.A,
             1, // minRequiredBalance    
-            delegatedAccessRegistry.address
+            delegatedAccessRegistry.address,
+            false // disable staking
         )
 
         await streamRegistryV3.grantPermission(
@@ -125,7 +126,8 @@ describe('ERC1155JoinPolicy', (): void => {
             ],
             TokenIds.B,
             0, // minRequiredBalance    
-            delegatedAccessRegistry.address
+            delegatedAccessRegistry.address,
+            false // disable staking
         )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
 
