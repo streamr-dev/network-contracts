@@ -26,6 +26,7 @@ contract ERC721PolicyDeployer is TokenGateDeployer{
     ) public override {
         ERC721JoinPolicy instance = new ERC721JoinPolicy(
             tokenAddress,
+            tokenId_,
             streamRegistryAddress,
             streamId_,
             defaultPermissions_,

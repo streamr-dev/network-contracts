@@ -99,6 +99,7 @@ describe('ERC721JoinPolicy', (): void => {
 
         contract = await ERC721JoinPolicy.deploy(
             token.address,
+            TokenId,
             streamRegistryV3.address,
             streamId,
             [
@@ -129,10 +130,7 @@ describe('ERC721JoinPolicy', (): void => {
     })
 
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
-        await expect(contract.requestDelegatedJoin(
-            wallets[2].address,
-            TokenId
-        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
+        await expect(contract.requestDelegatedJoin()).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
@@ -141,26 +139,16 @@ describe('ERC721JoinPolicy', (): void => {
 
         await authorizeDelegatedWallet(wallets[0], signerIdentity, delegatedAccessRegistry)
 
-        await expect(contract.connect(wallets[0])
-        .requestDelegatedJoin(
-            signerIdentity.address,
-            TokenId, // tokenId
-            {from: wallets[0].address}
-        )).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+        await expect(contract.connect(wallets[0]).requestDelegatedJoin()).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
     it ('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {
-        const owner = await token.ownerOf(
-            TokenId
-        )
+        const owner = await token.ownerOf(TokenId)
 
         expect(owner).to.equal(wallets[1].address)
 
         await contract.connect(wallets[1])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                TokenId
-            )
+        .requestDelegatedJoin()
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()

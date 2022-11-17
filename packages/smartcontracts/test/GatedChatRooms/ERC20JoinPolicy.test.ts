@@ -129,24 +129,16 @@ describe('ERC20JoinPolicy', (): void => {
     })
 
     it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
-        await expect(contract.requestDelegatedJoin(
-            wallets[2].address, 
-            0 // trivial tokenId
-            ))
+        await expect(contract.requestDelegatedJoin())
         .to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
-            const balance = await token.balanceOf(wallets[1].address)
-            expect(balance).to.equal(BigNumber.from(0))
+        const balance = await token.balanceOf(wallets[1].address)
+        expect(balance).to.equal(BigNumber.from(0))
         await expect(
             contract.connect(wallets[1])
-                .requestDelegatedJoin(
-                    signerIdentity.address,
-                    0, // trivial tokenId
-
-                    {from: wallets[1].address}
-                )  
+            .requestDelegatedJoin()  
         ).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
@@ -156,11 +148,7 @@ describe('ERC20JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(1))
 
         await contract.connect(wallets[1])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                0, // trivial tokenId
-                {from: wallets[1].address}
-            )
+        .requestDelegatedJoin()
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()
@@ -202,25 +190,4 @@ describe('ERC20JoinPolicy', (): void => {
             PermissionType.Grant
         )).to.equal(false)
     })
-
-    describe('ERC20PolicyDeployer', (): void => {
-        let erc20PolicyDeployer: Contract
-        before(async (): Promise<void> => {
-
-            const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyFactory')
-            const joinPolicyRegistry = await upgrades.deployProxy(JoinPolicyFactory, [
-                streamRegistryV3.address,
-                delegatedAccessRegistry.address
-            ])
-            
-            const ERC20PolicyDeployer = await ethers.getContractFactory('ERC20PolicyDeployer', wallets[0])
-            erc20PolicyDeployer = await ERC20PolicyDeployer.deploy(
-                joinPolicyRegistry.address,
-                streamRegistryV3.address,
-
-                delegatedAccessRegistry.address
-            )
-        })
-    })
-
 })

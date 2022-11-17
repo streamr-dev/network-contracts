@@ -11,6 +11,9 @@ contract ERC721JoinPolicy is JoinPolicy{
     IERC721 public token;
     uint256 public tokenId;
 
+    // owner => tokenBalance
+    mapping(address => uint256) balances;
+
     constructor(
         address tokenAddress,
         uint256 tokenId_,
@@ -30,32 +33,11 @@ contract ERC721JoinPolicy is JoinPolicy{
         tokenId = tokenId_;
     }
 
-    modifier canJoin(uint256 tokenId_) override{
-        require(token.ownerOf(tokenId_) == msg.sender, "error_notEnoughTokens");
+    modifier canJoin() override{
+        require(token.ownerOf(tokenId) == msg.sender, "error_notEnoughTokens");
         _;
     }
-
-    function requestDelegatedJoin(
-        address delegatedWallet_,
-        uint256 tokenId_
-    )
-        public
-        override
-        isUserAuthorized(delegatedWallet_)
-        canJoin(tokenId_)
-    {
-        accept(msg.sender, delegatedWallet_);
-    }
-
-    function requestJoin(
-        uint256 tokenId_
-    )
-        public
-        override
-        canJoin(tokenId_)
-    {
-        accept(msg.sender);
-    }
+/*
 
     function depositStake(
         uint256 amount,
@@ -65,10 +47,10 @@ contract ERC721JoinPolicy is JoinPolicy{
         public 
         isStakingEnabled()
         isUserAuthorized(delegatedWallet) 
-        canJoin(721) 
+        canJoin() 
     {
         token.safeTransferFrom(msg.sender, address(this), tokenId);
-        stakingBalances[msg.sender] = 1;
+        balances[msg.sender] = 1;
         accept(msg.sender, delegatedWallet);
     }
 
@@ -82,7 +64,8 @@ contract ERC721JoinPolicy is JoinPolicy{
         isUserAuthorized(delegatedWallet) 
     {
        token.safeTransferFrom(address(this), msg.sender, tokenId);
-         stakingBalances[msg.sender] = 0;
+         balances[msg.sender] = 0;
          revoke(msg.sender, delegatedWallet);
     }
+    */
 }

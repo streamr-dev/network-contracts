@@ -10,9 +10,9 @@ import "../DelegatedAccessRegistry.sol";
 contract ERC1155JoinPolicy is JoinPolicy {
 
     IERC1155 public token;
-    // tokenId => minRequiredBalance
-    mapping(uint256 => uint256) public tokenIdsToMinRequiredBalances;
-    DelegatedAccessRegistry private delegatedAccessRegistry;
+
+    uint256 tokenId;
+    uint256 minRequiredBalance;
 
     constructor(
         address tokenAddress,
@@ -31,35 +31,15 @@ contract ERC1155JoinPolicy is JoinPolicy {
         stakingEnabled_
     ) {
         require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
-        tokenIdsToMinRequiredBalances[tokenId_] = minRequiredBalance_;
+        minRequiredBalance = minRequiredBalance_;
+        tokenId = tokenId_;
         token = IERC1155(tokenAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
     }
 
-    modifier canJoin(uint256 tokenId_) override {
-        require((tokenIdsToMinRequiredBalances[tokenId_] > 0 && token.balanceOf(msg.sender, tokenId_) >= tokenIdsToMinRequiredBalances[tokenId_]), "error_notEnoughTokens");
+    modifier canJoin() override {
+        require((token.balanceOf(msg.sender, tokenId) >= minRequiredBalance), "error_notEnoughTokens");
         _;
     }
 
-    function requestDelegatedJoin(
-        address delegatedWallet,
-        uint256 tokenId_
-    )
-        public
-        override
-        isUserAuthorized(delegatedWallet)
-        canJoin(tokenId_)
-    {
-        accept(msg.sender, delegatedWallet);
-    }
-
-    function requestJoin(
-        uint256 tokenId_
-    )
-        public
-        override
-        canJoin(tokenId_)
-    {
-        accept(msg.sender);
-    }
 }

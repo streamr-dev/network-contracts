@@ -44,26 +44,11 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer{
         minRequiredBalance = minRequiredBalance_;
     }
 
-    modifier canJoin(uint256 /*tokenId_*/) override {
+    modifier canJoin() override {
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
-
-    function requestDelegatedJoin(
-        address delegatedWallet,
-        uint256 /*tokenId_*/
-    ) 
-        public
-        override
-        isUserAuthorized(delegatedWallet) 
-        canJoin(0) 
-    {
-        accept(msg.sender, delegatedWallet);
-    }
-
-    function requestJoin(uint256 /*tokenId_*/) public override canJoin(0) {
-        accept(msg.sender);
-    }
+/*
 
     function stakeIn(
         uint256 amount,
@@ -93,4 +78,5 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer{
             revoke(msg.sender, delegatedWallet);
         }
     }
+    */
 }

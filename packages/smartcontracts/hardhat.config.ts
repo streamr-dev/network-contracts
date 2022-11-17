@@ -5,6 +5,7 @@ import { HardhatUserConfig } from 'hardhat/types'
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import '@openzeppelin/hardhat-upgrades'
+import 'hardhat-erc1820'
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')

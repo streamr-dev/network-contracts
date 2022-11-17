@@ -109,10 +109,6 @@ describe('ERC1155JoinPolicy', (): void => {
             PermissionType.Grant
         )
 
-        await streamRegistryV3.getPermissionsForUser(
-            streamId,
-            wallets[0].address
-        )
     })
 
     it ('should fail to deploy a policy with 0 as minimum required balance', async () => {
@@ -130,32 +126,15 @@ describe('ERC1155JoinPolicy', (): void => {
             false // disable staking
         )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
-
-    it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
-        try {
-            await contract.requestDelegatedJoin(
-                wallets[2].address,
-                TokenIds.B,
-            )
-        } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
-        }
+    
+    it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
+        await expect(contract.connect(wallets[0]).requestDelegatedJoin())
+        .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
-    it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
-        try {
-            const balance = await token.balanceOf(wallets[1].address, TokenIds.A)
-            expect(balance).to.equal(BigNumber.from(0))
-
-            await contract.connect(wallets[0])
-                .requestDelegatedJoin(
-                    signerIdentity.address,
-                    TokenIds.A,
-                    {from: wallets[0].address}
-                )  
-        } catch (e: any){
-            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
-        }
+    it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
+        await expect(contract.connect(wallets[1]).requestDelegatedJoin())
+        .to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
     
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
@@ -164,11 +143,7 @@ describe('ERC1155JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(1))
             
         await contract.connect(wallets[0])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                TokenIds.A,
-                {from: wallets[0].address}
-            )
+        .requestDelegatedJoin()
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()

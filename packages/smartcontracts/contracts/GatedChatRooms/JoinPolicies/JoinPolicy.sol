@@ -10,7 +10,7 @@ abstract contract JoinPolicy{
     StreamRegistryV3.PermissionType[] public permissions;
 
     StreamRegistryV3 private streamRegistry;
-    DelegatedAccessRegistry private delegatedAccessRegistry;
+    DelegatedAccessRegistry public delegatedAccessRegistry;
     
     event Accepted (address indexed mainWallet, address delegatedWallet);
     event Revoked (address indexed mainWallet, address delegatedWallet);
@@ -35,11 +35,6 @@ abstract contract JoinPolicy{
 
     modifier isUserAuthorized {
         require(delegatedAccessRegistry.isMainWallet(msg.sender), "error_notAuthorized");
-        _;
-    }
-
-    modifier isUserAuthorized(address delegatedWallet){
-        require(delegatedAccessRegistry.isUserAuthorized(msg.sender, delegatedWallet), "error_notAuthorized");
         _;
     }
 
@@ -78,13 +73,19 @@ abstract contract JoinPolicy{
         emit Revoked(mainWallet, address(0x0));
     }
 
+    function requestJoin() public canJoin() {
+        accept(msg.sender);
+    }
 
-    function requestJoin() public virtual;
-    function requestDelegatedJoin() public virtual;
+    function requestDelegatedJoin() 
+        public
+        isUserAuthorized() 
+        canJoin() 
+    {
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+        accept(msg.sender, delegatedWallet);
+    }
 
-    function depositStake(uint256 amount, address delegatedWallet) public virtual;
-    function withdrawStake(uint256 amount, address delegatedWallet) public virtual;
-
-    modifier canJoin(uint256 tokenId_) virtual;
+    modifier canJoin() virtual;
 
 }

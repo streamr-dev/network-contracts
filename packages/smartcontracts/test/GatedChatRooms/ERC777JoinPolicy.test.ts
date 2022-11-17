@@ -125,22 +125,15 @@ describe('ERC777JoinPolicy', (): void => {
     })
 
     it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
-        await expect(contract.requestDelegatedJoin(
-            wallets[2].address, 
-            0 // trivial tokenId
-        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
+        await expect(contract.requestDelegatedJoin()).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
-            const balance = await token.balanceOf(wallets[1].address)
-            expect(balance).to.equal(BigNumber.from(0))
+        const balance = await token.balanceOf(wallets[1].address)
+        expect(balance).to.equal(BigNumber.from(0))
 
-            await expect(contract.connect(wallets[1])
-                .requestDelegatedJoin(
-                    signerIdentity.address,
-                    0, // trivial tokenId
-                    {from: wallets[1].address}
-                )).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+        await expect(contract.connect(wallets[1])
+            .requestDelegatedJoin()).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
@@ -149,11 +142,7 @@ describe('ERC777JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(1))
 
         await contract.connect(wallets[1])
-            .requestDelegatedJoin(
-                signerIdentity.address,
-                0, // trivial tokenId
-                {from: wallets[1].address}
-            )
+        .requestDelegatedJoin()
 
         const events = await contract.queryFilter(
             contract.filters.Accepted()
@@ -293,7 +282,6 @@ describe('ERC777JoinPolicy', (): void => {
                 delegatedWallet.address,
                 PermissionType.Grant
             )).to.equal(false)
-
            
         })
 
