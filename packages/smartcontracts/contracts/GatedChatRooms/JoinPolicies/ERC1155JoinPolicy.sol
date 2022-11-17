@@ -46,7 +46,6 @@ contract ERC1155JoinPolicy is JoinPolicy, ERC1155Holder {
         _;
     }
 
-
     function depositStake(
         uint256 amount
     )

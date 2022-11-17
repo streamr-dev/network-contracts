@@ -129,6 +129,14 @@ describe('ERC721JoinPolicy', (): void => {
 
     })
 
+    it ('should fail to complete depositStake, reason: stakingDisabled', async () => {
+        await expect(contract.connect(wallets[0]).depositStake(0)).to.be.revertedWith('stakingDisabled')
+    })
+
+    it ('should fail to complete withdrawStake, reason: stakingDisabled', async () => {
+        await expect(contract.connect(wallets[0]).withdrawStake(0)).to.be.revertedWith('stakingDisabled')
+    })
+
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
         await expect(contract.requestDelegatedJoin()).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
@@ -342,6 +350,21 @@ describe('ERC721JoinPolicy', (): void => {
            
         })
 
+        it ('should fail depositStake, reason: not enough balance', async () => {
+            await expect(stakedContract.connect(mainWallet).depositStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+        })
+
+        it ('should fail to complete depositStake, reason: unauthorized', async() => {
+            await expect(stakedContract.connect(wallets[5]).depositStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'")
+        })
+
+        it ('should fail to complete withdrawStake, reason: unauthorized', async () => {
+            await expect(stakedContract.connect(wallets[5]).withdrawStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'")
+        })
+
         it ('should exercise the withdrawStake, happy-path', async () => {
             const initialBalance = await token.balanceOf(mainWallet.address)
             expect(initialBalance).to.equal(0)
@@ -355,6 +378,10 @@ describe('ERC721JoinPolicy', (): void => {
 
             const afterBalance = await token.balanceOf(mainWallet.address)
             expect(afterBalance).to.equal(1)
+        })
+
+        it ('should fail to call withdrawStake, reason: insufficient balance', async () => {
+            await expect(stakedContract.connect(mainWallet).withdrawStake(0)).to.be.revertedWith('M Exception while processing transaction: reverted with reason string \'ERC721: transfer caller is not owner nor approved\'')
         })
 
     })

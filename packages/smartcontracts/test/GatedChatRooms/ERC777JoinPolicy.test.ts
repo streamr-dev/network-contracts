@@ -109,6 +109,14 @@ describe('ERC777JoinPolicy', (): void => {
         )
     })
 
+    it ('should fail to complete depositStake, reason: stakingDisabled', async () => {
+        await expect(contract.connect(wallets[0]).depositStake(0)).to.be.revertedWith('stakingDisabled')
+    })
+
+    it ('should fail to complete withdrawStake, reason: stakingDisabled', async () => {
+        await expect(contract.connect(wallets[0]).withdrawStake(0)).to.be.revertedWith('stakingDisabled')
+    })
+
     it ('should fail to deploy a policy with 0 as minimumRequiredBalance', async () => {
         const ERC777JoinPolicy = await ethers.getContractFactory('ERC777JoinPolicy', wallets[0])
         await expect(ERC777JoinPolicy.deploy(
@@ -329,19 +337,45 @@ describe('ERC777JoinPolicy', (): void => {
            
         })
 
+        it ('should fail depositStake, reason: not enough balance', async () => {
+            await expect(stakedContract.connect(mainWallet).depositStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+        })
+
+        it ('should fail to complete depositStake, reason: unauthorized', async() => {
+            await expect(stakedContract.connect(wallets[5]).depositStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'")
+        })
+
+        it ('should fail to complete withdrawStake, reason: unauthorized', async () => {
+            await expect(stakedContract.connect(wallets[5]).withdrawStake(100))
+            .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'")
+        })
+
+        it ('should exercise withdrawStake with an inferior amount to the treshold', async () => {
+            await stakedContract.connect(mainWallet).withdrawStake(1)
+            const afterBalance = await token.balanceOf(mainWallet.address)
+            expect(afterBalance).to.equal(1)
+        })
+
         it ('should exercise the withdrawStake, happy-path', async () => {
             const initialBalance = await token.balanceOf(mainWallet.address)
-            expect(initialBalance).to.equal(0)
+            expect(initialBalance).to.equal(1)
 
             const contractBalance = await token.balanceOf(stakedContract.address)
-            expect(contractBalance).to.equal(10)
+            expect(contractBalance).to.equal(9)
 
-            await stakedContract.connect(mainWallet).withdrawStake(
-                contractBalance
-            )
+            await stakedContract.connect(mainWallet)
+            .withdrawStake(9)
 
             const afterBalance = await token.balanceOf(mainWallet.address)
-            expect(afterBalance).to.equal(contractBalance)
+            expect(afterBalance).to.equal(10)
+        })
+
+        it ('should fail to call withdrawStake, reason: insufficient balance', async () => {
+            await expect(stakedContract.connect(mainWallet).withdrawStake(
+                10
+            )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'ERC777: transfer amount exceeds balance\'')
         })
     })
 
