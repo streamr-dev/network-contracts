@@ -1,42 +1,13 @@
-import { waffle, upgrades, ethers } from 'hardhat'
+import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract} from 'ethers'
+import { Contract} from 'ethers'
 
-import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
-import type { StreamRegistry } from '../../typechain/StreamRegistry'
-import {sign, hash, createIdentity} from 'eth-crypto'
-import { JoinPolicyRegistry } from '../../typechain'
-
-const { deployContract } = waffle
 const { provider } = waffle
 
-// eslint-disable-next-line no-unused-vars
-enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
-
-enum ChallengeType {
-    Authorize = 0,
-    Revoke = 1,
-}
-
-const signDelegatedChallenge = (
-    mainAddress: string,
-    delegatedPrivateKey: string,
-    challengeType: ChallengeType
-) => {
-    const message = hash.keccak256([
-        { type: 'uint256', value: challengeType.toString() },
-        { type: 'address', value: mainAddress },
-    ])
-
-    return sign(delegatedPrivateKey, message)
-}
 use(waffle.solidity)
 describe('JoinPolicyRegistry', (): void => {
     const wallets = provider.getWallets()
     const StakingEnabled = false
-    let streamRegistryV3: StreamRegistry
-    let minimalForwarderFromUser0: MinimalForwarder
     const adminAddress: string = wallets[0].address
 
     const streamPath = '/foo/bar'
@@ -48,15 +19,10 @@ describe('JoinPolicyRegistry', (): void => {
 
     let CalculatedPolicyId: string 
 
-    let delegatedAccessRegistry: Contract
     let joinPolicyRegistry: Contract
-    let deployer: Contract
-    let token: Contract
     before( async (): Promise<void> => {
-           
         const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyRegistry')
         joinPolicyRegistry = await JoinPolicyRegistry.deploy()
-
     })
 
     it ('should verify that a new instance can be registered positively', async () => {

@@ -1,23 +1,15 @@
 import { waffle, upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { BigNumber, Contract} from 'ethers'
+import {  Contract} from 'ethers'
 
 import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../../typechain/StreamRegistry'
-import {sign, hash, createIdentity} from 'eth-crypto'
-import { JoinPolicyRegistry } from '../../typechain'
 
 const { deployContract } = waffle
 const { provider } = waffle
 
-// eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
-
-enum ChallengeType {
-    Authorize = 0,
-    Revoke = 1,
-}
 
 use(waffle.solidity)
 describe('TokenGatedDeployers', (): void => {
