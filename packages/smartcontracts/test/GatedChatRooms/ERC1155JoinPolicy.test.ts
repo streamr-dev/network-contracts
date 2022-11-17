@@ -185,4 +185,182 @@ describe('ERC1155JoinPolicy', (): void => {
             PermissionType.Grant
         )).to.equal(false)
     })
+
+    it ('should fail to exercise the requestJoin when not enough tokens are available', async () => {
+        await expect(contract.connect(wallets[5]).requestJoin())
+        .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+    })
+
+    it ('should allow for a main account to be granted access via requestJoin', async () => {
+        await token.connect(wallets[0]).safeTransferFrom(
+            wallets[0].address,
+            wallets[5].address, 
+            TokenIds.A,
+            1,
+            '0x'
+        )
+        await contract.connect(wallets[5]).requestJoin()
+
+        const events = await contract.queryFilter(
+            contract.filters.Accepted()
+        )
+        expect(events.length).to.equal(2)
+        expect(events[1].args).to.not.be.undefined
+        
+        expect(events[1].args!.mainWallet).to.equal(
+            wallets[5].address
+        )
+        expect(events[1].args!.delegatedWallet).to.equal(
+            '0x0000000000000000000000000000000000000000'
+        )
+        
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Edit
+        )).to.equal(false)
+
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Delete
+        )).to.equal(false)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Publish
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Subscribe
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Grant
+        )).to.equal(false)
+    })
+
+
+
+    describe('ERC1155JoinPolicy - StakeGate', async () => {
+        const mainWallet = wallets[2]
+        const delegatedWallet = createIdentity()
+        const TokenAmount = 10
+
+        let stakedContract: Contract
+
+        before(async (): Promise<void> => {
+
+            const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
+
+            stakedContract = await ERC1155JoinPolicy.deploy(
+     
+            token.address,
+            streamRegistryV3.address,
+            streamId,
+            [
+                PermissionType.Publish, PermissionType.Subscribe
+            ],
+            TokenIds.C,
+            1, // minRequiredBalance    
+            delegatedAccessRegistry.address,
+            true // staking enabled
+        )
+
+
+
+            await streamRegistryV3.grantPermission(
+                streamId,
+                stakedContract.address,
+                PermissionType.Grant
+            )
+
+            const signature = signDelegatedChallenge(
+                mainWallet.address,
+                delegatedWallet.privateKey,
+                ChallengeType.Authorize
+            )
+
+            await delegatedAccessRegistry.connect(mainWallet).authorize(
+                delegatedWallet.address,
+                signature
+            )
+        })
+
+        it ('should exercise the depositStake method, happy-path', async () => {
+            await token.mint(mainWallet.address, TokenIds.C, TokenAmount)
+            const balance = await token.balanceOf(mainWallet.address, TokenIds.C)
+            expect(balance).to.equal(TokenAmount)
+            await token.connect(mainWallet).setApprovalForAll(stakedContract.address, true)
+
+            await stakedContract.connect(mainWallet)
+            .depositStake(
+                TokenAmount
+            )
+            
+            const afterBalance = await token.balanceOf(mainWallet.address, TokenIds.C)
+            expect(afterBalance).to.equal(0)
+
+
+            const events = await stakedContract.queryFilter(
+                stakedContract.filters.Accepted()
+            )
+            expect(events.length).to.equal(1)
+            expect(events[0].args).to.not.be.undefined
+            
+            expect(events[0].args!.mainWallet).to.equal(
+                mainWallet.address
+            )
+            expect(events[0].args!.delegatedWallet).to.equal(
+                delegatedWallet.address
+            )
+            
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Edit
+            )).to.equal(false)
+
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Delete
+            )).to.equal(false)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Publish
+            )).to.equal(true)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Subscribe
+            )).to.equal(true)
+            expect(await streamRegistryV3.hasPermission(
+                streamId,
+                delegatedWallet.address,
+                PermissionType.Grant
+            )).to.equal(false)
+
+           
+        })
+
+        it ('should exercise the withdrawStake, happy-path', async () => {
+            const initialBalance = await token.balanceOf(mainWallet.address, TokenIds.C)
+            expect(initialBalance).to.equal(0)
+
+            const contractBalance = await token.balanceOf(stakedContract.address, TokenIds.C)
+            expect(contractBalance).to.equal(TokenAmount)
+
+            await stakedContract.connect(mainWallet).withdrawStake(
+                TokenAmount
+            )
+
+            const afterBalance = await token.balanceOf(mainWallet.address, TokenIds.C)
+            expect(afterBalance).to.equal(TokenAmount)
+        })
+
+    })
 })

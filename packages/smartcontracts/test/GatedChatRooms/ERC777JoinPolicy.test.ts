@@ -185,7 +185,55 @@ describe('ERC777JoinPolicy', (): void => {
         )).to.equal(false)
     })
 
-    /*
+    it ('should fail to exercise the requestJoin when not enough tokens are available', async () => {
+        await expect(contract.connect(wallets[5]).requestJoin())
+        .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
+    })
+
+    it ('should allow for a main account to be granted access via requestJoin', async () => {
+        await token.mint(wallets[5].address, BigNumber.from(1))
+        await contract.connect(wallets[5]).requestJoin()
+
+        const events = await contract.queryFilter(
+            contract.filters.Accepted()
+        )
+        expect(events.length).to.equal(2)
+        expect(events[1].args).to.not.be.undefined
+        
+        expect(events[1].args!.mainWallet).to.equal(
+            wallets[5].address
+        )
+        expect(events[1].args!.delegatedWallet).to.equal(
+            '0x0000000000000000000000000000000000000000'
+        )
+        
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Edit
+        )).to.equal(false)
+
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Delete
+        )).to.equal(false)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Publish
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Subscribe
+        )).to.equal(true)
+        expect(await streamRegistryV3.hasPermission(
+            streamId,
+            wallets[5].address,
+            PermissionType.Grant
+        )).to.equal(false)
+    })
 
     describe ('ERC777JoinPolicy - StakeGate', async () => {
         const mainWallet = wallets[2]
@@ -227,18 +275,14 @@ describe('ERC777JoinPolicy', (): void => {
             )
         })
 
-        it ('should exercise the stakeIn method, happy-path', async () => {
+        it ('should exercise the depositStake method, happy-path', async () => {
             const tokenBalance = BigNumber.from(10)
             await token.mint(mainWallet.address, tokenBalance)
             const balance = await token.balanceOf(mainWallet.address)
             expect(balance).to.equal(tokenBalance)
             await token.connect(mainWallet).authorizeOperator(stakedContract.address)
             await stakedContract.connect(mainWallet)
-            .stakeIn(
-                tokenBalance,
-                delegatedWallet.address,
-                {from: mainWallet.address}
-            )
+            .depositStake(tokenBalance)
             
             const afterBalance = await token.balanceOf(mainWallet.address)
             expect(afterBalance).to.equal(0)
@@ -285,22 +329,20 @@ describe('ERC777JoinPolicy', (): void => {
            
         })
 
-        it ('should exercise the stakeOut, happy-path', async () => {
+        it ('should exercise the withdrawStake, happy-path', async () => {
             const initialBalance = await token.balanceOf(mainWallet.address)
             expect(initialBalance).to.equal(0)
 
             const contractBalance = await token.balanceOf(stakedContract.address)
             expect(contractBalance).to.equal(10)
 
-            await stakedContract.connect(mainWallet).stakeOut(
-                10,
-                delegatedWallet.address,
-                {from: mainWallet.address}
+            await stakedContract.connect(mainWallet).withdrawStake(
+                contractBalance
             )
 
             const afterBalance = await token.balanceOf(mainWallet.address)
-            expect(afterBalance).to.equal(10)
+            expect(afterBalance).to.equal(contractBalance)
         })
-    })*/
+    })
 
 })

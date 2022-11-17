@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC1820Implementer.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import "../../StreamRegistry/StreamRegistryV3.sol"; 
 import "./JoinPolicy.sol";
 import "../DelegatedAccessRegistry.sol";
 
 
-contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer{
+contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
     IERC777 public token;
 
     IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
@@ -48,35 +48,57 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer{
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
-/*
 
-    function stakeIn(
-        uint256 amount,
-        address delegatedWallet
+    function depositStake(
+        uint256 amount
     )
         public 
+        override
         isStakingEnabled()
-        isUserAuthorized(delegatedWallet) 
-        canJoin(0) 
+        isUserAuthorized() 
+        canJoin() 
     {
         token.operatorSend(msg.sender, address(this), amount, "", "");
         balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
 
-    function stakeOut(
-        uint256 amount,
-        address delegatedWallet
+    function withdrawStake(
+        uint256 amount
     )
         public 
+        override
         isStakingEnabled()
-        isUserAuthorized(delegatedWallet) 
+        isUserAuthorized() 
     {
         token.send(msg.sender, amount, "");
         balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);
         if (balances[msg.sender] < minRequiredBalance) {
+            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
             revoke(msg.sender, delegatedWallet);
         }
     }
-    */
+
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external {
+        
+    }
+
+    function tokensToSend(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external {
+        
+    }
 }

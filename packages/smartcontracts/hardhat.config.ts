@@ -89,6 +89,8 @@ const config: HardhatUserConfig = {
             '@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol',
             '@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol',
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            'contracts/GatedChatRooms/DelegatedAccessRegistry.sol',
+            'contracts/GatedChatRooms/JoinPolicies/JoinPolicy.sol'
         ],
     },
     solidity: {

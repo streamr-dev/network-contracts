@@ -86,6 +86,9 @@ abstract contract JoinPolicy{
         accept(msg.sender, delegatedWallet);
     }
 
+    function depositStake(uint256 amount) virtual public;
+    function withdrawStake(uint256 amount) virtual public;
+
     modifier canJoin() virtual;
 
 }

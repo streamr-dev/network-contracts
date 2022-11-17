@@ -61,7 +61,7 @@
     "ethereum-waffle": "3.4.0",
     "ethers": "5.5.3",
     "event-stream": "4.0.1",
-    "hardhat": "2.11.2",
+    "hardhat": "2.12.2",
     "hardhat-dependency-compiler": "1.1.2",
     "hardhat-deploy": "0.7.11",
     "hardhat-deploy-ethers": "0.3.0-beta.13",
@@ -69,7 +69,7 @@
     "hardhat-typechain": "0.3.5",
     "solc": "0.8.6",
     "solhint": "3.3.6",
-    "solidity-coverage": "0.7.20",
+    "solidity-coverage": "0.8.2",
     "ts-generator": "0.1.1",
     "typechain": "4.0.3",
     "web3-providers-http": "1.8.0"

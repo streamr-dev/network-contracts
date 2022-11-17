@@ -38,40 +38,38 @@ contract ERC20JoinPolicy is JoinPolicy{
     modifier canJoin() override {
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
-    }  
-
-    /*
+    }
+    
     function depositStake(
-        uint256 amount,
-        address delegatedWallet
+        uint256 amount
     ) 
         override
         public 
         isStakingEnabled()
-        isUserAuthorized(delegatedWallet) 
-        canJoin(0) 
+        isUserAuthorized() 
+        canJoin() 
     {
         token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
 
     function withdrawStake(
-        uint256 amount,
-        address delegatedWallet
+        uint256 amount
     ) 
         override
         public 
         isStakingEnabled()
-        isUserAuthorized(delegatedWallet) 
-        canJoin(0) 
+        isUserAuthorized() 
     {
         token.transfer(msg.sender, amount);
         balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);
         if (balances[msg.sender] < minRequiredBalance) {
+            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
             revoke(msg.sender, delegatedWallet);
         }
     }
-    */
+
 }
 
