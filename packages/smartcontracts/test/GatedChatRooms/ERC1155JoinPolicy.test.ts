@@ -98,7 +98,7 @@ describe('ERC1155JoinPolicy', (): void => {
                 PermissionType.Publish, PermissionType.Subscribe
             ],
             TokenIds.A,
-            1, // minRequiredBalance    
+            1, // minRequiredBalance
             delegatedAccessRegistry.address,
             false // disable staking
         )

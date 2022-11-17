@@ -146,7 +146,7 @@ describe('ERC20JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(0))
         await expect(
             contract.connect(wallets[1])
-                .requestDelegatedJoin()  
+                .requestDelegatedJoin()
         ).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
     })
 
