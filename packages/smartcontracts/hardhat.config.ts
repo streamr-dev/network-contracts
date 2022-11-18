@@ -1,7 +1,6 @@
 // import { task } from 'hardhat/config'
-import '@nomiclabs/hardhat-waffle'
-import 'hardhat-typechain'
 import { HardhatUserConfig } from 'hardhat/types'
+import "@nomicfoundation/hardhat-chai-matchers"
 import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import '@openzeppelin/hardhat-upgrades'
@@ -40,6 +39,7 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {
             gas: 12000000,
+            // blockGasLimit: 0xF42400,
             blockGasLimit: 0x1fffffffffffff,
             allowUnlimitedContractSize: true
         },
@@ -70,9 +70,9 @@ const config: HardhatUserConfig = {
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         }
     },
-    etherscan: {
-        apiKey: ''
-    },
+    // etherscan: {
+    //     apiKey: ''
+    // },
     dependencyCompiler: {
         paths: [
             '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
@@ -141,10 +141,10 @@ const config: HardhatUserConfig = {
     // namedAccounts: {
     //     deployer: 0,
     // },
-    typechain: {
-        outDir: './typechain',
-        target: 'ethers-v5',
-    },
+    // typechain: {
+    //     outDir: './typechain',
+    //     target: 'ethers-v5',
+    // },
     mocha: {
         timeout: 100000000
     }

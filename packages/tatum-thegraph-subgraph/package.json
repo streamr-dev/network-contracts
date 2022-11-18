@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "^0.24.1",
-    "smartcontracts": "0.0.4"
+    "@streamr/network-contracts": "2.4.0"
   }
 }
