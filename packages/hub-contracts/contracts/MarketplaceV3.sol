@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./IPurchaseListener.sol"; // deprecate in v4
 import "./IMarketplace.sol";
+import "./token/IERC677.sol";
 
 /**
  * @title Streamr Marketplace
@@ -127,7 +128,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
         (,address _owner,,,,,,) = getProduct(id);
         require(_owner == address(0), "error_alreadyExists");
-        
+
         Product storage p = products[id];
         p.id = id;
         p.name = name;
@@ -283,7 +284,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         (Product storage p, TimeBasedSubscription storage oldSub) = _getSubscription(productId, subscriber);
         require(p.state == ProductState.Deployed, "error_notDeployed");
         require(!p.requiresWhitelist || p.whitelist[subscriber] == WhitelistState.Approved, "error_whitelistNotAllowed");
-        
+
         uint endTimestamp;
         if (oldSub.endTimestamp > block.timestamp) {
             require(addSeconds > 0, "error_topUpTooSmall");
@@ -307,12 +308,20 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      */
     function _handleProductPurchase(bytes32 productId, uint addSeconds, address subscriber) internal {
         (Product storage p, TimeBasedSubscription storage oldSub) = _getSubscription(productId, subscriber);
-        
+
+        address recipient = p.beneficiary;
         uint256 price = addSeconds * p.pricePerSecond;
         uint256 fee = (txFee * price) / 1 ether;
-        address recipient = p.beneficiary;
-        ERC20 productToken = ERC20(p.pricingTokenAddress);
-        require(productToken.transferFrom(msg.sender, recipient, price - fee), "error_paymentFailed");
+        uint256 recipientAmount = price - fee;
+        IERC677 productToken = IERC677(p.pricingTokenAddress);
+
+        require(productToken.transferFrom(msg.sender, address(this), recipientAmount), "error_paymentFailed");
+        try productToken.transferAndCall(recipient, recipientAmount, abi.encodePacked(productId, subscriber, oldSub.endTimestamp, price, fee)) {
+        } catch {
+            // pricing token is NOT ERC677 and product beneficiary can NOT react to product purchase
+            require(productToken.transfer(recipient, recipientAmount), "error_paymentFailed");
+        }
+
         if (fee > 0) {
             require(productToken.transferFrom(msg.sender, owner(), fee), "error_paymentFailed");
         }
@@ -378,7 +387,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(data.length == 32, "error_badProductId");
-        
+
         bytes32 productId;
         assembly { productId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 
