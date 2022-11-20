@@ -354,7 +354,7 @@ describe("MarketplaceV3", () => {
             expect(sellerAfter.sub(sellerBefore)).to.equal(750)
         })
 
-        it.skip('works for plain ERC20 tokens (no transferAndCall)', async () => {
+        it('works for plain ERC20 tokens (no transferAndCall)', async () => {
             const market = await deployMarketplace()
             await erc20token.mint(other.address, parseEther('10000'))
             await erc20token.connect(other).approve(market.address, parseEther('1000'))
