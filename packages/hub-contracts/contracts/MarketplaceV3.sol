@@ -318,7 +318,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         require(productToken.transferFrom(msg.sender, address(this), recipientAmount), "error_paymentFailed");
         try productToken.transferAndCall(recipient, recipientAmount, abi.encodePacked(productId, subscriber, oldSub.endTimestamp, price, fee)) {
         } catch {
-            // pricing token is NOT ERC677 and product beneficiary can NOT react to product purchase
+            // pricing token is NOT ERC677, so product beneficiary can only react to purchase by implementing IPurchaseListener
             require(productToken.transfer(recipient, recipientAmount), "error_paymentFailed");
         }
 
@@ -326,7 +326,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
             require(productToken.transferFrom(msg.sender, owner(), fee), "error_paymentFailed");
         }
 
-        // Notify purchase listener
+        // Notify IPurchaseListener
         uint256 codeSize;
         assembly { codeSize := extcodesize(recipient) }  // solhint-disable-line no-inline-assembly
         if (codeSize > 0) {
