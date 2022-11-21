@@ -71,6 +71,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(msg.sender == globalData().broker, "error_only_broker");
         _;
     }
+    modifier onlyBrokerOrForced() {
+        require(msg.sender == globalData().broker || payoutQueue[queuePayoutIndex].timestamp + MAX_SLASH_TIME < block.timestamp, "error_only_broker_or_forced") ;
+        _;
+    }
 
     function initialize(
         address tokenAddress,
@@ -302,7 +306,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // BROKER FUNCTIONS
     /////////////////////////////////////////
 
-    function stake(Bounty bounty, uint amountWei) external onlyBroker {
+    function stake(Bounty bounty, uint amountWei) external onlyBroker { 
         // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
         // console.log("stake amountWei", amountWei);
         // console.log("stake balanceOf this", globalData().token.balanceOf(address(this)));
@@ -313,12 +317,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit Staked(bounty, amountWei);
     }
 
-    function unstake(Bounty bounty) external onlyBroker {
+    function unstake(Bounty bounty) external onlyBroker { // remove modifier, double checked..?
         _unstakeWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
     }
 
-    function _unstakeWithoutQueue(Bounty bounty) internal {
+    function _unstakeWithoutQueue(Bounty bounty) public onlyBrokerOrForced {
         // console.log("unstake bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
@@ -483,7 +487,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function forceUnstake(Bounty bounty) external {
-        require(payoutQueue[queuePayoutIndex].timestamp + MAX_SLASH_TIME < block.timestamp, "error_forceTimeNotReached");
         // console.log("forceUnstakeAndPayout triggered, time difference is", block.timestamp - payoutQueue[queuePayoutIndex].timestamp - MAX_SLASH_TIME);
         _unstakeWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);

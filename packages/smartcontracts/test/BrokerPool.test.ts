@@ -16,7 +16,7 @@ import exp from "constants"
 const { parseEther, formatEther } = utils
 use(waffle.solidity)
 
-describe.only("BrokerPool", (): void => {
+describe("BrokerPool", (): void => {
     const [
         admin,
         broker,     // creates pool
@@ -373,7 +373,7 @@ describe.only("BrokerPool", (): void => {
 
         // advance time beyond max age of queue spot
         await advanceToTimestamp(timeAtStart + 2591000, "withdraw winnings from bounty")
-        await expect (pool.connect(investor).forceUnstake(bounty.address)).to.be.revertedWith("error_forceTimeNotReached")
+        await expect (pool.connect(investor).forceUnstake(bounty.address)).to.be.revertedWith("error_only_broker_or_forced")
         await advanceToTimestamp(timeAtStart + 2592002, "withdraw winnings from bounty")
         
         // now anyone can trigger the unstake and payout of the queue
@@ -419,7 +419,7 @@ describe.only("BrokerPool", (): void => {
 
         // advance time beyond max age of queue spot
         await advanceToTimestamp(timeAtStart + 2591000, "withdraw winnings from bounty")
-        await expect (pool.connect(investor).forceUnstake(bounty1.address)).to.be.revertedWith("error_forceTimeNotReached")
+        await expect (pool.connect(investor).forceUnstake(bounty1.address)).to.be.revertedWith("error_only_broker_or_forced")
 
         // t = 2592000
         await advanceToTimestamp(timeAtStart + 3000000, "withdraw winnings from bounty")
@@ -465,7 +465,7 @@ describe.only("BrokerPool", (): void => {
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
-    it("edge case many queue entries, one bounty", async function(): Promise<void> {
+    it("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool({ })
@@ -490,7 +490,7 @@ describe.only("BrokerPool", (): void => {
         // await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")
         // doing it in one go with 1000 slots in the queue will fail
         // so only do the unstake, and then do two times 500 slot queue payouts
-        await (await pool.connect(broker).unstake(bounty.address)).wait()
+        await (await pool.connect(broker)._unstakeWithoutQueue(bounty.address)).wait()
         await (await pool.connect(broker).payOutQueueWithFreeFunds(500)).wait()
         await (await pool.connect(broker).payOutQueueWithFreeFunds(500)).wait()
 
