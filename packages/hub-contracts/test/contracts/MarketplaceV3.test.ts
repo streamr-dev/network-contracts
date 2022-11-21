@@ -2,7 +2,7 @@ import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect, use } from "chai"
 import { utils } from "ethers"
 
-import type { MarketplaceV3, DATAv2, ERC20Mintable } from "../../typechain"
+import type { MarketplaceV3, DATAv2, ERC20Mintable, MockMarketplaceBeneficiary } from "../../typechain"
 
 import { ProductState } from "../../src/contracts/enums"
 
@@ -24,13 +24,18 @@ describe("MarketplaceV3", () => {
 
     let token: DATAv2
     let erc20token: ERC20Mintable
+    let mockBeneficiary: MockMarketplaceBeneficiary
 
     before(async () => {
         const tokenFactory = await getContractFactory("DATAv2", admin)
         token = await tokenFactory.deploy() as DATAv2
         await token.grantRole(id("MINTER_ROLE"), admin.address)
-        await token.mint(admin.address, parseEther("1000"))
-        await token.mint(other.address, parseEther("1000"))
+        await token.mint(admin.address, parseEther("10000"))
+        await token.mint(other.address, parseEther("10000"))
+
+        // deploy mock PurchaseListener contract, to check that the beneficiary can react to a product purchase
+        const mockBeneficiaryFactory = await getContractFactory("MockMarketplaceBeneficiary")
+        mockBeneficiary = await mockBeneficiaryFactory.deploy() as MockMarketplaceBeneficiary
 
         const otherTokenFactory = await getContractFactory("ERC20Mintable", admin)
         erc20token = await otherTokenFactory.deploy() as ERC20Mintable
@@ -354,19 +359,29 @@ describe("MarketplaceV3", () => {
             expect(sellerAfter.sub(sellerBefore)).to.equal(750)
         })
 
-        it('works for plain ERC20 tokens (no transferAndCall)', async () => {
+        it('notifies the PurchaseListener for plain ERC20 tokens (no transferAndCall)', async () => {
             const market = await deployMarketplace()
             await erc20token.mint(other.address, parseEther('10000'))
             await erc20token.connect(other).approve(market.address, parseEther('1000'))
-            await market.createProduct(productIdbytes, productId, beneficiary.address, parseEther('1'), erc20token.address, 1)
+            await market.createProduct(productIdbytes, productId, mockBeneficiary.address, parseEther('1'), erc20token.address, 1)
             await expect(market.connect(other).buy(productIdbytes, 1000))
-                .to.emit(market, "NewSubscription")
+                .to.emit(mockBeneficiary, "OnPurchaseCalled") // notifies the PurchaseListener
 
             // check subscription
             expect(await market.hasValidSubscription(productIdbytes, other.address))
 
             // check balance
-            expect(await erc20token.balanceOf(beneficiary.address)).to.equal(parseEther('1000'))
+            expect(await erc20token.balanceOf(mockBeneficiary.address)).to.equal(parseEther('1000'))
+        })
+
+        it('fails if seller rejects the purchase', async () => {
+            const badMagicAddress = "0x1234567890123456789012345678901234567890" // MockMarketplaceBeneficiary won't sell to this address
+
+            const market = await deployMarketplace()
+            await token.connect(other).approve(market.address, parseEther('100'))
+            await market.createProduct(productIdbytes, productId, mockBeneficiary.address, parseEther('1'), token.address, 1)
+            await expect(market.connect(other).buyFor(productIdbytes, 100, badMagicAddress))
+                .to.be.revertedWith("error_rejectedBySeller")
         })
 
         it('fails for bad arguments', async () => {
