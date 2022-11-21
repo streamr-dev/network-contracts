@@ -3,6 +3,8 @@
 // Deployed on PolygonMainchain at 0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3 on 18.08.2022
 // Deployed on GnosisChain at 0x2022E1F7749D355726Fb65285E29605A098bcb52 on 18.08.2022
 
+// No new features to MarketplaceV3 anymore, only bugfixes
+
 // solhint-disable not-rely-on-time
 pragma solidity ^0.8.9;
 
@@ -11,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "./IPurchaseListener.sol"; // deprecate in v4
+import "./IPurchaseListener.sol";
 import "./IMarketplace.sol";
 import "./token/IERC677.sol";
 
@@ -20,9 +22,6 @@ import "./token/IERC677.sol";
  * @dev note about numbers:
  *   All prices and exchange rates are in "decimal fixed-point", that is, scaled by 10^18, like ETH vs wei.
  *  Seconds are integers as usual.
- *
- * Next version TODO:
- *  - EIP-165 inferface definition; PurchaseListener
  */
 contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplace {
     struct Product {
@@ -343,7 +342,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
     }
 
-    /** Product owner can give access to product also to non-buyers, TODO: owner can give access through StreamRegistry directly, is this function needed? */
+    /** Product owner can give access to product also to non-buyers */
     function grantSubscription(bytes32 productId, uint subscriptionSeconds, address recipient) public whenNotHalted onlyProductOwner(productId){
         _subscribe(productId, subscriptionSeconds, recipient);
     }
@@ -356,7 +355,7 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
 
     /**
-     * Purchases access to this stream for msg.sender. TODO: user _msgSender()
+     * Purchases access to this stream for msg.sender
      * If the address already has a valid subscription, extends the subscription by the given period.
      * @dev since v4.0: Notify the seller if the seller implements PurchaseListener interface
      */
@@ -400,12 +399,6 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         uint subscriptionSeconds = amount / pricePerSecond / 1 ether;
         _subscribe(productId, subscriptionSeconds, recipient);
     }
-
-
-    // TODO: transfer allowance to another Marketplace contract
-    // Mechanism basically is that this Marketplace draws from the allowance and credits
-    //   the account on another Marketplace; OR that there is a central credit pool (say, an ERC20 token)
-    // Creating another ERC20 token for this could be a simple fix: it would need the ability to transfer allowances
 
     /////////////// Admin functionality ///////////////
 
