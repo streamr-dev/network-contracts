@@ -11,7 +11,7 @@ import "./IMarketplaceV4.sol";
 import "./IPurchaseListener.sol";
 
 interface IProjectRegistry {
-    enum PermissionType {  Buy, Delete, Edit, Grant }
+    enum PermissionType { Buy, Delete, Edit, Grant }
     function getProject(bytes32 id) external view returns (
         address beneficiary,
         uint pricePerSecond,
@@ -60,8 +60,8 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
     /** fraction of the purchase revenue that goes to marketplace.owner (1e18 means 100%) */
     uint256 public txFee;
 
-	/** Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address. */
-	address public pendingOwner;
+    /** Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address. */
+    address public pendingOwner;
 
     bool public halted;
 
@@ -129,7 +129,7 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
         _notifyPurchaseListener(beneficiary, productId, subscriber, subEndTimestamp, price, fee);
     }
 
-    /** 
+    /**
      * Notify the purchase listener of product purchase
      * @param beneficiary is the product beneficiary (the address getting paid for product)
      * @param subscriber is the address for which the project subscription is added/extended
@@ -146,13 +146,13 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
         }
     }
 
-    /** 
+    /**
      * Pay subscription for someone else
      * @param subscriber is the address for which the project subscription is added/extended
     */
     function buyFor(bytes32 productId, uint subscriptionSeconds, address subscriber) public override whenNotHalted {
         require(projectRegistry.canBuyProject(productId, subscriber), "error_unableToBuyProject");
-        
+
         // Marketplaces isTrusted by the project registry
         projectRegistry.grantSubscription(productId, subscriptionSeconds, subscriber);
 
@@ -166,7 +166,7 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
     function buy(bytes32 productId, uint subscriptionSeconds) public whenNotHalted {
         buyFor(productId, subscriptionSeconds, _msgSender());
     }
-    
+
     /*
      * ERC677 token callback
      * If the data bytes contains a product id, the subscription is extended for that product
@@ -177,7 +177,7 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(data.length == 32, "error_badProductId");
-        
+
         bytes32 productId;
         assembly { productId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 
@@ -202,22 +202,22 @@ contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMar
 
     /**
      * @dev Override openzeppelin implementation
-	 * @dev Allows the current owner to set the pendingOwner address.
-	 * @param newOwner The address to transfer ownership to.
-	 */
-	function transferOwnership(address newOwner) public override onlyOwner {
+     * @dev Allows the current owner to set the pendingOwner address.
+     * @param newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address newOwner) public override onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
-		pendingOwner = newOwner;
-	}
+        pendingOwner = newOwner;
+    }
 
     /**
-	 * @dev Allows the pendingOwner address to finalize the transfer.
-	 */
-	function claimOwnership() public {
-		require(_msgSender() == pendingOwner, "onlyPendingOwner");
-		_transferOwnership(pendingOwner);
-		pendingOwner = address(0);
-	}
+     * @dev Allows the pendingOwner address to finalize the transfer.
+     */
+    function claimOwnership() public {
+        require(_msgSender() == pendingOwner, "onlyPendingOwner");
+        _transferOwnership(pendingOwner);
+        pendingOwner = address(0);
+    }
 
     /**
      * @dev Disable openzeppelin renounce ownership functionality

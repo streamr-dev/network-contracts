@@ -114,7 +114,7 @@ describe("Marketplace", () => {
             { kind: 'uups' })
         streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
-        
+
     }
 
     async function deployProjectRegistry(): Promise<void> {
@@ -163,7 +163,7 @@ describe("Marketplace", () => {
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
             await marketplaceV4.setProjectRegistry(projectRegistry.address)
-            
+
             expect(marketplaceV3.address)
                 .to.equal(marketplaceV4.address)
         })
@@ -207,7 +207,7 @@ describe("Marketplace", () => {
 
             await expect(market.buy(projectId, 0))
                 .to.be.revertedWith('error_newSubscriptionTooSmall')
-                
+
             await expect(market.connect(other).buy(projectId, 0))
                 .to.be.revertedWith('error_newSubscriptionTooSmall')
         })
@@ -251,14 +251,14 @@ describe("Marketplace", () => {
 
         it('can buy products in one transaction (transferAndCall)', async () => {
             const market = await deployMarketplace()
-            
+
             await projectRegistry.grantSubscription(projectId, 1, admin.address)
             const subscription = await projectRegistry.getOwnSubscription(projectId)
-            
+
             const pricingTokenIn = 100
             const pricePerSecond = 1
             const expectedEndTimestamp = subscription.endTimestamp.add(pricingTokenIn / pricePerSecond)
-           
+
             await expect(token.transferAndCall(market.address, parseEther(String(pricingTokenIn)), projectId))
                 .to.emit(projectRegistry, 'Subscribed')
                 .withArgs(projectId, admin.address, expectedEndTimestamp)
@@ -353,7 +353,7 @@ describe("Marketplace", () => {
 
             await expect(market.connect(admin2).halt())
                 .to.be.revertedWith("Ownable: caller is not the owner")
-            
+
             // admin can transferOwnership to admin2
             await market.connect(admin).transferOwnership(admin2.address)
             await market.connect(admin2).claimOwnership()
@@ -417,7 +417,7 @@ describe("Marketplace", () => {
             const sign = signTypedData(options) // forwarder
             return {req, sign, projectId, subscriptionSeconds}
         }
-        
+
         it('isTrustedForwarder - positivetest', async (): Promise<void> => {
             expect(await marketplace.isTrustedForwarder(minimalForwarder.address))
                 .to.be.true
@@ -430,7 +430,7 @@ describe("Marketplace", () => {
 
             expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
                 .to.be.false
-            
+
             await minimalForwarder.connect(forwarder).execute(req, sign)
 
             expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
@@ -456,7 +456,7 @@ describe("Marketplace", () => {
             // check that the project doesn't have a valid subscription
             expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
                 .to.be.false
-            
+
             await wrongForwarder.connect(forwarder).execute(req, sign)
 
             // internal call will have failed => subscription was not extended
@@ -515,7 +515,7 @@ describe("Marketplace", () => {
             await projectRegistry.grantRole(trustedForwarderRole, newForwarder.address)
             expect(await projectRegistry.isTrustedForwarder(newForwarder.address))
                 .to.be.true
-                
+
             // check that metatx works with new forwarder
             const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, buyer.privateKey)
             expect(await newForwarder.verify(req, sign))
