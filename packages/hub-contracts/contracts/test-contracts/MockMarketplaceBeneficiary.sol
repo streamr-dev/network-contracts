@@ -18,13 +18,13 @@ contract MockMarketplaceBeneficiary is IPurchaseListener {
         emit OnTokenTransferCalled(recipient, value, data);
     }
 
-	function onPurchase(
-		bytes32 productId,
-		address subscriber,
-		uint256 endTimestamp,
-		uint256 priceDatacoin,
-		uint256 feeDatacoin
-	) public returns (bool accepted) {
+    function onPurchase(
+        bytes32 productId,
+        address subscriber,
+        uint256 endTimestamp,
+        uint256 priceDatacoin,
+        uint256 feeDatacoin
+    ) public returns (bool accepted) {
         emit OnPurchaseCalled(productId, subscriber, endTimestamp, priceDatacoin, feeDatacoin);
         accepted = (subscriber != address(0x1234567890123456789012345678901234567890));
     }
