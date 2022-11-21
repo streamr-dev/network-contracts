@@ -38,12 +38,16 @@ contract StreamStorageRegistry is Initializable, UUPSUpgradeable, ERC2771Context
         _;
     }
 
+    // NOTE: this line has been added to accommodate changes in @openzeppelin/contracts-upgradeable:ERC2771ContextUpgradeable
+    constructor(address trustedForwarder) ERC2771ContextUpgradeable(trustedForwarder) { }
+
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
-    function initialize(address streamRegistryAddress, address nodeRegistryAddress, address trustedForwarderAddress) public initializer {
+    function initialize(address streamRegistryAddress, address nodeRegistryAddress, address) public initializer {
         streamRegistry = StreamRegistry(streamRegistryAddress);
         nodeRegistry = NodeRegistry(nodeRegistryAddress);
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        // NOTE: this call was commented out to accommodate changes in @openzeppelin/contracts-upgradeable:ERC2771ContextUpgradeable
+        // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
     function _authorizeUpgrade(address) internal override isTrusted() {}
