@@ -115,11 +115,11 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
         (, uint subEndTimestamp) = projectRegistry.getSubscription(productId, subscriber);
 
-        // pricing token is ERC677 and product beneficiary can react to product purchase
+        // pricing token is ERC677, so product beneficiary can react to product purchase by implementing onTokenTransfer
         try pricingToken.transferAndCall(beneficiary, price - fee, abi.encodePacked(productId, subscriber, subEndTimestamp, price, fee)) returns (bool success) {
             require(success, "error_transferAndCallProduct");
         } catch {
-            // pricing token is NOT ERC677 and product beneficiary can NOT react to product purchase
+            // pricing token is NOT ERC677, so product beneficiary can only react to purchase by implementing IPurchaseListener
             require(pricingToken.transfer(beneficiary, price - fee), "error_paymentFailed");
         }
 
@@ -136,7 +136,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         _notifyPurchaseListener(beneficiary, productId, subscriber, subEndTimestamp, price, fee);
     }
 
-    /** 
+    /**
      * Notify the purchase listener of product purchase
      * @param beneficiary is the product beneficiary (the address getting paid for product)
      * @param subscriber is the address for which the project subscription is added/extended
@@ -153,13 +153,13 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
     }
 
-    /** 
+    /**
      * Pay subscription for someone else
      * @param subscriber is the address for which the project subscription is added/extended
     */
     function buyFor(bytes32 productId, uint subscriptionSeconds, address subscriber) public override whenNotHalted {
         require(projectRegistry.canBuyProject(productId, subscriber), "error_unableToBuyProject");
-        
+
         // Marketplaces isTrusted by the project registry
         projectRegistry.grantSubscription(productId, subscriptionSeconds, subscriber);
 
@@ -173,7 +173,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     function buy(bytes32 productId, uint subscriptionSeconds) public whenNotHalted {
         buyFor(productId, subscriptionSeconds, _msgSender());
     }
-    
+
     /*
      * ERC677 token callback
      * If the data bytes contains a product id, the subscription is extended for that product
@@ -184,7 +184,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(data.length == 32, "error_badProductId");
-        
+
         bytes32 productId;
         assembly { productId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 

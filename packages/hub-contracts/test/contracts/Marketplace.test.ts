@@ -294,7 +294,7 @@ describe("Marketplace", () => {
                 .to.equal(0)
             await token.approve(market.address, 1000)
             await expect(market.buy(projectId, subscriptionSeconds))
-                .to.emit(mockBeneficiary, "NotifyBeneficiaryOnProductPurchase") // will notify beneficiary
+                .to.emit(mockBeneficiary, "OnTokenTransferCalled") // will notify beneficiary
             expect(await token.balanceOf(beneficiaryAddress))
                 .to.equal(subscriptionSeconds * pricePerSecond)
 
@@ -305,7 +305,7 @@ describe("Marketplace", () => {
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(0)
             await expect(market.buy(projectId, subscriptionSeconds))
-                .to.not.emit(mockBeneficiary, "NotifyBeneficiaryOnProductPurchase") // will NOT notify beneficiary
+                .to.not.emit(mockBeneficiary, "OnTokenTransferCalled") // will NOT notify beneficiary
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(subscriptionSeconds * pricePerSecond)
         })
