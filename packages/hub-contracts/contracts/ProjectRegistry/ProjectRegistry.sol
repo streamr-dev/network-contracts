@@ -49,16 +49,14 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         _;
     }
 
-    constructor(address trustedForwarder) ERC2771ContextUpgradeable(trustedForwarder) { }
+    // Zero Address is passed to ERC2771ContextUpgradeable contract since trusted forwarder is handled through TRUSTED_FORWARDER_ROLE and isTrustedForwarder
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address _streamRegistry) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // Zero Address is passed to ERC2771ContextUpgradeable contract since trusted forwarder is handled through TRUSTED_FORWARDER_ROLE and isTrustedForwarder
-        // ERC2771ContextUpgradeable.__ERC2771Context_init(address(0x0));
-
         streamRegistry = IStreamRegistry(_streamRegistry);
     }
 
