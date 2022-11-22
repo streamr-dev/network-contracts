@@ -144,10 +144,18 @@ describe("Marketplace", () => {
         return market
     }
 
-    async function createProject(): Promise<string> {
+    async function createProject({
+        beneficiaryAddress = beneficiary.address,
+        pricePerSecond = 1,
+        pricingToken = token.address,
+        minimumSubscriptionSeconds = 1,
+        isPublicPurchable = true,
+        metadata = ""
+    } = {}): Promise<string> {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
-        await projectRegistry.createProject(projectId, beneficiary.address, 1, token.address, 1, true, 'metadata-' + projectId)
+        await projectRegistry
+            .createProject(projectId, beneficiaryAddress, pricePerSecond, pricingToken, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -308,6 +316,20 @@ describe("Marketplace", () => {
                 .to.not.emit(mockBeneficiary, "OnTokenTransferCalled") // will NOT notify beneficiary
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(subscriptionSeconds * pricePerSecond)
+        })
+
+        it('ProjectPurchased event emitted for free projects', async () => {
+            const freeProjectId = await createProject({minimumSubscriptionSeconds: 0, pricePerSecond: 0})
+            
+            const hasValidSubscriptionBefore = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
+            await expect(marketplace.buy(projectId, 100))
+                .to.emit(marketplace, 'ProjectPurchased')
+            const hasValidSubscriptionAfter = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
+
+            expect(hasValidSubscriptionBefore)
+                .to.be.false
+            expect(hasValidSubscriptionAfter)
+                .to.be.true
         })
     })
 
