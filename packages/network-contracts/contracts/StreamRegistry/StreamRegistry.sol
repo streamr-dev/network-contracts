@@ -9,11 +9,11 @@ pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 /* solhint-disable not-rely-on-time */
 
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
 import "../chainlinkClient/ENSCache.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
 contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
@@ -69,17 +69,13 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
         _;
     }
 
-    // NOTE: this line has been added to accommodate changes in @openzeppelin/contracts-upgradeable:ERC2771ContextUpgradeable
-    constructor(address trustedForwarder) ERC2771ContextUpgradeable(trustedForwarder) { }
-
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
-    function initialize(address ensCacheAddr, address) public initializer {
+    function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
         ensCache = ENSCache(ensCacheAddr);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // NOTE: this call was commented out to accommodate changes in @openzeppelin/contracts-upgradeable:ERC2771ContextUpgradeable
-        // ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
     function _authorizeUpgrade(address) internal override isTrusted() {}
