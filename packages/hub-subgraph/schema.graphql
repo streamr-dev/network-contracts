@@ -1,3 +1,5 @@
+# Project Registry
+
 type Permission @entity {
   "permission id = projectId + '-' + userAddress"
   id: ID!
@@ -51,4 +53,32 @@ type Project @entity {
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
+  "Marketplace purchases"
+  purchases: [ProjectPurchase!] @derivedFrom(field: "project")
+}
+
+
+# MarketplaceV4
+
+type ProjectPurchase @entity {
+  "project purchase id = projectId + '-' + subscriberAddress"
+  id: ID!
+
+  "Target project this purchase is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the project purchase"
+  subscriber: Bytes!
+
+  "The amount of seconds by which the subscription is extended"
+  subscriptionSeconds: BigInt!
+
+  "The amount of tokens paid to beneficiary for project subscription"
+  price: BigInt!
+
+  "The amount of tokens paid to marketplace for project subscription"
+  fee: BigInt!
+  
+  "purchase date. This is a timestamp in seconds"
+  purchasedAt: BigInt
 }

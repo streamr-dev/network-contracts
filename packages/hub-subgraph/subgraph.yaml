@@ -36,3 +36,23 @@ dataSources:
         - event: Subscribed(indexed bytes32,indexed address,uint256)
           handler: handleSubscriptionUpdate
       file: ./src/projectRegistry.ts
+  - kind: ethereum/contract
+    name: MarketplaceV4
+    network: xDai
+    source:
+      address: "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2"
+      abi: MarketplaceV4
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ProjectPurchase
+      abis:
+        - name: MarketplaceV4
+          file: ./abis/MarketplaceV4.json
+      eventHandlers:
+        - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
+          handler: handleProjectPurchase
+      file: ./src/marketplaceV4.ts
