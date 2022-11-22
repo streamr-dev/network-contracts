@@ -1,14 +1,11 @@
-import { waffle, upgrades, ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { upgrades, ethers } from 'hardhat'
+import { expect } from 'chai'
 import { BigNumber, Contract} from 'ethers'
 
-import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
-import type { StreamRegistry } from '../../typechain/StreamRegistry'
+import type { MinimalForwarder } from '../../typechain/@openzeppelin/contracts/metatx/MinimalForwarder'
+import type { StreamRegistry } from '../../typechain/contracts/StreamRegistry'
 import {sign, hash, createIdentity} from 'eth-crypto'
-
-const { deployContract } = waffle
-const { provider } = waffle
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
@@ -30,25 +27,29 @@ const signDelegatedChallenge = (
 
     return sign(delegatedPrivateKey, message)
 }
-use(waffle.solidity)
-describe('ERC20JoinPolicy', (): void => {
-    const wallets = provider.getWallets()
+describe('ERC20JoinPolicy', async (): Promise<void> => {
+    let wallets: SignerWithAddress[]
     let token: any 
     let contract: Contract
 
     let streamRegistryV3: StreamRegistry
     let minimalForwarderFromUser0: MinimalForwarder
-    const adminAddress: string = wallets[0].address
+    let adminAddress: string
 
     const streamPath = '/foo/bar'
-    const streamId = `${adminAddress}${streamPath}`.toLowerCase()
+    let streamId: string
 
     let delegatedAccessRegistry: Contract
 
     const signerIdentity = createIdentity()
 
     before(async (): Promise<void> => {
-        minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        wallets = await ethers.getSigners()
+        adminAddress = wallets[0].address
+        streamId = `${adminAddress}${streamPath}`.toLowerCase()
+
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2,
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
@@ -123,7 +124,7 @@ describe('ERC20JoinPolicy', (): void => {
             ],
             0, // minRequiredBalance
             delegatedAccessRegistry.address
-        )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
+        )).to.be.revertedWith('error_minReqBalanceGt0')
     })
 
     it ('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {

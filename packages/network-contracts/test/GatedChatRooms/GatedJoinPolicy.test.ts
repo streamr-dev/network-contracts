@@ -1,14 +1,12 @@
-import { waffle, ethers } from 'hardhat'
+import { ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { Contract} from 'ethers'
+import { Contract, Wallet} from 'ethers'
 
-const { provider } = waffle
 
-use(waffle.solidity)
-describe('GatedJoinPolicy', (): void => {
+describe('GatedJoinPolicy', async (): Promise<void> => {
+    const wallets = await ethers.getSigners() as unknown as Wallet[]
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
-    const wallets = provider.getWallets()
     let contract: Contract
 
     before(async (): Promise<void> => {

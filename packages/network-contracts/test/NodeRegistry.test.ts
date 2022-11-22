@@ -1,20 +1,14 @@
-import { expect, use } from 'chai'
-import { waffle, upgrades, ethers } from 'hardhat'
-import { Contract, Wallet, utils } from 'ethers'
+import { expect } from 'chai'
+import { upgrades, ethers } from 'hardhat'
+import { Contract, Signer, utils } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-import ERC20Mintable from '../artifacts/contracts/NodeRegistry/ERC20Mintable.sol/ERC20Mintable.json'
-// import TokenBalanceWeightStrategy from '../artifacts/contracts/NodeRegistry/TokenBalanceWeightStrategy.sol/TokenBalanceWeightStrategy.json'
-
-use(waffle.solidity)
-
-const { deployContract } = waffle
-const { provider } = waffle
 
 const nodeCount = 3
 
-describe('NodeRegistry', (): void => {
-    const accounts: Wallet[] = provider.getWallets()
-    const creatorAddress = accounts[0].address
+describe('NodeRegistry', async (): Promise<void> => {
+    let accounts: SignerWithAddress[]
+    let creatorAddress
     const nodeMetadatas: string[] = []
     const nodeAddresses: string[] = []
     const nodeRegAsSigners: Contract[] = []
@@ -23,13 +17,15 @@ describe('NodeRegistry', (): void => {
     // let tokenStrat: Contract
     // let weightedReg: Contract
 
-    for (let i = 0; i < nodeCount; i++) {
-        nodeMetadatas[i] = `http://node.url${i}`
-        nodeAddresses[i] = accounts[i + 1].address
-    }
-
     before(async () => {
         // pass half the trackers in constructor, and set the others
+        accounts = await ethers.getSigners()
+        creatorAddress = accounts[0].address
+        for (let i = 0; i < nodeCount; i++) {
+            nodeMetadatas[i] = `http://node.url${i}`
+            nodeAddresses[i] = accounts[i + 1].address
+        }
+
         const initialNodes = []
         const initialMetadata = []
 
@@ -50,7 +46,8 @@ describe('NodeRegistry', (): void => {
                 .to.emit(nodeRegAsCreator, 'NodeUpdated')
         }
 
-        testToken = await deployContract(accounts[0], ERC20Mintable, ['name', 'symbol'])
+        const testTokenFactory = await ethers.getContractFactory('ERC20Mintable')
+        testToken = await testTokenFactory.deploy('name', 'symbol')
         await testToken.mint(nodeAddresses[0], utils.parseUnits('10', 'ether'), {
             from: creatorAddress
         })

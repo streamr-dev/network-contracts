@@ -1,4 +1,4 @@
-import { waffle, upgrades, ethers } from 'hardhat'
+import { upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 
 // import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
@@ -7,8 +7,7 @@ import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalFo
 import type { MinimalForwarder } from '../typechain/MinimalForwarder'
 import type { StreamStorageRegistry, StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from '../typechain'
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
-
-const { deployContract, provider } = waffle
+import { Wallet } from 'ethers'
 
 // set timeout to 10 minutes
 const types = {
@@ -48,8 +47,7 @@ const types = {
     ],
 }
 
-use(waffle.solidity)
-describe('StreamStorageRegistry', () => {
+describe('StreamStorageRegistry', async () => {
     let streamReg: StreamRegistry
     let nodeReg: NodeRegistry
     let reg: StreamStorageRegistry
@@ -57,15 +55,16 @@ describe('StreamStorageRegistry', () => {
     let forwarder: MinimalForwarder
     let forwarderFromMetatxSender: MinimalForwarder
 
-    const [admin, trusted, node0, node1, node2] = provider.getWallets()
+    const wallets = await ethers.getSigners() as unknown as Wallet[]
+    const [admin, trusted, node0, node1, node2] = wallets
 
-    const nodes = provider.getWallets().slice(2)
+    const nodes = [node0, node1, node2]
     const nodeAddresses = nodes.map((w) => w.address)
     const nodeUrls = nodes.map((w, i) => `http://node${i}.url`)
 
     const testStreamId = admin.address.toLowerCase() + '/test'
 
-    const metaTxSender = provider.getWallets()[5]
+    const metaTxSender = wallets[5]
 
     before(async () => {
         // set up nodes
@@ -77,7 +76,8 @@ describe('StreamStorageRegistry', () => {
         nodeReg = await nodeRegDeployTx.deployed() as NodeRegistry
 
         // set up streams
-        forwarder = await deployContract(trusted, ForwarderJson) as MinimalForwarder
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        forwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         forwarderFromMetatxSender = forwarder.connect(metaTxSender)
         const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV4')
         const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory,
@@ -218,7 +218,7 @@ describe('StreamStorageRegistry', () => {
             domain: {
                 name: 'MinimalForwarder',
                 version: '0.0.1',
-                chainId: (await provider.getNetwork()).chainId,
+                chainId: (await ethers.provider.getNetwork()).chainId,
                 verifyingContract: forwarder.address,
             },
             primaryType: 'ForwardRequest',
@@ -252,7 +252,8 @@ describe('StreamStorageRegistry', () => {
         await reg.removeStorageNode(testStreamId, node1.address)
         expect(await reg.isStorageNodeOf(testStreamId, node1.address)).to.be.false
         // deploy second minimal forwarder
-        const wrongFrowarder = await deployContract(provider.getWallets()[9], ForwarderJson) as MinimalForwarder
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        const wrongFrowarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         await wrongFrowarder.deployed()
         // check that forwarder is set
         expect(await reg.isTrustedForwarder(forwarderFromMetatxSender.address)).to.be.true
@@ -270,7 +271,7 @@ describe('StreamStorageRegistry', () => {
     })
 
     it('negativetest metatransaction, wrong signature', async (): Promise<void> => {
-        const wrongKey = provider.getWallets()[2].privateKey //wallets[0].privateKey (admin) would be correct
+        const wrongKey = wallets[2].privateKey //wallets[0].privateKey (admin) would be correct
         const {req, sign} = await prepareMetatx(forwarderFromMetatxSender, wrongKey)
         const res = await forwarderFromMetatxSender.verify(req, sign)
         await expect(res).to.be.false
@@ -294,7 +295,8 @@ describe('StreamStorageRegistry', () => {
         await reg.removeStorageNode(testStreamId, node1.address)
         expect(await reg.isStorageNodeOf(testStreamId, node1.address)).to.be.false
         // deploy second minimal forwarder
-        const newForwarder = await deployContract(provider.getWallets()[9], ForwarderJson) as MinimalForwarder
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        const newForwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         await newForwarder.deployed()
         // set forwarder
         await streamReg.grantRole(await streamReg.TRUSTED_ROLE(), admin.address)

@@ -1,4 +1,4 @@
-import { waffle, upgrades, ethers } from 'hardhat'
+import { upgrades, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { utils, BigNumber } from 'ethers'
 
@@ -12,30 +12,58 @@ import type { Oracle } from '../typechain/Oracle'
 import type { LinkToken } from '../typechain/LinkToken'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 
-const { deployContract } = waffle
-const { provider } = waffle
-
-use(waffle.solidity)
-
-describe('ENSCache', (): void => {
-    const wallets = provider.getWallets()
+describe('ENSCache', async (): Promise<void> => {
+    let wallets
     let ensCacheFromAdmin: ENSCache
     let linkTokenFromAdmin: LinkToken
     let oracleFromAdmin: Oracle
     let minimalForwarderFromAdmin: MinimalForwarder
     // let minimalForwarderFromUser0: MinimalForwarder
     let registryFromAdmin: StreamRegistry
-    const adminAdress: string = wallets[0].address
+    let adminAdress: string
 
     before(async (): Promise<void> => {
-        minimalForwarderFromAdmin = await deployContract(wallets[0], ForwarderJson) as MinimalForwarder
-        linkTokenFromAdmin = await deployContract(wallets[0], LinkTokenJson) as LinkToken
-        oracleFromAdmin = await deployContract(wallets[0], OracleJson, [linkTokenFromAdmin.address]) as Oracle
+        wallets = await ethers.getSigners()
+        adminAdress = wallets[0].address
+        // Deploy contracs
+        const minimalForwarderFromAdminFactory = await ethers.getContractFactory(
+            ForwarderJson.abi,
+            ForwarderJson.bytecode,
+            wallets[0]
+        )
+        minimalForwarderFromAdmin = (await minimalForwarderFromAdminFactory.deploy()) as MinimalForwarder
+        await minimalForwarderFromAdmin.deployed()
+        const linkTokenFromAdminFactory = await ethers.getContractFactory(
+            LinkTokenJson.abi,
+            LinkTokenJson.bytecode,
+            wallets[0]
+        )
+        linkTokenFromAdmin = (await linkTokenFromAdminFactory.deploy()) as LinkToken
+        await linkTokenFromAdmin.deployed()
+        const oracleFromAdminFactory = await ethers.getContractFactory(
+            OracleJson.abi,
+            OracleJson.bytecode,
+            wallets[0]
+        )
+        oracleFromAdmin = (await oracleFromAdminFactory.deploy(linkTokenFromAdmin.address)) as Oracle
+        await oracleFromAdmin.deployed()
         await oracleFromAdmin.setFulfillmentPermission(adminAdress, true)
+        const ensCacheFromAdminFactory = await ethers.getContractFactory(
+            ENSCacheJson.abi,
+            ENSCacheJson.bytecode,
+            wallets[0]
+        )
+        ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAdress, 'jobid')) as ENSCache
+        await ensCacheFromAdmin.deployed()
 
-        ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
-            // [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
-            [adminAdress, 'jobid']) as ENSCache
+
+        // minimalForwarderFromAdmin = await deployContract(wallets[0], ForwarderJson) as MinimalForwarder
+        // linkTokenFromAdmin = await deployContract(wallets[0], LinkTokenJson) as LinkToken
+        // oracleFromAdmin = await deployContract(wallets[0], OracleJson, [linkTokenFromAdmin.address]) as Oracle
+
+        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
+        //     // [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
+        //     [adminAdress, 'jobid']) as ENSCache
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
         // minimalForwarderFromUser0 = minimalForwarderFromAdmin.connect(wallets[1])
 
