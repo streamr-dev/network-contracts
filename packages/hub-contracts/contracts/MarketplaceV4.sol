@@ -134,6 +134,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
 
         _notifyPurchaseListener(beneficiary, productId, subscriber, subEndTimestamp, price, fee);
+        emit ProjectPurchased(productId, subscriber, addSeconds, price, fee);
     }
 
     /**
