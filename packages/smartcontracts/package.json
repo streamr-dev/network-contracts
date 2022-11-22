@@ -27,8 +27,10 @@
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
     "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
     "deployDelegatedAccessRegistryProd": "hardhat run --network polygon scripts/deployToLivenet/3_deployDelegatedAccessRegistry.ts",
-    "deployJoinPolicy": "hardhat run --network dev1 scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
-    "deployJoinPolicyProd": "hardhat run --network polygon scripts/deployToLivenet/4_deployJoinPolicyFactory.ts",
+    "deployJoinPolicyRegistry": "hardhat run --network dev1 scripts/deployToLivenet/4_deployJoinPolicyRegistry.ts",
+    "deployJoinPolicyRegistryProd": "hardhat run --network polygon scripts/deployToLivenet/4_deployJoinPolicyRegistry.ts",
+    "deployTokenGateDeployers": "hardhat run --network dev1 scripts/deployToLivenet/5_deployTokenGateDeployers.ts",
+    "deployTokenGateDeployersProd": "hardhat run --network polygon scripts/deployToLivenet/5_deployTokenGateDeployers.ts",
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon"
   },
   "author": "Streamr Network AG",

@@ -5,9 +5,8 @@ import "../StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicies/ERC20JoinPolicy.sol";
 import "./JoinPolicies/ERC721JoinPolicy.sol";
 import "./JoinPolicies/ERC1155JoinPolicy.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract JoinPolicyRegistry is Initializable {
+contract JoinPolicyRegistry {
     // policyId => JoinPolicy
     mapping(bytes32 => address) public registeredPoliciesById;
 
