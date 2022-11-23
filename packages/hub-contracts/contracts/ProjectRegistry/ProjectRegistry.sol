@@ -50,6 +50,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     // Zero Address is passed to ERC2771ContextUpgradeable contract since trusted forwarder is handled through TRUSTED_FORWARDER_ROLE and isTrustedForwarder
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     // Constructor can't be used with upgradeable contracts, so use initialize instead
