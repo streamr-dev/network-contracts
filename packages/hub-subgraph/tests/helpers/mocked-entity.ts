@@ -14,6 +14,7 @@ export function createProjectEntity(projectId: string): Project {
     project.streams = []
     project.permissions = []
     project.purchases = []
+    project.purchasesCount = 0
     project.save()
     return project
 }

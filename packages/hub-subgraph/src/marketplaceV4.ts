@@ -11,10 +11,12 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
     log.info('handleProjectPurchase: projectId={} subscriber={} subscriptionSeconds={} price={} fee={} blockNumber={}',
         [projectId, subscriber, subscriptionSeconds, price, fee, event.block.number.toString()])
 
-    let project = Project.load(projectId)
+    const project = Project.load(projectId)
     if (project != null) {
-        let projectPurchaseId = projectId + '-' + subscriber
-        let projectPurchase = new ProjectPurchase(projectPurchaseId)
+        const newPurchasesCount = project.purchasesCount + 1
+        const projectPurchaseId = projectId + '-' + subscriber + '-' + newPurchasesCount.toString()
+
+        const projectPurchase = new ProjectPurchase(projectPurchaseId)
         projectPurchase.project = projectId
         projectPurchase.subscriber = event.params.subscriber
         projectPurchase.subscriptionSeconds = event.params.subscriptionSeconds
@@ -22,6 +24,7 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
         projectPurchase.fee = event.params.fee
         projectPurchase.purchasedAt = event.block.timestamp
         projectPurchase.save()
+        project.purchasesCount = newPurchasesCount
         project.save()
     }
 }

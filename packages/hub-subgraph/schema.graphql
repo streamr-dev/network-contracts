@@ -54,14 +54,16 @@ type Project @entity {
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
   "Marketplace purchases"
-  purchases: [ProjectPurchase!] @derivedFrom(field: "project")
+  purchases: [ProjectPurchase!]! @derivedFrom(field: "project")
+  "Marketplace purchases count"
+  purchasesCount: Int
 }
 
 
 # MarketplaceV4
 
 type ProjectPurchase @entity {
-  "project purchase id = projectId + '-' + subscriberAddress"
+  "project purchase id = projectId + '-' + subscriberAddress + '-' + purchasesCount"
   id: ID!
 
   "Target project this purchase is for"
