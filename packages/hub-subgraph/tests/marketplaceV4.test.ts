@@ -23,7 +23,7 @@ const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
 describe("ProjectPurchase entity store", () => {
     const projectId = "0x1234"
     const subscriber = "0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4"
-    const projectPurchaseId = "0x1234-0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4"
+    const projectPurchaseId = "0x1234-0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4-1"
     const subscriptionSeconds = 200
     const price = 198
     const fee = 2
@@ -64,13 +64,12 @@ describe("ProjectPurchase entity store", () => {
 })
 
 describe("Mocked MarketplaceV4 Events: ProjectPurchased", () => {
-    const projectId = "0x1234"
+    const projectId = "0x123456"
     const subscriber = "0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4"
-    const projectPurchaseId = "0x1234-0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4"
+    const projectPurchaseId = "0x123456-0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4-1" // projectId-subscriber-purchasesCount
     const subscriptionSeconds = 200
     const price = 198
     const fee = 2
-    const purchasedAt = 20221122
     
     beforeAll(() => {
         clearStore()
@@ -84,16 +83,17 @@ describe("Mocked MarketplaceV4 Events: ProjectPurchased", () => {
     })
 
     test("handleProjectPurchase", () => {
-        const event = createProjectPurchasedEvent(Bytes.fromHexString(projectId), subscriber, subscriptionSeconds, price, fee, purchasedAt)
+        const event = createProjectPurchasedEvent(Bytes.fromHexString(projectId), subscriber, subscriptionSeconds, price, fee)
 
         handleProjectPurchase(event)
 
         assert.entityCount(PROJECT_PURCHASE_ENTITY_TYPE, 1)
-        // TODO: fix link purchases to Project
-        // assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "purchases", `[${projectPurchaseId}]`)
         assert.fieldEquals(PROJECT_PURCHASE_ENTITY_TYPE, projectPurchaseId, "id", projectPurchaseId)
         assert.fieldEquals(PROJECT_PURCHASE_ENTITY_TYPE, projectPurchaseId, "subscriber", subscriber)
+        assert.fieldEquals(PROJECT_PURCHASE_ENTITY_TYPE, projectPurchaseId, "subscriptionSeconds", `${subscriptionSeconds}`)
         assert.fieldEquals(PROJECT_PURCHASE_ENTITY_TYPE, projectPurchaseId, "price", `${price}`)
         assert.fieldEquals(PROJECT_PURCHASE_ENTITY_TYPE, projectPurchaseId, "fee", `${fee}`)
+        // purchases linked to Project
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "purchases", `[${projectPurchaseId}]`)
     })
 })
