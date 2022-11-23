@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
+import { Address, Bytes, ethereum } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
 import { ProjectPurchased } from "../../generated/MarketplaceV4/MarketplaceV4"
 import {
@@ -10,7 +10,6 @@ import {
     StreamRemoved,
     Subscribed,
 } from "../../generated/ProjectRegistry/ProjectRegistry"
-import { ProjectPurchase } from "../../generated/schema"
 
 export function createProjectCreatedEvent(
     id: Bytes,
@@ -143,7 +142,6 @@ export function createProjectPurchasedEvent(
     subscriber: string,
     subscriptionSeconds: number,
     price: number, fee: number,
-    purchasedAt: number,
 ): ProjectPurchased {
     const projectPurchasedEvent = changetype<ProjectPurchased>(newMockEvent())
     projectPurchasedEvent.parameters = new Array()
@@ -158,8 +156,6 @@ export function createProjectPurchasedEvent(
     projectPurchasedEvent.parameters.push(priceParam)
     const feeParam = new ethereum.EventParam("fee", ethereum.Value.fromI32(fee as i32))
     projectPurchasedEvent.parameters.push(feeParam)
-    const purchasedAtParam = new ethereum.EventParam("purchasedAt", ethereum.Value.fromI32(purchasedAt as i32))
-    projectPurchasedEvent.parameters.push(purchasedAtParam)
 
     return projectPurchasedEvent
 }
