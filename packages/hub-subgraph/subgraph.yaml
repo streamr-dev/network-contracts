@@ -3,6 +3,8 @@ description: Subgraph definitions for the project registry
 repository:
 schema:
   file: ./schema.graphql
+features:
+  - fullTextSearch
 dataSources:
   - kind: ethereum/contract
     name: ProjectRegistry

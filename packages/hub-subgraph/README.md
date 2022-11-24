@@ -94,6 +94,16 @@ example queries:
 }
 ```
 
+Full text search field:
+```
+query {
+  Project(text: "metadata keyword") {
+    id
+    beneficiary
+  }
+}
+```
+
 ## Unit testing with [matchstick-as](https://thegraph.com/docs/en/developing/unit-testing-framework/#getting-started)
 
 - build image:

@@ -1,3 +1,11 @@
+type _Schema_
+  @fulltext(
+    name: "projectSearch"
+    language: en
+    algorithm: rank
+    include: [{ entity: "Project", fields: [{ name: "metadata" }] }]
+  )
+
 # Project Registry
 
 type Permission @entity {
