@@ -1,0 +1,263 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
+      "txHash": "0x57323d928bbbc4e0ddfcf801cd5a99a5e1ad97f4f6198602b7e88a655e2aa308",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "882445bb024a315fd5ea858af4fc3bf6d65e09c0b9013d4969a1c8a3c7b0b7fc": {
+      "address": "0x4C058afEC9E73dC0eF874BC124C139e78806b8E4",
+      "txHash": "0x2b726606548a72ac4b50e4b8e328b1198029bd1f62fa65e8725771600c28bde4",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:87"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "products",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_mapping(t_bytes32,t_struct(Product)6620_storage)",
+            "contract": "MarketplaceV3",
+            "src": "contracts/MarketplaceV3.sol:43"
+          },
+          {
+            "label": "txFee",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_uint256",
+            "contract": "MarketplaceV3",
+            "src": "contracts/MarketplaceV3.sol:46"
+          },
+          {
+            "label": "pendingOwner",
+            "offset": 0,
+            "slot": "203",
+            "type": "t_address",
+            "contract": "MarketplaceV3",
+            "src": "contracts/MarketplaceV3.sol:49"
+          },
+          {
+            "label": "halted",
+            "offset": 20,
+            "slot": "203",
+            "type": "t_bool",
+            "contract": "MarketplaceV3",
+            "src": "contracts/MarketplaceV3.sol:51"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_enum(ProductState)4756": {
+            "label": "enum IMarketplace.ProductState",
+            "members": [
+              "NotDeployed",
+              "Deployed"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(WhitelistState)4761": {
+            "label": "enum IMarketplace.WhitelistState",
+            "members": [
+              "None",
+              "Pending",
+              "Approved",
+              "Rejected"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_enum(WhitelistState)4761)": {
+            "label": "mapping(address => enum IMarketplace.WhitelistState)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(TimeBasedSubscription)6623_storage)": {
+            "label": "mapping(address => struct MarketplaceV3.TimeBasedSubscription)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Product)6620_storage)": {
+            "label": "mapping(bytes32 => struct MarketplaceV3.Product)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Product)6620_storage": {
+            "label": "struct MarketplaceV3.Product",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "name",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "beneficiary",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "pricePerSecond",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "pricingTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "minimumSubscriptionSeconds",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "state",
+                "type": "t_enum(ProductState)4756",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "newOwnerCandidate",
+                "type": "t_address",
+                "offset": 1,
+                "slot": "7"
+              },
+              {
+                "label": "requiresWhitelist",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "7"
+              },
+              {
+                "label": "subscriptions",
+                "type": "t_mapping(t_address,t_struct(TimeBasedSubscription)6623_storage)",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "whitelist",
+                "type": "t_mapping(t_address,t_enum(WhitelistState)4761)",
+                "offset": 0,
+                "slot": "9"
+              }
+            ],
+            "numberOfBytes": "320"
+          },
+          "t_struct(TimeBasedSubscription)6623_storage": {
+            "label": "struct MarketplaceV3.TimeBasedSubscription",
+            "members": [
+              {
+                "label": "endTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}
