@@ -11,7 +11,6 @@ import {
     newPoolName
 } from "./utils"
 import { BrokerPool } from "../typechain"
-import exp from "constants"
 
 const { parseEther, formatEther } = utils
 use(waffle.solidity)
@@ -497,5 +496,20 @@ describe("BrokerPool", (): void => {
         const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther(numberOfQueueSlots.toString()))
         const balanceAfter = await token.balanceOf(investor.address)
         expect(balanceAfter).to.equal(expectedBalance)
+    })
+
+    it.only("edge case ony queue entry, many bounties", async function(): Promise<void> {
+        const { token } = contracts
+        const pool = await deployBrokerPool({ })
+        const numberOfBounties = 100
+        for (let i = 0; i < numberOfBounties; i++) {
+            const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+            // const receipt = 
+            await (await token.connect(investor).transferAndCall(pool.address, parseEther("1"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1"), "0x")).wait()
+            await (await pool.stake(bounty.address, parseEther("1"))).wait()
+            // console.log(`Staked ${i} bounties, gas used: ${receipt.gasUsed}`)
+        }
+        expect(await pool.balanceOf(investor.address)).to.equal(parseEther(numberOfBounties.toString()))
     })
 })
