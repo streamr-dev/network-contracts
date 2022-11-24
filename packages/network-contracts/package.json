@@ -37,7 +37,7 @@
     "@chainlink/contracts": "0.3.1",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
-    "@openzeppelin/contracts-upgradeable": "4.4.2"
+    "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
     "@ethersproject/bignumber": "5.5.0",

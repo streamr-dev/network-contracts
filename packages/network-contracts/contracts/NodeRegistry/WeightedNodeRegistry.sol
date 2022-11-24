@@ -4,8 +4,8 @@ pragma experimental ABIEncoderV2;
 
 import "./WeightStrategy.sol";
 import "./NodeRegistry.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
 contract WeightedNodeRegistry is NodeRegistry {
     WeightStrategy public strat;

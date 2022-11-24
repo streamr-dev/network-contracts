@@ -5,7 +5,7 @@ import "../StreamRegistry/StreamRegistryV3.sol";
 import "./ERC20JoinPolicy.sol";
 import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
 contract JoinPolicyFactory is Initializable {
 
