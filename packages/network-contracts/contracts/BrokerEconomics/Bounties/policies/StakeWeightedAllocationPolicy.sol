@@ -7,6 +7,17 @@ import "../Bounty.sol";
 
 // import "hardhat/console.sol";
 
+/**
+ * @dev note: ...perStake variables are per FULL TOKEN stake for numerical precision reasons, internally.
+ *   Don't ever expose them outside! We don't want to deal with non-standard "full tokens", e.g. USDC has 6 decimals instead of 18
+ * Detailed reason: if incomePerSecondPerStake were per stake-wei, then because stake typically is greater than the payout in one second,
+ *   the quotient would always be zero.
+ * Example: 1 DATA/second, 1000 DATA staked:
+ *   - incomePerSecondPerStake(wei) would be 1e18 / 1000e18 < 1, which becomes zero
+ *   - incomePerSecondPerStake(token) however is 1e18 / 1000 = 1e15, which is fine
+ * Sanity check: There's order of 1e9 of DATA full tokens in existence, and one year is 3e7 seconds, so the precision is good enough
+ *   for the case where ALL data is staked on a bounty that pays 1 DATA/year
+ */
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
         uint256 incomePerSecond; // wei, total income velocity, distributed to brokers
