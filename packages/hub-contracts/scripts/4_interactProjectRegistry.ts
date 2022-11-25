@@ -75,6 +75,16 @@ const connectContracts = async () => {
     log('latestBlock', latestBlock.number)
 }
 
+const buyProject = async (
+    projectId: string,
+    subscriptionSeconds: number,
+    buyer = buyerWallet
+): Promise<void> => {
+    await (
+        await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
+    ).wait()
+}
+
 const createProject = async ({
     beneficiary = beneficiaryWallet.address,
     pricePerSecond = 1,
@@ -160,9 +170,7 @@ async function main() {
     connectWallets()
     await connectContracts()
     const projectId = await createProject()
-    await (
-        await marketplace.connect(buyerWallet).buy(projectId, 101)
-    ).wait()
+    await buyProject(projectId, 100)
     await updateProject({ id: projectId, pricePerSecond: 2 })
     await setPermission({ projectId, userAddress: Wallet.createRandom().address })
     const streamId = await createStream()
