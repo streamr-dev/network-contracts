@@ -1,11 +1,9 @@
 **node_modules/
 **build
 **cache
-/packages/smartcontracts/bin/
-/packages/smartcontracts/artifacts/
-/packages/smartcontracts/typechain/
 /packages/brubeck-migration-script/artifacts
 /packages/brubeck-migration-script/typechain
 /bin/
 .DS_Store
 .idea
+unknown-31337.json

@@ -1,0 +1,2 @@
+testsFolder: ./packages/hub-subgraph/tests
+manifestPath: ./packages/hub-subgraph/subgraph.yaml

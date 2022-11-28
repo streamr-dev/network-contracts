@@ -3,6 +3,7 @@ This repo is used to build the parity images streamr/open-ethereum-poa-mainchain
  * Marketplace
    * Also test products are loaded (see products.json)
  * Marketplace Uniswap Adapter
+ * Project Registry
  * The token bridge (AMB) and mediator
  * the DU3 factories and templates.
 

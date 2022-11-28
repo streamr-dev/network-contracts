@@ -1,0 +1,28 @@
+{
+  "name": "@streamr-contracts/hub-subgraph",
+  "version": "1.0.0",
+  "description": "Subgraph definitions for the hub contracts",
+  "scripts": {
+    "clean": "rm -rf build generated",
+    "codegen": "graph codegen",
+    "graphbuild": "graph build",
+    "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
+    "lint": "eslint ./src/*.ts",
+    "docker:build": "npm run build && docker build . -t streamr/deploy-hub-subgraph:dev",
+    "docker:publish": "docker image push streamr/deploy-hub-subgraph:dev",
+    "create-docker-dev": "graph create streamr-dev/hub-subgraph --node http://streamr-dev-thegraph-node:8020",
+    "deploy-docker-dev": "graph deploy streamr-dev/hub-subgraph --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
+    "create-local": "graph create streamr-dev/hub-subgraph --node http://localhost:8020",
+    "deploy-local": "graph deploy streamr-dev/hub-subgraph --version-label v0.0.1 --ipfs http://localhost:5001 --node http://localhost:8020",
+    "redeploy-local": "npm run clean && npm run build && npm run create-local && npm run deploy-local",
+    "create-production": "graph create streamr-dev/projects --node https://api.thegraph.com/deploy/",
+    "deploy-production": "graph deploy streamr-dev/projects --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "test": "cd ../../ && graph test -d",
+    "coverage": "graph test -d -- -c"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "0.35.0",
+    "@graphprotocol/graph-ts": "0.29.0",
+    "matchstick-as": "0.5.0"
+  }
+}

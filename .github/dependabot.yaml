@@ -17,8 +17,6 @@ updates:
       - ci
     assignees:
       - DaisyDomergue
-    reviewers:
-      - kare
 
   - package-ecosystem: npm
     directory: /packages/chainlink-ens-external-adapter
@@ -71,10 +69,6 @@ updates:
       include: scope
     labels:
       - build
-    assignees:
-      - kare
-    reviewers:
-      - kare
 
   - package-ecosystem: npm
     directory: /packages/docker-dev-chain-init
@@ -100,8 +94,6 @@ updates:
       prefix: build(docker)
     labels:
       - build
-    assignees:
-      - kare
 
   - package-ecosystem: docker
     directory: /packages/streamregistry-thegraph-subgraph
@@ -114,8 +106,6 @@ updates:
       prefix: build(docker)
     labels:
       - build
-    assignees:
-      - kare
 
   - package-ecosystem: docker
     directory: ./packages/chainlink-ens-external-adapter
@@ -128,5 +118,3 @@ updates:
       prefix: build(docker)
     labels:
       - build
-    assignees:
-      - kare
