@@ -5,14 +5,14 @@ Everything is already included in the streamr-docker-dev environment
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile.
-To do so, run "docker build . -t streamr/graph-deploy-projectregistry-subgraph:dev", and then push the image
-with "docker push streamr/graph-deploy-projectregistry-subgraph:dev"
+To do so, run "docker build . -t streamr/deploy-hub-subgraph:dev", and then push the image
+with "docker push streamr/deploy-hub-subgraph:dev"
 
 ## Prod deployment to the centralised theGraph
 Follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
 Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
 ```
-cd project-registry-thegraph-subgraph
+cd hub-subgraph
 npm i
 npm run build
 npx graph auth --product hosted-service <TOKEN>
@@ -90,6 +90,31 @@ example queries:
   timeBasedSubscriptions {
     endTimestamp
     userAddress
+  }
+}
+```
+
+Full-text search:
+```
+query {
+  projectSearch(text: "metadata keyword") {
+    id
+    beneficiary
+    pricePerSecond
+    pricingTokenAddress
+    minimumSubscriptionSeconds
+    subscriptions {
+      endTimestamp
+    }
+    metadata
+    version
+    streams
+    permissions {
+      canGrant
+      canBuy
+      canDelete
+      canEdit
+    }
   }
 }
 ```
