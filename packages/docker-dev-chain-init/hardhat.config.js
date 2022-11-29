@@ -68,8 +68,8 @@ module.exports = {
         paths: [
             '@streamr-contracts/network-contracts/contracts/NodeRegistry/NodeRegistry.sol',
             '@streamr-contracts/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
-            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol',
-            '@streamr-contracts/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol',
+            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol',
+            '@streamr-contracts/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol',
             '@dataunions/contracts/contracts/DataUnionFactory.sol',
             '@dataunions/contracts/contracts/DataUnionTemplate.sol',
             '@dataunions/contracts/contracts/DefaultFeeOracle.sol',

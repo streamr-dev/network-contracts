@@ -159,13 +159,13 @@ async function deployNodeRegistry(wallet, initialNodes, initialMetadata) {
 }
 
 async function deployStreamStorageRegistry(wallet) {
-    const strDeploy = await ethers.getContractFactory("StreamStorageRegistry", wallet)
+    const strDeploy = await ethers.getContractFactory("StreamStorageRegistryV2", wallet)
     // const strDeployTx = await strDeploy.deploy(streamRegistryAddress, nodeRegistryAddress, wallet.address, {gasLimit: 6000000} )
     const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, ethers.constants.AddressZero], {
         kind: 'uups'
     })
     const str = await strDeployTx.deployed()
-    log(`StreamStorageRegistry deployed at ${str.address}`)
+    log(`StreamStorageRegistryV2 deployed at ${str.address}`)
 }
 
 async function deployProjectRegistry(wallet) {
@@ -276,14 +276,14 @@ async function deployStreamRegistries() {
     let nodes = await nodeRegDeployed.getNodes()
     log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 
-    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV3", sidechainWalletStreamReg)
+    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV4", sidechainWalletStreamReg)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, wallet1.address], {
         kind: 'uups'
     })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryFromOwner = streamRegistry
     streamRegistryAddress = streamRegistry.address
-    log(`Streamregistry deployed at ${streamRegistry.address}`)
+    log(`StreamregistryV4 deployed at ${streamRegistry.address}`)
 
     log(`setting Streamregistry address in ENSCache`)
     const setStreamRegTx = await ensCache.setStreamRegistry(streamRegistry.address)
