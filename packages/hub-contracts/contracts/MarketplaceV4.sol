@@ -33,6 +33,14 @@ interface IProjectRegistry {
     function isTrustedForwarder(address forwarder) external view returns (bool);
 }
 
+interface IMessageRecipient {
+    function handle(
+        uint32 originDomain, // the Domain ID of the source chain
+        bytes32 _sender, // the address of the message sender on the source chain, it must match or the message will revert
+        bytes calldata _messageBody
+    ) external;
+}
+
 /**
  * @title Streamr Marketplace
  * @dev note about numbers:
@@ -76,8 +84,18 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     IProjectRegistry public projectRegistry;
 
+    //  cross-chain protocol variables
+    uint32 constant polygonDomain = 0x706f6c79; // polygon
+    address constant polygonInbox = 0x14c3CEee8F431aE947364f43429a98EA89800238; // from arbitrum to polygon (TODO: change arbitrum to gnosis). TODO: accept multiple remote chains
+
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
+        _;
+    }
+
+
+    modifier onlyPolygonInbox(uint32 _origin) {
+        require(_origin == polygonDomain && msg.sender == polygonInbox);
         _;
     }
 
@@ -194,6 +212,30 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
         uint subscriptionSeconds = amount / pricePerSecond / 1 ether;
         projectRegistry.grantSubscription(productId, subscriptionSeconds, sender);
+    }
+
+    /////////////// Cross-chain API ///////////////
+
+    event ReceivedPurchase(bytes32 productId, address buyer, uint256 subscriptionSeconds);
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes memory _message
+    ) external onlyPolygonInbox(_origin) {
+        address sender = _bytes32ToAddress(_sender);
+        bytes32 productId = 0x000000000000000000000070726f6a6563742d31363639363232373133333330; // TODO: decode from _message
+        uint256 subscriptionSeconds = 1; // TODO: decode from _message
+
+        require(projectRegistry.canBuyProject(productId, sender), "error_unableToBuyProject");
+        projectRegistry.grantSubscription(productId, subscriptionSeconds, sender);
+
+        // _notifyPurchaseListener(beneficiary, productId, subscriber, subEndTimestamp, price, fee);
+        // emit ProjectPurchased(productId, subscriber, addSeconds, price, fee);
+        emit ReceivedPurchase(productId, sender, subscriptionSeconds);
+    }
+
+    function _bytes32ToAddress(bytes32 _buf) private pure returns (address) {
+        return address(uint160(uint256(_buf)));
     }
 
     /////////////// Admin functionality ///////////////
