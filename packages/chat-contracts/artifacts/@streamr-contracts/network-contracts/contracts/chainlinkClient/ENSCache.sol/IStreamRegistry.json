@@ -1,0 +1,39 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IStreamRegistry",
+  "sourceName": "@streamr-contracts/network-contracts/contracts/chainlinkClient/ENSCache.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "requestorAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "ensName",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "streamIdPath",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "metadataJsonString",
+          "type": "string"
+        }
+      ],
+      "name": "ENScreateStreamCallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
