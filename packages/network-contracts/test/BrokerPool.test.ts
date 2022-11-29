@@ -501,7 +501,7 @@ describe("BrokerPool", (): void => {
     it.only("edge case ony queue entry, many bounties", async function(): Promise<void> {
         const { token } = contracts
         const pool = await deployBrokerPool({ })
-        const numberOfBounties = 100
+        const numberOfBounties = 1000
         for (let i = 0; i < numberOfBounties; i++) {
             const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
             // const receipt = 

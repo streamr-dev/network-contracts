@@ -67,6 +67,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queueLength;
     uint public queuePayoutIndex;
 
+    uint public approxPoolValue; // in Data wei
+    mapping(address => uint) public approxPoolValueOfBounty; // in Data wei
+
     modifier onlyBroker() {
         require(msg.sender == globalData().broker, "error_only_broker");
         _;
@@ -250,6 +253,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // unallocatedWei += amountWei;
         // console.log("_invest investor", investor, "amountWei", amountWei);
         // if we have a join policy
+        approxPoolValue += amountWei;
         if (address(joinPolicy) != address(0)) {
             // check if the investor is allowed to join
             (uint allowed) = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, investor, address(joinPolicy)), "error_joinPolicyFailed");
