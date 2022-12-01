@@ -45,6 +45,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     struct GlobalStorage {
         address broker;  
         IERC677 token;
+        uint approxPoolValue; // in Data wei
     }
 
     // currently the whole token balance of the pool IS SAME AS the "free funds"
@@ -67,7 +68,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queueLength;
     uint public queuePayoutIndex;
 
-    uint public approxPoolValue; // in Data wei
+    // triple bookkeeping
+    // 1. rea actual poolvalue val = local free funds + stake in bounties + allocaiotn in bounties; loops over bounties
+    // 2. val = Sum over local mapping approxPoolValueOfBounty + free funds
+    // 3. val = approxPoolValue in globalstorage
     mapping(address => uint) public approxPoolValueOfBounty; // in Data wei
 
     modifier onlyBroker() {
@@ -255,7 +259,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // unallocatedWei += amountWei;
         // console.log("_invest investor", investor, "amountWei", amountWei);
         // if we have a join policy
-        approxPoolValue += amountWei;
+        globalData().approxPoolValue += amountWei;
         if (address(joinPolicy) != address(0)) {
             // check if the investor is allowed to join
             (uint allowed) = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, investor, address(joinPolicy)), "error_joinPolicyFailed");
@@ -277,7 +281,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         // console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
         // console.log("data balance of this", globalData().token.balanceOf(address(this)));
-        uint poolValueData = this.calculatePoolValueInData(dataWei);
+        // uint poolValueData = this.calculatePoolValueInData(dataWei);
+        uint poolValueData = globalData().approxPoolValue;
         // console.log("this totlasupply", this.totalSupply());
         // console.log("poolValueData", poolValueData);
         if (poolValueData == 0) {
@@ -320,6 +325,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         _addBounty(bounty);
         // unallocatedWei -= amountWei;
+        approxPoolValueOfBounty[address(bounty)] += amountWei;
         emit Staked(bounty, amountWei);
     }
 
@@ -336,6 +342,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("unstake balanceBefore", balanceBefore);
         bounty.leave();
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
+        globalData().approxPoolValue -= approxPoolValueOfBounty[address(bounty)];
+        globalData().approxPoolValue += receivedWei;
+        approxPoolValueOfBounty[address(bounty)] = 0;
         // console.log("unstake receivedWei", receivedWei);
 
         // unallocatedWei += receivedWei;
@@ -371,6 +380,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("reduceStake balanceBefore", balanceBefore);
         bounty.reduceStake(amountWei);
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
+        globalData().approxPoolValue -= amountWei;
+        globalData().approxPoolValue += receivedWei;
+        approxPoolValueOfBounty[address(bounty)] = 0;
         // console.log("reduceStake receivedWei", receivedWei);
         // unallocatedWei += receivedWei;
         if (receivedWei < amountStaked) {
@@ -394,8 +406,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("withdrawWinnings balanceAfter", globalData().token.balanceOf(address(this)));
         uint winnings = globalData().token.balanceOf(address(this)) - balanceBefore;
         // console.log("withdrawWinnings winnings", winnings);
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
+        uint winningsLeft = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
             winnings), "error_yieldPolicy_deductBrokersPart_Failed");
+        
+        uint appoxWinnings = approxPoolValueOfBounty[address(bounty)] - bounty.getMyStake();
+        uint approxWinningsLeft = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
+            appoxWinnings), "error_yieldPolicy_deductBrokersPart_Failed");
+        int difference = int(approxWinningsLeft) - int(winningsLeft);
+        if (difference > 0) {
+            globalData().approxPoolValue += uint(difference);
+        } else {
+            globalData().approxPoolValue -= uint(-difference);
+        }
     }
 
     function payOutQueueWithFreeFunds(uint maxIterations) public {
@@ -462,15 +484,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         poolValue = globalData().token.balanceOf(address(this));
         // console.log("calculatePoolValueInData poolValue1", poolValue);
         for (uint i = 0; i < bounties.length; i++) {
-            poolValue += bounties[i].getMyStake();
-            // console.log("calculatePoolValueInData poolValue2", poolValue);
-            uint alloc = bounties[i].getAllocation(address(this));
-            // console.log("calculatePoolValueInData alloc", alloc);
-            (uint share) = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
-            // console.log("calculatePoolValueInData share", share);
-            poolValue += (alloc - share);
+            poolValue = getPoolValueFromBounty(bounties[i]);
         }
         poolValue -= substractWei;
+    }
+
+    function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
+        poolValue += bounty.getMyStake();
+        // console.log("calculatePoolValueInData poolValue2", poolValue);
+        uint alloc = bounty.getAllocation(address(this));
+        // console.log("calculatePoolValueInData alloc", alloc);
+        (uint share) = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
+        // console.log("calculatePoolValueInData share", share);
+        poolValue += (alloc - share);
     }
 
     function queueDataPayout(uint amountPoolTokenWei) public {

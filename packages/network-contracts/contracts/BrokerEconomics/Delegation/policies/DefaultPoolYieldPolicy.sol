@@ -48,7 +48,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // console.log("DefaultPoolYieldPolicy.pooltokenToData", poolTokenWei);
         // console.log("data balance of this", globalData().token.balanceOf(address(this)));
         // console.log("this totlasupply", this.totalSupply());
-        uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
+        // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
+        uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
         // console.log("poolValueData", poolValueData);
         return poolTokenWei * poolValueData / this.totalSupply();
     }
@@ -60,7 +61,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         }
         // console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
         // console.log("data balance of this", globalData().token.balanceOf(address(this)));
-        uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
+        // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
+        uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
         // console.log("this totlasupply", this.totalSupply());
         // console.log("poolValueData", poolValueData);
         if (poolValueData == 0) {
