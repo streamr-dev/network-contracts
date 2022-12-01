@@ -8,15 +8,13 @@ const { hexlify, toUtf8Bytes, zeroPad } = utils
 const { log } = console
 
 const {
-    CHAIN,
+    CHAIN = 'dev1',
     DEFAULT_ADMIN: DEFAULT_PRIVATE_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // privateKeys[0]
     DEPLOYER: DEPLOYMENT_OWNER_KEY = '0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb', // privateKeys[1]
     ADMIN: PROJECT_ADMIN_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', // privateKeys[2]
     BENEFICIARY: PROJECT_BENEFICIARY_KEY = '0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9', // privateKeys[3]
     BUYER: PROJECT_BUYER_KEY = '0x957a8212980a9a39bf7c03dcbeea3c722d66f2b359c669feceb0e3ba8209a297', // privateKeys[4]
 } = process.env
-
-if (!CHAIN) { throw new Error("Please specify CHAIN environment variable (dev0, dev1, gnosis, polygon, mainnet)") }
 
 const {
     rpcEndpoints: [{

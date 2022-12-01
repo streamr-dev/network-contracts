@@ -4,10 +4,8 @@ import { Chains } from "@streamr/config"
 const { log } = console
 
 const {
-    CHAIN,
+    CHAIN = 'dev1',
 } = process.env
-
-if (!CHAIN) { throw new Error("Please specify CHAIN environment variable (dev0, dev1, gnosis, polygon, mainnet)") }
 
 const {
     contracts: {
