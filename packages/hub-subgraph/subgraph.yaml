@@ -42,7 +42,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2"
+      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
