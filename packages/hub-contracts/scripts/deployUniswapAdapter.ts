@@ -1,9 +1,24 @@
-import { ethers, upgrades } from "hardhat"
+import { ethers } from "hardhat"
+import { Chains } from "@streamr/config"
 
 const { log } = console
 
+const {
+    CHAIN,
+} = process.env
+
+if (!CHAIN) { throw new Error("Please specify CHAIN environment variable (dev0, dev1, gnosis, polygon, mainnet)") }
+
+const {
+    contracts: {
+        MarketplaceV3: MARKETPLACE_ADDRESS,
+    }
+} = Chains.load()[CHAIN]
+
+if (!MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV3 found in chain "${CHAIN}"`) }
+
 /**
- * npx hardhat run --network [network name] scripts/deployContracts.ts
+ * npx hardhat run --network dev scripts/deployUniswapAdapter.ts
  */
 async function main(network: string) {
     let uniswapV2RouterAddress: string
@@ -26,19 +41,12 @@ async function main(network: string) {
         }
     }
 
-    const Marketplace = await ethers.getContractFactory("MarketplaceV3")
-    const marketplace = await upgrades.deployProxy(Marketplace, [], { kind: 'uups' })
-    await marketplace.deployed()
-    log(`MarketplaceV3 deployed at ${marketplace.address}`)
-
     const Uniswap2Adapter = await ethers.getContractFactory("Uniswap2Adapter")
-    const uniswap2Adapter = await Uniswap2Adapter.deploy(marketplace.address, uniswapV2RouterAddress)
+    const uniswap2Adapter = await Uniswap2Adapter.deploy(MARKETPLACE_ADDRESS, uniswapV2RouterAddress)
     await uniswap2Adapter.deployed()
     log(`Uniswap2Adapter deployed at ${uniswap2Adapter.address}`)
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main("dev").catch((error) => {
     console.error(error)
     process.exitCode = 1

@@ -4,8 +4,10 @@ import { Chains } from "@streamr/config"
 const { log } = console
 
 const {
-    CHAIN = "dev1",
+    CHAIN,
 } = process.env
+
+if (!CHAIN) { throw new Error("Please specify CHAIN environment variable (dev0, dev1, gnosis, polygon, mainnet)") }
 
 const {
     contracts: {
@@ -13,8 +15,10 @@ const {
     }
 } = Chains.load()[CHAIN]
 
+if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${CHAIN}"`) }
+
 /**
- * npx hardhat run --network dev1 scripts/3_deployProjectRegistry.ts
+ * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts
  */
 async function main() {
     const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistry")
@@ -23,8 +27,6 @@ async function main() {
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
     console.error(error)
     process.exitCode = 1
