@@ -1,5 +1,6 @@
-import { Address, BigInt, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
+import { Address, Bytes, ethereum } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
+import { ProjectPurchased } from "../../generated/MarketplaceV4/MarketplaceV4"
 import {
     PermissionUpdated,
     ProjectCreated,
@@ -135,4 +136,26 @@ export function createProjectDeletedEvent(
     projectDeletedEvent.parameters.push(idParam)
     
     return projectDeletedEvent
+}
+export function createProjectPurchasedEvent(
+    projectId: Bytes,
+    subscriber: string,
+    subscriptionSeconds: number,
+    price: number, fee: number,
+): ProjectPurchased {
+    const projectPurchasedEvent = changetype<ProjectPurchased>(newMockEvent())
+    projectPurchasedEvent.parameters = new Array()
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    projectPurchasedEvent.parameters.push(projectIdParam)
+    const subscriberParam = new ethereum.EventParam("subscriber", ethereum.Value.fromAddress(Address.fromString(subscriber)))
+    projectPurchasedEvent.parameters.push(subscriberParam)
+    const subscriptionSecondsParam = new ethereum.EventParam("subscriptionSeconds", ethereum.Value.fromI32(subscriptionSeconds as i32))
+    projectPurchasedEvent.parameters.push(subscriptionSecondsParam)
+    const priceParam = new ethereum.EventParam("price", ethereum.Value.fromI32(price as i32))
+    projectPurchasedEvent.parameters.push(priceParam)
+    const feeParam = new ethereum.EventParam("fee", ethereum.Value.fromI32(fee as i32))
+    projectPurchasedEvent.parameters.push(feeParam)
+
+    return projectPurchasedEvent
 }

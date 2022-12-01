@@ -9,15 +9,16 @@
     "lint": "npm run eslint && solhint contracts/**/*.sol",
     "test": "hardhat test test/contracts/*",
     "deploy": "hardhat run --network $CHAIN scripts/3_deployProjectRegistry.ts",
-    "interact": "npx hardhat run --network $CHAIN scripts/4_interactProjectRegistry.ts"
+    "interact": "hardhat run --network $CHAIN scripts/4_interactProjectRegistry.ts",
+    "upgrade": "hardhat run --network $CHAIN scripts/5_upgradeMarketplaceV3.ts"
   },
   "author": "Streamr Network AG",
   "license": "AGPL-3.0",
-  "dependencies": {
+"dependencies": {
     "@chainlink/contracts": "^0.4.2",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@openzeppelin/contracts": "~4.4.2",
-    "@openzeppelin/contracts-upgradeable": "4.4.2",
+    "@openzeppelin/contracts-upgradeable": "4.8.0",
     "@streamr/config": "2.5.4",
     "@streamr-contracts/network-contracts": "^2.4.0",
     "@types/chai": "^4.3.0",
