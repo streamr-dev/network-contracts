@@ -7,6 +7,7 @@ import "../IERC677Receiver.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+// import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./policies/IJoinPolicy.sol";
@@ -36,6 +37,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     IERC677 public token;
     IJoinPolicy[] public joinPolicies;
@@ -109,12 +111,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         previousState = currentState;
     }
 
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+
+
     function initialize(
         address newOwner,
         address tokenAddress,
         uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
-        address trustedForwarderAddress
+        uint32 initialMinBrokerCount
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
@@ -122,7 +126,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _setupRole(ADMIN_ROLE, newOwner);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
     }
@@ -403,5 +406,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    /*
+     * Override openzeppelin's ERC2771ContextUpgradeable function
+     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
+     */
+    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 }

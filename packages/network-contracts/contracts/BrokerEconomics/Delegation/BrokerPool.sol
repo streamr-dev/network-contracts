@@ -33,7 +33,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event UnqueuedDataPayout(address user, uint amountDataWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
+    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     uint public minimumInvestmentWei;
     uint public gracePeriodSeconds;
@@ -79,11 +79,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+
+
     function initialize(
         address tokenAddress,
         address brokerAddress,
         string calldata poolName,
-        address trustedForwarderAddress,
         uint initialMinimumInvestmentWei,
         uint gracePeriodSeconds_
     ) public initializer {
@@ -94,7 +97,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().token = IERC677(tokenAddress);
         globalData().broker = brokerAddress;
         minimumInvestmentWei = initialMinimumInvestmentWei;
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
         require(gracePeriodSeconds_ >= MAX_SLASH_TIME, "error_gracePeriodTooShort");
         gracePeriodSeconds = gracePeriodSeconds_;
@@ -322,11 +324,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function unstake(Bounty bounty) external onlyBroker { // remove modifier, double checked..?
-        _unstakeWithoutQueue(bounty);
+        unstakeWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
     }
 
-    function _unstakeWithoutQueue(Bounty bounty) public onlyBrokerOrForced {
+    function unstakeWithoutQueue(Bounty bounty) public onlyBrokerOrForced {
         // console.log("unstake bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
@@ -492,7 +494,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function forceUnstake(Bounty bounty) external {
         // console.log("forceUnstakeAndPayout triggered, time difference is", block.timestamp - payoutQueue[queuePayoutIndex].timestamp - MAX_SLASH_TIME);
-        _unstakeWithoutQueue(bounty);
+        unstakeWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
+    }
+
+     /*
+     * Override openzeppelin's ERC2771ContextUpgradeable function
+     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
+     */
+    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 }

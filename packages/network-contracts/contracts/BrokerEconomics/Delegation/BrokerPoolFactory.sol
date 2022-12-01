@@ -16,18 +16,19 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     address public brokerPoolTemplate;
     address public tokenAddress;
-    address public trustedForwarder;
     mapping(address => bool) public trustedPolicies;
+    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewBrokerPool(address poolAddress);
 
-    function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+
+    function initialize(address templateAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = _tokenAddress;
         brokerPoolTemplate = templateAddress;
-        trustedForwarder = trustedForwarderAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -130,7 +131,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             poolName,
             // initialMinHorizonSeconds,
             // initialMinBrokerCount,
-            trustedForwarder,
             initialMinWeiInvestment,
             gracePeriodSeconds
         );
@@ -153,5 +153,13 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         pool.renounceRole(pool.ADMIN_ROLE(), address(this));
         emit NewBrokerPool(poolAddress);
         return poolAddress;
+    }
+
+     /*
+     * Override openzeppelin's ERC2771ContextUpgradeable function
+     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
+     */
+    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 }

@@ -17,7 +17,7 @@ describe("Bounty", (): void => {
     const adminWallet = wallets[0]
     const brokerWallet = wallets[1]
     const broker2Wallet = wallets[2]
-    const trustedForwarderAddress: string = wallets[9].address
+    // const trustedForwarderAddress: string = wallets[9].address
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
     let token: TestToken
@@ -58,7 +58,7 @@ describe("Bounty", (): void => {
 
         bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-            [ bountyTemplate.address, trustedForwarderAddress, token.address ])
+            [ bountyTemplate.address, token.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
         await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, testJoinPolicy.address, testAllocationPolicy.address])).wait()

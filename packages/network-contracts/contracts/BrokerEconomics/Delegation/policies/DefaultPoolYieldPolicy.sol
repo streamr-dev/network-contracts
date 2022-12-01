@@ -107,7 +107,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // console.log("DefaultPoolYieldPolicy.deductBrokersShare transferred data to broker", brokersShareDataWei);
         // return (brokersShareDataWei, poolTokenToMint);
 
-        uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
+        // uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
         // console.log("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
         // console.log("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
         // console.log("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);

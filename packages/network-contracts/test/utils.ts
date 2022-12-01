@@ -1,6 +1,6 @@
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
-import { Contract, utils, Wallet } from "ethers"
+import { utils, Wallet } from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy } from "../typechain"
@@ -45,13 +45,11 @@ export type TestContracts = {
 
 /**
  * Deploy all contracts needed by tests. This should be called in "before/beforeAll".
- * NB: trustedForwarder shouldn't be same as deployer, otherwise _msgSender() will return garbage
  *     see @openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
  * @param deployer wallet used for all deployments
- * @param trustedForwarder given as argument to BountyFactory; set to zero if not given
  * @returns mapping: name string -> ethers.Contract object
  */
-export async function deployTestContracts(deployer: Wallet, trustedForwarder?: Wallet): Promise<TestContracts> {
+export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
 
     // bounty and policies
@@ -67,7 +65,6 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
     const bountyFactoryFactory = await getContractFactory("BountyFactory", deployer)
     const bountyFactory = await upgrades.deployProxy(bountyFactoryFactory, [
         bountyTemplate.address,
-        trustedForwarder?.address ?? "0x0000000000000000000000000000000000000000",
         token.address
     ]) as BountyFactory
     await bountyFactory.deployed()
@@ -88,7 +85,6 @@ export async function deployTestContracts(deployer: Wallet, trustedForwarder?: W
     const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
         poolTemplate.address,
-        bountyFactory.address,
         token.address
     ]) as BrokerPoolFactory
     await poolFactory.deployed()

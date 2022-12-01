@@ -9,24 +9,25 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
 import "../IERC677.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
     address public bountyContractTemplate;
     address public tokenAddress;
-    address public trustedForwarder;
     mapping(address => bool) public trustedPolicies;
+    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewBounty(address bountyContract);
 
-    function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+
+    function initialize(address templateAddress, address _tokenAddress) public initializer {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = _tokenAddress;
         bountyContractTemplate = templateAddress;
-        trustedForwarder = trustedForwarderAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -124,8 +125,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             address(this), // this is needed in order to set the policies
             tokenAddress,
             initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            trustedForwarder
+            initialMinBrokerCount
         );
         if (policies[0] != address(0)) {
             bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
@@ -146,5 +146,13 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
         emit NewBounty(bountyAddress);
         return bountyAddress;
+    }
+
+    /*
+     * Override openzeppelin's ERC2771ContextUpgradeable function
+     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
+     */
+    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 }

@@ -23,7 +23,7 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         data.minimumMarginPercent = minimumMarginPercent;
     }
 
-    function canJoin(address delegator) external view returns (uint canJoin){
+    function canJoin(address delegator) external view returns (uint allowedToJoin) {
         // console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
         // console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
         // console.log("DefaultPoolJoinPolicy.onPoolJoin brokers balance", balanceOf(globalData().broker));
