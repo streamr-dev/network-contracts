@@ -12,34 +12,35 @@ interface IOutbox {
 
 /**
  * @title Streamr Remote Marketplace
- * The Remmote Marketplace through which the users on other networks can send cross-chain messages (e.g. buy)
+ * The Remmote Marketplace through which the users on other networks can send cross-chain messages (e.g. buy products)
  */
 contract RemoteMarketplace {
 
-    uint32 destinationDomain;
-    address recipientAddress;
-    address hyperlaneCoreContractAddress;
+    uint32 destinationDomain; // the Domain ID of the source chain (e.g. polygon)
+    address recipientAddress; // the address of the message sender on the source chain. It must match or the message will revert
+    address outboxAddress;
 
     /**
-     * @param _destinationDomain - the chain where the messages are sent to. It is not the chainID, rather it is a unique ID assigned by the protocol to each chain - polygon
-     * @param _recipientAddress - the receiving contract (e.g. MarketplaceV4), it needs to be a contract with the handle() function - polygon
-     * @param _hyperlaneCoreContractAddress - hyperlane core contract address where the Outbox implementation is - gnosis
+     * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed (e.g. gnosis)
      */
-    constructor(uint32 _destinationDomain, address _recipientAddress, address _hyperlaneCoreContractAddress) {
-        destinationDomain = _destinationDomain;
-        recipientAddress = _recipientAddress;
-        _hyperlaneCoreContractAddress = _hyperlaneCoreContractAddress;
+    constructor(address _outboxAddress) {
+        outboxAddress = _outboxAddress;
     }
 
-    function dispatchMessage() public {
-        IOutbox(hyperlaneCoreContractAddress).dispatch(
-            destinationDomain,
-            _addressToBytes32(recipientAddress),
-            bytes("sent from the remote marketplace")
+    /**
+     * @param _destinationDomain - the chain where Marketplace is deployed and where messages are sent to. It is a unique ID assigned by hyperlane protocol (e.g. polygon)
+     * @param _recipientAddress - the address for the Marketplace contract. It must have the handle() function (e.g. polygon)
+     * @param _messageBody - encoded purchase info
+     */
+    function dispatch(uint32 _destinationDomain, address _recipientAddress, string calldata _messageBody ) public {
+        IOutbox(outboxAddress).dispatch(
+            _destinationDomain,
+            addressToBytes32(_recipientAddress),
+            bytes(_messageBody)
         );
     }
 
-    function _addressToBytes32(address _addr) private pure returns (bytes32) {
+    function addressToBytes32(address _addr) public pure returns (bytes32) {
         return bytes32(uint256(uint160(_addr)));
     }
 }
