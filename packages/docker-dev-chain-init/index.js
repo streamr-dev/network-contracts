@@ -159,13 +159,13 @@ async function deployNodeRegistry(wallet, initialNodes, initialMetadata) {
 }
 
 async function deployStreamStorageRegistry(wallet) {
-    const strDeploy = await ethers.getContractFactory("StreamStorageRegistry", wallet)
+    const strDeploy = await ethers.getContractFactory("StreamStorageRegistryV2", wallet)
     // const strDeployTx = await strDeploy.deploy(streamRegistryAddress, nodeRegistryAddress, wallet.address, {gasLimit: 6000000} )
     const strDeployTx = await upgrades.deployProxy(strDeploy, [streamRegistryAddress, nodeRegistryAddress, ethers.constants.AddressZero], {
         kind: 'uups'
     })
     const str = await strDeployTx.deployed()
-    log(`StreamStorageRegistry deployed at ${str.address}`)
+    log(`StreamStorageRegistryV2 deployed at ${str.address}`)
 }
 
 async function deployProjectRegistry(wallet) {
@@ -176,17 +176,19 @@ async function deployProjectRegistry(wallet) {
     return projectRegistry
 }
 
-async function deployMarketplace(wallet) {
+async function deployMarketplaceV3(wallet) {
     const marketplaceV3Factory = await ethers.getContractFactory("MarketplaceV3", wallet)
     const marketplaceV3FactoryTx = await upgrades.deployProxy(marketplaceV3Factory, [], { kind: 'uups' })
     const marketplaceV3 = await marketplaceV3FactoryTx.deployed()
     log(`MarketplaceV3 deployed on sidechain at ${marketplaceV3.address}`)
+    return marketplaceV3
+}
 
+async function deployMarketplaceV4(wallet) {
     const marketplaceV4Factory = await ethers.getContractFactory("MarketplaceV4", wallet)
-    const marketplaceV4FactoryTx = await upgrades.upgradeProxy(marketplaceV3FactoryTx.address, marketplaceV4Factory)
+    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [], { kind: 'uups' })
     const marketplaceV4 = await marketplaceV4FactoryTx.deployed()
-    log(`MarketplaceV3 upgraded on sidechain to V4 at ${marketplaceV4.address}`)
-
+    log(`MarketplaceV4 deployed on sidechain at ${marketplaceV4.address}`)
     return marketplaceV4
 }
 
@@ -276,14 +278,14 @@ async function deployStreamRegistries() {
     let nodes = await nodeRegDeployed.getNodes()
     log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
 
-    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV3", sidechainWalletStreamReg)
+    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV4", sidechainWalletStreamReg)
     const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [ensCache.address, wallet1.address], {
         kind: 'uups'
     })
     const streamRegistry = await streamRegistryFactoryTx.deployed()
     streamRegistryFromOwner = streamRegistry
     streamRegistryAddress = streamRegistry.address
-    log(`Streamregistry deployed at ${streamRegistry.address}`)
+    log(`StreamregistryV4 deployed at ${streamRegistry.address}`)
 
     log(`setting Streamregistry address in ENSCache`)
     const setStreamRegTx = await ensCache.setStreamRegistry(streamRegistry.address)
@@ -570,8 +572,9 @@ async function smartContractInitialization() {
     await grantRoleTx2.wait()
 
     const projectRegistry = await deployProjectRegistry(sidechainWallet)
-    const marketplaceV4 = await deployMarketplace(sidechainWallet)
-    // link the marketpalce to the project registry contract
+    await deployMarketplaceV3(sidechainWallet)
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet)
+    // link marketpalceV4 to the project registry contract
     await(await marketplaceV4.setProjectRegistry(projectRegistry.address)).wait()
     // grant trusted role to marketpalce contract => needed for granting permissions to buyers
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
