@@ -16,7 +16,6 @@ import "./token/IERC677.sol";
 
 import "./IMarketplaceV4.sol";
 import "./IPurchaseListener.sol";
-import "./CrossChainRecipient.sol";
 
 interface IProjectRegistry {
     enum PermissionType {  Buy, Delete, Edit, Grant }
@@ -34,13 +33,21 @@ interface IProjectRegistry {
     function isTrustedForwarder(address forwarder) external view returns (bool);
 }
 
+interface IMessageRecipient {
+    function handle(
+        uint32 _origin, // the Domain ID of the source chain (e.g. polygon)
+        bytes32 _sender, // the address of the message sender on the source chain. It must match or the message will revert (e.g. RemoteMarketplace)
+        bytes calldata _message // encoded purchase info
+    ) external;
+}
+
 /**
  * @title Streamr Marketplace
  * @dev note about numbers:
  *   All prices and exchange rates are in "decimal fixed-point", that is, scaled by 10^18, like ETH vs wei.
  *  Seconds are integers as usual.
  */
-contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, CrossChainRecipient, IMarketplaceV4 {
+contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4, IMessageRecipient {
 
     // MarketplaceV3 storage
 
@@ -77,12 +84,19 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cr
 
     IProjectRegistry public projectRegistry;
 
-    //  cross-chain protocol variables
-    uint32 constant polygonDomain = 0x706f6c79; // polygon
-    address constant polygonInbox = 0x14c3CEee8F431aE947364f43429a98EA89800238; // from arbitrum to polygon (TODO: change arbitrum to gnosis). TODO: accept multiple remote chains
+    //  cross-chain messaging variables
+    uint32 constant destinationDomain = 0x706f6c79; // polygon
+    // address constant hyperlaneInbox = 0x14c3CEee8F431aE947364f43429a98EA89800238;
+    // address constant remoteMarketplace;
 
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
+        _;
+    }
+
+    modifier onlyPolygonInbox(uint32 _origin) {
+        require(_origin == destinationDomain, "incorrectDestinationDomain");
+        // TODO: require(msg.sender == hyperlaneInbox, "notHyperlaneInbox");
         _;
     }
 
@@ -199,6 +213,35 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cr
 
         uint subscriptionSeconds = amount / pricePerSecond / 1 ether;
         projectRegistry.grantSubscription(productId, subscriptionSeconds, sender);
+    }
+
+    /////////////// Cross-Chain Purchases ///////////////
+
+    /**
+    * Extends project subscription purchased on a different chain.
+    * @dev decode projectId, subscriber, subscriptionSeconds from _data
+    * @dev msg.sender is the hyperlane mailbox address from the source chain, where MarketplaceV4 is deployed (e.g. polygon)
+    * @param _origin - the chain id (e.g. polygon). It's a unique id assignet by hyperlane protocol.
+    * @param _sender - the contract from which the tx was inited (e.g. RemoteMarketplace).
+    * @dev _sender is bytes32 not address because the protocol intends to support non-evm chains as well
+    * @param _data - encoded purchase info
+    */
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes calldata _data
+    ) external onlyPolygonInbox(_origin) {
+        // TODO: require(_sender == remoteMarketplace, "notRemoteMarketplace");
+        (bytes32 productId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_data, (bytes32, uint256, address));
+
+        require(projectRegistry.canBuyProject(productId, subscriber), "error_unableToBuyProject");
+        projectRegistry.grantSubscription(productId, subscriptionSeconds, subscriber);
+
+        emit ProjectPurchased(productId, subscriber, subscriptionSeconds, 0, 0); // TODO: add price and fee params
+    }
+
+    function _bytes32ToAddress(bytes32 _buf) private pure returns (address) {
+        return address(uint160(uint256(_buf)));
     }
 
     /////////////// Admin functionality ///////////////

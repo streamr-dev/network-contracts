@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.9;
 
 interface IMessageRecipient {
@@ -16,6 +17,8 @@ contract MockInbox {
     bytes messageBody;
   }
 
+  uint32 destinationDomain = 0x706f6c79; // polygon
+
   mapping(uint => PendingMessage) pendingMessages;
   uint totalMessages = 0;
   uint messageProcessed = 0;
@@ -25,6 +28,8 @@ contract MockInbox {
     bytes32 _recipient,
     bytes memory _messageBody
   ) external {
+
+
     pendingMessages[totalMessages] = PendingMessage(
       _sender,
       _recipient,
@@ -39,7 +44,7 @@ contract MockInbox {
     address recipient = bytes32ToAddress(pendingMessage.recipient);
     
     IMessageRecipient(recipient).handle(
-      1,
+      destinationDomain,
       pendingMessage.sender,
       pendingMessage.messageBody
     );
