@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicy.sol";
 import "../DelegatedAccessRegistry.sol";
 

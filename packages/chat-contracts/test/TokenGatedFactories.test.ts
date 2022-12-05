@@ -9,7 +9,7 @@ const { provider } = waffle
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
 use(waffle.solidity)
-describe('TokenGatedDeployers', (): void => {
+describe('TokenGatedFactories', (): void => {
     const wallets = provider.getWallets()
     const TokenId = 1234567890
     const streamPath = '/foo/bar'
@@ -40,18 +40,18 @@ describe('TokenGatedDeployers', (): void => {
         joinPolicyRegistry = await JoinPolicyRegistry.deploy()
     })
 
-    describe('ERC20PolicyDeployer', (): void => {
+    describe('ERC20PolicyFactory', (): void => {
         const streamId = `erc20/${wallets[0].address}${streamPath}`.toLowerCase()
 
-        let deployer: Contract
+        let factory: Contract
         let token: Contract
 
         before( async (): Promise<void> => {
             const ERC20 = await ethers.getContractFactory('TestERC20')
             token = await ERC20.deploy() 
 
-            const ERC20PolicyDeployer = await ethers.getContractFactory('ERC20PolicyDeployer')
-            deployer = await ERC20PolicyDeployer.deploy(
+            const ERC20PolicyFactory = await ethers.getContractFactory('ERC20PolicyFactory')
+            factory = await ERC20PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
@@ -59,7 +59,7 @@ describe('TokenGatedDeployers', (): void => {
         })
 
         it ('should exercise the deploy method', async () => {
-            await deployer.deploy(
+            await factory.create(
                 token.address,
                 streamId,
                 1, // minRequiredBalance,
@@ -80,7 +80,7 @@ describe('TokenGatedDeployers', (): void => {
 
         it ('should fail to deploy a duplicated policy', async () => {
             try {
-                await deployer.deploy(
+                await factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -95,18 +95,18 @@ describe('TokenGatedDeployers', (): void => {
 
     })
 
-    describe('ERC721PolicyDeployer', (): void => {
+    describe('ERC721PolicyFactory', (): void => {
         const streamId = `erc721/${wallets[0].address}${streamPath}`.toLowerCase()
         
-        let deployer: Contract
+        let factory: Contract
         let token: Contract
         
         before( async (): Promise<void> => {
             const ERC721 = await ethers.getContractFactory('TestERC721')
             token = await ERC721.deploy() 
 
-            const ERC721PolicyDeployer = await ethers.getContractFactory('ERC721PolicyDeployer')
-            deployer = await ERC721PolicyDeployer.deploy(
+            const ERC721PolicyFactory = await ethers.getContractFactory('ERC721PolicyFactory')
+            factory = await ERC721PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
@@ -114,7 +114,7 @@ describe('TokenGatedDeployers', (): void => {
         })
 
         it ('should exercise the deploy method', async () => {
-            await deployer.deploy(
+            await factory.create(
                 token.address,
                 streamId,
                 0, // minRequiredBalance,
@@ -135,7 +135,7 @@ describe('TokenGatedDeployers', (): void => {
 
         it ('should fail to deploy a duplicated policy', async () => {
             try {
-                await deployer.deploy(
+                await factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -150,18 +150,18 @@ describe('TokenGatedDeployers', (): void => {
 
     })
 
-    describe('ERC777PolicyDeployer', (): void => {
+    describe('ERC777PolicyFactory', (): void => {
         const streamId = `erc777/${wallets[0].address}${streamPath}`.toLowerCase()
 
-        let deployer: Contract
+        let factory: Contract
         let token: Contract
 
         before( async (): Promise<void> => {
             const ERC777 = await ethers.getContractFactory('TestERC777')
             token = await ERC777.deploy() 
 
-            const ERC777PolicyDeployer = await ethers.getContractFactory('ERC777PolicyDeployer')
-            deployer = await ERC777PolicyDeployer.deploy(
+            const ERC777PolicyFactory = await ethers.getContractFactory('ERC777PolicyFactory')
+            factory = await ERC777PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
@@ -169,7 +169,7 @@ describe('TokenGatedDeployers', (): void => {
         })
 
         it ('should exercise the deploy method', async () => {
-            await deployer.deploy(
+            await factory.create(
                 token.address,
                 streamId,
                 1, // minRequiredBalance,
@@ -190,7 +190,7 @@ describe('TokenGatedDeployers', (): void => {
 
         it ('should fail to deploy a duplicated policy', async () => {
             try {
-                await deployer.deploy(
+                await factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -205,18 +205,18 @@ describe('TokenGatedDeployers', (): void => {
 
     })
 
-    describe('ERC1155PolicyDeployer', (): void => {
+    describe('ERC1155PolicyFactory', (): void => {
         const streamId = `erc1155/${wallets[0].address}${streamPath}`.toLowerCase()
         
-        let deployer: Contract
+        let factory: Contract
         let token: Contract
         
         before( async (): Promise<void> => {
             const ERC1155 = await ethers.getContractFactory('TestERC1155')
             token = await ERC1155.deploy() 
 
-            const ERC1155PolicyDeployer = await ethers.getContractFactory('ERC1155PolicyDeployer')
-            deployer = await ERC1155PolicyDeployer.deploy(
+            const ERC1155PolicyFactory = await ethers.getContractFactory('ERC1155PolicyFactory')
+            factory = await ERC1155PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
@@ -224,7 +224,7 @@ describe('TokenGatedDeployers', (): void => {
         })
 
         it ('should exercise the deploy method', async () => {
-            await deployer.deploy(
+            await factory.create(
                 token.address,
                 streamId,
                 12, // minRequiredBalance,
@@ -245,7 +245,7 @@ describe('TokenGatedDeployers', (): void => {
 
         it ('should fail to deploy a duplicated policy', async () => {
             try {
-                await deployer.deploy(
+                await factory.create(
                     token.address,
                     streamId,
                     7, // minRequiredBalance,

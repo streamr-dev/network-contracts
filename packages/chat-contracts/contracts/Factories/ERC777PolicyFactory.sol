@@ -1,35 +1,34 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "./TokenGateDeployer.sol";
-import "../JoinPolicies/ERC1155JoinPolicy.sol";
+import "./TokenGateFactory.sol";
+import "../JoinPolicies/ERC777JoinPolicy.sol";
 
-contract ERC1155PolicyDeployer is TokenGateDeployer{
+contract ERC777PolicyFactory is TokenGateFactory{
 
     constructor(
         address joinPolicyRegistryAddress_,
         address streamRegistryAddress_,
         address delegatedAccessRegistryAddress_
-    ) TokenGateDeployer(
+    ) TokenGateFactory(
         joinPolicyRegistryAddress_,
         streamRegistryAddress_,
         delegatedAccessRegistryAddress_   
     ){}
 
-    function deploy(
+    function create(
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,
-        uint256 tokenId_,
+        uint256 /*tokenId_*/,
         bool stakingEnabled_,
         StreamRegistryV3.PermissionType[] memory defaultPermissions_
     ) public override {
-        ERC1155JoinPolicy instance = new ERC1155JoinPolicy(
+        ERC777JoinPolicy instance = new ERC777JoinPolicy(
             tokenAddress,
             streamRegistryAddress,
             streamId_,
             defaultPermissions_,
-            tokenId_,
             minRequiredBalance_,
             delegatedAccessRegistryAddress,
             stakingEnabled_
@@ -39,7 +38,7 @@ contract ERC1155PolicyDeployer is TokenGateDeployer{
             tokenAddress,
             streamId_,
             deployedPolicy,
-            tokenId_,
+            0, // tokenId = 0 for ERC777
             stakingEnabled_
         );
     }

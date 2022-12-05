@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "../JoinPolicyRegistry.sol";
 
-abstract contract TokenGateDeployer {
+abstract contract TokenGateFactory {
     JoinPolicyRegistry public registry;
 
     address public streamRegistryAddress;
@@ -21,7 +21,7 @@ abstract contract TokenGateDeployer {
         delegatedAccessRegistryAddress = delegatedAccessRegistryAddress_;
     }
 
-    function deploy(
+    function create(
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,

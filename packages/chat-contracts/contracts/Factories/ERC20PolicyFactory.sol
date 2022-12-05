@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "./TokenGateDeployer.sol";
+import "./TokenGateFactory.sol";
 import "../JoinPolicies/ERC20JoinPolicy.sol";
 
-contract ERC20PolicyDeployer is TokenGateDeployer{
+contract ERC20PolicyFactory is TokenGateFactory{
 
     constructor(
         address joinPolicyRegistryAddress_,
         address streamRegistryAddress_,
         address delegatedAccessRegistryAddress_
-    ) TokenGateDeployer(
+    ) TokenGateFactory(
         joinPolicyRegistryAddress_,
         streamRegistryAddress_,
         delegatedAccessRegistryAddress_   
     ){}
 
-    function deploy(
+    function create(
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,
