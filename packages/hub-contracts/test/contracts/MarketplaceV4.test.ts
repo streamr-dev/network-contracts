@@ -549,7 +549,7 @@ describe("Marketplace", () => {
     describe('RemoteMarketplace', () => {
         let mockInbox: MockInbox
         let mockOutbox: MockOutbox
-        let remoteMarket: RemoteMarketplace // e.g. gnosis - the contract where purchase was submitted and from where the cross-chain messages are dispatched
+        let remoteMarket: RemoteMarketplace // e.g. gnosis - the cross-chain contract from where purchase was submitted
     
         before(async () => {
             const MockInbox = await getContractFactory("MockInbox")
