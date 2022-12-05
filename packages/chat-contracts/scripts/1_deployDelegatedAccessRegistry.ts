@@ -7,6 +7,13 @@ const { ethers } = hhat
 const chainURL = 'http://10.200.10.1:8546'
 const privKeyStreamRegistry = ''
 
+// polygon
+/*
+const chainURL = 'https://polygon-rpc.com'
+const privKeyStreamRegistry = process.env.PRIV_KEY || ''
+*/
+
+
 async function main() {
     const wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
 

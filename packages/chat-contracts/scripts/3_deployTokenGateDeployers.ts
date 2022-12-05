@@ -7,7 +7,7 @@ import axios from 'axios'
 // localsidechain
 
 const chainURL = 'http://10.200.10.1:8546'
-const privKeyStreamRegistry = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
+const privKeyStreamRegistry = ''
 
 const JoinPolicyRegistryAddress = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF'
 const StreamRegistryAddress = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
@@ -16,7 +16,7 @@ const DelegatedAccessRegistryAddress = '0x1CF4ee3a493f9B07AE9394F78E1407c2682B0e
 // polygon 
 /*
 const chainURL = 'https://polygon-rpc.com'
-const privKeyStreamRegistry = ''
+const privKeyStreamRegistry = process.env.PRIV_KEY || ''
 
 const JoinPolicyRegistryAddress = '0x5Cc79AA4fde8589D3b75f0592A9FA37B032e21fA'
 const StreamRegistryAddress = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
