@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 
 import "./IPoolYieldPolicy.sol";
 import "../BrokerPool.sol";
-import "hardhat/console.sol";
+
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
     struct LocalStorage {
@@ -23,48 +23,53 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
     function setParam(uint256 initialMargin, uint256 maintenanceMarginPercent, uint256 minimumMarginPercent, uint256 brokerSharePercent, uint256 brokerShareMaxDivertPercent) external {
         LocalStorage storage data = localData();
         data.initialMargin = initialMargin;
-        // console.log("DefaultPoolYieldPolicy.setParam: initialMargin:", initialMargin);
+        // consolelog("DefaultPoolYieldPolicy.setParam: initialMargin:", initialMargin);
         data.maintenanceMarginPercent = maintenanceMarginPercent;
-        // console.log("DefaultPoolYieldPolicy.setParam: maintenanceMarginPercent:", maintenanceMarginPercent);
+        // consolelog("DefaultPoolYieldPolicy.setParam: maintenanceMarginPercent:", maintenanceMarginPercent);
         data.minimumMarginPercent = minimumMarginPercent;
-        // console.log("DefaultPoolYieldPolicy.setParam: minimumMarginPercent:", minimumMarginPercent);
+        // consolelog("DefaultPoolYieldPolicy.setParam: minimumMarginPercent:", minimumMarginPercent);
         data.brokerSharePercent = brokerSharePercent;
-        // console.log("DefaultPoolYieldPolicy.setParam: brokerSharePercent:", brokerSharePercent);
+        // consolelog("DefaultPoolYieldPolicy.setParam: brokerSharePercent:", brokerSharePercent);
         data.brokerShareMaxDivertPercent = brokerShareMaxDivertPercent;
-        // console.log("DefaultPoolYieldPolicy.setParam: brokerShareMaxDivertPercent:", brokerShareMaxDivertPercent);
+        // consolelog("DefaultPoolYieldPolicy.setParam: brokerShareMaxDivertPercent:", brokerShareMaxDivertPercent);
     }
 
     function calculateBrokersShare(uint dataWei) external view returns(uint dataWeiBrokersShare) {
-        // console.log("DefaultPoolYieldPolicy.calculateBrokersShare", dataWei);
-        // console.log("DefaultPoolYieldPolicy.calculateBrokersShare absolute", dataWei * localData().brokerSharePercent / 100);
+        // consolelog("## DefaultPoolYieldPolicy.calculateBrokersShare", dataWei);
+        // consolelog("DefaultPoolYieldPolicy.calculateBrokersShare", dataWei);
+        // consolelog("DefaultPoolYieldPolicy.calculateBrokersShare absolute", dataWei * localData().brokerSharePercent / 100);
         return dataWei * localData().brokerSharePercent / 100;
     }
 
     function pooltokenToData(uint256 poolTokenWei, uint256 substractFromPoolvalue) public view returns (uint256 dataWei) {
+        // consolelog("## DefaultPoolYieldPolicy.pooltokenToData", poolTokenWei, substractFromPoolvalue);
         if (this.totalSupply() == 0) {
-            // console.log("total supply is 0");
+            // consolelog("total supply is 0");
             return poolTokenWei;
         }
-        // console.log("DefaultPoolYieldPolicy.pooltokenToData", poolTokenWei);
-        // console.log("data balance of this", globalData().token.balanceOf(address(this)));
-        // console.log("this totlasupply", this.totalSupply());
+        // consolelog("DefaultPoolYieldPolicy.pooltokenToData amount to convert", poolTokenWei);
+        // consolelog("DefaultPoolYieldPolicy.pooltokenToData substract", substractFromPoolvalue);
+        // consolelog("DefaultPoolYieldPolicy.pooltokenToData data balance of this", globalData().token.balanceOf(address(this)));
+        // consolelog("DefaultPoolYieldPolicy.pooltokenToData this totlasupply", this.totalSupply());
         // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
         uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
-        // console.log("poolValueData", poolValueData);
+        // consolelog("DefaultPoolYieldPolicy.pooltokenToData poolValueData", poolValueData);
         return poolTokenWei * poolValueData / this.totalSupply();
     }
 
     function dataToPooltoken(uint256 dataWei, uint256 substractFromPoolvalue) public view returns (uint256 poolTokenWei) {
+        // consolelog("## DefaultPoolYieldPolicy.dataToPooltoken", dataWei, substractFromPoolvalue);
         if (this.totalSupply() == 0) {
-            // console.log("total supply is 0");
+            // consolelog("total supply is 0");
             return dataWei;
         }
-        // console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
-        // console.log("data balance of this", globalData().token.balanceOf(address(this)));
+        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken amount to convert", dataWei);
+        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken substract", substractFromPoolvalue);
+        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data balance of this", globalData().token.balanceOf(address(this)));
         // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
         uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
-        // console.log("this totlasupply", this.totalSupply());
-        // console.log("poolValueData", poolValueData);
+        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data this totlasupply", this.totalSupply());
+        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data poolValueData", poolValueData);
         if (poolValueData == 0) {
             return dataWei;
         }
@@ -72,46 +77,46 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
     }
 
     function deductBrokersShare(uint256 dataWei) external {
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().brokerSharePercent);
+        // consolelog("## DefaultPoolYieldPolicy.deductBrokersShare", dataWei);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().percentBrokerEarnings", localData().brokerSharePercent);
         uint256 brokersShareDataWei = dataWei * localData().brokerSharePercent / 100;
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare brokersShareDataWei", brokersShareDataWei);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokersShareDataWei", brokersShareDataWei);
         // if brokers share of stake is less than maintenance margin, diect brokerShareMaxDivertPercent of his share to his stake
         uint256 brokersShareOfStake = balanceOf(globalData().broker) * 100 / totalSupply();
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStake", brokersShareOfStake);
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().maintenanceMarginPercent", localData().maintenanceMarginPercent);
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare.localData().brokerShareMaxDivertPercent", localData().brokerShareMaxDivertPercent);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStake", brokersShareOfStake);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().maintenanceMarginPercent", localData().maintenanceMarginPercent);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().brokerShareMaxDivertPercent", localData().brokerShareMaxDivertPercent);
         if(brokersShareOfStake < localData().maintenanceMarginPercent) {
             uint256 noBrokerGoalPercent = 100 - localData().maintenanceMarginPercent;
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.noBrokerGoalPercent", noBrokerGoalPercent);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.noBrokerGoalPercent", noBrokerGoalPercent);
             uint256 nonBrokerStake = totalSupply() - balanceOf(globalData().broker);
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.nonBrokerStake", nonBrokerStake);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.nonBrokerStake", nonBrokerStake);
             uint256 brokerStakeGoal = nonBrokerStake * localData().maintenanceMarginPercent / noBrokerGoalPercent;
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.brokerStakeGoal", brokerStakeGoal);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokerStakeGoal", brokerStakeGoal);
             uint256 missingPoolToken = brokerStakeGoal - balanceOf(globalData().broker);
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.missingPoolToken", missingPoolToken);
-            uint256 divertDataWei = pooltokenToData(missingPoolToken, dataWei);
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.divertDataWei", divertDataWei);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.missingPoolToken", missingPoolToken);
+            uint256 divertDataWei = pooltokenToData(missingPoolToken, dataWei - brokersShareDataWei); // brokers share is already deducted from poolvalue
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.divertDataWei", divertDataWei);
             uint256 maxDivertableDataWei = brokersShareDataWei * localData().brokerShareMaxDivertPercent / 100;
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare.maxDivertableDataWei", maxDivertableDataWei);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.maxDivertableDataWei", maxDivertableDataWei);
             if (divertDataWei > maxDivertableDataWei) {
                 divertDataWei = maxDivertableDataWei;
             }
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare diverting", divertDataWei);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare diverting", divertDataWei);
+            uint256 poolTokenToMint = dataToPooltoken(divertDataWei, dataWei - brokersShareDataWei);
             brokersShareDataWei -= divertDataWei;
-            uint256 poolTokenToMint = dataToPooltoken(divertDataWei, dataWei);
             _mint(globalData().broker, poolTokenToMint);
-            // console.log("DefaultPoolYieldPolicy.deductBrokersShare minted", poolTokenToMint);
+            // consolelog("DefaultPoolYieldPolicy.deductBrokersShare minted", poolTokenToMint);
         }
         globalData().token.transfer(globalData().broker, brokersShareDataWei);
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare transferred data to broker", brokersShareDataWei);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare transferred data to broker", brokersShareDataWei);
         // return (brokersShareDataWei, poolTokenToMint);
 
-        // uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
-        // console.log("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);
+        uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);
     }
 }
