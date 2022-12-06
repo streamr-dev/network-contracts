@@ -144,7 +144,39 @@ describe("BrokerPool", (): void => {
         await (await token.connect(investor).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
     })
 
-    it("negativetest minbrokerstakepercent, can't join if brokers stake falls too low", async function(): Promise<void> {
+    it("positivetest update approximate poolvalue", async function(): Promise<void> {
+        const timeAtStart = await getBlockTimestamp()
+        const { token } = contracts
+        const pool = await deployBrokerPool({ })
+        const bounty1 = await deployBountyContract(contracts)
+        await (await token.connect(sponsor).transferAndCall(bounty1.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await pool.stake(bounty1.address, parseEther("1000"))).wait()
+        // some time passes, approx poolvalue differs from real poolvalue
+        await advanceToTimestamp(timeAtStart + 1000, "Unstake from bounty")
+        let approxPoolValue = await pool.getApproximatePoolValue()
+        expect(formatEther(approxPoolValue)).to.equal("1000.0")
+        let actualPoolValue = await pool.calculatePoolValueInData(0)
+        expect(formatEther(actualPoolValue)).to.equal("2000.0")
+        let poolValuePerBounty = await pool.getApproximatePoolValuesPerBounty()
+        expect(poolValuePerBounty.bountyAdresses[0]).to.equal(bounty1.address)
+        expect(formatEther(poolValuePerBounty.approxValues[0].toString())).to.equal("1000.0")
+        expect(formatEther(poolValuePerBounty.realValues[0].toString())).to.equal("2000.0")
+
+        // update approx poolvalue, check if it is correct
+        await (await pool.updateApproximatePoolvalueOfBounties([bounty1.address])).wait()
+        approxPoolValue = await pool.getApproximatePoolValue()
+        expect(formatEther(approxPoolValue)).to.equal("2000.0")
+        actualPoolValue = await pool.calculatePoolValueInData(0)
+        expect(formatEther(actualPoolValue)).to.equal("2000.0")
+        poolValuePerBounty = await pool.getApproximatePoolValuesPerBounty()
+        expect(poolValuePerBounty.bountyAdresses[0]).to.equal(bounty1.address)
+        expect(formatEther(poolValuePerBounty.approxValues[0].toString())).to.equal("2000.0")
+        expect(formatEther(poolValuePerBounty.realValues[0].toString())).to.equal("2000.0")
+
+    })
+
+    it.only("negativetest minbrokerstakepercent, investor can't join if brokers stake falls too low", async function(): Promise<void> {
         const { token } = contracts
         const pool = await deployBrokerPool({ minBrokerStakePercent: 10 })
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
