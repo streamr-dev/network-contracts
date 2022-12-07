@@ -6,8 +6,8 @@ import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth
 import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
-import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core";
-import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils";
+import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
+import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 
 const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
@@ -549,20 +549,20 @@ describe("Marketplace", () => {
 
     describe('Hyperlane - cross-chain messaging', () => {
         it("should be able to send a message directly using the test recipient contract", async function () {
-            const signer = (await hardhatEthers.getSigners())[0];
-            const inbox = await new MockInbox__factory(signer).deploy();
-            await inbox.deployed();
-            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address);
-            await outbox.deployed();
-            const recipient = await new TestRecipient__factory(signer).deploy();
-            const data = toUtf8Bytes("This is a test message");
+            const signer = (await hardhatEthers.getSigners())[0]
+            const inbox = await new MockInbox__factory(signer).deploy()
+            await inbox.deployed()
+            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address)
+            await outbox.deployed()
+            const recipient = await new TestRecipient__factory(signer).deploy()
+            const data = toUtf8Bytes("This is a test message")
         
-            await outbox.dispatch(1, addressToBytes32(recipient.address), data);
-            await inbox.processNextPendingMessage();
+            await outbox.dispatch(1, addressToBytes32(recipient.address), data)
+            await inbox.processNextPendingMessage()
         
-            const dataReceived = await recipient.lastData();
-            expect(dataReceived).to.eql(hexlify(data));
-        });
+            const dataReceived = await recipient.lastData()
+            expect(dataReceived).to.eql(hexlify(data))
+        })
 
         const originDomain = 1 // e.g. arbitrum id - where RemoteMarketplace is deployed
         const destinationDomain = 2 // e.g. polygon id - where MarketplaceV4 is deployed
@@ -574,14 +574,14 @@ describe("Marketplace", () => {
         })
 
         describe('RemoteMarketplace', () => {
-            let inbox: any;
-            let outbox: any;
+            let inbox: any
+            let outbox: any
         
             before(async () => {
-                inbox = await new MockInbox__factory(admin).deploy();
-                await inbox.deployed();
-                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address);
-                await outbox.deployed();
+                inbox = await new MockInbox__factory(admin).deploy()
+                await inbox.deployed()
+                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
+                await outbox.deployed()
                 
                 const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
                 sender = await remoteMarketFactory.deploy(destinationDomain, receiver.address, outbox.address) as RemoteMarketplace
