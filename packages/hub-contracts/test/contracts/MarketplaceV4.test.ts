@@ -6,12 +6,13 @@ import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth
 import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
-import { MockInbox } from "../../typechain/MockInbox"
-import { MockOutbox } from "../../typechain/MockOutbox"
+import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core";
+import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils";
 
 const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
+const { addressToBytes32} = hyperlaneUtils
 
 const types = {
     EIP712Domain: [
@@ -545,38 +546,65 @@ describe("Marketplace", () => {
                 .to.be.true
         })
     })
-    
-    describe('RemoteMarketplace', () => {
-        let mockInbox: MockInbox
-        let mockOutbox: MockOutbox
-        let remoteMarket: RemoteMarketplace // e.g. gnosis - the cross-chain contract from where purchase was submitted
+
+    describe('Hyperlane - cross-chain messaging', () => {
+        it("should be able to send a message directly using the test recipient contract", async function () {
+            const signer = (await hardhatEthers.getSigners())[0];
+            const inbox = await new MockInbox__factory(signer).deploy();
+            await inbox.deployed();
+            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address);
+            await outbox.deployed();
+            const recipient = await new TestRecipient__factory(signer).deploy();
+            const data = toUtf8Bytes("This is a test message");
+        
+            await outbox.dispatch(1, addressToBytes32(recipient.address), data);
+            await inbox.processNextPendingMessage();
+        
+            const dataReceived = await recipient.lastData();
+            expect(dataReceived).to.eql(hexlify(data));
+        });
+
+        const originDomain = 1 // e.g. arbitrum id - where RemoteMarketplace is deployed
+        const destinationDomain = 2 // e.g. polygon id - where MarketplaceV4 is deployed
+        let sender: RemoteMarketplace // e.g. arbitrum - the cross-chain contract from where purchase was submitted
+        let receiver: MarketplaceV4 // e.g. polygon - the contract receiving the message (loging and storage are here)
     
         before(async () => {
-            const MockInbox = await getContractFactory("MockInbox")
-            mockInbox = await MockInbox.deploy() as MockInbox
-
-            const MockOutbox = await getContractFactory("MockOutbox")
-            mockOutbox = await MockOutbox.deploy(mockInbox.address) as MockOutbox
-
-            const destinationDomain = 1 // e.g. polygon
-            const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-            remoteMarket = await remoteMarketFactory.deploy(destinationDomain, marketplace.address, mockOutbox.address) as RemoteMarketplace
+            receiver = marketplace
         })
 
-        it("buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {
-            const subscriptionSeconds = 100
-            const subscriptionBefore = await projectRegistry.getSubscription(projectId, other.address)
-
-            await expect(remoteMarket.connect(buyer).buyFor(projectId, subscriptionSeconds, other.address))
-                .to.emit(remoteMarket, 'CrossChainPurchase')
-                .withArgs(projectId, other.address, subscriptionSeconds)
-            await expect(mockInbox.processNextPendingMessage()) // mimics hyperlane inbox mail
-                .to.emit(marketplace, "ProjectPurchased")
-                .withArgs(projectId, other.address, subscriptionSeconds, 0, 0)
-
-            const subscriptionAfter = await projectRegistry.getSubscription(projectId, other.address)
-            expect(subscriptionBefore.isValid).to.be.false
-            expect(subscriptionAfter.isValid).to.be.true
+        describe('RemoteMarketplace', () => {
+            let inbox: any;
+            let outbox: any;
+        
+            before(async () => {
+                inbox = await new MockInbox__factory(admin).deploy();
+                await inbox.deployed();
+                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address);
+                await outbox.deployed();
+                
+                const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
+                sender = await remoteMarketFactory.deploy(destinationDomain, receiver.address, outbox.address) as RemoteMarketplace
+                await receiver.setCrossChainInbox(inbox.address)
+                await receiver.addCrossChainMarketplace(originDomain, sender.address)
+            })
+    
+            it("buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {
+                const subscriptionSeconds = 100
+                const projectId = await createProject()
+                
+                const subscriptionBefore = await projectRegistry.getSubscription(projectId, other.address)
+                await expect(sender.connect(buyer).buyFor(projectId, subscriptionSeconds, other.address))
+                    .to.emit(sender, 'CrossChainPurchase')
+                    .withArgs(projectId, other.address, subscriptionSeconds)
+                await expect(inbox.processNextPendingMessage()) // mimics hyperlane inbox mail
+                    .to.emit(receiver, "ProjectPurchased")
+                    .withArgs(projectId, other.address, subscriptionSeconds, 0, 0)
+                const subscriptionAfter = await projectRegistry.getSubscription(projectId, other.address)
+    
+                expect(subscriptionBefore.isValid).to.be.false
+                expect(subscriptionAfter.isValid).to.be.true
+            })
         })
     })
 })

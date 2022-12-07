@@ -84,19 +84,18 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     IProjectRegistry public projectRegistry;
 
-    //  cross-chain messaging variables
-    uint32 constant destinationDomain = 0x706f6c79; // polygon
-    // address constant hyperlaneInbox = 0x14c3CEee8F431aE947364f43429a98EA89800238;
-    // address constant remoteMarketplace;
+    // cross-chain messaging
+    address public crossChainInbox;
+    mapping(uint32 => address) public crossChainMarketplaces;
 
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
         _;
     }
 
-    modifier onlyPolygonInbox(uint32 _origin) {
-        require(_origin == destinationDomain, "incorrectDestinationDomain");
-        // TODO: require(msg.sender == hyperlaneInbox, "notHyperlaneInbox");
+    modifier onlyCrossChainMarketplace(uint32 originId, bytes32 senderAddress) {
+        require(crossChainMarketplaces[originId] == _bytes32ToAddress(senderAddress), "notCrossChainMarketplace");
+        require(msg.sender == crossChainInbox, "notHyperlaneInbox");
         _;
     }
 
@@ -116,6 +115,14 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     function setProjectRegistry(address _projectRegistry) external onlyOwner {
         projectRegistry = IProjectRegistry(_projectRegistry);
+    }
+    
+    function setCrossChainInbox(address inboxAddress) external onlyOwner {
+        crossChainInbox = inboxAddress;
+    }
+    
+    function addCrossChainMarketplace(uint32 domainId, address marketplaceAddress) external onlyOwner {
+        crossChainMarketplaces[domainId] = marketplaceAddress;
     }
 
     /**
@@ -230,8 +237,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         uint32 _origin,
         bytes32 _sender,
         bytes calldata _data
-    ) external onlyPolygonInbox(_origin) {
-        // TODO: require(_sender == remoteMarketplace, "notRemoteMarketplace");
+    ) external onlyCrossChainMarketplace(_origin, _sender) {
         (bytes32 productId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_data, (bytes32, uint256, address));
 
         require(projectRegistry.canBuyProject(productId, subscriber), "error_unableToBuyProject");
