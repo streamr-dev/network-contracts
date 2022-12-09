@@ -121,8 +121,8 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         crossChainInbox = inboxAddress;
     }
     
-    function addCrossChainMarketplace(uint32 domainId, address marketplaceAddress) external onlyOwner {
-        crossChainMarketplaces[domainId] = marketplaceAddress;
+    function addCrossChainMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external onlyOwner {
+        crossChainMarketplaces[originDomainId] = remoteMarketplaceAddress;
     }
 
     /**

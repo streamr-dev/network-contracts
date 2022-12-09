@@ -9,11 +9,9 @@ const {
 
 const {
     contracts: {
-        StreamRegistry: STREAM_REGISTRY_ADDRESS,
+        StreamRegistry: STREAM_REGISTRY_ADDRESS = '0x0000000000000000000000000000000000000000',
     }
 } = Chains.load()[CHAIN]
-
-if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${CHAIN}"`) }
 
 /**
  * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts

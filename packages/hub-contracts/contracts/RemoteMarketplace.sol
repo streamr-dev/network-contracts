@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.9;
 
-interface IMarketplaceV4 {
-    function buy(bytes32 productId, uint subscriptionSeconds) external;
-    function buyFor(bytes32 productId, uint subscriptionSeconds, address recipient) external;
+interface IMarketplace {
+    function buy(bytes32 projectId, uint256 subscriptionSeconds) external;
+    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address recipient) external;
 }
 
 interface IOutbox {
@@ -17,41 +17,41 @@ interface IOutbox {
 
 /**
  * @title Streamr Remote Marketplace
- * The Remmote Marketplace through which the users on other networks can send cross-chain messages (e.g. buy products)
+ * The Remmote Marketplace through which the users on other networks can send cross-chain messages (e.g. buy projects)
  */
-contract RemoteMarketplace is IMarketplaceV4 {
-
-  event CrossChainPurchase(bytes32 productId, address subscriber, uint256 subscriptionSeconds);
+contract RemoteMarketplace is IMarketplace {
 
     uint32 public destinationDomain;
-    address public recipientAddress;
-    address public outboxAddress;
+    bytes32 public recipientAddress;
+    IOutbox public outbox;
+
+    event CrossChainPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds);
 
     /**
-     * @param _destinationDomain - the Domain ID of the source chain assigned by the protocol (e.g. polygon)
+     * @param _destinationDomain - the domain id of the destination chain assigned by the protocol (e.g. polygon)
      * @param _recipientAddress - the address of the recipient contract (e.g. MarketplaceV4 on polygon)
      * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed (e.g. gnosis)
      */
     constructor(uint32 _destinationDomain, address _recipientAddress, address _outboxAddress) {
         destinationDomain = _destinationDomain;
-        recipientAddress = _recipientAddress;
-        outboxAddress = _outboxAddress;
+        recipientAddress = _addressToBytes32(_recipientAddress);
+        outbox = IOutbox(_outboxAddress);
     }
 
-    function buy(bytes32 productId, uint subscriptionSeconds) public {
-        buyFor(productId, subscriptionSeconds, msg.sender);
+    function buy(bytes32 projectId, uint256 subscriptionSeconds) public {
+        buyFor(projectId, subscriptionSeconds, msg.sender);
     }
 
-    function buyFor(bytes32 productId, uint256 subscriptionSeconds, address subscriber) public {
-        IOutbox(outboxAddress).dispatch(
+    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
+        outbox.dispatch(
             destinationDomain,
-            addressToBytes32(recipientAddress),
-            abi.encode(productId, subscriptionSeconds, subscriber)
+            recipientAddress,
+            abi.encode(projectId, subscriptionSeconds, subscriber)
         );
-        emit CrossChainPurchase(productId, subscriber, subscriptionSeconds);
+        emit CrossChainPurchase(projectId, subscriber, subscriptionSeconds);
     }
 
-    function addressToBytes32(address addr) public pure returns (bytes32) {
+    function _addressToBytes32(address addr) private pure returns (bytes32) {
         return bytes32(uint256(uint160(addr)));
     }
 }
