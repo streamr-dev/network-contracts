@@ -32,14 +32,14 @@ const {
 if (!MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${DESTINATION_CHAIN}"`) }
 if (!REMOTE_MARKETPLACE_ADDRESS) { throw new Error(`No RemoteMarketplace found in chain "${ORIGIN_CHAIN}"`) }
 
-let blockExplorer: string;
+let blockExplorer: string
 switch (ORIGIN_CHAIN) {
     case 'gnosis':
         blockExplorer = 'https://gnosisscan.io'
-        break;
+        break
     default:
         blockExplorer = 'https://polygonscan.com'
-        break;
+        break
 }
 
 let marketplace: MarketplaceV4
