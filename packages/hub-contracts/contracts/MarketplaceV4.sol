@@ -35,8 +35,8 @@ interface IProjectRegistry {
 
 interface IMessageRecipient {
     function handle(
-        uint32 _origin, // the Domain ID of the source chain (e.g. polygon)
-        bytes32 _sender, // the address of the message sender on the source chain. It must match or the message will revert (e.g. RemoteMarketplace)
+        uint32 _origin, // the Domain ID of the origin chain. It's a unique id assignet by hyperlane protocol.
+        bytes32 _sender, // the address of the remote contract on the origin chain (e.g. RemoteMarketplace). It must match or the message will revert
         bytes calldata _message // encoded purchase info
     ) external;
 }
@@ -93,8 +93,8 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         _;
     }
 
-    modifier onlyCrossChainMarketplace(uint32 originId, bytes32 senderAddress) {
-        require(crossChainMarketplaces[originId] == _bytes32ToAddress(senderAddress), "notCrossChainMarketplace");
+    modifier onlyCrossChainMarketplace(uint32 originDomainId, bytes32 senderAddress) {
+        require(crossChainMarketplaces[originDomainId] == _bytes32ToAddress(senderAddress), "notCrossChainMarketplace");
         require(msg.sender == crossChainInbox, "notHyperlaneInbox");
         _;
     }
@@ -226,11 +226,10 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     /**
     * Extends project subscription purchased on a different chain.
-    * @dev decode projectId, subscriber, subscriptionSeconds from _data
-    * @dev msg.sender is the hyperlane mailbox address from the source chain, where MarketplaceV4 is deployed (e.g. polygon)
-    * @param _origin - the chain id (e.g. polygon). It's a unique id assignet by hyperlane protocol.
-    * @param _sender - the contract from which the tx was inited (e.g. RemoteMarketplace).
-    * @dev _sender is bytes32 not address because the protocol intends to support non-evm chains as well
+    * @param _origin - the chain id from where the message is comming (e.g. RemoteMarketplace).
+    * @param _sender - the contract from which the message is comming (e.g. RemoteMarketplace).
+    * @dev _sender is bytes32 not address because the protocol will supports non-evm chains as well
+    * @dev msg.sender is the hyperlane inbox address for the destination chain where destination contract is deployed (e.g. MarketplaceV4)
     * @param _data - encoded purchase info
     */
     function handle(
