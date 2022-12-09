@@ -218,8 +218,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * If not, the token sender is the investor
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        // consolelog("## onTokenTransfer from", sender);
-        // consolelog("onTokenTransfer amount", amount);
+        // console.log("## onTokenTransfer from", sender);
+        // console.log("onTokenTransfer amount", amount);
         require(_msgSender() == address(globalData().token), "error_onlyTokenContract");
 
         // check if sender is a bounty: only bounties may have tokens _staked_ on them
@@ -254,14 +254,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function _addBounty(Bounty bounty) internal {
-        // consolelog("## _addBounty");
+        // console.log("## _addBounty");
         require(indexOfBounties[bounty] == 0, "error_bountyAlreadyExists");
         bounties.push(bounty);
         indexOfBounties[bounty] = bounties.length;
     }
 
     function _removeBounty(Bounty bounty) internal {
-        // consolelog("## _removeBounty");
+        // console.log("## _removeBounty");
         require(indexOfBounties[bounty] != 0, "error_bountyDoesNotExist");
         uint index = indexOfBounties[bounty];
         indexOfBounties[bounty] = 0;
@@ -272,43 +272,43 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     /** Invest by first calling ERC20.approve(brokerPool.address, amountWei) then this function */
     function invest(uint amountWei) public payable {
-        // consolelog("## invest");
+        // console.log("## invest");
         globalData().token.transferFrom(_msgSender(), address(this), amountWei);
         _invest(_msgSender(), amountWei);
     }
 
     function _invest(address investor, uint amountWei) internal {
-        // consolelog("## _invest");
+        // console.log("## _invest");
         // unallocatedWei += amountWei;
-        // consolelog("_invest investor", investor, "amountWei", amountWei);
+        // console.log("_invest investor", investor, "amountWei", amountWei);
         // if we have a join policy
         globalData().approxPoolValue += amountWei;
         if (address(joinPolicy) != address(0)) {
             // check if the investor is allowed to join
             (uint allowed) = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, investor, address(joinPolicy)), "error_joinPolicyFailed");
-            // consolelog("_invest allowed", allowed);
+            // console.log("_invest allowed", allowed);
             require(allowed == 1, "error_joinPolicyFailed");
         }
         // uint256 amountPoolToken = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
         //     amountWei), "error_yieldPolicy_dataToPooltoken_Failed");
         uint256 amountPoolToken = dataToPooltokenBeforeTransfer(amountWei);
         _mint(investor, amountPoolToken);
-        // consolelog("minting", amountPoolToken, "to", investor);
+        // console.log("minting", amountPoolToken, "to", investor);
         emit InvestmentReceived(investor, amountWei);
     }
 
      function dataToPooltokenBeforeTransfer(uint256 dataWei) public view returns (uint256 poolTokenWei) {
-        // consolelog("## dataToPooltokenBeforeTransfer", dataWei);
+        // console.log("## dataToPooltokenBeforeTransfer", dataWei);
         if (this.totalSupply() == 0) {
-            // consolelog("total supply is 0");
+            // console.log("total supply is 0");
             return dataWei;
         }
-        // consolelog("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
-        // consolelog("data balance of this", globalData().token.balanceOf(address(this)));
+        // console.log("DefaultPoolYieldPolicy.dataToPooltoken", dataWei);
+        // console.log("data balance of this", globalData().token.balanceOf(address(this)));
         // uint poolValueData = this.calculatePoolValueInData(dataWei);
         uint poolValueData = globalData().approxPoolValue - dataWei;
-        // consolelog("this totlasupply", this.totalSupply());
-        // consolelog("poolValueData", poolValueData);
+        // console.log("this totlasupply", this.totalSupply());
+        // console.log("poolValueData", poolValueData);
         if (poolValueData == 0) {
             return dataWei;
         }
@@ -317,21 +317,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     // function withdraw(uint amountPoolTokenWei) public {
     //     // token.transferAndCall(_msgSender(), amountWei, "0x");
-    //     // consolelog("withdraw amountPoolTokenWei", amountPoolTokenWei);
-    //     // consolelog("balance msgSender ", balanceOf(_msgSender()));
+    //     // console.log("withdraw amountPoolTokenWei", amountPoolTokenWei);
+    //     // console.log("balance msgSender ", balanceOf(_msgSender()));
     //     uint256 calculatedAmountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
     //         amountPoolTokenWei), "error_yieldPolicyFailed");
-    //     // consolelog("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
+    //     // console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
     //     _burn(_msgSender(), amountPoolTokenWei);
     //     uint poolDataBalance = globalData().token.balanceOf(address(this));
-    //     // consolelog("withdraw poolDataBalance", poolDataBalance);
+    //     // console.log("withdraw poolDataBalance", poolDataBalance);
     //     if (calculatedAmountDataWei > poolDataBalance) {
     //         queuedPayoutsDataWei[_msgSender()] = calculatedAmountDataWei - poolDataBalance;
-    //         // consolelog("withdraw #", calculatedAmountDataWei - poolDataBalance);
-    //         // consolelog("msgSender", _msgSender(), "queuedPayoutsWei", queuedPayoutsDataWei[_msgSender()]);
+    //         // console.log("withdraw #", calculatedAmountDataWei - poolDataBalance);
+    //         // console.log("msgSender", _msgSender(), "queuedPayoutsWei", queuedPayoutsDataWei[_msgSender()]);
     //         calculatedAmountDataWei = poolDataBalance;
     //     }
-    //     // consolelog("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
+    //     // console.log("withdraw calculatedAmountDataWei", calculatedAmountDataWei);
     //     globalData().token.transfer(_msgSender(), calculatedAmountDataWei);
     //     emit InvestmentReturned(_msgSender(), calculatedAmountDataWei);
     //     // unallocatedWei -= amountWei;
@@ -343,8 +343,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker { 
         // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
-        // consolelog("## stake amountWei", amountWei);
-        // consolelog("stake balanceOf this", globalData().token.balanceOf(address(this)));
+        // console.log("## stake amountWei", amountWei);
+        // console.log("stake balanceOf this", globalData().token.balanceOf(address(this)));
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         _addBounty(bounty);
@@ -359,18 +359,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function unstakeWithoutQueue(Bounty bounty) public onlyBrokerOrForced {
-        // consolelog("## unstakeWithoutQueue bounty", address(bounty));
+        // console.log("## unstakeWithoutQueue bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
-        // consolelog("unstake balanceBefore", balanceBefore);
+        // console.log("unstake balanceBefore", balanceBefore);
         bounty.leave();
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
         globalData().approxPoolValue -= approxPoolValueOfBounty[bounty];
-        // consolelog("bounties approx pool value", approxPoolValueOfBounty[bounty]);
-        // consolelog("unstake receivedWei", receivedWei);
+        // console.log("bounties approx pool value", approxPoolValueOfBounty[bounty]);
+        // console.log("unstake receivedWei", receivedWei);
         globalData().approxPoolValue += receivedWei;
-        // consolelog("unstake new approxPoolValue", globalData().approxPoolValue);
+        // console.log("unstake new approxPoolValue", globalData().approxPoolValue);
         approxPoolValueOfBounty[bounty] = 0;
 
         // unallocatedWei += receivedWei;
@@ -392,25 +392,25 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
 
     function reduceStake(Bounty bounty, uint amountWei) external onlyBroker {
-        // consolelog("## reduceStake amountWei", amountWei);
+        // console.log("## reduceStake amountWei", amountWei);
         _reduceStakeWithoutQueue(bounty, amountWei);
         payOutQueueWithFreeFunds(0);
     }
 
     function _reduceStakeWithoutQueue(Bounty bounty, uint amountWei) public onlyBroker {
-        // consolelog("## _reduceStakeWithoutQueue amountWei", amountWei);
-        // consolelog("reduceStake balanceOf this", globalData().token.balanceOf(address(this)));
+        // console.log("## _reduceStakeWithoutQueue amountWei", amountWei);
+        // console.log("reduceStake balanceOf this", globalData().token.balanceOf(address(this)));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
         require(amountWei <= amountStaked, "error_notEnoughStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
-        // consolelog("reduceStake balanceBefore", balanceBefore);
+        // console.log("reduceStake balanceBefore", balanceBefore);
         bounty.reduceStake(amountWei);
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
         globalData().approxPoolValue -= amountWei;
         globalData().approxPoolValue += receivedWei;
         approxPoolValueOfBounty[bounty] -= amountWei;
-        // consolelog("reduceStake receivedWei", receivedWei);
+        // console.log("reduceStake receivedWei", receivedWei);
         // unallocatedWei += receivedWei;
         if (receivedWei < amountStaked) {
             // TODO: slash handling
@@ -421,21 +421,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
-        // consolelog("## withdrawWinningsFromBounty");
+        // console.log("## withdrawWinningsFromBounty");
         updateApproximatePoolvalueOfBounty(bounty);
         _withdrawWinningsFromBountyWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
     }
 
     function _withdrawWinningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
-        // consolelog("## withdrawWinnings bounty", address(bounty));
+        // console.log("## withdrawWinnings bounty", address(bounty));
         // require(staked[bounty] > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
-        // consolelog("withdrawWinnings balanceBefore", balanceBefore);
+        // console.log("withdrawWinnings balanceBefore", balanceBefore);
         bounty.withdraw();
-        // consolelog("withdrawWinnings balanceAfter", globalData().token.balanceOf(address(this)));
+        // console.log("withdrawWinnings balanceAfter", globalData().token.balanceOf(address(this)));
         uint winnings = globalData().token.balanceOf(address(this)) - balanceBefore;
-        // consolelog("withdrawWinnings winnings", winnings);
+        // console.log("withdrawWinnings winnings", winnings);
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
             winnings), "error_yieldPolicy_deductBrokersPart_Failed");
         
@@ -451,11 +451,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        // consolelog("## payOutQueueWithFreeFunds called queueLength", queueLength);
+        // console.log("## payOutQueueWithFreeFunds called queueLength", queueLength);
         // logging out queue
         // uint i = queuePayoutIndex;
         // while (i <= queueLength) {
-        //     // consolelog("# queuePrint", i, payoutQueue[i].user, payoutQueue[i].amountPoolTokenWei);
+        //     // console.log("# queuePrint", i, payoutQueue[i].user, payoutQueue[i].amountPoolTokenWei);
         //     i++;
         // }
         uint currentExchangeRate = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
@@ -464,19 +464,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         while (globalData().token.balanceOf(address(this)) > 0 && queueLength - queuePayoutIndex > 0
             && (maxIterations == 0 || iteration < maxIterations)) {
             iteration++;
-            // consolelog("payOutQueueWithFreeFunds queuePayoutIndex", queuePayoutIndex);
+            // console.log("payOutQueueWithFreeFunds queuePayoutIndex", queuePayoutIndex);
             uint amountPoolTokens = payoutQueue[queuePayoutIndex].amountPoolTokenWei;
             address user = payoutQueue[queuePayoutIndex].user;
-            // consolelog("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
+            // console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
             // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
             //     amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
             uint256 amountDataWei = amountPoolTokens * currentExchangeRate / 1e18;
             // uint256 amountDataWei = 1000000000000000000;
-            // consolelog("payOutQueueWithFreeFunds amountDataWei", amountDataWei);
-            // consolelog("payOutQueueWithFreeFunds balanceBefore", globalData().token.balanceOf(address(this)));
+            // console.log("payOutQueueWithFreeFunds amountDataWei", amountDataWei);
+            // console.log("payOutQueueWithFreeFunds balanceBefore", globalData().token.balanceOf(address(this)));
             if (globalData().token.balanceOf(address(this)) >= amountDataWei) {
                 // whole amountDataWei is paid out
-                // consolelog("payOutQueueWithFreeFunds whole amountDataWei");
+                // console.log("payOutQueueWithFreeFunds whole amountDataWei");
                 queuedPayoutsPerUser[user] -= amountPoolTokens;
                 queuePayoutIndex++;
                 _burn(address(this), amountPoolTokens);
@@ -487,7 +487,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 // partial amountDataWei is paid out
                 // TODO make shorter, optimize memory usage
                 uint256 partialAmountDataWei = globalData().token.balanceOf(address(this));
-                // consolelog("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
+                // console.log("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
                 // uint256 remainingAmountDataWei = amountDataWei - partialAmountDataWei;
                 uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                     partialAmountDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
@@ -503,71 +503,83 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function getQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
-        // consolelog("## getQueuedPayoutPoolTokens");
+        // console.log("## getQueuedPayoutPoolTokens");
         return queuedPayoutsPerUser[_msgSender()];
     }
 
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
-        // consolelog("## getMyBalanceInData");
+        // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
         (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
-        // consolelog("getMyBalanceInData dataWei", dataWei);
+        // console.log("getMyBalanceInData dataWei", dataWei);
         return dataWei;
     }
 
     function calculatePoolValueInData(uint256 substractWei) public view returns (uint256 poolValue) {
-        // consolelog("## calculatePoolValueInData");
+        // console.log("## calculatePoolValueInData");
         poolValue = globalData().token.balanceOf(address(this));
-        // consolelog("calculatePoolValueInData poolValue1", poolValue);
+        // console.log("calculatePoolValueInData poolValue1", poolValue);
         for (uint i = 0; i < bounties.length; i++) {
-            poolValue = getPoolValueFromBounty(bounties[i]);
+            poolValue += getPoolValueFromBounty(bounties[i]);
+            // console.log("calculatePoolValueInData poolValue of bounty", poolValue);
         }
         poolValue -= substractWei;
     }
 
     function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
-        // consolelog("## getPoolValueFromBounty");
+        // console.log("## getPoolValueFromBounty");
         poolValue += bounty.getMyStake();
-        // consolelog("calculatePoolValueInData poolValue2", poolValue);
+        // console.log("calculatePoolValueInData poolValue2", poolValue);
         uint alloc = bounty.getAllocation(address(this));
-        // consolelog("calculatePoolValueInData alloc", alloc);
+        // console.log("calculatePoolValueInData alloc", alloc);
         (uint share) = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
-        // consolelog("calculatePoolValueInData share", share);
+        // console.log("calculatePoolValueInData share", share);
         poolValue += (alloc - share);
     }
 
     function updateApproximatePoolvalueOfBounties(Bounty[] memory bountyAddresses) public {
+        int sum = 0;
+        uint PERCENT_OF_APPROX_POOL_VALUE = 10; // move to global constants contract
+        uint PUNISH_BROKERS_PT_THOUSANDTH = 5; // move to global constants contract
         for (uint i = 0; i < bountyAddresses.length; i++) {
-            updateApproximatePoolvalueOfBounty(bountyAddresses[i]);
+            int diff = updateApproximatePoolvalueOfBounty(bountyAddresses[i]);
+            sum += diff;
+        }
+        // if uint of sum is more than 10% of approxPoolValue, then log it
+        if (uint(sum) > globalData().approxPoolValue * PERCENT_OF_APPROX_POOL_VALUE / 100) {
+            _transfer(globalData().broker, _msgSender(), 
+                balanceOf(globalData().broker) * PUNISH_BROKERS_PT_THOUSANDTH / 1000);
         }
     }
 
-    function updateApproximatePoolvalueOfBounty(Bounty bounty) public {
-        // consolelog("## updateApproximatePoolvalueOfBounty");
+    function updateApproximatePoolvalueOfBounty(Bounty bounty) public returns (int diff){
+        // console.log("## updateApproximatePoolvalueOfBounty");
         uint approximatePoolValueOfBounty = approxPoolValueOfBounty[bounty];
         uint realPoolValueOfBounty = getPoolValueFromBounty(bounty);
         if (approximatePoolValueOfBounty < realPoolValueOfBounty) {
             uint difference = realPoolValueOfBounty - approximatePoolValueOfBounty;
             approxPoolValueOfBounty[bounty] += difference;
             globalData().approxPoolValue += difference;
+            diff = int(difference);
         } else {
             uint difference = approximatePoolValueOfBounty - realPoolValueOfBounty;
             approxPoolValueOfBounty[bounty] -= difference;
             globalData().approxPoolValue -= difference;
+            diff = -int(difference);
         }
     }
 
     function queueDataPayout(uint amountPoolTokenWei) public {
-        // consolelog("## queueDataPayout");
+        // console.log("## queueDataPayout");
         queueDataPayoutWithoutQueue(amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
     }
 
     function queueDataPayoutWithoutQueue(uint amountPoolTokenWei) public {
-        // consolelog("## queueDataPayoutWithoutQueue");
+        // console.log("## queueDataPayoutWithoutQueue");
         require(amountPoolTokenWei > 0, "error_payout_amount_zero");
         // require(balanceOf(_msgSender()) >= amountPoolTokenWei, "error_noEnoughPoolTokens");
-        // consolelog("queueDataPayout amountPoolTokenWei", amountPoolTokenWei);
+        // console.log("queueDataPayout amountPoolTokenWei", amountPoolTokenWei);
         _transfer(_msgSender(), address(this), amountPoolTokenWei);
         // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
         //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
@@ -580,7 +592,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function forceUnstake(Bounty bounty) external {
         // updateApproximatePoolvalueOfBounty(bounty);
-        // consolelog("## forceUnstake");
+        // console.log("## forceUnstake");
         unstakeWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
     }

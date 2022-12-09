@@ -539,4 +539,38 @@ describe.only("BrokerPool", (): void => {
         }
         expect(await pool.balanceOf(investor.address)).to.equal(parseEther(numberOfBounties.toString()))
     })
+
+    it("punish broker on too much diff on approx poolvalue", async function(): Promise<void> {
+        const { token } = contracts
+        const bounty1 = await deployBountyContract(contracts)
+        const bounty2 = await deployBountyContract(contracts)
+        const pool = await deployBrokerPool({ })
+        // const balanceBefore = await token.balanceOf(broker.address)
+        await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty1.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty2.address, parseEther("1000"), "0x")).wait()
+
+        const timeAtStart = await getBlockTimestamp()
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty1.address, parseEther("500")))
+            .to.emit(pool, "Staked").withArgs(bounty1.address, parseEther("500"))
+        await expect(pool.stake(bounty2.address, parseEther("500")))
+            .to.emit(pool, "Staked").withArgs(bounty2.address, parseEther("500"))
+        
+        await advanceToTimestamp(timeAtStart + 5000, "withdraw winnings from bounty")
+        // poolvalue will have changed, will be 3000, approx poolvalue will be 1000
+        expect(await pool.calculatePoolValueInData(0)).to.equal(parseEther("3000"))
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1000"))
+        expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000"))
+
+        await pool.connect(investor).updateApproximatePoolvalueOfBounties([bounty1.address, bounty2.address])
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("3000"))
+
+        expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
+    })
 })
+
+// 1499000000000000000000" to be equal 
+// 3000000000000000000000
+// 500000000000000000000" to be equal 
+// 3000000000000000000000
