@@ -9,7 +9,7 @@ const {
 
 const {
     contracts: {
-        StreamRegistry: STREAM_REGISTRY_ADDRESS = '0x0000000000000000000000000000000000000000',
+        StreamRegistry: STREAM_REGISTRY_ADDRESS,
     }
 } = Chains.load()[CHAIN]
 
