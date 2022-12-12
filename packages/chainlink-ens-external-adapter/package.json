@@ -20,6 +20,6 @@
     "eth-ens-namehash": "2.0.8",
     "ethers": "5.5.3",
     "express": "4.17.2",
-    "mocha": "9.2.0"
+    "mocha": "10.2.0"
   }
 }
