@@ -10,7 +10,7 @@ const { log } = console
 const {
     DESTINATION_CHAIN = 'polygon',
     ORIGIN_CHAIN = 'gnosis',
-    BUYER: PROJECT_BUYER_KEY = '',
+    BUYER: PROJECT_BUYER_KEY = '0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb', // dummy key
     OTHER: OTHER_USER_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // dummy key
 } = process.env
 

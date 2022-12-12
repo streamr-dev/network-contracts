@@ -564,10 +564,10 @@ describe("Marketplace", () => {
             expect(dataReceived).to.eql(hexlify(data))
         })
 
-        const originDomain = 1 // e.g. arbitrum id - where RemoteMarketplace is deployed
+        const originDomain = 1 // e.g. gnosis id - where RemoteMarketplace is deployed
         const destinationDomain = 2 // e.g. polygon id - where MarketplaceV4 is deployed
-        let sender: RemoteMarketplace // e.g. arbitrum - the cross-chain contract from where purchase was submitted
-        let receiver: MarketplaceV4 // e.g. polygon - the contract receiving the message (loging and storage are here)
+        let sender: RemoteMarketplace // e.g. gnosis - the cross-chain contract from where purchase was submitted
+        let receiver: MarketplaceV4 // e.g. polygon - the contract receiving the message (contract logic and storage are here)
     
         before(async () => {
             receiver = marketplace
