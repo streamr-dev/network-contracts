@@ -35,7 +35,7 @@ interface IProjectRegistry {
 
 interface IMessageRecipient {
     function handle(
-        uint32 _origin, // the Domain ID of the origin chain. It's a unique id assignet by hyperlane protocol.
+        uint32 _origin, // the Domain ID of the origin chain. It's a unique id assigned by the Hyperlane protocol.
         bytes32 _sender, // the address of the remote contract on the origin chain (e.g. RemoteMarketplace). It must match or the message will revert
         bytes calldata _message // encoded purchase info
     ) external;
@@ -55,12 +55,12 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 id;
         string name;
         address owner;
-        address beneficiary;        // account where revenue is directed to
+        address beneficiary; // account where revenue is directed to
         uint pricePerSecond;
-        address pricingTokenAddress;  // the token in which the product is paid to product beneficiary
+        address pricingTokenAddress; // the token in which the product is paid to product beneficiary
         uint minimumSubscriptionSeconds;
         ProductState state;
-        address newOwnerCandidate;  // Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address.
+        address newOwnerCandidate; // Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address.
         bool requiresWhitelist;
         mapping(address => TimeBasedSubscription) subscriptions;
         mapping(address => WhitelistState) whitelist;
@@ -86,7 +86,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     // cross-chain messaging
     address public crossChainInbox;
-    mapping(uint32 => address) public crossChainMarketplaces;
+    mapping(uint32 => address) public crossChainMarketplaces; // key is the other chain's Domain ID (assigned by Hyperlane)
 
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
