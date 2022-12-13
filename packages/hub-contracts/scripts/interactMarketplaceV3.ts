@@ -13,7 +13,7 @@ import StreamrClient from 'streamr-client'
 const { parseEther, id, formatEther, parseUnits } = utils
 
 const {
-    CHAIN = "dev0",
+    CHAIN = 'dev0',
     POLYGON = "dev1",
     ADMIN: PRODUCT_ADMIN_KEY = '0x957a8212980a9a39bf7c03dcbeea3c722d66f2b359c669feceb0e3ba8209a297',
     BUYER: BUYER_KEY = '0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9',

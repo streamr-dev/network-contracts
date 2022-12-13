@@ -5,3 +5,4 @@
 /deployments/
 /typechain/
 /cache/
+.env

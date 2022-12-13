@@ -5,14 +5,13 @@ const { ethers } = hhat
 import axios from 'axios'
 
 // localsidechain
-
 const chainURL = 'http://10.200.10.1:8546'
 const privKeyStreamRegistry = ''
 
 // polygon
 /*
 const chainURL = 'https://polygon-rpc.com'
-const privKeyStreamRegistry = process.env.PRIV_KEY || ''
+const privKeyStreamRegistry = process.env.KEY || ''
 */
 
 let wallet: Wallet 

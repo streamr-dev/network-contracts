@@ -175,7 +175,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         buyFor(productId, subscriptionSeconds, _msgSender());
     }
 
-    /*
+    /**
      * ERC677 token callback
      * If the data bytes contains a product id, the subscription is extended for that product
      * @dev The amount transferred is in pricingTokenAddress.
@@ -241,7 +241,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     /////////////// Trusted Forwarder ///////////////
 
-    /*
+    /**
      * ERC2771ContextUpgradeable implementation from openzeppelin
      * @dev ERC2771ContextUpgradeable inheritance is not possible since it changes the storage layout
      */
@@ -264,7 +264,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
     }
 
-    /*
+    /**
      * @dev isTrustedForwarder and project registry role access adds trusted forwarder reset functionality
      */
     function isTrustedForwarder(address forwarder) public view returns (bool) {

@@ -5,7 +5,6 @@ const { ethers } = hhat
 import axios from 'axios'
 
 // localsidechain
-
 const chainURL = 'http://10.200.10.1:8546'
 const privKeyStreamRegistry = ''
 
@@ -16,13 +15,12 @@ const DelegatedAccessRegistryAddress = '0x1CF4ee3a493f9B07AE9394F78E1407c2682B0e
 // polygon 
 /*
 const chainURL = 'https://polygon-rpc.com'
-const privKeyStreamRegistry = process.env.PRIV_KEY || ''
+const privKeyStreamRegistry = process.env.KEY || ''
 
-const JoinPolicyRegistryAddress = '0x5Cc79AA4fde8589D3b75f0592A9FA37B032e21fA'
+const JoinPolicyRegistryAddress = '0x3eB2Ec4d2876d22EE103aBc1e0A7CCEefD117CD3'
 const StreamRegistryAddress = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
 const DelegatedAccessRegistryAddress = '0x0143825C65D59CD09F5c896d9DE8b7fe952bc5EB'
 */
-
 let wallet: Wallet 
 
 enum TokenStandard { 
@@ -49,10 +47,10 @@ async function getGasStationPrices(): Promise<{maxFeePerGas: BigNumber, maxPrior
     return { maxFeePerGas, maxPriorityFeePerGas }
 }
 
-async function deployPolicyDeployer(
+async function deployPolicyFactory(
     standard: TokenStandard
 ){
-    const policyDeployer = await ethers.getContractFactory(`${standard}PolicyDeployer`, wallet)
+    const policyDeployer = await ethers.getContractFactory(`${standard}PolicyFactory`, wallet)
 
     const { maxFeePerGas, maxPriorityFeePerGas } = await getGasStationPrices()
 
@@ -68,7 +66,7 @@ async function deployPolicyDeployer(
 
     const instance = await tx.deployed()
 
-    console.log(`${standard}PolicyDeployer deployed at ${instance.address}`)
+    console.log(`${standard}PolicyFactory deployed at ${instance.address}`)
 
 }
 
@@ -76,10 +74,10 @@ async function main() {
     wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
     console.log(`wallet address ${wallet.address}`)
 
-    await deployPolicyDeployer(TokenStandard.ERC20)
-    await deployPolicyDeployer(TokenStandard.ERC721)
-    await deployPolicyDeployer(TokenStandard.ERC777)
-    await deployPolicyDeployer(TokenStandard.ERC1155)
+    await deployPolicyFactory(TokenStandard.ERC20)
+    await deployPolicyFactory(TokenStandard.ERC721)
+    await deployPolicyFactory(TokenStandard.ERC777)
+    await deployPolicyFactory(TokenStandard.ERC1155)
 
 }
 

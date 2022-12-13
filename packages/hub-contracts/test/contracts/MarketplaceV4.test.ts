@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { utils } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV3, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -126,14 +126,11 @@ describe("Marketplace", () => {
     }
 
     async function deployMarketplace(): Promise<MarketplaceV4> {
-        // deploy the first upgradeable marketplace contract
-        const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-        const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-
-        // upgrade the marketplace contract to the latest version
-        const marketFactory = await getContractFactory("MarketplaceV4")
-        const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-        const market = await marketFactoryTx.deployed() as MarketplaceV4
+        log("Deploying MarketplaceV4: ")
+        const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
+        const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
+        log("   - MarketplaceV4 deployed at: ", market.address)
 
         // initialize project registry contract for marketplace
         await market.setProjectRegistry(projectRegistry.address)
@@ -162,18 +159,18 @@ describe("Marketplace", () => {
 
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
-            const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-            const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-            const marketplaceV3 = await marketFactoryV3Tx.deployed() as MarketplaceV3
-
-            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
-            await marketplaceV4.setProjectRegistry(projectRegistry.address)
+            const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
+            const marketFactoryV4_1Tx = await upgrades.upgradeProxy(marketFactoryV4Tx.address, marketFactoryV4_1)
+            const marketplaceV4_1 = await marketFactoryV4_1Tx.deployed() as MarketplaceV4
 
-            expect(marketplaceV3.address)
-                .to.equal(marketplaceV4.address)
+            await marketplaceV4_1.setProjectRegistry(projectRegistry.address)
+
+            expect(marketplaceV4.address)
+                .to.equal(marketplaceV4_1.address)
         })
     })
 
@@ -273,12 +270,8 @@ describe("Marketplace", () => {
         })
 
         it('buy - positivetest - beneficiary can react on product purchase', async () => {
-            // deploy the first upgradeable marketplace contract
-            const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-            const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-            // upgrade the marketplace contract from V3 to V4
-            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // initialize project registry contract for marketplace
             await market.setProjectRegistry(projectRegistry.address)
