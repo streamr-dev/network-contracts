@@ -14,6 +14,7 @@ import "./policies/IJoinPolicy.sol";
 import "./policies/ILeavePolicy.sol";
 import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
+import "./ISlashListener.sol";
 
 // import "hardhat/console.sol";
 
@@ -45,6 +46,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
     State public previousState;
+    mapping(address => bool) public isSlashListener;
 
     // storage variables available to all modules
     struct GlobalStorage {
@@ -192,6 +194,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
+    function registerAsSlashListener() external {
+        require(globalData().stakedWei[msg.sender] > 0, "error_onlyForStakers"); // we wnat the calling poolcontracts address, not the _msgSender() in case of a metatx
+        isSlashListener[msg.sender] = true;
+    }
+
+    function unregisterAsSlashListener() external {
+        isSlashListener[msg.sender] = false;
+    }
+
     /** Get both stake and allocations out */
     function leave() external { // TODO: rename into unstake
         // console.log("timestamp now", block.timestamp);
@@ -256,6 +267,19 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         emit BrokerLeft(broker, returnFunds);
         checkStateChange();
+    }
+
+    function slash(address broker, uint amountWei) external onlyRole(ADMIN_ROLE) {
+        require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
+        globalData().stakedWei[broker] -= amountWei;
+        globalData().totalStakedWei -= amountWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+        _addSponsorship(address(this), amountWei);
+        if (isSlashListener[broker]) {
+            (ISlashListener(broker)).onSlash();
+        }
+        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
     /** Get allocations out, leave stake in */

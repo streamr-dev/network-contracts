@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "../IERC677.sol";
 import "../IERC677Receiver.sol";
+import "../Bounties/ISlashListener.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
@@ -22,7 +23,7 @@ import "hardhat/console.sol";
  * Broker Pool receives a delegators' investments and pays out yields
  * It also is an ERC20 token for the pool tokens
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable { //}, ERC2771Context {
+contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, ISlashListener { //}, ERC2771Context {
 
     event InvestmentReceived(address indexed investor, uint amountWei);
     event InvestmentReturned(address indexed investor, uint amountWei);
@@ -79,7 +80,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _;
     }
     modifier onlyBrokerOrForced() {
-        require(msg.sender == globalData().broker || payoutQueue[queuePayoutIndex].timestamp + MAX_SLASH_TIME < block.timestamp, "error_only_broker_or_forced") ;
+        require(msg.sender == globalData().broker || payoutQueue[queuePayoutIndex].timestamp
+            + MAX_SLASH_TIME < block.timestamp, "error_only_broker_or_forced");
         _;
     }
 
@@ -263,6 +265,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function _removeBounty(Bounty bounty) internal {
         // console.log("## _removeBounty");
         require(indexOfBounties[bounty] != 0, "error_bountyDoesNotExist");
+        bounty.unregisterAsSlashListener();
         uint index = indexOfBounties[bounty];
         indexOfBounties[bounty] = 0;
         bounties[index - 1] = bounties[bounties.length - 1];
@@ -350,6 +353,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _addBounty(bounty);
         // unallocatedWei -= amountWei;
         approxPoolValueOfBounty[bounty] += amountWei;
+        bounty.registerAsSlashListener();
         emit Staked(bounty, amountWei);
     }
 
@@ -604,4 +608,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
+
+    function onSlash() external override {
+        // console.log("## onSlash");
+        updateApproximatePoolvalueOfBounty(Bounty(msg.sender));
+    }
+
 }

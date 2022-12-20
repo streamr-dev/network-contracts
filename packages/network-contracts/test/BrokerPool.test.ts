@@ -15,7 +15,7 @@ import { BrokerPool } from "../typechain"
 const { parseEther, formatEther } = utils
 use(waffle.solidity)
 
-describe.only("BrokerPool", (): void => {
+describe("BrokerPool", (): void => {
     const [
         admin,
         broker,     // creates pool
@@ -568,9 +568,27 @@ describe.only("BrokerPool", (): void => {
 
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
-})
 
-// 1499000000000000000000" to be equal 
-// 3000000000000000000000
-// 500000000000000000000" to be equal 
-// 3000000000000000000000
+    it("slash listener", async function(): Promise<void> {
+        const { token } = contracts
+        const bounty = await deployBountyContract(contracts)
+        const pool = await deployBrokerPool({ })
+        // const balanceBefore = await token.balanceOf(listener.address)
+        await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+        const timeAtStart = await getBlockTimestamp()
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+        
+        await advanceToTimestamp(timeAtStart + 1000, "slash")
+        // update poolvalue
+        await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
+
+        // slash
+        await bounty.connect(admin).slash(pool.address, parseEther("5"))
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1995"))
+    })
+})
