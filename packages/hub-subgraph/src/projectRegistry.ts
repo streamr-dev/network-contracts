@@ -24,6 +24,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.metadata = metadata
     project.streams = new Array<string>()
     project.createdAt = event.block.timestamp
+    project.purchasesCount = 0
     project.save()
 }
 

@@ -49,14 +49,15 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         _;
     }
 
+    // Zero Address is passed to ERC2771ContextUpgradeable contract since trusted forwarder is handled through TRUSTED_FORWARDER_ROLE and isTrustedForwarder
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address _streamRegistry) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // Zero Address is passed to ERC2771ContextUpgradeable contract since trusted forwarder is handled through TRUSTED_FORWARDER_ROLE and isTrustedForwarder
-        ERC2771ContextUpgradeable.__ERC2771Context_init(address(0x0));
-
         streamRegistry = IStreamRegistry(_streamRegistry);
     }
 
@@ -70,9 +71,9 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
     }
-    
+
     /////////////// Project Management /////////////////
-    
+
     /**
     * Returns if a project can be bought (e.g. through the Marketplace)
     * A project can be bought if it's public purchable OR if the buyer has Buy permission
@@ -136,7 +137,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         string calldata metadataJsonString
     ) public {
         _createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
-        
+
         projects[id].version = projects[id].version + 1;
         _setPermissionBooleans(id, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
@@ -177,7 +178,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         require(id != 0x0, "error_nullProjectId");
         require(!exists(id), "error_alreadyExists");
         require(bytes(ERC20(pricingToken).symbol()).length > 0, "error_invalidPricingTokenSymbol");
-        
+
         Project storage p = projects[id];
         p.id = id;
         p.beneficiary = beneficiary;
@@ -235,7 +236,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      */
     function _addOrExtendSubscription(bytes32 projectId, uint addSeconds, address subscriber) internal {
         (Project storage p, TimeBasedSubscription storage oldSub) = _getSubscription(projectId, subscriber);
-        
+
         uint endTimestamp;
         if (oldSub.endTimestamp > block.timestamp) { // solhint-disable-line not-rely-on-time
             require(addSeconds > 0, "error_topUpTooSmall");

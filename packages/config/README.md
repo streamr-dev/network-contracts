@@ -101,3 +101,5 @@ make clean
 2.5.3: ProjectRegistry address in dev1 added
 
 2.5.4: MarketplaceV3 address in dev1 added
+
+2.5.5: MarketplaceV4 address in dev1 added

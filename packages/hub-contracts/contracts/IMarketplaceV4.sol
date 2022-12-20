@@ -15,9 +15,9 @@ interface IMarketplaceV4 {
         Rejected
     }
 
-    event SubscriptionImported(bytes32 indexed productId, address indexed subscriber, uint endTimestamp);
-    event SubscriptionTransferred(bytes32 indexed productId, address indexed from, address indexed to, uint secondsTransferred);
-
+    // project events
+    event ProjectPurchased(bytes32 productId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
+   
     // txFee events
     event TxFeeChanged(uint256 indexed newTxFee);
 

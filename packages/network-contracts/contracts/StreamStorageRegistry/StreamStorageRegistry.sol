@@ -2,9 +2,9 @@
 pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 import "../StreamRegistry/StreamRegistry.sol";
 import "../NodeRegistry/NodeRegistry.sol";
 

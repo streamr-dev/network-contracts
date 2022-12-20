@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "../StreamRegistry/StreamRegistryV3.sol"; 
+import "../StreamRegistry/StreamRegistryV3.sol";
 import "./ERC20JoinPolicy.sol";
 import "./ERC721JoinPolicy.sol";
 import "./ERC1155JoinPolicy.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
 contract JoinPolicyFactory is Initializable {
 
@@ -25,9 +25,9 @@ contract JoinPolicyFactory is Initializable {
     mapping(bytes32 => address) public registeredPolicies;
 
     event Registered(
-        address indexed tokenAddress, 
-        string indexed streamId, 
-        address policyAddress, 
+        address indexed tokenAddress,
+        string indexed streamId,
+        address policyAddress,
         bytes32 policyId
     );
 
@@ -125,6 +125,4 @@ contract JoinPolicyFactory is Initializable {
             policyId
         );
     }
-
-    
 }

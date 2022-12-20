@@ -7,10 +7,10 @@ pragma solidity 0.8.9;
 /* solhint-disable not-rely-on-time */
 
 import "./ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
 import "../chainlinkClient/ENSCache.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
 contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 

@@ -4,7 +4,7 @@ import { Chains } from "@streamr/config"
 const { log } = console
 
 const {
-    CHAIN = "dev1",
+    CHAIN = 'dev1',
 } = process.env
 
 const {
@@ -14,7 +14,7 @@ const {
 } = Chains.load()[CHAIN]
 
 /**
- * npx hardhat run --network dev1 scripts/3_deployProjectRegistry.ts
+ * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts
  */
 async function main() {
     const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistry")
@@ -23,8 +23,6 @@ async function main() {
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
     console.error(error)
     process.exitCode = 1

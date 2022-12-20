@@ -3,12 +3,16 @@ import { expect, use } from "chai"
 import { utils } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV3, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
+import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
+import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
+import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 
 const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
+const { addressToBytes32} = hyperlaneUtils
 
 const types = {
     EIP712Domain: [
@@ -126,14 +130,11 @@ describe("Marketplace", () => {
     }
 
     async function deployMarketplace(): Promise<MarketplaceV4> {
-        // deploy the first upgradeable marketplace contract
-        const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-        const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-
-        // upgrade the marketplace contract to the latest version
-        const marketFactory = await getContractFactory("MarketplaceV4")
-        const marketFactoryTx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactory)
-        const market = await marketFactoryTx.deployed() as MarketplaceV4
+        log("Deploying MarketplaceV4: ")
+        const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
+        const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
+        log("   - MarketplaceV4 deployed at: ", market.address)
 
         // initialize project registry contract for marketplace
         await market.setProjectRegistry(projectRegistry.address)
@@ -144,28 +145,36 @@ describe("Marketplace", () => {
         return market
     }
 
-    async function createProject(): Promise<string> {
+    async function createProject({
+        beneficiaryAddress = beneficiary.address,
+        pricePerSecond = 1,
+        pricingToken = token.address,
+        minimumSubscriptionSeconds = 1,
+        isPublicPurchable = true,
+        metadata = ""
+    } = {}): Promise<string> {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
-        await projectRegistry.createProject(projectId, beneficiary.address, 1, token.address, 1, true, 'metadata-' + projectId)
+        await projectRegistry
+            .createProject(projectId, beneficiaryAddress, pricePerSecond, pricingToken, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
 
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
-            const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-            const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-            const marketplaceV3 = await marketFactoryV3Tx.deployed() as MarketplaceV3
-
-            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
-            await marketplaceV4.setProjectRegistry(projectRegistry.address)
+            const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
+            const marketFactoryV4_1Tx = await upgrades.upgradeProxy(marketFactoryV4Tx.address, marketFactoryV4_1)
+            const marketplaceV4_1 = await marketFactoryV4_1Tx.deployed() as MarketplaceV4
 
-            expect(marketplaceV3.address)
-                .to.equal(marketplaceV4.address)
+            await marketplaceV4_1.setProjectRegistry(projectRegistry.address)
+
+            expect(marketplaceV4.address)
+                .to.equal(marketplaceV4_1.address)
         })
     })
 
@@ -265,12 +274,8 @@ describe("Marketplace", () => {
         })
 
         it('buy - positivetest - beneficiary can react on product purchase', async () => {
-            // deploy the first upgradeable marketplace contract
-            const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-            const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-            // upgrade the marketplace contract from V3 to V4
-            const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-            const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+            const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // initialize project registry contract for marketplace
             await market.setProjectRegistry(projectRegistry.address)
@@ -308,6 +313,20 @@ describe("Marketplace", () => {
                 .to.not.emit(mockBeneficiary, "OnTokenTransferCalled") // will NOT notify beneficiary
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(subscriptionSeconds * pricePerSecond)
+        })
+
+        it('ProjectPurchased event emitted for free projects', async () => {
+            const freeProjectId = await createProject({minimumSubscriptionSeconds: 0, pricePerSecond: 0})
+            
+            const hasValidSubscriptionBefore = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
+            await expect(marketplace.buy(projectId, 100))
+                .to.emit(marketplace, 'ProjectPurchased')
+            const hasValidSubscriptionAfter = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
+
+            expect(hasValidSubscriptionBefore)
+                .to.be.false
+            expect(hasValidSubscriptionAfter)
+                .to.be.true
         })
     })
 
@@ -525,6 +544,67 @@ describe("Marketplace", () => {
             await newForwarder.execute(req, sign)
             expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
                 .to.be.true
+        })
+    })
+
+    describe('Hyperlane - cross-chain messaging', () => {
+        it("should be able to send a message directly using the test recipient contract", async function () {
+            const signer = (await hardhatEthers.getSigners())[0]
+            const inbox = await new MockInbox__factory(signer).deploy()
+            await inbox.deployed()
+            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address)
+            await outbox.deployed()
+            const recipient = await new TestRecipient__factory(signer).deploy()
+            const data = toUtf8Bytes("This is a test message")
+        
+            await outbox.dispatch(1, addressToBytes32(recipient.address), data)
+            await inbox.processNextPendingMessage()
+        
+            const dataReceived = await recipient.lastData()
+            expect(dataReceived).to.eql(hexlify(data))
+        })
+
+        const originDomain = 1 // e.g. gnosis id - where RemoteMarketplace is deployed
+        const destinationDomain = 2 // e.g. polygon id - where MarketplaceV4 is deployed
+        let sender: RemoteMarketplace // e.g. gnosis - the cross-chain contract from where purchase was submitted
+        let receiver: MarketplaceV4 // e.g. polygon - the contract receiving the message (contract logic and storage are here)
+    
+        before(async () => {
+            receiver = marketplace
+        })
+
+        describe('RemoteMarketplace', () => {
+            let inbox: any
+            let outbox: any
+        
+            before(async () => {
+                inbox = await new MockInbox__factory(admin).deploy()
+                await inbox.deployed()
+                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
+                await outbox.deployed()
+                
+                const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
+                sender = await remoteMarketFactory.deploy(destinationDomain, receiver.address, outbox.address) as RemoteMarketplace
+                await receiver.setCrossChainInbox(inbox.address)
+                await receiver.addCrossChainMarketplace(originDomain, sender.address)
+            })
+    
+            it("buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {
+                const subscriptionSeconds = 100
+                const projectId = await createProject()
+                
+                const subscriptionBefore = await projectRegistry.getSubscription(projectId, other.address)
+                await expect(sender.connect(buyer).buyFor(projectId, subscriptionSeconds, other.address))
+                    .to.emit(sender, 'CrossChainPurchase')
+                    .withArgs(projectId, other.address, subscriptionSeconds)
+                await expect(inbox.processNextPendingMessage()) // mimics hyperlane inbox mail
+                    .to.emit(receiver, "ProjectPurchased")
+                    .withArgs(projectId, other.address, subscriptionSeconds, 0, 0)
+                const subscriptionAfter = await projectRegistry.getSubscription(projectId, other.address)
+    
+                expect(subscriptionBefore.isValid).to.be.false
+                expect(subscriptionAfter.isValid).to.be.true
+            })
         })
     })
 })
