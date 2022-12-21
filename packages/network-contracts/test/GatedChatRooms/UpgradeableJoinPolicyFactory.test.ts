@@ -1,10 +1,8 @@
 import { ethers, upgrades } from 'hardhat'
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { Contract, Wallet} from 'ethers'
 import { StreamRegistry } from '../../typechain'
-import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
-
 
 describe('JoinPolicyFactory', async (): Promise<void> => {
     const wallets = await ethers.getSigners() as unknown as Wallet[]

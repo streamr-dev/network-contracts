@@ -1,7 +1,6 @@
 import { ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { Contract, Wallet} from 'ethers'
-
 
 describe('GatedJoinPolicy', async (): Promise<void> => {
     const wallets = await ethers.getSigners() as unknown as Wallet[]
