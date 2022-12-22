@@ -1,24 +1,20 @@
-import { waffle } from "hardhat"
-import { expect, use } from "chai"
-import { BigNumber, utils, ContractTransaction } from "ethers"
+import { ethers } from "hardhat"
+import { expect } from "chai"
+import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
 import { advanceToTimestamp, getBlockTimestamp, deployBountyContract, deployTestContracts, TestContracts } from "./utils"
 
 const { parseEther, formatEther } = utils
 
-use(waffle.solidity)
-
 describe("StakeWeightedAllocationPolicy", (): void => {
-    const [
-        admin,
-        broker,
-        broker2,
-        broker3,
-        // trustedForwarder
-    ] = waffle.provider.getWallets()
+    let admin: Wallet
+    let broker: Wallet
+    let broker2: Wallet
+    let broker3: Wallet
 
     let contracts: TestContracts
     before(async (): Promise<void> => {
+        [admin, broker, broker2, broker3] = await ethers.getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts

@@ -1,5 +1,5 @@
-import { ethers, waffle } from "hardhat"
-import { expect, use } from "chai"
+import { ethers } from "hardhat"
+import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
 import {
@@ -13,21 +13,19 @@ import {
 import { BrokerPool } from "../typechain"
 
 const { parseEther, formatEther } = utils
-use(waffle.solidity)
 
 describe("BrokerPool", (): void => {
-    const [
-        admin,
-        broker,     // creates pool
-        investor,   // delegates money to pool
-        investor2,
-        investor3,
-        sponsor     // sponsors stream bounty
-    ] = waffle.provider.getWallets() as Wallet[]
+    let admin: Wallet
+    let broker: Wallet     // creates pool
+    let investor: Wallet   // delegates money to pool
+    let investor2: Wallet
+    let investor3: Wallet
+    let sponsor: Wallet     // sponsors stream bounty
 
     let contracts: TestContracts
 
     before(async (): Promise<void> => {
+        [admin, broker, investor, investor2, investor3, sponsor] = await ethers.getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts

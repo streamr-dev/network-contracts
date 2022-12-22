@@ -1,6 +1,6 @@
-import { waffle } from "hardhat"
-import { expect, use } from "chai"
-import { utils } from "ethers"
+import { ethers } from "hardhat"
+import { expect } from "chai"
+import { utils, Wallet } from "ethers"
 
 import { deployBountyContract, deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "./utils"
 
@@ -9,8 +9,6 @@ const { parseEther, formatEther } = utils
 // this disables the "Duplicate definition of Transfer" error message from ethers
 // @ts-expect-error should use LogLevel.ERROR
 utils.Logger.setLogLevel("ERROR")
-
-use(waffle.solidity)
 
 enum State {
     NotInitialized,
@@ -21,14 +19,13 @@ enum State {
 }
 
 describe("DefaultLeavePolicy", (): void => {
-    const [
-        admin,
-        broker,
-        broker2,
-    ] = waffle.provider.getWallets()
+    let admin: Wallet
+    let broker: Wallet
+    let broker2: Wallet
 
     let contracts: TestContracts
     before(async (): Promise<void> => {
+        [admin, broker, broker2] = await ethers.getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts

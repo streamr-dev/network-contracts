@@ -1,22 +1,19 @@
-import { waffle, upgrades, ethers } from "hardhat"
-import { expect, use } from "chai"
-import { Contract, ContractFactory, utils } from "ethers"
+import { upgrades, ethers } from "hardhat"
+import { expect } from "chai"
+import { Contract, ContractFactory, utils, Wallet } from "ethers"
 
 import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
 
-const { provider } = waffle
 const { defaultAbiCoder } = utils
-
-use(waffle.solidity)
 
 // testcases to not forget:
 // - increase stake if already joined
 
 describe("Bounty", (): void => {
-    const wallets = provider.getWallets()
-    const adminWallet = wallets[0]
-    const brokerWallet = wallets[1]
-    const broker2Wallet = wallets[2]
+    let wallets: Wallet[]
+    let adminWallet: Wallet
+    let brokerWallet: Wallet
+    let broker2Wallet: Wallet
     // const trustedForwarderAddress: string = wallets[9].address
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
@@ -32,6 +29,11 @@ describe("Bounty", (): void => {
     let testAllocationPolicy: Contract
 
     before(async (): Promise<void> => {
+        wallets = await ethers.getSigners() as unknown as Wallet[]
+        adminWallet = wallets[0]
+        brokerWallet = wallets[1]
+        broker2Wallet = wallets[2]
+
         token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
         await token.deployed()
 
@@ -238,7 +240,7 @@ describe("Bounty", (): void => {
     })
 
     it("negativetest sponsor with no allowance", async function(): Promise<void> {
-        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther("1"))).to.be.revertedWith("")
+        await expect(bountyFromAdmin.sponsor(ethers.utils.parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
     })
 
     it("negativetest error setting param on joinpolicy", async function(): Promise<void> {
@@ -329,7 +331,8 @@ describe("Bounty", (): void => {
         const jpMSC = await jpMS.deploy() as Contract
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "4"))
-            .to.be.revertedWith("") // 4 -> will throw empty error
+            .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing " 
+            + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 
     it("negativetest calling fallback function", async function(): Promise<void> {
