@@ -1,9 +1,8 @@
-import { waffle, ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { ethers } from 'hardhat'
+import { expect } from 'chai'
 import EthCrypto from 'eth-crypto'
-import { BigNumber, Wallet, Contract } from "ethers"
+import { BigNumber, Wallet, Contract, Signer } from "ethers"
 
-const { provider } = waffle
 export type TypedValue = {
     value: string | number | BigNumber,
     type: 'string' | 'uint256' | 'int256' | 'bool' | 'bytes' | 'bytes32' | 'address'
@@ -26,16 +25,16 @@ const signDelegatedChallenge = async (
     }
 }
 
-use(waffle.solidity)
-describe('DelegatedAccessRegistry', (): void => {
+describe('DelegatedAccessRegistry', async (): Promise<void> => {
 
-    const wallets = provider.getWallets()
+    let wallets: Signer[]
 
     const delegated = Wallet.createRandom()
 
     let contract: Contract
 
     before(async (): Promise<void> => {
+        wallets = await ethers.getSigners()
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
         
@@ -46,7 +45,7 @@ describe('DelegatedAccessRegistry', (): void => {
 
     it ('should exercise the `isUserAuthorized` when not set', async () => {
         const isAuthorized = await contract.isUserAuthorized(
-            wallets[0].address,
+            await wallets[0].getAddress(),
             delegated.address
         )
 

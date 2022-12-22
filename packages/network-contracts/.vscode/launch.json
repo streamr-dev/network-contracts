@@ -72,6 +72,21 @@
             "skipFiles": [
                 "<node_internals>/**/*.js"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Hardhat test this file",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "runtimeArgs": [
+                "test",
+                "${file}"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
