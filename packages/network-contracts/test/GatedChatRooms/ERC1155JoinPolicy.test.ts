@@ -1,6 +1,6 @@
 import { upgrades, ethers } from 'hardhat'
 import { expect } from 'chai'
-import { BigNumber, Contract, Wallet} from 'ethers'
+import { BigNumber, Contract} from 'ethers'
 
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../../typechain/StreamRegistry'
@@ -27,7 +27,9 @@ const signDelegatedChallenge = (
     return sign(delegatedPrivateKey, message)
 }
 describe('ERC1155JoinPolicy', async (): Promise<void> => {
-    const wallets = await ethers.getSigners() as unknown as Wallet[]
+    // this casting can be removed once the whole monorepo uses hardhat-toolbox 
+    // (and thus same version of ethers)
+    const wallets = await ethers.getSigners() 
     let token: any 
     let contract: Contract
 

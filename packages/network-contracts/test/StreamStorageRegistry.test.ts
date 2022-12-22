@@ -1,13 +1,9 @@
 import { upgrades, ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 
-// import StreamRegistryJson from '../artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json'
-// import StreamStorageRegistryJson from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json'
-import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../typechain/MinimalForwarder'
-import type { StreamStorageRegistry, StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from '../typechain'
+import type { StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from '../typechain'
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
-import { Wallet } from 'ethers'
 
 // set timeout to 10 minutes
 const types = {
@@ -50,12 +46,12 @@ const types = {
 describe('StreamStorageRegistry', async () => {
     let streamReg: StreamRegistry
     let nodeReg: NodeRegistry
-    let reg: StreamStorageRegistry
+    let reg: StreamStorageRegistryV2
 
     let forwarder: MinimalForwarder
     let forwarderFromMetatxSender: MinimalForwarder
 
-    const wallets = await ethers.getSigners() as unknown as Wallet[]
+    const wallets = await ethers.getSigners()
     const [admin, trusted, node0, node1, node2] = wallets
 
     const nodes = [node0, node1, node2]
@@ -93,7 +89,7 @@ describe('StreamStorageRegistry', async () => {
         const strDeployTx = await upgrades.deployProxy(strDeploy, [streamReg.address, nodeReg.address, forwarder.address], {
             kind: 'uups'
         })
-        await strDeployTx.deployed() as StreamStorageRegistry
+        await strDeployTx.deployed()
 
         // upgrade to StreamStorageRegistryV2
         // upgrader needs to be trusted as well

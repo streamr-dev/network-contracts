@@ -1,11 +1,11 @@
 import { ethers, upgrades } from 'hardhat'
 import { expect } from 'chai'
-import { Contract, Wallet} from 'ethers'
+import { Contract} from 'ethers'
 import { StreamRegistry } from '../../typechain'
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 
 describe('JoinPolicyFactory', async (): Promise<void> => {
-    const wallets = await ethers.getSigners() as unknown as Wallet[]
+    const wallets = await ethers.getSigners()
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
     let contract: Contract

@@ -3,7 +3,6 @@ import { expect } from 'chai'
 import { BigNumber, utils, Wallet } from 'ethers'
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../typechain/StreamRegistry'
 import type { StreamRegistryV4 } from '../typechain/StreamRegistryV4'

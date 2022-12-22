@@ -44,7 +44,7 @@ const authorizeDelegatedWallet = async (
     )
 }
 describe('ERC721JoinPolicy', async (): Promise<void> => {
-    const wallets = await ethers.getSigners() as unknown as Wallet[]
+    const wallets = await ethers.getSigners()
     let token: any 
     let contract: Contract
 

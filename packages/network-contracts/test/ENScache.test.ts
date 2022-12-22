@@ -1,5 +1,5 @@
 import { upgrades, ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { expect } from 'chai'
 import { utils, BigNumber } from 'ethers'
 
 import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
@@ -56,22 +56,11 @@ describe('ENSCache', async (): Promise<void> => {
         ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAdress, 'jobid')) as ENSCache
         await ensCacheFromAdmin.deployed()
 
-
-        // minimalForwarderFromAdmin = await deployContract(wallets[0], ForwarderJson) as MinimalForwarder
-        // linkTokenFromAdmin = await deployContract(wallets[0], LinkTokenJson) as LinkToken
-        // oracleFromAdmin = await deployContract(wallets[0], OracleJson, [linkTokenFromAdmin.address]) as Oracle
-
-        // ensCacheFromAdmin = await deployContract(wallets[0], ENSCacheJson,
-        //     // [adminAdress, 'jobid', minimalForwarderFromAdmin.address]) as ENSCache
-        //     [adminAdress, 'jobid']) as ENSCache
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
-        // minimalForwarderFromUser0 = minimalForwarderFromAdmin.connect(wallets[1])
 
         await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address,
             BigNumber.from('1000000000000000000000')) // 1000 link
 
-        // registryFromAdmin = await deployContract(wallets[0], StreamRegistryJson,
-        //     [ensCacheFromAdmin.address, minimalForwarderFromAdmin.address]) as StreamRegistry
         const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV2')
         const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [
             ensCacheFromAdmin.address,

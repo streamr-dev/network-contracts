@@ -1,8 +1,7 @@
 import { expect } from 'chai'
 import { upgrades, ethers } from 'hardhat'
-import { Contract, Signer, utils } from 'ethers'
+import { Contract, utils } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-
 
 const nodeCount = 3
 
