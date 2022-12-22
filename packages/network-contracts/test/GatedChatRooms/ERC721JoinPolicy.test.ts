@@ -1,14 +1,10 @@
-import { waffle, upgrades, ethers } from 'hardhat'
-import { expect, use } from 'chai'
+import { upgrades, ethers } from 'hardhat'
+import { expect } from 'chai'
 import { BigNumber, Contract, Wallet} from 'ethers'
 
-import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
 import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
 import type { StreamRegistry } from '../../typechain/StreamRegistry'
 import {sign, hash, createIdentity} from 'eth-crypto'
-
-const { deployContract } = waffle
-const { provider } = waffle
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
@@ -47,9 +43,8 @@ const authorizeDelegatedWallet = async (
         signature
     )
 }
-use(waffle.solidity)
-describe('ERC721JoinPolicy', (): void => {
-    const wallets = provider.getWallets()
+describe('ERC721JoinPolicy', async (): Promise<void> => {
+    const wallets = await ethers.getSigners()
     let token: any 
     let contract: Contract
 
@@ -67,7 +62,8 @@ describe('ERC721JoinPolicy', (): void => {
     const TokenId = 1234567890
 
     before(async (): Promise<void> => {
-        minimalForwarderFromUser0 = await deployContract(wallets[9], ForwarderJson) as MinimalForwarder
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2,
             ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {

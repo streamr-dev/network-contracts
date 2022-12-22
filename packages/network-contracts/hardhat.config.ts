@@ -1,9 +1,6 @@
-// import { task } from 'hardhat/config'
-import '@nomiclabs/hardhat-waffle'
-import 'hardhat-typechain'
+import "@nomicfoundation/hardhat-toolbox"
+import "@nomicfoundation/hardhat-chai-matchers"
 import { HardhatUserConfig } from 'hardhat/types'
-import 'hardhat-deploy'
-import 'hardhat-deploy-ethers'
 import '@openzeppelin/hardhat-upgrades'
 
 require('solidity-coverage')

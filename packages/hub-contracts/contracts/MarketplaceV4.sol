@@ -33,13 +33,21 @@ interface IProjectRegistry {
     function isTrustedForwarder(address forwarder) external view returns (bool);
 }
 
+interface IMessageRecipient {
+    function handle(
+        uint32 _origin, // the Domain ID of the origin chain. It's a unique id assigned by the Hyperlane protocol.
+        bytes32 _sender, // the address of the remote contract on the origin chain (e.g. RemoteMarketplace). It must match or the message will revert
+        bytes calldata _message // encoded purchase info
+    ) external;
+}
+
 /**
  * @title Streamr Marketplace
  * @dev note about numbers:
  *   All prices and exchange rates are in "decimal fixed-point", that is, scaled by 10^18, like ETH vs wei.
  *  Seconds are integers as usual.
  */
-contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4 {
+contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4, IMessageRecipient {
 
     // MarketplaceV3 storage
 
@@ -47,12 +55,12 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 id;
         string name;
         address owner;
-        address beneficiary;        // account where revenue is directed to
+        address beneficiary; // account where revenue is directed to
         uint pricePerSecond;
-        address pricingTokenAddress;  // the token in which the product is paid to product beneficiary
+        address pricingTokenAddress; // the token in which the product is paid to product beneficiary
         uint minimumSubscriptionSeconds;
         ProductState state;
-        address newOwnerCandidate;  // Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address.
+        address newOwnerCandidate; // Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address.
         bool requiresWhitelist;
         mapping(address => TimeBasedSubscription) subscriptions;
         mapping(address => WhitelistState) whitelist;
@@ -76,8 +84,18 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     IProjectRegistry public projectRegistry;
 
+    // cross-chain messaging
+    address public crossChainInbox;
+    mapping(uint32 => address) public crossChainMarketplaces; // key is the other chain's Domain ID (assigned by Hyperlane)
+
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
+        _;
+    }
+
+    modifier onlyCrossChainMarketplace(uint32 originDomainId, bytes32 senderAddress) {
+        require(crossChainMarketplaces[originDomainId] == _bytes32ToAddress(senderAddress), "notCrossChainMarketplace");
+        require(msg.sender == crossChainInbox, "notHyperlaneInbox");
         _;
     }
 
@@ -97,6 +115,14 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     function setProjectRegistry(address _projectRegistry) external onlyOwner {
         projectRegistry = IProjectRegistry(_projectRegistry);
+    }
+    
+    function setCrossChainInbox(address inboxAddress) external onlyOwner {
+        crossChainInbox = inboxAddress;
+    }
+    
+    function addCrossChainMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external onlyOwner {
+        crossChainMarketplaces[originDomainId] = remoteMarketplaceAddress;
     }
 
     /**
@@ -175,7 +201,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         buyFor(productId, subscriptionSeconds, _msgSender());
     }
 
-    /*
+    /**
      * ERC677 token callback
      * If the data bytes contains a product id, the subscription is extended for that product
      * @dev The amount transferred is in pricingTokenAddress.
@@ -194,6 +220,33 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
         uint subscriptionSeconds = amount / pricePerSecond / 1 ether;
         projectRegistry.grantSubscription(productId, subscriptionSeconds, sender);
+    }
+
+    /////////////// Cross-Chain Purchases ///////////////
+
+    /**
+    * Extends project subscription purchased on a different chain.
+    * @param _origin - the chain id from where the message is comming (e.g. RemoteMarketplace).
+    * @param _sender - the contract from which the message is comming (e.g. RemoteMarketplace).
+    * @dev _sender is bytes32 not address because the protocol will supports non-evm chains as well
+    * @dev msg.sender is the hyperlane inbox address for the destination chain where destination contract is deployed (e.g. MarketplaceV4)
+    * @param _data - encoded purchase info
+    */
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes calldata _data
+    ) external onlyCrossChainMarketplace(_origin, _sender) {
+        (bytes32 productId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_data, (bytes32, uint256, address));
+
+        require(projectRegistry.canBuyProject(productId, subscriber), "error_unableToBuyProject");
+        projectRegistry.grantSubscription(productId, subscriptionSeconds, subscriber);
+
+        emit ProjectPurchased(productId, subscriber, subscriptionSeconds, 0, 0); // TODO: add price and fee params
+    }
+
+    function _bytes32ToAddress(bytes32 _buf) private pure returns (address) {
+        return address(uint160(uint256(_buf)));
     }
 
     /////////////// Admin functionality ///////////////
@@ -241,7 +294,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     /////////////// Trusted Forwarder ///////////////
 
-    /*
+    /**
      * ERC2771ContextUpgradeable implementation from openzeppelin
      * @dev ERC2771ContextUpgradeable inheritance is not possible since it changes the storage layout
      */
@@ -264,7 +317,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
     }
 
-    /*
+    /**
      * @dev isTrustedForwarder and project registry role access adds trusted forwarder reset functionality
      */
     function isTrustedForwarder(address forwarder) public view returns (bool) {
