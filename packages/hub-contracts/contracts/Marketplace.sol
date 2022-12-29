@@ -35,28 +35,6 @@ interface IProjectRegistry {
 contract Marketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IMarketplaceV4 {
 
     // MarketplaceV3 storage
-
-    struct Product {
-        bytes32 id;
-        string name;
-        address owner;
-        address beneficiary;        // account where revenue is directed to
-        uint pricePerSecond;
-        address pricingTokenAddress;  // the token in which the product is paid to product beneficiary
-        uint minimumSubscriptionSeconds;
-        ProductState state;
-        address newOwnerCandidate;  // Two phase hand-over to minimize the chance that the product ownership is lost to a non-existent address.
-        bool requiresWhitelist;
-        mapping(address => TimeBasedSubscription) subscriptions;
-        mapping(address => WhitelistState) whitelist;
-    }
-
-    struct TimeBasedSubscription {
-        uint endTimestamp;
-    }
-
-    mapping (bytes32 => Product) public products; // Deprecated from v4 since products storage will be handled by ProjectRegistry.
-
     /** fraction of the purchase revenue that goes to marketplace.owner (1e18 means 100%) */
     uint256 public txFee;
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -20,9 +21,8 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    mapping (bytes32 => Project) public projects;
-
     IStreamRegistry public streamRegistry;
+    mapping (bytes32 => Project) public projects;
 
     modifier hasDeletePermission(bytes32 projectId) {
         require(hasPermissionType(projectId, _msgSender(), PermissionType.Delete), "error_noDeletePermission");
@@ -98,21 +98,28 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      * Returns Project struct items except for permissions which are linked to a user/projectVersion hash.
      */
     function getProject(
-        bytes32 id
-    ) public view returns (
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingTokenAddress,
-        uint minimumSubscriptionSeconds,
-        string memory metadata,
-        uint32 version,
-        string[] memory streams
-    ) {
+        bytes32 id,
+        uint32[] memory domainIds
+    )
+        external
+        view
+        returns (
+            PaymentDetails[] memory paymentDetails,
+            uint256 minimumSubscriptionSeconds,
+            string memory metadata,
+            uint32 version,
+            string[] memory streams
+        )
+    {
         Project storage p = projects[id];
+
+        paymentDetails = new PaymentDetails[](domainIds.length);
+        for (uint256 i = 0; i < domainIds.length; i++) {
+            paymentDetails[i] = p.chainIdToPaymentDetails[domainIds[i]];
+        }
+
         return (
-            p.beneficiary,
-            p.pricePerSecond,
-            p.pricingTokenAddress,
+            paymentDetails,
             p.minimumSubscriptionSeconds,
             p.metadata,
             p.version,
@@ -122,23 +129,20 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
     * Creates a new project in the registry. All permissions are enabled for msg.sender
-    * @param beneficiary The address that will receive the payments
+    * @param paymentDetails contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated
     * @dev streams are initialized to an empty string[]
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
         bytes32 id,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        uint32[] calldata domainIds,
+        PaymentDetails[] calldata paymentDetails,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public {
-        _createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
-
-        projects[id].version = projects[id].version + 1;
+        _createProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);
@@ -158,47 +162,60 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     */
     function updateProject(
         bytes32 projectId,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        uint32[] calldata domainIds,
+        PaymentDetails[] calldata paymentDetails,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
-    ) public hasEditPermission(projectId) {
+    ) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
-        p.beneficiary = beneficiary;
-        p.pricePerSecond = pricePerSecond;
-        p.pricingTokenAddress = pricingToken;
+
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
 
-        emit ProjectUpdated(p.id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        for(uint256 i = 0; i < domainIds.length; i++) {
+            PaymentDetails memory payment = paymentDetails[i];
+            require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
+            p.chainIdToPaymentDetails[domainIds[i]] = payment;
+        }
+
+        emit ProjectUpdated(projectId, domainIds, minimumSubscriptionSeconds, metadataJsonString);
     }
 
-    function _createProject(bytes32 id, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, string calldata metadataJsonString) internal {
+    function _createProject(
+        bytes32 id,
+        uint32[] calldata domainIds,
+        PaymentDetails[] calldata paymentDetails,
+        uint256 minimumSubscriptionSeconds,
+        string calldata metadataJsonString
+    ) internal {
         require(id != 0x0, "error_nullProjectId");
         require(!exists(id), "error_alreadyExists");
-        require(bytes(ERC20(pricingToken).symbol()).length > 0, "error_invalidPricingTokenSymbol");
+        require(domainIds.length == paymentDetails.length, "error_invalidPaymentDetails");
 
         Project storage p = projects[id];
         p.id = id;
-        p.beneficiary = beneficiary;
-        p.pricePerSecond = pricePerSecond;
-        p.pricingTokenAddress = pricingToken;
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
+        p.version = projects[id].version + 1;
 
-        emit ProjectCreated(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        for(uint256 i = 0; i < domainIds.length; i++) {
+            PaymentDetails memory payment = paymentDetails[i];
+            require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
+            p.chainIdToPaymentDetails[domainIds[i]] = payment;
+        }
+
+        emit ProjectCreated(id, domainIds, minimumSubscriptionSeconds, metadataJsonString);
     }
 
-    // /////////////// Subscription management ///////////////
+    ///////////////// Subscription management ///////////////
 
     function getSubscription(bytes32 projectId, address subscriber) public view returns (bool isValid, uint endTimestamp) {
         (, TimeBasedSubscription storage sub) = _getSubscription(projectId, subscriber);
         return (_isValid(sub), sub.endTimestamp);
     }
 
-    function getOwnSubscription(bytes32 productId) public view returns (bool isValid, uint endTimestamp) {
-        return getSubscription(productId, _msgSender());
+    function getOwnSubscription(bytes32 projectId) public view returns (bool isValid, uint endTimestamp) {
+        return getSubscription(projectId, _msgSender());
     }
 
     function _isValid(TimeBasedSubscription storage s) internal view returns (bool) {
@@ -312,7 +329,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /////////////// Permissions Management /////////////////
 
-    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view returns (bool userhasPermissionType) {
+    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view returns (bool userHasPermissionType) {
         if (permissionType == PermissionType.Buy) {
             return projects[projectId].permissions[getAddressKey(projectId, user)].canBuy;
         }
@@ -412,20 +429,19 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      */
     /**
     * Creates a new project in the registry. Permissions are enabled for the given user.
-    * @param beneficiary The address that will receive the payments
+    * @param paymentDetails contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @param user The address that will have the permissions
     */
     function trustedCreateProject(
         bytes32 id,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        uint32[] calldata domainIds,
+        PaymentDetails[] calldata paymentDetails,
         uint minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public isTrusted(){
-        _createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, user, true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);
