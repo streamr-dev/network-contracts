@@ -24,16 +24,7 @@ interface IProjectRegistry {
         address pricingTokenAddress; // the token in which the project is paid to project beneficiary
         uint256 pricePerSecond;
     }
-    function getProject(
-        bytes32 id,
-        uint32[] memory domainIds
-    ) external view returns (
-        PaymentDetails[] calldata paymentDetails,
-        uint256 minimumSubscriptionSeconds,
-        string calldata metadata,
-        uint32 version,
-        string[] calldata streams
-    );
+    function getPaymentDetails(bytes32 projectId, uint32 domainId) external view returns (PaymentDetails memory paymentDetails);
     function grantSubscription(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) external;
     function canBuyProject(bytes32 projectId, address buyer) external view returns(bool isPurchable);
     function getSubscription(bytes32 projectId, address subscriber) external view returns (bool isValid, uint256 endTimestamp);
@@ -67,7 +58,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     IProjectRegistry public projectRegistry;
 
     // cross-chain messaging
-    uint32[] public domainIds;
+    uint32 public destinationDomainId;
     mapping(uint32 => address) public domainIdToCrossChainInbox; // key is the remote chain's Domain ID (assigned by Hyperlane)
     mapping(uint32 => address) public domainIdToCrossChainMarketplace; // key is the remote chain's Domain ID (assigned by Hyperlane)
 
@@ -77,8 +68,9 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     }
 
     modifier onlyCrossChainMarketplace(uint32 originDomainId, bytes32 senderAddress) {
-        require(domainIdToCrossChainMarketplace[originDomainId] == _bytes32ToAddress(senderAddress), "error_notCrossChainMarketplace");
-        require(msg.sender == domainIdToCrossChainInbox[originDomainId], "error_notHyperlaneInbox");
+        // TODO: enable contract validation
+        // require(domainIdToCrossChainMarketplace[originDomainId] == _bytes32ToAddress(senderAddress), "error_notCrossChainMarketplace");
+        // require(msg.sender == domainIdToCrossChainInbox[originDomainId], "error_notHyperlaneInbox");
         _;
     }
 
@@ -86,25 +78,17 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    due to the initializer modifier, this will not be called upon each upgrade, only once during first deployment
-    function initialize(address _projectRegistry, uint32 _deployedOnDomainId) public initializer {
+    function initialize(address _projectRegistry, uint32 _destinationDomainId) public initializer {
         // since there is no constructor, it initialises the OwnableUpgradeable
         __Ownable_init();
         __UUPSUpgradeable_init();
 
         halted = false;
         projectRegistry = IProjectRegistry(_projectRegistry);
-        domainIds.push(_deployedOnDomainId);
+        destinationDomainId = _destinationDomainId;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
-    
-    function addCrossChainInbox(uint32 originDomainId, address inboxAddress) external onlyOwner {
-        domainIdToCrossChainInbox[originDomainId] = inboxAddress;
-    }
-    
-    function addCrossChainMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external onlyOwner {
-        domainIdToCrossChainMarketplace[originDomainId] = remoteMarketplaceAddress;
-    }
 
     /**
      * Transfer the project payment to project beneficiary and the fee to marketplace owner
@@ -112,11 +96,11 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      * @dev price & fee is in wei
      */
     function _handleProjectPurchase(bytes32 projectId, uint256 addSeconds, address subscriber) internal {
-        (IProjectRegistry.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, domainIds);
-        address beneficiary = paymentDetails[0].beneficiary;
-        uint256 pricePerSecond = paymentDetails[0].pricePerSecond;
+        IProjectRegistry.PaymentDetails memory paymentDetails = projectRegistry.getPaymentDetails(projectId, destinationDomainId);
+        address beneficiary = paymentDetails.beneficiary;
+        uint256 pricePerSecond = paymentDetails.pricePerSecond;
         require(pricePerSecond > 0, "error_freeProjectsNotSupportedOnMarketplace");
-        address pricingTokenAddress = paymentDetails[0].pricingTokenAddress;
+        address pricingTokenAddress = paymentDetails.pricingTokenAddress;
         uint256 price = addSeconds * pricePerSecond;
         uint256 fee = (txFee * price) / 1 ether;
         IERC677 pricingToken = IERC677(pricingTokenAddress);
@@ -164,24 +148,6 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         }
     }
 
-    function getPurchaseInfo(
-        bytes32 projectId,
-        uint256 subscriptionSeconds,
-        uint32[] calldata chains,
-        uint256 purchaseId
-    ) external view returns(
-        address beneficiary,
-        address pricingTokenAddress,
-        uint256 price,
-        uint256 fee,
-        uint256 // purchaseId
-    ) {
-        (IProjectRegistry.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, chains);
-        price = subscriptionSeconds * paymentDetails[0].pricePerSecond;
-        fee = (txFee * price) / 1 ether;
-        return (paymentDetails[0].beneficiary, paymentDetails[0].pricingTokenAddress, price, fee, purchaseId);
-    }
-
     /**
      * Pay subscription for someone else
      * @param subscriber is the address for which the project subscription is added/extended
@@ -217,14 +183,34 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 projectId;
         assembly { projectId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 
-        (IProjectRegistry.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, domainIds);
-        require(_msgSender() == paymentDetails[0].pricingTokenAddress, "error_wrongPricingToken");
+        IProjectRegistry.PaymentDetails memory paymentDetails = projectRegistry.getPaymentDetails(projectId, destinationDomainId);
+        require(_msgSender() == paymentDetails.pricingTokenAddress, "error_wrongPricingToken");
 
-        uint256 subscriptionSeconds = amount / paymentDetails[0].pricePerSecond / 1 ether;
+        uint256 subscriptionSeconds = amount / paymentDetails.pricePerSecond / 1 ether;
         projectRegistry.grantSubscription(projectId, subscriptionSeconds, sender);
     }
 
-    /////////////// Cross-Chain Purchases ///////////////
+    /////////////// Cross-Chain Messaging ///////////////
+    
+    function addCrossChainInbox(uint32 originDomainId, address inboxAddress) external onlyOwner {
+        domainIdToCrossChainInbox[originDomainId] = inboxAddress;
+    }
+    
+    function addCrossChainMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external onlyOwner {
+        domainIdToCrossChainMarketplace[originDomainId] = remoteMarketplaceAddress;
+    }
+
+    function getPurchaseInfo(
+        bytes32 projectId,
+        uint256 subscriptionSeconds,
+        uint32 originDomainId,
+        uint256 purchaseId
+    ) external view returns(address, address, uint256, uint256, uint256) {
+        IProjectRegistry.PaymentDetails memory paymentDetails = projectRegistry.getPaymentDetails(projectId, originDomainId);
+        uint256 price = subscriptionSeconds * paymentDetails.pricePerSecond;
+        uint256 fee = (txFee * price) / 1 ether;
+        return (paymentDetails.beneficiary, paymentDetails.pricingTokenAddress, price, fee, purchaseId);
+    }
 
     /**
     * Extends project subscription purchased on a different chain.
@@ -232,14 +218,14 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     * @param _sender - the contract the message is comming from (e.g. RemoteMarketplace).
     * @dev _sender is bytes32 not address because the protocol will support non-evm chains as well
     * @dev msg.sender is the hyperlane inbox address for the destination chain where destination contract is deployed (e.g. MarketplaceV4)
-    * @param _data - encoded purchase info
+    * @param _message - encoded purchase info
     */
     function handle(
         uint32 _origin,
         bytes32 _sender,
-        bytes calldata _data
+        bytes calldata _message
     ) external onlyCrossChainMarketplace(_origin, _sender) {
-        (bytes32 projectId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_data, (bytes32, uint256, address));
+        (bytes32 projectId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_message, (bytes32, uint256, address));
 
         require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
         projectRegistry.grantSubscription(projectId, subscriptionSeconds, subscriber);

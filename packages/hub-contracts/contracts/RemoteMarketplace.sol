@@ -11,21 +11,22 @@ interface IMarketplace {
     function getPurchaseInfo(
         bytes32 projectId,
         uint256 subscriptionSeconds,
-        uint32[] memory originDomainId,
+        uint32 originDomainId,
         uint256 purchaseId
     ) external view returns(address, address, uint256, uint256, uint256);
 }
 
+struct Call {
+    address to;
+    bytes data;
+}
+
 interface IInterchainQueryRouter {
-    struct Call {
-        address to;
-        bytes data;
-    }
     function query(
-        uint32 destinationDomainId,
+        uint32 _destinationDomain,
         Call calldata call,
         bytes calldata callback
-    ) external returns (uint256);
+    ) external;
 }
 
 interface IOutbox {
@@ -49,15 +50,18 @@ contract RemoteMarketplace is Ownable {
     }
 
     uint256 public purchaseCount;
-    mapping(uint256 => PurchaseRequest) purchases;
+    mapping(uint256 => PurchaseRequest) public purchases;
 
-    uint32[] public originDomainId; // contains only one element (the domain id of the chain where RemoteMarketplace is deployed)
+    uint32 public originDomainId; // contains only one element (the domain id of the chain where RemoteMarketplace is deployed)
     uint32 public destinationDomainId; // the domain id of the chain where MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
     IInterchainQueryRouter public queryRouter;
     IOutbox public outbox;
 
     event CrossChainPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
+    event ProjectQuerySent(uint32 destinationDomainId, address recipientAddress, bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId);
+    event DispatchSubscribeToProject(uint32 destinationDomainId, address recipientAddress, bytes32 projectId, uint256 subscriptionSeconds, address subscriber);
+    event QueryProjectReturned(address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, uint256 purchaseId);
 
     modifier onlyQueryRouter() {
         require(msg.sender == address(queryRouter), "error_onlyQueryRouter");
@@ -70,8 +74,8 @@ contract RemoteMarketplace is Ownable {
      * @param _queryRouter - hyperlane query router for the origin chain
      * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed (e.g. gnosis)
      */
-    constructor(uint32 _domainId, uint32 _destinationDomainId, address _recipientAddress, address _queryRouter, address _outboxAddress) {
-        originDomainId.push(_domainId);
+    constructor(uint32 _originDomainId, uint32 _destinationDomainId, address _recipientAddress, address _queryRouter, address _outboxAddress) {
+        originDomainId = _originDomainId;
         destinationDomainId = _destinationDomainId;
         recipientAddress = _recipientAddress;
         outbox = IOutbox(_outboxAddress);
@@ -85,18 +89,13 @@ contract RemoteMarketplace is Ownable {
     function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
         uint256 purchaseId = purchaseCount + 1;
         purchaseCount = purchaseId;
-        queryRouter.query(
-            destinationDomainId,
-            IInterchainQueryRouter.Call({
-                to: recipientAddress,
-                data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseCount))
-            }),
-            abi.encodePacked(this.handleQueryProject.selector)
-        );
         purchases[purchaseId] = PurchaseRequest(projectId, msg.sender, subscriber, subscriptionSeconds);
+        _queryProject(projectId, subscriptionSeconds, purchaseId);
     }
 
-    function handleQueryProject(
+    uint256 public queryPriceResult; // TODO: remove
+
+    function handleQueryProjectResult(
         address beneficiary,
         address pricingTokenAddress,
         uint256 price,
@@ -108,32 +107,39 @@ contract RemoteMarketplace is Ownable {
         address buyer = purchase.buyer;
         address subscriber = purchase.subscriber;
         uint256 subscriptionSeconds = purchase.subscriptionSeconds;
-        _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
-        _subscribeToProject(projectId, subscriber, subscriptionSeconds);
         emit CrossChainPurchase(projectId, subscriber, subscriptionSeconds, price, fee);
+        _subscribeToProject(projectId, subscriber, subscriptionSeconds);
+        // _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
+
+        queryPriceResult = price; // TODO: remove
+        emit QueryProjectReturned(beneficiary, pricingTokenAddress, price, fee, purchaseId);
     }
 
-    function _handleProjectPurchase(
-            address buyer,
-            address beneficiary,
-            address pricingTokenAddress,
-            uint256 price,
-            uint256 fee
-        ) private {
+    function _queryProject(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) public { // TODO: make private
+        queryRouter.query(
+            destinationDomainId,
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
+            abi.encodePacked(this.handleQueryProjectResult.selector)
+        );
+        emit ProjectQuerySent(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, purchaseId);
+    }
+
+    function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds) public { // TODO: make private
+        emit DispatchSubscribeToProject(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, subscriber);
+        outbox.dispatch(
+            destinationDomainId,
+            _addressToBytes32(recipientAddress),
+            abi.encode(projectId, subscriptionSeconds, subscriber)
+        );
+    }
+
+    function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
         // require(price > 0, "error_freeProjectsNotSupportedOnRemoteMarketplace");
         IERC20 pricingToken = IERC20(pricingTokenAddress);
         require(pricingToken.transferFrom(buyer, beneficiary, price - fee), "error_projectPaymentFailed");
         if (fee > 0) {
             require(pricingToken.transferFrom(buyer, owner(), fee), "error_feePaymentFailed");
         }
-    }
-
-    function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds) private {
-        outbox.dispatch(
-            destinationDomainId,
-            _addressToBytes32(recipientAddress),
-            abi.encode(projectId, subscriptionSeconds, subscriber)
-        );
     }
 
     function _addressToBytes32(address addr) private pure returns (bytes32) {

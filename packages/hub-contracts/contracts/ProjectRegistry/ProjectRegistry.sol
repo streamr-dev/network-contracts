@@ -128,6 +128,21 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     /**
+     * Returns the payment details for a project on a specific chain
+     */
+    function getPaymentDetails(
+        bytes32 projectId,
+        uint32 domainId
+    )
+        external
+        view
+        returns (PaymentDetails memory paymentDetails)
+    {
+        Project storage p = projects[projectId];
+        return p.chainIdToPaymentDetails[domainId];
+    }
+
+    /**
     * Creates a new project in the registry. All permissions are enabled for msg.sender
     * @param paymentDetails contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated

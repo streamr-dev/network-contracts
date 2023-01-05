@@ -360,18 +360,11 @@ describe("Marketplace", () => {
                 .to.equal(subscriptionSeconds * pricePerSecond)
         })
 
-        it('ProjectPurchased event emitted for free projects', async () => {
+        it('buy - negativetest - unable to purchase free projects (pricePerSecond=0)', async () => {
             const freeProjectId = await createProject({ payment: paymentDetailsFreeProject })
             
-            const hasValidSubscriptionBefore = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
             await expect(marketplace.buy(freeProjectId, 100))
-                .to.emit(marketplace, 'ProjectPurchased')
-            const hasValidSubscriptionAfter = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
-
-            expect(hasValidSubscriptionBefore)
-                .to.be.false
-            expect(hasValidSubscriptionAfter)
-                .to.be.true
+                .to.be.revertedWith("error_freeProjectsNotSupportedOnMarketplace")
         })
     })
 
@@ -608,7 +601,7 @@ describe("Marketplace", () => {
             const purchaseId = BigNumber.from(1)
             
             const projectId = await createProject({ payment })
-            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, domainIds, purchaseId)
+            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, deployedOnDomainId, purchaseId)
             
             expect(purchaseInfo[0]).to.equal(beneficiaryAddress)
             expect(purchaseInfo[1]).to.equal(pricingTokenAddress)
