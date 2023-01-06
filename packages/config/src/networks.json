@@ -57,6 +57,31 @@
             "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415"
         }
     },
+    "alfajores": {
+        "id": 44787,
+        "rpcEndpoints": [
+            {
+                "url": "https://alfajores-forno.celo-testnet.org"
+            }
+        ],
+        "contracts": {
+            "ProjectRegistry": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
+            "MarketplaceV4": "0x14577e0D5BD77536E073712d98E471edDaFAE8b4",
+            "cUSD": "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
+        }
+    },
+    "optGoerli": {
+        "id": 420,
+        "rpcEndpoints": [
+            {
+                "url": "https://goerli.optimism.io"
+            }
+        ],
+        "contracts": {
+            "RemoteMarketplace": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
+            "DAI": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
+        }
+    },
     "ethereum": {
         "id": 1,
         "rpcEndpoints": [],

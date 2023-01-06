@@ -68,9 +68,8 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     }
 
     modifier onlyCrossChainMarketplace(uint32 originDomainId, bytes32 senderAddress) {
-        // TODO: enable contract validation
-        // require(domainIdToCrossChainMarketplace[originDomainId] == _bytes32ToAddress(senderAddress), "error_notCrossChainMarketplace");
-        // require(msg.sender == domainIdToCrossChainInbox[originDomainId], "error_notHyperlaneInbox");
+        require(domainIdToCrossChainMarketplace[originDomainId] == _bytes32ToAddress(senderAddress), "error_notCrossChainMarketplace");
+        require(msg.sender == domainIdToCrossChainInbox[originDomainId], "error_notHyperlaneInbox");
         _;
     }
 
@@ -134,6 +133,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     /**
      * Notify the purchase listener of project purchase
      * @param beneficiary is the project beneficiary (the address getting paid for project)
+     * @dev if the beneficiary is a contract, it can implement IPurchaseListener to react to project purchase
      * @param subscriber is the address for which the project subscription is added/extended
     */
     function _notifyPurchaseListener(address beneficiary, bytes32 projectId, address subscriber, uint256 subEndTimestamp, uint256 price, uint256 fee) private {
@@ -155,7 +155,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public override whenNotHalted {
         require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
 
-        // Marketplaces isTrusted by the project registry
+        // MarketplaceV4 isTrusted by the project registry
         projectRegistry.grantSubscription(projectId, subscriptionSeconds, subscriber);
 
         _handleProjectPurchase(projectId, subscriptionSeconds, subscriber);
@@ -225,12 +225,15 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 _sender,
         bytes calldata _message
     ) external onlyCrossChainMarketplace(_origin, _sender) {
-        (bytes32 projectId, uint256 subscriptionSeconds, address subscriber) = abi.decode(_message, (bytes32, uint256, address));
+        (bytes32 projectId, address subscriber, uint256 subscriptionSeconds, address beneficiary, uint256 price, uint256 fee) = 
+            abi.decode(_message, (bytes32, address, uint256, address, uint256, uint256));
 
         require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
         projectRegistry.grantSubscription(projectId, subscriptionSeconds, subscriber);
 
-        emit ProjectPurchased(projectId, subscriber, subscriptionSeconds, 0, 0); // TODO: add price and fee params
+        (, uint256 subEndTimestamp) = projectRegistry.getSubscription(projectId, subscriber);
+        emit ProjectPurchased(projectId, subscriber, subscriptionSeconds, price, fee);
+        _notifyPurchaseListener(beneficiary, projectId, subscriber, subEndTimestamp, price, fee);
     }
 
     function _bytes32ToAddress(bytes32 _buf) private pure returns (address) {

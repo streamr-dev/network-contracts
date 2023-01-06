@@ -69,17 +69,23 @@ contract RemoteMarketplace is Ownable {
     }
 
     /**
-     * @param _destinationDomainId - the domain id of the destination chain assigned by the protocol (e.g. polygon)
-     * @param _recipientAddress - the address of the recipient contract (e.g. MarketplaceV4 on polygon)
+     * @param _originDomainId - the domain id of the chain this contract is deployed on
      * @param _queryRouter - hyperlane query router for the origin chain
      * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed (e.g. gnosis)
      */
-    constructor(uint32 _originDomainId, uint32 _destinationDomainId, address _recipientAddress, address _queryRouter, address _outboxAddress) {
+    constructor(uint32 _originDomainId, address _queryRouter, address _outboxAddress) {
         originDomainId = _originDomainId;
+        queryRouter = IInterchainQueryRouter(_queryRouter);
+        outbox = IOutbox(_outboxAddress);
+    }
+
+    /**
+     * @param _destinationDomainId - the domain id of the destination chain assigned by the protocol (e.g. polygon)
+     * @param _recipientAddress - the address of the recipient contract (e.g. MarketplaceV4 on polygon)
+     */
+    function setDestinationContract(uint32 _destinationDomainId, address _recipientAddress) external onlyOwner {
         destinationDomainId = _destinationDomainId;
         recipientAddress = _recipientAddress;
-        outbox = IOutbox(_outboxAddress);
-        queryRouter = IInterchainQueryRouter(_queryRouter);
     }
 
     function buy(bytes32 projectId, uint256 subscriptionSeconds) public {
@@ -108,7 +114,7 @@ contract RemoteMarketplace is Ownable {
         address subscriber = purchase.subscriber;
         uint256 subscriptionSeconds = purchase.subscriptionSeconds;
         emit CrossChainPurchase(projectId, subscriber, subscriptionSeconds, price, fee);
-        _subscribeToProject(projectId, subscriber, subscriptionSeconds);
+        _subscribeToProject(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee);
         // _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
 
         queryPriceResult = price; // TODO: remove
@@ -124,12 +130,12 @@ contract RemoteMarketplace is Ownable {
         emit ProjectQuerySent(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, purchaseId);
     }
 
-    function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds) public { // TODO: make private
+    function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, address beneficiary, uint256 price, uint256 fee) private {
         emit DispatchSubscribeToProject(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, subscriber);
         outbox.dispatch(
             destinationDomainId,
             _addressToBytes32(recipientAddress),
-            abi.encode(projectId, subscriptionSeconds, subscriber)
+            abi.encode(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)
         );
     }
 
