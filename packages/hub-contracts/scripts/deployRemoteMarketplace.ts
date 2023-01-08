@@ -1,13 +1,18 @@
 import { ethers } from "hardhat"
 import { Chains } from "@streamr/config"
+import { chainToDomainId, chainToOutboxAddress, queryRouterAddressTestchain } from "../utils"
 
 const { log } = console
 
 const {
-    DESTINATION_CHAIN = 'polygon',
-    DESTINATION_DOMAIN_ID = '0x706f6c79', // polygon
-    ORIGIN_CHAIN = 'gnosis',
+    ORIGIN_CHAIN = 'optGoerli', // where RemoteMarketplace is deployed
+    DESTINATION_CHAIN = 'alfajores', // where ProjectRegistry & MarketplaceV4 is deployed
 } = process.env
+
+const originDomainId: number = chainToDomainId(ORIGIN_CHAIN)
+const outboxAddress: string = chainToOutboxAddress(ORIGIN_CHAIN)
+const destinationDomainId: number = chainToDomainId(DESTINATION_CHAIN)
+const interchainQueryRouterAddress: string = queryRouterAddressTestchain
 
 const {
     contracts: {
@@ -15,27 +20,32 @@ const {
     }
 } = Chains.load()[DESTINATION_CHAIN]
 
-const {
-    contracts: {
-        HyperlaneOutbox: OUTBOX_ADDRESS,
-    }
-} = Chains.load()[ORIGIN_CHAIN]
-
 if (!RECIPIENT_MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${DESTINATION_CHAIN}"`) }
-if (!OUTBOX_ADDRESS) { throw new Error(`No HyperlaneOutbox found in chain "${ORIGIN_CHAIN}"`) }
 
 /**
- * npx hardhat run --network dev1 scripts/deployRemoteMarketplace.ts
+ * npx hardhat run --network optGoerli scripts/deployRemoteMarketplace.ts
+ * npx hardhat flatten contracts/RemoteMarketplace.sol > rm.sol
+ * npx hardhat verify --network goerli --constructor-args scripts/argsRemoteMarketplace.js <contract-address>
+ * e.g. argsRemoteMarketplace.js file: module.exports = [arg1, arg2, agr3]
  */
 async function main() { // messaging from RemoteMarketplace to MarketplaceV4
     const remoteMarketplaceFactory = await ethers.getContractFactory("RemoteMarketplace")
+    log(`Deploying RemoteMarketplace to ${ORIGIN_CHAIN}:`)
+    log(`   - origin domain id: ${originDomainId}`)
+    log(`   - interchain query router for all chains: ${interchainQueryRouterAddress}`)
+    log(`   - outbox for origin chain: ${outboxAddress}`)
     const remoteMarketplace = await remoteMarketplaceFactory.deploy(
-        DESTINATION_DOMAIN_ID,
-        RECIPIENT_MARKETPLACE_ADDRESS,
-        OUTBOX_ADDRESS, // Hyperlane Outbox address for the origin chain
+        originDomainId, // domain id of the chain this contract is deployed on
+        interchainQueryRouterAddress, // Hyperlane InterchainQueryRouter address for the origin chain (it's the same for subpported all testchains/mainchains)
+        outboxAddress, // Hyperlane Outbox address for the origin chain
     )
     await remoteMarketplace.deployed()
     log(`RemoteMarketplace deployed at ${remoteMarketplace.address}`)
+
+    await(await remoteMarketplace.addRecipient(destinationDomainId, RECIPIENT_MARKETPLACE_ADDRESS)).wait()
+    log(`   - destination chain: ${DESTINATION_CHAIN}`)
+    log(`   - set destination domain id: ${destinationDomainId}`)
+    log(`   - set recipient marketplace (on destination chain): ${RECIPIENT_MARKETPLACE_ADDRESS}`)
 }
 
 main().catch((error) => {

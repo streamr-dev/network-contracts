@@ -31,15 +31,15 @@ interface IInterchainQueryRouter {
 
 interface IOutbox {
     function dispatch(
-        uint32 destinationDomainId, // the chain where MarketplaceV4 is deployed and where messages are sent to. It is a unique ID assigned by hyperlane protocol (e.g. on polygon)
-        bytes32 recipientAddress, // the address for the MarketplaceV4 contract. It must have the handle() function (e.g. on polygon)
+        uint32 destinationDomainId, // the chain where MarketplaceV4 is deployed and where messages are sent to. It is a unique ID assigned by hyperlane protocol
+        bytes32 recipientAddress, // the address for the MarketplaceV4 contract. It must have the handle() function
         bytes calldata messageBody // encoded purchase info
     ) external returns (uint256);
 }
 
 /**
  * @title Streamr Remote Marketplace
- * The Remmote Marketplace through which the users on other networks can send cross-chain messages (e.g. buy projects)
+ * The marketplace interface through which the users on other networks can send cross-chain messages to MarketpalceV4 (e.g. buy projects)
  */
 contract RemoteMarketplace is Ownable {
     struct PurchaseRequest {
@@ -52,7 +52,7 @@ contract RemoteMarketplace is Ownable {
     uint256 public purchaseCount;
     mapping(uint256 => PurchaseRequest) public purchases;
 
-    uint32 public originDomainId; // contains only one element (the domain id of the chain where RemoteMarketplace is deployed)
+    uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
     uint32 public destinationDomainId; // the domain id of the chain where MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
     IInterchainQueryRouter public queryRouter;
@@ -71,7 +71,7 @@ contract RemoteMarketplace is Ownable {
     /**
      * @param _originDomainId - the domain id of the chain this contract is deployed on
      * @param _queryRouter - hyperlane query router for the origin chain
-     * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed (e.g. gnosis)
+     * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed
      */
     constructor(uint32 _originDomainId, address _queryRouter, address _outboxAddress) {
         originDomainId = _originDomainId;
@@ -80,12 +80,12 @@ contract RemoteMarketplace is Ownable {
     }
 
     /**
-     * @param _destinationDomainId - the domain id of the destination chain assigned by the protocol (e.g. polygon)
-     * @param _recipientAddress - the address of the recipient contract (e.g. MarketplaceV4 on polygon)
+     * @param _destinationDomainId - the domain id of the destination chain. It is a unique ID assigned by hyperlane protocol
+     * @param _recipientContractAddress - the address of the recipient contract (e.g. MarketplaceV4)
      */
-    function setDestinationContract(uint32 _destinationDomainId, address _recipientAddress) external onlyOwner {
+    function addRecipient(uint32 _destinationDomainId, address _recipientContractAddress) external onlyOwner {
         destinationDomainId = _destinationDomainId;
-        recipientAddress = _recipientAddress;
+        recipientAddress = _recipientContractAddress;
     }
 
     function buy(bytes32 projectId, uint256 subscriptionSeconds) public {
@@ -98,8 +98,6 @@ contract RemoteMarketplace is Ownable {
         purchases[purchaseId] = PurchaseRequest(projectId, msg.sender, subscriber, subscriptionSeconds);
         _queryProject(projectId, subscriptionSeconds, purchaseId);
     }
-
-    uint256 public queryPriceResult; // TODO: remove
 
     function handleQueryProjectResult(
         address beneficiary,
@@ -117,11 +115,10 @@ contract RemoteMarketplace is Ownable {
         _subscribeToProject(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee);
         // _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
 
-        queryPriceResult = price; // TODO: remove
         emit QueryProjectReturned(beneficiary, pricingTokenAddress, price, fee, purchaseId);
     }
 
-    function _queryProject(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) public { // TODO: make private
+    function _queryProject(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
         queryRouter.query(
             destinationDomainId,
             Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
