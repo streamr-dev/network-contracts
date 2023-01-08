@@ -178,7 +178,7 @@ describe("Uniswap2Adapter", () => {
         // 10 dataToken ~= 1 fromToken
         const dataAmount = parseEther("10000") // product token amount
         const fromAmount = parseEther("1000")
-        const deadline = 1704067199 // 12/31/2023
+        const deadline = 2525000000 // epoch time for year 2050
 
         // Approve uniswap to spend DATA and ERC20 tokens
         await dataToken.approve(uniswapRouter.address, parseEther("100000"))
