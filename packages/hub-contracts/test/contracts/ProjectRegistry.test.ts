@@ -151,6 +151,7 @@ describe('ProjectRegistry', (): void => {
     }
 
     async function createProject({
+        projectId = generateBytesId(),
         chains = domainIds,
         payment = paymentDetailsDefault,
         minimumSubscriptionSeconds = 1,
@@ -158,7 +159,6 @@ describe('ProjectRegistry', (): void => {
         metadata = "",
         creator = admin
     } = {}): Promise<string> {
-        const projectId = generateBytesId()
         await registry.connect(creator)
             .createProject(projectId, chains, payment, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
@@ -299,6 +299,21 @@ describe('ProjectRegistry', (): void => {
             await expect(registry
                 .updateProject(projectIdbytesNonExistent, domainIds, paymentDetailsDefault, 2, metadata))
                 .to.be.revertedWith('error_projectDoesNotExist')
+        })
+
+        it("addPaymentDetails - positivetest", async () => {
+            const projectId = await createProject({chains: [], payment: []})
+            const domainId = 8997
+            const beneficiaryAddress = beneficiary.address
+            const pricingTokenAddress = token.address
+            const pricePerSecond = BigNumber.from(2)
+
+            await registry.addPaymentDetails(projectId, domainId, beneficiaryAddress, pricingTokenAddress, pricePerSecond)
+            const [beneficiaryAddressActual, pricingTokenAddressActual, pricePerSecondActual] = await registry.getPaymentDetails(projectId, domainId)
+
+            expect(beneficiaryAddress).to.equal(beneficiaryAddressActual)
+            expect(pricingTokenAddress).to.equal(pricingTokenAddressActual)
+            expect(pricePerSecond).to.equal(pricePerSecondActual)
         })
     })
 

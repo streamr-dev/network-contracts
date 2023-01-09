@@ -133,13 +133,33 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function getPaymentDetails(
         bytes32 projectId,
         uint32 domainId
-    )
-        external
-        view
-        returns (PaymentDetails memory paymentDetails)
+    ) external view returns (
+        address beneficiary,
+        address pricingTokenAddress,
+        uint256 pricePerSecond)
     {
         Project storage p = projects[projectId];
-        return p.chainIdToPaymentDetails[domainId];
+        PaymentDetails storage paymentDetails = p.chainIdToPaymentDetails[domainId];
+        return (paymentDetails.beneficiary, paymentDetails.pricingTokenAddress, paymentDetails.pricePerSecond);
+    }
+
+    /**
+     * Add payment details for a project for a specific chain
+     */
+    function addPaymentDetails(
+        bytes32 projectId,
+        uint32 domainId,
+        address beneficiary,
+        address pricingToken,
+        uint256 pricePerSecond
+    ) projectExists(projectId) hasEditPermission(projectId) external {
+        PaymentDetails memory paymentDetails = PaymentDetails({
+            beneficiary: beneficiary,
+            pricingTokenAddress: pricingToken,
+            pricePerSecond: pricePerSecond
+        });
+        Project storage p = projects[projectId];
+        p.chainIdToPaymentDetails[domainId] = paymentDetails;
     }
 
     /**
