@@ -34,6 +34,11 @@ describe("DefaultLeavePolicy", (): void => {
         await (await token.transfer(broker2.address, parseEther("100000"))).wait()
     })
 
+    it("negativetest, MIN_JOIN_TIME is higher than the global max", async function(): Promise<void> {
+        await expect(deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 2678000 }))
+            .to.be.revertedWith("err_penaltyPeriod_too_long")
+    })
+
     it("penalizes only from the broker that leaves early while bounty is running", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 1000 })

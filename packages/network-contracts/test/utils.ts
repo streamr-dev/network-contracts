@@ -3,7 +3,7 @@ const { provider: hardhatProvider } = hardhatEthers
 import { utils, Wallet } from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy } from "../typechain"
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
 import { TestToken } from "../typechain/TestToken"
 
 const { parseEther } = utils
@@ -51,7 +51,8 @@ export type TestContracts = {
  */
 export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
-
+    const streamrConstants = await (await getContractFactory("StreamrConstants", deployer)).deploy() as StreamrConstants
+    await streamrConstants.deployed()
     // bounty and policies
     const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy() as IJoinPolicy
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy() as IJoinPolicy
@@ -65,7 +66,8 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     const bountyFactoryFactory = await getContractFactory("BountyFactory", deployer)
     const bountyFactory = await upgrades.deployProxy(bountyFactoryFactory, [
         bountyTemplate.address,
-        token.address
+        token.address,
+        streamrConstants.address
     ]) as BountyFactory
     await bountyFactory.deployed()
     await (await bountyFactory.connect(deployer).addTrustedPolicies([

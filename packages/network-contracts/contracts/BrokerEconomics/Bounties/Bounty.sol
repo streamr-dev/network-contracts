@@ -15,6 +15,8 @@ import "./policies/ILeavePolicy.sol";
 import "./policies/IKickPolicy.sol";
 import "./policies/IAllocationPolicy.sol";
 import "./ISlashListener.sol";
+import "../StreamrConstants.sol";
+
 
 // import "hardhat/console.sol";
 
@@ -50,6 +52,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     // storage variables available to all modules
     struct GlobalStorage {
+        StreamrConstants streamrConstants;
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
         mapping(address => uint) joinTimeOfBroker;
         uint32 brokerCount;
@@ -117,6 +120,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
 
     function initialize(
+        StreamrConstants streamrConstants,
         address newOwner,
         address tokenAddress,
         uint32 initialMinHorizonSeconds,
@@ -130,6 +134,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token = IERC677(tokenAddress);
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
+        globalData().streamrConstants = StreamrConstants(streamrConstants);
     }
 
     /**

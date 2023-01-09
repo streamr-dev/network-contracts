@@ -13,6 +13,7 @@ import "hardhat/console.sol";
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
+    StreamrConstants public streamrConstants;
     address public bountyContractTemplate;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
@@ -23,11 +24,12 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address _tokenAddress) public initializer {
+    function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = _tokenAddress;
         bountyContractTemplate = templateAddress;
+        streamrConstants = StreamrConstants(constants);
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -122,6 +124,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
+            streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
             initialMinHorizonSeconds,

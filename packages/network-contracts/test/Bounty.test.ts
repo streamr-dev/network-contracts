@@ -2,7 +2,7 @@ import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 import { Contract, ContractFactory, utils, Wallet } from "ethers"
 
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, TestToken } from "../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, StreamrConstants, TestToken } from "../typechain"
 
 const { defaultAbiCoder } = utils
 
@@ -15,6 +15,7 @@ describe("Bounty", (): void => {
     let brokerWallet: Wallet
     let broker2Wallet: Wallet
     // const trustedForwarderAddress: string = wallets[9].address
+    let streamrConstants: StreamrConstants
     let bountyFactoryFactory: ContractFactory
     let bountyFactory: BountyFactory
     let token: TestToken
@@ -33,6 +34,9 @@ describe("Bounty", (): void => {
         adminWallet = wallets[0]
         brokerWallet = wallets[1]
         broker2Wallet = wallets[2]
+
+        streamrConstants = await (await ethers.getContractFactory("StreamrConstants", adminWallet)).deploy() as StreamrConstants
+        await streamrConstants.deployed()
 
         token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
         await token.deployed()
@@ -60,7 +64,7 @@ describe("Bounty", (): void => {
 
         bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-            [ bountyTemplate.address, token.address ])
+            [ bountyTemplate.address, token.address, streamrConstants.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
         await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, testJoinPolicy.address, testAllocationPolicy.address])).wait()
