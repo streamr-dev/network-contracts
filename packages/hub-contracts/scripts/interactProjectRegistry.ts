@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { utils, Wallet, providers } from "ethers"
+import { utils, Wallet, providers, BigNumber } from "ethers"
 import { Chains } from "@streamr/config"
-import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../typechain"
+import { DATAv2, ProjectRegistry, StreamRegistryV3 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -24,19 +24,18 @@ const {
         DATA: DATA_V2_ADDRESS,
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
         ProjectRegistry: PROJECT_REGISTRY_ADDRESS,
-        MarketplaceV4: MARKETPLACE_ADDRESS,
     }
 } = Chains.load()[CHAIN]
 
 let projectRegistry: ProjectRegistry
 let streamRegistry: StreamRegistryV3
-let marketplace: MarketplaceV4
 let dataToken: DATAv2
 let defaultAdminWallet: Wallet
 let deploymentOwner: Wallet
 let adminWallet: Wallet
 let beneficiaryWallet: Wallet
-let buyerWallet: Wallet
+const domainIds: number[] = []
+const paymentDetailsDefault: any[] = [] // PaymentDetails[]
 
 const connectWallets = () => {
     const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL)
@@ -44,17 +43,12 @@ const connectWallets = () => {
     deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, provider)
     adminWallet = new Wallet(PROJECT_ADMIN_KEY, provider)
     beneficiaryWallet = new Wallet(PROJECT_BENEFICIARY_KEY, provider)
-    buyerWallet = new Wallet(PROJECT_BUYER_KEY, provider)
 }
 
 const connectContracts = async () => {
     const dataTokenFactory = await getContractFactory("DATAv2", defaultAdminWallet)
     const dataTokenFactoryTx = await dataTokenFactory.attach(DATA_V2_ADDRESS)
     dataToken = await dataTokenFactoryTx.deployed() as DATAv2
-    log(`DATAv2 balance deployer ${deploymentOwner.address}: ${await dataToken.balanceOf(deploymentOwner.address)}`)
-    log(`DATAv2 balance defaultAdmin ${defaultAdminWallet.address}: ${await dataToken.balanceOf(defaultAdminWallet.address)}`)
-    log(`DATAv2 balance admin ${adminWallet.address}: ${await dataToken.balanceOf(adminWallet.address)}`)
-    log(`DATAv2 balance beneficiary ${beneficiaryWallet.address}: ${await dataToken.balanceOf(beneficiaryWallet.address)}`)
 
     const projectRegistryFactory = await getContractFactory("ProjectRegistry")
     const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
@@ -66,36 +60,21 @@ const connectContracts = async () => {
     streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV3
     log("StreamRegistryV3 deployed at: ", streamRegistry.address)
 
-    const marketplaceV4Factory = await getContractFactory("MarketplaceV4")
-    const marketplaceV4FactoryTx = await marketplaceV4Factory.attach(MARKETPLACE_ADDRESS)
-    marketplace = await marketplaceV4FactoryTx.deployed() as MarketplaceV4
-    log("MarketplaceV4 deployed at: ", marketplace.address)
 
     const latestBlock = await hardhatEthers.provider.getBlock("latest")
     log('latestBlock', latestBlock.number)
 }
 
-const buyProject = async (
-    projectId: string,
-    subscriptionSeconds: number,
-    buyer = buyerWallet
-): Promise<void> => {
-    await (
-        await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
-    ).wait()
-}
 
 const createProject = async ({
-    beneficiary = beneficiaryWallet.address,
-    pricePerSecond = 1,
-    pricingToken = dataToken.address,
+    id = hexlify(zeroPad(toUtf8Bytes('project-' + Date.now()), 32)),
+    paymentDetails = paymentDetailsDefault,
     minimumSubscriptionSeconds = 1,
     isPublicPurchable = true,
 } = {}): Promise<string> => {
-    const id = hexlify(zeroPad(toUtf8Bytes('project-' + Date.now()), 32))
-    const metadata = JSON.stringify({ id, createdAt: new Date().toLocaleString() })
+    const metadata = JSON.stringify({ description: 'paid-project', purchableOn: domainIds })
     await(await projectRegistry.connect(adminWallet)
-        .createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, isPublicPurchable, metadata)).wait()
+        .createProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, isPublicPurchable, metadata)).wait()
     log('Project created (id: %s)', id)
     return id
 }
@@ -108,14 +87,12 @@ const deleteProject = async (id: string): Promise<void> => {
 
 const updateProject = async ({
     id,
-    beneficiary = beneficiaryWallet.address,
-    pricePerSecond = 1,
-    pricingToken = dataToken.address,
+    paymentDetails = paymentDetailsDefault,
     minimumSubscriptionSeconds = 1,
     metadata = 'metadata-updated-at: ' + new Date().toLocaleString(),
 }: any): Promise<void> => {
     await(await projectRegistry.connect(adminWallet)
-        .updateProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadata)).wait()
+        .updateProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, metadata)).wait()
     log('Project updated (id: %s)', id)
 }
 
@@ -129,11 +106,13 @@ const setPermission = async ({
 }: any) => {
     await(await projectRegistry.connect(adminWallet)
         .setPermissionBooleans(projectId, userAddress, canBuy, canDelete, canEdit, canGrant)).wait()
+    log('Permission set (projectId: %s, userAddress: %s)', projectId, userAddress)
 }
 
 const grantSubscription = async (projectId: string, userAddress = Wallet.createRandom().address) => {
     await(await projectRegistry.connect(adminWallet)
         .grantSubscription(projectId, 100, userAddress)).wait()
+    log('Subscription granted (projectId: %s, userAddress: %s)', projectId, userAddress)
 }
 
 const createStream = async (): Promise<string> => {
@@ -143,6 +122,7 @@ const createStream = async (): Promise<string> => {
     await(await streamRegistry.connect(adminWallet)
         .createStream(streamPath, streamMetadata)).wait()
     const streamId = adminWallet.address.toLowerCase() + streamPath
+    log('Stream created (streamId: %s)', streamId)
     return streamId
 }
 
@@ -163,14 +143,24 @@ const removeStream = async (projectId: string, streamId: string): Promise<void> 
     log('Stream removed (projectId: %s, streamId: %s)', projectId, streamId)
 }
 
+const addPaymentDetails = (domainId: number, beneficiary: string, pricingTokenAddress: string, pricePerSecond: number): void => {
+    domainIds.push(domainId)
+    paymentDetailsDefault.push([
+        beneficiary,
+        pricingTokenAddress,
+        pricePerSecond
+    ])
+    log('Payment details added (domainId: %s, beneficiary: %s, pricingTokenAddress: %s, pricePerSecond: %s)', domainId, beneficiary, pricingTokenAddress, pricePerSecond)
+}
+
 /**
  * npx hardhat run --network dev1 scripts/interactProjectRegistry.ts
  */
 async function main() {
     connectWallets()
     await connectContracts()
+    addPaymentDetails(8997, beneficiaryWallet.address, dataToken.address, 2) // dev1
     const projectId = await createProject()
-    await buyProject(projectId, 100)
     await updateProject({ id: projectId, pricePerSecond: 2 })
     await setPermission({ projectId, userAddress: Wallet.createRandom().address })
     const streamId = await createStream()
