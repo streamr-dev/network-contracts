@@ -20,7 +20,8 @@ if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chai
  * npx hardhat flatten contracts/ProjectRegistry/ProjectRegistry.sol > pr.sol
  */
 async function main() {
-    log(`Deploying ProjectRegistry to ${DESTINATION_CHAIN}:`)
+    log(`Deploying ProjectRegistry to: ${DESTINATION_CHAIN}:`)
+    log(`StreamRegistry address: ${STREAM_REGISTRY_ADDRESS}`)
     const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistry")
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [STREAM_REGISTRY_ADDRESS], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()

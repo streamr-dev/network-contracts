@@ -222,7 +222,7 @@ describe('ProjectRegistry', (): void => {
             // free projects are supported on project creation
             expect(await registry.createProject(id, domainIds, paymentDetailsFreeProject, 1, true, metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(admin.address, id, beneficiary.address, 0, token.address, 1, metadata)
+                .withArgs(id, domainIds, 1, metadata)
         })
 
         it("updateProject - positivetest - can update to free projects", async () => {
@@ -308,10 +308,10 @@ describe('ProjectRegistry', (): void => {
             const projectIdbytes = await createProject()
 
             expect(await registry.addStream(projectIdbytes, streamId))
-                .to.emit(registry, 'StreamAdded')
-                .withArgs(projectIdbytes, streamId)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, admin.address, true, true, true, true)
+                .to.emit(registry, 'StreamAdded')
+                .withArgs(projectIdbytes, streamId)
             expect(await registry.getPermission(projectIdbytes, admin.address))
                 .to.deep.equal([true, true, true, true])
         })
