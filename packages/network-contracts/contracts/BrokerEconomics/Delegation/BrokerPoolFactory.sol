@@ -15,6 +15,7 @@ import "hardhat/console.sol";
 contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
     address public brokerPoolTemplate;
+    address public streamrConstants;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -24,9 +25,10 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address _tokenAddress) public initializer {
+    function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        streamrConstants = constants;
         tokenAddress = _tokenAddress;
         brokerPoolTemplate = templateAddress;
     }
@@ -127,6 +129,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         pool.initialize(
             // address(this), // this is needed in order to set the policies
             tokenAddress,
+            streamrConstants,
             _msgSender(),
             poolName,
             // initialMinHorizonSeconds,

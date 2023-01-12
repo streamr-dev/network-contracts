@@ -87,7 +87,8 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
         poolTemplate.address,
-        token.address
+        token.address,
+        streamrConstants.address
     ]) as BrokerPoolFactory
     await poolFactory.deployed()
     await (await poolFactory.connect(deployer).addTrustedPolicies([

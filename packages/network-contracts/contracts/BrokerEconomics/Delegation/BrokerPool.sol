@@ -13,6 +13,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "../Bounties/Bounty.sol";
+import "../StreamrConstants.sol";
 import "./policies/IPoolJoinPolicy.sol";
 import "./policies/IPoolYieldPolicy.sol";
 import "./policies/IPoolExitPolicy.sol";
@@ -38,7 +39,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     uint public minimumInvestmentWei;
     uint public gracePeriodSeconds;
-    uint constant MAX_SLASH_TIME = 30 days;
     IPoolJoinPolicy public joinPolicy;
     IPoolYieldPolicy public yieldPolicy;
     IPoolExitPolicy public exitPolicy;
@@ -47,6 +47,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address broker;  
         IERC677 token;
         uint approxPoolValue; // in Data wei
+        StreamrConstants streamrConstants;
     }
 
     // currently the whole token balance of the pool IS SAME AS the "free funds"
@@ -70,7 +71,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queuePayoutIndex;
 
     // triple bookkeeping
-    // 1. rea actual poolvalue val = local free funds + stake in bounties + allocaiotn in bounties; loops over bounties
+    // 1. real actual poolvalue val = local free funds + stake in bounties + allocaiotn in bounties; loops over bounties
     // 2. val = Sum over local mapping approxPoolValueOfBounty + free funds
     // 3. val = approxPoolValue in globalstorage
     mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
@@ -81,7 +82,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
     modifier onlyBrokerOrForced() {
         require(msg.sender == globalData().broker || payoutQueue[queuePayoutIndex].timestamp
-            + MAX_SLASH_TIME < block.timestamp, "error_only_broker_or_forced");
+            + globalData().streamrConstants.MAX_SLASH_TIME() < block.timestamp, "error_only_broker_or_forced");
         _;
     }
 
@@ -91,6 +92,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function initialize(
         address tokenAddress,
+        address streamrConstants,
         address brokerAddress,
         string calldata poolName,
         uint initialMinimumInvestmentWei,
@@ -102,9 +104,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         globalData().token = IERC677(tokenAddress);
         globalData().broker = brokerAddress;
+        globalData().streamrConstants = StreamrConstants(streamrConstants);
         minimumInvestmentWei = initialMinimumInvestmentWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
-        require(gracePeriodSeconds_ >= MAX_SLASH_TIME, "error_gracePeriodTooShort");
+        require(gracePeriodSeconds_ >= globalData().streamrConstants.MAX_SLASH_TIME(), "error_gracePeriodTooShort");
         gracePeriodSeconds = gracePeriodSeconds_;
     }
 
@@ -543,16 +546,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function updateApproximatePoolvalueOfBounties(Bounty[] memory bountyAddresses) public {
         int sum = 0;
-        uint PERCENT_OF_APPROX_POOL_VALUE = 10; // move to global constants contract
-        uint PUNISH_BROKERS_PT_THOUSANDTH = 5; // move to global constants contract
         for (uint i = 0; i < bountyAddresses.length; i++) {
             int diff = updateApproximatePoolvalueOfBounty(bountyAddresses[i]);
             sum += diff;
         }
         // if uint of sum is more than 10% of approxPoolValue, then log it
-        if (uint(sum) > globalData().approxPoolValue * PERCENT_OF_APPROX_POOL_VALUE / 100) {
+        if (uint(sum) > globalData().approxPoolValue * globalData().streamrConstants.PERCENT_DIFF_APPROX_POOL_VALUE() / 100) {
             _transfer(globalData().broker, _msgSender(), 
-                balanceOf(globalData().broker) * PUNISH_BROKERS_PT_THOUSANDTH / 1000);
+                balanceOf(globalData().broker) * globalData().streamrConstants.PUNISH_BROKERS_PT_THOUSANDTH() / 1000);
         }
     }
 
