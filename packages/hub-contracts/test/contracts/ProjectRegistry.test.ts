@@ -66,14 +66,14 @@ describe('ProjectRegistry', (): void => {
     const permission1 = {canBuy: true, canDelete: true, canEdit: true, canGrant: true}
     const permission2 = {canBuy: true, canDelete: true, canEdit: true, canGrant: true}
 
-    // type PaymentDetails = [
+    // type PaymentDetailsByChain = [
     //     beneficiary: string,
     //     pricingTokenAddress: string,
     //     pricePerSecond: BigNumber
     // ]
     const domainIds: number[] = []
-    const paymentDetailsDefault: any[] = [] // PaymentDetails[]
-    const paymentDetailsFreeProject: any[] = [] // PaymentDetails[]
+    const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
+    const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
 
     let registry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
@@ -212,8 +212,8 @@ describe('ProjectRegistry', (): void => {
         })
 
         it("createProject - negativetest - fails for empty project ID", async () => {
-            const productIdEmptyString = hexlify(zeroPad(toUtf8Bytes(''), 32))
-            await expect(registry.createProject(productIdEmptyString, domainIds, paymentDetailsDefault, 1, true, "meta"))
+            const projectIdEmptyString = hexlify(zeroPad(toUtf8Bytes(''), 32))
+            await expect(registry.createProject(projectIdEmptyString, domainIds, paymentDetailsDefault, 1, true, "meta"))
                 .to.be.revertedWith('error_nullProjectId')
         })
 
@@ -231,7 +231,10 @@ describe('ProjectRegistry', (): void => {
             // free projects are supported on project update
             await expect(registry.updateProject(id, domainIds, paymentDetailsFreeProject, 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-                .withArgs(id, domainIds, 2, metadata)
+                
+            const projectUpdated = await registry.getProject(id, domainIds)
+            const pricePerSecond = projectUpdated[0][0].pricePerSecond
+            expect(pricePerSecond).to.equal(0)
         })
 
         it("createProject - negativetest - fails for existing projects", async () => {
@@ -290,9 +293,13 @@ describe('ProjectRegistry', (): void => {
         it("updateProject - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-update'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+
             await expect(registry.updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-                .withArgs(id, domainIds, 2, metadata)
+            
+            const projectUpdated = await registry.getProject(id, domainIds)
+            const minimumSubscriptionSeconds = projectUpdated[1]
+            expect(minimumSubscriptionSeconds).to.equal(2)
         })
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
@@ -301,15 +308,15 @@ describe('ProjectRegistry', (): void => {
                 .to.be.revertedWith('error_projectDoesNotExist')
         })
 
-        it("addPaymentDetails - positivetest", async () => {
+        it("updatePaymentDetailsByChain - positivetest", async () => {
             const projectId = await createProject({chains: [], payment: []})
             const domainId = 8997
             const beneficiaryAddress = beneficiary.address
             const pricingTokenAddress = token.address
             const pricePerSecond = BigNumber.from(2)
 
-            await registry.addPaymentDetails(projectId, domainId, beneficiaryAddress, pricingTokenAddress, pricePerSecond)
-            const [beneficiaryAddressActual, pricingTokenAddressActual, pricePerSecondActual] = await registry.getPaymentDetails(projectId, domainId)
+            await registry.updatePaymentDetailsByChain(projectId, domainId, beneficiaryAddress, pricingTokenAddress, pricePerSecond)
+            const [beneficiaryAddressActual, pricingTokenAddressActual, pricePerSecondActual] = await registry.getPaymentDetailsByChain(projectId, domainId)
 
             expect(beneficiaryAddress).to.equal(beneficiaryAddressActual)
             expect(pricingTokenAddress).to.equal(pricingTokenAddressActual)
@@ -959,7 +966,7 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.connect(trusted)
                 .trustedCreateProject(id, domainIds, paymentDetailsDefault, 1, user1.address, true, metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(id, domainIds, 1, metadata)
+                .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(id, user1.address, true, true, true, true)
                 .to.emit(registry, 'PermissionUpdated')
@@ -969,7 +976,10 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.connect(user1)
                 .updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-                .withArgs(id, domainIds, 2, metadata)
+
+            const projectUpdated = await registry.getProject(id, domainIds)
+            const minimumSubscriptionSeconds = projectUpdated[1]
+            expect(minimumSubscriptionSeconds).to.equal(2)
 
             // the project is public and can be purchased by others (isPublicPurchase = true)
             expect(await registry.canBuyProject(id, user2.address))
@@ -982,7 +992,7 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.connect(trusted)
                 .trustedCreateProject(id, domainIds, paymentDetailsDefault, 1, user1.address, false, metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(id, paymentDetailsDefault, 1, metadata)
+                .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(id, user1.address, true, true, true, true)
 
@@ -990,7 +1000,10 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.connect(user1)
                 .updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-                .withArgs(id, domainIds, 2, metadata)
+
+            const projectUpdated = await registry.getProject(id, domainIds)
+            const minimumSubscriptionSeconds = projectUpdated[1]
+            expect(minimumSubscriptionSeconds).to.equal(2)
 
             // the project is not public and can't be purchased by others (isPublicPurchase = false)
             expect(await registry.canBuyProject(id, user2.address))
