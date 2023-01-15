@@ -104,7 +104,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         external
         view
         returns (
-            PaymentDetails[] memory paymentDetails,
+            PaymentDetailsByChain[] memory paymentDetails,
             uint256 minimumSubscriptionSeconds,
             string memory metadata,
             uint32 version,
@@ -113,9 +113,9 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     {
         Project storage p = projects[id];
 
-        paymentDetails = new PaymentDetails[](domainIds.length);
+        paymentDetails = new PaymentDetailsByChain[](domainIds.length);
         for (uint256 i = 0; i < domainIds.length; i++) {
-            paymentDetails[i] = p.chainIdToPaymentDetails[domainIds[i]];
+            paymentDetails[i] = p.paymentDetails[domainIds[i]];
         }
 
         return (
@@ -130,7 +130,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /**
      * Returns the payment details for a project on a specific chain
      */
-    function getPaymentDetails(
+    function getPaymentDetailsByChain(
         bytes32 projectId,
         uint32 domainId
     ) external view returns (
@@ -139,48 +139,49 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         uint256 pricePerSecond)
     {
         Project storage p = projects[projectId];
-        PaymentDetails storage paymentDetails = p.chainIdToPaymentDetails[domainId];
-        return (paymentDetails.beneficiary, paymentDetails.pricingTokenAddress, paymentDetails.pricePerSecond);
+        PaymentDetailsByChain storage paymentDetailsByChain = p.paymentDetails[domainId];
+        return (paymentDetailsByChain.beneficiary, paymentDetailsByChain.pricingTokenAddress, paymentDetailsByChain.pricePerSecond);
     }
 
     /**
      * Add payment details for a project for a specific chain
      */
-    function addPaymentDetails(
+    function updatePaymentDetailsByChain(
         bytes32 projectId,
         uint32 domainId,
         address beneficiary,
         address pricingToken,
         uint256 pricePerSecond
     ) projectExists(projectId) hasEditPermission(projectId) external {
-        PaymentDetails memory paymentDetails = PaymentDetails({
+        PaymentDetailsByChain memory paymentDetailsByChain = PaymentDetailsByChain({
             beneficiary: beneficiary,
             pricingTokenAddress: pricingToken,
             pricePerSecond: pricePerSecond
         });
         Project storage p = projects[projectId];
-        p.chainIdToPaymentDetails[domainId] = paymentDetails;
+        p.paymentDetails[domainId] = paymentDetailsByChain;
+        emit PaymentDetailsByChainUpdated(projectId, domainId, beneficiary, pricingToken, pricePerSecond);
     }
 
     /**
     * Creates a new project in the registry. All permissions are enabled for msg.sender
-    * @param paymentDetails contains the beneficiary & pricingToken & pricePerSecond for supported chains
+    * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated
     * @dev streams are initialized to an empty string[]
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
-        bytes32 id,
+        bytes32 projectId,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public {
-        _createProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, metadataJsonString);
-        _setPermissionBooleans(id, _msgSender(), true, true, true, true);
+        _createProject(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        _setPermissionBooleans(projectId, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
-            _setPermissionBooleans(id, address(0), true, true, true, true);
+            _setPermissionBooleans(projectId, address(0), true, true, true, true);
         }
     }
 
@@ -198,7 +199,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function updateProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) public projectExists(projectId) hasEditPermission(projectId) {
@@ -206,40 +207,40 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
+        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
-            PaymentDetails memory payment = paymentDetails[i];
+            PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
             require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
-            p.chainIdToPaymentDetails[domainIds[i]] = payment;
+            p.paymentDetails[domainIds[i]] = payment;
+            emit PaymentDetailsByChainUpdated(projectId, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
         }
-
-        emit ProjectUpdated(projectId, domainIds, minimumSubscriptionSeconds, metadataJsonString);
     }
 
     function _createProject(
         bytes32 id,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint256 minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) internal {
         require(id != 0x0, "error_nullProjectId");
         require(!exists(id), "error_alreadyExists");
-        require(domainIds.length == paymentDetails.length, "error_invalidPaymentDetails");
+        require(domainIds.length == paymentDetailsByChain.length, "error_invalidPaymentDetailsByChain");
 
         Project storage p = projects[id];
         p.id = id;
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
         p.version = projects[id].version + 1;
+        emit ProjectCreated(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
-            PaymentDetails memory payment = paymentDetails[i];
+            PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
             require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
-            p.chainIdToPaymentDetails[domainIds[i]] = payment;
+            p.paymentDetails[domainIds[i]] = payment;
+            emit PaymentDetailsByChainUpdated(id, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
         }
-
-        emit ProjectCreated(id, domainIds, minimumSubscriptionSeconds, metadataJsonString);
     }
 
     ///////////////// Subscription management ///////////////
@@ -464,19 +465,19 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      */
     /**
     * Creates a new project in the registry. Permissions are enabled for the given user.
-    * @param paymentDetails contains the beneficiary & pricingToken & pricePerSecond for supported chains
+    * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @param user The address that will have the permissions
     */
     function trustedCreateProject(
         bytes32 id,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public isTrusted(){
-        _createProject(id, domainIds, paymentDetails, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, user, true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);

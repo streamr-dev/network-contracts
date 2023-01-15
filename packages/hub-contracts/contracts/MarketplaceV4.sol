@@ -19,7 +19,7 @@ import "./IPurchaseListener.sol";
 
 interface IProjectRegistry {
     enum PermissionType {  Buy, Delete, Edit, Grant }
-    function getPaymentDetails(bytes32 projectId, uint32 domainId) external view returns (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
+    function getPaymentDetailsByChain(bytes32 projectId, uint32 domainId) external view returns (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
     function grantSubscription(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) external;
     function canBuyProject(bytes32 projectId, address buyer) external view returns(bool isPurchable);
     function getSubscription(bytes32 projectId, address subscriber) external view returns (bool isValid, uint256 endTimestamp);
@@ -90,7 +90,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      * @dev price & fee is in wei
      */
     function _handleProjectPurchase(bytes32 projectId, uint256 addSeconds, address subscriber) internal {
-        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetails(projectId, destinationDomainId);
+        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, destinationDomainId);
         require(pricePerSecond > 0, "error_freeProjectsNotSupportedOnMarketplace");
         uint256 price = addSeconds * pricePerSecond;
         uint256 fee = (txFee * price) / 1 ether;
@@ -175,7 +175,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 projectId;
         assembly { projectId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 
-        ( , address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetails(projectId, destinationDomainId);
+        ( , address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, destinationDomainId);
         require(_msgSender() == pricingTokenAddress, "error_wrongPricingToken");
 
         uint256 subscriptionSeconds = amount / pricePerSecond / 1 ether;
@@ -198,7 +198,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         uint32 originDomainId,
         uint256 purchaseId
     ) external view returns(address, address, uint256, uint256, uint256) {
-        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetails(projectId, originDomainId);
+        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, originDomainId);
         uint256 price = subscriptionSeconds * pricePerSecond;
         uint256 fee = (txFee * price) / 1 ether;
         return (beneficiary, pricingTokenAddress, price, fee, purchaseId);

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.9;
 
 interface IProjectRegistry {
-    struct PaymentDetails {
+    struct PaymentDetailsByChain {
         address beneficiary; // account where revenue is directed to
         address pricingTokenAddress; // the token in which the project is paid to project beneficiary
         uint256 pricePerSecond;
@@ -12,7 +12,7 @@ interface IProjectRegistry {
     struct Project {
         bytes32 id;
         uint minimumSubscriptionSeconds;
-        mapping(uint32 => PaymentDetails) chainIdToPaymentDetails;
+        mapping(uint32 => PaymentDetailsByChain) paymentDetails;
         mapping(address => TimeBasedSubscription) subscriptions;
         string metadata;
         uint32 version; // incremented when project is (re-)created, so that users from old projects don't re-appear in the new project (if they have permissions)
@@ -39,9 +39,10 @@ interface IProjectRegistry {
     }
 
     // project events
-    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, uint256 minimumSubscriptionSeconds, string metadata);
-    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
     event ProjectDeleted(bytes32 indexed id);
+    event PaymentDetailsByChainUpdated(bytes32 indexed id, uint32 domainId, address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
 
     // subscription events
     event Subscribed(bytes32 indexed projectId, address indexed subscriber, uint endTimestamp);
@@ -65,7 +66,7 @@ interface IProjectRegistry {
         bytes32 id,
         uint32[] memory domainIds
     ) external view returns (
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint256 minimumSubscriptionSeconds,
         string calldata metadata,
         uint32 version,
@@ -76,7 +77,7 @@ interface IProjectRegistry {
     function createProject(
         bytes32 id,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
@@ -85,7 +86,7 @@ interface IProjectRegistry {
     function updateProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) external;
@@ -134,7 +135,7 @@ interface IProjectRegistry {
     function trustedCreateProject(
         bytes32 id,
         uint32[] calldata domainIds,
-        PaymentDetails[] calldata paymentDetails,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint256 minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,

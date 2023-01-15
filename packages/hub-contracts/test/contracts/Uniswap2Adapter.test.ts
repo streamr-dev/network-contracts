@@ -80,7 +80,7 @@ describe("Uniswap2Adapter", () => {
     const productIdbytes = hexlify(zeroPad(toUtf8Bytes("test-adapter"), 32))
     const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
     const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
-    const paymentDetailsDefault: any[] = [] // PaymentDetails[]
+    const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
     before(async () => {
         await deployErc20ContractsAndMintTokens()

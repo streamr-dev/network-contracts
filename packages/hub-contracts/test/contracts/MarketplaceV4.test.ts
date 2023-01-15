@@ -74,8 +74,8 @@ describe("Marketplace", () => {
 
     const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
     const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
-    const paymentDetailsDefault: any[] = [] // PaymentDetails[]
-    const paymentDetailsFreeProject: any[] = [] // PaymentDetails[]
+    const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
+    const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
 
     before(async () => {
         await deployERC20()
