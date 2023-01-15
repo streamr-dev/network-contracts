@@ -1,12 +1,11 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { Permission, Project, ProjectPurchase, TimeBasedSubscription } from "../../generated/schema"
+import { PaymentDetailsByChain, Permission, Project, ProjectPurchase, TimeBasedSubscription } from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
     const project = new Project(projectId)
     project.id = projectId
-    project.beneficiary = Address.fromString("0xd8da6bf26964af9d7eed9e03e53415d37aa96045") // vitalik.eth
-    project.pricePerSecond = BigInt.fromI32(1)
-    project.pricingTokenAddress = Address.fromString("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48") // USDC
+    project.domainIds = [BigInt.fromI32(1234)]
+    project.paymentDetails = []
     project.minimumSubscriptionSeconds = BigInt.fromI32(1)
     project.metadata = "metadata-" + projectId
     project.version = BigInt.fromI32(1)
@@ -50,6 +49,23 @@ export function createSubscriptionEntity(
     subscription.endTimestamp = BigInt.fromI32(endTimestamp as i32)
     subscription.save()
     return subscription
+}
+
+export function createPaymentDetailsByChainEntity(
+    projectId: string,
+    paymentId: string,
+    beneficiary: string,
+    pricingTokenAddress: string,
+    pricePerSecond: number
+): PaymentDetailsByChain {
+    const payment = new PaymentDetailsByChain(paymentId)
+    payment.id = paymentId
+    payment.project = projectId
+    payment.beneficiary = Bytes.fromHexString(beneficiary)
+    payment.pricingTokenAddress = Bytes.fromHexString(pricingTokenAddress)
+    payment.pricePerSecond = BigInt.fromI32(pricePerSecond as i32)
+    payment.save()
+    return payment
 }
 
 export function createProjectPurchaseEntity(

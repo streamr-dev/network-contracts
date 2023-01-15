@@ -1,7 +1,8 @@
 import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
-import { Project } from "../generated/schema"
+import { PaymentDetailsByChain, Project } from "../generated/schema"
 import {
+    handlePaymentDetailsByChainUpdate,
     handlePermissionUpdate,
     handleProjectCreation,
     handleProjectDeletion,
@@ -11,6 +12,7 @@ import {
     handleSubscriptionUpdate,
 } from "../src/projectRegistry"
 import {
+    createPaymentDetailsByChainUpdatedEvent,
     createPermissionUpdatedEvent,
     createProjectCreatedEvent,
     createProjectDeletedEvent,
@@ -20,6 +22,7 @@ import {
     createSubscribedEvent,
 } from "./helpers/mocked-event"
 import {
+    createPaymentDetailsByChainEntity,
     createPermissionEntity,
     createProjectEntity,
     createSubscriptionEntity
@@ -30,6 +33,7 @@ export {
     handleProjectCreation,
     handleProjectUpdate,
     handleProjectDeletion,
+    handlePaymentDetailsByChainUpdate,
     handleStreamAdition,
     handleStreamRemoval,
     handlePermissionUpdate,
@@ -39,6 +43,7 @@ export {
 const PROJECT_ENTITY_TYPE = "Project"
 const PERMISSION_ENTITY_TYPE = "Permission"
 const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
+const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
 
 describe("Entity store", () => {
     const projectId = "projectId0"
@@ -82,18 +87,15 @@ describe("Mocked Project Events: create/update/delete", () => {
     })
 
     const projectId = "0x1234"
-    const beneficiary = "0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4"
-    const pricePerSecond = 2
-    const pricingTokenAddress = "0x73be21733cc5d08e1a14ea9a399fb27db3bef8ff"
+    const domainId = 1111
     const minimumSubscriptionSeconds = 1
     const metadata = "metadata-0x1234"
     
     test("handleProjectCreation", () => {
         const projectCreatedEvent = createProjectCreatedEvent(
             Bytes.fromHexString(projectId),
-            beneficiary,
-            pricePerSecond,
-            pricingTokenAddress,
+            [domainId],
+            [], // TODO: add payment details
             minimumSubscriptionSeconds,
             metadata,
         )
@@ -102,33 +104,28 @@ describe("Mocked Project Events: create/update/delete", () => {
 
         assert.entityCount(PROJECT_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "id", projectId)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "beneficiary", beneficiary)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "pricePerSecond", `${pricePerSecond}`)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "pricingTokenAddress", pricingTokenAddress)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainId}]`)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "paymentDetails", `[]`) // TODO: add payment details
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSeconds}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadata)
     })
 
     test("handleProjectUpdate", () => {
-        const beneficiaryNew = "0x7986b71c27b6eaab3120a984f26511b2dcfe3222"
-        const pricePerSecondNew = 10
-        const pricingTokenAddressNew = "0x73be21733cc5d08e1a14ea9a399fb27db3bef222"
+        const domainIdUpdated = 2222
         const minimumSubscriptionSecondsNew = 5
         const metadataNew = "metadata-0x1234-updated"
         const projectUpdatedEvent = createProjectUpdatedEvent(
             Bytes.fromHexString(projectId),
-            beneficiaryNew,
-            pricePerSecondNew,
-            pricingTokenAddressNew,
+            [domainIdUpdated],
+            [], // TODO: add payment details
             minimumSubscriptionSecondsNew,
             metadataNew,
         )
     
         handleProjectUpdate(projectUpdatedEvent)
 
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "beneficiary", beneficiaryNew)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "pricePerSecond", `${pricePerSecondNew}`)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "pricingTokenAddress", pricingTokenAddressNew)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainIdUpdated}]`)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "paymentDetails", `[]`) // TODO: add payment details
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSecondsNew}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadataNew)
     })
@@ -272,5 +269,52 @@ describe("Mocked Subscription Events", () => {
         handleSubscriptionUpdate(subscribedEvent)
 
         assert.fieldEquals(SUBSCRIPTION_ENTITY_TYPE, subscriptionId, "endTimestamp", `${newEndTimestamp}`)
+    })
+})
+
+describe("Mocked PaymentDetailsByChain Events", () => {
+    const projectId = "0x123456"
+    const domainId = 1234
+    const beneficiary = "0xdc353aa3d81fc3d67eb49f443df258029b01d8ab"
+    const pricingTokenAddress = "0xdc353aa3d81fc3d67eb49f443df258029b01d8ab"
+    const paymentId = "0x123456-1234" // projectId + '-' + domainId
+    const pricePerSecond = 3
+
+    beforeAll(() => {
+        clearStore()
+    })
+
+    test("Project Entity created", () => {
+        createProjectEntity(projectId)
+
+        assert.entityCount(PROJECT_ENTITY_TYPE, 1)
+    })
+
+    test("PaymentDetailsByChain Entity created", () => {
+        createPaymentDetailsByChainEntity(projectId, paymentId, beneficiary, pricingTokenAddress, pricePerSecond)
+
+        assert.entityCount(PAYMENT_DETAILS_ENTITY_TYPE, 1)
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "id", paymentId)
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "project", projectId)
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "beneficiary", beneficiary)
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "pricingTokenAddress", pricingTokenAddress)
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "pricePerSecond", `${pricePerSecond}`)
+        // payment details by chain linked to Project
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "paymentDetails", `[${paymentId}]`)
+    })
+
+    test("handlePaymentDetailsByChainUpdate", () => {
+        const pricePerSecondNew = 4
+        const paymentEvent = createPaymentDetailsByChainUpdatedEvent(
+            Bytes.fromHexString(projectId),
+            domainId,
+            beneficiary,
+            pricingTokenAddress,
+            pricePerSecondNew
+        )
+
+        handlePaymentDetailsByChainUpdate(paymentEvent)
+
+        assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "pricePerSecond", `${pricePerSecondNew}`)
     })
 })
