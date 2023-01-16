@@ -1,22 +1,18 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { utils, Wallet, providers, BigNumber } from "ethers"
+import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
-import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../typechain"
+import { MarketplaceV4 } from "../typechain"
 import { chainToDomainId } from "../utils"
 
 const { getContractFactory } = hardhatEthers
-const { hexlify, toUtf8Bytes, zeroPad } = utils
 const { log } = console
 
 const {
-    ORIGIN_CHAIN = 'optGoerli', // where RemoteMarketplace is deployed
-    DESTINATION_CHAIN = 'alfajores', // where ProjectRegistry & MarketplaceV4 is deployed
+    ORIGIN_CHAIN = 'dev0', // where RemoteMarketplace is deployed
+    DESTINATION_CHAIN = 'dev1', // where ProjectRegistry & MarketplaceV4 is deployed
 } = process.env
 
 const {
-    rpcEndpoints: [{
-        url: ETHEREUM_RPC_URL
-    }],
     contracts: {
         MarketplaceV4: MARKETPLACE_V4_ADDRESS,
     }
@@ -45,14 +41,21 @@ const connectContracts = async () => {
     log('latestBlock', latestBlock.number)
 }
 
-const buy = async (
+const buyProject = async (
     projectId: string,
     subscriptionSeconds: number,
     buyer = buyerWallet
 ): Promise<void> => {
-    await (
-        await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
-    ).wait()
+    let tx
+    if(buyer) {
+        tx = await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
+        log('   - buyer: ', buyer.address)
+    } else {
+        tx = await marketplace.buy(projectId, subscriptionSeconds) // uses the cli exported KEY
+    }
+    log('   - subscriptionSeconds: ', subscriptionSeconds)
+    log('   - projectId: ', projectId)
+    await tx.wait()
 }
 
 const addCrossChainMarketplace = async (
@@ -75,14 +78,23 @@ const addCrossChainInbox = async (
     log(`Added cross-chain inbox origin=${originDomainId} destination=${destinationDomainId}: ${_inboxAddress}`)
 }
 
-
 /**
- * npx hardhat run --network alfajores scripts/interactMarketplaceV4.ts
+ * npx hardhat run --network dev1 scripts/interactMarketplaceV4.ts
  */
 async function main() {
     await connectContracts()
-    await addCrossChainMarketplace()
-    // await addCrossChainInbox(inboxOptGoerliToAlfajores)
+    const isLivenet = true
+    
+    if (isLivenet) {
+        await addCrossChainMarketplace()
+        await addCrossChainInbox(inboxOptGoerliToAlfajores)
+        const freeProject = "0x0000000000000000000000000000000000000000000000000000000000000001"
+        await buyProject(freeProject, 100)
+        const paidProject = "0x0000000000000000000000000000000000000000000000000000000000000002"
+        await buyProject(paidProject, 100)
+    } else {
+        // not deplyed to local env
+    }
 }
 
 main().catch((error) => {

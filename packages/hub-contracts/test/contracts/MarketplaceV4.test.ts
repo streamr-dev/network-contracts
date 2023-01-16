@@ -585,7 +585,7 @@ describe("Marketplace", () => {
         })
 
         it('getPurchaseInfo - positivetest', async (): Promise<void> => {
-            const beneficiaryAddress: string = beneficiary.address;
+            const beneficiaryAddress: string = beneficiary.address
             const pricingTokenAddress = token.address
             const pricePerSecond = BigNumber.from(2)
             const payment: any[] = [

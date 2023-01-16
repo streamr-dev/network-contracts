@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect, use } from "chai"
-import { BigNumber, utils, Wallet } from "ethers"
+import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
@@ -138,7 +138,12 @@ describe("Uniswap2Adapter", () => {
 
     async function deployUniswap2Adapter(): Promise<void> {
         const uniswap2AdapterFactory = await getContractFactory("Uniswap2AdapterV4")
-        uniswap2Adapter = await uniswap2AdapterFactory.deploy(market.address, projectRegistry.address, uniswapRouter.address, deployedOnDomainId) as Uniswap2Adapter
+        uniswap2Adapter = await uniswap2AdapterFactory.deploy(
+            market.address,
+            projectRegistry.address,
+            uniswapRouter.address,
+            deployedOnDomainId
+        ) as Uniswap2Adapter
         log('Uniswap2Adapter was deployed at address: ', uniswap2Adapter.address)
     }
 

@@ -14,16 +14,13 @@ const {
 } = process.env
 
 const {
-    rpcEndpoints: [{
-        url: ETHEREUM_RPC_URL
-    }],
     contracts: {
         RemoteMarketplace: REMOTE_MARKETPLACE_ADDRESS,
     }
 } = Chains.load()[ORIGIN_CHAIN]
 
-let blockExplorer: string = chainToBlockExplorer(ORIGIN_CHAIN)
-let originRpcUrl: string = chainToEthereumRpcUrl(ORIGIN_CHAIN)
+const blockExplorer: string = chainToBlockExplorer(ORIGIN_CHAIN)
+const originRpcUrl: string = chainToEthereumRpcUrl(ORIGIN_CHAIN)
 
 let remoteMarketplace: RemoteMarketplace
 let buyer: Wallet
@@ -68,20 +65,20 @@ const buy = async (
     await tx.wait()
 }
 
-const buyFor = async (
-    projectId: string,
-    subscriptionSeconds: number,
-    buyer: Wallet,
-    subscriber: string,
-): Promise<void> => {
-    const tx = await remoteMarketplace.connect(buyer).buyFor(projectId, subscriptionSeconds, subscriber)
-    log(`BuyFor project tx: ${blockExplorer}/tx/${tx.hash}`)
-    await tx.wait()
-}
+// const buyFor = async (
+//     projectId: string,
+//     subscriptionSeconds: number,
+//     buyer: Wallet,
+//     subscriber: string,
+// ): Promise<void> => {
+//     const tx = await remoteMarketplace.connect(buyer).buyFor(projectId, subscriptionSeconds, subscriber)
+//     log(`BuyFor project tx: ${blockExplorer}/tx/${tx.hash}`)
+//     await tx.wait()
+// }
 
 /**
  * npx hardhat run --network optGoerli scripts/interactRemoteMarketplace.ts
- * npx hardhat flatten contracts/RemoteMarketplace.sol > rm.sol 
+ * npx hardhat flatten contracts/RemoteMarketplace.sol > rm.sol
  */
 async function main() {
     connectWallets()

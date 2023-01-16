@@ -316,7 +316,8 @@ describe('ProjectRegistry', (): void => {
             const pricePerSecond = BigNumber.from(2)
 
             await registry.updatePaymentDetailsByChain(projectId, domainId, beneficiaryAddress, pricingTokenAddress, pricePerSecond)
-            const [beneficiaryAddressActual, pricingTokenAddressActual, pricePerSecondActual] = await registry.getPaymentDetailsByChain(projectId, domainId)
+            const [beneficiaryAddressActual, pricingTokenAddressActual, pricePerSecondActual] =
+                await registry.getPaymentDetailsByChain(projectId, domainId)
 
             expect(beneficiaryAddress).to.equal(beneficiaryAddressActual)
             expect(pricingTokenAddress).to.equal(pricingTokenAddressActual)

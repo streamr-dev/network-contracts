@@ -152,7 +152,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address beneficiary,
         address pricingToken,
         uint256 pricePerSecond
-    ) projectExists(projectId) hasEditPermission(projectId) external {
+    ) external projectExists(projectId) hasEditPermission(projectId) {
         PaymentDetailsByChain memory paymentDetailsByChain = PaymentDetailsByChain({
             beneficiary: beneficiary,
             pricingTokenAddress: pricingToken,
