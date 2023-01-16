@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@chainlink/contracts": "0.3.1",
+    "@chainlink/contracts": "0.6.0",
     "@ensdomains/ens": "0.6.2",
     "@ensdomains/resolver": "0.2.4",
     "@ethersproject/bignumber": "5.5.0",
