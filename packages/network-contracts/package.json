@@ -15,7 +15,7 @@
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "lint": "eslint scripts/**/* test/**/* && solhint contracts/**/*",
+    "lint": "eslint scripts/**/* test/* test/**/* && eslint scripts/**/*.* && solhint contracts/*/*.sol",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",
     "interact": "hardhat run --network dev1 scripts/deployToLivenet/2_interactWithContracts.ts",
     "upgradeStreamRegistry": "hardhat run --network dev1 scripts/deployToLivenet/upgradeStreamRegistry.ts",
