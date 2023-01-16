@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./IProjectRegistry.sol";
 
@@ -211,7 +210,6 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
         for(uint256 i = 0; i < domainIds.length; i++) {
             PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
-            require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
             p.paymentDetails[domainIds[i]] = payment;
             emit PaymentDetailsByChainUpdated(projectId, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
         }
@@ -237,7 +235,6 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
         for(uint256 i = 0; i < domainIds.length; i++) {
             PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
-            require(bytes(ERC20(payment.pricingTokenAddress).symbol()).length > 0, "error_invalidPricingTokenSymbol");
             p.paymentDetails[domainIds[i]] = payment;
             emit PaymentDetailsByChainUpdated(id, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
         }
