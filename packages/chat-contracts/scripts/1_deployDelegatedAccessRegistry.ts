@@ -13,7 +13,6 @@ const chainURL = 'https://polygon-rpc.com'
 const privKeyStreamRegistry = process.env.PRIV_KEY || ''
 */
 
-
 async function main() {
     const wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
 
