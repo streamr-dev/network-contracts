@@ -14,13 +14,14 @@
   },
   "author": "Streamr Network AG",
   "license": "AGPL-3.0",
-"dependencies": {
+  "dependencies": {
     "@chainlink/contracts": "^0.4.2",
+    "@hyperlane-xyz/core": "0.5.5",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@openzeppelin/contracts": "~4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",
-    "@streamr/config": "^2.5.5",
     "@streamr-contracts/network-contracts": "^2.4.0",
+    "@streamr/config": "^2.5.5",
     "@types/chai": "^4.3.0",
     "@types/debug": "^4.1.7",
     "@types/node": "^17.0.22",
