@@ -8,7 +8,7 @@
   "workspaces": [
     "./packages/config",
     "./packages/network-contracts",
-
+    "./packages/hub-contracts",
     "./packages/network-subgraphs",
     "./packages/hub-subgraph",
     "./packages/docker-dev-chain-init",
