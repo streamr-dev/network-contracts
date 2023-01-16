@@ -54,3 +54,8 @@ Purchaces made on the remote marketplace require 2 actions and 2 transactions fo
 - [dispatch](https://explorer.hyperlane.xyz/message/231085) message from origin to destination chain:
     - [alphajores tx](https://alfajores.celoscan.io/tx/0xe60078d45bf3dc8a882e76ae1b051f28083e7505b2e90d75a6974519d90a18de)
     - [opt-goerli tx](https://goerli-optimism.etherscan.io/tx/0x46cbd03b586cb060fbd729c21039a9805fd9c6ea8d0ef22b1c6e8f11af8d684a)
+
+Contracts updated:
+- ProjectRegistry deployed on alfajores at: `0x66041bd9062887251ad66e16D9F79140440B6E9f`
+- MarketplaceV4 deployed on alfajores at: `0x3B687FcCA96b9931E1fb91CF644c634e0bad1D8c`
+- RemoteMarketplace deployed on optimistic-goerli at: `0x3179C38822015797bab2a4C8C79688DC15d3A587`

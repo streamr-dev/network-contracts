@@ -3,12 +3,16 @@
  */
 export function chainToDomainId(name: string) {
     switch (name) {
+        case 'mumbai':
+            return 80001
         case 'alfajores':
             return 1000
         case 'optGoerli':
             return 420
+        case 'dev1':
+            return 8997
         default:
-            throw new Error('Unknown domain id for the given chain name.')
+            throw new Error(`Unknown domain id for the given chain name (${name}).`)
     }
 }
 
@@ -25,6 +29,8 @@ export function chainToOutboxAddress(name: string) {
             return '0xDDcFEcF17586D08A5740B7D91735fcCE3dfe3eeD'
         case 'optGoerli':
             return '0x54148470292C24345fb828B003461a9444414517'
+        case 'dev1':
+            return '0x0000000000000000000000000000000000000000'
         default:
             throw new Error('Unknown outbox address for the given chain name.')
     }
@@ -35,6 +41,17 @@ export function chainToOutboxAddress(name: string) {
  */
 export function chainToEthereumRpcUrl(name: string) {
     switch (name) {
+        case 'mumbai':
+            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_API_KEY}`
+        case 'goerli':
+            return `https://goerli.infura.io/v3/${process.env.GOERLI_API_KEY}`
+        case 'optGoerli':
+            return ``
+        case 'fuji':
+            return `https://avalanche-fuji.infura.io/v3/${process.env.FUJI_API_KEY}`
+        case 'dev1':
+            return 'http://10.200.10.1:8546'
+        
         default:
             throw new Error('Unknown ethereum RPC URL for the given chain name.')
     }
@@ -53,6 +70,8 @@ export function chainToBlockExplorer(name: string) {
             return 'https://gnosisscan.io'
         case 'goerli':
             return 'https://goerli.etherscan.io'
+        case 'optGoerli':
+            return 'https://goerli-optimism.etherscan.io'
         case 'fuji':
             return 'https://testnet.snowtrace.io/'
         default:
