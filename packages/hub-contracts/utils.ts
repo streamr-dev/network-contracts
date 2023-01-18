@@ -9,6 +9,8 @@ export function chainToDomainId(name: string) {
             return 1000
         case 'optGoerli':
             return 420
+        case 'goerli':
+            return 5
         case 'dev1':
             return 8997
         default:

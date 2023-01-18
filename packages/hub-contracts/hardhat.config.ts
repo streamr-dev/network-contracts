@@ -24,7 +24,7 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
-                version: "0.8.9",
+                version: "0.8.9", // used for most sources
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
                 }
             },
             {
-                version: "0.8.13",
+                version: "0.8.13", // used for RemoteMarketplace since encodeCall is not supported in 0.8.9
                 settings: {
                     optimizer: {
                         enabled: true,

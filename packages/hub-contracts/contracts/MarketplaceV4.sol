@@ -53,7 +53,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     IProjectRegistry public projectRegistry;
 
     // cross-chain messaging
-    uint32 public destinationDomainId;
+    uint32 public destinationDomainId; // unique identifier of the destination chain (assigned by Hyperlane)
     mapping(uint32 => address) public domainIdToCrossChainInbox; // key is the remote chain's Domain ID (assigned by Hyperlane)
     mapping(uint32 => address) public domainIdToCrossChainMarketplace; // key is the remote chain's Domain ID (assigned by Hyperlane)
 
@@ -192,6 +192,9 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         domainIdToCrossChainMarketplace[originDomainId] = remoteMarketplaceAddress;
     }
 
+    /**
+     * RemoteMarketplace calls this function to get purchase informations about a project.
+     */
     function getPurchaseInfo(
         bytes32 projectId,
         uint256 subscriptionSeconds,

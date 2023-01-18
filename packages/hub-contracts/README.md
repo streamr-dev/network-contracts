@@ -28,17 +28,11 @@ npm run interact
 
 ### Deploy/Interact w contracts
 
-Prerequisites:
-- export DESTINATION_CHAIN=chainName - the chain where cross-chain messages are sent to (e.g. ProjectRegistry, MarketplaceV4)
-- export ORIGIN_CHAIN=chainName - the chain where cross-chain messages are sent from (e.g. RemoteMarketplace)
-- export KEY=privateKey
-
 ### Interact cross-chain on Marketplace
 Export the following to dev env:
-- destination origin where the RemoteMarketplace is deployed (e.g. `export DESTINATION_DOMAIN=mumbai`)
-- destination domain where the MarketplaceV4 is deployed (e.g. `export DESTINATION_DOMAIN=goerli`)
-- buyer private key (e.g. `export DESTINATION_DOMAIN=0x1234...`)
-- app key from a node provider (e.g. https://rpc.maticvigil.com => `export MUMBAI_KEY=01234`)
+- origin chain where the RemoteMarketplace is deployed (e.g. `export ORIGIN_DOMAIN=gnosis`)
+- destination chain where the ProjectRegistry & MarketplaceV4 is deployed (e.g. `export DESTINATION_DOMAIN=polygon`)
+- buyer private key (e.g. `export KEY=0x1234...`)
 
 ### Deployed on live testnet (from Celo to Optimism):
 

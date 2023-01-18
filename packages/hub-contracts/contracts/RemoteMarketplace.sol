@@ -53,7 +53,7 @@ contract RemoteMarketplace is Ownable {
     mapping(uint256 => PurchaseRequest) public purchases;
 
     uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
-    uint32 public destinationDomainId; // the domain id of the chain where MarketplaceV4 is deployed
+    uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistry & MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
     IInterchainQueryRouter public queryRouter;
     IOutbox public outbox;
@@ -113,7 +113,7 @@ contract RemoteMarketplace is Ownable {
         uint256 subscriptionSeconds = purchase.subscriptionSeconds;
         emit CrossChainPurchase(projectId, subscriber, subscriptionSeconds, price, fee);
         _subscribeToProject(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee);
-        // _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
+        _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
 
         emit QueryProjectReturned(beneficiary, pricingTokenAddress, price, fee, purchaseId);
     }
@@ -137,7 +137,6 @@ contract RemoteMarketplace is Ownable {
     }
 
     function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
-        // require(price > 0, "error_freeProjectsNotSupportedOnRemoteMarketplace");
         IERC20 pricingToken = IERC20(pricingTokenAddress);
         require(pricingToken.transferFrom(buyer, beneficiary, price - fee), "error_projectPaymentFailed");
         if (fee > 0) {
