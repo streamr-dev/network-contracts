@@ -54,7 +54,7 @@ describe("MarketplaceV3", () => {
             const market = await deployMarketplace()
 
             // upgrade the marketplace to the new version
-            const marketNewFactory = await getContractFactory("MarketplaceV3") // TODO: replace with the new marketplace contract
+            const marketNewFactory = await getContractFactory("MarketplaceV3") // TODO: replace with the new marketplace contract if V3 gets an update, e.g. V3_1
             const marketNew = await upgrades.upgradeProxy(market, marketNewFactory)
 
             expect(market.address)
