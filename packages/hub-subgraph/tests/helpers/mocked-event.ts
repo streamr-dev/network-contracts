@@ -1,7 +1,8 @@
-import { Address, Bytes, ethereum } from "@graphprotocol/graph-ts"
+import { Address, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
 import { ProjectPurchased } from "../../generated/MarketplaceV4/MarketplaceV4"
 import {
+    PaymentDetailsByChainUpdated,
     PermissionUpdated,
     ProjectCreated,
     ProjectDeleted,
@@ -10,26 +11,29 @@ import {
     StreamRemoved,
     Subscribed,
 } from "../../generated/ProjectRegistry/ProjectRegistry"
+import { PaymentDetailsByChain } from "../../generated/schema"
 
 export function createProjectCreatedEvent(
     id: Bytes,
-    beneficiary: string,
-    pricePerSecond: number,
-    pricingTokenAddress: string,
+    domainIds: number[],
+    paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
     minimumSubscriptionSeconds: number,
     metadata: string
 ): ProjectCreated {
+    log.info('mock createProjectCreatedEvent => paymentDetails length length={}', [paymentDetails.length.toString()])
     const projectCreatedEvent = changetype<ProjectCreated>(newMockEvent())
     projectCreatedEvent.parameters = new Array()
 
     const idParam = new ethereum.EventParam("id", ethereum.Value.fromBytes(id))
     projectCreatedEvent.parameters.push(idParam)
-    const beneficiaryParam = new ethereum.EventParam("beneficiary", ethereum.Value.fromAddress(Address.fromString(beneficiary)))
-    projectCreatedEvent.parameters.push(beneficiaryParam)
-    const pricePerSecondParam = new ethereum.EventParam("pricePerSecond", ethereum.Value.fromI32(pricePerSecond as i32))
-    projectCreatedEvent.parameters.push(pricePerSecondParam)
-    const pricingTokenAddrParam = new ethereum.EventParam("pricingTokenAddress", ethereum.Value.fromAddress(Address.fromString(pricingTokenAddress)))
-    projectCreatedEvent.parameters.push(pricingTokenAddrParam)
+    const domainIdsParsed = new Array<i32>()
+    for (let i = 0; i < domainIds.length; i++) {
+        domainIdsParsed.push(domainIds[i] as i32)
+    }
+    const domainIdsParam = new ethereum.EventParam("domainIds", ethereum.Value.fromI32Array(domainIdsParsed))
+    projectCreatedEvent.parameters.push(domainIdsParam)
+    const paymentDetailsParam = new ethereum.EventParam("paymentDetails", ethereum.Value.fromArray([])) // TODO: retrieve paymentDetails from function param
+    projectCreatedEvent.parameters.push(paymentDetailsParam)
     const minSubSecondsParam = new ethereum.EventParam("minimumSubscriptionSeconds", ethereum.Value.fromI32(minimumSubscriptionSeconds as i32))
     projectCreatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))
@@ -40,23 +44,25 @@ export function createProjectCreatedEvent(
 
 export function createProjectUpdatedEvent(
     id: Bytes,
-    beneficiary: string,
-    pricePerSecond: number,
-    pricingTokenAddress: string,
+    domainIds: number[],
+    paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
     minimumSubscriptionSeconds: number,
     metadata: string
 ): ProjectUpdated {
+    log.info('mock createProjectUpdatedEvent => paymentDetails length length={}', [paymentDetails.length.toString()])
     const projectUpdatedEvent = changetype<ProjectUpdated>(newMockEvent())
     projectUpdatedEvent.parameters = new Array()
 
     const idParam = new ethereum.EventParam("id", ethereum.Value.fromBytes(id))
     projectUpdatedEvent.parameters.push(idParam)
-    const beneficiaryParam = new ethereum.EventParam("beneficiary", ethereum.Value.fromAddress(Address.fromString(beneficiary)))
-    projectUpdatedEvent.parameters.push(beneficiaryParam)
-    const pricePerSecondParam = new ethereum.EventParam("pricePerSecond", ethereum.Value.fromI32(pricePerSecond as i32))
-    projectUpdatedEvent.parameters.push(pricePerSecondParam)
-    const pricingTokenAddrParam = new ethereum.EventParam("pricingTokenAddress", ethereum.Value.fromAddress(Address.fromString(pricingTokenAddress)))
-    projectUpdatedEvent.parameters.push(pricingTokenAddrParam)
+    const domainIdsParsed = new Array<i32>()
+    for (let i = 0; i < domainIds.length; i++) {
+        domainIdsParsed.push(domainIds[i] as i32)
+    }
+    const domainIdsParam = new ethereum.EventParam("domainIds", ethereum.Value.fromI32Array(domainIdsParsed))
+    projectUpdatedEvent.parameters.push(domainIdsParam)
+    const paymentDetailsParam = new ethereum.EventParam("paymentDetails", ethereum.Value.fromArray([])) // TODO: retrieve paymentDetails from function param
+    projectUpdatedEvent.parameters.push(paymentDetailsParam)
     const minSubSecondsParam = new ethereum.EventParam("minimumSubscriptionSeconds", ethereum.Value.fromI32(minimumSubscriptionSeconds as i32))
     projectUpdatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))
@@ -124,6 +130,24 @@ export function createSubscribedEvent(projectId: Bytes, subscriber: string, endT
     subscribedEvent.parameters.push(endTimestampParam)
 
     return subscribedEvent
+}
+
+export function createPaymentDetailsByChainUpdatedEvent(projectId: Bytes, domainId: number, beneficiary: string, pricingTokenAddress: string, pricePerSecond: number): PaymentDetailsByChainUpdated {
+    const paymentEvent = changetype<PaymentDetailsByChainUpdated>(newMockEvent())
+    paymentEvent.parameters = new Array()
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    paymentEvent.parameters.push(projectIdParam)
+    const domainIdParam = new ethereum.EventParam("domainId", ethereum.Value.fromI32(domainId as i32))
+    paymentEvent.parameters.push(domainIdParam)
+    const beneficiaryParam = new ethereum.EventParam("beneficiary", ethereum.Value.fromAddress(Address.fromString(beneficiary)))
+    paymentEvent.parameters.push(beneficiaryParam)
+    const pricingTokenAddressParam = new ethereum.EventParam("pricingTokenAddress", ethereum.Value.fromAddress(Address.fromString(pricingTokenAddress)))
+    paymentEvent.parameters.push(pricingTokenAddressParam)
+    const pricePerSecondParam = new ethereum.EventParam("pricePerSecond", ethereum.Value.fromI32(pricePerSecond as i32))
+    paymentEvent.parameters.push(pricePerSecondParam)
+
+    return paymentEvent
 }
 
 export function createProjectDeletedEvent(

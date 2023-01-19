@@ -25,6 +25,21 @@ type Permission @entity {
   canGrant: Boolean
 }
 
+type PaymentDetailsByChain @entity {
+  "payment details id = projectId + '-' + domainId"
+  id: ID!
+  "Target project this payment details applies to"
+  project: Project!
+  "The domainId of the chain where the project can be purchased. It's a unique id assigned by hyperlane to each chain"
+  domainId: BigInt
+  "Ethereum address, account where revenue is directed to for project purchases"
+  beneficiary: Bytes!
+  "Ethereum address, the token in which the project is paid to project beneficiary"
+  pricingTokenAddress: Bytes!
+  "Project price per second. This is a wei denominated amount"
+  pricePerSecond: BigInt
+}
+
 type TimeBasedSubscription @entity {
   "subscription id = projectId + '-' + subscriberAddress"
   id: ID!
@@ -39,12 +54,10 @@ type TimeBasedSubscription @entity {
 type Project @entity {
   "project id = bytes32"
   id: ID!
-  "Ethereum address, account where revenue is directed to for project purchases"
-  beneficiary: Bytes!
-  "Project price per second. This is a wei denominated amount"
-  pricePerSecond: BigInt!
-  "Ethereum address, the token in which the project is paid to project beneficiary"
-  pricingTokenAddress: Bytes!
+  "List of domain ids for the chains from which this project can be purchased"
+  domainIds: [BigInt!]!
+  "Payment details for the chains where the project can be purchased: mapping (uint32 => PaymentDetailsByChain)"
+  paymentDetails: [PaymentDetailsByChain!]! @derivedFrom(field: "project")
   "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
   minimumSubscriptionSeconds: BigInt!
   "Subscriptions mapping (address => TimeBasedSubscription)"

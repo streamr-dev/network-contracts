@@ -22,14 +22,28 @@ const config: HardhatUserConfig = {
         ],
     },
     solidity: {
-        version: "0.8.9",
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 200,
+        compilers: [
+            {
+                version: "0.8.9", // used for most sources
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                    evmVersion: "istanbul",
+                }
             },
-            evmVersion: "istanbul",
-        }
+            {
+                version: "0.8.13", // used for RemoteMarketplace since encodeCall is not supported in 0.8.9
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                    evmVersion: "istanbul",
+                }
+            }
+        ],
     },
     networks: {
         hardhat: {},
