@@ -184,9 +184,9 @@ async function deployMarketplaceV3(wallet) {
     return marketplaceV3
 }
 
-async function deployMarketplaceV4(wallet) {
+async function deployMarketplaceV4(wallet, projectRegistryAddress, destinationChainId) {
     const marketplaceV4Factory = await ethers.getContractFactory("MarketplaceV4", wallet)
-    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [], { kind: 'uups' })
+    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [projectRegistryAddress, destinationChainId], { kind: 'uups' })
     const marketplaceV4 = await marketplaceV4FactoryTx.deployed()
     log(`MarketplaceV4 deployed on sidechain at ${marketplaceV4.address}`)
     return marketplaceV4
@@ -573,9 +573,8 @@ async function smartContractInitialization() {
 
     const projectRegistry = await deployProjectRegistry(sidechainWallet)
     await deployMarketplaceV3(sidechainWallet)
-    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet)
-    // link marketpalceV4 to the project registry contract
-    await(await marketplaceV4.setProjectRegistry(projectRegistry.address)).wait()
+    const chainId = 8997 // dev1
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistry.address, chainId)
     // grant trusted role to marketpalce contract => needed for granting permissions to buyers
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
 
