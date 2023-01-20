@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: Subgraph definitions for the project registry
+description: Subgraph definitions for the hub contracts
 repository:
 schema:
   file: ./schema.graphql
@@ -10,7 +10,7 @@ dataSources:
     name: ProjectRegistry
     network: xDai # xDai means dev1
     source:
-      address: "0x92958708A4E696A85C8282c946A89B20E4Ca308D"
+      address: "0x3C841B9Aa08166e9B864972930703e878d25804B"
       abi: ProjectRegistry
       startBlock: 0
     mapping:
@@ -44,7 +44,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5"
+      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
