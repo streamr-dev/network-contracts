@@ -10,7 +10,6 @@ export function loadOrCreateProject(projectId: Bytes): Project {
     if (project == null) {
         project = new Project(projectId.toHexString())
         project.domainIds = []
-        project.paymentDetails = []
         project.minimumSubscriptionSeconds = BigInt.fromI32(0)
         project.metadata = ""
         project.streams = []

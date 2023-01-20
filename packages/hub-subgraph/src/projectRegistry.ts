@@ -24,7 +24,6 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = metadata
     project.streams = []
-    project.paymentDetails = []
     project.createdAt = event.block.timestamp
     project.purchasesCount = 0
     project.save()

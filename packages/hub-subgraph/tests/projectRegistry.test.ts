@@ -105,7 +105,6 @@ describe("Mocked Project Events: create/update/delete", () => {
         assert.entityCount(PROJECT_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "id", projectId)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainId}]`)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "paymentDetails", `[]`) // TODO: add payment details
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSeconds}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadata)
     })
@@ -125,7 +124,6 @@ describe("Mocked Project Events: create/update/delete", () => {
         handleProjectUpdate(projectUpdatedEvent)
 
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainIdUpdated}]`)
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "paymentDetails", `[]`) // TODO: add payment details
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSecondsNew}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadataNew)
     })
