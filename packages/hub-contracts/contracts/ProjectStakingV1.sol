@@ -2,8 +2,12 @@
 
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./ProjectRegistry/IProjectRegistry.sol";
+import "./IProjectStakingV1.sol";
 
 /**
  * @title ProjectStakingV1
@@ -11,7 +15,8 @@ import "./ProjectRegistry/IProjectRegistry.sol";
  * It allows users to deposit tokens to the contract and specify a projectId which they're staking the tokens for.
  * The contract keeps track of who has staked how many tokens against what projects.
  */
-contract ProjectStakingV1 {
+contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable, IProjectStakingV1 {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
     IProjectRegistry projectRegistry;
     address stakingTokenAddress;
@@ -21,18 +26,31 @@ contract ProjectStakingV1 {
     mapping(address => uint256) stakedTokensByUser;
     uint256 totalStakedTokens;
 
-    event Stake(bytes32 indexed projectId, address indexed user, uint256 amount);
-    event Unstake(bytes32 indexed projectId, address indexed user, uint256 amount);
-
     modifier projectExists(bytes32 projectId) {
         require(projectRegistry.exists(projectId), "error_projectNotFound");
         _;
     }
 
-    constructor(address projectRegistryAddress, address tokenAddress) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+    function initialize(address projectRegistryAddress, address tokenAddress) public initializer {
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(UPGRADER_ROLE, msg.sender);
+
         projectRegistry = IProjectRegistry(projectRegistryAddress);
         stakingTokenAddress = tokenAddress;
     }
+
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        onlyRole(UPGRADER_ROLE)
+        override
+    {}
 
     /**
      * @notice Stake tokens for a user on a specific project.
@@ -58,6 +76,7 @@ contract ProjectStakingV1 {
 
         bytes32 projectId;
         assembly { projectId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
+        require(projectRegistry.exists(projectId), "error_projectNotFound");
 
         _stake(projectId, amount, sender);
     }
