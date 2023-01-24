@@ -81,7 +81,7 @@
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}/packages/smartcontracts"
+            "cwd": "${workspaceFolder}/packages/network-contracts"
         },
     ]
 }
