@@ -30,7 +30,7 @@ INITSTATUS=`docker wait streamr-dev-smart-contracts-init`
 docker logs streamr-dev-smart-contracts-init &> $LOG
 
 # remove timestamps in order to see in diffs if logs have changed
-sed "s/^2022-[^ ]* //g" $LOG > tmp.log
+sed "s/^202[^ ]* //g" $LOG > tmp.log
 cp tmp.log $LOG
 
 echo "streamr-dev-smart-contracts-init finished with status $INITSTATUS. Logs in $LOG"

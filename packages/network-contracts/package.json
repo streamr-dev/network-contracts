@@ -18,6 +18,7 @@
     "lint": "eslint scripts/**/* test/* test/**/* && solhint contracts/*/*.sol",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",
     "interact": "hardhat run --network dev1 scripts/deployToLivenet/2_interactWithContracts.ts",
+    "testENS": "hardhat run --network dev1 scripts/deployToLivenet/testEnsInDevEnv.ts",
     "upgradeStreamRegistry": "hardhat run --network dev1 scripts/deployToLivenet/upgradeStreamRegistry.ts",
     "upgradeStreamStorageRegistry": "hardhat run --network dev1 scripts/deployToLivenet/upgradeStreamStorageRegistry.ts",
     "deploylive": "hardhat run --network dev1 scripts/deployToLivenet/1_deployContracts.ts",

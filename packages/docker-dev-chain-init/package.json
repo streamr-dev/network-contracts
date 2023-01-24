@@ -38,6 +38,6 @@
     "web3": "1.2.4"
   },
   "devDependencies": {
-    "@dataunions/contracts": "3.0.5"
+    "@dataunions/contracts": "3.0.8"
   }
 }
