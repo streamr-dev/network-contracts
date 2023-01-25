@@ -72,16 +72,17 @@
             "type": "node",
             "request": "launch",
             "name": "Hardhat test this file",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
+            "runtimeExecutable": "npx",
             "env": {
                 "DEBUG": "*,-mocha:*"
             },
             "runtimeArgs": [
+                "hardhat",
                 "test",
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}/packages/smartcontracts"
+            "cwd": "${workspaceFolder}/packages/network-contracts"
         },
     ]
 }

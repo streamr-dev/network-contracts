@@ -271,7 +271,7 @@ async function deployStreamRegistries() {
     initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
     const strDeploy = await ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
     // const strDeploy = await ethers.getContractFactory('NodeRegistry')
-    const strDeployTx = await upgrades.deployProxy(strDeploy, 
+    const strDeployTx = await upgrades.deployProxy(strDeploy,
         [sidechainWalletStreamReg.address, false, initialNodes, initialMetadata], { kind: 'uups' })
     // const strDeployTx = await strDeploy.deploy(sidechainWalletStreamReg.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
     const nodeRegDeployed = await strDeployTx.deployed()
@@ -603,7 +603,7 @@ async function smartContractInitialization() {
     // grant trusted role to marketpalce contract => needed for granting permissions to buyers
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
 
-	await deployBountyFactory()
+    await deployBountyFactory()
 
     //put additions here
 
@@ -624,7 +624,7 @@ async function smartContractInitialization() {
             continue
         }
         log(`create ${p.id}`)
-        const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
+        const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond,
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
         await tx.wait()
         if (p.state == "NOT_DEPLOYED") {

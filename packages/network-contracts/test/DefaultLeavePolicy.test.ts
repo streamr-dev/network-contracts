@@ -10,14 +10,6 @@ const { parseEther, formatEther } = utils
 // @ts-expect-error should use LogLevel.ERROR
 utils.Logger.setLogLevel("ERROR")
 
-enum State {
-    NotInitialized,
-    Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
-    Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty
-    Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount
-    Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
-}
-
 describe("DefaultLeavePolicy", (): void => {
     let admin: Wallet
     let broker: Wallet
@@ -42,10 +34,12 @@ describe("DefaultLeavePolicy", (): void => {
     it("penalizes only from the broker that leaves early while bounty is running", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 1000 })
-        expect(await bounty.getState()).to.equal(State.Closed)
+        expect(!await bounty.isRunning())
+        expect(!await bounty.isFunded())
 
         await bounty.sponsor(parseEther("10000"))
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         const balanceBefore = await token.balanceOf(broker.address)
         const balanceBefore2 = await token.balanceOf(broker2.address)
@@ -53,19 +47,23 @@ describe("DefaultLeavePolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 100, "broker 2 joins, both will earn 100")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
-        expect(await bounty.getState()).to.equal(State.Running)
+        expect(await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 1000")
         await (await bounty.connect(broker).leave()).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped, keeps stake")
         await (await bounty.connect(broker2).leave()).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
         const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)
@@ -81,10 +79,12 @@ describe("DefaultLeavePolicy", (): void => {
         // broker2:               300  +  700       = 1000
         const { token } = contracts
         const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000 })
-        expect(await bounty.getState()).to.equal(State.Closed)
+        expect(!await bounty.isRunning())
+        expect(!await bounty.isFunded())
 
         await bounty.sponsor(parseEther("10000"))
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         const balanceBefore = await token.balanceOf(broker.address)
         const balanceBefore2 = await token.balanceOf(broker2.address)
@@ -92,19 +92,23 @@ describe("DefaultLeavePolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart)
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
-        expect(await bounty.getState()).to.equal(State.Running)
+        expect(await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 400)
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
-        expect(await bounty.getState()).to.equal(State.Running)
+        expect(await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 1000)
         await (await bounty.connect(broker).leave()).wait()
-        expect(await bounty.getState()).to.equal(State.Running)
+        expect(await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 1700)
         await (await bounty.connect(broker2).leave()).wait()
-        expect(await bounty.getState()).to.equal(State.Funded)
+        expect(!await bounty.isRunning())
+        expect(await bounty.isFunded())
 
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
         const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)

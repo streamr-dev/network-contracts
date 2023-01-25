@@ -30,7 +30,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
-    // event StateChanged(State indexed newState);
     // event SponsorshipReceived(address indexed sponsor, uint amount);
     event BrokerReported(address indexed broker, address indexed reporter);
     event BrokerKicked(address indexed broker, uint slashedWei);
@@ -47,7 +46,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
-    State public previousState;
     mapping(address => bool) public isSlashListener;
 
     // storage variables available to all modules
@@ -79,45 +77,24 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return hasRole(ADMIN_ROLE, a);
     }
 
-    // State of the bounty contract
-    // see https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
-    enum State {
-        NotInitialized, // horizon = how much longer there are unallocated funds
-        Closed,     // horizon < minHorizon and brokerCount fallen below minBrokerCount
-        Warning,    // brokerCount > minBrokerCount, but horizon < minHorizon ==> brokers can leave without penalty, expecting a top-up
-        Funded,     // horizon > minHorizon, but brokerCount still below minBrokerCount, waiting for brokers
-        Running     // horizon > minHorizon and minBrokerCount <= brokerCount <= maxBrokerCount
-    }
-
-    // TODO: should this be decided by a module?
+    /**
+     * Running means there's enough brokers signed up for the bounty,
+     *  and the bounty should pay tokens to the brokers from the remaining sponsorship
+     * See https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
+     */
     function isRunning() public view returns (bool) {
         return globalData().brokerCount >= globalData().minBrokerCount;
     }
 
-    function getState() public view returns (State) {
-        if (address(allocationPolicy) == address(0) || address(leavePolicy) == address(0)) {
-            return State.NotInitialized;
-        }
-        bool funded = solventUntil() > block.timestamp + globalData().minHorizonSeconds;
-
-        if (isRunning()) {
-            return funded ? State.Running : State.Warning;
-        } else {
-            return funded ? State.Funded : State.Closed;
-        }
-    }
-
-    /** See if the state has changed, emit a StateChanged event */
-    function checkStateChange() public {
-        State currentState = getState();
-        // if (currentState != previousState) {
-        //     emit StateChanged(currentState);
-        // }
-        previousState = currentState;
+    /**
+     * Funded means there's enough sponsorship to cover minHorizonSeconds of payments to brokers
+     * DefaultLeavePolicy states brokers are free to leave an underfunded bounty
+     */
+    function isFunded() public view returns (bool) {
+        return solventUntil() > block.timestamp + globalData().minHorizonSeconds;
     }
 
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
-
 
     function initialize(
         StreamrConstants streamrConstants,
@@ -194,7 +171,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             // re-calculate the cumulative earnings
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");
         }
-        checkStateChange();
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
@@ -271,7 +247,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker)); // TODO: stake and allocation will be zero after withdraw; write a test and then hardcode zeros
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         emit BrokerLeft(broker, returnFunds);
-        checkStateChange();
     }
 
     function slash(address broker, uint amountWei) external onlyRole(ADMIN_ROLE) {
@@ -314,7 +289,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // TODO: sweep also unaccounted tokens into unallocated funds?
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
         globalData().unallocatedFunds += amountTokenWei;
-        checkStateChange();
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
@@ -346,7 +320,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         allocationPolicy = newAllocationPolicy;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
-        checkStateChange();
     }
 
     function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
