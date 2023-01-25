@@ -84,5 +84,23 @@
             "internalConsoleOptions": "openOnSessionStart",
             "cwd": "${workspaceFolder}/packages/network-contracts"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Hardhat run this sctipt",
+            "runtimeExecutable": "npx",
+            "env": {
+                "DEBUG": "*"
+            },
+            "runtimeArgs": [
+                "hardhat",
+                "run",
+                "--network",
+                "dev1",
+                "${file}"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "cwd": "${workspaceFolder}/packages/network-contracts"
+        },
     ]
 }

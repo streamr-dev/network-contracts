@@ -2,9 +2,10 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from 'ethers'
 import { Chains } from "@streamr/config"
 import hhat from 'hardhat'
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, StreamrConstants, TestToken } from '../../typechain'
 
 // import { BountyFactory } from '../../typechain/BountyFactory'
-const config = Chains.load('development').streamr
+const config = Chains.load()['dev1']
 
 const { ethers, upgrades } = hhat
 
@@ -46,31 +47,58 @@ const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require('debug')('streamr:deploy-tatum')
 
-let wallet: Wallet
+let adminWallet: Wallet
+let brokerWallet: Wallet
 
 async function deployBountyFactory() {
-    const agreementTemplateFactory = await ethers.getContractFactory('Bounty')
-    const agreementTemplate = await agreementTemplateFactory.deploy()
-    await agreementTemplate.deployed()
-    log(`BountyTemplate deployed at ${agreementTemplate.address}`)
+    const streamrConstants = await (await ethers.getContractFactory("StreamrConstants", adminWallet)).deploy() as StreamrConstants
+    await streamrConstants.deployed()
+    log(`streamrConstants address ${streamrConstants.address}`)
 
-    const allocationPolicyFactory = await ethers.getContractFactory('StakeWeightedAllocationPolicy')
-    const allocationPolicy = await allocationPolicyFactory.deploy()
+    const token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
+    await token.deployed()
+    log(`token address ${token.address}`)
+
+    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy", adminWallet)).deploy() as IJoinPolicy
+    await minStakeJoinPolicy.deployed()
+    log(`minStakeJoinPolicy address ${minStakeJoinPolicy.address}`)
+
+    const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy", adminWallet)).deploy() as IJoinPolicy
+    await maxBrokersJoinPolicy.deployed()
+    log(`maxBrokersJoinPolicy address ${maxBrokersJoinPolicy.address}`)
+
+    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy", adminWallet)).deploy() as IAllocationPolicy
     await allocationPolicy.deployed()
-    log(`AllocationPolicyTemplate deployed at ${allocationPolicy.address}`)
+    log(`allocationPolicy address ${allocationPolicy.address}`)
 
-    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', wallet)
+    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy", adminWallet)).deploy() as ILeavePolicy
+    await leavePolicy.deployed()
+    log(`leavePolicy address ${leavePolicy.address}`)
+
+    const bountyTemplate = await (await ethers.getContractFactory("Bounty")).deploy() as Bounty
+    await bountyTemplate.deployed()
+    log(`bountyTemplate address ${bountyTemplate.address}`)
+
+    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ agreementTemplate.address, trustedForwarderAddress, LINKTOKEN_ADDRESS ])
-    const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
-    log(`BountyFactory deployed at ${bountyFactory.address}`)
-    await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
-    log(`added allocation policy with address ${allocationPolicy.address} to BountyFactory`)
+        [ bountyTemplate.address, token.address, streamrConstants.address ])
+    const bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
+    await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+        allocationPolicy.address, leavePolicy.address])).wait()
+    log(`bountyFactory address ${bountyFactory.address}`)
+
+    await (await token.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
+    log(`minted 1000000 tokens to ${adminWallet.address}`)
+    await (await token.mint(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
+    log(`transferred 100000 tokens to ${brokerWallet.address}`)
+    await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
+    log(`transferred 1 ETH to ${brokerWallet.address}`)
 }
 
 async function main() {
-    wallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
-    log(`wallet address ${wallet.address}`)
+    adminWallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
+    brokerWallet = ethers.Wallet.createRandom().connect(new JsonRpcProvider(chainURL))
+    log(`wallet address ${adminWallet.address}`)
 
     await deployBountyFactory()
 }

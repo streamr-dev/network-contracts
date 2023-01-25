@@ -10,7 +10,7 @@ import { Bounty, BountyFactory, LinkToken } from '../../typechain'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require('debug')('streamr:deploy-tatum')
 
-const config = Chains.load('development').streamr
+const config = Chains.load()['dev1']
 // hardhat
 // const DEFAULTPRIVATEKEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
 // const SIDECHAINURL = 'http://localhost:8545'
@@ -21,7 +21,8 @@ const config = Chains.load('development').streamr
 // localsidechain
 // const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const CHAINURL = config.rpcEndpoints[0].url
-const LINKTOKEN = config.contracts.LinkToken
+// const LINKTOKEN = config.contracts.LinkToken
+const TOKEN = '0xFAF22D7d817779447327c63CC0B179Fc0b39dD75'
 const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
 
 // mumbai
@@ -48,10 +49,10 @@ const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c783009
 
 // addresses localsidechain
 // const BOUNTYTEMPLATE = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
-// const BOUNTYFACTORY = '0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2'
-const BOUNTYFACTORY = config.contracts.BountyFactory
-// const ALLOCATIONPOLICY = '0x3C841B9Aa08166e9B864972930703e878d25804B'
-const ALLOCATIONPOLICY = config.contracts.AllocationPolicyTemplate
+const BOUNTYFACTORY = '0xed323f85CAA93EBAe223aAee449919105C1a71A0'
+// const BOUNTYFACTORY = config.contracts.BountyFactory
+const ALLOCATIONPOLICY = '0x0068d2B88136D9Fe3D9C65f40bf9C2EFD22E9E56'
+// const ALLOCATIONPOLICY = config.contracts.AllocationPolicyTemplate
 // will be overwritten when deployNewBounty is called
 let bountyAddress = "0xcb41f39b991a8739d4f92b171605c669472f2abc"
 
@@ -64,7 +65,6 @@ let bountyAddress = "0xcb41f39b991a8739d4f92b171605c669472f2abc"
 
 const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 let userWallet: Wallet
-let adminWallet: Wallet
 let bountyFactory: BountyFactory
 let bounty: Bounty
 let tokenFromOwner: LinkToken
@@ -73,15 +73,14 @@ let deploymentOwner: Wallet
 const connectToAllContracts = async () => {
     // userWallet = new Wallet(DEFAULTPRIVATEKEY, chainProvider)
     userWallet = Wallet.createRandom()
-    adminWallet = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
-
-    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', adminWallet)
-    const bountyFactoryContact = await bountyFactoryFactory.attach(BOUNTYFACTORY) as BountyFactory
-    bountyFactory = await bountyFactoryContact.connect(adminWallet) as BountyFactory
-
     deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
-    const linkTokenFactory = await ethers.getContractFactory('LinkToken', adminWallet)
-    const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
+
+    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', deploymentOwner)
+    const bountyFactoryContact = await bountyFactoryFactory.attach(BOUNTYFACTORY) as BountyFactory
+    bountyFactory = await bountyFactoryContact.connect(deploymentOwner) as BountyFactory
+
+    const linkTokenFactory = await ethers.getContractFactory('LinkToken', deploymentOwner)
+    const linkTokenFactoryTx = await linkTokenFactory.attach(TOKEN)
     const linkTokenContract = await linkTokenFactoryTx.deployed()
     tokenFromOwner = await linkTokenContract.connect(deploymentOwner) as LinkToken
 }
@@ -105,10 +104,11 @@ const deployNewBounty = async () => {
 }
     
 const sponsorNewBounty = async () => {
-    bounty = await ethers.getContractAt('Bounty', bountyAddress, adminWallet) as Bounty
+    bounty = await ethers.getContractAt('Bounty', bountyAddress, deploymentOwner) as Bounty
     // sponsor with token approval
-    await tokenFromOwner.balanceOf(deploymentOwner.address)
+    // const ownerbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
     await (await tokenFromOwner.approve(bountyAddress, ethers.utils.parseEther("7"))).wait()
+    // const allowance = await tokenFromOwner.allowance(deploymentOwner.address, bountyAddress)
     const sponsorTx = await bounty.sponsor(ethers.utils.parseEther("7"))
     await sponsorTx.wait()
     log("sponsored through token approval")
