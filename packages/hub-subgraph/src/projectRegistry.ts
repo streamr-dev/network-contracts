@@ -26,6 +26,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.streams = []
     project.createdAt = event.block.timestamp
     project.purchasesCount = 0
+    project.stakeUnstakeCount = 0
     project.save()
 }
 

@@ -78,6 +78,8 @@ type Project @entity {
   purchases: [ProjectPurchase!]! @derivedFrom(field: "project")
   "Marketplace purchases count"
   purchasesCount: Int
+  "ProjectStaking stake/unstake count"
+  stakeUnstakeCount: Int
 }
 
 
@@ -104,4 +106,40 @@ type ProjectPurchase @entity {
   
   "purchase date. This is a timestamp in seconds"
   purchasedAt: BigInt
+}
+
+# ProjectStakingV1
+
+type Staking @entity {
+  "stake id = projectId + '-' + userAddress + '-' + stakeUnstakeCount"
+  id: ID!
+
+  "Target project this stake is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the stake"
+  user: Bytes!
+
+  "The amount being staked"
+  amount: BigInt!
+  
+  "stake date. This is a timestamp in seconds"
+  stakedAt: BigInt
+}
+
+type Unstaking @entity {
+  "unstake id = projectId + '-' + userAddress + '-' + stakeUnstakeCount"
+  id: ID!
+
+  "Target project this unstake is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the unstake"
+  user: Bytes!
+
+  "The amount being unstaked"
+  amount: BigInt!
+  
+  "unstake date. This is a timestamp in seconds"
+  unstakedAt: BigInt
 }

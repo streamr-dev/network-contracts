@@ -60,3 +60,26 @@ dataSources:
         - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
           handler: handleProjectPurchase
       file: ./src/marketplaceV4.ts
+  - kind: ethereum/contract
+    name: ProjectStakingV1
+    network: xDai
+    source:
+      address: "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF"
+      abi: ProjectStakingV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stake
+        - Unstake
+      abis:
+        - name: ProjectStakingV1
+          file: ./abis/ProjectStakingV1.json
+      eventHandlers:
+        - event: Stake(indexed bytes32,indexed address,uint256)
+          handler: handleStake
+        - event: Unstake(indexed bytes32,indexed address,uint256)
+          handler: handleUnstake
+      file: ./src/projectStaking.ts
