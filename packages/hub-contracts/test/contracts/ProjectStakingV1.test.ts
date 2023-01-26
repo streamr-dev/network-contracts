@@ -83,7 +83,6 @@ describe.only('ProjectStakingV1', (): void => {
 
     async function deployProjectStaking(): Promise<void> {
         const contractFactory = await getContractFactory("ProjectStakingV1")
-        // const contractFactoryTx = await contractFactory.deploy(projectRegistry.address, token.address)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [projectRegistry.address, token.address], { kind: 'uups' })
         projectStaking = await contractFactoryTx.deployed() as ProjectStakingV1
     }

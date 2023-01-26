@@ -1,5 +1,5 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { PaymentDetailsByChain, Permission, Project, ProjectPurchase, TimeBasedSubscription } from "../../generated/schema"
+import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { PaymentDetailsByChain, Permission, Project, ProjectPurchase, Staking, TimeBasedSubscription, Unstaking } from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
     const project = new Project(projectId)
@@ -14,6 +14,7 @@ export function createProjectEntity(projectId: string): Project {
     project.permissions = []
     project.purchases = []
     project.purchasesCount = 0
+    project.stakeUnstakeCount = 0
     project.save()
     return project
 }
@@ -87,4 +88,38 @@ export function createProjectPurchaseEntity(
     projectPurchase.purchasedAt = BigInt.fromI32(purchasedAt as i32)
     projectPurchase.save()
     return projectPurchase
+}
+
+export function createStakingEntity(
+    stakingId: string,
+    projectId: string,
+    user: string,
+    amount: number,
+    stakedAt: number
+): Staking {
+    const staking = new Staking(stakingId)
+    staking.id = stakingId
+    staking.project = projectId
+    staking.user = Bytes.fromHexString(user)
+    staking.amount = BigInt.fromI32(amount as i32)
+    staking.stakedAt = BigInt.fromI32(stakedAt as i32)
+    staking.save()
+    return staking
+}
+
+export function createUnstakingEntity(
+    unstakingId: string,
+    projectId: string,
+    user: string,
+    amount: number,
+    unstakedAt: number
+): Unstaking {
+    const unstaking = new Unstaking(unstakingId)
+    unstaking.id = unstakingId
+    unstaking.project = projectId
+    unstaking.user = Bytes.fromHexString(user)
+    unstaking.amount = BigInt.fromI32(amount as i32)
+    unstaking.unstakedAt = BigInt.fromI32(unstakedAt as i32)
+    unstaking.save()
+    return unstaking
 }

@@ -9,7 +9,7 @@ import { loadOrCreateProject } from './helpers'
 export function handleStake(event: Stake): void {
     const projectId = event.params.projectId.toHexString()
     const user = event.params.user.toHexString()
-    const amount = event.params.amount.toHexString()
+    const amount = event.params.amount.toString()
     log.info('handleStake: projectId={} user={} amount={} blockNumber={}',
         [projectId, user, amount, event.block.number.toString()])
         

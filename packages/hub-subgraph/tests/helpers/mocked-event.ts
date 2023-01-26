@@ -1,5 +1,6 @@
 import { Address, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
+import { PaymentDetailsByChain } from "../../generated/schema"
 import { ProjectPurchased } from "../../generated/MarketplaceV4/MarketplaceV4"
 import {
     PaymentDetailsByChainUpdated,
@@ -11,7 +12,12 @@ import {
     StreamRemoved,
     Subscribed,
 } from "../../generated/ProjectRegistry/ProjectRegistry"
-import { PaymentDetailsByChain } from "../../generated/schema"
+import { 
+    Stake,
+    Unstake,
+ } from "../../generated/ProjectStakingV1/ProjectStakingV1"
+
+//////////////////////// ProjectRegistry ////////////////////////
 
 export function createProjectCreatedEvent(
     id: Bytes,
@@ -161,6 +167,9 @@ export function createProjectDeletedEvent(
     
     return projectDeletedEvent
 }
+
+//////////////////////// MarketplaceV4 ////////////////////////
+
 export function createProjectPurchasedEvent(
     projectId: Bytes,
     subscriber: string,
@@ -182,4 +191,34 @@ export function createProjectPurchasedEvent(
     projectPurchasedEvent.parameters.push(feeParam)
 
     return projectPurchasedEvent
+}
+
+//////////////////////// ProjectStakingV1 ////////////////////////
+
+export function createStakeEvent(projectId: Bytes, user: string, amount: number): Stake {
+    const stakeEvent = changetype<Stake>(newMockEvent())
+    stakeEvent.parameters = new Array()
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    stakeEvent.parameters.push(projectIdParam)
+    const userParam = new ethereum.EventParam("user", ethereum.Value.fromAddress(Address.fromString(user)))
+    stakeEvent.parameters.push(userParam)
+    const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
+    stakeEvent.parameters.push(amountParam)
+
+    return stakeEvent
+}
+
+export function createUnstakeEvent(projectId: Bytes, user: string, amount: number): Unstake {
+    const unstakeEvent = changetype<Unstake>(newMockEvent())
+    unstakeEvent.parameters = new Array()
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    unstakeEvent.parameters.push(projectIdParam)
+    const userParam = new ethereum.EventParam("user", ethereum.Value.fromAddress(Address.fromString(user)))
+    unstakeEvent.parameters.push(userParam)
+    const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
+    unstakeEvent.parameters.push(amountParam)
+
+    return unstakeEvent
 }
