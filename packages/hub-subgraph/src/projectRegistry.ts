@@ -1,4 +1,4 @@
-import { log, store, BigInt } from '@graphprotocol/graph-ts'
+import { log, store } from '@graphprotocol/graph-ts'
 import { PaymentDetailsByChain, Permission, TimeBasedSubscription } from '../generated/schema'
 import {
     ProjectCreated,

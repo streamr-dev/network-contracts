@@ -18,13 +18,13 @@ import "./IProjectStakingV1.sol";
 contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable, IProjectStakingV1 {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
-    IProjectRegistry projectRegistry;
-    address stakingTokenAddress;
+    IProjectRegistry public projectRegistry;
+    address public stakingTokenAddress;
 
-    mapping(address => mapping(bytes32 => uint256)) stakedTokens;
-    mapping(bytes32 => uint256) stakedTokensByProject;
-    mapping(address => uint256) stakedTokensByUser;
-    uint256 totalStakedTokens;
+    mapping(address => mapping(bytes32 => uint256)) private stakedTokens;
+    mapping(bytes32 => uint256) private stakedTokensByProject;
+    mapping(address => uint256) private stakedTokensByUser;
+    uint256 private totalStakedTokens;
 
     modifier projectExists(bytes32 projectId) {
         require(projectRegistry.exists(projectId), "error_projectNotFound");
