@@ -14,7 +14,7 @@ export const log = (..._: unknown[]): void => { /* skip logging */ }
 
 use(waffle.solidity)
 
-describe.only('ProjectStakingV1', (): void => {
+describe('ProjectStakingV1', (): void => {
     const [admin, staker1, staker2, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
     
     const domainIds: number[] = []

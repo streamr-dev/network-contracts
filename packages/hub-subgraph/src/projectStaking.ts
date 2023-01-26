@@ -15,8 +15,8 @@ export function handleStake(event: Stake): void {
         
     const project = loadOrCreateProject(event.params.projectId)
 
-    const newStakeUnstakeCount = project.stakeUnstakeCount + 1
-    const stakeId = projectId + '-' + user + '-' + newStakeUnstakeCount.toString()
+    const newCounter = project.counter + 1
+    const stakeId = projectId + '-' + user + '-' + newCounter.toString()
     log.info('handleStake: stakeId={}', [stakeId])
 
     const staking = new Staking(stakeId)
@@ -24,7 +24,7 @@ export function handleStake(event: Stake): void {
     staking.user = event.params.user
     staking.amount = event.params.amount
     staking.stakedAt = event.block.timestamp
-    project.stakeUnstakeCount = newStakeUnstakeCount
+    project.counter = newCounter
     project.save()
     staking.save()
 }
@@ -38,8 +38,8 @@ export function handleUnstake(event: Unstake): void {
         
     const project = loadOrCreateProject(event.params.projectId)
 
-    const newStakeUnstakeCount = project.stakeUnstakeCount + 1
-    const unstakeId = projectId + '-' + user + '-' + newStakeUnstakeCount.toString()
+    const newCounter = project.counter + 1
+    const unstakeId = projectId + '-' + user + '-' + newCounter.toString()
     log.info('handleUnstake: unstakeId={}', [unstakeId])
 
     const unstaking = new Unstaking(unstakeId)
@@ -47,7 +47,7 @@ export function handleUnstake(event: Unstake): void {
     unstaking.user = event.params.user
     unstaking.amount = event.params.amount
     unstaking.unstakedAt = event.block.timestamp
-    project.stakeUnstakeCount = newStakeUnstakeCount
+    project.counter = newCounter
     project.save()
     unstaking.save()
 }

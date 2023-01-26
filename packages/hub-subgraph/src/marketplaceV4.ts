@@ -14,8 +14,8 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
 
     let project = loadOrCreateProject(event.params.projectId)
 
-    const newPurchasesCount = project.purchasesCount + 1
-    const projectPurchaseId = projectId + '-' + subscriber + '-' + newPurchasesCount.toString()
+    const newCounter = project.counter + 1
+    const projectPurchaseId = projectId + '-' + subscriber + '-' + newCounter.toString()
     log.info('handleProjectPurchase: projectPurchaseId={}', [projectPurchaseId])
 
     const projectPurchase = new ProjectPurchase(projectPurchaseId)
@@ -25,7 +25,7 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
     projectPurchase.price = event.params.price
     projectPurchase.fee = event.params.fee
     projectPurchase.purchasedAt = event.block.timestamp
-    project.purchasesCount = newPurchasesCount
+    project.counter = newCounter
     project.save()
     projectPurchase.save()
 }

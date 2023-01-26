@@ -1,4 +1,4 @@
-import { log, store } from '@graphprotocol/graph-ts'
+import { log, store, BigInt } from '@graphprotocol/graph-ts'
 import { PaymentDetailsByChain, Permission, TimeBasedSubscription } from '../generated/schema'
 import {
     ProjectCreated,
@@ -25,8 +25,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.metadata = metadata
     project.streams = []
     project.createdAt = event.block.timestamp
-    project.purchasesCount = 0
-    project.stakeUnstakeCount = 0
+    project.counter = 0
     project.save()
 }
 

@@ -71,7 +71,6 @@ example queries:
 ```
 
 ```
-
 {
   permissions {
     canBuy
@@ -99,6 +98,24 @@ example queries:
   timeBasedSubscriptions {
     endTimestamp
     userAddress
+  }
+}
+```
+```
+{
+  stakings {
+    user
+    amount
+    stakedAt
+  }
+}
+```
+```
+{
+  unstakings {
+    user
+    amount
+    unstakedAt
   }
 }
 ```
