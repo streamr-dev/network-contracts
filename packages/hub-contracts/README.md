@@ -52,3 +52,30 @@ These examples use older contracts:
 - ProjectRegistry deployed on alfajores at: `0x32A142A27A595DC75aD1443728fecCbD5650446A`
 - MarketplaceV4 deployed on alfajores at: `0x14577e0D5BD77536E073712d98E471edDaFAE8b4`
 - RemoteMarketplace deployed on optimistic-goerli at: `0xBef916b1EC6EAA3F522368f75094DAed5c228aF6`
+
+## ProjectStakingV1
+
+Simple staking and unstaking functionality related to projects. It allows users to deposit tokens to the contract and specify a `projectId` which they're staking the tokens for. The contract keeps track of who has staked how many tokens against what projects.
+The contract supports ERC-677 so that when tokens are `transferAndCalled` to the contract, they are added to the staked amount for that user. The contract is deployed with an upgradable proxy.
+
+The following will lead to the same end result:
+- approve, then stake 
+- transferAndCall
+
+### Interface:
+- `stake(projectId, amount)`
+    - Checks that `projectId` is a valid project in the `ProjectRegistry` identified by `projectRegistryAddress`
+    - Transfers amount of tokens (identified by `tokenAddress`) from the caller into the contract and updates the internal bookkeeping to mark them as staked against `projectId` and owned by the caller
+    - Fires a `Stake(projectId, user, amount)` event
+- `unstake(projectId, amount)`, the opposite of stake
+    - Fails if amount is larger than what the user has deposited on the project via stake
+    - Transfers amount of tokens from the contract to the caller and updates internal bookkeeping
+    - Fires a `Unstake(projectId, user, amount)` event
+- `transferAndCall(contractAddress, amount, projectIdBytes)` - Same as approve + stake, but in one tx
+- `getProjectStake(projectId)`- `view` function that returns the total amount staked on a given `projectId` across all users
+- `getUserStake(userAddress)`- `view` function that returns the total amount that address `userAddress` has staked in the contract across all projects
+- `getTotalStake()` - `view` function that returns the total amount of tokens staked across all users and projects
+
+### Subgraph:
+- The existing subgraph for Projects is aware of this contract and watch for `Stake` and `Unstake` events. It maintains a new `score` field on `Project` objects which maintains the total amount staked on that project so that Stake and Unstake events increment/decrement the score field
+- The field is called score instead of stake because in the future there may be other inputs in addition to the stake, i.e. it may not always be 1:1 with the stake

@@ -66,6 +66,7 @@ example queries:
       canDelete
       canEdit
     }
+    score
   }
 }
 ```

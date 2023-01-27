@@ -1,4 +1,4 @@
-import { log, store } from '@graphprotocol/graph-ts'
+import { BigInt, log, store } from '@graphprotocol/graph-ts'
 import { PaymentDetailsByChain, Permission, TimeBasedSubscription } from '../generated/schema'
 import {
     ProjectCreated,
@@ -26,6 +26,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.streams = []
     project.createdAt = event.block.timestamp
     project.counter = 0
+    project.score = BigInt.fromI32(0)
     project.save()
 }
 

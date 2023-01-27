@@ -76,6 +76,8 @@ type Project @entity {
   updatedAt: BigInt
   "Marketplace purchases"
   purchases: [ProjectPurchase!]! @derivedFrom(field: "project")
+  "Incremented/decremented when Stake/Unstake events are fired. It may not always be 1:1 with the stake (with future implementations)"
+  score: BigInt
   "Increases when various actions are triggered (e.g. purchase, stake, unstake). Used to generate unique ids"
   counter: Int
 }

@@ -14,6 +14,8 @@ export function loadOrCreateProject(projectId: Bytes): Project {
         project.metadata = ""
         project.streams = []
         project.createdAt = BigInt.fromI32(0)
+        project.counter = 0
+        project.score = BigInt.fromI32(0)
     }
     return project
 }

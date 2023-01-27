@@ -14,6 +14,7 @@ export function createProjectEntity(projectId: string): Project {
     project.permissions = []
     project.purchases = []
     project.counter = 0
+    project.score = BigInt.fromI32(0)
     project.save()
     return project
 }
