@@ -87,6 +87,23 @@
             ],
             "internalConsoleOptions": "openOnSessionStart",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Hardhat run this file",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "runtimeArgs": [
+                "run", 
+                "--network",
+                "dev1",
+                "${file}"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
