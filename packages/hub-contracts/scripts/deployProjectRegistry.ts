@@ -4,24 +4,24 @@ import { Chains } from "@streamr/config"
 const { log } = console
 
 const {
-    DESTINATION_CHAIN = 'dev1',
+    CHAIN = 'dev1',
 } = process.env
 
 const {
     contracts: {
         StreamRegistry: STREAM_REGISTRY_ADDRESS, // = 0x0000000000000000000000000000000000000000
     }
-} = Chains.load()[DESTINATION_CHAIN]
+} = Chains.load()[CHAIN]
 
-if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${DESTINATION_CHAIN}"`) }
+if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${CHAIN}"`) }
 
 /**
  * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts
  * npx hardhat flatten contracts/ProjectRegistry/ProjectRegistry.sol > pr.sol
  */
 async function main() {
-    log(`Deploying ProjectRegistry to: ${DESTINATION_CHAIN}:`)
     log(`StreamRegistry address: ${STREAM_REGISTRY_ADDRESS}`)
+    log(`Deploying ProjectRegistry to "${CHAIN}" chain:`)
     const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistry")
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [STREAM_REGISTRY_ADDRESS], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()

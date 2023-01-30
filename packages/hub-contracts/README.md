@@ -53,6 +53,11 @@ These examples use older contracts:
 - MarketplaceV4 deployed on alfajores at: `0x14577e0D5BD77536E073712d98E471edDaFAE8b4`
 - RemoteMarketplace deployed on optimistic-goerli at: `0xBef916b1EC6EAA3F522368f75094DAed5c228aF6`
 
+## ProjectRegistry
+
+### Deloyed on:
+- polygon at `0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1`.
+
 ## ProjectStakingV1
 
 Simple staking and unstaking functionality related to projects. It allows users to deposit tokens to the contract and specify a `projectId` which they're staking the tokens for. The contract keeps track of who has staked how many tokens against what projects.
@@ -79,3 +84,6 @@ The following two alternatives will lead to the same end result:
 ### Subgraph:
 - The existing subgraph for Projects is aware of this contract and watch for `Stake` and `Unstake` events. It maintains a new `score` field on `Project` objects which maintains the total amount staked on that project so that Stake and Unstake events increment/decrement the score field
 - The field is called score instead of stake because in the future there may be other inputs in addition to the stake, i.e. it may not always be 1:1 with the stake
+
+### Deloyed on:
+- polygon at `0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE`. The staking token address is the DATA token `0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1`
