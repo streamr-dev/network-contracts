@@ -425,58 +425,48 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     // TODO: instead of special-casing maxIterations zero, call with a large value
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        // console.log("## payOutQueueWithFreeFunds called queueLength", queueLength);
-        // logging out queue
-        // uint i = queuePayoutIndex;
-        // while (i <= queueLength) {
-        //     // console.log("# queuePrint", i, payoutQueue[i].user, payoutQueue[i].amountPoolTokenWei);
-        //     i++;
-        // }
-        uint currentExchangeRate = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-                1e18, 0), "error_yieldPolicy_pooltokenToData_Failed");
-        uint iteration = 0;
-        while (globalData().token.balanceOf(address(this)) > 0 && queueLength - queuePayoutIndex > 0
-            && (maxIterations == 0 || iteration < maxIterations)) {
-            iteration++;
-            // console.log("payOutQueueWithFreeFunds queuePayoutIndex", queuePayoutIndex);
+        if (maxIterations == 0) { maxIterations = 1 ether; } // TODO
+        for (uint i = 0; i < maxIterations && queuePayoutIndex < queueLength; i++) {
+            uint balanceDataWei = globalData().token.balanceOf(address(this));
+            if (balanceDataWei == 0) {
+                break;
+            }
+
+            // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
             uint amountPoolTokens = payoutQueue[queuePayoutIndex].amountPoolTokenWei;
             address user = payoutQueue[queuePayoutIndex].user;
-            // console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
-            // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            //     amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
-            uint256 amountDataWei = amountPoolTokens * currentExchangeRate / 1e18;
-            // uint256 amountDataWei = 1000000000000000000;
-            // console.log("payOutQueueWithFreeFunds amountDataWei", amountDataWei);
-            // console.log("payOutQueueWithFreeFunds balanceBefore", globalData().token.balanceOf(address(this)));
-            if (globalData().token.balanceOf(address(this)) >= amountDataWei) {
-                // whole amountDataWei is paid out
-                // console.log("payOutQueueWithFreeFunds whole amountDataWei");
-                queuedPayoutsPerUser[user] -= amountPoolTokens;
-                // TODO: delete entry from queue to save gas?
+            if (balanceOf(user) < amountPoolTokens) {
+                amountPoolTokens = balanceOf(user);
+            }
+            if (amountPoolTokens == 0) {
                 queuePayoutIndex++;
-                _burn(address(this), amountPoolTokens);
+                continue;
+            }
+
+            // console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
+            uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+                amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
+            if (balanceDataWei >= amountDataWei) {
+                // whole amountDataWei is paid out
+                queuedPayoutsPerUser[user] -= amountPoolTokens;
+                delete payoutQueue[queuePayoutIndex];
+                queuePayoutIndex++;
+                _burn(user, amountPoolTokens);
                 globalData().token.transfer(user, amountDataWei);
                 globalData().approxPoolValue -= amountDataWei;
                 emit InvestmentReturned(user, amountDataWei);
             } else {
-                // partial amountDataWei is paid out
-                // TODO make shorter, optimize memory usage
-                uint256 partialAmountDataWei = globalData().token.balanceOf(address(this));
-                // console.log("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
-                // uint256 remainingAmountDataWei = amountDataWei - partialAmountDataWei;
-                uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy),
-                    abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, partialAmountDataWei, 0),
-                    "error_yieldPolicy_dataToPooltoken_Failed");
+                // whole pool's balance is paid out as a partial payment, update the item in the queue
+                uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
+                    balanceDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
                 queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
-
-                uint256 poolTokensLeftInQueue = payoutQueue[queuePayoutIndex].amountPoolTokenWei - partialAmountPoolTokens;
-                payoutQueue[queuePayoutIndex].amountPoolTokenWei = poolTokensLeftInQueue;
-
-                _burn(address(this), partialAmountPoolTokens);
-                globalData().token.transfer(user, partialAmountDataWei);
-                globalData().approxPoolValue -= partialAmountDataWei;
-
-                emit InvestmentReturned(user, partialAmountDataWei);
+                PayoutQueueEntry memory oldEntry = payoutQueue[queuePayoutIndex];
+                uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
+                payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
+                _burn(user, partialAmountPoolTokens);
+                globalData().token.transfer(user, balanceDataWei);
+                globalData().approxPoolValue -= balanceDataWei;
+                emit InvestmentReturned(user, balanceDataWei);
                 emit QueueUpdated(user, poolTokensLeftInQueue);
             }
         }
@@ -504,18 +494,20 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
+    // TODO: exit(uint amountPoolTokenWei) public
     function queueDataPayout(uint amountPoolTokenWei) public {
         // console.log("## queueDataPayout");
         queueDataPayoutWithoutQueue(amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
     }
 
+    // function queue(uint amountPoolTokenWei), should be internal? We don't maybe want to allow just spamming the queue...
     function queueDataPayoutWithoutQueue(uint amountPoolTokenWei) public {
         // console.log("## queueDataPayoutWithoutQueue");
         require(amountPoolTokenWei > 0, "error_payout_amount_zero");
         // require(balanceOf(_msgSender()) >= amountPoolTokenWei, "error_noEnoughPoolTokens");
         // console.log("queueDataPayout amountPoolTokenWei", amountPoolTokenWei);
-        _transfer(_msgSender(), address(this), amountPoolTokenWei);
+        // _transfer(_msgSender(), address(this), amountPoolTokenWei);
         // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
         //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
         // _burn(_msgSender(), amountPoolTokenWei);

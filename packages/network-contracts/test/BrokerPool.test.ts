@@ -360,7 +360,7 @@ describe("BrokerPool", (): void => {
         // Left in the queue: 1000 - 600 = 400 PoolTokens
         await advanceToTimestamp(timeAtStart + 2000, "withdraw winnings from bounty")
         await expect(pool.withdrawWinningsFromBounty(bounty.address))
-            .to.emit(pool, "Transfer").withArgs(pool.address, "0x0000000000000000000000000000000000000000", parseEther("600"))
+            .to.emit(pool, "Transfer").withArgs(delegator.address, "0x0000000000000000000000000000000000000000", parseEther("600"))
         //    .to.emit(pool, "WinningsWithdrawn").withArgs(bounty.address, parseEther("1000"))
             .to.emit(pool, "InvestmentReturned").withArgs(delegator.address, parseEther("1500"))
         //    .to.emit(pool, "BrokerSharePaid").withArgs(bounty.address, parseEther("200"))
@@ -406,6 +406,79 @@ describe("BrokerPool", (): void => {
         expect(investorQueuedPayoutAfter.toString()).to.equal("555555555555555555556")
     })
 
+    it("delegator moves their pool tokens away while queueing for exit", async function(): Promise<void> {
+        const { token } = contracts
+        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+
+        const bounty = await deployBountyContract(contracts)
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+        const pool = await deployBrokerPool({ brokerSharePercent: 20 })
+        await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+        await expect(pool.connect(delegator).queueDataPayout(parseEther("600")))
+            .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
+        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+
+        // move pool tokens away, leave only 100 to the delegator; that will be the whole amount of the exit, not 600
+        await pool.connect(delegator).transfer(sponsor.address, parseEther("900"))
+        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("100"))
+
+        await advanceToTimestamp(timeAtStart + 1000, "Withdraw winnings from bounty")
+        await expect(pool.withdrawWinningsFromBounty(bounty.address))
+        // TODO: add event to BrokerPool
+        //    .to.emit(pool, "WinningsWithdrawn").withArgs(bounty.address, parseEther("1000"))
+            .to.emit(pool, "InvestmentReturned").withArgs(delegator.address, parseEther("180"))
+        //    .to.emit(pool, "BrokerSharePaid").withArgs(bounty.address, parseEther("200"))
+
+        // winnings are 1000, minus 200 broker fee = 800 DATA
+        // poolvalue is 1000 stake + 800 winnings = 1800 DATA
+        // There are 1000 PoolTokens => exchange rate is 1800 / 1000 = 1.8 DATA/PoolToken
+        // delegator should receive a payout: 100 PoolTokens * 1.8 DATA = 180 DATA
+        expect(formatEther(await token.balanceOf(delegator.address))).to.equal("180.0")
+        expect(formatEther(await token.balanceOf(pool.address))).to.equal("620.0")
+    })
+
+    it("delegator moves ALL their pool tokens away while queueing for exit", async function(): Promise<void> {
+        const { token } = contracts
+        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+
+        const bounty = await deployBountyContract(contracts)
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+        const pool = await deployBrokerPool({ brokerSharePercent: 20 })
+        await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        const timeAtStart = await getBlockTimestamp()
+
+        await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+        await expect(pool.connect(delegator).queueDataPayout(parseEther("600")))
+            .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
+        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+
+        // move pool tokens away, nothing can be exited, although nominally there's still 600 in the queue
+        await pool.connect(delegator).transfer(sponsor.address, parseEther("1000"))
+        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("0"))
+
+        await advanceToTimestamp(timeAtStart + 1000, "Withdraw winnings from bounty")
+        await expect(pool.withdrawWinningsFromBounty(bounty.address))
+        // TODO: add event to BrokerPool
+        //    .to.emit(pool, "WinningsWithdrawn").withArgs(bounty.address, parseEther("1000"))
+            .to.not.emit(pool, "InvestmentReturned")
+        //    .to.emit(pool, "BrokerSharePaid").withArgs(bounty.address, parseEther("200"))
+
+        // winnings are 1000, minus 200 broker fee = 800 DATA
+        expect(formatEther(await token.balanceOf(delegator.address))).to.equal("0.0")
+        expect(formatEther(await token.balanceOf(pool.address))).to.equal("800.0")
+    })
+
     it("forced takeout neg+pos case", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
@@ -444,7 +517,7 @@ describe("BrokerPool", (): void => {
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
-    it("forced example scenario ", async function(): Promise<void> {
+    it("forced example scenario", async function(): Promise<void> {
         const { token } = contracts
         const bounty1 = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from("0") })
         const bounty2 = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from("0") })
