@@ -79,7 +79,8 @@ module.exports = {
             '@streamr-contracts/hub-contracts/contracts/MarketplaceV3.sol',
             '@streamr-contracts/hub-contracts/contracts/MarketplaceV4.sol',
             '@streamr-contracts/hub-contracts/contracts/Uniswap2Adapter.sol',
-            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistry.sol'
+            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistry.sol',
+            '@streamr-contracts/hub-contracts/contracts/ProjectStaking/ProjectStakingV1.sol'
         ],
     },
     solidity: {

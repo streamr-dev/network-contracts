@@ -66,12 +66,12 @@ example queries:
       canDelete
       canEdit
     }
+    score
   }
 }
 ```
 
 ```
-
 {
   permissions {
     canBuy
@@ -99,6 +99,24 @@ example queries:
   timeBasedSubscriptions {
     endTimestamp
     userAddress
+  }
+}
+```
+```
+{
+  stakings {
+    user
+    amount
+    stakedAt
+  }
+}
+```
+```
+{
+  unstakings {
+    user
+    amount
+    unstakedAt
   }
 }
 ```

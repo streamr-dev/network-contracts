@@ -1,6 +1,6 @@
 import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
-import { PaymentDetailsByChain, Project } from "../generated/schema"
+import { Project } from "../generated/schema"
 import {
     handlePaymentDetailsByChainUpdate,
     handlePermissionUpdate,

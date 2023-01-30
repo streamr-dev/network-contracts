@@ -105,6 +105,7 @@ const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
+let linkToken
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -176,6 +177,17 @@ async function deployProjectRegistry(wallet) {
     return projectRegistry
 }
 
+async function deployProjectStakingV1(wallet, projectRegistryAddress, tokenStakingAddress) {
+    const projectStakingV1Factory = await ethers.getContractFactory("ProjectStakingV1", wallet)
+    const projectStakingV1FactoryTx = await upgrades.deployProxy(projectStakingV1Factory, [
+        projectRegistryAddress,
+        tokenStakingAddress
+    ], { kind: 'uups' })
+    const projectStakingV1 = await projectStakingV1FactoryTx.deployed()
+    log(`ProjectStakingV1 deployed at ${projectStakingV1.address}`)
+    return projectStakingV1
+}
+
 async function deployMarketplaceV3(wallet) {
     const marketplaceV3Factory = await ethers.getContractFactory("MarketplaceV3", wallet)
     const marketplaceV3FactoryTx = await upgrades.deployProxy(marketplaceV3Factory, [], { kind: 'uups' })
@@ -233,7 +245,7 @@ async function deployStreamRegistries() {
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
     const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    const linkToken = await linkTokenFactoryTx.deployed()
+    linkToken = await linkTokenFactoryTx.deployed()
     log(`Link Token deployed at ${linkToken.address}`)
 
     const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
@@ -577,6 +589,8 @@ async function smartContractInitialization() {
     const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistry.address, chainId)
     // grant trusted role to marketpalce contract => needed for granting permissions to buyers
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
+
+    await deployProjectStakingV1(sidechainWallet, projectRegistry.address, linkToken.address)
 
     //put additions here
 
