@@ -22,12 +22,15 @@ async function deployPoolFactory() {
     log('Deployed pool template', poolTemplate.address)
     const defaultPoolJoinPolicy = await (await ethers.getContractFactory("DefaultPoolJoinPolicy", deploymentOwner)).deploy() as IPoolJoinPolicy
     await defaultPoolJoinPolicy.deployed()
+    localConfig.defaultPoolJoinPolicy = defaultPoolJoinPolicy.address
     log('Deployed default pool join policy', defaultPoolJoinPolicy.address)
     const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy", deploymentOwner)).deploy() as IPoolYieldPolicy
     await defaultPoolYieldPolicy.deployed()
+    localConfig.defaultPoolYieldPolicy = defaultPoolYieldPolicy.address
     log('Deployed default pool yield policy', defaultPoolYieldPolicy.address)
     const defaultPoolExitPolicy = await (await ethers.getContractFactory("DefaultPoolExitPolicy", deploymentOwner)).deploy() as IPoolExitPolicy
     await defaultPoolExitPolicy.deployed()
+    localConfig.defaultPoolExitPolicy = defaultPoolExitPolicy.address
     log('Deployed default pool exit policy', defaultPoolExitPolicy.address)
 
     const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory", deploymentOwner)
@@ -40,6 +43,8 @@ async function deployPoolFactory() {
     // localConfig.poolFactory = poolFactory.address
     await poolFactory.deployed()
     log('Deployed pool factory', poolFactory.address)
+    // eslint-disable-next-line require-atomic-updates
+    localConfig.poolFactory = poolFactory.address
     await (await poolFactory.addTrustedPolicies([
         defaultPoolJoinPolicy.address,
         defaultPoolYieldPolicy.address,
@@ -50,7 +55,6 @@ async function deployPoolFactory() {
 
 async function main() {
     deploymentOwner = new Wallet(localConfig.adminKey, chainProvider)
-
     await deployPoolFactory()
     fs.writeFileSync('localConfig.json', JSON.stringify(localConfig, null, 2))
 }
