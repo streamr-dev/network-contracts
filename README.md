@@ -2,8 +2,8 @@ This is a monorepo containing various smart contracts and subgraphs used by the 
 
 ## Main packages
 
-- [smartcontracts](https://github.com/streamr-dev/network-contracts/tree/master/packages/smartcontracts) The actual smart contracts used by the Streamr Network
-- [streamregistry-thegraph-subgraph](https://github.com/streamr-dev/network-contracts/tree/master/packages/streamregistry-thegraph-subgraph) The Graph subgraphs for many contracts in the `smartcontracts` package
+- [Network contracts](https://github.com/streamr-dev/network-contracts/tree/master/packages/network-contracts) The actual smart contracts used by the Streamr Network
+- [Network subgraphs](https://github.com/streamr-dev/network-contracts/tree/master/packages/network-subgraphs) The Graph subgraphs for many contracts in the `smartcontracts` package
 - [config](https://github.com/streamr-dev/network-contracts/tree/master/packages/config) Addresses of deployed Streamr contracts on various chains, importable as an npm package
 
 ## Other packages
