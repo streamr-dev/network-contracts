@@ -1,4 +1,4 @@
-# Streamr Marketplace
+# Streamr Hub
 
 ## Development notes
 
