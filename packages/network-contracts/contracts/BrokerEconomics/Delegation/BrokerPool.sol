@@ -31,8 +31,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Staked(Bounty indexed bounty, uint amountWei);
     event Losses(Bounty indexed bounty, uint amountWei);
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
-    event QueuedDataPayout(address user, uint amountDataWei);
-    event UnqueuedDataPayout(address user, uint amountDataWei);
+    event QueuedDataPayout(address user, uint amountPoolTokenWei);
+    event QueueUpdated(address user, uint amountPoolTokenWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -71,7 +71,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queuePayoutIndex;
 
     // triple bookkeeping
-    // 1. real actual poolvalue val = local free funds + stake in bounties + allocation in bounties; loops over bounties
+    // 1. real actual poolvalue = local free funds + stake in bounties + allocation in bounties; loops over bounties
     // 2. val = Sum over local mapping approxPoolValueOfBounty + free funds
     // 3. val = approxPoolValue in globalstorage
     mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
@@ -408,6 +408,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, winnings),
             "error_yieldPolicy_deductBrokersPart_Failed");
 
+        // value left in bounty = stake, after the allocations have been withdrawn
+        // TODO: add test
+        // approxPoolValueOfBounty[bounty] = bounty.getMyStake();
+
         // uint appoxWinnings = approxPoolValueOfBounty[bounty] - bounty.getMyStake();
         // uint approxWinningsLeft = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
         //     appoxWinnings), "error_yieldPolicy_deductBrokersPart_Failed");
@@ -460,22 +464,25 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 uint256 partialAmountDataWei = globalData().token.balanceOf(address(this));
                 // console.log("payOutQueueWithFreeFunds partialAmountDataWei", partialAmountDataWei);
                 // uint256 remainingAmountDataWei = amountDataWei - partialAmountDataWei;
-                uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                    partialAmountDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
+                uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy),
+                    abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, partialAmountDataWei, 0),
+                    "error_yieldPolicy_dataToPooltoken_Failed");
                 queuedPayoutsPerUser[user] -= partialAmountPoolTokens;
-                PayoutQueueEntry memory oldEntry = payoutQueue[queuePayoutIndex];
-                payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, oldEntry.amountPoolTokenWei - partialAmountPoolTokens, oldEntry.timestamp);
+
+                uint256 poolTokensLeftInQueue = payoutQueue[queuePayoutIndex].amountPoolTokenWei - partialAmountPoolTokens;
+                payoutQueue[queuePayoutIndex].amountPoolTokenWei = poolTokensLeftInQueue;
+
                 _burn(address(this), partialAmountPoolTokens);
                 globalData().token.transfer(user, partialAmountDataWei);
                 globalData().approxPoolValue -= partialAmountDataWei;
+
                 emit InvestmentReturned(user, partialAmountDataWei);
+                emit QueueUpdated(user, poolTokensLeftInQueue);
             }
         }
     }
 
-    // TODO: is this used anywhere? Or should it have "My" in the name?
-    function getQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
-        // console.log("## getQueuedPayoutPoolTokens");
+    function getMyQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
         return queuedPayoutsPerUser[_msgSender()];
     }
 
@@ -490,15 +497,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /**
      * @dev Don't call from smart contract, could be expensive
      */
-    function calculatePoolValueInData(uint256 substractWei) public view returns (uint256 poolValue) {
-        // console.log("## calculatePoolValueInData");
+    function calculatePoolValueInData() public view returns (uint256 poolValue) {
         poolValue = globalData().token.balanceOf(address(this));
-        // console.log("calculatePoolValueInData poolValue1", poolValue);
         for (uint i = 0; i < bounties.length; i++) {
             poolValue += getPoolValueFromBounty(bounties[i]);
-            // console.log("calculatePoolValueInData poolValue of bounty", poolValue);
         }
-        poolValue -= substractWei;
     }
 
     function queueDataPayout(uint amountPoolTokenWei) public {
@@ -560,9 +563,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
         uint alloc = bounty.getAllocation(address(this));
-        // console.log("calculatePoolValueInData alloc", alloc);
         uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
-        // console.log("calculatePoolValueInData share", share);
         poolValue = bounty.getMyStake() + alloc - share;
     }
 
