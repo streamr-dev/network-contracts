@@ -19,29 +19,32 @@ const RESOLVERADDRESS = '0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c'
 
 const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
 const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
-let walletMainnet: Wallet
-let walletSidechain: Wallet
+const domainOwner: Wallet = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
+const domnainOwnerSidechain: Wallet = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
+const subdomainOwner: Wallet = Wallet.createRandom().connect(sideChainProvider)
 let registryFromUser: StreamRegistry
 let ensFomAdmin: Contract
 let fifsFromAdmin: Contract
 // let resolverFomAdmin : Contract
 let randomENSName: string
+let randomENSNameWithSubdomain: string
 const metadata1 = 'metadata1'
 
 const connectToAllContracts = async () => {
-    walletMainnet = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
-    walletSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
+    // send some eth to the subdomain owner
+    // await (await ensDomainOwner.sendTransaction({ to: ensSubdomainOwnerSidechain.address, value: ethers.utils.parseEther('1') })).wait()
+    await (await domnainOwnerSidechain.sendTransaction({ to: subdomainOwner.address, value: ethers.utils.parseEther('1') })).wait()
 
-    const streamregistryFactory = await ethers.getContractFactory('StreamRegistry', walletSidechain)
+    const streamregistryFactory = await ethers.getContractFactory('StreamRegistry', domnainOwnerSidechain)
     const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
     const registryContract = await registry.deployed()
-    registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistry
+    registryFromUser = await registryContract.connect(domnainOwnerSidechain) as StreamRegistry
 
     const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
-    ensFomAdmin = await ensContract.connect(walletMainnet)
+    ensFomAdmin = await ensContract.connect(domainOwner)
 
     const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
-    fifsFromAdmin = await fifsContract.connect(walletMainnet)
+    fifsFromAdmin = await fifsContract.connect(domainOwner)
 }
 
 const getRandomPath = () => {
@@ -51,23 +54,51 @@ const getRandomPath = () => {
 const registerENSNameOnMainnet = async () => {
     const randomDomain = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
     randomENSName = randomDomain + '.eth'
-    console.log('registering ens name on mainnet:', randomENSName, ' owner:', walletMainnet.address)
+    console.log('registering ens name on mainnet:', randomENSName, ' owner:', domainOwner.address)
     const hashedDomain = utils.keccak256(utils.toUtf8Bytes(randomDomain))
     const nameHashedENSName = utils.namehash(randomENSName)
-    let tx = await fifsFromAdmin.register(hashedDomain, walletMainnet.address)
+    let tx = await fifsFromAdmin.register(hashedDomain, domainOwner.address)
     await tx.wait()
-    console.log('setting resolver for ens')
 
-    tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    await tx.wait(2)
-    console.log('setting owner for ens')
+    // console.log('setting owner for ens (should already be the registrar)')
+    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    // await tx.wait()
+    
+    // console.log('setting resolver for ens')
+    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    // await tx.wait(2)
 
-    tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    console.log('setting owner (' + domainOwner.address + '), resolver and ttl for ens')
+    tx = await ensFomAdmin.setRecord(nameHashedENSName, domainOwner.address, RESOLVERADDRESS, 1000000)
     await tx.wait()
-    console.log('querying owner from mainchain')
 
+    const label = "subdomain"
+    randomENSNameWithSubdomain = label + '.' + randomENSName
+    const nameHashedSubdomain = utils.namehash(randomENSNameWithSubdomain)
+    const labelhash = utils.keccak256(utils.toUtf8Bytes(label))
+    console.log('registering subdomain on mainnet:', randomENSNameWithSubdomain, ' owner:', subdomainOwner.address)
+    tx = await fifsFromAdmin.register(utils.keccak256(utils.toUtf8Bytes(randomENSNameWithSubdomain)), subdomainOwner.address)
+    await tx.wait()
+
+    console.log('setting owner (' + subdomainOwner.address + '), resolver and ttl for subdomain')
+    tx = await ensFomAdmin.setSubnodeRecord(nameHashedENSName, labelhash, subdomainOwner.address, RESOLVERADDRESS, 1000000)
+    await tx.wait()
+
+    // console.log('setting subnode owner for subdomain')
+    // tx = await ensFomAdmin.setSubnodeOwner(nameHashedSubdomain, "subnodelabel1", walletMainnet.address, )
+    // await tx.wait()
+
+    // console.log('setting resolver for subdomain')
+    // tx = await ensFomAdmin.setResolver(nameHashedSubdomain, RESOLVERADDRESS)
+    // await tx.wait()
+
+    console.log('querying ens owner from mainchain')
     const addr = await ensFomAdmin.owner(nameHashedENSName)
     console.log('queried owner of', randomENSName, ': ', addr)
+
+    console.log('querying subdomain owner from mainchain')
+    const subdomainOwnerQueried = await ensFomAdmin.owner(nameHashedSubdomain)
+    console.log('queried owner of', randomENSNameWithSubdomain, ': ', subdomainOwnerQueried)
 }
 
 const triggerChainlinkSyncOfENSNameToSidechain = async () => {
@@ -90,7 +121,29 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
         }
     }
     console.log('stream', randomENSName + randomPath, 'was synced from mainchain, metadata: ', metadata1)
-    console.log('SUCCESS, everything worked!')
+    console.log('SUCCESS, creating a stream with the ens from owner of domain worked')
+}
+
+const triggerChainlinkSyncOfENSSubdomainToSidechain = async () => {
+    const randomPath = getRandomPath()
+    console.log('creating stream with subdomain from subdomainowner: ' + randomENSNameWithSubdomain + randomPath)
+    const tx = await registryFromUser.connect(subdomainOwner).createStreamWithENS(randomENSNameWithSubdomain, randomPath, metadata1)
+    // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
+    await tx.wait()
+    console.log('call done')
+    let streamMetaDataCreatedByChainlink = ''
+    while (streamMetaDataCreatedByChainlink !== metadata1) {
+        try {
+            streamMetaDataCreatedByChainlink = await registryFromUser.getStreamMetadata(randomENSNameWithSubdomain + randomPath)
+        } catch (err) {
+            console.log('checking if stream is created through chainlink: metadata is ', streamMetaDataCreatedByChainlink)
+            await new Promise((resolve) => {
+                return setTimeout(resolve, 3000)
+            })
+        }
+    }
+    console.log('stream', randomENSNameWithSubdomain + randomPath, 'was synced from mainchain, metadata: ', metadata1)
+    console.log('SUCCESS, creating a stream with the ens from owner of domain worked')
 }
 
 async function main() {
@@ -98,6 +151,7 @@ async function main() {
 
     await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
+    await triggerChainlinkSyncOfENSSubdomainToSidechain()
 }
 
 main()
