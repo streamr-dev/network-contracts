@@ -56,11 +56,11 @@ These examples use older contracts:
 ## ProjectStakingV1
 
 Simple staking and unstaking functionality related to projects. It allows users to deposit tokens to the contract and specify a `projectId` which they're staking the tokens for. The contract keeps track of who has staked how many tokens against what projects.
-The contract supports ERC-677 so that when tokens are `transferAndCalled` to the contract, they are added to the staked amount for that user. The contract is deployed with an upgradable proxy.
+The contract supports ERC-677 so that when tokens are `transferAndCall`ed to the contract, they are added to the staked amount for that user. The contract is deployed with an upgradable proxy.
 
-The following will lead to the same end result:
-- approve, then stake 
-- transferAndCall
+The following two alternatives will lead to the same end result:
+- `approve`, then `stake` (ERC-20) 
+- `transferAndCall` (ERC-677)
 
 ### Interface:
 - `stake(projectId, amount)`
