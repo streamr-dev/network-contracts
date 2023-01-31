@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
-import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../typechain"
+import { DATAv2, MarketplaceV4, ProjectRegistry, ProjectStakingV1, StreamRegistryV3 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -11,6 +11,7 @@ const {
     CHAIN = 'dev1',
     DEFAULT_ADMIN: DEFAULT_PRIVATE_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // privateKeys[0]
     ADMIN: PROJECT_ADMIN_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', // privateKeys[2]
+    BUYER: BUYER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', // deployer/owner of LINK token
 } = process.env
 
 const {
@@ -19,18 +20,23 @@ const {
     }],
     contracts: {
         DATA: DATA_V2_ADDRESS,
+        LINK: LINK_TOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E',
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
         ProjectRegistry: PROJECT_REGISTRY_ADDRESS,
         MarketplaceV4: MARKETPLACE_ADDRESS,
+        ProjectStakingV1: PROJECT_STAKING_ADDRESS = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF',
     }
 } = Chains.load()[CHAIN]
 
 let projectRegistry: ProjectRegistry
+let projectStaking: ProjectStakingV1
 let streamRegistry: StreamRegistryV3
 let marketplace: MarketplaceV4
 let dataToken: DATAv2
+let linkToken: any
 let defaultAdminWallet: Wallet
 let adminWallet: Wallet
+let buyerWallet: Wallet
 const domainIds: number[] = []
 const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
@@ -38,6 +44,7 @@ const connectWallets = () => {
     const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL)
     defaultAdminWallet = new Wallet(DEFAULT_PRIVATE_KEY, provider)
     adminWallet = new Wallet(PROJECT_ADMIN_KEY, provider)
+    buyerWallet = new Wallet(BUYER_KEY, provider)
 }
 
 const connectContracts = async () => {
@@ -45,6 +52,12 @@ const connectContracts = async () => {
     const dataTokenFactoryTx = await dataTokenFactory.attach(DATA_V2_ADDRESS)
     dataToken = await dataTokenFactoryTx.deployed() as DATAv2
     log("DATAv2 deployed at: ", dataToken.address)
+
+    const linkTokenFactory = await getContractFactory("DATAv2", buyerWallet) // used DATAv2 since it only needs the common ERC20 functions
+    const linkTokenFactoryTx = await linkTokenFactory.attach(LINK_TOKEN_ADDRESS)
+    linkToken = await linkTokenFactoryTx.deployed()
+    log("LinkToken deployed at: ", linkToken.address)
+    log("LinkToken balance buyer: ", await linkToken.balanceOf(buyerWallet.address))
 
     const projectRegistryFactory = await getContractFactory("ProjectRegistry")
     const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
@@ -61,26 +74,31 @@ const connectContracts = async () => {
     marketplace = await marketplaceV4FactoryTx.deployed() as MarketplaceV4
     log("MarketplaceV4 deployed at: ", marketplace.address)
 
+    const projectStakingFactory = await getContractFactory("ProjectStakingV1")
+    const projectStakingFactoryTx = await projectStakingFactory.attach(PROJECT_STAKING_ADDRESS)
+    projectStaking = await projectStakingFactoryTx.deployed() as ProjectStakingV1
+    log("ProjectStakingV1 deployed at: ", projectStaking.address)
+
     const latestBlock = await hardhatEthers.provider.getBlock("latest")
     log('latestBlock', latestBlock.number)
 }
 
-// const buyProject = async (
-//     projectId: string,
-//     subscriptionSeconds: number,
-//     buyer: Wallet
-// ): Promise<void> => {
-//     let tx
-//     if(buyer) {
-//         log('   - buyer: ', buyer.address)
-//         tx = await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
-//     } else {
-//         tx = await marketplace.buy(projectId, subscriptionSeconds) // uses the cli exported KEY
-//     }
-//     log('   - subscriptionSeconds: ', subscriptionSeconds)
-//     log('   - projectId: ', projectId)
-//     await tx.wait()
-// }
+const buyProject = async (
+    projectId: string,
+    subscriptionSeconds: number,
+    buyer: Wallet
+): Promise<void> => {
+    let tx
+    if(buyer) {
+        log('   - buyer: ', buyer.address)
+        tx = await marketplace.connect(buyer).buy(projectId, subscriptionSeconds)
+    } else {
+        tx = await marketplace.buy(projectId, subscriptionSeconds) // uses the cli exported KEY
+    }
+    log('   - subscriptionSeconds: ', subscriptionSeconds)
+    log('   - projectId: ', projectId)
+    await tx.wait()
+}
 
 const createProject = async ({
     id = hexlify(zeroPad(toUtf8Bytes('project-' + Date.now()), 32)),
@@ -177,7 +195,9 @@ const updatePaymentDetails = (domainId: number, beneficiary: string, pricingToke
 async function main() {
     connectWallets()
     await connectContracts()
-    updatePaymentDetails(8997, adminWallet.address, dataToken.address, 2) // dev1
+    updatePaymentDetails(8997, buyerWallet.address, LINK_TOKEN_ADDRESS, 2) // dev1
+
+    // ProjectRegistry
     const projectId = await createProject()
     await updateProject({ id: projectId, pricePerSecond: 2 })
     await setPermission({ projectId, userAddress: Wallet.createRandom().address })
@@ -187,9 +207,26 @@ async function main() {
     await removeStream(projectId, streamId)
     await deleteProject(projectId)
 
-    // console.log(`Existing project: ${await projectRegistry.getProject(projectId, [8997])}`)
-    // console.log(`Purchase info: ${await marketplace.getPurchaseInfo(projectId, 100, domainIds[0], 1)}`)
-    // await buyProject(projectId, 100, adminWallet)
+    // MarketplaceV4
+    const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, domainIds[0], 1)
+    log(`Purchase info: ${purchaseInfo}`)
+    log(`Buyer can buy project: ${await projectRegistry.canBuyProject(projectId, buyerWallet.address)}`)
+    await(await linkToken.connect(buyerWallet).approve(marketplace.address, 200)).wait()
+    log(`Buyer subscription before buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
+    await buyProject(projectId, 100, buyerWallet)
+    log(`Buyer subscription after buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
+
+    // ProjectStakingV1
+    await(await linkToken.connect(buyerWallet).approve(projectStaking.address, 200)).wait()
+    log(`Stake before staking: ${await projectStaking.getTotalStake()}`)
+    await(await projectStaking.connect(buyerWallet).stake(projectId, 200)).wait()
+    log(`Stake after staking: ${await projectStaking.getTotalStake()}`)
+
+    log(`Stake before unstaking: ${await projectStaking.getTotalStake()}`)
+    log(`Project stake before unstaking: ${await projectStaking.getProjectStake(projectId)}`)
+    log(`User stake before unstaking: ${await projectStaking.getUserStake(buyerWallet.address)}`)
+    await(await projectStaking.connect(buyerWallet).unstake(projectId, 200)).wait()
+    log(`Stake after unstaking: ${await projectStaking.getTotalStake()}`)
 }
 
 main().catch((error) => {
