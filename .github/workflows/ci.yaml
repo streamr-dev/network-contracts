@@ -60,7 +60,7 @@ jobs:
       - name: Build packages
         run: npm run build -w packages/network-contracts
       - name: Start Streamr Docker Stack
-        uses: streamr-dev/streamr-docker-dev-action@v1.0.0
+        uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
           services-to-start: 'chainlink'
       - name: Integration Test (with dev-docker environment)
