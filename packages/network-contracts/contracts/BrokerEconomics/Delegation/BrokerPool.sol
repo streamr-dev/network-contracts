@@ -80,11 +80,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(msg.sender == globalData().broker, "error_only_broker");
         _;
     }
-    modifier onlyBrokerOrForced() {
-        require(msg.sender == globalData().broker
-            || payoutQueue[queuePayoutIndex].timestamp + globalData().streamrConstants.MAX_SLASH_TIME() < block.timestamp, "error_only_broker_or_forced");
-        _;
-    }
+    // modifier onlyBrokerOrForced() {
+    //     require(msg.sender == globalData().broker
+    //         || payoutQueue[queuePayoutIndex].timestamp + globalData().streamrConstants.MAX_SLASH_TIME() < block.timestamp, "error_only_broker_or_forced");
+    //     _;
+    // }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -95,7 +95,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address brokerAddress,
         string calldata poolName,
         uint initialMinimumInvestmentWei,
-        uint gracePeriodSeconds_
+        uint forceUnstakeGracePeriodSeconds
     ) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -106,8 +106,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().streamrConstants = StreamrConstants(streamrConstants);
         minimumInvestmentWei = initialMinimumInvestmentWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
-        require(gracePeriodSeconds_ >= globalData().streamrConstants.MAX_SLASH_TIME(), "error_gracePeriodTooShort");
-        gracePeriodSeconds = gracePeriodSeconds_;
+        require(forceUnstakeGracePeriodSeconds >= globalData().streamrConstants.MAX_SLASH_TIME(), "error_gracePeriodTooShort");
+        gracePeriodSeconds = forceUnstakeGracePeriodSeconds;
     }
 
     function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -323,12 +323,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit Staked(bounty, amountWei);
     }
 
-    function unstake(Bounty bounty) external onlyBroker { // remove modifier, double checked..?
-        unstakeWithoutQueue(bounty);
-        payOutQueueWithFreeFunds(0);
+    function unstake(Bounty bounty, uint maxPayoutCount) external onlyBroker {
+        _unstake(bounty);
+        payOutQueueWithFreeFunds(maxPayoutCount);
     }
 
-    function unstakeWithoutQueue(Bounty bounty) public onlyBrokerOrForced {
+    function _unstake(Bounty bounty) private {
         // console.log("## unstakeWithoutQueue bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
@@ -358,7 +358,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         _removeBounty(bounty);
     }
-
 
     function reduceStake(Bounty bounty, uint amountWei) external onlyBroker {
         // console.log("## reduceStake amountWei", amountWei);
@@ -517,14 +516,22 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
     }
 
-    function forceUnstake(Bounty bounty) external {
+    /**
+     * Broker hasn't been doing its job, queue hasn't been paid out
+     * Anyone can come along and force unstaking a bounty to get pay-outs rolling
+     * @param bounty the funds (unstake) to pay out the queue
+     * @param maxIterations how many queue items to pay out
+     */
+    function forceUnstake(Bounty bounty, uint maxIterations) external {
+        require(payoutQueue[queuePayoutIndex].timestamp + gracePeriodSeconds < block.timestamp, "error_gracePeriod");
+
         // updateApproximatePoolvalueOfBounty(bounty);
         // console.log("## forceUnstake");
-        unstakeWithoutQueue(bounty);
-        payOutQueueWithFreeFunds(0);
+        _unstake(bounty);
+        payOutQueueWithFreeFunds(maxIterations);
     }
 
-     /*
+    /*
      * Override openzeppelin's ERC2771ContextUpgradeable function
      * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
      */
