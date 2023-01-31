@@ -23,9 +23,9 @@ const domainOwner: Wallet = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
 const domnainOwnerSidechain: Wallet = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
 const subdomainOwner: Wallet = Wallet.createRandom().connect(sideChainProvider)
 let registryFromUser: StreamRegistry
-let ensFomAdmin: Contract
+let ensFromAdmin: Contract
 let fifsFromAdmin: Contract
-// let resolverFomAdmin : Contract
+// let resolverFromAdmin : Contract
 let randomENSName: string
 let randomENSNameWithSubdomain: string
 const metadata1 = 'metadata1'
@@ -41,7 +41,7 @@ const connectToAllContracts = async () => {
     registryFromUser = await registryContract.connect(domnainOwnerSidechain) as StreamRegistry
 
     const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
-    ensFomAdmin = await ensContract.connect(domainOwner)
+    ensFromAdmin = await ensContract.connect(domainOwner)
 
     const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
     fifsFromAdmin = await fifsContract.connect(domainOwner)
@@ -61,15 +61,15 @@ const registerENSNameOnMainnet = async () => {
     await tx.wait()
 
     // console.log('setting owner for ens (should already be the registrar)')
-    // tx = await ensFomAdmin.setOwner(nameHashedENSName, walletMainnet.address)
+    // tx = await ensFromAdmin.setOwner(nameHashedENSName, walletMainnet.address)
     // await tx.wait()
     
     // console.log('setting resolver for ens')
-    // tx = await ensFomAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
+    // tx = await ensFromAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
     // await tx.wait(2)
 
     console.log('setting owner (' + domainOwner.address + '), resolver and ttl for ens')
-    tx = await ensFomAdmin.setRecord(nameHashedENSName, domainOwner.address, RESOLVERADDRESS, 1000000)
+    tx = await ensFromAdmin.setRecord(nameHashedENSName, domainOwner.address, RESOLVERADDRESS, 1000000)
     await tx.wait()
 
     const label = "subdomain"
@@ -81,23 +81,23 @@ const registerENSNameOnMainnet = async () => {
     await tx.wait()
 
     console.log('setting owner (' + subdomainOwner.address + '), resolver and ttl for subdomain')
-    tx = await ensFomAdmin.setSubnodeRecord(nameHashedENSName, labelhash, subdomainOwner.address, RESOLVERADDRESS, 1000000)
+    tx = await ensFromAdmin.setSubnodeRecord(nameHashedENSName, labelhash, subdomainOwner.address, RESOLVERADDRESS, 1000000)
     await tx.wait()
 
     // console.log('setting subnode owner for subdomain')
-    // tx = await ensFomAdmin.setSubnodeOwner(nameHashedSubdomain, "subnodelabel1", walletMainnet.address, )
+    // tx = await ensFromAdmin.setSubnodeOwner(nameHashedSubdomain, "subnodelabel1", walletMainnet.address, )
     // await tx.wait()
 
     // console.log('setting resolver for subdomain')
-    // tx = await ensFomAdmin.setResolver(nameHashedSubdomain, RESOLVERADDRESS)
+    // tx = await ensFromAdmin.setResolver(nameHashedSubdomain, RESOLVERADDRESS)
     // await tx.wait()
 
     console.log('querying ens owner from mainchain')
-    const addr = await ensFomAdmin.owner(nameHashedENSName)
+    const addr = await ensFromAdmin.owner(nameHashedENSName)
     console.log('queried owner of', randomENSName, ': ', addr)
 
     console.log('querying subdomain owner from mainchain')
-    const subdomainOwnerQueried = await ensFomAdmin.owner(nameHashedSubdomain)
+    const subdomainOwnerQueried = await ensFromAdmin.owner(nameHashedSubdomain)
     console.log('queried owner of', randomENSNameWithSubdomain, ': ', subdomainOwnerQueried)
 }
 
