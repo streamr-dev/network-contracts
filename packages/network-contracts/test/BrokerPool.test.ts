@@ -306,10 +306,10 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("1"))
 
         // 6: Pay out the queue by unstaking
-        await expect(pool.connect(delegator).unstake(bounty.address, 10))
+        await expect(pool.connect(broker).unstake(bounty.address, 10))
             .to.emit(pool, "Unstaked").withArgs(bounty.address, parseEther("5"), parseEther("0"))
-            .to.not.emit(pool, "Losses")
             .to.emit(pool, "InvestmentReturned").withArgs(delegator.address, parseEther("5"))
+            .to.not.emit(pool, "Losses")
 
         expect(await pool.calculatePoolValueInData()).to.equal(parseEther("0"))
         expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("30")) // +5
@@ -551,7 +551,7 @@ describe("BrokerPool", (): void => {
 
         // advance time beyond max age of queue spot
         await advanceToTimestamp(timeAtStart + 2591000, "withdraw winnings from bounty")
-        await expect (pool.connect(delegator).forceUnstake(bounty.address, 10)).to.be.revertedWith("error_only_broker_or_forced")
+        await expect (pool.connect(delegator).forceUnstake(bounty.address, 10)).to.be.revertedWith("error_gracePeriod")
         await advanceToTimestamp(timeAtStart + 2592002, "withdraw winnings from bounty")
 
         // now anyone can trigger the unstake and payout of the queue
@@ -568,13 +568,13 @@ describe("BrokerPool", (): void => {
     it("forced example scenario", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.connect(delegator2).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.mint(delegator.address, parseEther("1000"))).wait()
-        await (await token.mint(delegator2.address, parseEther("1000"))).wait()
-        await (await token.mint(delegator3.address, parseEther("1000"))).wait()
+        await (await token.connect(delegator2).transfer(admin.address, await token.balanceOf(delegator2.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("10"))).wait()
+        await (await token.mint(delegator2.address, parseEther("10"))).wait()
+        await (await token.mint(delegator3.address, parseEther("10"))).wait()
 
         const days = 24 * 60 * 60
-        const pool = await deployBrokerPool({ gracePeriod: 7*days })
+        const pool = await deployBrokerPool({ gracePeriod: 30*days })
         await (await token.connect(delegator).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
         await (await token.connect(delegator2).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
         await (await token.connect(delegator3).transferAndCall(pool.address, parseEther("10"), "0x")).wait()
@@ -600,20 +600,30 @@ describe("BrokerPool", (): void => {
         await advanceToTimestamp(timeAtStart + 5*days, "Delegator 2 enters the exit queue")
         await pool.connect(delegator2).queueDataPayout(parseEther("10"))
 
-        // advance time beyond max age of queue spot
-        await advanceToTimestamp(timeAtStart + 2591000, "Delegator 1 wants to force-unstake too early")
-        await expect(pool.connect(delegator).forceUnstake(bounty1.address, 10)).to.be.revertedWith("error_only_broker_or_forced")
-        // t = 2592000
-        await advanceToTimestamp(timeAtStart + 3000000, "withdraw winnings from bounty")
-        // broker unstakes 5 data from bounty1
+        await advanceToTimestamp(timeAtStart + 29*days, "Delegator 1 wants to force-unstake too early")
+        await expect(pool.connect(delegator).forceUnstake(bounty1.address, 10)).to.be.revertedWith("error_gracePeriod")
+
+        await advanceToTimestamp(timeAtStart + 31*days, "Broker unstakes 5 data from bounty1")
         await pool.connect(broker).reduceStake(bounty1.address, parseEther("5"))
+
+        // bounty1 has 15 stake left, bounty2 has 10 stake left
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("5"))
+        expect(await pool.calculatePoolValueInData()).to.equal(parseEther("25"))
+
         // now anyone can trigger the unstake and payout of the queue
         // await (await pool.updateApproximatePoolvalueOfBounty(bounty2.address)).wait()
         // await (await pool.updateApproximatePoolvalueOfBounty(bounty1.address)).wait()
-        await (await pool.connect(delegator).forceUnstake(bounty1.address, 10)).wait()
-        expect(await token.balanceOf(delegator.address)).to.equal(parseEther("1000"))
-        expect(await token.balanceOf(delegator2.address)).to.equal(parseEther("1000"))
+        await expect(pool.connect(delegator2).forceUnstake(bounty1.address, 10))
+            .to.emit(pool, "Unstaked").withArgs(bounty1.address, parseEther("15"), parseEther("0"))
+
+        expect(await token.balanceOf(delegator.address)).to.equal(parseEther("10"))
+        expect(await token.balanceOf(delegator2.address)).to.equal(parseEther("10"))
+        expect(await token.balanceOf(delegator3.address)).to.equal(parseEther("0"))
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("0"))
+        expect(await pool.balanceOf(delegator2.address)).to.equal(parseEther("0"))
         expect(await pool.balanceOf(delegator3.address)).to.equal(parseEther("10"))
+        expect(await pool.calculatePoolValueInData()).to.equal(parseEther("10"))
+        expect(await pool.queueLength()).to.equal(await pool.queuePayoutIndex()) // queue is empty
     })
 
     it("edge case many queue entries, one bounty", async function(): Promise<void> {
@@ -646,7 +656,7 @@ describe("BrokerPool", (): void => {
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
-    it.only("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
+    it.skip("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool({ })

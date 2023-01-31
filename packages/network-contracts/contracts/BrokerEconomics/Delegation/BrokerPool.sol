@@ -409,7 +409,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // value left in bounty = stake, after the allocations have been withdrawn
         // TODO: add test
-        // approxPoolValueOfBounty[bounty] = bounty.getMyStake();
+        approxPoolValueOfBounty[bounty] = bounty.getMyStake();
 
         // uint appoxWinnings = approxPoolValueOfBounty[bounty] - bounty.getMyStake();
         // uint approxWinningsLeft = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
