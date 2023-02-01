@@ -1,5 +1,5 @@
 {
-  "name": "tatum-thegraph-subgraph",
+  "name": "@streamr-contracts/tatum-subgraph",
   "version": "0.0.1",
   "description": "Subgraph definitions for the tatum contracts",
   "scripts": {
