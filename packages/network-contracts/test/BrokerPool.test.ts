@@ -658,6 +658,9 @@ describe("BrokerPool", (): void => {
 
     it("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
         const { token } = contracts
+        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+
         const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool({ })
         const balanceBefore = await token.balanceOf(delegator.address)
@@ -689,6 +692,9 @@ describe("BrokerPool", (): void => {
 
     it("edge case ony queue entry, many bounties", async function(): Promise<void> {
         const { token } = contracts
+        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+
         const pool = await deployBrokerPool({ })
         const numberOfBounties = 1000
         for (let i = 0; i < numberOfBounties; i++) {
