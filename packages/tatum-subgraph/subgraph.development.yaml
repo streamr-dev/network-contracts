@@ -9,7 +9,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2'
+      address: '0x7E6F41bB1Ad12C50Dc3649Ec644B1278c6bb537C'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -21,7 +21,7 @@ dataSources:
         - Bounty
       abis:
         - name: BountyFactory
-          file: ./artifacts/smartcontracts/contracts/BrokerEconomics/Bounties/BountyFactory.sol/BountyFactory.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounties/BountyFactory.sol/BountyFactory.json
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
@@ -42,7 +42,7 @@ templates:
         - Stake
       abis:
         - name: Bounty
-          file: ./artifacts/smartcontracts/contracts/BrokerEconomics/Bounties/Bounty.sol/Bounty.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounties/Bounty.sol/Bounty.json
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
