@@ -656,7 +656,7 @@ describe("BrokerPool", (): void => {
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
-    it.skip("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
+    it("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool({ })
@@ -687,7 +687,7 @@ describe("BrokerPool", (): void => {
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
-    it.skip("edge case ony queue entry, many bounties", async function(): Promise<void> {
+    it("edge case ony queue entry, many bounties", async function(): Promise<void> {
         const { token } = contracts
         const pool = await deployBrokerPool({ })
         const numberOfBounties = 1000
