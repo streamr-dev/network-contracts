@@ -166,18 +166,18 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     * Creates a new project in the registry. All permissions are enabled for msg.sender
     * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated
-    * @dev streams are initialized to an empty string[]
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public {
-        _createProject(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(projectId, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(projectId, address(0), true, true, true, true);
@@ -190,28 +190,40 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     /**
-    * Updates project fields except for: version, streams[], permissions mapping
+    * Updates project fields except for: version, permissions mapping
     * @dev version is auto-incremented and is not editable
-    * @dev streams[] has dedicated methods under streams management
+    * @dev streams[] has dedicated methods under streams management as well
     * @dev permissions have dedicated methods under permissions management (supports other then msg.sender subscribers as well)
     */
     function updateProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
 
+        for(uint256 i = 0; i < p.streams.length; i++) {
+            removeStream(projectId, p.streams[i]);
+        }
+        for(uint256 i = 0; i < streams.length; i++) {
+            _addStream(projectId, streams[i]);
+        }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
-        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
-            PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
-            p.paymentDetails[domainIds[i]] = payment;
-            emit PaymentDetailsByChainUpdated(projectId, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
+            p.paymentDetails[domainIds[i]] = paymentDetailsByChain[i];
+            emit PaymentDetailsByChainUpdated(
+                projectId,
+                domainIds[i],
+                paymentDetailsByChain[i].beneficiary,
+                paymentDetailsByChain[i].pricingTokenAddress,
+                paymentDetailsByChain[i].pricePerSecond
+            );
         }
     }
 
@@ -219,6 +231,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint256 minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) internal {
@@ -228,10 +241,13 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
         Project storage p = projects[id];
         p.id = id;
+        for(uint256 i = 0; i < streams.length; i++) {
+            _addStream(id, streams[i]);
+        }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
         p.version = projects[id].version + 1;
-        emit ProjectCreated(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        emit ProjectCreated(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
             PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
@@ -307,6 +323,10 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /////////////// Streams Management /////////////////
 
     function addStream(bytes32 projectId, string calldata streamId) public projectExists(projectId) hasEditPermission(projectId) {
+        _addStream(projectId, streamId);
+    }
+
+    function _addStream(bytes32 projectId, string calldata streamId) private {
         require(!isStreamAdded(projectId, streamId), "error_streamAlreadyAdded");
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
         _grantSubscribeForStream(streamId, address(this));
@@ -469,12 +489,13 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public isTrusted(){
-        _createProject(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, user, true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);

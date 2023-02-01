@@ -39,8 +39,8 @@ interface IProjectRegistry {
     }
 
     // project events
-    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
-    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, string[] streams, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, string[] streams, uint256 minimumSubscriptionSeconds, string metadata);
     event ProjectDeleted(bytes32 indexed id);
     event PaymentDetailsByChainUpdated(bytes32 indexed id, uint32 domainId, address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
 
@@ -78,6 +78,7 @@ interface IProjectRegistry {
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
@@ -87,6 +88,7 @@ interface IProjectRegistry {
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) external;
@@ -136,6 +138,7 @@ interface IProjectRegistry {
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint256 minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,

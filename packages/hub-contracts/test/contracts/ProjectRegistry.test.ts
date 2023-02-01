@@ -154,13 +154,14 @@ describe('ProjectRegistry', (): void => {
         projectId = generateBytesId(),
         chains = domainIds,
         payment = paymentDetailsDefault,
+        streamIds = [],
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
         metadata = "",
         creator = admin
     } = {}): Promise<string> {
         await registry.connect(creator)
-            .createProject(projectId, chains, payment, minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, streamIds, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -172,6 +173,8 @@ describe('ProjectRegistry', (): void => {
     
     describe('Project management', (): void => {
         it("createProject - positivetest - creates a project with correct params", async () => {
+            await enableGrantPermissionForStream(streamId)
+            const streamIds: string[] = [streamId]
             const minimumSubscriptionSeconds = 1
             const isPublicPurchable = false
             const projectIdbytes = generateBytesId()
@@ -180,6 +183,7 @@ describe('ProjectRegistry', (): void => {
                 projectIdbytes,
                 domainIds,
                 paymentDetailsDefault,
+                streamIds,
                 minimumSubscriptionSeconds,
                 isPublicPurchable,
                 metadata))
@@ -187,6 +191,7 @@ describe('ProjectRegistry', (): void => {
                 .withArgs(
                     projectIdbytes,
                     domainIds,
+                    streamIds,
                     minimumSubscriptionSeconds,
                     metadata,
                 )
@@ -206,30 +211,30 @@ describe('ProjectRegistry', (): void => {
                 minimumSubscriptionSeconds,
                 metadata,
                 1, // project version
-                [], // streams added to project
+                streamIds, // streams added to project
             ])
             expect(actual).to.equal(expected)
         })
 
         it("createProject - negativetest - fails for empty project ID", async () => {
             const projectIdEmptyString = hexlify(zeroPad(toUtf8Bytes(''), 32))
-            await expect(registry.createProject(projectIdEmptyString, domainIds, paymentDetailsDefault, 1, true, "meta"))
+            await expect(registry.createProject(projectIdEmptyString, domainIds, paymentDetailsDefault, [], 1, true, "meta"))
                 .to.be.revertedWith('error_nullProjectId')
         })
 
         it("createProject - positivetest - can create free projects", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-create-free'), 32))
             // free projects are supported on project creation
-            expect(await registry.createProject(id, domainIds, paymentDetailsFreeProject, 1, true, metadata))
+            expect(await registry.createProject(id, domainIds, paymentDetailsFreeProject, [], 1, true, metadata))
                 .to.emit(registry, "ProjectCreated")
                 .withArgs(id, domainIds, 1, metadata)
         })
 
         it("updateProject - positivetest - can update to free projects", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-update-free'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             // free projects are supported on project update
-            await expect(registry.updateProject(id, domainIds, paymentDetailsFreeProject, 2, metadata))
+            await expect(registry.updateProject(id, domainIds, paymentDetailsFreeProject, [], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
                 
             const projectUpdated = await registry.getProject(id, domainIds)
@@ -239,15 +244,15 @@ describe('ProjectRegistry', (): void => {
 
         it("createProject - negativetest - fails for existing projects", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-double-create'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
-            await expect(registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
+            await expect(registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata))
                 .to.be.revertedWith('error_alreadyExists')
         })
 
         it("canBuyProject - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-can-buy-project'), 32))
             const isPublicPurchable = true
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, isPublicPurchable, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, isPublicPurchable, metadata)
             expect(await registry.canBuyProject(id, user1.address))
                 .to.be.true
         })
@@ -255,23 +260,23 @@ describe('ProjectRegistry', (): void => {
         it("canBuyProject - negativetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-cant-buy-project'), 32))
             const isPublicPurchable = false
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, isPublicPurchable, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, isPublicPurchable, metadata)
             expect(await registry.canBuyProject(id, user1.address))
                 .to.be.false
         })
 
         it("deleteProject, updateProject - negativetest - can only be modified if user has delete/edit permission", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-owner'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.connect(user1).deleteProject(id))
                 .to.be.revertedWith("error_noDeletePermission")
-            await expect(registry.connect(user1).updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
+            await expect(registry.connect(user1).updateProject(id, domainIds, paymentDetailsDefault, [], 2, metadata))
                 .to.be.revertedWith("error_noEditPermission")
         })
 
         it("deleteProject - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-delete'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
 
             expect((await registry.getProject(id, domainIds)).version)
                 .to.equal(1)
@@ -285,26 +290,37 @@ describe('ProjectRegistry', (): void => {
 
         it("deleteProject - negativetest - no Delete permission", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-delete-fails'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.connect(user1).deleteProject(id))
                 .to.be.revertedWith("error_noDeletePermission")
         })
 
         it("updateProject - positivetest", async () => {
+            await enableGrantPermissionForStream(streamId)
             const id = hexlify(zeroPad(toUtf8Bytes('test-update'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [streamId], 1, true, metadata)
+            const project = await registry.getProject(id, domainIds)
+            const minimumSubscriptionSeconds = project[1]
+            const streamIds = project[4]
 
-            await expect(registry.updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
+
+            await enableGrantPermissionForStream(streamId1)
+            await expect(registry.updateProject(id, domainIds, paymentDetailsDefault, [streamId1], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-            
             const projectUpdated = await registry.getProject(id, domainIds)
-            const minimumSubscriptionSeconds = projectUpdated[1]
-            expect(minimumSubscriptionSeconds).to.equal(2)
+            const minimumSubscriptionSecondsUpdated = projectUpdated[1]
+            const streamIdsUpdated = projectUpdated[4]
+
+            expect(minimumSubscriptionSeconds).to.equal(1)
+            expect(minimumSubscriptionSecondsUpdated).to.equal(2)
+            expect(streamIds).to.deep.equal([streamId])
+            // TODO: optimize removeStream to delete null position in array (related to ticket ETH-368)
+            expect(streamIdsUpdated).to.deep.equal(['', streamId1])
         })
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
             await expect(registry
-                .updateProject(projectIdbytesNonExistent, domainIds, paymentDetailsDefault, 2, metadata))
+                .updateProject(projectIdbytesNonExistent, domainIds, paymentDetailsDefault, [], 2, metadata))
                 .to.be.revertedWith('error_projectDoesNotExist')
         })
 
@@ -342,7 +358,7 @@ describe('ProjectRegistry', (): void => {
         it('addStream - negativetest - fails without Grant permission for stream', async (): Promise<void> => {
             // admin creates project => admin has project permissions
             const id = hexlify(zeroPad(toUtf8Bytes('add-stream-no-perm'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
 
             // admin creates stream => admin has stream permissions
             await streamRegistry.createStream('/streampathadd', metadata)
@@ -411,7 +427,7 @@ describe('ProjectRegistry', (): void => {
         it('grantSubscription - positivetest', async () => {
             const id = generateBytesId()
             const pricePerSecond = 1
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             expect(await registry.addStream(id, streamId))
                 .to.emit(registry, 'StreamAdded')
                 .withArgs(id, streamId)
@@ -952,12 +968,12 @@ describe('ProjectRegistry', (): void => {
         it('deleteProject, updateProject - negativetest - does not have special privileges', async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-trusted-manage-project'), 32))
             // admin creates a project, trusted can NOT control the project
-            await registry.createProject(id, domainIds, paymentDetailsDefault, 1, true, metadata)
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.connect(trusted).deleteProject(id))
                 .to.be.revertedWith('error_noDeletePermission')
         
             await expect(registry.connect(trusted)
-                .updateProject(id, domainIds, paymentDetailsDefault, 2, 'metadata-2'))
+                .updateProject(id, domainIds, paymentDetailsDefault, [], 2, 'metadata-2'))
                 .to.be.revertedWith('error_noEditPermission')
         })
 
@@ -965,7 +981,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('trusted-create-public'), 32))
 
             await expect(registry.connect(trusted)
-                .trustedCreateProject(id, domainIds, paymentDetailsDefault, 1, user1.address, true, metadata))
+                .trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, true, metadata))
                 .to.emit(registry, "ProjectCreated")
                 .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
@@ -975,7 +991,7 @@ describe('ProjectRegistry', (): void => {
 
             // the user1 for which the project was created can update the project
             await expect(registry.connect(user1)
-                .updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
+                .updateProject(id, domainIds, paymentDetailsDefault, [], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
 
             const projectUpdated = await registry.getProject(id, domainIds)
@@ -991,7 +1007,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('trusted-create-non-public'), 32))
 
             await expect(registry.connect(trusted)
-                .trustedCreateProject(id, domainIds, paymentDetailsDefault, 1, user1.address, false, metadata))
+                .trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, false, metadata))
                 .to.emit(registry, "ProjectCreated")
                 .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
@@ -999,7 +1015,7 @@ describe('ProjectRegistry', (): void => {
 
             // the user1 for which the project was created can update the project
             await expect(registry.connect(user1)
-                .updateProject(id, domainIds, paymentDetailsDefault, 2, metadata))
+                .updateProject(id, domainIds, paymentDetailsDefault, [], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
 
             const projectUpdated = await registry.getProject(id, domainIds)
@@ -1013,7 +1029,7 @@ describe('ProjectRegistry', (): void => {
 
         it('trustedCreateProject - negativetest', async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-trusted-create-fails'), 32))
-            await expect(registry.trustedCreateProject(id, domainIds, paymentDetailsDefault, 1, user1.address, true, metadata))
+            await expect(registry.trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, true, metadata))
                 .to.be.revertedWith('error_mustBeTrustedRole')
         })
     
