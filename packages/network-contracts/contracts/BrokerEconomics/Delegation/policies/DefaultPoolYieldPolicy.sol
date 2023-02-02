@@ -24,6 +24,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         LocalStorage storage data = localData();
         data.initialMargin = initialMargin;
         // consolelog("DefaultPoolYieldPolicy.setParam: initialMargin:", initialMargin);
+        require(maintenanceMarginPercent >= 0 && maintenanceMarginPercent < 100, "error_maintenanceMarginPercent");
         data.maintenanceMarginPercent = maintenanceMarginPercent;
         // consolelog("DefaultPoolYieldPolicy.setParam: maintenanceMarginPercent:", maintenanceMarginPercent);
         data.minimumMarginPercent = minimumMarginPercent;
@@ -58,11 +59,14 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
     }
 
     function dataToPooltoken(uint256 dataWei, uint256 substractFromPoolvalue) public view returns (uint256 poolTokenWei) {
-        // consolelog("## DefaultPoolYieldPolicy.dataToPooltoken", dataWei, substractFromPoolvalue);
+
+        // in the beginning, the pool is empty => we set 1:1 exchange rate
         if (this.totalSupply() == 0) {
             // consolelog("total supply is 0");
             return dataWei;
         }
+
+        assert(substractFromPoolvalue < globalData().approxPoolValue);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken amount to convert", dataWei);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken substract", substractFromPoolvalue);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data balance of this", globalData().token.balanceOf(address(this)));
@@ -70,9 +74,6 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data this totlasupply", this.totalSupply());
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data poolValueData", poolValueData);
-        if (poolValueData == 0) {
-            return dataWei;
-        }
         return dataWei * this.totalSupply() / poolValueData;
     }
 
@@ -82,19 +83,21 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         uint256 brokersShareDataWei = dataWei * localData().brokerSharePercent / 100;
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokersShareDataWei", brokersShareDataWei);
         // if brokers share of stake is less than maintenance margin, diect brokerShareMaxDivertPercent of his share to his stake
-        uint256 brokersShareOfStake = balanceOf(globalData().broker) * 100 / totalSupply();
+        uint256 brokersShareOfStakePercent = balanceOf(globalData().broker) * 100 / totalSupply(); // 50 * 100 / 1000 = 5
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStake", brokersShareOfStake);
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().maintenanceMarginPercent", localData().maintenanceMarginPercent);
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().brokerShareMaxDivertPercent", localData().brokerShareMaxDivertPercent);
-        if(brokersShareOfStake < localData().maintenanceMarginPercent) {
-            uint256 noBrokerGoalPercent = 100 - localData().maintenanceMarginPercent;
+        if (brokersShareOfStakePercent < localData().maintenanceMarginPercent) {
+            uint256 noBrokerGoalPercent = 100 - localData().maintenanceMarginPercent; // 90
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.noBrokerGoalPercent", noBrokerGoalPercent);
-            uint256 nonBrokerStake = totalSupply() - balanceOf(globalData().broker);
+            uint256 nonBrokerStake = totalSupply() - balanceOf(globalData().broker); // 1000 - 50 = 950
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.nonBrokerStake", nonBrokerStake);
-            uint256 brokerStakeGoal = nonBrokerStake * localData().maintenanceMarginPercent / noBrokerGoalPercent;
+            uint256 brokerStakeGoal = nonBrokerStake * localData().maintenanceMarginPercent / noBrokerGoalPercent; // 950 * 10 / 90 = 105.555
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokerStakeGoal", brokerStakeGoal);
+            // uint256 brokerStakeGoal = localData().maintenanceMarginPercent * totalSupply() / 100; // 10 * 1000 / 100 = 100
+
             uint256 missingPoolToken = brokerStakeGoal - balanceOf(globalData().broker);
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.missingPoolToken", missingPoolToken);
             uint256 divertDataWei = pooltokenToData(missingPoolToken, dataWei - brokersShareDataWei); // brokers share is already deducted from poolvalue
@@ -114,7 +117,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare transferred data to broker", brokersShareDataWei);
         // return (brokersShareDataWei, poolTokenToMint);
 
-        uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
+        // uint256 brokersShareOfStakeAFTER = balanceOf(globalData().broker) * 100 / totalSupply();
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(globalData().broker));
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);

@@ -19,7 +19,7 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
      * This garuantees that a broker (and thus a pool) can get the money back from any and all bounties
      * without being slashed (provided it does the work) in a fixed maximum time.
      */
-    uint public MAX_SLASH_TIME = 30 days; // maybe name MAX_SLASH_TIME?
+    uint public MAX_SLASH_TIME = 30 days; // TODO: maybe name MAX_SLASH_TIME_SECONDS?
 
     /**
      * The actual poolvalue can not be kept track of, since it would mean looping through all bounties
@@ -27,13 +27,13 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
      * between the actual poolvalue and the updated poolvalue is more than PERCENT_DIFF_APPROX_POOL_VALUE,
      * the broker is slashed a little.
      */
-    uint public PERCENT_DIFF_APPROX_POOL_VALUE = 10;
+    uint public PERCENT_DIFF_APPROX_POOL_VALUE = 10; // TODO: probably use wei/ether
 
     /**
      * In the case above, this is the percentage in thousandths
      * of hist stake that the broker is slashed. 5 is half a %.
      */
-    uint public PUNISH_BROKERS_PT_THOUSANDTH = 5;
+    uint public PUNISH_BROKERS_PT_THOUSANDTH = 5; // TODO: use wei/ether
 
     function initialize() public initializer {
         __AccessControl_init();
@@ -43,6 +43,7 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
+    // TODO: what would this be used for?
     function getUintVariable(string memory varName) public view returns (uint) {
         if (keccak256(abi.encodePacked(varName)) == keccak256(abi.encodePacked("MAX_MIN_JOIN_TIME"))) {
             return MAX_SLASH_TIME;

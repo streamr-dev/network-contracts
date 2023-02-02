@@ -735,6 +735,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(tokensBroker2)).to.equal("2000.0")
     })
 
+    it("allocates correctly when number of brokers is below minBrokerCount at times", async function(): Promise<void> {
+        // TODO
+    })
+
     it("deducts penalty from a broker that leaves too early", async function(): Promise<void> {
         const { token } = contracts
         const bounty = await deployBountyContract(contracts, {
