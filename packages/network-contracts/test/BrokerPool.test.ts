@@ -680,10 +680,13 @@ describe("BrokerPool", (): void => {
         expect(investorQueuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
 
         // await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")
-        // doing it in one go with 1000 slots in the queue will fail
-        // so only do the unstake, and then do two times 500 slot queue payouts
-        await (await pool.connect(broker).unstake(bounty.address, 500)).wait()
-        await (await pool.connect(broker).payOutQueueWithFreeFunds(500)).wait()
+        // doing it in one go with 1000 slots in the queue will fail, so do it in pieces
+        const gasLimit = 0xF42400 // "reasonable gas limit"
+        await expect(pool.connect(broker).unstake(bounty.address, 1000, { gasLimit })).to.be.reverted
+        await (await pool.connect(broker).unstake(bounty.address, 10, { gasLimit })).wait()
+        for (let i = 10; i < numberOfQueueSlots; i += 10) {
+            await (await pool.connect(broker).payOutQueueWithFreeFunds(10, { gasLimit })).wait()
+        }
 
         const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther(numberOfQueueSlots.toString()))
         const balanceAfter = await token.balanceOf(delegator.address)
