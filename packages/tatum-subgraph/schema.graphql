@@ -15,10 +15,10 @@ type Stake @entity {
   allocatedWei: BigInt!
   date: BigInt
   bounty: Bounty
-  pool: Pool @derivedFrom(field: "stakes")
+  pool: BrokerPool @derivedFrom(field: "stakes")
 }
 
-type Pool @entity {
+type BrokerPool @entity {
   id: ID! # pool address
   stakes: [Stake!]!
   investors: [PoolInvestment!]! @derivedFrom(field: "pool")
@@ -31,5 +31,5 @@ type PoolInvestment @entity {
   id: ID! # 0xpoolAddress-0xbrokerAddress
   investor: String!
   amount: BigInt!
-  pool: Pool
+  pool: BrokerPool
 }

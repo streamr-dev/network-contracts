@@ -9,7 +9,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x7E6F41bB1Ad12C50Dc3649Ec644B1278c6bb537C'
+      address: '0xA66F3900231F5c463fd7d729F03bcaF247188EaF'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -25,6 +25,28 @@ dataSources:
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
+  - kind: ethereum/contract
+    name: BrokerPoolFactory
+    network: xDai
+    source:
+      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0xb5EbfA478f316B409454e12f66F7b6F6C456b8e4'
+      abi: BrokerPoolFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/poolFactory.ts
+      entities:
+        - Pool
+        - PoolInvestment
+      abis:
+        - name: BrokerPoolFactory
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Delegation/BrokerPoolFactory.sol/BrokerPoolFactory.json
+      eventHandlers:
+        - event: NewBrokerPool(address)
+          handler: handlePoolCreated
 
 templates:
   - name: Bounty
@@ -56,4 +78,32 @@ templates:
         #   handler: handleBrokerJoined
         # - event: BrokerLeft(indexed address,uint256)
         #   handler: handleBrokerLeft
-
+  - name: BrokerPool
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: BrokerPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Pool
+        - PoolInvestment
+      abis:
+        - name: BrokerPool
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Delegation/BrokerPool.sol/BrokerPool.json
+      eventHandlers:
+          # - event: StakeUpdate(indexed address,uint256,uint256)
+          #   handler: handleStakeUpdated
+          # - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
+          #   handler: handleBountyUpdated
+          - event: InvestmentReceived(indexed address,uint256)
+            handler: handleInvestmentRecieved
+    # event InvestmentReturned(address indexed investor, uint amountWei);
+    # event Staked(Bounty indexed bounty, uint amountWei);
+    # event Losses(Bounty indexed bounty, uint amountWei);
+    # event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
+    # event QueuedDataPayout(address user, uint amountDataWei);
+    # event UnqueuedDataPayout(address user, uint amountDataWei);

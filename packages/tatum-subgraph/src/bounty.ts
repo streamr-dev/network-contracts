@@ -23,7 +23,14 @@ export function handleStakeUpdated(event: StakeUpdate): void {
 }
 
 export function handleBountyUpdated(event: BountyUpdate): void {
-    log.info('handleBountyUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    // log.info('handleBountyUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    log.info('handleBountyUpdated: totalStakeWei={} unallocatedWei={} projectedInsolvencyTime={} brokerCount={} isRunning={}', [
+        event.params.totalStakeWei.toString(),
+        event.params.unallocatedWei.toString(),
+        event.params.projectedInsolvencyTime.toString(),
+        event.params.brokerCount.toString(),
+        event.params.isRunning.toString()
+    ])
     let bountyAddress = event.address
     let bounty = Bounty.load(bountyAddress.toHexString())
     bounty!.totalStakedWei = event.params.totalStakeWei
