@@ -1,10 +1,11 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { Bounty, Stake } from '../generated/schema'
+import { Bounty, BrokerPool, Stake } from '../generated/schema'
 import { StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
-    log.info('handleStakeUpdated: sidechainaddress={} allocation={}', [event.address.toHexString(),  event.params.allocatedWei.toString()])
+    log.info('handleStakeUpdated: broker={} totalStake={} allocation={}', [event.params.broker.toHexString(),
+        event.params.totalWei.toString(), event.params.allocatedWei.toString()])
     let bountyAddress = event.address
     let brokerAddress = event.params.broker
 
@@ -19,6 +20,14 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stake.date = event.block.timestamp
     stake.amount = event.params.totalWei
     stake.allocatedWei = event.params.allocatedWei
+
+    // link to pool
+    let pool = BrokerPool.load(event.params.broker.toHexString())
+    if (pool !== null) {
+        log.info('handleStakeUpdated: updating pool pool={} stake={}', [pool.id, stake.id])
+        // pool.stakes.push(stakeID)
+        stake.pool = pool.id
+    }
     stake.save()
 }
 

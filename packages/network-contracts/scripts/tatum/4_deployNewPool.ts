@@ -39,6 +39,10 @@ const connectToAllContracts = async () => {
 
     //send some tokens to investor
     await (await token.transfer(investor.address, ethers.utils.parseEther('100'))).wait()
+
+    if (localConfig.pool) {
+        pool = await ethers.getContractAt('BrokerPool', localConfig.pool, deploymentOwner) as BrokerPool
+    }
 }
 
 const deployNewPool = async () => {
@@ -84,9 +88,9 @@ const brokerUnstakesFromBounty = async () => {
 
 async function main() {
     await connectToAllContracts()
-    await deployNewPool()
-    await investToPool()
-    // await stakeIntoBounty()
+    // await deployNewPool()
+    // await investToPool()
+    await stakeIntoBounty()
     // await divestFromPool()
     // await brokerUnstakesFromBounty()
     fs.writeFileSync('localConfig.json', JSON.stringify(localConfig, null, 2))

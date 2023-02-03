@@ -9,7 +9,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xA66F3900231F5c463fd7d729F03bcaF247188EaF'
+      address: '0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -30,7 +30,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xb5EbfA478f316B409454e12f66F7b6F6C456b8e4'
+      address: '0x1Cc93b7f91727e7c9bC86025C622A664e93DFb29'
       abi: BrokerPoolFactory
       startBlock: 0
     mapping:
@@ -62,6 +62,7 @@ templates:
       entities:
         - Bounty
         - Stake
+        - BrokerPool
       abis:
         - name: Bounty
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounties/Bounty.sol/Bounty.json
@@ -89,18 +90,18 @@ templates:
       language: wasm/assemblyscript
       file: ./src/pool.ts
       entities:
-        - Pool
+        - BrokerPool
         - PoolInvestment
       abis:
         - name: BrokerPool
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Delegation/BrokerPool.sol/BrokerPool.json
       eventHandlers:
-          # - event: StakeUpdate(indexed address,uint256,uint256)
+          # - event: Staked(indexed address,uint256)
           #   handler: handleStakeUpdated
           # - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
           #   handler: handleBountyUpdated
           - event: InvestmentReceived(indexed address,uint256)
-            handler: handleInvestmentRecieved
+            handler: handleInvestmentReceived
     # event InvestmentReturned(address indexed investor, uint amountWei);
     # event Staked(Bounty indexed bounty, uint amountWei);
     # event Losses(Bounty indexed bounty, uint amountWei);
