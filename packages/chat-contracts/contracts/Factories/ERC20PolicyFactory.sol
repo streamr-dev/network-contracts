@@ -20,7 +20,7 @@ contract ERC20PolicyFactory is TokenGateFactory{
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,
-        uint256 /*tokenId_*/,
+        uint256[] memory /*tokenId_*/,
         bool stakingEnabled_,
         StreamRegistryV3.PermissionType[] memory defaultPermissions_
     ) public override {

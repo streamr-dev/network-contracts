@@ -25,7 +25,7 @@ abstract contract TokenGateFactory {
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,
-        uint256 tokenId_,
+        uint256[] memory tokenIds_,
         bool stakingEnabled_,
         StreamRegistryV3.PermissionType[] memory defaultPermissions_
     ) public virtual;

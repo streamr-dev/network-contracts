@@ -63,7 +63,7 @@ describe('TokenGatedFactories', (): void => {
                 token.address,
                 streamId,
                 1, // minRequiredBalance,
-                0, // trivial, tokenId
+                [0], // trivial, tokenId
                 StakingEnabled,
                 [PermissionType.Subscribe, PermissionType.Publish], // permissions
             )
@@ -84,7 +84,7 @@ describe('TokenGatedFactories', (): void => {
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
-                    0, // trivial, tokenId
+                    [0], // trivial, tokenId
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish], // permissions
                 )
@@ -118,7 +118,7 @@ describe('TokenGatedFactories', (): void => {
                 token.address,
                 streamId,
                 0, // minRequiredBalance,
-                TokenId,
+                [TokenId],
                 StakingEnabled,
                 [PermissionType.Subscribe, PermissionType.Publish], // permissions
             )
@@ -139,7 +139,7 @@ describe('TokenGatedFactories', (): void => {
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
-                    TokenId,
+                    [TokenId],
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish], // permissions
                 )
@@ -173,14 +173,14 @@ describe('TokenGatedFactories', (): void => {
                 token.address,
                 streamId,
                 1, // minRequiredBalance,
-                0, // trivial, tokenId
+                [0], // trivial, tokenId
                 StakingEnabled,
                 [PermissionType.Subscribe, PermissionType.Publish], // permissions
             )
 
             const policyAddress = await joinPolicyRegistry.getPolicy(
                 token.address,
-                0, // tokenId
+                [0], // tokenId
                 streamId,
                 false // stakingEnabled
             )
@@ -194,7 +194,7 @@ describe('TokenGatedFactories', (): void => {
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
-                    0, // trivial, tokenId
+                    [0], // trivial, tokenId
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish], // permissions
                 )
@@ -228,7 +228,7 @@ describe('TokenGatedFactories', (): void => {
                 token.address,
                 streamId,
                 12, // minRequiredBalance,
-                TokenId,
+                [TokenId],
                 StakingEnabled,
                 [PermissionType.Subscribe, PermissionType.Publish], // permissions
             )
@@ -249,7 +249,7 @@ describe('TokenGatedFactories', (): void => {
                     token.address,
                     streamId,
                     7, // minRequiredBalance,
-                    TokenId,
+                    [TokenId],
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish], // permissions
                 )

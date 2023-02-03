@@ -1,43 +1,40 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC1820Implementer.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
-import "./JoinPolicy.sol";
-import "../DelegatedAccessRegistry.sol";
+import "./CoinJoinPolicy.sol";
 
-
-contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
+contract ERC777JoinPolicy is CoinJoinPolicy, ERC1820Implementer, IERC777Recipient{
     IERC777 public token;
 
     IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
     bytes32 public constant TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
     bytes32 public constant TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
     
+
     constructor(
-        address tokenAddress_,
-        address streamRegistryAddress_,
+        address tokenAddress,
+        address streamRegistryAddress,
         string memory streamId_,
         StreamRegistryV3.PermissionType[] memory permissions_,
         uint256 minRequiredBalance_,
-        address delegatedAccessRegistryAddress_,
+        address delegatedAccessRegistryAddress,
         bool stakingEnabled_
-    ) JoinPolicy (
-        streamRegistryAddress_,
-        delegatedAccessRegistryAddress_,
+    ) CoinJoinPolicy (
+        streamRegistryAddress,
         streamId_,
         permissions_,
+        minRequiredBalance_,
+        delegatedAccessRegistryAddress,
         stakingEnabled_
-    ){
-        require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
-        token = IERC777(tokenAddress_);
-        _erc1820.setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
+    ) {
+        token = IERC777(tokenAddress);
+         _erc1820.setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
         _erc1820.setInterfaceImplementer(address(this), TOKENS_SENDER_INTERFACE_HASH, address(this));
-        minRequiredBalance = minRequiredBalance_;
+        
     }
 
     modifier canJoin() override {
@@ -47,34 +44,35 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
 
     function depositStake(
         uint256 amount
-    )
-        public 
+    ) 
         override
+        public 
         isStakingEnabled()
         isUserAuthorized() 
         canJoin() 
     {
         token.operatorSend(msg.sender, address(this), amount, "", "");
-        balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
+        balances[msg.sender] = balances[msg.sender] + amount;
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
 
     function withdrawStake(
         uint256 amount
-    )
-        public 
+    ) 
         override
+        public 
         isStakingEnabled()
         isUserAuthorized() 
     {
-        // solhint-disable-next-line
-        token.send(msg.sender, amount, "");
-        balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);
-        if (balances[msg.sender] < minRequiredBalance) {
-            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-            revoke(msg.sender, delegatedWallet);
+        if (token.send(msg.sender, amount, "")){
+            balances[msg.sender] = balances[msg.sender] - amount;
+            if (balances[msg.sender] < minRequiredBalance) {
+                address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+                revoke(msg.sender, delegatedWallet);
+            }
         }
+        
     }
 
     function tokensReceived(
@@ -98,4 +96,5 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
     ) external {
         
     }
+
 }

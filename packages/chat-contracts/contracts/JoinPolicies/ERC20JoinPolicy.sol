@@ -1,13 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
-import "./JoinPolicy.sol";
-import "../DelegatedAccessRegistry.sol";
+import "./CoinJoinPolicy.sol";
 
-contract ERC20JoinPolicy is JoinPolicy{
+contract ERC20JoinPolicy is CoinJoinPolicy {
     IERC20 public token;
 
     constructor(
@@ -18,23 +15,22 @@ contract ERC20JoinPolicy is JoinPolicy{
         uint256 minRequiredBalance_,
         address delegatedAccessRegistryAddress,
         bool stakingEnabled_
-    ) JoinPolicy (
+    ) CoinJoinPolicy (
         streamRegistryAddress,
-        delegatedAccessRegistryAddress,
         streamId_,
         permissions_,
+        minRequiredBalance_,
+        delegatedAccessRegistryAddress,
         stakingEnabled_
     ) {
-        require(minRequiredBalance_ > 0, "error_minReqBalanceGt0");
         token = IERC20(tokenAddress);
-        minRequiredBalance = minRequiredBalance_;
     }
 
     modifier canJoin() override {
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
-    
+
     function depositStake(
         uint256 amount
     ) 
@@ -45,7 +41,7 @@ contract ERC20JoinPolicy is JoinPolicy{
         canJoin() 
     {
         token.transferFrom(msg.sender, address(this), amount);
-        balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
+        balances[msg.sender] = balances[msg.sender] + amount;
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
@@ -59,7 +55,7 @@ contract ERC20JoinPolicy is JoinPolicy{
         isUserAuthorized() 
     {
         token.transfer(msg.sender, amount);
-        balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);
+        balances[msg.sender] = balances[msg.sender] - amount;
         if (balances[msg.sender] < minRequiredBalance) {
             address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
             revoke(msg.sender, delegatedWallet);
@@ -67,4 +63,3 @@ contract ERC20JoinPolicy is JoinPolicy{
     }
 
 }
-

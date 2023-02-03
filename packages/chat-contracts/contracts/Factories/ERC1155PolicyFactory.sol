@@ -20,7 +20,7 @@ contract ERC1155PolicyFactory is TokenGateFactory{
         address tokenAddress,
         string memory streamId_,
         uint256 minRequiredBalance_,
-        uint256 tokenId_,
+        uint256[] memory tokenIds_,
         bool stakingEnabled_,
         StreamRegistryV3.PermissionType[] memory defaultPermissions_
     ) public override {
@@ -29,18 +29,20 @@ contract ERC1155PolicyFactory is TokenGateFactory{
             streamRegistryAddress,
             streamId_,
             defaultPermissions_,
-            tokenId_,
+            tokenIds_,
             minRequiredBalance_,
             delegatedAccessRegistryAddress,
             stakingEnabled_
         );
         address deployedPolicy = address(instance);
-        registry.register(
-            tokenAddress,
-            streamId_,
-            deployedPolicy,
-            tokenId_,
-            stakingEnabled_
-        );
+        for (uint256 i = 0; i < tokenIds_.length; i++) {
+             registry.register(
+                tokenAddress,
+                streamId_,
+                deployedPolicy,
+                tokenIds_[i],
+                stakingEnabled_
+            );
+        }
     }
 }

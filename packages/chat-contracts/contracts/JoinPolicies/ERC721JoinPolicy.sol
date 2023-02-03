@@ -3,45 +3,47 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
-import "./JoinPolicy.sol";
-import "../DelegatedAccessRegistry.sol";
 
-contract ERC721JoinPolicy is JoinPolicy, ERC721Holder{
-    IERC721 public token;
+import "./NFTJoinPolicy.sol";
+
+contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
+        IERC721 public token;
 
     constructor(
         address tokenAddress,
         address streamRegistryAddress,
         string memory streamId_,
         StreamRegistryV3.PermissionType[] memory permissions_,
-        uint256 tokenId_,
+        uint256[] memory tokenIds_,
         address delegatedAccessRegistryAddress,
         bool stakingEnabled_
-    ) JoinPolicy(
+    ) NFTJoinPolicy (
         streamRegistryAddress,
-        delegatedAccessRegistryAddress,
         streamId_,
         permissions_,
+        tokenIds_,
+        0,
+        delegatedAccessRegistryAddress,
         stakingEnabled_
     ) {
         token = IERC721(tokenAddress);
-        tokenId = tokenId_;
     }
 
-    modifier canJoin() override{
+    modifier canJoin(uint256 tokenId) override {
         require(token.ownerOf(tokenId) == msg.sender, "error_notEnoughTokens");
         _;
     }
 
-    function depositStake(
+function depositStake(
+        uint256 tokenId,
         uint256 /*amount*/
     )
         override
         public 
         isStakingEnabled()
-        isUserAuthorized() 
-        canJoin() 
+        isTokenIdIncluded(tokenId)
+        isUserAuthorized()
+        canJoin(tokenId) 
     {
         token.safeTransferFrom(msg.sender, address(this), tokenId);
         balances[msg.sender] = 1;
@@ -50,11 +52,13 @@ contract ERC721JoinPolicy is JoinPolicy, ERC721Holder{
     }
 
     function withdrawStake(
+        uint256 tokenId,
         uint256 /*amount*/
     )
         override
         public 
         isStakingEnabled()
+        isTokenIdIncluded(tokenId)
         isUserAuthorized() 
     {
        token.safeTransferFrom(address(this), msg.sender, tokenId);
@@ -62,5 +66,4 @@ contract ERC721JoinPolicy is JoinPolicy, ERC721Holder{
          address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
          revoke(msg.sender, delegatedWallet);
     }
-    
 }
