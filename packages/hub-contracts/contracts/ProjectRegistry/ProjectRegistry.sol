@@ -334,16 +334,20 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         emit StreamAdded(projectId, streamId);
     }
 
+    /**
+     * Removes the stream from the project
+     * @dev streams order is not important
+     * @dev swaps the last element with the one we want to remove and then pop the last element to remove the gap
+     */
     function removeStream(bytes32 projectId, string memory streamId) public projectExists(projectId) hasEditPermission(projectId) {
-        string[] memory streams = projects[projectId].streams;
+        string[] storage streams = projects[projectId].streams;
         for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                delete streams[i];
+            if (keccak256(bytes(streams[i])) == keccak256(bytes(streamId))) {
+                streams[i] = streams[streams.length - 1];
+                streams.pop();
                 break;
             }
         }
-        projects[projectId].streams = streams;
         emit StreamRemoved(projectId, streamId);
     }
 
@@ -370,13 +374,12 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
      * Enables Grant permission for all streams added to project.
+     * @dev must have Grant permission on all streams
      */
-    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal { // must have grand permission on all streams
+    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal {
         string[] memory streams = projects[projectId].streams;
         for(uint i = 0; i < streams.length; i++) {
-            streamRegistry.grantPermission(streams[i], subscriber, IStreamRegistry.PermissionType.Subscribe); // hasGrantPermission(streamId)
             _grantSubscribeForStream(streams[i], subscriber);
-
         }
     }
 

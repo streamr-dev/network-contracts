@@ -111,6 +111,17 @@ describe('ProjectRegistry', (): void => {
         minimalForwarder = await factory.deploy() as MinimalForwarder
     }
 
+    const createStream = async (creator = admin): Promise<string> => {
+        // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
+        const streamPath = '/projects/' + Date.now()
+        const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
+        await(await streamRegistry.connect(creator)
+            .createStream(streamPath, streamMetadata)).wait()
+        const streamId = creator.address.toLowerCase() + streamPath
+        log('Stream created (streamId: %s)', streamId)
+        return streamId
+    }
+
     async function deployStreamRegistryAndCreateStreams(): Promise<void> {
         const contractFactory = await getContractFactory("StreamRegistryV3", admin)
         const contractFactoryTx = await upgrades.deployProxy(
@@ -119,16 +130,8 @@ describe('ProjectRegistry', (): void => {
             { kind: 'uups' })
         streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
 
-        // create streams using the StreamRegistry contract (will give admin all permisisons to the stream)
-        const streamPath = '/streampath'
-        const streamMetadata = 'streamMetadata'
-        await streamRegistry.createStream(streamPath, streamMetadata)
-        streamId = admin.address.toLowerCase() + streamPath
-
-        const streamPath1 = '/streampath1'
-        const streamMetadata1 = 'streammetadata1'
-        await streamRegistry.createStream(streamPath1, streamMetadata1)
-        streamId1 = admin.address.toLowerCase() + streamPath1
+        streamId = await createStream()
+        streamId1 = await createStream()
     }
 
     async function deployProjectRegistry(): Promise<void> {
@@ -191,6 +194,7 @@ describe('ProjectRegistry', (): void => {
                 .withArgs(
                     projectIdbytes,
                     domainIds,
+                    paymentDetailsDefault,
                     streamIds,
                     minimumSubscriptionSeconds,
                     metadata,
@@ -303,7 +307,6 @@ describe('ProjectRegistry', (): void => {
             const minimumSubscriptionSeconds = project[1]
             const streamIds = project[4]
 
-
             await enableGrantPermissionForStream(streamId1)
             await expect(registry.updateProject(id, domainIds, paymentDetailsDefault, [streamId1], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
@@ -314,8 +317,7 @@ describe('ProjectRegistry', (): void => {
             expect(minimumSubscriptionSeconds).to.equal(1)
             expect(minimumSubscriptionSecondsUpdated).to.equal(2)
             expect(streamIds).to.deep.equal([streamId])
-            // TODO: optimize removeStream to delete null position in array (related to ticket ETH-368)
-            expect(streamIdsUpdated).to.deep.equal(['', streamId1])
+            expect(streamIdsUpdated).to.deep.equal([streamId1])
         })
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
