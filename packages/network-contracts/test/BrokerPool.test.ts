@@ -46,7 +46,7 @@ describe("BrokerPool", (): void => {
         maxBrokerDivertPercent = 0,
         minBrokerStakePercent = 0,
         brokerSharePercent = 0,
-        gracePeriod = 2592000, // = 30 days = MAX_SLASH_TIME in StreamrConstants.sol
+        gracePeriod = 2592000, // = 30 days = MAX_PENALTY_PERIOD_SECONDS in StreamrConstants.sol
     }): Promise<BrokerPool> => {
         // const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(0, 2592000, newPoolName(),
         const brokerPoolRc = await (await contracts.poolFactory.connect(broker).deployBrokerPool(

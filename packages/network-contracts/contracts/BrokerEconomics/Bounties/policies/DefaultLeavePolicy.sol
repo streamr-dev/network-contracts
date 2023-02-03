@@ -24,15 +24,15 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
         uint stake = globalData().stakedWei[broker];
         // console.log("getLeavePenaltyWei, stake =", stake);
         if (isRunning() && isFunded()) {
-            // console.log("Leaving a running bounty, lose stake");
-            return stake;
+            // console.log("Leaving a running bounty, lose 10% of stake");
+            return stake / 10;
         }
         // console.log("Get stake back");
         return 0;
     }
 
     function setParam(uint256 penaltyPeriod) external {
-        require (penaltyPeriod <= globalData().streamrConstants.MAX_SLASH_TIME(), "err_penaltyPeriod_too_long");
+        require (penaltyPeriod <= globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS(), "err_penaltyPeriod_too_long");
         penaltyPeriodSeconds = penaltyPeriod;
     }
 }

@@ -80,11 +80,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(msg.sender == globalData().broker, "error_only_broker");
         _;
     }
-    // modifier onlyBrokerOrForced() {
-    //     require(msg.sender == globalData().broker
-    //         || payoutQueue[queuePayoutIndex].timestamp + globalData().streamrConstants.MAX_SLASH_TIME() < block.timestamp, "error_only_broker_or_forced");
-    //     _;
-    // }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -106,7 +101,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().streamrConstants = StreamrConstants(streamrConstants);
         minimumInvestmentWei = initialMinimumInvestmentWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
-        require(forceUnstakeGracePeriodSeconds >= globalData().streamrConstants.MAX_SLASH_TIME(), "error_gracePeriodTooShort");
+        require(forceUnstakeGracePeriodSeconds >= globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS(), "error_gracePeriodTooShort");
         gracePeriodSeconds = forceUnstakeGracePeriodSeconds;
     }
 
