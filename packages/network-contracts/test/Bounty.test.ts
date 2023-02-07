@@ -341,7 +341,7 @@ describe("Bounty", (): void => {
         const jpMSC = await jpMS.deploy() as Contract
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "4"))
-            .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing " 
+            .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
             + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 

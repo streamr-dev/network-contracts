@@ -64,34 +64,34 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      *         after changing the order of change and listener in Bounty->onJoin, like was done for onSponsor
      */
     function update(int256 newFundsWei) private {
-        LocalStorage storage localData = localData();
-        GlobalStorage storage globalData = globalData();
+        LocalStorage storage localVars = localData();
+        GlobalStorage storage globalVars = globalData();
 
-        if (localData.lastUpdateWasRunning) {
-            uint deltaTime = block.timestamp - localData.lastUpdateTimestamp;
-            // console.log("    update period = ", localData.lastUpdateTimestamp, block.timestamp);
+        if (localVars.lastUpdateWasRunning) {
+            uint deltaTime = block.timestamp - localVars.lastUpdateTimestamp;
+            // console.log("    update period = ", localVars.lastUpdateTimestamp, block.timestamp);
 
             // was solvent in the start => calculate the past update period until insolvency if any
-            if (localData.defaultedWei == 0) {
-                uint allocationWei = localData.incomePerSecond * deltaTime;
-                uint allocationWeiPerStake = localData.incomePerSecondPerStake * deltaTime;
-                // console.log("    total staked  = ", localData.lastUpdateTotalStake);
+            if (localVars.defaultedWei == 0) {
+                uint allocationWei = localVars.incomePerSecond * deltaTime;
+                uint allocationWeiPerStake = localVars.incomePerSecondPerStake * deltaTime;
+                // console.log("    total staked  = ", localVars.lastUpdateTotalStake);
                 // console.log("    allocation    = ", allocationWei);
 
                 // in case of insolvency: allocate all remaining funds (according to weights) up to the start of insolvency
-                if (globalData.unallocatedFunds < allocationWei) {
+                if (globalVars.unallocatedFunds < allocationWei) {
                     uint insolvencyStartTime = getInsolvencyTimestamp();
                     // console.log("    insolvcyStart = ", insolvencyStartTime);
                     uint insolvencySeconds = block.timestamp - insolvencyStartTime;
                     // console.log("    insolvcySec.s = ", insolvencySeconds);
                     assert(insolvencySeconds <= deltaTime); // equality means insolvency started exactly during the last update
-                    localData.defaultedWeiPerStake = insolvencySeconds * localData.incomePerSecondPerStake;
-                    localData.defaultedWei = allocationWei - globalData.unallocatedFunds; // allocation should be >, otherwise insolvencyStartTime was wrong
-                    // console.log("    deflt / stake = ", localData.defaultedWeiPerStake);
-                    // console.log("    defaulted     = ", localData.defaultedWei);
+                    localVars.defaultedWeiPerStake = insolvencySeconds * localVars.incomePerSecondPerStake;
+                    localVars.defaultedWei = allocationWei - globalVars.unallocatedFunds; // allocation should be >, otherwise insolvencyStartTime was wrong
+                    // console.log("    deflt / stake = ", localVars.defaultedWeiPerStake);
+                    // console.log("    defaulted     = ", localVars.defaultedWei);
 
-                    allocationWei = globalData.unallocatedFunds;
-                    allocationWeiPerStake = globalData.unallocatedFunds * 1e18 / localData.lastUpdateTotalStake;
+                    allocationWei = globalVars.unallocatedFunds;
+                    allocationWeiPerStake = globalVars.unallocatedFunds * 1e18 / localVars.lastUpdateTotalStake;
 
                     // InsolvencyStarted is not emitted if unallocatedFunds goes to exactly zero even if newBalanceWei also ends up zero.
                     // This is to give a "benefit of doubt" to the bounty: perhaps in the same block, a top-up still arrives,
@@ -101,36 +101,36 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
                 }
 
                 // move funds from unallocated to allocated
-                globalData.unallocatedFunds -= allocationWei;
-                localData.cumulativeWeiPerStake += allocationWeiPerStake;
-                // console.log("    cumulat. / st <-", localData.cumulativeWeiPerStake);
+                globalVars.unallocatedFunds -= allocationWei;
+                localVars.cumulativeWeiPerStake += allocationWeiPerStake;
+                // console.log("    cumulat. / st <-", localVars.cumulativeWeiPerStake);
             } else {
-                localData.defaultedWeiPerStake += localData.incomePerSecondPerStake * deltaTime;
-                localData.defaultedWei += localData.incomePerSecond * deltaTime;
-                // console.log("    income per st = ", localData.incomePerSecondPerStake);
-                // console.log("    deflt / stake = ", localData.defaultedWeiPerStake);
-                // console.log("    defaulted     = ", localData.defaultedWei);
+                localVars.defaultedWeiPerStake += localVars.incomePerSecondPerStake * deltaTime;
+                localVars.defaultedWei += localVars.incomePerSecond * deltaTime;
+                // console.log("    income per st = ", localVars.incomePerSecondPerStake);
+                // console.log("    deflt / stake = ", localVars.defaultedWeiPerStake);
+                // console.log("    defaulted     = ", localVars.defaultedWei);
             }
 
             // has been insolvent but now has funds again => back to normal
             //   don't distribute anything yet but start counting again
-            if (localData.defaultedWei > 0 && newFundsWei > 0) {
-                emit InsolvencyEnded(block.timestamp, localData.defaultedWeiPerStake, localData.defaultedWei);
-                localData.defaultedWeiPerStake = 0;
-                localData.defaultedWei = 0;
+            if (localVars.defaultedWei > 0 && newFundsWei > 0) {
+                emit InsolvencyEnded(block.timestamp, localVars.defaultedWeiPerStake, localVars.defaultedWei);
+                localVars.defaultedWeiPerStake = 0;
+                localVars.defaultedWei = 0;
             }
         }
 
         // save values for next update: adjust income velocity for a possibly changed number of brokers
-        uint totalStakedWei = globalData.totalStakedWei;
+        uint totalStakedWei = globalVars.totalStakedWei;
         if (totalStakedWei > 0) {
-            localData.incomePerSecondPerStake = localData.incomePerSecond * 1e18 / totalStakedWei;
-            // console.log("  incomePerSecondPerStake <-", localData.incomePerSecondPerStake);
+            localVars.incomePerSecondPerStake = localVars.incomePerSecond * 1e18 / totalStakedWei;
+            // console.log("  incomePerSecondPerStake <-", localVars.incomePerSecondPerStake);
         } // else { local.incomePerSecondPerStake = 0; } // never used currently
-        localData.lastUpdateTimestamp = block.timestamp;
-        localData.lastUpdateTotalStake = totalStakedWei;
-        localData.lastUpdateWasRunning = isRunning();
-        // console.log("Is running: ", localData.lastUpdateWasRunning ? "yes" : "no");
+        localVars.lastUpdateTimestamp = block.timestamp;
+        localVars.lastUpdateTotalStake = totalStakedWei;
+        localVars.lastUpdateWasRunning = isRunning();
+        // console.log("Is running: ", localVars.lastUpdateWasRunning ? "yes" : "no");
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
