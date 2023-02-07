@@ -15,6 +15,8 @@ interface IStreamRegistry {
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
 }
 
+// solhint-disable code-complexity
+
 contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
