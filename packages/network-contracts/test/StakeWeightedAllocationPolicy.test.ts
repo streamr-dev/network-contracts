@@ -751,17 +751,20 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.transfer(broker.address, parseEther("10"))).wait()
         const tokensBefore = await token.balanceOf(broker.address)
 
+        // sponsor 1 token to make bounty "running" (don't distribute tokens though, since allocationWeiPerSecond = 0)
         await token.approve(bounty.address, parseEther("1"))
         await bounty.sponsor(parseEther("1"))
 
-        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
+        // stake 10 token
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
         const tokensAfterStaking = await token.balanceOf(broker.address)
 
+        // lose 10% = 1 token because leaving a "running" bounty too early
         await (await bounty.connect(broker).leave()).wait()
         const tokensAfterLeaving = await token.balanceOf(broker.address)
 
         expect(formatEther(tokensBefore)).to.equal("10.0")
-        expect(formatEther(tokensAfterStaking)).to.equal("9.0")
+        expect(formatEther(tokensAfterStaking)).to.equal("0.0")
         expect(formatEther(tokensAfterLeaving)).to.equal("9.0")
     })
 

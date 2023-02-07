@@ -7,7 +7,7 @@ import { advanceToTimestamp, getBlockTimestamp, log, deployBountyContract, deplo
 
 const { parseEther, formatEther } = utils
 
-describe("DefaultLeavePolicy", (): void => {
+describe("AdminKickPolicy", (): void => {
     let admin: Wallet
     let broker: Wallet
     let broker2: Wallet
@@ -28,8 +28,8 @@ describe("DefaultLeavePolicy", (): void => {
     it("doesn't penalize a kicked broker like it penalizes a leaving broker", async function(): Promise<void> {
         // time:        0 ... 100 ... 200 ... 300
         // join/leave: +b1    +b2   b1 kick  b2 leave
-        // broker1:       100  +  50                = 150 - penalty 1 wei = 150 - 1wei
-        // broker2:               50   +  100       = 150 - penalty 1000 = -850
+        // broker1:       100  +  50                = 150 - penalty 1wei = 150 - 1wei
+        // broker2:               50   +  100       = 150 - penalty 100  = 50
         const { token } = contracts
         const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000 })
 
@@ -67,7 +67,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(brokerCountBeforeKick.toString()).to.equal("2")
         expect(brokerCountAfterKick.toString()).to.equal("1")
         expect(formatEther(balanceChange.add(1))).to.equal("150.0")
-        expect(formatEther(balanceChange2)).to.equal("-850.0")
+        expect(formatEther(balanceChange2)).to.equal("50.0")
     })
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
