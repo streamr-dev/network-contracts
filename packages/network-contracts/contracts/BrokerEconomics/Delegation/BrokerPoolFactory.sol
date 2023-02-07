@@ -18,6 +18,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     address public streamrConstants;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
+    mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewBrokerPool(address poolAddress);
@@ -150,6 +151,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
         pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
         pool.renounceRole(pool.ADMIN_ROLE(), address(this));
+        deploymentTimestamp[poolAddress] = block.timestamp;
         emit NewBrokerPool(poolAddress);
         return poolAddress;
     }

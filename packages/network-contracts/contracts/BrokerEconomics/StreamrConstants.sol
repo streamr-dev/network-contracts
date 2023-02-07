@@ -35,6 +35,9 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
      */
     uint public PUNISH_BROKERS_PT_THOUSANDTH; // TODO: use wei/ether
 
+    address public bountyFactory;
+    address public brokerPoolFactory;
+
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -46,6 +49,14 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
+    function setBountyFactory(address bountyFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bountyFactory = bountyFactoryAddress;
+    }
+
+    function setBrokerPoolFactory(address brokerPoolFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        brokerPoolFactory = brokerPoolFactoryAddress;
+    }
 
     // TODO: what would this be used for?
     function getUintVariable(string memory varName) public view returns (uint) {

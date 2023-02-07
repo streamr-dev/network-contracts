@@ -21,8 +21,10 @@ import "./policies/IPoolExitPolicy.sol";
 // import "hardhat/console.sol";
 
 /**
- * Broker Pool receives a delegators' investments and pays out yields
- * It also is an ERC20 token for the pool tokens
+ * BrokerPool receives the delegators' investments and pays out yields
+ * It also is an ERC20 token for the pool tokens that each delegator receives and can swap back to DATA when they want to exit the pool
+ *
+ * The whole token balance of the pool IS SAME AS the "free funds", so there's no need to track the unallocated tokens separately
  */
 contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, ISlashListener { //}, ERC2771Context {
 
@@ -37,7 +39,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    uint public minimumInvestmentWei;
+    uint public minimumDelegationWei;
+
+    /**
+     * The time the broker is given for paying out the exit queue.
+     * If the front of the queue is older than gracePeriodSeconds, anyone can call forceUnstake to pay out the queue.
+     */
     uint public gracePeriodSeconds;
     IPoolJoinPolicy public joinPolicy;
     IPoolYieldPolicy public yieldPolicy;
@@ -50,12 +57,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         StreamrConstants streamrConstants;
     }
 
-    // currently the whole token balance of the pool IS SAME AS the "free funds"
-    //   so there's no need to track the unallocated tokens separately
-    // uint public unallocatedWei;
-
-    // mapping(address => uint) public debt;
-    // mapping(Bounty => uint) public staked;
     Bounty[] public bounties;
     mapping(Bounty => uint) public indexOfBounties; // start with 1! use 0 as "is it already in the array?" check
 
@@ -89,8 +90,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address streamrConstants,
         address brokerAddress,
         string calldata poolName,
-        uint initialMinimumInvestmentWei,
-        uint forceUnstakeGracePeriodSeconds
+        uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -99,32 +99,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().token = IERC677(tokenAddress);
         globalData().broker = brokerAddress;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
-        minimumInvestmentWei = initialMinimumInvestmentWei;
+        minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
-        require(forceUnstakeGracePeriodSeconds >= globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS(), "error_gracePeriodTooShort");
-        gracePeriodSeconds = forceUnstakeGracePeriodSeconds;
-    }
 
-    function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        joinPolicy = policy;
-        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setJoinPolicyFailed");
-    }
-
-    function setYieldPolicy(IPoolYieldPolicy policy,
-        uint256 initialMargin,
-        uint256 maintenanceMarginPercent,
-        uint256 minimumMarginPercent,
-        uint256 brokerSharePercent,
-        uint256 brokerShareMaxDivertPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector,
-            initialMargin, maintenanceMarginPercent, minimumMarginPercent, brokerSharePercent,
-            brokerShareMaxDivertPercent), "error_setYieldPolicyFailed");
-    }
-
-    function setExitPolicy(IPoolExitPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        exitPolicy = policy;
-        moduleCall(address(exitPolicy), abi.encodeWithSelector(exitPolicy.setParam.selector, param), "error_setExitPolicyFailed");
+        // fixed grace period is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting slashed.
+        gracePeriodSeconds = globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS();
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -306,18 +285,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        // require(unallocatedWei >= amountWei, "error_notEnoughFreeFunds");
-        // console.log("## stake amountWei", amountWei);
-        // console.log("stake balanceOf this", globalData().token.balanceOf(address(this)));
+        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_onlyBounty");
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         _addBounty(bounty);
-        // unallocatedWei -= amountWei;
         approxPoolValueOfBounty[bounty] += amountWei;
         bounty.registerAsSlashListener();
         emit Staked(bounty, amountWei);
     }
 
+    /**
+     *
+     */
     function unstake(Bounty bounty, uint maxPayoutCount) external onlyBroker {
         _unstake(bounty);
         payOutQueueWithFreeFunds(maxPayoutCount);
@@ -404,35 +383,34 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // value left in bounty = stake, after the allocations have been withdrawn
         // TODO: add test
-        approxPoolValueOfBounty[bounty] = bounty.getMyStake();
+        uint oldApprox = approxPoolValueOfBounty[bounty];
+        uint newApprox = bounty.getMyStake();
+        approxPoolValueOfBounty[bounty] = newApprox;
+        globalData().approxPoolValue = globalData().approxPoolValue + newApprox - oldApprox;
+    }
 
-        // uint appoxWinnings = approxPoolValueOfBounty[bounty] - bounty.getMyStake();
-        // uint approxWinningsLeft = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector,
-        //     appoxWinnings), "error_yieldPolicy_deductBrokersPart_Failed");
-        // int difference = int(approxWinningsLeft) - int(winningsLeft);
-        // if (difference > 0) {
-        //     globalData().approxPoolValue += uint(difference);
-        // } else {
-        //     globalData().approxPoolValue -= uint(-difference);
-        // }
+    function queueIsEmpty() public view returns (bool) {
+        return queuePayoutIndex == queueLength;
     }
 
     // TODO: instead of special-casing maxIterations zero, call with a large value
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        if (maxIterations == 0) { maxIterations = 1 ether; } // TODO
-        for (uint i = 0; i < maxIterations && queuePayoutIndex < queueLength; i++) {
+        if (maxIterations == 0) { maxIterations = 1 ether; } // see TODO above
+        for (uint i = 0; i < maxIterations; i++) {
             uint balanceDataWei = globalData().token.balanceOf(address(this));
-            if (balanceDataWei == 0) {
+            if (balanceDataWei == 0 || queueIsEmpty()) {
                 break;
             }
 
             // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
-            uint amountPoolTokens = payoutQueue[queuePayoutIndex].amountPoolTokenWei;
             address user = payoutQueue[queuePayoutIndex].user;
+            uint amountPoolTokens = payoutQueue[queuePayoutIndex].amountPoolTokenWei;
             if (balanceOf(user) < amountPoolTokens) {
                 amountPoolTokens = balanceOf(user);
             }
             if (amountPoolTokens == 0) {
+                // nothing to pay => pop the item
+                delete payoutQueue[queuePayoutIndex];
                 queuePayoutIndex++;
                 continue;
             }
@@ -441,10 +419,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
                 amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
             if (balanceDataWei >= amountDataWei) {
-                // whole amountDataWei is paid out
-                queuedPayoutsPerUser[user] -= amountPoolTokens;
+                // whole amountDataWei is paid out => pop the item and swap tokens
                 delete payoutQueue[queuePayoutIndex];
                 queuePayoutIndex++;
+                queuedPayoutsPerUser[user] -= amountPoolTokens;
                 _burn(user, amountPoolTokens);
                 globalData().token.transfer(user, amountDataWei);
                 globalData().approxPoolValue -= amountDataWei;
@@ -541,7 +519,33 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     ////////////////////////////////////////
-    // Pool value updating + incentivization
+    // POLICY MODULE MANAGEMENT
+    ////////////////////////////////////////
+
+    function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        joinPolicy = policy;
+        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setJoinPolicyFailed");
+    }
+
+    function setYieldPolicy(IPoolYieldPolicy policy,
+        uint256 initialMargin,
+        uint256 maintenanceMarginPercent,
+        uint256 minimumMarginPercent,
+        uint256 brokerSharePercent,
+        uint256 brokerShareMaxDivertPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        yieldPolicy = policy;
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector,
+            initialMargin, maintenanceMarginPercent, minimumMarginPercent, brokerSharePercent,
+            brokerShareMaxDivertPercent), "error_setYieldPolicyFailed");
+    }
+
+    function setExitPolicy(IPoolExitPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        exitPolicy = policy;
+        moduleCall(address(exitPolicy), abi.encodeWithSelector(exitPolicy.setParam.selector, param), "error_setExitPolicyFailed");
+    }
+
+    ////////////////////////////////////////
+    // POOL VALUE UPDATING + incentivization
     ////////////////////////////////////////
 
     /**

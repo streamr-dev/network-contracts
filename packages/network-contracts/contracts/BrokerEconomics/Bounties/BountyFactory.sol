@@ -17,6 +17,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     address public bountyContractTemplate;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
+    mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewBounty(address bountyContract);
@@ -147,6 +148,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
+        deploymentTimestamp[bountyAddress] = block.timestamp;
         emit NewBounty(bountyAddress);
         return bountyAddress;
     }
