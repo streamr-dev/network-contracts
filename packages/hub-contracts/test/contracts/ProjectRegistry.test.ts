@@ -91,7 +91,7 @@ describe('ProjectRegistry', (): void => {
         for (let i = 0; i < 10; i++) {
             await enableGrantPermissionForStream(streamIds[i])
         }
-        // streamIdNotGranted = await createStream() // TODO: use in a test, test what happens if permission not granted
+        streamIdNotGranted = await createStream()
 
         domainIds.push(0x706f6c79) // polygon domain id assigned by hyperlane
         paymentDetailsDefault.push([
@@ -335,7 +335,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams1'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(3))).wait()
-            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
                 ["StreamRemoved", [id, streamIds[0]]],
                 ["StreamRemoved", [id, streamIds[1]]],
                 ["StreamRemoved", [id, streamIds[2]]],
@@ -351,7 +351,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams2'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
-            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
                 ["StreamRemoved", [id, streamIds[0]]],
                 ["StreamRemoved", [id, streamIds[1]]],
                 ["StreamRemoved", [id, streamIds[2]]],
@@ -367,7 +367,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams3'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, [])).wait()
-            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
                 ["StreamRemoved", [id, streamIds[0]]],
                 ["StreamRemoved", [id, streamIds[1]]],
                 ["StreamRemoved", [id, streamIds[2]]],
@@ -380,7 +380,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams4'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
-            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
                 ["StreamAdded", [id, streamIds[7]]],
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
@@ -391,7 +391,7 @@ describe('ProjectRegistry', (): void => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams5'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(3).concat(streamIds.slice(3)).concat(streamIds.slice(7)))).wait()
-            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
                 ["StreamRemoved", [id, streamIds[0]]],
                 ["StreamRemoved", [id, streamIds[1]]],
                 ["StreamRemoved", [id, streamIds[2]]],
@@ -401,6 +401,13 @@ describe('ProjectRegistry', (): void => {
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
             ])
+        })       
+
+        it("setStreams - negativetest - permission not granted for stream", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams6'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
+            await expect(registry.setStreams(id, [streamIdNotGranted]))
+                .to.be.revertedWith('error_noSharePermission')
         })       
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
