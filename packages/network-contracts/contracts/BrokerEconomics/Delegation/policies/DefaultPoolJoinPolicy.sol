@@ -24,6 +24,7 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         data.minimumMarginPercent = minimumMarginPercent;
     }
 
+    /** @return allowedToJoin must be 0 for false, or 1 for true */
     function canJoin(address delegator) external view returns (uint allowedToJoin) {
         // console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
         // console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
@@ -34,7 +35,9 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         // can't join into an empty pool (unless it's the broker, or we don't require a minimum margin)
         if (delegator == globalData().broker || localData().minimumMarginPercent == 0) { return 1; }
         if (totalSupply() == 0) { return 0; }
-        if (balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent) { return 0; }
-        return 1;
+
+        // check minimum margin i.e. how much of the pool does the broker have at stake
+        if (balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent) { return 1; }
+        return 0;
     }
 }
