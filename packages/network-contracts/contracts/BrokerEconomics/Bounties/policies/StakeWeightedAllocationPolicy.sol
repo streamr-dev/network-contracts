@@ -134,7 +134,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
-    function getInsolvencyTimestamp() public override(IAllocationPolicy) view returns (uint256) {
+    function getInsolvencyTimestamp() public override(IAllocationPolicy) view returns (uint256 insolvencyTimestamp) {
         // uint unallocatedFunds = globalData().unallocatedFunds;
         // if (unallocatedFunds == 0) { return 0; }
         uint incomePerSecond = localData().incomePerSecond;

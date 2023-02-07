@@ -2,6 +2,8 @@ import "@nomicfoundation/hardhat-toolbox"
 import "@nomicfoundation/hardhat-chai-matchers"
 import { HardhatUserConfig } from 'hardhat/types'
 import '@openzeppelin/hardhat-upgrades'
+import 'hardhat-ignore-warnings'
+// import "hardhat-gas-reporter"
 
 require('solidity-coverage')
 require('hardhat-dependency-compiler')
@@ -135,7 +137,10 @@ const config: HardhatUserConfig = {
                 },
             }],
     },
-    // namedAccounts: {
+    // gasReporter: {
+    //     enabled: true,
+    // },
+    // namedAccounts: { // 224126
     //     deployer: 0,
     // },
     typechain: {

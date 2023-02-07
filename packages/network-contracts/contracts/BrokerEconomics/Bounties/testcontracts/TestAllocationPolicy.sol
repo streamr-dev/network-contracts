@@ -44,7 +44,8 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onJoin(address /*broker*/) external view {
+    // solc-ignore-next-line func-mutability
+    function onJoin(address) external {
         if (localData().failOnjoin) {
             require(false, "test-error: onJoin allocation policy");
         } else if (localData().failEmptyOnjoin) {
@@ -52,7 +53,8 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         }
     }
 
-    function onLeave(address /*broker*/) external view {
+    // solc-ignore-next-line func-mutability
+    function onLeave(address /*broker*/) external {
         if (localData().failOnLeave) {
             require(false, "test-error: onLeave allocation policy");
         } else if (localData().failEmptyOnLeave) {
