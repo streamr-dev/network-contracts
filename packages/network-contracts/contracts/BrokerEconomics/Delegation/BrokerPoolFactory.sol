@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./BrokerPool.sol";
 import "../IERC677.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
 
@@ -94,7 +94,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     function deployBrokerPool(
         // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        uint256 gracePeriodSeconds,
         string memory poolName,
         address[] memory policies,
         uint[] memory initParams
@@ -103,7 +102,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             _msgSender(),
             // initialMinHorizonSeconds,
             initialMinWeiInvestment,
-            gracePeriodSeconds,
             poolName,
             policies,
             initParams
@@ -114,7 +112,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address poolOwner,
         // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        uint256 gracePeriodSeconds,
         string memory poolName,
         address[] memory policies,
         uint[] memory initParams
@@ -134,8 +131,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             poolName,
             // initialMinHorizonSeconds,
             // initialMinBrokerCount,
-            initialMinWeiInvestment,
-            gracePeriodSeconds
+            initialMinWeiInvestment
         );
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);
