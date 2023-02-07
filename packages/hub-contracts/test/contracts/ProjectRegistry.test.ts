@@ -58,8 +58,10 @@ use(waffle.solidity)
 describe('ProjectRegistry', (): void => {
     const [admin, user1, user2, user3, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
     const projectIdbytesNonExistent = hexlify(zeroPad(toUtf8Bytes('notexistentproject'), 32))
+    const streamIds: string[] = []   
     let streamId: string
     let streamId1: string
+    let streamIdNotGranted: string
     const metadata = 'testmetadata'
     
     enum permissionType { Buy, Delete, Edit, Grant }
@@ -86,6 +88,11 @@ describe('ProjectRegistry', (): void => {
         await deployStreamRegistryAndCreateStreams()
         await deployProjectRegistry()
 
+        for (let i = 0; i < 10; i++) {
+            await enableGrantPermissionForStream(streamIds[i])
+        }
+        // streamIdNotGranted = await createStream() // TODO: use in a test, test what happens if permission not granted
+
         domainIds.push(0x706f6c79) // polygon domain id assigned by hyperlane
         paymentDetailsDefault.push([
             beneficiary.address, // beneficiary
@@ -111,9 +118,9 @@ describe('ProjectRegistry', (): void => {
         minimalForwarder = await factory.deploy() as MinimalForwarder
     }
 
-    const createStream = async (creator = admin): Promise<string> => {
+    const createStream = async (id?: string, creator = admin): Promise<string> => {
         // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
-        const streamPath = '/projects/' + Date.now()
+        const streamPath = '/projects/' + (id ?? Date.now())
         const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
         await(await streamRegistry.connect(creator)
             .createStream(streamPath, streamMetadata)).wait()
@@ -130,8 +137,13 @@ describe('ProjectRegistry', (): void => {
             { kind: 'uups' })
         streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
 
-        streamId = await createStream()
-        streamId1 = await createStream()
+        for (let i = 0; i < 10; i++) {
+            const s = await createStream(i.toString())
+            streamIds.push(s)
+        }
+
+        streamId = streamIds[0]
+        streamId1 = streamIds[1]
     }
 
     async function deployProjectRegistry(): Promise<void> {
@@ -143,14 +155,14 @@ describe('ProjectRegistry', (): void => {
         await registry.grantRole(trustedRole, trusted.address)
 
         const trustedForwarderRole = await registry.TRUSTED_FORWARDER_ROLE()
-        await registry.grantRole(trustedForwarderRole, minimalForwarder.address)
+        await (await registry.grantRole(trustedForwarderRole, minimalForwarder.address)).wait()
     }
 
+    // enable Grant subscription for stream to project registry
+    // the user adding a stream to project needs Edit permision on the project and Grant permission on the stream
+    // by having Grant permission on the stream, project registry can update the stream permissions (e.g. enable Subscribe for streams on buy)
     async function enableGrantPermissionForStream(streamId: string): Promise<void> {
-        // enable Grant subscription for stream to project registry
-        // the user adding a stream to project needs Edit permision on the project and Grant permission on the stream
-        // by having Grant permission on the stream, project registry can update the stream permissions (e.g. enable Subscribe for streams on buy)
-        await streamRegistry.grantPermission(streamId, registry.address, StreamRegistryPermissionType.Grant)
+        await (await streamRegistry.grantPermission(streamId, registry.address, StreamRegistryPermissionType.Grant)).wait()
     }
 
     async function createProject({
@@ -177,7 +189,6 @@ describe('ProjectRegistry', (): void => {
     describe('Project management', (): void => {
         it("createProject - positivetest - creates a project with correct params", async () => {
             await enableGrantPermissionForStream(streamId)
-            const streamIds: string[] = [streamId]
             const minimumSubscriptionSeconds = 1
             const isPublicPurchable = false
             const projectIdbytes = generateBytesId()
@@ -186,7 +197,7 @@ describe('ProjectRegistry', (): void => {
                 projectIdbytes,
                 domainIds,
                 paymentDetailsDefault,
-                streamIds,
+                [streamId],
                 minimumSubscriptionSeconds,
                 isPublicPurchable,
                 metadata))
@@ -195,7 +206,7 @@ describe('ProjectRegistry', (): void => {
                     projectIdbytes,
                     domainIds,
                     paymentDetailsDefault,
-                    streamIds,
+                    [streamId],
                     minimumSubscriptionSeconds,
                     metadata,
                 )
@@ -215,7 +226,7 @@ describe('ProjectRegistry', (): void => {
                 minimumSubscriptionSeconds,
                 metadata,
                 1, // project version
-                streamIds, // streams added to project
+                [streamId], // streams added to project
             ])
             expect(actual).to.equal(expected)
         })
@@ -319,6 +330,78 @@ describe('ProjectRegistry', (): void => {
             expect(streamIds).to.deep.equal([streamId])
             expect(streamIdsUpdated).to.deep.equal([streamId1])
         })
+
+        it("setStreams, overlapping new and old streams - positivetest", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams1'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
+            const tr = await (await registry.setStreams(id, streamIds.slice(3))).wait()
+            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+                ["StreamRemoved", [id, streamIds[0]]],
+                ["StreamRemoved", [id, streamIds[1]]],
+                ["StreamRemoved", [id, streamIds[2]]],
+                ["StreamAdded", [id, streamIds[5]]],
+                ["StreamAdded", [id, streamIds[6]]],
+                ["StreamAdded", [id, streamIds[7]]],
+                ["StreamAdded", [id, streamIds[8]]],
+                ["StreamAdded", [id, streamIds[9]]],
+            ])
+        })    
+
+        it("setStreams, remove all old streams - positivetest", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams2'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
+            const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
+            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+                ["StreamRemoved", [id, streamIds[0]]],
+                ["StreamRemoved", [id, streamIds[1]]],
+                ["StreamRemoved", [id, streamIds[2]]],
+                ["StreamRemoved", [id, streamIds[3]]],
+                ["StreamRemoved", [id, streamIds[4]]],
+                ["StreamAdded", [id, streamIds[7]]],
+                ["StreamAdded", [id, streamIds[8]]],
+                ["StreamAdded", [id, streamIds[9]]],
+            ])
+        })           
+
+        it("setStreams, remove all streams - positivetest", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams3'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
+            const tr = await (await registry.setStreams(id, [])).wait()
+            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+                ["StreamRemoved", [id, streamIds[0]]],
+                ["StreamRemoved", [id, streamIds[1]]],
+                ["StreamRemoved", [id, streamIds[2]]],
+                ["StreamRemoved", [id, streamIds[3]]],
+                ["StreamRemoved", [id, streamIds[4]]],
+            ])
+        })       
+
+        it("setStreams, start with no streams - positivetest", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams4'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
+            const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
+            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+                ["StreamAdded", [id, streamIds[7]]],
+                ["StreamAdded", [id, streamIds[8]]],
+                ["StreamAdded", [id, streamIds[9]]],
+            ])
+        })       
+
+        it("setStreams, deals with duplicates in new streams - positivetest", async () => {                     
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams5'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
+            const tr = await (await registry.setStreams(id, streamIds.slice(3).concat(streamIds.slice(3)).concat(streamIds.slice(7)))).wait()
+            expect(tr.events?.filter(e => e.event === "StreamAdded" || e.event === "StreamRemoved").map(e => [e.event, e.args])).to.deep.equal([
+                ["StreamRemoved", [id, streamIds[0]]],
+                ["StreamRemoved", [id, streamIds[1]]],
+                ["StreamRemoved", [id, streamIds[2]]],
+                ["StreamAdded", [id, streamIds[5]]],
+                ["StreamAdded", [id, streamIds[6]]],
+                ["StreamAdded", [id, streamIds[7]]],
+                ["StreamAdded", [id, streamIds[8]]],
+                ["StreamAdded", [id, streamIds[9]]],
+            ])
+        })       
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
             await expect(registry

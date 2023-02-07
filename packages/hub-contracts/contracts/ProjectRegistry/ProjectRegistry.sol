@@ -350,14 +350,49 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         emit StreamRemoved(projectId, streamId);
     }
 
-    function setStreams(bytes32 projectId, string[] calldata streams) public projectExists(projectId) hasEditPermission(projectId) {
+    function setStreams(bytes32 projectId, string[] calldata newStreams) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
-        for(uint256 i = 0; i < p.streams.length; i++) {
-            removeStream(projectId, p.streams[i]);
+        string[] storage oldStreams = p.streams;
+        uint oldStreamCount = oldStreams.length;
+        mapping(string => uint) storage streamIndex = p.streamIndex;
+
+        // mark old streams for keeping if they're also found in new streams
+        for (uint i = 0; i < newStreams.length; i++) {
+            string calldata s = newStreams[i];
+            if (streamIndex[s] > 0) {
+                if (streamIndex[s] < 1 ether) { streamIndex[s] += 1 ether; } // hack: mark using spare bits in index
+            }            
         }
-        for(uint256 i = 0; i < streams.length; i++) {
-            _addStream(projectId, streams[i]);
+
+        // compact the old streams: only keep the marked streams, remove the rest
+        uint j = 0;
+        for (uint i = 0; i < oldStreamCount; i++) {
+            string storage s = oldStreams[i];
+            if (streamIndex[s] > 1 ether) {
+                if (i > j) {
+                    oldStreams[j] = oldStreams[i];
+                }
+                j++;
+                streamIndex[s] -= 1 ether; // unmark (not necessary without this hack...)
+            } else {
+                delete streamIndex[s];
+                emit StreamRemoved(projectId, s);
+            }
         }
+
+        // pop the remaining trash (marked streams were already copied below j)
+        for (; j < oldStreamCount; j++) {
+            oldStreams.pop();
+        }
+
+        // add new streams on top if they weren't in the old streams
+        for (uint i = 0; i < newStreams.length; i++) {
+            string calldata s = newStreams[i];
+            if (streamIndex[s] == 0) {
+                addStream(p.id, s);
+            }
+        }
+
     }
 
     function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
