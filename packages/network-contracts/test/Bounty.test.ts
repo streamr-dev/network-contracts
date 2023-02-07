@@ -36,7 +36,7 @@ describe("Bounty", (): void => {
         brokerWallet = wallets[1]
         broker2Wallet = wallets[2]
 
-        streamrConstants = await (await ethers.getContractFactory("StreamrConstants", adminWallet)).deploy() as StreamrConstants
+        streamrConstants = await upgrades.deployProxy(await ethers.getContractFactory("StreamrConstants", adminWallet), []) as StreamrConstants
         await streamrConstants.deployed()
 
         token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
