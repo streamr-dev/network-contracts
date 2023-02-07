@@ -51,8 +51,9 @@ export type TestContracts = {
  */
 export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
-    const streamrConstants = await (await getContractFactory("StreamrConstants", deployer)).deploy() as StreamrConstants
+    const streamrConstants = await upgrades.deployProxy(await getContractFactory("StreamrConstants", deployer), []) as StreamrConstants
     await streamrConstants.deployed()
+
     // bounty and policies
     const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy() as IJoinPolicy
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy() as IJoinPolicy
