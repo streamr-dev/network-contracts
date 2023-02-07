@@ -204,15 +204,9 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         string calldata metadataJsonString
     ) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
-
-        for(uint256 i = 0; i < p.streams.length; i++) {
-            removeStream(projectId, p.streams[i]);
-        }
-        for(uint256 i = 0; i < streams.length; i++) {
-            _addStream(projectId, streams[i]);
-        }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
+        setStreams(p.id, streams);
         emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
@@ -331,35 +325,43 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
         _grantSubscribeForStream(streamId, address(this));
         projects[projectId].streams.push(streamId);
+        projects[projectId].streamIndex[streamId] = projects[projectId].streams.length; // real array index + 1
         emit StreamAdded(projectId, streamId);
     }
 
     /**
      * Removes the stream from the project
      * @dev streams order is not important
-     * @dev swaps the last element with the one we want to remove and then pop the last element to remove the gap
+     * @dev to leave no gaps, replaces the deleted streamId with the last element, then pops the last element
      */
     function removeStream(bytes32 projectId, string memory streamId) public projectExists(projectId) hasEditPermission(projectId) {
         string[] storage streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            if (keccak256(bytes(streams[i])) == keccak256(bytes(streamId))) {
-                streams[i] = streams[streams.length - 1];
-                streams.pop();
-                break;
-            }
+        mapping(string => uint) storage streamIndex = projects[projectId].streamIndex;
+        uint i = streamIndex[streamId];
+        require(i > 0, "error_streamNotFound");
+        // don't replace if there's only one stream...
+        if (streams.length > 1) {
+            string memory lastStream = streams[streams.length - 1];
+            streams[i - 1] = lastStream;
+            streamIndex[lastStream] = i; // real index + 1
         }
+        streams.pop();
+        delete streamIndex[streamId];
         emit StreamRemoved(projectId, streamId);
     }
 
-    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
-        string[] memory streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                return true;
-            }
+    function setStreams(bytes32 projectId, string[] calldata streams) public projectExists(projectId) hasEditPermission(projectId) {
+        Project storage p = projects[projectId];
+        for(uint256 i = 0; i < p.streams.length; i++) {
+            removeStream(projectId, p.streams[i]);
         }
-        return false;
+        for(uint256 i = 0; i < streams.length; i++) {
+            _addStream(projectId, streams[i]);
+        }
+    }
+
+    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
+        return projects[projectId].streamIndex[streamId] > 0;
     }
 
     /**

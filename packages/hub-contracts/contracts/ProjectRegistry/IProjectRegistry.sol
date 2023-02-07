@@ -17,6 +17,7 @@ interface IProjectRegistry {
         string metadata;
         uint32 version; // incremented when project is (re-)created, so that users from old projects don't re-appear in the new project (if they have permissions)
         string[] streams;
+        mapping(string => uint) streamIndex; // in the streams array PLUS ONE, so that default value zero means stream doesn't exist in the array
         mapping(bytes32 => Permission) permissions; // keccak256(projectIdToVersion, userAddress) -> Permission
     }
 
