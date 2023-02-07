@@ -143,6 +143,9 @@ const config: HardhatUserConfig = {
     // namedAccounts: { // 224126
     //     deployer: 0,
     // },
+    warnings: {
+
+    },
     typechain: {
         outDir: './typechain',
         target: 'ethers-v5',
