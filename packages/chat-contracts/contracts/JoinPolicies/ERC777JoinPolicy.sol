@@ -65,14 +65,12 @@ contract ERC777JoinPolicy is CoinJoinPolicy, ERC1820Implementer, IERC777Recipien
         isStakingEnabled()
         isUserAuthorized() 
     {
-        if (token.send(msg.sender, amount, "")){
-            balances[msg.sender] = balances[msg.sender] - amount;
-            if (balances[msg.sender] < minRequiredBalance) {
-                address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-                revoke(msg.sender, delegatedWallet);
-            }
+        token.send(msg.sender, amount, "");
+        balances[msg.sender] = balances[msg.sender] - amount;
+        if (balances[msg.sender] < minRequiredBalance) {
+            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+            revoke(msg.sender, delegatedWallet);
         }
-        
     }
 
     function tokensReceived(

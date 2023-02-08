@@ -81,7 +81,7 @@ const config: HardhatUserConfig = {
             '@openzeppelin/contracts/token/ERC1155/ERC1155.sol',
             'contracts/TestTokens/ERC1155TestToken.sol',
             'contracts/DelegatedAccessRegistry.sol',
-            'contracts/JoinPolicies/JoinPolicy.sol'
+            'contracts/JoinPolicies/BaseJoinPolicy.sol'
         ],
     },
     solidity: {
