@@ -12,7 +12,7 @@ import "../IERC677.sol";
 
 // import "hardhat/console.sol";
 
-contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
+contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
 
     address public brokerPoolTemplate;
     address public streamrConstants;

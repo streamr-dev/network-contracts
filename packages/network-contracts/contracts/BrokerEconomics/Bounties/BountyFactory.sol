@@ -11,7 +11,7 @@ import "../IERC677.sol";
 
 import "hardhat/console.sol";
 
-contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable  {
+contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
 
     StreamrConstants public streamrConstants;
     address public bountyContractTemplate;
