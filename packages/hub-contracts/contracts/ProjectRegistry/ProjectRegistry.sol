@@ -15,8 +15,6 @@ interface IStreamRegistry {
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
 }
 
-// solhint-disable code-complexity
-
 contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
@@ -319,11 +317,23 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /////////////// Streams Management /////////////////
 
     function addStream(bytes32 projectId, string calldata streamId) public projectExists(projectId) hasEditPermission(projectId) {
+        require(!isStreamAdded(projectId, streamId), "error_streamAlreadyAdded");
         _addStream(projectId, streamId);
     }
 
+    /**
+     * Add multiple streams to the project; silently skips already added streams
+     */
+    function addStreams(bytes32 projectId, string[] calldata streamIds) public projectExists(projectId) hasEditPermission(projectId) {
+        for(uint256 i = 0; i < streamIds.length; i++) {
+            string calldata s = streamIds[i];
+            if (!isStreamAdded(projectId, s)) {
+                _addStream(projectId, s);
+            }
+        }
+    }
+
     function _addStream(bytes32 projectId, string calldata streamId) private {
-        require(!isStreamAdded(projectId, streamId), "error_streamAlreadyAdded");
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
         _grantSubscribeForStream(streamId, address(this));
         projects[projectId].streams.push(streamId);
@@ -362,7 +372,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         for (uint i = 0; i < newStreams.length; i++) {
             string calldata s = newStreams[i];
             if (streamIndex[s] > 0) {
-                if (streamIndex[s] < 1 ether) { streamIndex[s] += 1 ether; } // hack: mark using spare bits in index
+                streamIndex[s] = 1 ether; // hack: mark using spare bits in index (no real index can be 1e18)
             }
         }
 
@@ -370,7 +380,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         uint target = 0;
         for (uint source = 0; source < oldStreamCount; source++) {
             string storage s = oldStreams[source];
-            if (streamIndex[s] > 1 ether) {
+            if (streamIndex[s] == 1 ether) {
                 if (source > target) { // don't move if it's already in the right place
                     oldStreams[target] = s;
                 }
@@ -388,13 +398,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         }
 
         // add new streams on top if they weren't in the old streams
-        for (uint i = 0; i < newStreams.length; i++) {
-            string calldata s = newStreams[i];
-            if (streamIndex[s] == 0) {
-                addStream(p.id, s);
-            }
-        }
-
+        addStreams(projectId, newStreams);
     }
 
     function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
