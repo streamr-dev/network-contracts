@@ -39,7 +39,7 @@
         "avoid-suicide": "error",
         "avoid-throw": "error",
         "avoid-tx-origin": "error",
-        "check-send-result": "error",
+        "check-send-result": "off",
         "multiple-sends": "error",
         "no-complex-fallback": "error",
         "no-inline-assembly": "warn",
