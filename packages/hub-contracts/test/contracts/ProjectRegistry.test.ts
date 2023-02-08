@@ -426,7 +426,7 @@ describe('ProjectRegistry', (): void => {
         })
 
         it("setStreams - negativetest - permission not granted for stream", async () => {
-            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams6'), 32))
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams7'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.setStreams(id, [streamIdNotGranted]))
                 .to.be.revertedWith('error_noSharePermission')
