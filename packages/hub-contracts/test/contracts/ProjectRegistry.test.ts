@@ -405,7 +405,7 @@ describe('ProjectRegistry', (): void => {
 
         // this test really checks that the indices were correctly updated by setStreams; removeStream is the only function that really uses the index
         it("setStreams + removeStream - positivetest", async () => {
-            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams1'), 32))
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams6'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(3, 6))).wait()
             expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
