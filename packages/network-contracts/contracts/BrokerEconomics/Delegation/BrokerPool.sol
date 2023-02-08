@@ -58,7 +58,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     Bounty[] public bounties;
-    mapping(Bounty => uint) public indexOfBounties; // start with 1! use 0 as "is it already in the array?" check
+    mapping(Bounty => uint) public indexOfBounties; // real array index PLUS ONE! use 0 as "is it already in the array?" check
 
     struct PayoutQueueEntry {
         address user;
@@ -188,7 +188,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // check if sender is a bounty: unstaking from bounties will call this method
         // ignore returned tokens, handle them in unstake() instead
         Bounty bounty = Bounty(sender);
-        if (indexOfBounties[bounty] != 0) {
+        if (indexOfBounties[bounty] > 0) {
             return;
         }
 
@@ -211,25 +211,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         } else {
             _invest(sender, amount);
         }
-    }
-
-    function _addBounty(Bounty bounty) internal {
-        // TODO check if bounty was deployed by THE bountyfactory contract!
-        // console.log("## _addBounty");
-        require(indexOfBounties[bounty] == 0, "error_bountyAlreadyExists");
-        bounties.push(bounty);
-        indexOfBounties[bounty] = bounties.length;
-    }
-
-    function _removeBounty(Bounty bounty) internal {
-        // console.log("## _removeBounty");
-        require(indexOfBounties[bounty] != 0, "error_bountyDoesNotExist");
-        bounty.unregisterAsSlashListener();
-        uint index = indexOfBounties[bounty];
-        indexOfBounties[bounty] = 0;
-        bounties[index - 1] = bounties[bounties.length - 1];
-        indexOfBounties[bounties[index - 1]] = index;
-        bounties.pop();
     }
 
     /** Invest by first calling ERC20.approve(brokerPool.address, amountWei) then this function */
@@ -288,10 +269,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_onlyBounty");
         require(queueIsEmpty(), "error_mustPayOutExitQueueBeforeStaking");
         globalData().token.approve(address(bounty), amountWei);
-        bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
-        _addBounty(bounty);
-        approxPoolValueOfBounty[bounty] += amountWei;
-        bounty.registerAsSlashListener();
+        if (indexOfBounties[bounty] == 0) {
+            bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
+            bounties.push(bounty);
+            indexOfBounties[bounty] = bounties.length; // real array index + 1
+            approxPoolValueOfBounty[bounty] += amountWei;
+            bounty.registerAsSlashListener();
+        }
         emit Staked(bounty, amountWei);
     }
 
@@ -331,7 +315,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 "error_yieldPolicy_deductBrokersPart_Failed");
             emit Unstaked(bounty, amountStaked, gainsWei);
         }
-        _removeBounty(bounty);
+
+        bounty.unregisterAsSlashListener();
+
+        // remove from array: replace with the last element
+        uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
+        Bounty lastBounty = bounties[bounties.length - 1];
+        bounties[index] = lastBounty;
+        bounties.pop();
+        indexOfBounties[lastBounty] = index + 1; // indexOfBounties is the real array index + 1
+        delete indexOfBounties[bounty];
     }
 
     function reduceStake(Bounty bounty, uint amountWei) external onlyBroker {
