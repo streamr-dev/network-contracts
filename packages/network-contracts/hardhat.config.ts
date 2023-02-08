@@ -3,11 +3,10 @@ import "@nomicfoundation/hardhat-chai-matchers"
 import { HardhatUserConfig } from 'hardhat/types'
 import '@openzeppelin/hardhat-upgrades'
 import 'hardhat-ignore-warnings'
+import 'solidity-coverage'
+import 'hardhat-dependency-compiler'
+import '@nomiclabs/hardhat-etherscan'
 // import "hardhat-gas-reporter"
-
-require('solidity-coverage')
-require('hardhat-dependency-compiler')
-require('@nomiclabs/hardhat-etherscan')
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -144,7 +143,9 @@ const config: HardhatUserConfig = {
     //     deployer: 0,
     // },
     warnings: {
-
+        '@chainlink/contracts/src/v0.4/**/*': {
+            default: 'off',
+        },
     },
     typechain: {
         outDir: './typechain',
