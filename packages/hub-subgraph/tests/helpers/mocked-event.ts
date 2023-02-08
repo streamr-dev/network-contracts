@@ -23,10 +23,11 @@ export function createProjectCreatedEvent(
     id: Bytes,
     domainIds: number[],
     paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
+    streams: string[],
     minimumSubscriptionSeconds: number,
     metadata: string
 ): ProjectCreated {
-    log.info('mock createProjectCreatedEvent => paymentDetails length length={}', [paymentDetails.length.toString()])
+    log.info('mock createProjectCreatedEvent => paymentDetailsLength length={}, streamsLength length={}', [paymentDetails.length.toString(), streams.length.toString()])
     const projectCreatedEvent = changetype<ProjectCreated>(newMockEvent())
     projectCreatedEvent.parameters = new Array()
 
@@ -40,6 +41,8 @@ export function createProjectCreatedEvent(
     projectCreatedEvent.parameters.push(domainIdsParam)
     const paymentDetailsParam = new ethereum.EventParam("paymentDetails", ethereum.Value.fromArray([])) // TODO: retrieve paymentDetails from function param
     projectCreatedEvent.parameters.push(paymentDetailsParam)
+    const streamsParam = new ethereum.EventParam("streams", ethereum.Value.fromStringArray(streams))
+    projectCreatedEvent.parameters.push(streamsParam)
     const minSubSecondsParam = new ethereum.EventParam("minimumSubscriptionSeconds", ethereum.Value.fromI32(minimumSubscriptionSeconds as i32))
     projectCreatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))
@@ -52,6 +55,7 @@ export function createProjectUpdatedEvent(
     id: Bytes,
     domainIds: number[],
     paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
+    streams: string[],
     minimumSubscriptionSeconds: number,
     metadata: string
 ): ProjectUpdated {
@@ -69,6 +73,10 @@ export function createProjectUpdatedEvent(
     projectUpdatedEvent.parameters.push(domainIdsParam)
     const paymentDetailsParam = new ethereum.EventParam("paymentDetails", ethereum.Value.fromArray([])) // TODO: retrieve paymentDetails from function param
     projectUpdatedEvent.parameters.push(paymentDetailsParam)
+
+    const streamsParam = new ethereum.EventParam("streams", ethereum.Value.fromStringArray(streams))
+    projectUpdatedEvent.parameters.push(streamsParam)
+
     const minSubSecondsParam = new ethereum.EventParam("minimumSubscriptionSeconds", ethereum.Value.fromI32(minimumSubscriptionSeconds as i32))
     projectUpdatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))

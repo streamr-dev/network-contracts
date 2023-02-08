@@ -93,7 +93,7 @@ describe("Uniswap2Adapter", () => {
         await deployMinimalForwarder()
         await deployStreamRegistry()
         await deployProjectRegistry()
-        await projectRegistry.createProject(productIdbytes, domainIds, paymentDetailsDefault, 0, true, 'metadata')
+        await projectRegistry.createProject(productIdbytes, domainIds, paymentDetailsDefault, [], 0, true, 'metadata')
         await deployMarketplace()
         await deployUniswap2Contracts(admin)
         await deployUniswap2Adapter()

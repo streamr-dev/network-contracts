@@ -166,18 +166,18 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     * Creates a new project in the registry. All permissions are enabled for msg.sender
     * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated
-    * @dev streams are initialized to an empty string[]
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public {
-        _createProject(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(projectId, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(projectId, address(0), true, true, true, true);
@@ -190,28 +190,34 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     /**
-    * Updates project fields except for: version, streams[], permissions mapping
+    * Updates project fields except for: version, permissions mapping
     * @dev version is auto-incremented and is not editable
-    * @dev streams[] has dedicated methods under streams management
+    * @dev streams[] has dedicated methods under streams management as well
     * @dev permissions have dedicated methods under permissions management (supports other then msg.sender subscribers as well)
     */
     function updateProject(
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
-
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
-        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        setStreams(p.id, streams);
+        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
-            PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
-            p.paymentDetails[domainIds[i]] = payment;
-            emit PaymentDetailsByChainUpdated(projectId, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
+            p.paymentDetails[domainIds[i]] = paymentDetailsByChain[i];
+            emit PaymentDetailsByChainUpdated(
+                projectId,
+                domainIds[i],
+                paymentDetailsByChain[i].beneficiary,
+                paymentDetailsByChain[i].pricingTokenAddress,
+                paymentDetailsByChain[i].pricePerSecond
+            );
         }
     }
 
@@ -219,6 +225,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint256 minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) internal {
@@ -228,10 +235,13 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
         Project storage p = projects[id];
         p.id = id;
+        for(uint256 i = 0; i < streams.length; i++) {
+            _addStream(id, streams[i]);
+        }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
         p.version = projects[id].version + 1;
-        emit ProjectCreated(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        emit ProjectCreated(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
             PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
@@ -308,34 +318,91 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function addStream(bytes32 projectId, string calldata streamId) public projectExists(projectId) hasEditPermission(projectId) {
         require(!isStreamAdded(projectId, streamId), "error_streamAlreadyAdded");
+        _addStream(projectId, streamId);
+    }
+
+    /**
+     * Add multiple streams to the project; silently skips already added streams
+     */
+    function addStreams(bytes32 projectId, string[] calldata streamIds) public projectExists(projectId) hasEditPermission(projectId) {
+        for(uint256 i = 0; i < streamIds.length; i++) {
+            string calldata s = streamIds[i];
+            if (!isStreamAdded(projectId, s)) {
+                _addStream(projectId, s);
+            }
+        }
+    }
+
+    function _addStream(bytes32 projectId, string calldata streamId) private {
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
         _grantSubscribeForStream(streamId, address(this));
         projects[projectId].streams.push(streamId);
+        projects[projectId].streamIndex[streamId] = projects[projectId].streams.length; // real array index + 1
         emit StreamAdded(projectId, streamId);
     }
 
+    /**
+     * Removes the stream from the project
+     * @dev streams order is not important
+     * @dev to leave no gaps, replaces the deleted streamId with the last element, then pops the last element
+     */
     function removeStream(bytes32 projectId, string memory streamId) public projectExists(projectId) hasEditPermission(projectId) {
-        string[] memory streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                delete streams[i];
-                break;
-            }
+        string[] storage streams = projects[projectId].streams;
+        mapping(string => uint) storage streamIndex = projects[projectId].streamIndex;
+        uint i = streamIndex[streamId];
+        require(i > 0, "error_streamNotFound");
+        // don't replace if there's only one stream...
+        if (streams.length > 1) {
+            string memory lastStream = streams[streams.length - 1];
+            streams[i - 1] = lastStream;
+            streamIndex[lastStream] = i; // real index + 1
         }
-        projects[projectId].streams = streams;
+        streams.pop();
+        delete streamIndex[streamId];
         emit StreamRemoved(projectId, streamId);
     }
 
-    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
-        string[] memory streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                return true;
+    function setStreams(bytes32 projectId, string[] calldata newStreams) public projectExists(projectId) hasEditPermission(projectId) {
+        Project storage p = projects[projectId];
+        string[] storage oldStreams = p.streams;
+        uint oldStreamCount = oldStreams.length;
+        mapping(string => uint) storage streamIndex = p.streamIndex;
+
+        // mark old streams for keeping if they're also found in new streams
+        for (uint i = 0; i < newStreams.length; i++) {
+            string calldata s = newStreams[i];
+            if (streamIndex[s] > 0) {
+                streamIndex[s] = 1 ether; // hack: mark using spare bits in index (no real index can be 1e18)
             }
         }
-        return false;
+
+        // compact the old streams: only keep the marked streams, remove the rest
+        uint target = 0;
+        for (uint source = 0; source < oldStreamCount; source++) {
+            string storage s = oldStreams[source];
+            if (streamIndex[s] == 1 ether) {
+                if (source > target) { // don't move if it's already in the right place
+                    oldStreams[target] = s;
+                }
+                target++;
+                streamIndex[s] = target; // real index + 1
+            } else {
+                delete streamIndex[s];
+                emit StreamRemoved(projectId, s);
+            }
+        }
+
+        // pop the remaining trash (marked streams were already copied below j)
+        for (; target < oldStreamCount; target++) {
+            oldStreams.pop();
+        }
+
+        // add new streams on top if they weren't in the old streams
+        addStreams(projectId, newStreams);
+    }
+
+    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
+        return projects[projectId].streamIndex[streamId] > 0;
     }
 
     /**
@@ -350,13 +417,12 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
      * Enables Grant permission for all streams added to project.
+     * @dev must have Grant permission on all streams
      */
-    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal { // must have grand permission on all streams
+    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal {
         string[] memory streams = projects[projectId].streams;
         for(uint i = 0; i < streams.length; i++) {
-            streamRegistry.grantPermission(streams[i], subscriber, IStreamRegistry.PermissionType.Subscribe); // hasGrantPermission(streamId)
             _grantSubscribeForStream(streams[i], subscriber);
-
         }
     }
 
@@ -469,12 +535,13 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public isTrusted(){
-        _createProject(id, domainIds, paymentDetailsByChain, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, user, true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);

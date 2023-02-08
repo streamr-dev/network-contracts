@@ -17,6 +17,7 @@ interface IProjectRegistry {
         string metadata;
         uint32 version; // incremented when project is (re-)created, so that users from old projects don't re-appear in the new project (if they have permissions)
         string[] streams;
+        mapping(string => uint) streamIndex; // in the streams array PLUS ONE, so that default value zero means stream doesn't exist in the array
         mapping(bytes32 => Permission) permissions; // keccak256(projectIdToVersion, userAddress) -> Permission
     }
 
@@ -39,8 +40,8 @@ interface IProjectRegistry {
     }
 
     // project events
-    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
-    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectCreated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, string[] streams, uint256 minimumSubscriptionSeconds, string metadata);
+    event ProjectUpdated(bytes32 indexed id, uint32[] domainIds, PaymentDetailsByChain[] paymentDetailsByChain, string[] streams, uint256 minimumSubscriptionSeconds, string metadata);
     event ProjectDeleted(bytes32 indexed id);
     event PaymentDetailsByChainUpdated(bytes32 indexed id, uint32 domainId, address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
 
@@ -78,6 +79,7 @@ interface IProjectRegistry {
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
@@ -87,6 +89,7 @@ interface IProjectRegistry {
         bytes32 projectId,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
     ) external;
@@ -136,6 +139,7 @@ interface IProjectRegistry {
         bytes32 id,
         uint32[] calldata domainIds,
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint256 minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,

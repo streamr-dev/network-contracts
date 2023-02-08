@@ -88,6 +88,8 @@ describe("Mocked Project Events: create/update/delete", () => {
 
     const projectId = "0x1234"
     const domainId = 1111
+    const streamId1 = "0x12345/streams/1"
+    const streamId2 = "0x12345/streams/2"
     const minimumSubscriptionSeconds = 1
     const metadata = "metadata-0x1234"
     
@@ -96,6 +98,7 @@ describe("Mocked Project Events: create/update/delete", () => {
             Bytes.fromHexString(projectId),
             [domainId],
             [], // TODO: add payment details
+            [streamId1],
             minimumSubscriptionSeconds,
             metadata,
         )
@@ -105,6 +108,7 @@ describe("Mocked Project Events: create/update/delete", () => {
         assert.entityCount(PROJECT_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "id", projectId)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainId}]`)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", `[${streamId1}]`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSeconds}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadata)
     })
@@ -117,6 +121,7 @@ describe("Mocked Project Events: create/update/delete", () => {
             Bytes.fromHexString(projectId),
             [domainIdUpdated],
             [], // TODO: add payment details
+            [streamId2],
             minimumSubscriptionSecondsNew,
             metadataNew,
         )
@@ -124,6 +129,7 @@ describe("Mocked Project Events: create/update/delete", () => {
         handleProjectUpdate(projectUpdatedEvent)
 
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainIdUpdated}]`)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", `[${streamId2}]`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSecondsNew}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadataNew)
     })
