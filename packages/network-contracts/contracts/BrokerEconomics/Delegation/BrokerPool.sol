@@ -381,12 +381,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, winnings),
             "error_yieldPolicy_deductBrokersPart_Failed");
 
-        // value left in bounty = stake, after the allocations have been withdrawn
-        // TODO: add test
-        uint oldApprox = approxPoolValueOfBounty[bounty];
-        uint newApprox = bounty.getMyStake();
-        approxPoolValueOfBounty[bounty] = newApprox;
-        globalData().approxPoolValue = globalData().approxPoolValue + newApprox - oldApprox;
+        // value left in bounty === stake, after the allocations have been withdrawn
+        // globalData().approxPoolValue however should NOT change, because winnings are simply moved from bounty to this contract
+        //   minus broker's share (which is deducted during approxPoolValue calculation anyway, see `getPoolValueFromBounty`)
+        approxPoolValueOfBounty[bounty] = bounty.getMyStake();
     }
 
     function queueIsEmpty() public view returns (bool) {

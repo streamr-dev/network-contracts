@@ -347,7 +347,7 @@ describe("BrokerPool", (): void => {
         // TODO
     })
 
-    it("1 queue entry, is payed out full on winnings withdrawn from bounty", async function(): Promise<void> {
+    it("1 queue entry, is fully paid out using winnings withdrawn from bounty", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
@@ -365,6 +365,11 @@ describe("BrokerPool", (): void => {
             .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
         expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("100"))
 
+        // winnings are 1 token/second * 1000 seconds = 1000, minus 200 broker fee = 800 DATA
+        // poolvalue is 1000 stake + 800 winnings = 1800 DATA
+        // There are 1000 PoolTokens => exchange rate is 1800 / 1000 = 1.8 DATA/PoolToken
+        // delegator should receive a payout: 100 PoolTokens * 1.8 DATA = 180 DATA
+
         await advanceToTimestamp(timeAtStart + 1000, "Withdraw winnings from bounty")
         await expect(pool.withdrawWinningsFromBounty(bounty.address))
         // TODO: add event to BrokerPool
@@ -372,15 +377,11 @@ describe("BrokerPool", (): void => {
             .to.emit(pool, "InvestmentReturned").withArgs(delegator.address, parseEther("180"))
         //    .to.emit(pool, "BrokerSharePaid").withArgs(bounty.address, parseEther("200"))
 
-        // winnings are 1000, minus 200 broker fee = 800 DATA
-        // poolvalue is 1000 stake + 800 winnings = 1800 DATA
-        // There are 1000 PoolTokens => exchange rate is 1800 / 1000 = 1.8 DATA/PoolToken
-        // delegator should receive a payout: 100 PoolTokens * 1.8 DATA = 180 DATA
         expect(formatEther(await token.balanceOf(delegator.address))).to.equal("180.0")
         expect(formatEther(await token.balanceOf(pool.address))).to.equal("620.0")
     })
 
-    it("1 queue entry, is payed out partially on winnings withdrawn from bounty", async function(): Promise<void> {
+    it("1 queue entry, is partially paid out using winnings withdrawn from bounty", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
