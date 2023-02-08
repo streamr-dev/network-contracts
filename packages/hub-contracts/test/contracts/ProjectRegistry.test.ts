@@ -58,12 +58,12 @@ use(waffle.solidity)
 describe('ProjectRegistry', (): void => {
     const [admin, user1, user2, user3, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
     const projectIdbytesNonExistent = hexlify(zeroPad(toUtf8Bytes('notexistentproject'), 32))
-    const streamIds: string[] = []   
+    const streamIds: string[] = []
     let streamId: string
     let streamId1: string
     let streamIdNotGranted: string
     const metadata = 'testmetadata'
-    
+
     enum permissionType { Buy, Delete, Edit, Grant }
     const permission1 = {canBuy: true, canDelete: true, canEdit: true, canGrant: true}
     const permission2 = {canBuy: true, canDelete: true, canEdit: true, canGrant: true}
@@ -185,7 +185,7 @@ describe('ProjectRegistry', (): void => {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         return hexlify(zeroPad(toUtf8Bytes(name), 32))
     }
-    
+
     describe('Project management', (): void => {
         it("createProject - positivetest - creates a project with correct params", async () => {
             await enableGrantPermissionForStream(streamId)
@@ -251,7 +251,7 @@ describe('ProjectRegistry', (): void => {
             // free projects are supported on project update
             await expect(registry.updateProject(id, domainIds, paymentDetailsFreeProject, [], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
-                
+
             const projectUpdated = await registry.getProject(id, domainIds)
             const pricePerSecond = projectUpdated[0][0].pricePerSecond
             expect(pricePerSecond).to.equal(0)
@@ -331,7 +331,7 @@ describe('ProjectRegistry', (): void => {
             expect(streamIdsUpdated).to.deep.equal([streamId1])
         })
 
-        it("setStreams, overlapping new and old streams - positivetest", async () => {                     
+        it("setStreams, overlapping new and old streams - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams1'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(3))).wait()
@@ -345,9 +345,9 @@ describe('ProjectRegistry', (): void => {
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
             ])
-        })    
+        })
 
-        it("setStreams, remove all old streams - positivetest", async () => {                     
+        it("setStreams, remove all old streams - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams2'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
@@ -361,9 +361,9 @@ describe('ProjectRegistry', (): void => {
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
             ])
-        })           
+        })
 
-        it("setStreams, remove all streams - positivetest", async () => {                     
+        it("setStreams, remove all streams - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams3'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, [])).wait()
@@ -374,9 +374,9 @@ describe('ProjectRegistry', (): void => {
                 ["StreamRemoved", [id, streamIds[3]]],
                 ["StreamRemoved", [id, streamIds[4]]],
             ])
-        })       
+        })
 
-        it("setStreams, start with no streams - positivetest", async () => {                     
+        it("setStreams, start with no streams - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams4'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(7))).wait()
@@ -385,9 +385,9 @@ describe('ProjectRegistry', (): void => {
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
             ])
-        })       
+        })
 
-        it("setStreams, deals with duplicates in new streams - positivetest", async () => {                     
+        it("setStreams, deals with duplicates in new streams - positivetest", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams5'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
             const tr = await (await registry.setStreams(id, streamIds.slice(3).concat(streamIds.slice(3)).concat(streamIds.slice(7)))).wait()
@@ -401,14 +401,36 @@ describe('ProjectRegistry', (): void => {
                 ["StreamAdded", [id, streamIds[8]]],
                 ["StreamAdded", [id, streamIds[9]]],
             ])
-        })       
+        })
 
-        it("setStreams - negativetest - permission not granted for stream", async () => {                     
+        // this test really checks that the indices were correctly updated by setStreams; removeStream is the only function that really uses the index
+        it("setStreams + removeStream - positivetest", async () => {
+            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams1'), 32))
+            await registry.createProject(id, domainIds, paymentDetailsDefault, streamIds.slice(0, 5), 1, true, metadata)
+            const tr = await (await registry.setStreams(id, streamIds.slice(3, 6))).wait()
+            expect(tr.events?.filter((e) => e.event === "StreamAdded" || e.event === "StreamRemoved").map((e) => [e.event, e.args])).to.deep.equal([
+                ["StreamRemoved", [id, streamIds[0]]],
+                ["StreamRemoved", [id, streamIds[1]]],
+                ["StreamRemoved", [id, streamIds[2]]],
+                ["StreamAdded", [id, streamIds[5]]],
+            ])
+
+            const p = await registry.getProject(id, domainIds)
+            expect(p.streams).to.have.members(streamIds.slice(3, 6)) // ignore order
+
+            await expect(registry.removeStream(id, streamIds[3]))
+                .to.emit(registry, 'StreamRemoved').withArgs(id, streamIds[3])
+
+            const p2 = await registry.getProject(id, domainIds)
+            expect(p2.streams).to.have.members(streamIds.slice(4, 6)) // ignore order
+        })
+
+        it("setStreams - negativetest - permission not granted for stream", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams6'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.setStreams(id, [streamIdNotGranted]))
                 .to.be.revertedWith('error_noSharePermission')
-        })       
+        })
 
         it("updateProject - negativetest - throws for non existing projects", async () => {
             await expect(registry
@@ -470,7 +492,7 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.addStream(projectIdbytes, streamId))
                 .to.be.revertedWith('error_streamAlreadyAdded')
         })
-    
+
         it('removeStream - removes stream from project', async (): Promise<void> => {
             const projectIdbytes = await createProject()
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
@@ -492,7 +514,7 @@ describe('ProjectRegistry', (): void => {
     describe('Subscription management', () => {
         it('getSubscription - positivetest', async () => {
             const id = await createProject()
-            
+
             let subscription = await registry.getSubscription(id, admin.address)
             let isValid = subscription[0]
             let endTimestamp = subscription[1]
@@ -536,7 +558,7 @@ describe('ProjectRegistry', (): void => {
             const subscriptionAfter = await registry.getSubscription(id, user1.address)
             expect(subscriptionAfter.endTimestamp)
                 .to.equal(subscriptionBefore.endTimestamp.add(addSeconds / pricePerSecond))
-            
+
         })
 
         it('grantSubscription - negativetest - must have Grant permission', async () => {
@@ -625,7 +647,7 @@ describe('ProjectRegistry', (): void => {
                 .withArgs(projectIdbytes, user3.address, true, true, true, true)
             expect (await registry.hasPermissionType(projectIdbytes, user3.address, permissionType.Grant))
                 .to.equal(true)
-            
+
             // user3 has all permissions
             expect (await registry.getPermission(projectIdbytes, user3.address))
                 .to.deep.equal([true, true, true, true])
@@ -637,7 +659,7 @@ describe('ProjectRegistry', (): void => {
             await registry.setPermissionBooleans(projectIdbytes, user3.address, false, false, false, false)
             expect (await registry.getPermission(projectIdbytes, user3.address))
                 .to.deep.equal([false, false, false, false])
-            
+
             // user3 does not have Grant permissions and can not grant any permissions
             await expect(registry.connect(user3).enablePermissionType(projectIdbytes, user3.address, permissionType.Buy))
                 .to.be.revertedWith('error_noGrantPermission')
@@ -743,7 +765,7 @@ describe('ProjectRegistry', (): void => {
             await registry.setPermissionBooleans(projectIdbytes, user2.address, false, false, true, true)
             expect (await registry.getPermission(projectIdbytes, user2.address))
                 .to.deep.equal([false, false, true, true])
-                
+
             // transfer all permissions from user2 to user3
             // make sure positive ones are not overwritten
             await expect(registry.connect(user2).transferAllPermissionsToUser(projectIdbytes, user3.address))
@@ -751,7 +773,7 @@ describe('ProjectRegistry', (): void => {
                 .withArgs(projectIdbytes, user3.address, true, true, true, true) // recipient (user3)
                 .to.emit(registry.connect(user2), 'PermissionUpdated')
                 .withArgs(projectIdbytes, user2.address, false, false, false, false) // sender (user2)
-            
+
             expect(await registry.getPermission(projectIdbytes, user2.address))
                 .to.deep.equal([false, false, false, false])
             expect(await registry.getPermission(projectIdbytes, user3.address))
@@ -817,19 +839,19 @@ describe('ProjectRegistry', (): void => {
             await registry.setPermissionBooleans(projectIdbytes, user1.address, true, true, true, true)
             expect (await registry.getPermission(projectIdbytes, user1.address))
                 .to.deep.equal([true, true, true, true])
-            
+
             expect(await registry.connect(user1).revokePermissionType(projectIdbytes, user1.address, permissionType.Buy))
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, user1.address, false, true, true, true)
-            
+
             expect(await registry.connect(user1).revokePermissionType(projectIdbytes, user1.address, permissionType.Delete))
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, user1.address, false, false, true, true)
-            
+
             expect(await registry.connect(user1).revokePermissionType(projectIdbytes, user1.address, permissionType.Edit))
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, user1.address, false, false, false, true)
-            
+
             expect(await registry.connect(user1).revokePermissionType(projectIdbytes, user1.address, permissionType.Grant))
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, user1.address, false, false, false, false)
@@ -845,7 +867,7 @@ describe('ProjectRegistry', (): void => {
             await registry.setPermissionBooleans(projectIdbytes, user3.address, true, true, true, true)
             expect (await registry.getPermission(projectIdbytes, user3.address))
                 .to.deep.equal([true, true, true, true])
-            
+
             expect(await registry.revokeAllPermissionsForUser(projectIdbytes, user3.address))
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, user3.address, false, false, false, false)
@@ -861,7 +883,7 @@ describe('ProjectRegistry', (): void => {
             await registry.connect(user3).setPermissionBooleans(projectIdbytes, user3.address, true, true, true, false)
             expect (await registry.hasPermissionType(projectIdbytes, user3.address, permissionType.Grant))
                 .to.be.false
-            
+
             await expect(registry.connect(user3).revokeAllPermissionsForUser(projectIdbytes, user3.address))
                 .to.be.revertedWith('error_noGrantPermission')
         })
@@ -904,7 +926,7 @@ describe('ProjectRegistry', (): void => {
             const sign = signTypedData(options) // forwarder
             return {req, sign, projectIdbytes, streamIdMetatx}
         }
-        
+
         it('isTrustedForwarder - positivetest', async (): Promise<void> => {
             expect(await registry.isTrustedForwarder(minimalForwarder.address))
                 .to.be.true
@@ -919,7 +941,7 @@ describe('ProjectRegistry', (): void => {
                 .to.be.false
 
             await enableGrantPermissionForStream(streamIdMetatx)
-            
+
             await minimalForwarder.connect(forwarder).execute(req, sign)
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.true
@@ -990,7 +1012,7 @@ describe('ProjectRegistry', (): void => {
             } = await prepareAddStreamMetatx(minimalForwarder, admin.privateKey)
 
             await enableGrantPermissionForStream(streamIdOld)
-            
+
             expect(await minimalForwarder.verify(reqOld, signOld))
                 .to.be.true
 
@@ -1003,19 +1025,19 @@ describe('ProjectRegistry', (): void => {
             // deploy second minimal forwarder
             const factory = await getContractFactory('MinimalForwarder', forwarder)
             const newForwarder = await factory.deploy() as MinimalForwarder
-            
+
             // set the new forwarder
             expect(await registry.isTrustedForwarder(newForwarder.address))
                 .to.be.false
             await registry.grantRole(trustedForwarderRole, newForwarder.address)
             expect(await registry.isTrustedForwarder(newForwarder.address))
                 .to.be.true
-                
+
             // check that metatx works with new forwarder
             const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(newForwarder, admin.privateKey)
 
             await enableGrantPermissionForStream(streamIdMetatx)
-            
+
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
 
@@ -1063,7 +1085,7 @@ describe('ProjectRegistry', (): void => {
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
             await expect(registry.connect(trusted).deleteProject(id))
                 .to.be.revertedWith('error_noDeletePermission')
-        
+
             await expect(registry.connect(trusted)
                 .updateProject(id, domainIds, paymentDetailsDefault, [], 2, 'metadata-2'))
                 .to.be.revertedWith('error_noEditPermission')
@@ -1124,7 +1146,7 @@ describe('ProjectRegistry', (): void => {
             await expect(registry.trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, true, metadata))
                 .to.be.revertedWith('error_mustBeTrustedRole')
         })
-    
+
         it('trustedSetPermissions - positivetest', async (): Promise<void> => {
             const projectIdbytes = await createProject() // admin creates a project
             const [canBuy, canDelete, canEdit, canGrant] = [true, true, true, true]
@@ -1134,13 +1156,13 @@ describe('ProjectRegistry', (): void => {
             expect(await registry.getPermission(projectIdbytes, user1.address))
                 .to.deep.equal([canBuy, canDelete, canEdit, canGrant])
         })
-    
+
         it('trustedSetPermissions - negativetest', async (): Promise<void> => {
             const projectId = await createProject()
             await expect(registry.trustedSetPermissions(projectId, admin.address, true, true, true, true))
                 .to.be.revertedWith('error_mustBeTrustedRole')
         })
-    
+
         it('trustedSetPermissionsForMultipleProjects - positivetest', async (): Promise<void> => {
             const projectId1 = await createProject() // created by admin
             const projectId2 = await createProject() // created by admin
@@ -1154,7 +1176,7 @@ describe('ProjectRegistry', (): void => {
                 .withArgs(projectId1, user1.address, permission1.canBuy, permission1.canDelete, permission1.canEdit, permission1.canGrant)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectId2, user2.address, permission2.canBuy, permission2.canDelete, permission2.canEdit, permission2.canGrant)
-            
+
             expect(await registry.getPermission(projectId1, user1.address))
                 .to.deep.equal([permission1.canBuy, permission1.canDelete, permission1.canEdit, permission1.canGrant])
             expect(await registry.getPermission(projectId2, user2.address))

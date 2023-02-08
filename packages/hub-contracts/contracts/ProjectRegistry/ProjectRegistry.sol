@@ -363,19 +363,19 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             string calldata s = newStreams[i];
             if (streamIndex[s] > 0) {
                 if (streamIndex[s] < 1 ether) { streamIndex[s] += 1 ether; } // hack: mark using spare bits in index
-            }            
+            }
         }
 
         // compact the old streams: only keep the marked streams, remove the rest
-        uint j = 0;
-        for (uint i = 0; i < oldStreamCount; i++) {
-            string storage s = oldStreams[i];
+        uint target = 0;
+        for (uint source = 0; source < oldStreamCount; source++) {
+            string storage s = oldStreams[source];
             if (streamIndex[s] > 1 ether) {
-                if (i > j) {
-                    oldStreams[j] = oldStreams[i];
+                if (source > target) { // don't move if it's already in the right place
+                    oldStreams[target] = s;
                 }
-                j++;
-                streamIndex[s] -= 1 ether; // unmark (not necessary without this hack...)
+                target++;
+                streamIndex[s] = target; // real index + 1
             } else {
                 delete streamIndex[s];
                 emit StreamRemoved(projectId, s);
@@ -383,7 +383,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         }
 
         // pop the remaining trash (marked streams were already copied below j)
-        for (; j < oldStreamCount; j++) {
+        for (; target < oldStreamCount; target++) {
             oldStreams.pop();
         }
 
