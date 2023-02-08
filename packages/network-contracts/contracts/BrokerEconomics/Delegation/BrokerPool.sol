@@ -286,6 +286,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
         require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_onlyBounty");
+        require(queueIsEmpty(), "error_mustPayOutExitQueueBeforeStaking");
         globalData().token.approve(address(bounty), amountWei);
         bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
         _addBounty(bounty);

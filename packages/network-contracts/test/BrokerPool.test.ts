@@ -767,4 +767,40 @@ describe("BrokerPool", (): void => {
         await bounty.connect(admin).slash(pool.address, parseEther("5"))
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1995")) // approximate poolvalue only contains allocations at t=1000
     })
+
+    it("won't allow staking to non-Bounties", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("won't allow staking to Bounties that were not created using the correct BountyFactory", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("won't allow staking if there are delegators queueing to exit", async function(): Promise<void> {
+        const { token } = contracts
+        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+
+        const bounty = await deployBountyContract(contracts)
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("5000"), "0x")).wait()
+        const pool = await deployBrokerPool({ brokerSharePercent: 25 })
+        await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+
+        await expect(pool.connect(delegator).queueDataPayout(parseEther("100")))
+            .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
+
+        expect(await pool.queueIsEmpty()).to.be.false
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.be.revertedWith("error_mustPayOutExitQueueBeforeStaking")
+
+        await expect(pool.unstake(bounty.address, "10"))
+            .to.emit(pool, "Unstaked")
+
+        expect(await pool.queueIsEmpty()).to.be.true
+        await expect(pool.stake(bounty.address, parseEther("500")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("500"))
+    })
 })
