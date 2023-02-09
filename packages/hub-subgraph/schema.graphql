@@ -64,6 +64,8 @@ type Project @entity {
   subscriptions: [TimeBasedSubscription!]! @derivedFrom(field: "project")
   "Project metadata JSON"
   metadata: String!
+  "Flaggs a project as being a data union if 'isDataUnion' field is set to 'true' in the metadata"
+  isDataUnion: Boolean
   "Project version. This is a normal int value (not wei)"
   version: BigInt
   "Streams added to the project"

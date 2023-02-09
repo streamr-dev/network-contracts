@@ -16,6 +16,7 @@ import {
     Stake,
     Unstake,
  } from "../../generated/ProjectStakingV1/ProjectStakingV1"
+import { getIsDataUnionValue } from "../../src/helpers"
 
 //////////////////////// ProjectRegistry ////////////////////////
 
@@ -47,6 +48,8 @@ export function createProjectCreatedEvent(
     projectCreatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))
     projectCreatedEvent.parameters.push(metadataParam)
+    const isDataUnionParam = new ethereum.EventParam("isDataUnion", ethereum.Value.fromBoolean(getIsDataUnionValue(metadata)))
+    projectCreatedEvent.parameters.push(isDataUnionParam)
     
     return projectCreatedEvent
 }
@@ -81,6 +84,8 @@ export function createProjectUpdatedEvent(
     projectUpdatedEvent.parameters.push(minSubSecondsParam)
     const metadataParam = new ethereum.EventParam("metadata", ethereum.Value.fromString(metadata))
     projectUpdatedEvent.parameters.push(metadataParam)
+    const isDataUnionParam = new ethereum.EventParam("isDataUnion", ethereum.Value.fromBoolean(getIsDataUnionValue(metadata)))
+    projectUpdatedEvent.parameters.push(isDataUnionParam)
     
     return projectUpdatedEvent
 }

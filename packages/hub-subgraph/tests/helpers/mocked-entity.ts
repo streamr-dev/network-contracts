@@ -8,6 +8,7 @@ export function createProjectEntity(projectId: string): Project {
     project.paymentDetails = []
     project.minimumSubscriptionSeconds = BigInt.fromI32(1)
     project.metadata = "metadata-" + projectId
+    project.isDataUnion = false
     project.version = BigInt.fromI32(1)
     project.subscriptions = []
     project.streams = []

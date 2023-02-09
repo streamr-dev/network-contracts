@@ -10,7 +10,7 @@ import {
     StreamRemoved,
     PaymentDetailsByChainUpdated,
 } from '../generated/ProjectRegistry/ProjectRegistry'
-import { loadOrCreateProject } from './helpers'
+import { getIsDataUnionValue, loadOrCreateProject } from './helpers'
 
 export function handleProjectCreation(event: ProjectCreated): void {
     const id = event.params.id.toHexString()
@@ -23,6 +23,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.domainIds = event.params.domainIds
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = metadata
+    project.isDataUnion = getIsDataUnionValue(metadata)
     project.streams = event.params.streams
     project.createdAt = event.block.timestamp
     project.counter = 0
@@ -48,6 +49,7 @@ export function handleProjectUpdate(event: ProjectUpdated): void {
     project.streams = event.params.streams
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = event.params.metadata
+    project.isDataUnion = getIsDataUnionValue(event.params.metadata)
     project.updatedAt = event.block.timestamp
     project.save()
 }

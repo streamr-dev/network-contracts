@@ -1,4 +1,4 @@
-import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { BigInt, Bytes, json, JSONValue, JSONValueKind, Result } from "@graphprotocol/graph-ts"
 import { Project } from '../generated/schema'
 
 /**
@@ -16,6 +16,23 @@ export function loadOrCreateProject(projectId: Bytes): Project {
         project.createdAt = BigInt.fromI32(0)
         project.counter = 0
         project.score = BigInt.fromI32(0)
+        project.isDataUnion = false
     }
     return project
+}
+
+/**
+ * Parse string to JSON and return the value of the "isDataUnion" key.
+ * @dev https://thegraph.com/docs/en/developing/assemblyscript-api/#json-api
+ */
+export function getIsDataUnionValue(jsonString: string): boolean {
+    let result: Result<JSONValue, boolean> = json.try_fromString(jsonString)
+    if (result.isOk && result.value.kind == JSONValueKind.OBJECT) {
+        let resultObj = result.value.toObject()
+        let isDataUnionOrNull: JSONValue | null = resultObj.get("isDataUnion")
+        return isDataUnionOrNull == null
+            ? false
+            : isDataUnionOrNull.toBool()
+    }
+    return false
 }
