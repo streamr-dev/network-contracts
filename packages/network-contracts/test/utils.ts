@@ -2,9 +2,8 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
 import { utils, Wallet } from "ethers"
 
-import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy,
+import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
-import { TestToken } from "../typechain/TestToken"
 
 const { parseEther } = utils
 const { getContractFactory } = hardhatEthers
@@ -24,12 +23,9 @@ export async function getBlockTimestamp(): Promise<number> {
     return Math.floor(((await hardhatProvider.getBlock("latest")).timestamp / 1000000) + 1) * 1000000
 }
 
-export function newPoolName(): string {
-    return `Pool-${Date.now()}-${poolindex++}`
-}
-
 export type TestContracts = {
     token: TestToken;
+    streamrConstants: StreamrConstants;
     minStakeJoinPolicy: IJoinPolicy;
     maxBrokersJoinPolicy: IJoinPolicy;
     brokerPoolOnlyJoinPolicy: IJoinPolicy
@@ -39,6 +35,7 @@ export type TestContracts = {
     bountyFactory: BountyFactory;
     bountyTemplate: Bounty;
     poolFactory: BrokerPoolFactory;
+    poolTemplate: BrokerPool;
     defaultPoolJoinPolicy: IPoolJoinPolicy;
     defaultPoolYieldPolicy: IPoolYieldPolicy;
     defaultPoolExitPolicy: IPoolExitPolicy;
@@ -51,18 +48,18 @@ export type TestContracts = {
  * @returns mapping: name string -> ethers.Contract object
  */
 export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
-    const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
+    const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST")
     const streamrConstants = await upgrades.deployProxy(await getContractFactory("StreamrConstants", deployer), []) as StreamrConstants
     await streamrConstants.deployed()
 
     // bounty and policies
-    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy() as IJoinPolicy
-    const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy() as IJoinPolicy
-    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", deployer)).deploy() as IJoinPolicy
-    const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy() as IAllocationPolicy
-    const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy() as ILeavePolicy
-    const kickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy() as IKickPolicy
-    const bountyTemplate = await (await getContractFactory("Bounty")).deploy() as Bounty
+    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy()
+    const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy()
+    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", deployer)).deploy()
+    const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy()
+    const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy()
+    const kickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy()
+    const bountyTemplate = await (await getContractFactory("Bounty")).deploy()
     await bountyTemplate.deployed()
 
     const bountyFactory = await upgrades.deployProxy(await getContractFactory("BountyFactory", deployer), [
@@ -81,10 +78,10 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     ])).wait()
 
     // broker pool and policies
-    const poolTemplate = await (await getContractFactory("BrokerPool")).deploy() as BrokerPool
-    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", deployer)).deploy() as IPoolJoinPolicy
-    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy() as IPoolYieldPolicy
-    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy() as IPoolExitPolicy
+    const poolTemplate = await (await getContractFactory("BrokerPool")).deploy()
+    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", deployer)).deploy()
+    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy()
+    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy()
 
     const poolFactory = await upgrades.deployProxy(await getContractFactory("BrokerPoolFactory", deployer), [
         poolTemplate.address,
@@ -102,22 +99,34 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
 
     return {
-        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy,
-        bountyTemplate, bountyFactory, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy, brokerPoolOnlyJoinPolicy
+        token, streamrConstants,
+        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, leavePolicy, kickPolicy,
+        poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }
 }
 
-// export async function deployBrokerPool(deployer: Wallet, token: Contract, trustedForwarder?: Wallet): Promise<BrokerPool> {
-//     const brokerPool = await (await getContractFactory("BrokerPool", deployer)).deploy() as BrokerPool
-//     await brokerPool.deployed()
-//     await (await brokerPool.initialize(
-//         token.address,
-//         deployer.address,
-//         trustedForwarder?.address ?? "0x0000000000000000000000000000000000000000",
-//         "0",
-//     ))
-//     return brokerPool
-// }
+/**
+ * @param deployer should be the broker's Wallet
+ * @returns BrokerPool
+ */
+export async function deployBrokerPool(contracts: TestContracts, deployer: Wallet, {
+    maintenanceMarginPercent = 0,
+    maxBrokerDivertPercent = 0,
+    minBrokerStakePercent = 0,
+    brokerSharePercent = 0,
+} = {}): Promise<BrokerPool> {
+    const {
+        poolFactory, poolTemplate,
+    } = contracts
+    const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
+        0,
+        `Pool-${Date.now()}-${poolindex++}`,
+        [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
+        [0, minBrokerStakePercent, 0, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent, 0]
+    )).wait()
+    const newPoolAddress = brokerPoolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
+    return poolTemplate.attach(newPoolAddress).connect(deployer)
+}
 
 export async function deployBountyContract(contracts: TestContracts, {
     minHorizonSeconds = 0,
