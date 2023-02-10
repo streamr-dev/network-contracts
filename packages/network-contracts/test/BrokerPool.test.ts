@@ -156,23 +156,28 @@ describe("BrokerPool", (): void => {
 
         const pool = await deployBrokerPool(contracts, broker, { maintenanceMarginPercent: 20, maxBrokerDivertPercent: 100, brokerSharePercent: 20 })
         await (await dataToken.connect(broker).transferAndCall(pool.address, parseEther("100"), "0x")).wait()
-        const brokersDataBefore = await dataToken.balanceOf(broker.address)
         await (await dataToken.connect(delegator).transferAndCall(pool.address, parseEther("900"), "0x")).wait()
-        const timeAtStart = await getBlockTimestamp()
 
+        const timeAtStart = await getBlockTimestamp()
+        const brokersDataBefore = await dataToken.balanceOf(broker.address)
+
+        // broker staked 100 DATA so they should have 100 BrokerPool tokens
         await advanceToTimestamp(timeAtStart, "Stake to bounty")
-        // broker should have 100 poolTokens
-        expect(formatEther(await pool.balanceOf(broker.address))).to.equal("100.0")
         await expect(pool.stake(bounty.address, parseEther("1000")))
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-        await advanceToTimestamp(timeAtStart + 500, "get gains")
+        expect(formatEther(await pool.balanceOf(broker.address))).to.equal("100.0")
+
+        await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from bounty")
         await pool.withdrawWinningsFromBounty(bounty.address)
         expect(await dataToken.balanceOf(pool.address)).to.equal(parseEther("500"))
-        // broker should not have more DATA since 1000 of his winnings are staked (left in pool)
+
+        // despite brokerSharePercent=20%, broker should not have more DATA since 1000 of his winnings are staked (left in pool)
         const brokersDataAfter = await dataToken.balanceOf(broker.address)
         expect(brokersDataAfter).to.equal(brokersDataBefore)
-        // brokers winnings (500 * 20% = 100) DATA are added to the pool and minted for the broker
+
+        // broker's share of (500 * 20% = 100) DATA are added to the pool and minted for the broker
         expect(formatEther(await pool.balanceOf(broker.address))).to.equal("200.0")
+        // TODO: add getter for the "margin" (and rename it?), test for it directly
     })
 
     it("positivetest maintenance margin, enough to reach mainteanc is diverted", async function(): Promise<void> {
@@ -674,7 +679,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther(numberOfBounties.toString()))
     })
 
-    it("punish broker on too much diff on approx poolvalue", async function(): Promise<void> {
+    it("punishes broker on too much diff on approx poolvalue", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
@@ -706,7 +711,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it("slash listener", async function(): Promise<void> {
+    it("gets notified when slashed (slash listener)", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
@@ -732,7 +737,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1995")) // approximate poolvalue only contains allocations at t=1000
     })
 
-    it("won't allow anyone else to stake except the broker of the BrokerPool", async function(): Promise<void> {
+    it("will NOT let anyone else to stake except the broker of the BrokerPool", async function(): Promise<void> {
         const pool = await deployBrokerPool(contracts, broker)
         const bounty = await deployBountyContract(contracts)
         await (await contracts.token.mint(pool.address, parseEther("1000"))).wait()
@@ -742,13 +747,13 @@ describe("BrokerPool", (): void => {
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
     })
 
-    it("won't allow staking to non-Bounties", async function(): Promise<void> {
+    it("will NOT allow staking to non-Bounties", async function(): Promise<void> {
         const pool = await deployBrokerPool(contracts, broker)
         await (await contracts.token.mint(pool.address, parseEther("1000"))).wait()
         await expect(pool.stake(contracts.token.address, parseEther("1000"))).to.be.revertedWith("error_badBounty")
     })
 
-    it("won't allow staking to Bounties that were not created using the correct BountyFactory", async function(): Promise<void> {
+    it("will NOT allow staking to Bounties that were not created using the correct BountyFactory", async function(): Promise<void> {
         const pool = await deployBrokerPool(contracts, broker)
         const bounty = await deployBountyContract(contracts)
         const badBounty = contracts.bountyTemplate
@@ -759,7 +764,7 @@ describe("BrokerPool", (): void => {
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
     })
 
-    it("won't allow staking if there are delegators queueing to exit", async function(): Promise<void> {
+    it("will NOT allow staking if there are delegators queueing to exit", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
