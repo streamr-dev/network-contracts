@@ -304,6 +304,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function report(address broker) external {
+        require(address(kickPolicy) != address(0), "error_reportingNotSupported");
         // console.log("Reporting", broker);
         address reporter = _msgSender();
         emit BrokerReported(broker, reporter);
@@ -394,14 +395,17 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function solventUntil() public view returns(uint256 horizon) {
+        if (address(allocationPolicy) == address(0)) { return 2**255; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
     function getAllocation(address broker) public view returns(uint256 allocation) {
+        if (address(allocationPolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.calculateAllocation.selector, broker, address(allocationPolicy)), "error_getAllocationFailed");
     }
 
     function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {
+        if (address(leavePolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, broker, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }
 
