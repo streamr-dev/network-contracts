@@ -49,7 +49,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         trustedPolicies[policyAddress] = true;
     }
 
-    function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint i = 0; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
@@ -95,9 +95,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     function deployBrokerPool(
         // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        string memory poolName,
-        address[] memory policies,
-        uint[] memory initParams
+        string calldata poolName,
+        address[3] calldata policies,
+        uint[8] calldata initParams
     ) public returns (address) {
         return _deployBrokerPool(
             _msgSender(),
@@ -113,9 +113,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address poolOwner,
         // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        string memory poolName,
-        address[] memory policies,
-        uint[] memory initParams
+        string calldata poolName,
+        address[3] calldata policies,
+        uint[8] calldata initParams
     ) private returns (address) {
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
