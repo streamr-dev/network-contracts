@@ -4,12 +4,13 @@ import { BigNumber, utils, Wallet } from "ethers"
 
 import {
     deployTestContracts,
-    deployBountyContract,
-    deployBrokerPool,
     TestContracts,
     advanceToTimestamp,
     getBlockTimestamp,
-} from "./utils"
+} from "./deployTestContracts"
+import { deployBrokerPool } from "./deployBrokerPool"
+
+import { deployBountyContract } from "./deployBountyContract"
 
 const { parseEther, formatEther } = utils
 const { getSigners, getContractFactory } = hardhatEthers
