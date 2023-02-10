@@ -27,14 +27,14 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
         // console.log("setParam", testCase);
         if (testCase == 1) {
             require(false, "test-error: setting param allocation policy");
-        } else if (testCase == 2) {
-            localData().failOnjoin = true;
-        } else if (testCase == 3) {
-            localData().failOnLeave = true;
         } else if (testCase == 4) {
             require(false);
+        } else if (testCase == 2) {
+            localData().failOnjoin = true;
         } else if (testCase == 5) {
             localData().failEmptyOnjoin = true;
+        } else if (testCase == 3) {
+            localData().failOnLeave = true;
         } else if (testCase == 6) {
             localData().failEmptyOnLeave = true;
         } else if (testCase == 7) {
