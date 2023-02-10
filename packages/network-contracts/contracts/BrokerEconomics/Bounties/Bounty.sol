@@ -122,7 +122,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        require(_msgSender() == address(token), "error_onlyTokenContract");
+        require(_msgSender() == address(token), "error_badToken");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
