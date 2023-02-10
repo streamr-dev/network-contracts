@@ -23,11 +23,11 @@ dataSources:
         - name: ProjectRegistry
           file: ./abis/ProjectRegistry.json
       eventHandlers:
-        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],uint256,string)
+        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
           handler: handleProjectCreation
         - event: ProjectDeleted(indexed bytes32)
           handler: handleProjectDeletion
-        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],uint256,string)
+        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
           handler: handleProjectUpdate
         - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
           handler: handlePaymentDetailsByChainUpdate

@@ -166,7 +166,7 @@ describe("Marketplace", () => {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
         await projectRegistry
-            .createProject(projectId, chains, payment, minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, [], minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -283,7 +283,7 @@ describe("Marketplace", () => {
                     BigNumber.from(1) // pricePerSecond
                 ]
             ]
-            await projectRegistry.updateProject(projectId, domainIds, paymentDetails, 1, 'metadata')
+            await projectRegistry.updateProject(projectId, domainIds, paymentDetails, [], 1, 'metadata')
             await marketplace.buy(projectId, 100)
             const balanceAfter = await token.balanceOf(sellerAddress)
 
@@ -339,7 +339,7 @@ describe("Marketplace", () => {
 
             // create project with ERC677 pricingToken
             await projectRegistry
-                .createProject(projectId, domainIds, paymentDetails1, 1, true, 'metadata')
+                .createProject(projectId, domainIds, paymentDetails1, [], 1, true, 'metadata')
             expect(await token.balanceOf(beneficiaryAddress))
                 .to.equal(0)
             await token.approve(market.address, 1000)
@@ -350,7 +350,7 @@ describe("Marketplace", () => {
 
             // change pricing token to ERC20
             await projectRegistry
-                .updateProject(projectId, domainIds, paymentDetails2, 1, 'metadata')
+                .updateProject(projectId, domainIds, paymentDetails2, [], 1, 'metadata')
             await otherToken.approve(market.address, 1000)
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(0)

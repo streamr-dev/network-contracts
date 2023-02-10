@@ -23,7 +23,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.domainIds = event.params.domainIds
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = metadata
-    project.streams = []
+    project.streams = event.params.streams
     project.createdAt = event.block.timestamp
     project.counter = 0
     project.score = BigInt.fromI32(0)
@@ -45,6 +45,7 @@ export function handleProjectUpdate(event: ProjectUpdated): void {
     let project = loadOrCreateProject(event.params.id)
 
     project.domainIds = event.params.domainIds
+    project.streams = event.params.streams
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = event.params.metadata
     project.updatedAt = event.block.timestamp

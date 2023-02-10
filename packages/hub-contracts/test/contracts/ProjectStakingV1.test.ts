@@ -97,7 +97,7 @@ describe('ProjectStakingV1', (): void => {
         creator = admin
     } = {}): Promise<string> {
         await projectRegistry.connect(creator)
-            .createProject(projectId, chains, payment, minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, [], minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
