@@ -183,7 +183,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         // console.log("## onTokenTransfer from", sender);
         // console.log("onTokenTransfer amount", amount);
-        require(_msgSender() == address(globalData().token), "error_onlyTokenContract");
+        require(_msgSender() == address(globalData().token), "error_badToken");
 
         // check if sender is a bounty: unstaking from bounties will call this method
         // ignore returned tokens, handle them in unstake() instead

@@ -1,4 +1,4 @@
-import { ethers } from "hardhat"
+import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
@@ -12,6 +12,7 @@ import {
 } from "./utils"
 
 const { parseEther, formatEther } = utils
+const { getSigners, getContractFactory } = hardhatEthers
 
 describe("BrokerPool", (): void => {
     let admin: Wallet
@@ -24,7 +25,7 @@ describe("BrokerPool", (): void => {
     let contracts: TestContracts
 
     before(async (): Promise<void> => {
-        [admin, broker, delegator, delegator2, delegator3, sponsor] = await ethers.getSigners() as unknown as Wallet[]
+        [admin, broker, delegator, delegator2, delegator3, sponsor] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
@@ -784,5 +785,19 @@ describe("BrokerPool", (): void => {
         expect(await pool.queueIsEmpty()).to.be.true
         await expect(pool.stake(bounty.address, parseEther("500")))
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("500"))
+    })
+
+    it("will NOT allow delegating using wrong token", async function(): Promise<void> {
+        const { token } = contracts
+        const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
+
+        await (await newToken.mint(admin.address, parseEther("1000"))).wait()
+        const pool = await deployBrokerPool(contracts, broker, { brokerSharePercent: 25 })
+        await expect(newToken.transferAndCall(pool.address, parseEther("100"), "0x"))
+            .to.be.revertedWith("error_badToken")
+
+        await (await token.mint(admin.address, parseEther("1000"))).wait()
+        await expect(token.transferAndCall(pool.address, parseEther("100"), "0x"))
+            .to.emit(pool, "InvestmentReceived").withArgs(admin.address, parseEther("100"))
     })
 })
