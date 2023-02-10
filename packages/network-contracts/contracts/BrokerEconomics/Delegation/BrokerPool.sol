@@ -78,7 +78,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
 
     modifier onlyBroker() {
-        require(msg.sender == globalData().broker, "error_only_broker");
+        require(msg.sender == globalData().broker, "error_onlyBroker");
         _;
     }
 
@@ -266,7 +266,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_onlyBounty");
+        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_mustPayOutExitQueueBeforeStaking");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {

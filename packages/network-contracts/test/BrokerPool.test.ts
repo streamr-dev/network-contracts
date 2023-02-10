@@ -731,12 +731,31 @@ describe("BrokerPool", (): void => {
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1995")) // approximate poolvalue only contains allocations at t=1000
     })
 
+    it("won't allow anyone else to stake except the broker of the BrokerPool", async function(): Promise<void> {
+        const pool = await deployBrokerPool(contracts, broker)
+        const bounty = await deployBountyContract(contracts)
+        await (await contracts.token.mint(pool.address, parseEther("1000"))).wait()
+        await expect(pool.connect(admin).stake(bounty.address, parseEther("1000")))
+            .to.be.revertedWith("error_onlyBroker")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+    })
+
     it("won't allow staking to non-Bounties", async function(): Promise<void> {
-        // TODO
+        const pool = await deployBrokerPool(contracts, broker)
+        await (await contracts.token.mint(pool.address, parseEther("1000"))).wait()
+        await expect(pool.stake(contracts.token.address, parseEther("1000"))).to.be.revertedWith("error_badBounty")
     })
 
     it("won't allow staking to Bounties that were not created using the correct BountyFactory", async function(): Promise<void> {
-        // TODO
+        const pool = await deployBrokerPool(contracts, broker)
+        const bounty = await deployBountyContract(contracts)
+        const badBounty = contracts.bountyTemplate
+        await (await contracts.token.mint(pool.address, parseEther("1000"))).wait()
+        await expect(pool.stake(badBounty.address, parseEther("1000")))
+            .to.be.revertedWith("error_badBounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
     })
 
     it("won't allow staking if there are delegators queueing to exit", async function(): Promise<void> {
