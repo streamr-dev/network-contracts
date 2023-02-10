@@ -226,7 +226,7 @@ async function main() {
     await addStream(projectId, streamId2)
     await removeStream(projectId, streamId2)
 
-    // await deleteProject(projectId)
+    await deleteProject(projectId)
 
     // MarketplaceV4
     const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, domainIds[0], 1)

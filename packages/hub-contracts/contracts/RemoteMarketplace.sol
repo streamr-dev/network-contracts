@@ -26,15 +26,29 @@ interface IInterchainQueryRouter {
         uint32 _destinationDomain,
         Call calldata call,
         bytes calldata callback
-    ) external;
+    ) external returns (bytes32);
 }
 
-interface IOutbox {
+interface IInterchainGasPaymaster {
+    function payForGas(
+        bytes32 _messageId,
+        uint32 _destinationDomain,
+        uint256 _gasAmount,
+        address _refundAddress
+    ) external payable;
+
+    function quoteGasPayment(uint32 _destinationDomain, uint256 _gasAmount)
+        external
+        view
+        returns (uint256);
+}
+
+interface IMailbox {
     function dispatch(
-        uint32 destinationDomainId, // the chain where MarketplaceV4 is deployed and where messages are sent to. It is a unique ID assigned by hyperlane protocol
+        uint32 destinationDomainId, // the chain id where MarketplaceV4 is deployed and where messages are sent to
         bytes32 recipientAddress, // the address for the MarketplaceV4 contract. It must have the handle() function
         bytes calldata messageBody // encoded purchase info
-    ) external returns (uint256);
+    ) external returns (bytes32);
 }
 
 /**
@@ -55,13 +69,11 @@ contract RemoteMarketplace is Ownable {
     uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
     uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistry & MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
+    IMailbox public mailbox;
     IInterchainQueryRouter public queryRouter;
-    IOutbox public outbox;
+    IInterchainGasPaymaster public gasPaymaster;
 
-    event CrossChainPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
-    event ProjectQuerySent(uint32 destinationDomainId, address recipientAddress, bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId);
-    event DispatchSubscribeToProject(uint32 destinationDomainId, address recipientAddress, bytes32 projectId, uint256 subscriptionSeconds, address subscriber);
-    event QueryProjectReturned(address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, uint256 purchaseId);
+    event ProjectPurchasedFromRemote(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
 
     modifier onlyQueryRouter() {
         require(msg.sender == address(queryRouter), "error_onlyQueryRouter");
@@ -70,16 +82,19 @@ contract RemoteMarketplace is Ownable {
 
     /**
      * @param _originDomainId - the domain id of the chain this contract is deployed on
-     * @param _queryRouter - hyperlane query router for the origin chain
-     * @param _outboxAddress - hyperlane core address for the chain where RemoteMarketplace is deployed
+     * @param _queryRouter - hyperlane query router contract address. The same on all EVM chains
+     * @param _mailboxAddress - hyperlane Mailbox contract address. The same on all EVM chains
+     * @param _gasPaymaster - hyperlane paymaster contract address. The same on all EVM chains
      */
-    constructor(uint32 _originDomainId, address _queryRouter, address _outboxAddress) {
+    constructor(uint32 _originDomainId, address _queryRouter, address _mailboxAddress, address _gasPaymaster) {
         originDomainId = _originDomainId;
         queryRouter = IInterchainQueryRouter(_queryRouter);
-        outbox = IOutbox(_outboxAddress);
+        mailbox = IMailbox(_mailboxAddress);
+        gasPaymaster = IInterchainGasPaymaster(_gasPaymaster);
     }
 
     /**
+     * Add recipient contract address for the destination chain; where the queries/messages are sent to
      * @param _destinationDomainId - the domain id of the destination chain. It is a unique ID assigned by hyperlane protocol
      * @param _recipientContractAddress - the address of the recipient contract (e.g. MarketplaceV4)
      */
@@ -88,15 +103,25 @@ contract RemoteMarketplace is Ownable {
         recipientAddress = _recipientContractAddress;
     }
 
-    function buy(bytes32 projectId, uint256 subscriptionSeconds) public {
-        buyFor(projectId, subscriptionSeconds, msg.sender);
+    function buy(bytes32 projectId, uint256 subscriptionSeconds, uint256 gasAmount) public {
+        buyFor(projectId, subscriptionSeconds, msg.sender, gasAmount);
     }
 
-    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
+    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber, uint256 gasAmount) public {
         uint256 purchaseId = purchaseCount + 1;
         purchaseCount = purchaseId;
         purchases[purchaseId] = PurchaseRequest(projectId, msg.sender, subscriber, subscriptionSeconds);
-        _queryProject(projectId, subscriptionSeconds, purchaseId);
+        bytes32 messageId = queryRouter.query(
+            destinationDomainId,
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
+            abi.encodePacked(this.handleQueryProjectResult.selector)
+        );
+        _payInterchainGas(messageId, gasAmount, address(this));
+    }
+
+    function _payInterchainGas(bytes32 messageId, uint256 gasAmount, address refundAddress) private {
+        uint256 quotedPayment = gasPaymaster.quoteGasPayment(destinationDomainId, gasAmount);
+        gasPaymaster.payForGas{value: quotedPayment}(messageId, destinationDomainId, gasAmount, refundAddress);
     }
 
     function handleQueryProjectResult(
@@ -105,35 +130,25 @@ contract RemoteMarketplace is Ownable {
         uint256 price,
         uint256 fee,
         uint256 purchaseId
-    ) public { // onlyQueryRouter
+    ) public onlyQueryRouter {
         PurchaseRequest memory purchase = purchases[purchaseId];
         bytes32 projectId = purchase.projectId;
         address buyer = purchase.buyer;
         address subscriber = purchase.subscriber;
         uint256 subscriptionSeconds = purchase.subscriptionSeconds;
-        emit CrossChainPurchase(projectId, subscriber, subscriptionSeconds, price, fee);
+        emit ProjectPurchasedFromRemote(projectId, subscriber, subscriptionSeconds, price, fee);
         _subscribeToProject(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee);
         _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
-
-        emit QueryProjectReturned(beneficiary, pricingTokenAddress, price, fee, purchaseId);
-    }
-
-    function _queryProject(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
-        queryRouter.query(
-            destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
-            abi.encodePacked(this.handleQueryProjectResult.selector)
-        );
-        emit ProjectQuerySent(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, purchaseId);
     }
 
     function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, address beneficiary, uint256 price, uint256 fee) private {
-        emit DispatchSubscribeToProject(destinationDomainId, recipientAddress, projectId, subscriptionSeconds, subscriber);
-        outbox.dispatch(
+        bytes32 messageId = mailbox.dispatch(
             destinationDomainId,
             _addressToBytes32(recipientAddress),
             abi.encode(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)
         );
+        uint256 gasAmount = 100000; // TODO: estimate gas
+        _payInterchainGas(messageId, gasAmount, address(this));
     }
 
     function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
@@ -147,4 +162,9 @@ contract RemoteMarketplace is Ownable {
     function _addressToBytes32(address addr) private pure returns (bytes32) {
         return bytes32(uint256(uint160(addr)));
     }
+    
+    /**
+     * Contract must be able to receive ETH for potential interchain payment refund
+     */
+    receive() external payable {}
 }
