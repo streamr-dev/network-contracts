@@ -373,6 +373,27 @@ describe("Bounty", (): void => {
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })
 
+    it("only allows BrokerPools to stake (BrokerPoolOnlyJoinPolicy)", async function(): Promise<void> {
+        const { streamrConstants } = contracts
+        const bounty = await createBounty(contracts, { brokerPoolsOnly: true, incomePerSecond: "1" })
+
+        await (await token.approve(bounty.address, parseEther("1"))).wait()
+        await expect(bounty.stake(broker.address, parseEther("1")))
+            .to.be.revertedWith("error_onlyBrokerPools")
+
+        const badPool = await (await (await getContractFactory("BrokerPool", broker)).deploy()).deployed()
+        await (await badPool.initialize(token.address, streamrConstants.address, broker.address, "testpool", "1")).wait()
+        await (await token.transferAndCall(badPool.address, parseEther("1"), "0x")).wait()
+        await expect(badPool.stake(bounty.address, parseEther("1")))
+            .to.be.revertedWith("error_onlyBrokerPools")
+
+        const pool = await deployBrokerPool(contracts, broker)
+        await (await token.transferAndCall(pool.address, parseEther("1"), "0x")).wait()
+        await expect(pool.stake(bounty.address, parseEther("1")))
+            .to.emit(bounty, "BrokerJoined").withArgs(pool.address)
+            .to.emit(pool, "Staked")
+    })
+
     // must be last test, will remove all policies in the bountyFactory
     it("positivetest remove trusted policies", async function(): Promise<void> {
         const {
