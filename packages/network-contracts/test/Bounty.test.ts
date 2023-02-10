@@ -90,11 +90,12 @@ describe("Bounty", (): void => {
                 .to.be.revertedWith(`AccessControl: account ${broker.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
         })
 
+        // TODO: is this a feature or a bug?
         it("silently fails when receives empty errors from policies", async function(): Promise<void> {
             const jpMS = await getContractFactory("TestAllocationPolicy", admin)
             const jpMSC = await jpMS.deploy() as Contract
             const testAllocPolicy = await jpMSC.connect(admin).deployed() as IAllocationPolicy
-            await expect(defaultBounty.setAllocationPolicy(testAllocPolicy.address, "4"))
+            await expect(defaultBounty.setAllocationPolicy(testAllocPolicy.address, "2"))
                 .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
                 + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
         })
@@ -133,15 +134,27 @@ describe("Bounty", (): void => {
         })
 
         it("negativetest error onJoin on allocationPolicy", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "2") // 2 => onJoin will revert
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "3") // 3 => onJoin will revert
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("test-error: onJoin allocation policy")
         })
 
         it("negativetest error onJoin on allocationPolicy, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "5") // 5 => onJoin will revert without reason
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "4") // 4 => onJoin will revert without reason
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_allocationPolicyOnJoin")
+        })
+
+        it("negativetest error onleave on allocationPolicy", async function(): Promise<void> {
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
+            await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
+            await expect(bounty.connect(broker).leave()).to.be.revertedWith("test-error: onLeave allocation policy")
+        })
+
+        it("negativetest error onleave on allocationPolicy, empty error", async function(): Promise<void> {
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
+            await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
+            await expect(bounty.connect(broker).leave()).to.be.revertedWith("error_brokerLeaveFailed")
         })
 
         it("negativetest error onstakeIncrease", async function(): Promise<void> {
@@ -156,18 +169,6 @@ describe("Bounty", (): void => {
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_stakeIncreaseFailed")
-        })
-
-        it("negativetest error onleave on allocationPolicy", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "3") // 3 => onLeave will revert
-            await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).leave()).to.be.revertedWith("test-error: onLeave allocation policy")
-        })
-
-        it("negativetest error onleave on allocationPolicy, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
-            await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).leave()).to.be.revertedWith("error_brokerLeaveFailed")
         })
     })
 })
