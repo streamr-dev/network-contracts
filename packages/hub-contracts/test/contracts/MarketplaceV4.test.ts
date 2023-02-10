@@ -56,7 +56,7 @@ export const log = (..._: unknown[]): void => { /* skip logging */ }
 
 use(waffle.solidity)
 
-describe("Marketplace", () => {
+describe("MarketplaceV4", () => {
     const [
         admin,
         buyer,
@@ -72,10 +72,13 @@ describe("Marketplace", () => {
     let projectRegistry: ProjectRegistry
     let streamRegistry: StreamRegistryV3
 
-    const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
-    const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
+    const chainId = 137 // chain id for polygon mainnet
+    const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
+    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
+    const interchainQueryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
+    const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
         await deployERC20()
@@ -85,7 +88,7 @@ describe("Marketplace", () => {
         await deployProjectRegistry()
         marketplace = await deployMarketplace()
 
-        domainIds.push(deployedOnDomainId)
+        chainIds.push(chainId)
         paymentDetailsDefault.push([
             beneficiary.address, // beneficiary
             token.address, // pricingTokenAddress
@@ -148,7 +151,7 @@ describe("Marketplace", () => {
     async function deployMarketplace(): Promise<MarketplaceV4> {
         log("Deploying MarketplaceV4: ")
         const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
         const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
         log("   - MarketplaceV4 deployed at: ", market.address)
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
@@ -157,7 +160,7 @@ describe("Marketplace", () => {
     }
 
     async function createProject({
-        chains = domainIds,
+        chains = chainIds,
         payment = paymentDetailsDefault,
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
@@ -174,7 +177,7 @@ describe("Marketplace", () => {
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
             const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
@@ -283,7 +286,7 @@ describe("Marketplace", () => {
                     BigNumber.from(1) // pricePerSecond
                 ]
             ]
-            await projectRegistry.updateProject(projectId, domainIds, paymentDetails, [], 1, 'metadata')
+            await projectRegistry.updateProject(projectId, chainIds, paymentDetails, [], 1, 'metadata')
             await marketplace.buy(projectId, 100)
             const balanceAfter = await token.balanceOf(sellerAddress)
 
@@ -308,7 +311,7 @@ describe("Marketplace", () => {
 
         it('buy - positivetest - beneficiary can react on project purchase', async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers
             await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
@@ -339,7 +342,7 @@ describe("Marketplace", () => {
 
             // create project with ERC677 pricingToken
             await projectRegistry
-                .createProject(projectId, domainIds, paymentDetails1, [], 1, true, 'metadata')
+                .createProject(projectId, chainIds, paymentDetails1, [], 1, true, 'metadata')
             expect(await token.balanceOf(beneficiaryAddress))
                 .to.equal(0)
             await token.approve(market.address, 1000)
@@ -350,7 +353,7 @@ describe("Marketplace", () => {
 
             // change pricing token to ERC20
             await projectRegistry
-                .updateProject(projectId, domainIds, paymentDetails2, [], 1, 'metadata')
+                .updateProject(projectId, chainIds, paymentDetails2, [], 1, 'metadata')
             await otherToken.approve(market.address, 1000)
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(0)
@@ -601,7 +604,7 @@ describe("Marketplace", () => {
             const purchaseId = BigNumber.from(1)
             
             const projectId = await createProject({ payment })
-            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, deployedOnDomainId, purchaseId)
+            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId)
             
             expect(purchaseInfo[0]).to.equal(beneficiaryAddress)
             expect(purchaseInfo[1]).to.equal(pricingTokenAddress)
@@ -648,11 +651,9 @@ describe("Marketplace", () => {
                 await outbox.deployed()
 
                 const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-                const queryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
-                sender = await remoteMarketFactory.deploy(originDomain, queryRouter, outbox.address) as RemoteMarketplace
+                sender = await remoteMarketFactory.deploy(originDomain, interchainQueryRouter, interchainMailbox, interchainGasPaymaster) as RemoteMarketplace
                 await sender.addRecipient(destinationDomain, recipient.address)
-                await recipient.addCrossChainInbox(originDomain, inbox.address)
-                await recipient.addCrossChainMarketplace(originDomain, sender.address)
+                await recipient.addRemoteMarketplace(originDomain, sender.address)
             })
     
             it("TODO: buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {})
