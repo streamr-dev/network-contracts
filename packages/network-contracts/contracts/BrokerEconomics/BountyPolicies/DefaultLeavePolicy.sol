@@ -5,8 +5,6 @@ pragma solidity ^0.8.13;
 import "./ILeavePolicy.sol";
 import "../Bounty.sol";
 
-// import "hardhat/console.sol";
-
 contract DefaultLeavePolicy is ILeavePolicy, Bounty {
 
     uint penaltyPeriodSeconds = 0;

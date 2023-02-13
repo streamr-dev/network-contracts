@@ -2,28 +2,30 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-import "../IERC677.sol";
-import "../IERC677Receiver.sol";
-
+// import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./policies/IJoinPolicy.sol";
-import "./policies/ILeavePolicy.sol";
-import "./policies/IKickPolicy.sol";
-import "./policies/IAllocationPolicy.sol";
+
+import "./IERC677.sol";
+import "./IERC677Receiver.sol";
+import "./BountyPolicies/IJoinPolicy.sol";
+import "./BountyPolicies/ILeavePolicy.sol";
+import "./BountyPolicies/IKickPolicy.sol";
+import "./BountyPolicies/IAllocationPolicy.sol";
 import "./ISlashListener.sol";
-import "../StreamrConstants.sol";
+import "./StreamrConstants.sol";
+// import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
+
+// import "hardhat/console.sol";
 
 interface IFactory {
     function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
 }
 
-// import "hardhat/console.sol";
-
 /**
- * Stream Agreement holds the sponsors' tokens and allocates them to brokers
+ * Bounty ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
+ * Those tokens are the *Bounty* that the *sponsor* puts on servicing the stream
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
@@ -64,7 +66,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function globalData() internal pure returns(GlobalStorage storage data) {
         bytes32 storagePosition = keccak256("agreement.storage.GlobalStorage");
-        assembly {data.slot := storagePosition}
+        assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
     function getUnallocatedWei() public view returns(uint) {
@@ -93,7 +95,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * DefaultLeavePolicy states brokers are free to leave an underfunded bounty
      */
     function isFunded() public view returns (bool) {
-        return solventUntil() > block.timestamp + globalData().minHorizonSeconds;
+        return solventUntil() > block.timestamp + globalData().minHorizonSeconds; // solhint-disable-line not-rely-on-time
     }
 
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -103,9 +105,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address newOwner,
         address tokenAddress,
         uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
-        IAllocationPolicy initialAllocationPolicy,
-        uint allocationPolicyParam
+        uint32 initialMinBrokerCount
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
@@ -116,7 +116,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
-        setAllocationPolicy(initialAllocationPolicy, allocationPolicyParam);
     }
 
     /**
@@ -129,17 +128,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
             address stakeBeneficiary;
-            assembly {
-                stakeBeneficiary := shr(96, calldataload(data.offset))
-            }
+            assembly { stakeBeneficiary := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
             _stake(stakeBeneficiary, amount);
         } else if (data.length == 32) {
             // assume the address was encoded by converting address -> uint -> bytes32 -> bytes (already in the least significant bytes)
             // (this is what abi.encode would produce)
             address stakeBeneficiary;
-            assembly {
-                stakeBeneficiary := calldataload(data.offset)
-            }
+            assembly { stakeBeneficiary := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
             _stake(stakeBeneficiary, amount);
         } else {
             _addSponsorship(sender, amount);
@@ -165,7 +160,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             s.stakedWei[broker] += amount;
             s.brokerCount += 1;
             s.totalStakedWei += amount;
-            s.joinTimeOfBroker[broker] = block.timestamp;
+            s.joinTimeOfBroker[broker] = block.timestamp; // solhint-disable-line not-rely-on-time
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
         } else {
@@ -347,6 +342,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // MODULE CALLS
     // moduleCall for transactions, moduleGet for view functions
     /////////////////////////////////////////
+    /* solhint-disable */
 
     /**
      * Delegate-call ("library call") a module's method: it will use this Bounty's storage
@@ -396,11 +392,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
+    /* solhint-enable */
+
     function solventUntil() public view returns(uint256 horizon) {
+        if (address(allocationPolicy) == address(0)) { return 2**255; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
     function getAllocation(address broker) public view returns(uint256 allocation) {
+        if (address(allocationPolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.calculateAllocation.selector, broker, address(allocationPolicy)), "error_getAllocationFailed");
     }
 

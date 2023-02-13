@@ -7,9 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
-import "../IERC677.sol";
-
-import "hardhat/console.sol";
+import "./IERC677.sol";
 
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
 
@@ -117,7 +115,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint[] memory initParams
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
-        require(policies[0] != address(0), "error_noAllocationPolicy");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
@@ -130,10 +127,11 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             address(this), // this is needed in order to set the policies
             tokenAddress,
             initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            IAllocationPolicy(policies[0]),
-            initParams[0]   // param for allocation policy
+            initialMinBrokerCount
         );
+        if (policies[0] != address(0)) {
+            bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
+        }
         if (policies[1] != address(0)) {
             bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
         }
@@ -148,8 +146,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
-        deploymentTimestamp[bountyAddress] = block.timestamp;
         emit NewBounty(bountyAddress);
+        // solhint-disable-next-line not-rely-on-time
+        deploymentTimestamp[bountyAddress] = block.timestamp;
         return bountyAddress;
     }
 

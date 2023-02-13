@@ -7,10 +7,9 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./BrokerPool.sol";
-import "../IERC677.sol";
 
-// import "hardhat/console.sol";
+import "./BrokerPool.sol";
+import "./IERC677.sol";
 
 contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
 
@@ -139,8 +138,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
         pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
         pool.renounceRole(pool.ADMIN_ROLE(), address(this));
-        deploymentTimestamp[poolAddress] = block.timestamp;
         emit NewBrokerPool(poolAddress);
+        // solhint-disable-next-line not-rely-on-time
+        deploymentTimestamp[poolAddress] = block.timestamp;
         return poolAddress;
     }
 

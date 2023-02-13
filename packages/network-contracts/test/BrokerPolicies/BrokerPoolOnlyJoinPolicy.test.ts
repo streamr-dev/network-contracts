@@ -8,10 +8,9 @@ const { getSigners, getContractFactory } = hardhatEthers
 import {
     deployTestContracts,
     TestContracts,
-} from "./deployTestContracts"
-import { deployBrokerPool } from "./deployBrokerPool"
-
-import { deployBountyContract } from "./deployBountyContract"
+} from "../deployTestContracts"
+import { deployBrokerPool } from "../deployBrokerPool"
+import { deployBountyContract } from "../deployBountyContract"
 
 describe("BrokerPoolOnlyJoinPolicy", (): void => {
     let admin: Wallet

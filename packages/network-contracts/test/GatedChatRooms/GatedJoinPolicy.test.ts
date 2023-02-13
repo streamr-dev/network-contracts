@@ -1,8 +1,8 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import { Contract} from 'ethers'
+import { ethers } from "hardhat"
+import { expect } from "chai"
+import { Contract} from "ethers"
 
-describe('GatedJoinPolicy', async (): Promise<void> => {
+describe("GatedJoinPolicy", async (): Promise<void> => {
     const wallets = await ethers.getSigners()
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
@@ -10,17 +10,17 @@ describe('GatedJoinPolicy', async (): Promise<void> => {
 
     before(async (): Promise<void> => {
 
-        const GatedJoinPolicy = await ethers.getContractFactory('GatedJoinPolicy', wallets[0])
+        const GatedJoinPolicy = await ethers.getContractFactory("GatedJoinPolicy", wallets[0])
         
         contract = await GatedJoinPolicy.deploy(
-            '0x0000000000000000000000000000000000000000',
-            '0x0000000000000000000000000000000000000000',
-            'stream_id',
+            "0x0000000000000000000000000000000000000000",
+            "0x0000000000000000000000000000000000000000",
+            "stream_id",
             [PermissionType.Subscribe, PermissionType.Publish]
         )
     })
 
-    it ('should verify the contract got deployed', async() => {
+    it ("should verify the contract got deployed", async() => {
         expect(contract.address).to.not.equal(undefined)
     })
 })

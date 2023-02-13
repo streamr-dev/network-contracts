@@ -5,8 +5,6 @@ pragma solidity ^0.8.13;
 import "./IKickPolicy.sol";
 import "../Bounty.sol";
 
-// import "hardhat/console.sol";
-
 contract AdminKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }

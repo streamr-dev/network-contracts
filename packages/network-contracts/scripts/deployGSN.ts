@@ -1,10 +1,11 @@
 // scripts/deploy.js
-import { Wallet } from 'ethers'
-import { ethers, upgrades } from 'hardhat'
-import { WhitelistPaymaster } from '../typechain'
-import { Forwarder } from '../typechain/Forwarder'
+// import { Wallet } from "ethers"
+// import { ethers, upgrades } from "hardhat"
+import { ethers } from "hardhat"
+import { WhitelistPaymaster } from "../typechain"
+// import { Forwarder } from "../typechain/Forwarder"
 
-import { StreamRegistryV4 } from '../typechain/StreamRegistryV4'
+// import { StreamRegistryV4 } from "../typechain/StreamRegistryV4"
 
 const log = console.log
 // const FORWARDER = "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d"
@@ -21,11 +22,11 @@ async function main() {
     // // const relayHub = await relayhubFactory.deploy() as Contract
     // // log('Relayhub deployed to:', relayHub.address)
 
-    const paymasterFactory = await ethers.getContractFactory('WhitelistPaymaster')
-    log('Deploying Paymaster...')
+    const paymasterFactory = await ethers.getContractFactory("WhitelistPaymaster")
+    log("Deploying Paymaster...")
     const paymaster = await paymasterFactory.deploy() as WhitelistPaymaster
     await paymaster.deployed()
-    log('Paymaster deployed to:', paymaster.address)
+    log("Paymaster deployed to:", paymaster.address)
 
     // const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV4')
     // // const streamRegistryFactoryTx = await streamRegistryFactory.deploy(ensCache.address, constants.AddressZero)

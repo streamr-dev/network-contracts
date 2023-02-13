@@ -5,8 +5,6 @@ pragma solidity ^0.8.13;
 import "./IJoinPolicy.sol";
 import "../Bounty.sol";
 
-// import "hardhat/console.sol";
-
 contract BrokerPoolOnlyJoinPolicy is IJoinPolicy, Bounty {
     function setParam(uint256) external {
     }

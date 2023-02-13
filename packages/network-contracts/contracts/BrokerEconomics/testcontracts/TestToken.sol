@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../../IERC677.sol";
-import "../../IERC677Receiver.sol";
+
+import "../IERC677.sol";
+import "../IERC677Receiver.sol";
 
 /**
  * Mintable TestToken for contract tests

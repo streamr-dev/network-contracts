@@ -1,18 +1,18 @@
-import { upgrades, ethers } from 'hardhat'
-import { expect } from 'chai'
-import { utils, BigNumber } from 'ethers'
+import { upgrades, ethers } from "hardhat"
+import { expect } from "chai"
+import { utils, BigNumber } from "ethers"
 
-import ENSCacheJson from '../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
-import ForwarderJson from '../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import OracleJson from '../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json'
-import LinkTokenJson from '../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json'
-import type { ENSCache } from '../typechain/ENSCache'
-import type { MinimalForwarder } from '../typechain/MinimalForwarder'
-import type { Oracle } from '../typechain/Oracle'
-import type { LinkToken } from '../typechain/LinkToken'
-import type { StreamRegistry } from '../typechain/StreamRegistry'
+import ENSCacheJson from "../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json"
+import ForwarderJson from "../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json"
+import OracleJson from "../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json"
+import LinkTokenJson from "../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json"
+import type { ENSCache } from "../typechain/ENSCache"
+import type { MinimalForwarder } from "../typechain/MinimalForwarder"
+import type { Oracle } from "../typechain/Oracle"
+import type { LinkToken } from "../typechain/LinkToken"
+import type { StreamRegistry } from "../typechain/StreamRegistry"
 
-describe('ENSCache', async (): Promise<void> => {
+describe("ENSCache", async (): Promise<void> => {
     let wallets
     let ensCacheFromAdmin: ENSCache
     let linkTokenFromAdmin: LinkToken
@@ -53,38 +53,38 @@ describe('ENSCache', async (): Promise<void> => {
             ENSCacheJson.bytecode,
             wallets[0]
         )
-        ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAdress, 'jobid')) as ENSCache
+        ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAdress, "jobid")) as ENSCache
         await ensCacheFromAdmin.deployed()
 
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
 
         await linkTokenFromAdmin.transfer(ensCacheFromAdmin.address,
-            BigNumber.from('1000000000000000000000')) // 1000 link
+            BigNumber.from("1000000000000000000000")) // 1000 link
 
-        const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV2')
+        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV2")
         const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [
             ensCacheFromAdmin.address,
             minimalForwarderFromAdmin.address
-        ], { kind: 'uups' })
+        ], { kind: "uups" })
         registryFromAdmin = await streamRegistryFactoryTx.deployed() as StreamRegistry
         await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), ensCacheFromAdmin.address)
         await ensCacheFromAdmin.setStreamRegistry(registryFromAdmin.address)
     })
 
-    it('updates the cache entry: requestENSOwner', async () => {
-        const tx = await ensCacheFromAdmin.requestENSOwner('ensdomain1')
+    it("updates the cache entry: requestENSOwner", async () => {
+        const tx = await ensCacheFromAdmin.requestENSOwner("ensdomain1")
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
         await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32)))
-            .to.emit(ensCacheFromAdmin, 'ChainlinkFulfilled')
-            .and.to.not.emit(registryFromAdmin, 'StreamCreated')
+            .to.emit(ensCacheFromAdmin, "ChainlinkFulfilled")
+            .and.to.not.emit(registryFromAdmin, "StreamCreated")
     })
 
-    it('updates the cache entry and creates a stream: requestENSOwnerAndCreateStream', async () => {
-        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream('ensdomain1', '/path', 'metadata', adminAdress)
+    it("updates the cache entry and creates a stream: requestENSOwnerAndCreateStream", async () => {
+        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream("ensdomain1", "/path", "metadata", adminAdress)
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
-        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, 'StreamCreated')
+        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, "StreamCreated")
     })
 
     // TODO: ENSCache is not meta-transaction ready right now
