@@ -1,13 +1,11 @@
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
-import { utils, Wallet } from "ethers"
+import { Wallet } from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
 
-const { parseEther } = utils
 const { getContractFactory } = hardhatEthers
-let poolindex = 0
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console // TODO: use pino for logging?
@@ -103,86 +101,4 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
         bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, leavePolicy, kickPolicy,
         poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }
-}
-
-/**
- * @param deployer should be the broker's Wallet
- * @returns BrokerPool
- */
-export async function deployBrokerPool(contracts: TestContracts, deployer: Wallet, {
-    maintenanceMarginPercent = 0,
-    maxBrokerDivertPercent = 0,
-    minBrokerStakePercent = 0,
-    brokerSharePercent = 0,
-} = {}): Promise<BrokerPool> {
-    const {
-        poolFactory, poolTemplate,
-    } = contracts
-    const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
-        0,
-        `Pool-${Date.now()}-${poolindex++}`,
-        [contracts.defaultPoolJoinPolicy.address, contracts.defaultPoolYieldPolicy.address, contracts.defaultPoolExitPolicy.address],
-        [0, minBrokerStakePercent, 0, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent, 0]
-    )).wait()
-    const newPoolAddress = brokerPoolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
-    return poolTemplate.attach(newPoolAddress).connect(deployer)
-}
-
-export async function deployBountyContract(contracts: TestContracts, {
-    minHorizonSeconds = 0,
-    minBrokerCount = 1,
-    penaltyPeriodSeconds = 0,
-    minStakeWei = 1,
-    maxBrokerCount = 100,
-    allocationWeiPerSecond = parseEther("1"),
-    brokerPoolOnly = false,    // TODO: add test for true
-} = {}): Promise<Bounty> {
-    const {
-        token,
-        minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
-        allocationPolicy, leavePolicy, kickPolicy,
-        bountyTemplate, bountyFactory
-    } = contracts
-    /**
-     * Policies array is interpreted as follows:
-     *   0: allocation policy (address(0) for none)
-     *   1: leave policy (address(0) for none)
-     *   2: kick policy (address(0) for none)
-     *   3+: join policies (leave out if none)
-     * @param policies smart contract addresses found in the trustedPolicies
-     function deployBountyAgreement(
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
-        string memory bountyName,
-        address[] memory policies,
-        uint[] memory initParams
-    )
-    */
-    const bountyDeployTx = await bountyFactory.deployBountyAgreement(
-        minHorizonSeconds.toString(),
-        minBrokerCount.toString(),
-        `Bounty-${Date.now()}`,
-        [
-            allocationPolicy.address,
-            leavePolicy.address,
-            kickPolicy.address,
-            minStakeJoinPolicy.address,
-            maxBrokersJoinPolicy.address,
-            ...(brokerPoolOnly ? [brokerPoolOnlyJoinPolicy.address] : []),
-        ],
-        [
-            allocationWeiPerSecond.toString(),
-            penaltyPeriodSeconds.toString(),
-            "0",
-            minStakeWei.toString(),
-            maxBrokerCount.toString(),
-            ...(brokerPoolOnly ? ["0"] : []),
-        ]
-    )
-    const bountyDeployReceipt = await bountyDeployTx.wait()
-    const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
-    const newBountyAddress = newBountyEvent?.args?.bountyContract
-    const bounty = bountyTemplate.attach(newBountyAddress)
-    await (await token.approve(bounty.address, parseEther("100000"))).wait()
-    return bounty
 }

@@ -2,7 +2,8 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 import { utils, Wallet } from "ethers"
 
-import { deployBountyContract, deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "./utils"
+import { deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "./deployTestContracts"
+import { deployBountyContract } from "./deployBountyContract"
 
 const { parseEther, formatEther } = utils
 
