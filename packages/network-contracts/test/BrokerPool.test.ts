@@ -800,7 +800,7 @@ describe("BrokerPool", (): void => {
         await (await newToken.mint(admin.address, parseEther("1000"))).wait()
         const pool = await deployBrokerPool(contracts, broker, { brokerSharePercent: 25 })
         await expect(newToken.transferAndCall(pool.address, parseEther("100"), "0x"))
-            .to.be.revertedWith("error_badToken")
+            .to.be.revertedWith("error_onlyDATAToken")
 
         await (await token.mint(admin.address, parseEther("1000"))).wait()
         await expect(token.transferAndCall(pool.address, parseEther("100"), "0x"))

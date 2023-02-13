@@ -68,7 +68,7 @@ describe("Bounty", (): void => {
         const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
         await (await newToken.mint(admin.address, parseEther("1000000"))).wait()
         await expect(newToken.transferAndCall(defaultBounty.address, parseEther("1"), admin.address))
-            .to.be.revertedWith("error_badToken")
+            .to.be.revertedWith("error_onlyDATAToken")
     })
 
     it("will FAIL if sponsor called with no allowance", async function(): Promise<void> {
