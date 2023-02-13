@@ -177,7 +177,11 @@ describe("MarketplaceV4", () => {
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+                interchainMailbox
+            ], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
             const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
@@ -311,7 +315,11 @@ describe("MarketplaceV4", () => {
 
         it('buy - positivetest - beneficiary can react on project purchase', async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+                interchainMailbox
+            ], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers
             await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
@@ -651,7 +659,12 @@ describe("MarketplaceV4", () => {
                 await outbox.deployed()
 
                 const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-                sender = await remoteMarketFactory.deploy(originDomain, interchainQueryRouter, interchainMailbox, interchainGasPaymaster) as RemoteMarketplace
+                sender = await remoteMarketFactory.deploy(
+                    originDomain,
+                    interchainQueryRouter,
+                    interchainMailbox,
+                    interchainGasPaymaster
+                ) as RemoteMarketplace
                 await sender.addRecipient(destinationDomain, recipient.address)
                 await recipient.addRemoteMarketplace(originDomain, sender.address)
             })
