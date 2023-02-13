@@ -105,7 +105,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address newOwner,
         address tokenAddress,
         uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount
+        uint32 initialMinBrokerCount,
+        IAllocationPolicy initialAllocationPolicy,
+        uint allocationPolicyParam
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
@@ -116,6 +118,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
+        setAllocationPolicy(initialAllocationPolicy, allocationPolicyParam);
     }
 
     /**
@@ -395,12 +398,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /* solhint-enable */
 
     function solventUntil() public view returns(uint256 horizon) {
-        if (address(allocationPolicy) == address(0)) { return 2**255; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
     function getAllocation(address broker) public view returns(uint256 allocation) {
-        if (address(allocationPolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(allocationPolicy.calculateAllocation.selector, broker, address(allocationPolicy)), "error_getAllocationFailed");
     }
 
