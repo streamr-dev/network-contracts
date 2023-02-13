@@ -21,6 +21,7 @@ describe("Bounty", (): void => {
     let token: TestToken
     let minStakeJoinPolicy: IJoinPolicy
     let maxBrokersJoinPolicy: IJoinPolicy
+    let brokerPoolOnlyJoinPolicy: IJoinPolicy
     let bountyCounter = 0
     let bountyFromAdmin: Bounty
     let bountyFromBroker: Bounty
@@ -35,7 +36,7 @@ describe("Bounty", (): void => {
         brokerWallet = wallets[1]
         broker2Wallet = wallets[2]
 
-        streamrConstants = await (await ethers.getContractFactory("StreamrConstants", adminWallet)).deploy() as StreamrConstants
+        streamrConstants = await upgrades.deployProxy(await ethers.getContractFactory("StreamrConstants", adminWallet), []) as StreamrConstants
         await streamrConstants.deployed()
 
         token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
@@ -46,6 +47,9 @@ describe("Bounty", (): void => {
 
         maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy", adminWallet)).deploy() as IJoinPolicy
         await maxBrokersJoinPolicy.deployed()
+
+        brokerPoolOnlyJoinPolicy = await (await ethers.getContractFactory("BrokerPoolOnlyJoinPolicy", adminWallet)).deploy() as IJoinPolicy
+        await brokerPoolOnlyJoinPolicy.deployed() // TODO: add test
 
         allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy", adminWallet)).deploy() as IAllocationPolicy
         await allocationPolicy.deployed()
@@ -66,8 +70,10 @@ describe("Bounty", (): void => {
         const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
             [ bountyTemplate.address, token.address, streamrConstants.address ])
         bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
-        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+        await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address, brokerPoolOnlyJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, testJoinPolicy.address, testAllocationPolicy.address])).wait()
+
+        await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
 
         await (await token.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
         await (await token.transfer(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
@@ -335,7 +341,7 @@ describe("Bounty", (): void => {
         const jpMSC = await jpMS.deploy() as Contract
         const testAllocPolicy = await jpMSC.connect(adminWallet).deployed() as IAllocationPolicy
         await expect(bountyFromAdmin.setAllocationPolicy(testAllocPolicy.address, "4"))
-            .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing " 
+            .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
             + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 

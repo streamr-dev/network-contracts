@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 
 interface IAllocationPolicy {
     function setParam(uint param) external;
-    function calculateAllocation(address broker) external returns (uint allocation);
+    function calculateAllocation(address broker) external view returns (uint allocation);
     function getInsolvencyTimestamp() external view returns (uint insolvencyTimestamp);
     function onJoin(address broker) external;
     function onLeave(address broker) external;

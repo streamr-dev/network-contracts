@@ -55,7 +55,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await bounty.isRunning())
         expect(await bounty.isFunded())
 
-        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 1000")
+        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 10% of 1000 = 100")
         await (await bounty.connect(broker).leave()).wait()
         expect(!await bounty.isRunning())
         expect(await bounty.isFunded())
@@ -68,8 +68,8 @@ describe("DefaultLeavePolicy", (): void => {
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
         const balanceChange2 = (await token.balanceOf(broker2.address)).sub(balanceBefore2)
 
-        expect(formatEther(balanceChange)).to.equal("-900.0") // == 100 - 1000
-        expect(formatEther(balanceChange2)).to.equal("100.0") // == 100 - 0
+        expect(formatEther(balanceChange)).to.equal("0.0")      // == 100 - 100
+        expect(formatEther(balanceChange2)).to.equal("100.0")   // == 100 - 0
     })
 
     it("doesn't penalize a broker that leaves after the leave period (even when contract is running)", async function(): Promise<void> {

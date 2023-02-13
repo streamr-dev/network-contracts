@@ -17,6 +17,9 @@ import "./policies/IAllocationPolicy.sol";
 import "./ISlashListener.sol";
 import "../StreamrConstants.sol";
 
+interface IFactory {
+    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
+}
 
 // import "hardhat/console.sol";
 

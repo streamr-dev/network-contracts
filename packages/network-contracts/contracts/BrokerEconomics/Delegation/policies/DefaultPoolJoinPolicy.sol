@@ -4,7 +4,8 @@ pragma solidity ^0.8.13;
 
 import "./IPoolJoinPolicy.sol";
 import "../BrokerPool.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
+
 contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
 
     struct LocalStorage {
@@ -23,23 +24,20 @@ contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
         data.minimumMarginPercent = minimumMarginPercent;
     }
 
+    /** @return allowedToJoin must be 0 for false, or 1 for true */
     function canJoin(address delegator) external view returns (uint allowedToJoin) {
         // console.log("DefaultPoolJoinPolicy.onPoolJoin delegator", delegator);
         // console.log("DefaultPoolJoinPolicy.onPoolJoin broker", globalData().broker);
         // console.log("DefaultPoolJoinPolicy.onPoolJoin brokers balance", balanceOf(globalData().broker));
         // console.log("DefaultPoolJoinPolicy.onPoolJoin total supply", totalSupply());
         // console.log("DefaultPoolJoinPolicy.onPoolJoin initalMargin", localData().initialMargin);
-        if (delegator == globalData().broker || localData().minimumMarginPercent == 0) {
-            // console.log("DefaultPoolJoinPolicy.onPoolJoin is broker or minimumMarginPercent is 0");
-            return 1;
-        }
-        if (totalSupply() == 0) {
-            // console.log("DefaultPoolJoinPolicy.onPoolJoin total supply is 0");
-            return 0;
-        }
-        bool allowed = balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent;
-        // console.log("DefaultPoolJoinPolicy.onPoolJoin", delegator, allowed);
-        return allowed ? 1 : 0;
-        // return 1;
+
+        // can't join into an empty pool (unless it's the broker, or we don't require a minimum margin)
+        if (delegator == globalData().broker || localData().minimumMarginPercent == 0) { return 1; }
+        if (totalSupply() == 0) { return 0; }
+
+        // check minimum margin i.e. how much of the pool does the broker have at stake
+        if (balanceOf(globalData().broker) * 100 / totalSupply() >= localData().minimumMarginPercent) { return 1; }
+        return 0;
     }
 }

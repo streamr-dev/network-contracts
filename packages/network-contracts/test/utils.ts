@@ -32,6 +32,7 @@ export type TestContracts = {
     token: TestToken;
     minStakeJoinPolicy: IJoinPolicy;
     maxBrokersJoinPolicy: IJoinPolicy;
+    brokerPoolOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
     leavePolicy: ILeavePolicy;
     kickPolicy: IKickPolicy;
@@ -51,20 +52,20 @@ export type TestContracts = {
  */
 export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST") as TestToken
-    const streamrConstants = await (await getContractFactory("StreamrConstants", deployer)).deploy() as StreamrConstants
+    const streamrConstants = await upgrades.deployProxy(await getContractFactory("StreamrConstants", deployer), []) as StreamrConstants
     await streamrConstants.deployed()
+
     // bounty and policies
     const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy() as IJoinPolicy
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy() as IJoinPolicy
+    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", deployer)).deploy() as IJoinPolicy
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy() as IAllocationPolicy
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy() as ILeavePolicy
     const kickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy() as IKickPolicy
     const bountyTemplate = await (await getContractFactory("Bounty")).deploy() as Bounty
     await bountyTemplate.deployed()
 
-    // function initialize(address templateAddress, address trustedForwarderAddress, address _tokenAddress) public initializer {
-    const bountyFactoryFactory = await getContractFactory("BountyFactory", deployer)
-    const bountyFactory = await upgrades.deployProxy(bountyFactoryFactory, [
+    const bountyFactory = await upgrades.deployProxy(await getContractFactory("BountyFactory", deployer), [
         bountyTemplate.address,
         token.address,
         streamrConstants.address
@@ -76,6 +77,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
         kickPolicy.address,
         minStakeJoinPolicy.address,
         maxBrokersJoinPolicy.address,
+        brokerPoolOnlyJoinPolicy.address,
     ])).wait()
 
     // broker pool and policies
@@ -84,8 +86,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy() as IPoolYieldPolicy
     const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy() as IPoolExitPolicy
 
-    const poolFactoryFactory = await getContractFactory("BrokerPoolFactory", deployer)
-    const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
+    const poolFactory = await upgrades.deployProxy(await getContractFactory("BrokerPoolFactory", deployer), [
         poolTemplate.address,
         token.address,
         streamrConstants.address
@@ -97,9 +98,12 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
         defaultPoolExitPolicy.address,
     ])).wait()
 
+    await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
+    await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
+
     return {
-        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, 
-        bountyTemplate, bountyFactory, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy
+        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy,
+        bountyTemplate, bountyFactory, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy, brokerPoolOnlyJoinPolicy
     }
 }
 
@@ -122,9 +126,13 @@ export async function deployBountyContract(contracts: TestContracts, {
     minStakeWei = 1,
     maxBrokerCount = 100,
     allocationWeiPerSecond = parseEther("1"),
+    brokerPoolOnly = false,    // TODO: add test for true
 } = {}): Promise<Bounty> {
     const {
-        token, minStakeJoinPolicy, maxBrokersJoinPolicy, allocationPolicy, leavePolicy, kickPolicy, bountyTemplate, bountyFactory
+        token,
+        minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
+        allocationPolicy, leavePolicy, kickPolicy,
+        bountyTemplate, bountyFactory
     } = contracts
     /**
      * Policies array is interpreted as follows:
@@ -151,13 +159,15 @@ export async function deployBountyContract(contracts: TestContracts, {
             kickPolicy.address,
             minStakeJoinPolicy.address,
             maxBrokersJoinPolicy.address,
+            ...(brokerPoolOnly ? [brokerPoolOnlyJoinPolicy.address] : []),
         ],
         [
             allocationWeiPerSecond.toString(),
             penaltyPeriodSeconds.toString(),
             "0",
             minStakeWei.toString(),
-            maxBrokerCount.toString()
+            maxBrokerCount.toString(),
+            ...(brokerPoolOnly ? ["0"] : []),
         ]
     )
     const bountyDeployReceipt = await bountyDeployTx.wait()
