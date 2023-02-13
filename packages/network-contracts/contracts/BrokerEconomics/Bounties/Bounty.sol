@@ -7,7 +7,6 @@ import "../IERC677Receiver.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-// import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./policies/IJoinPolicy.sol";
@@ -104,7 +103,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address newOwner,
         address tokenAddress,
         uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount
+        uint32 initialMinBrokerCount,
+        IAllocationPolicy initialAllocationPolicy,
+        uint allocationPolicyParam
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         // __AccessControl_init();
@@ -115,6 +116,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
+        setAllocationPolicy(initialAllocationPolicy, allocationPolicyParam);
     }
 
     /**
@@ -122,7 +124,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * If the data bytes contains an address, the incoming tokens are staked for that broker
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        require(_msgSender() == address(token), "error_onlyTokenContract");
+        require(_msgSender() == address(token), "error_onlyDATAToken");
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -304,6 +306,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function report(address broker) external {
+        require(address(kickPolicy) != address(0), "error_reportingNotSupported");
         // console.log("Reporting", broker);
         address reporter = _msgSender();
         emit BrokerReported(broker, reporter);
@@ -402,6 +405,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {
+        if (address(leavePolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, broker, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }
 

@@ -49,7 +49,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         trustedPolicies[policyAddress] = true;
     }
 
-    function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint i = 0; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
@@ -85,23 +85,20 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     // }
 
     /**
-     * Policies array is interpreted as follows:
-     *   0: allocation policy (address(0) for none)
-     *   1: leave policy (address(0) for none)
-     *   2: kick policy (address(0) for none)
-     *   3+: join policies (leave out if none)
-     * @param policies smart contract addresses found in the trustedPolicies
+     * Policies array corresponds to the initParams array as follows:
+     *  [0]: join policy => [0] initialMargin, [1] minimumMarginPercent
+     *  [1]: yield policy => [2] initialMargin, [3] maintenanceMargin, [4] minimumMargin, [5] brokerShare, [6] brokerShareMaxDivert
+     *  [2]: exit policy => [7]
+     * @param policies smart contract addresses, must be in the trustedPolicies
      */
     function deployBrokerPool(
-        // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        string memory poolName,
-        address[] memory policies,
-        uint[] memory initParams
+        string calldata poolName,
+        address[3] calldata policies,
+        uint[8] calldata initParams
     ) public returns (address) {
         return _deployBrokerPool(
             _msgSender(),
-            // initialMinHorizonSeconds,
             initialMinWeiInvestment,
             poolName,
             policies,
@@ -111,11 +108,10 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     function _deployBrokerPool(
         address poolOwner,
-        // uint32 initialMinHorizonSeconds,
         uint32 initialMinWeiInvestment,
-        string memory poolName,
-        address[] memory policies,
-        uint[] memory initParams
+        string calldata poolName,
+        address[3] calldata policies,
+        uint[8] calldata initParams
     ) private returns (address) {
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
@@ -125,13 +121,10 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
-            // address(this), // this is needed in order to set the policies
             tokenAddress,
             streamrConstants,
             _msgSender(),
             poolName,
-            // initialMinHorizonSeconds,
-            // initialMinBrokerCount,
             initialMinWeiInvestment
         );
         if (policies[0] != address(0)) {
@@ -143,11 +136,6 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         if (policies[2] != address(0)) {
             pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
         }
-        // // for (uint i = 3; i < policies.length; i++) {
-        //     // if (policies[i] != address(0)) {
-        //     //     bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
-        //     // }
-        // // }
         pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
         pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
         pool.renounceRole(pool.ADMIN_ROLE(), address(this));
@@ -156,7 +144,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         return poolAddress;
     }
 
-     /*
+    /*
      * Override openzeppelin's ERC2771ContextUpgradeable function
      * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
      */

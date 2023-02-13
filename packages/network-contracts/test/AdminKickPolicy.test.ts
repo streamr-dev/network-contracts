@@ -3,7 +3,9 @@ import { ethers } from "hardhat"
 import { utils, Wallet } from "ethers"
 // import { StakeWeightedAllocationPolicy } from "../typechain"
 
-import { advanceToTimestamp, getBlockTimestamp, log, deployBountyContract, deployTestContracts, TestContracts } from "./utils"
+import { advanceToTimestamp, getBlockTimestamp, log, deployTestContracts, TestContracts } from "./deployTestContracts"
+
+import { deployBountyContract } from "./deployBountyContract"
 
 const { parseEther, formatEther } = utils
 

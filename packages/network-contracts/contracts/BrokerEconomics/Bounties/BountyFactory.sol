@@ -117,6 +117,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint[] memory initParams
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
+        require(policies[0] != address(0), "error_noAllocationPolicy");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
@@ -129,11 +130,10 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             address(this), // this is needed in order to set the policies
             tokenAddress,
             initialMinHorizonSeconds,
-            initialMinBrokerCount
+            initialMinBrokerCount,
+            IAllocationPolicy(policies[0]),
+            initParams[0]   // param for allocation policy
         );
-        if (policies[0] != address(0)) {
-            bounty.setAllocationPolicy(IAllocationPolicy(policies[0]), initParams[0]);
-        }
         if (policies[1] != address(0)) {
             bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
         }
