@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
-/* solhint-disable reason-string */
 
 pragma solidity ^0.8.13;
 
-import "../policies/IAllocationPolicy.sol";
+import "../BountyPolicies/IAllocationPolicy.sol";
 import "../Bounty.sol";
-
-// import "hardhat/console.sol";
 
 contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     struct LocalStorage {
@@ -24,7 +21,6 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function setParam(uint256 testCase) external {
-        // console.log("setParam", testCase);
         if (testCase == 1) {
             require(false, "test-error: setting param allocation policy");
         } else if (testCase == 2) {

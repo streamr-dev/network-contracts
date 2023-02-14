@@ -1,16 +1,16 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 
-import { ethers } from 'hardhat'
-import { providers, Wallet } from 'ethers'
+import { ethers } from "hardhat"
+import { providers, Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 
-import { Bounty, BountyFactory, LinkToken } from '../../typechain'
+import { Bounty, BountyFactory, LinkToken } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const log = require('debug')('streamr:deploy-tatum')
+const log = require("debug")("streamr:deploy-tatum")
 
-const config = Chains.load('development').streamr
+const config = Chains.load("development").streamr
 // hardhat
 // const DEFAULTPRIVATEKEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
 // const SIDECHAINURL = 'http://localhost:8545'
@@ -22,7 +22,7 @@ const config = Chains.load('development').streamr
 // const DEFAULTPRIVATEKEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const CHAINURL = config.rpcEndpoints[0].url
 const LINKTOKEN = config.contracts.LinkToken
-const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
+const DEPLOYMENT_OWNER_KEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
 
 // mumbai
 // const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
@@ -75,12 +75,12 @@ const connectToAllContracts = async () => {
     userWallet = Wallet.createRandom()
     adminWallet = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
 
-    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory', adminWallet)
+    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
     const bountyFactoryContact = await bountyFactoryFactory.attach(BOUNTYFACTORY) as BountyFactory
     bountyFactory = await bountyFactoryContact.connect(adminWallet) as BountyFactory
 
     deploymentOwner = new Wallet(DEPLOYMENT_OWNER_KEY, chainProvider)
-    const linkTokenFactory = await ethers.getContractFactory('LinkToken', adminWallet)
+    const linkTokenFactory = await ethers.getContractFactory("LinkToken", adminWallet)
     const linkTokenFactoryTx = await linkTokenFactory.attach(LINKTOKEN)
     const linkTokenContract = await linkTokenFactoryTx.deployed()
     tokenFromOwner = await linkTokenContract.connect(deploymentOwner) as LinkToken
@@ -93,7 +93,7 @@ const deployNewBounty = async () => {
             ethers.constants.AddressZero,
             ethers.constants.AddressZero,
         ], [
-            ethers.utils.parseEther('0.01'),
+            ethers.utils.parseEther("0.01"),
             "0",
             "0"
         ]
@@ -105,7 +105,7 @@ const deployNewBounty = async () => {
 }
     
 const sponsorNewBounty = async () => {
-    bounty = await ethers.getContractAt('Bounty', bountyAddress, adminWallet) as Bounty
+    bounty = await ethers.getContractAt("Bounty", bountyAddress, adminWallet) as Bounty
     // sponsor with token approval
     await tokenFromOwner.balanceOf(deploymentOwner.address)
     await (await tokenFromOwner.approve(bountyAddress, ethers.utils.parseEther("7"))).wait()

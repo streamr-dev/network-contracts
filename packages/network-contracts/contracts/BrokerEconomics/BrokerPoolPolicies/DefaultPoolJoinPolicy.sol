@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 
 import "./IPoolJoinPolicy.sol";
 import "../BrokerPool.sol";
-// import "hardhat/console.sol";
 
 contract DefaultPoolJoinPolicy is IPoolJoinPolicy, BrokerPool {
 

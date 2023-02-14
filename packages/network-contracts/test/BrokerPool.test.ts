@@ -783,7 +783,7 @@ describe("BrokerPool", (): void => {
 
         expect(await pool.queueIsEmpty()).to.be.false
         await expect(pool.stake(bounty.address, parseEther("1000")))
-            .to.be.revertedWith("error_mustPayOutExitQueueBeforeStaking")
+            .to.be.revertedWith("error_firstEmptyQueueThenStake")
 
         await expect(pool.unstake(bounty.address, "10"))
             .to.emit(pool, "Unstaked")

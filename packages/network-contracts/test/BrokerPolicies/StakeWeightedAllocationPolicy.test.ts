@@ -2,8 +2,8 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
-import { deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "./deployTestContracts"
-import { deployBountyContract } from "./deployBountyContract"
+import { deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "../deployTestContracts"
+import { deployBountyContract } from "../deployBountyContract"
 
 const { parseEther, formatEther } = utils
 

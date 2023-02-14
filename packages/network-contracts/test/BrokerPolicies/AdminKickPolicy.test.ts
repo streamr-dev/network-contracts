@@ -1,11 +1,10 @@
 import { expect } from "chai"
 import { ethers } from "hardhat"
 import { utils, Wallet } from "ethers"
-// import { StakeWeightedAllocationPolicy } from "../typechain"
 
-import { advanceToTimestamp, getBlockTimestamp, log, deployTestContracts, TestContracts } from "./deployTestContracts"
+import { advanceToTimestamp, getBlockTimestamp, log, deployTestContracts, TestContracts } from "../deployTestContracts"
 
-import { deployBountyContract } from "./deployBountyContract"
+import { deployBountyContract } from "../deployBountyContract"
 
 const { parseEther, formatEther } = utils
 

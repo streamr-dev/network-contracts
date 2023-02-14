@@ -8,9 +8,9 @@ const { getSigners } = hardhatEthers
 import {
     deployTestContracts,
     TestContracts,
-} from "./deployTestContracts"
+} from "../deployTestContracts"
 
-import { deployBountyContract } from "./deployBountyContract"
+import { deployBountyContract } from "../deployBountyContract"
 
 describe("MinimumStakeJoinPolicy", (): void => {
     let admin: Wallet

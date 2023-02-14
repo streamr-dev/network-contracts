@@ -1,10 +1,10 @@
-import { ethers, upgrades } from 'hardhat'
-import { expect } from 'chai'
-import { Contract} from 'ethers'
-import { StreamRegistry } from '../../typechain'
-import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
+import { ethers, upgrades } from "hardhat"
+import { expect } from "chai"
+import { Contract} from "ethers"
+import { StreamRegistry } from "../../typechain"
+import type { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
-describe('JoinPolicyFactory', async (): Promise<void> => {
+describe("JoinPolicyFactory", async (): Promise<void> => {
     const wallets = await ethers.getSigners()
     enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Grant }
 
@@ -20,24 +20,24 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
     let minimalForwarderFromUser0: MinimalForwarder
     const adminAddress: string = wallets[0].address
 
-    const streamPath = '/foo/bar'
+    const streamPath = "/foo/bar"
     const streamId = `${adminAddress}${streamPath}`.toLowerCase()
 
     let delegatedAccessRegistry: Contract
 
     before(async (): Promise<void> => {
-        const minimalForwarderFromUser0Factory = await ethers.getContractFactory('MinimalForwarder', wallets[9])
+        const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
-        const streamRegistryFactoryV2 = await ethers.getContractFactory('StreamRegistryV2', wallets[0])
+        const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", wallets[0])
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2,
-            ['0x0000000000000000000000000000000000000000', minimalForwarderFromUser0.address], {
-                kind: 'uups'
+            ["0x0000000000000000000000000000000000000000", minimalForwarderFromUser0.address], {
+                kind: "uups"
             })
         streamRegistryV3 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
         // to upgrade the deployer must also have the trusted role
         // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         await streamRegistryV3.grantRole(await streamRegistryV3.TRUSTED_ROLE(), wallets[0].address)
-        const streamregistryFactoryV3 = await ethers.getContractFactory('StreamRegistryV3', wallets[0])
+        const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", wallets[0])
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address,
             streamregistryFactoryV3)
         await streamRegistryV3.revokeRole(await streamRegistryV3.TRUSTED_ROLE(), wallets[0].address)
@@ -45,27 +45,27 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
         streamRegistryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
 
         // setup test tokens
-        const ERC20 = await ethers.getContractFactory('TestERC20')
+        const ERC20 = await ethers.getContractFactory("TestERC20")
         erc20Token = await ERC20.deploy()
 
-        const ERC721 = await ethers.getContractFactory('TestERC721')
+        const ERC721 = await ethers.getContractFactory("TestERC721")
         erc721Token = await ERC721.deploy()
 
-        const ERC1155 = await ethers.getContractFactory('TestERC1155')
+        const ERC1155 = await ethers.getContractFactory("TestERC1155")
         erc1155Token = await ERC1155.deploy()
 
         // create the stream
         await streamRegistryV3.createStream(
             streamPath,
-            '{}',
+            "{}",
         )
 
         // deploy the delegatedAccessRegistry
-        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
+        const DelegatedAccessRegistry = await ethers.getContractFactory("DelegatedAccessRegistry")
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
         
         // deploy the JoinPolicyFactory
-        const JoinPolicyFactory = await ethers.getContractFactory('JoinPolicyFactory')
+        const JoinPolicyFactory = await ethers.getContractFactory("JoinPolicyFactory")
         contract = await upgrades.deployProxy(JoinPolicyFactory, [
             streamRegistryV3.address,
             [PermissionType.Subscribe, PermissionType.Publish],
@@ -74,7 +74,7 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
 
     })
 
-    it ('should properly exercise `registerERC20Policy`', async() => {
+    it ("should properly exercise `registerERC20Policy`", async() => {
         await contract.registerERC20Policy(
             erc20Token.address,
             streamId,
@@ -82,10 +82,10 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
         )  
         
         const policyAddress = await contract.erc20TokensToJoinPolicies(erc20Token.address, streamId)
-        expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
+        expect(policyAddress).to.not.equal("0x0000000000000000000000000000000000000000")
     })
 
-    it ('should fail to re-register an ERC20 JoinPolicy', async () => {
+    it ("should fail to re-register an ERC20 JoinPolicy", async () => {
         try {
             await contract.registerERC20Policy(
                 erc20Token.address,
@@ -93,11 +93,11 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'")
         }
     })
 
-    it ('should properly exercise `registerERC721Policy`', async() => {
+    it ("should properly exercise `registerERC721Policy`", async() => {
         await contract.registerERC721Policy(
             erc721Token.address,
             TokenId,
@@ -105,10 +105,10 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
         )
 
         const policyAddress = await contract.erc721TokensToJoinPolicies(erc721Token.address, TokenId, streamId)
-        expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
+        expect(policyAddress).to.not.equal("0x0000000000000000000000000000000000000000")
     })
 
-    it ('should fail to re-register an ERC721 JoinPolicy', async () => {
+    it ("should fail to re-register an ERC721 JoinPolicy", async () => {
         try {
             await contract.registerERC721Policy(
                 erc721Token.address,
@@ -116,11 +116,11 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
                 streamId
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'")
         }
     })
 
-    it ('should properly exercise `registerERC1155Policy`', async() => {      
+    it ("should properly exercise `registerERC1155Policy`", async() => {      
         await contract.registerERC1155Policy(
             erc1155Token.address,
             TokenId,
@@ -134,10 +134,10 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
             streamId
         )
 
-        expect(policyAddress).to.not.equal('0x0000000000000000000000000000000000000000')
+        expect(policyAddress).to.not.equal("0x0000000000000000000000000000000000000000")
     })
 
-    it ('should fail to re-register an ERC1155 JoinPolicy', async () => {
+    it ("should fail to re-register an ERC1155 JoinPolicy", async () => {
         try {
             await contract.registerERC1155Policy(
                 erc1155Token.address,
@@ -146,7 +146,7 @@ describe('JoinPolicyFactory', async (): Promise<void> => {
                 1
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'")
         }
     })
 })
