@@ -120,6 +120,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return globalData().approxPoolValue;
     }
 
+    function broker() external view returns (address) {
+        return globalData().broker;
+    }
+
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
         // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
@@ -136,6 +140,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
+    // TODO: should know if we were kicked out, remove from bounties
     function onSlash() external override {
         // console.log("## onSlash");
         // TODO: check msg.sender is a bounty

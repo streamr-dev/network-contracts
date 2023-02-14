@@ -56,6 +56,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     struct GlobalStorage {
         StreamrConstants streamrConstants;
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
+        mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
         mapping(address => uint) joinTimeOfBroker;
         uint32 brokerCount;
         uint32 minBrokerCount;
@@ -192,12 +193,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
-        _removeBroker(broker, penaltyWei);
+        _removeBroker(broker, penaltyWei + globalData().committedStakeWei[broker]);
+        delete globalData().committedStakeWei[broker];
     }
 
     function reduceStake(uint amountWei) external {
         address broker = _msgSender();
-        require(amountWei <= globalData().stakedWei[broker], "error_cannotReduceStake");
+        require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
         uint penaltyWei = getLeavePenalty(broker);
         if (amountWei == globalData().stakedWei[broker]) {
             _removeBroker(broker, penaltyWei);
@@ -302,17 +304,22 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[_msgSender()];
     }
 
-    function report(address broker) external {
-        require(address(kickPolicy) != address(0), "error_reportingNotSupported");
-        // console.log("Reporting", broker);
-        address reporter = _msgSender();
-        emit BrokerReported(broker, reporter);
-        uint penaltyWei = moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onReport.selector, broker, reporter), "error_kickPolicyFailed");
-        if (penaltyWei > 0) {
-            // console.log("Kicking", broker);
-            _removeBroker(broker, penaltyWei);
-            emit BrokerKicked(broker, penaltyWei);
-        }
+    /** Start the flagging process to kick an abusive broker */
+    function flag(address broker) external {
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, broker), "error_kickPolicyFailed");
+    }
+
+    /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */
+    function cancelFlag(address broker) external {
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, broker), "error_kickPolicyFailed");
+    }
+
+    /** Peer reviewers vote on the flag */
+    function voteOnFlag(address broker, bytes32 voteData) external {
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, broker, voteData), "error_kickPolicyFailed");
     }
 
     /////////////////////////////////////////

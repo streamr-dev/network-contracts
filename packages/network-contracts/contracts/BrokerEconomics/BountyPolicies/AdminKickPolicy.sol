@@ -18,12 +18,18 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     }
 
     /**
-     * Only admin's report result in kicks, only 1 wei is slashed
-     * Note that it's guaranteed that a staked broker must have at least 1 wei stake
-     * @return kickPenaltyWei zero means do not kick
+     * Only admin's report result in kicks.
+     * Stake isn't slashed, broker is simply removed.
      */
-    // solc-ignore-next-line func-mutability
-    function onReport(address, address reporter) external returns (uint kickPenaltyWei) {
-        return isAdmin(reporter) ? 1 : 0;
+    function onFlag(address broker) external {
+        require(isAdmin(_msgSender()), "error_onlyAdmin");
+        _removeBroker(broker, 0);
+        emit BrokerKicked(broker, 0);
+    }
+
+    function onCancelFlag(address) external {
+    }
+
+    function onVote(address broker, bytes32 voteData) external {
     }
 }

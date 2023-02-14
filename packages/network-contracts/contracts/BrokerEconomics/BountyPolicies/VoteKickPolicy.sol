@@ -1,0 +1,103 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.13;
+
+import "./IKickPolicy.sol";
+import "../Bounty.sol";
+import "../BrokerPoolFactory.sol";
+
+contract VoteKickPolicy is IKickPolicy, Bounty {
+    // struct LocalStorage {
+    // }
+
+    uint constant reviewerCount = 5;
+    mapping (address => address) flaggerAddress;
+    mapping (address => mapping (address => uint)) reviewerState;
+    mapping (address => address[]) reviewers;
+    mapping (address => uint) votesForKick;
+    mapping (address => uint) votesAgainstKick;
+
+    event ReviewRequest(address reviewer, Bounty bounty, address broker);
+
+    // function localData() internal view returns(LocalStorage storage data) {
+    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
+    //     assembly {data.slot := storagePosition}
+    // }
+
+    function setParam(uint256) external {
+
+    }
+
+    /**
+     * Start flagging process
+     */
+    function onFlag(address broker) external {
+        address flagger = _msgSender();
+        uint flagStakeWei = 10 ether; // globalData().streamrConstants.flagStakeWei(); // TODO?
+        globalData().committedStakeWei[flagger] += flagStakeWei;
+        require(globalData().committedStakeWei[flagger] <= globalData().stakedWei[flagger], "error_notEnoughStake");
+
+        BrokerPoolFactory factory = BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
+        uint brokerCount = factory.deployedBrokerPoolsLength();
+        uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
+        assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
+        for (uint i = 0; i < reviewerCount; i++) {
+            randomBytes >>= 8;
+            BrokerPool pool = factory.deployedBrokerPools(randomBytes % brokerCount);
+            address peer = pool.broker(); // TODO: via BrokerPool or directly?
+            // TODO: check is broker live
+            // TODO: check reviewerState[broker][pool] == 0
+            reviewerState[broker][peer] = 1;
+            emit ReviewRequest(peer, this, broker);
+        }
+    }
+
+    function onCancelFlag(address) external {
+        // TODO
+    }
+
+    /**
+     * Tally votes and trigger resolution
+     */
+    function onVote(address broker, bytes32 voteData) external {
+        address voter = _msgSender(); // ?
+        require(reviewerState[broker][voter] != 0, "error_reviewersOnly");
+        require(reviewerState[broker][voter] != 2, "error_alreadyVoted");
+        uint vote = uint(voteData) & 0x1;
+        assert (vote == 0 || vote == 1);
+        reviewerState[broker][voter] = 2;
+        reviewers[broker].push(voter);
+        uint result = 0;
+        if (vote == 1) {
+            votesForKick[broker]++;
+            if (votesForKick[broker] > reviewerCount / 2) {
+                result = 1;
+            }
+        } else {
+            votesAgainstKick[broker]++;
+            if (votesAgainstKick[broker] > reviewerCount / 2) {
+                result = 2;
+            }
+        }
+        if (result > 0) {
+            uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
+            for (uint i = 0; i < reviewers[broker].length; i++) {
+                token.transfer(reviewers[broker][i], rewardWei);
+            }
+            address flagger = flaggerAddress[broker];
+            globalData().committedStakeWei[flagger] -= 10 ether;
+            delete votesForKick[broker];
+            delete votesAgainstKick[broker];
+            if (result == 1) {
+                uint slashingWei = globalData().stakedWei[broker] / 10; // TODO: add to streamrConstants?
+                uint flaggerRewardWei = 1 ether;
+                uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
+                _removeBroker(broker, leftOverWei); // leftovers are added to sponsorship
+                emit BrokerKicked(broker, slashingWei);
+            }
+            if (result == 2) {
+                // TODO
+            }
+        }
+    }
+}

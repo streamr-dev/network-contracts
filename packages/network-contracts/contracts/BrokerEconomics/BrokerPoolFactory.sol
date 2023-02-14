@@ -13,12 +13,19 @@ import "./IERC677.sol";
 
 contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
 
+    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
+
     address public brokerPoolTemplate;
     address public streamrConstants;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
+
+    // array needed for peer broker selection for VoteKickPolicy peer review
+    BrokerPool[] public deployedBrokerPools;
+    function deployedBrokerPoolsLength() public view returns (uint) {
+        return deployedBrokerPools.length;
+    }
 
     event NewBrokerPool(address poolAddress);
 
@@ -141,6 +148,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         emit NewBrokerPool(poolAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[poolAddress] = block.timestamp;
+        deployedBrokerPools.push(pool);
         return poolAddress;
     }
 
