@@ -205,9 +205,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             globalData().stakedWei[broker] -= amountWei;
             globalData().totalStakedWei -= amountWei;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
-            uint returnFunds = amountWei - penaltyWei;
-            if (returnFunds > 0) {
-                token.transfer(broker, returnFunds);
+            if (amountWei > penaltyWei) {
+                token.transfer(broker, amountWei - penaltyWei);
             }
             if (penaltyWei > 0) {
                 _addSponsorship(address(this), penaltyWei);
