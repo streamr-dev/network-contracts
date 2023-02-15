@@ -10,8 +10,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
 
-    uint constant reviewerCount = 5;
-    mapping (address => address) flaggerAddress;
+    uint constant maxReviewerCount = 5;
+    mapping (address => address) flaggerPoolAddress;
     mapping (address => mapping (address => uint)) reviewerState;
     mapping (address => address[]) reviewers;
     mapping (address => uint) votesForKick;
@@ -37,16 +37,17 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         uint flagStakeWei = 10 ether; // globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[myBrokerPool] += flagStakeWei;
         require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
+        flaggerPoolAddress[targetBrokerPool] = myBrokerPool;
 
         BrokerPoolFactory factory = BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
         uint brokerPoolCount = factory.deployedBrokerPoolsLength();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         uint randomBytes = uint(uint160(targetBrokerPool)) ^ 0x1235467890123457689012345678901234567890123546789012345678901234; // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
-        assert(reviewerCount <= 20); // tweak >>= below, address gives 160 bits of "randomness"
+        assert(maxReviewerCount <= 20); // tweak >>= below, address gives 160 bits of "randomness"
         // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
-        uint reviewersToPick = reviewerCount < brokerPoolCount - 2 ? reviewerCount : brokerPoolCount - 2;
+        uint reviewerCount = maxReviewerCount < brokerPoolCount - 2 ? maxReviewerCount : brokerPoolCount - 2;
 
-        while(reviewers[targetBrokerPool].length < reviewersToPick) {
+        while(reviewers[targetBrokerPool].length < reviewerCount) {
             randomBytes >>= 8;
             BrokerPool pool = factory.deployedBrokerPools((randomBytes & 0xffff) % brokerPoolCount);
             address peer = pool.broker(); // TODO: via BrokerPool or directly?
@@ -81,6 +82,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         reviewerState[broker][voter] = 2;
         // reviewers[broker].push(voter);
         uint result = 0;
+        uint reviewerCount = reviewers[broker].length;
         if (vote == 1) {
             votesForKick[broker]++;
             if (votesForKick[broker] > reviewerCount / 2) {
@@ -94,24 +96,26 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         }
         if (result > 0) {
             uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
-            for (uint i = 0; i < reviewers[broker].length; i++) {
+            for (uint i = 0; i < reviewerCount; i++) {
                 token.transfer(reviewers[broker][i], rewardWei);
             }
-            address flagger = flaggerAddress[broker];
+            address flagger = flaggerPoolAddress[broker];
             globalData().committedStakeWei[flagger] -= 10 ether;
-            delete votesForKick[broker];
-            delete votesAgainstKick[broker];
             if (result == 1) { // kick
                 uint slashingWei = globalData().stakedWei[broker] / 10; // TODO: add to streamrConstants?
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
-                _removeBroker(broker, leftOverWei); // leftovers are added to sponsorship
+                token.transfer(flagger, flaggerRewardWei);
+                _slash(broker, leftOverWei); // leftovers are added to sponsorship
+                _removeBroker(broker);
                 emit BrokerKicked(broker, slashingWei);
             }
             if (result == 2) { // false flag, not kick
                 uint flagStakeWei = 10 ether; // TODO add to globalData().streamrConstants.flagStakeWei();
                 _slash(flagger, flagStakeWei);
             }
+            delete votesForKick[broker];
+            delete votesAgainstKick[broker];
         }
     }
 }

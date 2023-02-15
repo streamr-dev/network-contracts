@@ -185,53 +185,44 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function leave() external { // TODO: rename into unstake
         // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
-        uint penaltyWei = getLeavePenalty(broker);
-        _removeBroker(broker, penaltyWei + globalData().committedStakeWei[broker]);
+        uint slashingWei = getLeavePenalty(broker) + globalData().committedStakeWei[broker];
+        _slash(broker, slashingWei);
+        _addSponsorship(address(this), slashingWei);
+        _removeBroker(broker);
         delete globalData().committedStakeWei[broker];
     }
 
+    // TODO: prevent reducing stake below minimum
     function reduceStake(uint amountWei) external {
         address broker = _msgSender();
-        require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
         uint penaltyWei = getLeavePenalty(broker);
-        if (amountWei == globalData().stakedWei[broker]) {
-            _removeBroker(broker, penaltyWei);
-        } else {
-            globalData().stakedWei[broker] -= amountWei;
-            globalData().totalStakedWei -= amountWei;
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
-            if (amountWei > penaltyWei) {
-                token.transfer(broker, amountWei - penaltyWei);
-            }
-            if (penaltyWei > 0) {
-                _addSponsorship(address(this), penaltyWei);
-            }
-            emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
-            emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        if (penaltyWei > 0) {
+            _slash(broker, penaltyWei);
+            _addSponsorship(address(this), penaltyWei);
         }
+        if (amountWei == globalData().stakedWei[broker]) { // TODO: check minimum stake, _removeBroker if below
+            _removeBroker(broker);
+        }
+        require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
+        globalData().stakedWei[broker] -= amountWei;
+        globalData().totalStakedWei -= amountWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
      * If number of brokers falls below minBrokerCount, the stream is closed.
      */
-    function _removeBroker(address broker, uint penaltyWei) internal {
+    function _removeBroker(address broker) internal {
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
         // console.log("leaving:", broker);
 
         _withdraw(broker);
 
-        // console.log("  stake   ", stakedWei);
-        // console.log("  penalty ", penaltyWei);
-        uint returnFunds = stakedWei - penaltyWei;
-        // console.log("  returned", returnFunds);
-
-        require(token.transferAndCall(broker, returnFunds, "stake"), "error_transfer");
-        if (penaltyWei > 0) {
-            // add forfeited stake to unallocated funds
-            _addSponsorship(broker, penaltyWei);
-        }
+        require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
 
         GlobalStorage storage s = globalData();
         s.brokerCount -= 1;
@@ -243,7 +234,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker)); // TODO: stake and allocation will be zero after withdraw; write a test and then hardcode zeros
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
-        emit BrokerLeft(broker, returnFunds);
+        emit BrokerLeft(broker, stakedWei);
     }
 
     function _slash(address broker, uint amountWei) internal {
@@ -251,8 +242,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
-        _addSponsorship(address(this), amountWei);
-        try (ISlashListener(broker)).onSlash() {} catch {}
+        if (broker.code.length > 0) {
+            try ISlashListener(broker).onSlash() {} catch {}
+        }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }

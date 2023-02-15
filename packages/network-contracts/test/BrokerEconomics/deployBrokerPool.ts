@@ -1,5 +1,5 @@
 import { Wallet } from "ethers"
-import { BrokerPool } from "../typechain"
+import { BrokerPool } from "../../typechain"
 import { TestContracts } from "./deployTestContracts"
 
 let poolindex = 0
