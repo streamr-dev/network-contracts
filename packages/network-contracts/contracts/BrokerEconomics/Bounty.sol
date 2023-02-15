@@ -42,6 +42,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
+    // Emitted from the kick policy
+    event ReviewRequest(address indexed reviewer, Bounty indexed bounty, address indexed target);
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -293,9 +296,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Start the flagging process to kick an abusive broker */
-    function flag(address broker) external {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, broker), "error_kickPolicyFailed");
+    function flag(address broker, address myBrokerPool) external {
+        require(address(kickPolicy) != address(0), "error_notSupported");        
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, broker, myBrokerPool), "error_kickPolicyFailed");
     }
 
     /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */

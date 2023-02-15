@@ -27,7 +27,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
         emit BrokerKicked(broker, 0);
     }
 
-    function onFlag(address broker) external {
+    function onFlag(address broker, address brokerPool) external {
     }
 
     function onCancelFlag(address) external {
