@@ -1,6 +1,6 @@
 import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect, use } from "chai"
-import { utils, Wallet, constants } from "ethers"
+import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
@@ -78,7 +78,6 @@ describe("Uniswap2AdapterV4", () => {
 
     const day = 86400
     const productIdbytes = hexlify(zeroPad(toUtf8Bytes("test-adapter"), 32))
-    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
     const chainId = 137 // domain id for polygon mainnet
     const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]

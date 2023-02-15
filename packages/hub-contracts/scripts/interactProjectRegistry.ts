@@ -5,6 +5,7 @@ import { DATAv2, MarketplaceV4, ProjectRegistry, ProjectStakingV1, StreamRegistr
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
+// export const log = (..._: unknown[]): void => { /* skip logging */ }
 const { log } = console
 
 const {
@@ -27,6 +28,9 @@ const {
         ProjectStakingV1: PROJECT_STAKING_ADDRESS = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF',
     }
 } = Chains.load()[CHAIN]
+// const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const PROJECT_REGISTRY_ADDRESS = "" // mumbai
+// const MARKETPLACE_ADDRESS = "" // mumbai
 
 enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
@@ -44,6 +48,7 @@ const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
 const connectWallets = () => {
     const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL)
+    // const provider = new providers.JsonRpcProvider('https://rpc-mumbai.maticvigil.com/v1/' + process.env.MATIC_KEY) // mumbai
     deployerWallet = new Wallet(DEPLOYER_PRIVATE_KEY, provider)
     adminWallet = new Wallet(PROJECT_ADMIN_KEY, provider)
     buyerWallet = new Wallet(BUYER_KEY, provider)
@@ -228,9 +233,13 @@ async function main() {
 
     await deleteProject(projectId)
 
+    // console.log(`Subscription admin: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004', adminWallet.address)}`)
+    // console.log(`Subscription deployer: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004',deployerWallet.address)}`)
+    // console.log(`Subscription buyer: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004', buyerWallet.address)}`)
+
     // MarketplaceV4
-    const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, domainIds[0], 1)
-    log(`Purchase info: ${purchaseInfo}`)
+    // const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, 8997, 1) // projectId, subscriptionSeconds, chainId, purchaseId
+    // log(`Purchase info: ${purchaseInfo}`)
     log(`Buyer can buy project: ${await projectRegistry.canBuyProject(projectId, buyerWallet.address)}`)
     await(await linkToken.connect(buyerWallet).approve(marketplace.address, 200)).wait()
     log(`Buyer subscription before buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)

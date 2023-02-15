@@ -1,6 +1,6 @@
 import { ethers } from "hardhat"
 import { Chains } from "@streamr/config"
-import { chainToDomainId, chainToOutboxAddress, queryRouterAddressTestchain } from "../utils"
+import { chainToDomainId, chainToMailboxAddress, chainToPaymasterAddress, chainToQueryRouterAddress } from "../utils"
 
 const { log } = console
 
@@ -10,17 +10,18 @@ const {
 } = process.env
 
 const originDomainId: number = chainToDomainId(ORIGIN_CHAIN)
-const outboxAddress: string = chainToOutboxAddress(ORIGIN_CHAIN)
+const mailboxAddress: string = chainToMailboxAddress(ORIGIN_CHAIN)
 const destinationDomainId: number = chainToDomainId(DESTINATION_CHAIN)
-const interchainQueryRouterAddress: string = queryRouterAddressTestchain
+const interchainQueryRouterAddress: string = chainToQueryRouterAddress(ORIGIN_CHAIN)
+const interchainGasPaymasterAddress: string = chainToPaymasterAddress(ORIGIN_CHAIN)
 
 const {
     contracts: {
         MarketplaceV4: RECIPIENT_MARKETPLACE_ADDRESS,
     }
 } = Chains.load()[DESTINATION_CHAIN]
-
 if (!RECIPIENT_MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${DESTINATION_CHAIN}"`) }
+// const RECIPIENT_MARKETPLACE_ADDRESS = ""
 
 /**
  * npx hardhat run --network dev0 scripts/deployRemoteMarketplace.ts
@@ -33,11 +34,13 @@ async function main() { // messaging from RemoteMarketplace to MarketplaceV4
     log(`Deploying RemoteMarketplace to ${ORIGIN_CHAIN}:`)
     log(`   - origin domain id: ${originDomainId}`)
     log(`   - interchain query router for all chains: ${interchainQueryRouterAddress}`)
-    log(`   - outbox for origin chain: ${outboxAddress}`)
+    log(`   - mailbox for all chains: ${mailboxAddress}`)
+    log(`   - gas paymaster for all chains: ${interchainGasPaymasterAddress}`)
     const remoteMarketplace = await remoteMarketplaceFactory.deploy(
         originDomainId, // domain id of the chain this contract is deployed on
-        interchainQueryRouterAddress, // Hyperlane InterchainQueryRouter address for origin chain (it's the same for all testchains/mainchains)
-        outboxAddress, // Hyperlane Outbox address for the origin chain
+        interchainQueryRouterAddress, // Hyperlane InterchainQueryRouter address for origin chain (the same for all chains)
+        mailboxAddress, // Hyperlane Mailbox address for origin chain (the same for all chains)
+        interchainGasPaymasterAddress, // Hyperlane InterchainGasPaymaster address for origin chain (the same for all chains)
     )
     await remoteMarketplace.deployed()
     log(`RemoteMarketplace deployed at ${remoteMarketplace.address}`)
