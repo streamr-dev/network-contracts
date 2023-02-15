@@ -1,6 +1,6 @@
 import assert from "assert"
 import { utils, BigNumber } from "ethers"
-import { Bounty, IAllocationPolicy, IJoinPolicy } from "../typechain"
+import { Bounty, IAllocationPolicy, IJoinPolicy, IKickPolicy } from "../typechain"
 import type { TestContracts } from "./deployTestContracts"
 
 const { parseEther } = utils
@@ -20,17 +20,18 @@ export async function deployBountyContract(
         maxBrokerCount = -1,
         allocationWeiPerSecond = parseEther("1"),
         brokerPoolOnly = false,
-        adminKickPolicy = true,
+        adminKickInsteadOfVoteKick = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
     overrideAllocationPolicy?: IAllocationPolicy,
-    overrideAllocationPolicyParam?: string
+    overrideAllocationPolicyParam?: string,
+    overrideKickPolicy?: IKickPolicy,
 ): Promise<Bounty> {
     const {
         token,
         minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
-        allocationPolicy, leavePolicy, kickPolicy,
+        allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
         bountyTemplate, bountyFactory
     } = contracts
 
@@ -46,7 +47,7 @@ export async function deployBountyContract(
     const allocationPolicyParam = overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
     const leavePolicyAddress = penaltyPeriodSeconds > -1 ? leavePolicy.address : "0x0000000000000000000000000000000000000000"
     const leavePolicyParam = penaltyPeriodSeconds > -1 ? penaltyPeriodSeconds.toString() : "0"
-    const kickPolicyAddress = adminKickPolicy ? kickPolicy.address : "0x0000000000000000000000000000000000000000"
+    const kickPolicyAddress = overrideKickPolicy?.address ?? (adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address)
     const kickPolicyParam = "0"
     const policyAdresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
     const policyParams = [allocationPolicyParam, leavePolicyParam, kickPolicyParam]

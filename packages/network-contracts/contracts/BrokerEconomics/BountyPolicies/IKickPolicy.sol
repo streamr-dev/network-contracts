@@ -7,4 +7,5 @@ interface IKickPolicy {
     function onFlag(address broker) external;
     function onCancelFlag(address broker) external;
     function onVote(address broker, bytes32 voteData) external;
+    function onKick(address broker) external;
 }

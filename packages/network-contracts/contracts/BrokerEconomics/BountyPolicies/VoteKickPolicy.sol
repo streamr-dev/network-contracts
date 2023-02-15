@@ -56,6 +56,10 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // TODO
     }
 
+    function onKick(address) external {
+        // does nothing in this policy? or should admin be able to kick?
+    }
+
     /**
      * Tally votes and trigger resolution
      */
@@ -88,15 +92,16 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             globalData().committedStakeWei[flagger] -= 10 ether;
             delete votesForKick[broker];
             delete votesAgainstKick[broker];
-            if (result == 1) {
+            if (result == 1) { // kick
                 uint slashingWei = globalData().stakedWei[broker] / 10; // TODO: add to streamrConstants?
-                uint flaggerRewardWei = 1 ether;
+                uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
                 _removeBroker(broker, leftOverWei); // leftovers are added to sponsorship
                 emit BrokerKicked(broker, slashingWei);
             }
-            if (result == 2) {
-                // TODO
+            if (result == 2) { // false flag, not kick
+                uint flagStakeWei = 10 ether; // TODO add to globalData().streamrConstants.flagStakeWei();
+                _slash(flagger, flagStakeWei);
             }
         }
     }

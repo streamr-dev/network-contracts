@@ -32,7 +32,7 @@ describe("AdminKickPolicy", (): void => {
         // broker1:       100  +  50                = 150 - penalty 1wei = 150 - 1wei
         // broker2:               50   +  100       = 150 - penalty 100  = 50
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000 })
+        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, adminKickInsteadOfVoteKick: true })
 
         await bounty.sponsor(parseEther("10000"))
 
@@ -52,7 +52,7 @@ describe("AdminKickPolicy", (): void => {
         // event BrokerKicked(address indexed broker, uint slashedWei);
         const brokerCountBeforeKick = await bounty.getBrokerCount()
         await advanceToTimestamp(timeAtStart + 200, "broker 1 is kicked out")
-        expect (await bounty.connect(admin).report(await broker.getAddress()))
+        expect (await bounty.connect(admin).kick(await broker.getAddress()))
             .to.emit(bounty, "BrokerReported")
             .withArgs(await broker.getAddress(), admin.address)
             .and.to.emit(bounty, "BrokerKicked")
@@ -67,18 +67,18 @@ describe("AdminKickPolicy", (): void => {
 
         expect(brokerCountBeforeKick.toString()).to.equal("2")
         expect(brokerCountAfterKick.toString()).to.equal("1")
-        expect(formatEther(balanceChange.add(1))).to.equal("150.0")
+        expect(formatEther(balanceChange)).to.equal("150.0")
         expect(formatEther(balanceChange2)).to.equal("50.0")
     })
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 
         // event BrokerReported(address indexed broker, address indexed reporter);
         const brokerCountBeforeReport = await bounty.getBrokerCount()
-        expect(bounty.connect(broker2).report(await broker.getAddress()))
+        expect(bounty.connect(broker2).kick(await broker.getAddress()))
             .to.emit(bounty, "BrokerReported")
             .withArgs(await broker.getAddress(), broker2.address)
         const brokerCountAfterReport = await bounty.getBrokerCount()

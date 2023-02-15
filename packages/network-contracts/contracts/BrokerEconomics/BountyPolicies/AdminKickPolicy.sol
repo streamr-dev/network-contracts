@@ -18,13 +18,16 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     }
 
     /**
-     * Only admin's report result in kicks.
+     * Only admin can kick.
      * Stake isn't slashed, broker is simply removed.
      */
-    function onFlag(address broker) external {
+    function onKick(address broker) external {
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _removeBroker(broker, 0);
         emit BrokerKicked(broker, 0);
+    }
+
+    function onFlag(address broker) external {
     }
 
     function onCancelFlag(address) external {

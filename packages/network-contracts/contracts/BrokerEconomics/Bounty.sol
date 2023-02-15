@@ -253,14 +253,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BrokerLeft(broker, returnFunds);
     }
 
-    function slash(address broker, uint amountWei) external onlyRole(ADMIN_ROLE) {
+    function _slash(address broker, uint amountWei) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
         _addSponsorship(address(this), amountWei);
         if (isSlashListener[broker]) {
-            (ISlashListener(broker)).onSlash();
+            (ISlashListener(broker)).onSlash(); // TODO replace lister, pool will always implement this
         }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
@@ -320,6 +320,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function voteOnFlag(address broker, bytes32 voteData) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, broker, voteData), "error_kickPolicyFailed");
+    }
+
+    function kick(address broker) external {
+        require(address(kickPolicy) != address(0), "error_kickingNotSupported");
+        // console.log("Reporting", broker);
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onKick.selector, broker), "error_kickPolicyFailed");
     }
 
     /////////////////////////////////////////

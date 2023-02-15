@@ -29,7 +29,8 @@ export type TestContracts = {
     brokerPoolOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
     leavePolicy: ILeavePolicy;
-    kickPolicy: IKickPolicy;
+    adminKickPolicy: IKickPolicy;
+    voteKickPolicy: IKickPolicy;
     bountyFactory: BountyFactory;
     bountyTemplate: Bounty;
     poolFactory: BrokerPoolFactory;
@@ -56,7 +57,8 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", deployer)).deploy()
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy()
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy()
-    const kickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy()
+    const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy()
+    const voteKickPolicy = await (await getContractFactory("VoteKickPolicy", deployer)).deploy()
     const bountyTemplate = await (await getContractFactory("Bounty")).deploy()
     await bountyTemplate.deployed()
 
@@ -69,7 +71,8 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     await (await bountyFactory.connect(deployer).addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,
-        kickPolicy.address,
+        adminKickPolicy.address,
+        voteKickPolicy.address,
         minStakeJoinPolicy.address,
         maxBrokersJoinPolicy.address,
         brokerPoolOnlyJoinPolicy.address,
@@ -98,7 +101,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
 
     return {
         token, streamrConstants,
-        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, leavePolicy, kickPolicy,
-        poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, 
+        leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }
 }
