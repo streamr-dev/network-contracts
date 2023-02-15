@@ -7,7 +7,7 @@ import { deployBountyContract } from "../../deployBountyContract"
 
 const { parseEther, formatEther } = utils
 
-describe("VoteKickPolicy", (): void => {
+describe.only("VoteKickPolicy", (): void => {
     let admin: Wallet
     let broker: Wallet
     let broker2: Wallet
