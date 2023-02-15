@@ -2,6 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
 import { DATAv2, MarketplaceV4, ProjectRegistry, ProjectStakingV1, StreamRegistryV3 } from "../typechain"
+// import { chainToDomainId, chainToMailboxAddress } from "../utils"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -10,6 +11,7 @@ const { log } = console
 
 const {
     CHAIN = 'dev1',
+    REMOTE_CHAIN = 'goerli', // where RemoteMarketplace is deployed
     DEPLOYER: DEPLOYER_PRIVATE_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // privateKeys[0]
     ADMIN: PROJECT_ADMIN_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', // privateKeys[2]
     BUYER: BUYER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae', // deployer/owner of LINK token
@@ -210,6 +212,7 @@ const updatePaymentDetails = (domainId: number, beneficiary: string, pricingToke
  * npx hardhat run --network dev1 scripts/interactProjectRegistry.ts
  */
 async function main() {
+    log(`CHAIN: ${CHAIN}, REMOTE_CHAIN: ${REMOTE_CHAIN}`)
     connectWallets()
     await connectContracts()
     
@@ -238,6 +241,12 @@ async function main() {
     // console.log(`Subscription buyer: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004', buyerWallet.address)}`)
 
     // MarketplaceV4
+    // await(await marketplace.addMailbox(chainToMailboxAddress(CHAIN))).wait()
+    // await(await marketplace.addRemoteMarketplace(chainToDomainId(REMOTE_CHAIN), REMOTE_MARKETPLACE_ADDRESS)).wait()
+    // log('Marketplace state variables:')
+    // log('   - chainId', await marketplace.chainId())
+    // log('   - mailbox', await marketplace.mailbox())
+    // log(`   - remoteMarketplaces(${REMOTE_CHAIN})`, await marketplace.remoteMarketplaces(chainToDomainId(REMOTE_CHAIN)))
     // const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, 8997, 1) // projectId, subscriptionSeconds, chainId, purchaseId
     // log(`Purchase info: ${purchaseInfo}`)
     log(`Buyer can buy project: ${await projectRegistry.canBuyProject(projectId, buyerWallet.address)}`)

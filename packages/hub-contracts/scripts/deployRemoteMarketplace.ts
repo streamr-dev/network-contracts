@@ -5,33 +5,33 @@ import { chainToDomainId, chainToMailboxAddress, chainToPaymasterAddress, chainT
 const { log } = console
 
 const {
-    ORIGIN_CHAIN = 'dev0', // where RemoteMarketplace is deployed
-    DESTINATION_CHAIN = 'dev1', // where ProjectRegistry & MarketplaceV4 is deployed
+    REMOTE_CHAIN = 'goerli', // where RemoteMarketplace is deployed
+    CHAIN = 'mumbai', // where ProjectRegistry & MarketplaceV4 is deployed
 } = process.env
 
-const originDomainId: number = chainToDomainId(ORIGIN_CHAIN)
-const mailboxAddress: string = chainToMailboxAddress(ORIGIN_CHAIN)
-const destinationDomainId: number = chainToDomainId(DESTINATION_CHAIN)
-const interchainQueryRouterAddress: string = chainToQueryRouterAddress(ORIGIN_CHAIN)
-const interchainGasPaymasterAddress: string = chainToPaymasterAddress(ORIGIN_CHAIN)
+const originDomainId: number = chainToDomainId(REMOTE_CHAIN)
+const mailboxAddress: string = chainToMailboxAddress(REMOTE_CHAIN)
+const destinationDomainId: number = chainToDomainId(CHAIN)
+const interchainQueryRouterAddress: string = chainToQueryRouterAddress(REMOTE_CHAIN)
+const interchainGasPaymasterAddress: string = chainToPaymasterAddress(REMOTE_CHAIN)
 
 const {
     contracts: {
         MarketplaceV4: RECIPIENT_MARKETPLACE_ADDRESS,
     }
-} = Chains.load()[DESTINATION_CHAIN]
-if (!RECIPIENT_MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${DESTINATION_CHAIN}"`) }
+} = Chains.load()[CHAIN]
+if (!RECIPIENT_MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${CHAIN}"`) }
 // const RECIPIENT_MARKETPLACE_ADDRESS = ""
 
 /**
- * npx hardhat run --network dev0 scripts/deployRemoteMarketplace.ts
+ * npx hardhat run --network goerli scripts/deployRemoteMarketplace.ts
  * npx hardhat flatten contracts/RemoteMarketplace.sol > rm.sol
  * npx hardhat verify --network dev0 --constructor-args scripts/argsRemoteMarketplace.js <contract-address>
  * e.g. argsRemoteMarketplace.js file: module.exports = [arg1, arg2, agr3]
  */
 async function main() { // messaging from RemoteMarketplace to MarketplaceV4
     const remoteMarketplaceFactory = await ethers.getContractFactory("RemoteMarketplace")
-    log(`Deploying RemoteMarketplace to ${ORIGIN_CHAIN}:`)
+    log(`Deploying RemoteMarketplace to ${REMOTE_CHAIN}:`)
     log(`   - origin domain id: ${originDomainId}`)
     log(`   - interchain query router for all chains: ${interchainQueryRouterAddress}`)
     log(`   - mailbox for all chains: ${mailboxAddress}`)
@@ -46,7 +46,7 @@ async function main() { // messaging from RemoteMarketplace to MarketplaceV4
     log(`RemoteMarketplace deployed at ${remoteMarketplace.address}`)
 
     await(await remoteMarketplace.addRecipient(destinationDomainId, RECIPIENT_MARKETPLACE_ADDRESS)).wait()
-    log(`   - destination chain: ${DESTINATION_CHAIN}`)
+    log(`   - destination chain: ${CHAIN}`)
     log(`   - set destination domain id: ${destinationDomainId}`)
     log(`   - set recipient marketplace (on destination chain): ${RECIPIENT_MARKETPLACE_ADDRESS}`)
 }

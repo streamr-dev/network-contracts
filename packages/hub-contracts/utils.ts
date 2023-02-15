@@ -75,9 +75,9 @@ export function chainToQueryRouterAddress(name: string) {
 export function chainToEthereumRpcUrl(name: string) {
     switch (name) {
         case 'mumbai':
-            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_API_KEY}`
+            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_KEY}`
         case 'goerli':
-            return `https://goerli.infura.io/v3/${process.env.GOERLI_API_KEY}`
+            return `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`
         case 'optGoerli':
             return ``
         case 'fuji':

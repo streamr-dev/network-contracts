@@ -9,7 +9,7 @@ const { getContractFactory } = hardhatEthers
 const { log } = console
 
 const {
-    ORIGIN_CHAIN = 'goerli', // where RemoteMarketplace is deployed
+    REMOTE_CHAIN = 'goerli', // where RemoteMarketplace is deployed
     KEY: PROJECT_ADMIN_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // dummy key
     BUYER: PROJECT_BUYER_KEY = '0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb', // dummy key
     OTHER: OTHER_USER_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0', // dummy key
@@ -20,12 +20,12 @@ const {
         RemoteMarketplace: REMOTE_MARKETPLACE_ADDRESS,
         LINK: LINK_TOKEN_ADDRESS,
     }
-} = Chains.load()[ORIGIN_CHAIN]
+} = Chains.load()[REMOTE_CHAIN]
 // const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
 // const REMOTE_MARKETPLACE_ADDRESS = "" // goerli => must send some ETH to this address; contract pays for interchain gas fees
 
-const blockExplorer: string = chainToBlockExplorer(ORIGIN_CHAIN)
-const originRpcUrl: string = chainToEthereumRpcUrl(ORIGIN_CHAIN)
+const blockExplorer: string = chainToBlockExplorer(REMOTE_CHAIN)
+const originRpcUrl: string = chainToEthereumRpcUrl(REMOTE_CHAIN)
 
 let remoteMarketplace: RemoteMarketplace
 let admin: Wallet
@@ -70,9 +70,9 @@ const buy = async (
     log('Buy project:')
     if(buyer) {
         log('   - buyer: ', buyer.address)
-        tx = await remoteMarketplace.connect(buyer).buy(projectId, subscriptionSeconds)
+        tx = await remoteMarketplace.connect(buyer).buy(projectId, subscriptionSeconds, 1000000)
     } else {
-        tx = await remoteMarketplace.buy(projectId, subscriptionSeconds) // uses the cli exported KEY
+        tx = await remoteMarketplace.buy(projectId, subscriptionSeconds, 1000000) // uses the cli exported KEY
     }
     log(`   - tx: ${blockExplorer}/tx/${tx.hash}`)
     log('   - subscriptionSeconds: ', subscriptionSeconds)
@@ -107,9 +107,9 @@ async function main() {
     log('   - queryRouter address', await remoteMarketplace.queryRouter());
     log('   - gasPaymaster address', await remoteMarketplace.gasPaymaster());
 
-    const existingProjectId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-    const subscriptionSeconds = 100
-    const pricePerToken = 1
+    const existingProjectId = '0x0000000000000000000000000000000000000000000000000000000000000004'
+    const subscriptionSeconds = 500
+    const pricePerToken = 2
 
     log('Remote marketplace balance before buy: %s', (await hardhatEthers.provider.getBalance(REMOTE_MARKETPLACE_ADDRESS)).toString())
     await linkToken.connect(admin).approve(remoteMarketplace.address, subscriptionSeconds * pricePerToken)
