@@ -174,8 +174,9 @@ describe("Uniswap2AdapterV4", () => {
 
     async function deployMarketplace(): Promise<void> {
         const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId], { kind: 'uups' })
         market = await marketFactoryV4Tx.deployed() as MarketplaceV4
+        // await market.addMailbox(interchainMailbox) // necessary for cross-chain purchases only
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
         await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
     }

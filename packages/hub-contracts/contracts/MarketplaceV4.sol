@@ -68,14 +68,13 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         _;
     }
 
-    function initialize(address _projectRegistry, uint32 _chainId, address _mailbox) public initializer {
+    function initialize(address _projectRegistry, uint32 _chainId) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
 
         halted = false;
         projectRegistry = IProjectRegistry(_projectRegistry);
         chainId = _chainId;
-        mailbox = _mailbox;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -181,6 +180,10 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     }
 
     /////////////// Cross-Chain Messaging ///////////////
+
+    function addMailbox(address mailboxAddress) external onlyOwner {
+        mailbox = mailboxAddress;
+    }
     
     function addRemoteMarketplace(uint32 remoteChainId, address remoteMarketplaceAddress) external onlyOwner {
         remoteMarketplaces[remoteChainId] = remoteMarketplaceAddress;

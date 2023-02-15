@@ -119,6 +119,14 @@ contract RemoteMarketplace is Ownable {
         _payInterchainGas(messageId, gasAmount, address(this));
     }
 
+    /**
+     * @param messageId - the id of the message that is being paid for
+     * @param gasAmount - the amount of gas that the message's recipient handle function will use at the destination
+     * @dev The overhead gas amounts needed at destination (e.g. Mailbox/ISM) will be added automatically
+     * @param refundAddress - the address where the exceeded gas amount will be sent to (anything over what quoteGasPayment returns)
+     * @dev If a refund is unsuccessful, the payForGas call will revert.
+     * @dev Refunding overpayment involves the IGP contract calling the _refundAddress, which can present a risk of reentrancy
+     */
     function _payInterchainGas(bytes32 messageId, uint256 gasAmount, address refundAddress) private {
         uint256 quotedPayment = gasPaymaster.quoteGasPayment(destinationDomainId, gasAmount);
         gasPaymaster.payForGas{value: quotedPayment}(messageId, destinationDomainId, gasAmount, refundAddress);
