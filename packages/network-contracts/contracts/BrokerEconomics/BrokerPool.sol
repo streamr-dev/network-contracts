@@ -218,7 +218,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             bounties.push(bounty);
             indexOfBounties[bounty] = bounties.length; // real array index + 1
             approxPoolValueOfBounty[bounty] += amountWei;
-            bounty.registerAsSlashListener();
         }
         emit Staked(bounty, amountWei);
     }
@@ -256,8 +255,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 "error_yieldPolicy_deductBrokersPart_Failed");
             emit Unstaked(bounty, amountStaked, gainsWei);
         }
-
-        bounty.unregisterAsSlashListener();
 
         // remove from array: replace with the last element
         uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1

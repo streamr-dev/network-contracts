@@ -50,7 +50,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
-    mapping(address => bool) public isSlashListener;
 
     // storage variables available to all modules
     struct GlobalStorage {
@@ -179,15 +178,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
-    function registerAsSlashListener() external {
-        require(globalData().stakedWei[msg.sender] > 0, "error_onlyForStakers"); // we wnat the calling poolcontracts address, not the _msgSender() in case of a metatx
-        isSlashListener[msg.sender] = true;
-    }
-
-    function unregisterAsSlashListener() external {
-        isSlashListener[msg.sender] = false;
-    }
-
     /** Get both stake and allocations out */
     function leave() external { // TODO: rename into unstake
         // console.log("timestamp now", block.timestamp);
@@ -259,9 +249,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
         _addSponsorship(address(this), amountWei);
-        if (isSlashListener[broker]) {
-            (ISlashListener(broker)).onSlash(); // TODO replace lister, pool will always implement this
-        }
+        try (ISlashListener(broker)).onSlash() {} catch {}
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
