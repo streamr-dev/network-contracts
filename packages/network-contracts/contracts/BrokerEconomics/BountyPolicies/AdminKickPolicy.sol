@@ -23,7 +23,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
      */
     function onKick(address broker) external {
         require(isAdmin(_msgSender()), "error_onlyAdmin");
-        _removeBroker(broker, 0);
+        _removeBroker(broker);
         emit BrokerKicked(broker, 0);
     }
 

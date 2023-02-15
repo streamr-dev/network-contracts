@@ -8,7 +8,7 @@ import { deployBrokerPool } from "../deployBrokerPool"
 
 const { parseEther, formatEther } = utils
 
-describe.only("VoteKickPolicy", (): void => {
+describe("VoteKickPolicy", (): void => {
     let admin: Wallet
     let broker: Wallet
     let broker2: Wallet
@@ -33,18 +33,20 @@ describe.only("VoteKickPolicy", (): void => {
         const pool3 = await deployBrokerPool(contracts, broker3)
         await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(broker2).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
+        const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0), penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
         await bounty.sponsor(parseEther("10000"))
         await pool1.stake(bounty.address, parseEther("1000"))
         await pool2.stake(bounty.address, parseEther("1000"))
 
         const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait()
-        // flagReceipt.events.filter((e) => e.event === "ReviewRequest")
+        const reviewRequest = flagReceipt.events.find((e) => e.event === "ReviewRequest")
+        expect(reviewRequest.args?.bounty).to.equal(bounty.address)
+        expect(reviewRequest.args?.target).to.equal(pool2.address)
+        expect(reviewRequest.args?.reviewer).to.equal(broker3.address)
 
-        const event = flagReceipt.events.find((e) => e.event === "ReviewRequest")
-        expect(event.args?.bounty).to.equal(bounty.address)
-        expect(event.args?.target).to.equal(pool2.address)
-        expect(event.args?.reviewer).to.equal(broker3.address)
+        await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
+            .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
+        expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
     })
 
     it("does NOT allow to flag with a too small flagstakes", async function(): Promise<void> {

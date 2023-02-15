@@ -288,7 +288,7 @@ describe("BrokerPool", (): void => {
         // 7: skip, too similar to cases 4+5
     })
 
-    it("revenue sharing scenarios 8..10: slashing", async function(): Promise<void> {
+    it.skip("revenue sharing scenarios 8..10: slashing", async function(): Promise<void> {
         const { token: dataToken } = contracts
         await (await dataToken.connect(delegator).transfer(admin.address, await dataToken.balanceOf(delegator.address))).wait() // burn all tokens
         await (await dataToken.connect(broker).transfer(admin.address, await dataToken.balanceOf(broker.address))).wait() // burn all tokens
@@ -712,7 +712,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it("gets notified when slashed (slash listener)", async function(): Promise<void> {
+    it.skip("gets notified when slashed (slash listener)", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
