@@ -10,9 +10,25 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "./IProjectRegistry.sol";
 
 interface IStreamRegistry {
+    struct Permission {
+        bool canEdit;
+        bool canDelete;
+        uint256 publishExpiration;
+        uint256 subscribeExpiration;
+        bool canGrant;
+    }
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) external view returns (bool userHasPermission);
-    function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function getPermissionsForUser(string calldata streamId, address user) external view returns (Permission memory permission);
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) external;
 }
 
 contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
@@ -335,7 +351,6 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function _addStream(bytes32 projectId, string calldata streamId) private {
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
-        _grantSubscribeForStream(streamId, address(this));
         projects[projectId].streams.push(streamId);
         projects[projectId].streamIndex[streamId] = projects[projectId].streams.length; // real array index + 1
         emit StreamAdded(projectId, streamId);
@@ -407,17 +422,25 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
      * Enable Grant permission for stream stored inside the StreamRegistry contract.
-     * ProjectRegistry must have Grant permission on the stream in order to grant permissions to other users.
+     * Project registry has trusted role in stream registry and can grant permissions to other users
      * @param streamId for which the permission is granted. Streams permissions are handled by the StreamRegistry contract.
      * @param subscriber to which the permission is granted.
      */
     function _grantSubscribeForStream(string memory streamId, address subscriber) internal {
-        streamRegistry.grantPermission(streamId, subscriber, IStreamRegistry.PermissionType.Subscribe);
+        IStreamRegistry.Permission memory p = streamRegistry.getPermissionsForUser(streamId, subscriber);
+        streamRegistry.trustedSetPermissionsForUser(
+            streamId,
+            subscriber,
+            p.canEdit,
+            p.canDelete,
+            p.publishExpiration,
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, // MAX_INT
+            p.canGrant
+        );
     }
 
     /**
      * Enables Grant permission for all streams added to project.
-     * @dev must have Grant permission on all streams
      */
     function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal {
         string[] memory streams = projects[projectId].streams;
