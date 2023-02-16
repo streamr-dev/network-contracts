@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { BigNumber, utils, constants } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
@@ -70,7 +70,7 @@ describe("MarketplaceV4", () => {
     let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
     let projectRegistry: ProjectRegistry
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
 
     const chainId = 137 // chain id for polygon mainnet
     const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
@@ -130,12 +130,12 @@ describe("MarketplaceV4", () => {
 
     async function deployStreamRegistry(): Promise<void> {
         log("Deploying StreamRegistry: ")
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
 
     }
@@ -151,7 +151,7 @@ describe("MarketplaceV4", () => {
     async function deployMarketplace(): Promise<MarketplaceV4> {
         log("Deploying MarketplaceV4: ")
         const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId, interchainMailbox], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId], { kind: 'uups' })
         const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
         log("   - MarketplaceV4 deployed at: ", market.address)
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
@@ -180,7 +180,6 @@ describe("MarketplaceV4", () => {
             const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
                 projectRegistry.address,
                 chainId,
-                interchainMailbox
             ], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
@@ -318,7 +317,6 @@ describe("MarketplaceV4", () => {
             const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
                 projectRegistry.address,
                 chainId,
-                interchainMailbox
             ], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers

@@ -100,12 +100,12 @@ async function main() {
     await connectContracts()
 
     log('Remote marketplace state variables:')
-    log('   - originDomainId', await remoteMarketplace.originDomainId());
-    log('   - destinationDomainId', await remoteMarketplace.destinationDomainId());
-    log('   - recipientAddress', await remoteMarketplace.recipientAddress());
-    log('   - mailbox address', await remoteMarketplace.mailbox());
-    log('   - queryRouter address', await remoteMarketplace.queryRouter());
-    log('   - gasPaymaster address', await remoteMarketplace.gasPaymaster());
+    log('   - originDomainId', await remoteMarketplace.originDomainId())
+    log('   - destinationDomainId', await remoteMarketplace.destinationDomainId())
+    log('   - recipientAddress', await remoteMarketplace.recipientAddress())
+    log('   - mailbox address', await remoteMarketplace.mailbox())
+    log('   - queryRouter address', await remoteMarketplace.queryRouter())
+    log('   - gasPaymaster address', await remoteMarketplace.gasPaymaster())
 
     const existingProjectId = '0x0000000000000000000000000000000000000000000000000000000000000004'
     const subscriptionSeconds = 500

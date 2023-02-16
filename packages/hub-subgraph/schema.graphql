@@ -15,13 +15,13 @@ type Permission @entity {
   userAddress: Bytes!
   "Target project this permission applies to"
   project: Project!
-  "Buy permission enables a user to buy the project"
+  "canBuy permission enables a user to buy the project"
   canBuy: Boolean
   "canDelete permission allows deleting the project from the ProjectRegistry"
   canDelete: Boolean
-  "Edit permission enables changing the project's fields"
+  "canEdit permission enables changing the project's fields"
   canEdit: Boolean
-  "Grant permission allows granting and revoking permissions to this project"
+  "canGrant permission allows granting and revoking permissions to this project"
   canGrant: Boolean
 }
 
@@ -32,11 +32,11 @@ type PaymentDetailsByChain @entity {
   project: Project!
   "The domainId of the chain where the project can be purchased. It's a unique id assigned by hyperlane to each chain"
   domainId: BigInt
-  "Ethereum address, account where revenue is directed to for project purchases"
+  "Ethereum address, account where the payment is directed to for project purchases"
   beneficiary: Bytes!
-  "Ethereum address, the token in which the project is paid to project beneficiary"
+  "Ethereum address, the token in which the payment goes to project beneficiary"
   pricingTokenAddress: Bytes!
-  "Project price per second. This is a wei denominated amount"
+  "Project price per second. This is a DATA-wei denominated amount (10^18th of DATA token)."
   pricePerSecond: BigInt
 }
 
@@ -64,6 +64,8 @@ type Project @entity {
   subscriptions: [TimeBasedSubscription!]! @derivedFrom(field: "project")
   "Project metadata JSON"
   metadata: String!
+  "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
+  isDataUnion: Boolean
   "Project version. This is a normal int value (not wei)"
   version: BigInt
   "Streams added to the project"

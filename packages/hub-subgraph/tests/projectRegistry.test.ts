@@ -91,7 +91,7 @@ describe("Mocked Project Events: create/update/delete", () => {
     const streamId1 = "0x12345/streams/1"
     const streamId2 = "0x12345/streams/2"
     const minimumSubscriptionSeconds = 1
-    const metadata = "metadata-0x1234"
+    const metadata = '{"description": "metadata-0x1234", "isDataUnion": false}'
     
     test("handleProjectCreation", () => {
         const projectCreatedEvent = createProjectCreatedEvent(
@@ -111,12 +111,53 @@ describe("Mocked Project Events: create/update/delete", () => {
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", `[${streamId1}]`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSeconds}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadata)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "isDataUnion", "false")
+    })
+
+    test("handleProjectCreation - isDataUnion edge cases", () => {
+        let projectId0 = "0x1000"
+        let projectId1 = "0x1001"
+        let projectId2 = "0x1002"
+        let projectId3 = "0x1003"
+        let projectId4 = "0x1004"
+        let projectId5 = "0x1005"
+        let projectId6 = "0x1006"
+        let metadata0 = ''                                                                      // false
+        let metadata1 = 'string, not json'                                                      // false
+        let metadata2 = '{}'                                                                    // false
+        let metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
+        let metadata4 = '{"isDataUnion": false}'                                                // false
+        let metadata5 = '{"isDataUnion": true}'                                                 // true
+        let metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
+        let event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
+        let event1 = createProjectCreatedEvent(Bytes.fromHexString(projectId1), [], [], [], 0, metadata1)
+        let event2 = createProjectCreatedEvent(Bytes.fromHexString(projectId2), [], [], [], 0, metadata2)
+        let event3 = createProjectCreatedEvent(Bytes.fromHexString(projectId3), [], [], [], 0, metadata3)
+        let event4 = createProjectCreatedEvent(Bytes.fromHexString(projectId4), [], [], [], 0, metadata4)
+        let event5 = createProjectCreatedEvent(Bytes.fromHexString(projectId5), [], [], [], 0, metadata5)
+        let event6 = createProjectCreatedEvent(Bytes.fromHexString(projectId6), [], [], [], 0, metadata6)
+
+        handleProjectCreation(event0)
+        handleProjectCreation(event1)
+        handleProjectCreation(event2)
+        handleProjectCreation(event3)
+        handleProjectCreation(event4)
+        handleProjectCreation(event5)
+        handleProjectCreation(event6)
+
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId1, "isDataUnion", "false")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId2, "isDataUnion", "false")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId3, "isDataUnion", "false")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId4, "isDataUnion", "false")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId5, "isDataUnion", "true")
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId6, "isDataUnion", "true")
     })
 
     test("handleProjectUpdate", () => {
         const domainIdUpdated = 2222
         const minimumSubscriptionSecondsNew = 5
-        const metadataNew = "metadata-0x1234-updated"
+        const metadataNew = '{"description": "metadata-0x1234-updated", "isDataUnion": true}'
         const projectUpdatedEvent = createProjectUpdatedEvent(
             Bytes.fromHexString(projectId),
             [domainIdUpdated],
@@ -132,6 +173,47 @@ describe("Mocked Project Events: create/update/delete", () => {
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", `[${streamId2}]`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "minimumSubscriptionSeconds", `${minimumSubscriptionSecondsNew}`)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", metadataNew)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "isDataUnion", "true")
+    })
+
+    test("handleProjectUpdate - isDataUnion edge cases", () => {
+        let projectId0 = "0x2000"
+        let metadata0 = ''                                                                      // false
+        let metadata1 = 'string, not json'                                                      // false
+        let metadata2 = '{}'                                                                    // false
+        let metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
+        let metadata4 = '{"isDataUnion": false}'                                                // false
+        let metadata5 = '{"isDataUnion": true}'                                                 // true
+        let metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
+        let event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
+        let event1 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata1)
+        let event2 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata2)
+        let event3 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata3)
+        let event4 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata4)
+        let event5 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata5)
+        let event6 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata6)
+
+        
+        handleProjectCreation(event0)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+
+        handleProjectUpdate(event1)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+
+        handleProjectUpdate(event2)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+
+        handleProjectUpdate(event3)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+
+        handleProjectUpdate(event4)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
+
+        handleProjectUpdate(event5)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "true")
+
+        handleProjectUpdate(event6)
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "true")
     })
 
     test("handleProjectDeletion - positivetest", () => {

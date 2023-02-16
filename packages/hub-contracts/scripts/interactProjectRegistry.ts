@@ -1,8 +1,8 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
-import { DATAv2, MarketplaceV4, ProjectRegistry, ProjectStakingV1, StreamRegistryV3 } from "../typechain"
 // import { chainToDomainId, chainToMailboxAddress } from "../utils"
+import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV4, ProjectStakingV1 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -34,11 +34,9 @@ const {
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 // const MARKETPLACE_ADDRESS = "" // mumbai
 
-enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
-
 let projectRegistry: ProjectRegistry
 let projectStaking: ProjectStakingV1
-let streamRegistry: StreamRegistryV3
+let streamRegistry: StreamRegistryV4
 let marketplace: MarketplaceV4
 let dataToken: DATAv2
 let linkToken: any
@@ -73,10 +71,10 @@ const connectContracts = async () => {
     projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistry
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 
-    const streamRegistryFactory = await getContractFactory("StreamRegistryV3", deployerWallet)
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", deployerWallet)
     const streamRegistryFactoryTx = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS)
-    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV3
-    log("StreamRegistryV3 deployed at: ", streamRegistry.address)
+    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
+    log("StreamRegistryV4 deployed at: ", streamRegistry.address)
 
     const marketplaceV4Factory = await getContractFactory("MarketplaceV4", deployerWallet)
     const marketplaceV4FactoryTx = await marketplaceV4Factory.attach(MARKETPLACE_ADDRESS)
@@ -178,12 +176,6 @@ const createStream = async (creator = adminWallet): Promise<string> => {
     return streamId
 }
 
-const grantPermissionToStream = async (streamId: string, userAddress: string, permissionType: number) => {
-    await(await streamRegistry.connect(adminWallet)
-        .grantPermission(streamId, userAddress, permissionType)).wait()
-    log('Permission granted (streamId: %s, userAddress: %s, permissionType: %s)', streamId, userAddress, permissionType)
-}
-
 const addStream = async (projectId: string, streamId: string): Promise<void> => {
     // the address adding a stream to project needs Edit permision on the project and Grant permission on the stream
     await(await projectRegistry.connect(adminWallet)
@@ -219,9 +211,6 @@ async function main() {
     updatePaymentDetails(8997, adminWallet.address, linkToken.address, 2) // dev1
 
     const streamId1 = await createStream()
-    // enable Grant subscription for stream to project registry
-    await grantPermissionToStream(streamId1, projectRegistry.address, StreamRegistryPermissionType.Grant)
-
     const projectId = await createProject({streams: [streamId1]})
     await updateProject({ id: projectId, streams: [], minimumSubscriptionSeconds: 2 })
 
@@ -229,16 +218,15 @@ async function main() {
     await grantSubscription({ projectId }) // defaults to a random address
 
     const streamId2 = await createStream()
-    // enable Grant subscription for stream to project registry
-    await grantPermissionToStream(streamId2, projectRegistry.address, StreamRegistryPermissionType.Grant)
     await addStream(projectId, streamId2)
     await removeStream(projectId, streamId2)
 
     await deleteProject(projectId)
 
-    // console.log(`Subscription admin: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004', adminWallet.address)}`)
-    // console.log(`Subscription deployer: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004',deployerWallet.address)}`)
-    // console.log(`Subscription buyer: ${await projectRegistry.getSubscription('0x0000000000000000000000000000000000000000000000000000000000000004', buyerWallet.address)}`)
+    // const projectId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+    // console.log(`Subscription admin: ${await projectRegistry.getSubscription(projectId, adminWallet.address)}`)
+    // console.log(`Subscription deployer: ${await projectRegistry.getSubscription(projectId,deployerWallet.address)}`)
+    // console.log(`Subscription buyer: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
 
     // MarketplaceV4
     // await(await marketplace.addMailbox(chainToMailboxAddress(CHAIN))).wait()

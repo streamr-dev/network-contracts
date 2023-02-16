@@ -19,7 +19,7 @@ const config: HardhatUserConfig = {
     dependencyCompiler: {
         paths: [
             '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
-            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol',
+            '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol',
         ],
     },
     solidity: {
