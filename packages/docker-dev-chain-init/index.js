@@ -584,13 +584,21 @@ async function smartContractInitialization() {
     await grantRoleTx2.wait()
 
     const projectRegistry = await deployProjectRegistry(sidechainWallet)
+
     await deployMarketplaceV3(sidechainWallet)
+
     const chainId = 8997 // dev1
     const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistry.address, chainId)
     // grant trusted role to marketpalce contract => needed for granting permissions to buyers
+    log(`granting role ${role} to marketpalceV4 ${marketplaceV4.address}. Needed for granting permissions to streams using the trusted functions.`)
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
 
     await deployProjectStakingV1(sidechainWallet, projectRegistry.address, linkToken.address)
+
+    // granting here and not right after deployProjectRegistry to avoid changing the addresses of MarketplaceV3, MarketplaceV4 and ProjectStakingV1
+    log(`granting role ${role} to project registry ${projectRegistry.address}. Needed for granting permissions to streams using the trusted functions.`)
+    const grantRoleProjectRegistryTx = await streamRegistryFromOwner.grantRole(role, projectRegistry.address)
+    await grantRoleProjectRegistryTx.wait()
 
     //put additions here
 

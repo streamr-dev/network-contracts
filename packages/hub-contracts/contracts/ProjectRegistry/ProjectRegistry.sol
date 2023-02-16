@@ -434,7 +434,7 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             p.canEdit,
             p.canDelete,
             p.publishExpiration,
-            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, // MAX_INT
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, // MAX_INT for subscribeExpiration
             p.canGrant
         );
     }

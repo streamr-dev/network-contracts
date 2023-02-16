@@ -25,8 +25,6 @@ const {
     }
 } = Chains.load()[CHAIN]
 
-enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
-
 let projectRegistry: ProjectRegistry
 let streamRegistry: StreamRegistryV4
 let marketplace: MarketplaceV4
@@ -153,12 +151,6 @@ const createStream = async (creator = adminWallet): Promise<string> => {
     return streamId
 }
 
-const grantPermissionToStream = async (streamId: string, userAddress: string, permissionType: number) => {
-    await(await streamRegistry.connect(adminWallet)
-        .grantPermission(streamId, userAddress, permissionType)).wait()
-    log('Permission granted (streamId: %s, userAddress: %s, permissionType: %s)', streamId, userAddress, permissionType)
-}
-
 const addStream = async (projectId: string, streamId: string): Promise<void> => {
     // the address adding a stream to project needs Edit permision on the project and Grant permission on the stream
     await(await projectRegistry.connect(adminWallet)
@@ -193,9 +185,6 @@ async function main() {
     updatePaymentDetails(8997, adminWallet.address, dataToken.address, 2) // dev1
 
     const streamId1 = await createStream()
-    // enable Grant subscription for stream to project registry
-    await grantPermissionToStream(streamId1, projectRegistry.address, StreamRegistryPermissionType.Grant)
-
     const projectId = await createProject({streams: [streamId1]})
     await updateProject({ id: projectId, streams: [], minimumSubscriptionSeconds: 2 })
 
@@ -203,8 +192,6 @@ async function main() {
     await grantSubscription({ projectId }) // defaults to a random address
 
     const streamId2 = await createStream()
-    // enable Grant subscription for stream to project registry
-    await grantPermissionToStream(streamId2, projectRegistry.address, StreamRegistryPermissionType.Grant)
     await addStream(projectId, streamId2)
     await removeStream(projectId, streamId2)
 
