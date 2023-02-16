@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
-import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../typechain"
+import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -28,7 +28,7 @@ const {
 enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
 let projectRegistry: ProjectRegistry
-let streamRegistry: StreamRegistryV3
+let streamRegistry: StreamRegistryV4
 let marketplace: MarketplaceV4
 let dataToken: DATAv2
 let deployerWallet: Wallet
@@ -53,10 +53,10 @@ const connectContracts = async () => {
     projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistry
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 
-    const streamRegistryFactory = await getContractFactory("StreamRegistryV3", deployerWallet)
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", deployerWallet)
     const streamRegistryFactoryTx = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS)
-    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV3
-    log("StreamRegistryV3 deployed at: ", streamRegistry.address)
+    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
+    log("StreamRegistryV4 deployed at: ", streamRegistry.address)
 
     const marketplaceV4Factory = await getContractFactory("MarketplaceV4", deployerWallet)
     const marketplaceV4FactoryTx = await marketplaceV4Factory.attach(MARKETPLACE_ADDRESS)

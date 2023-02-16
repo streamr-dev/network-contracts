@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -77,7 +77,7 @@ describe('ProjectRegistry', (): void => {
 
     let registry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
     let token: DATAv2
 
     before(async (): Promise<void> => {
@@ -126,12 +126,12 @@ describe('ProjectRegistry', (): void => {
     }
 
     async function deployStreamRegistryAndCreateStreams(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
 
         for (let i = 0; i < 10; i++) {
             const s = await createStream(i.toString())
@@ -476,7 +476,6 @@ describe('ProjectRegistry', (): void => {
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
                 .to.be.false
 
-
             await registry.addStream(projectIdbytes, streamId1)
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
                 .to.be.true
@@ -535,7 +534,6 @@ describe('ProjectRegistry', (): void => {
             const subscriptionAfter = await registry.getSubscription(id, user1.address)
             expect(subscriptionAfter.endTimestamp)
                 .to.equal(subscriptionBefore.endTimestamp.add(addSeconds / pricePerSecond))
-
         })
 
         it('grantSubscription - negativetest - must have Grant permission', async () => {
@@ -917,7 +915,6 @@ describe('ProjectRegistry', (): void => {
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.false
 
-
             await minimalForwarder.connect(forwarder).execute(req, sign)
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.true
@@ -987,7 +984,6 @@ describe('ProjectRegistry', (): void => {
                 streamIdMetatx: streamIdOld
             } = await prepareAddStreamMetatx(minimalForwarder, admin.privateKey)
 
-
             expect(await minimalForwarder.verify(reqOld, signOld))
                 .to.be.true
 
@@ -1010,7 +1006,6 @@ describe('ProjectRegistry', (): void => {
 
             // check that metatx works with new forwarder
             const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(newForwarder, admin.privateKey)
-
 
             expect(await newForwarder.verify(req, sign))
                 .to.be.true

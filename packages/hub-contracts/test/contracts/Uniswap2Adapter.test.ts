@@ -4,7 +4,7 @@ import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV3, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { provider: waffleProvider } = waffle
@@ -68,7 +68,7 @@ describe("Uniswap2Adapter", () => {
     let erc677Token: DATAv2
     let fromToken: ERC20Mintable
     let market: MarketplaceV4
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
     let projectRegistry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
     let uniswap2Adapter: Uniswap2Adapter
@@ -155,12 +155,12 @@ describe("Uniswap2Adapter", () => {
     }
 
     async function deployStreamRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             [ZERO_ADDRESS, ZERO_ADDRESS], // ensCacheAddr & trustedForwarderAddress can be set to zero address while testing this adapter
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("StreamRegistry was deployed at address: ", streamRegistry.address)
     }
 
