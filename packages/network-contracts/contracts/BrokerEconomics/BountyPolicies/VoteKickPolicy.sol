@@ -6,6 +6,8 @@ import "./IKickPolicy.sol";
 import "../Bounty.sol";
 import "../BrokerPoolFactory.sol";
 
+// import "hardhat/console.sol";
+
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
@@ -46,33 +48,24 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         assert(maxReviewerCount <= 20); // tweak >>= below, address gives 160 bits of "randomness"
         // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
         uint reviewerCount = maxReviewerCount < brokerPoolCount - 2 ? maxReviewerCount : brokerPoolCount - 2;
-
-        while(reviewers[targetBrokerPool].length < reviewerCount) {
+        uint maxReviewersSearch = 20;
+        while(reviewers[targetBrokerPool].length < reviewerCount && maxReviewersSearch-- > 1) {
             randomBytes >>= 8;
-            BrokerPool pool = factory.deployedBrokerPools((randomBytes & 0xffff) % brokerPoolCount);
+            BrokerPool pool = factory.deployedBrokerPools((randomBytes) % brokerPoolCount);
             address peer = pool.broker(); // TODO: via BrokerPool or directly?
-            if (peer == _msgSender() || peer == BrokerPool(targetBrokerPool).broker()) {
+            if (peer == _msgSender() || peer == BrokerPool(targetBrokerPool).broker()
+                || reviewerState[targetBrokerPool][peer] != 0) {
                 continue;
             }
             // TODO: check is broker live
-            // TODO: check reviewerState[broker][pool] == 0
             reviewerState[targetBrokerPool][peer] = 1;
             emit ReviewRequest(peer, this, targetBrokerPool);
             reviewers[targetBrokerPool].push(peer);
         }
+        require(reviewers[targetBrokerPool].length > 0, "error_notEnoughReviewers");
     }
 
-    function onCancelFlag(address) external {
-        // TODO
-    }
-
-    function onKick(address) external {
-        // does nothing in this policy? or should admin be able to kick?
-    }
-
-    /**
-     * Tally votes and trigger resolution
-     */
+   
     function onVote(address broker, bytes32 voteData) external {
         address voter = _msgSender(); // ?
         require(reviewerState[broker][voter] != 0, "error_reviewersOnly");
@@ -119,4 +112,16 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             delete votesAgainstKick[broker];
         }
     }
+    
+    function onCancelFlag(address) external {
+        // TODO
+    }
+
+    function onKick(address) external {
+        // does nothing in this policy? or should admin be able to kick?
+    }
+
+    /**
+     * Tally votes and trigger resolution
+     */
 }

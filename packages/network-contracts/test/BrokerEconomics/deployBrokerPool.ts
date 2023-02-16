@@ -13,7 +13,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
     maxBrokerDivertPercent = 0,
     minBrokerStakePercent = 0,
     brokerSharePercent = 0,
-} = {}): Promise<BrokerPool> {
+} = {}, create2Salt?:string): Promise<BrokerPool> {
     const {
         poolFactory, poolTemplate,
         defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy
@@ -29,7 +29,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
      */
     const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
         0,
-        `Pool-${Date.now()}-${poolindex++}`,
+        `Pool-${create2Salt ?? poolindex++}`,
         [
             defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,
