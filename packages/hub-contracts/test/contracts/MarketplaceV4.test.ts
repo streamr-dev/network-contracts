@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { BigNumber, utils, constants } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
@@ -70,7 +70,7 @@ describe("Marketplace", () => {
     let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
     let projectRegistry: ProjectRegistry
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
 
     const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
     const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
@@ -127,12 +127,12 @@ describe("Marketplace", () => {
 
     async function deployStreamRegistry(): Promise<void> {
         log("Deploying StreamRegistry: ")
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
 
     }

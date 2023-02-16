@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
+import type { DATAv2, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -50,7 +50,6 @@ const types = {
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
 enum ProjectRegistryPermissionType { Buy, Delete, Edit, Grant }
 
 use(waffle.solidity)
@@ -61,7 +60,6 @@ describe('ProjectRegistry', (): void => {
     const streamIds: string[] = []
     let streamId: string
     let streamId1: string
-    let streamIdNotGranted: string
     const metadata = 'testmetadata'
 
     enum permissionType { Buy, Delete, Edit, Grant }
@@ -79,7 +77,7 @@ describe('ProjectRegistry', (): void => {
 
     let registry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
     let token: DATAv2
 
     before(async (): Promise<void> => {
@@ -88,10 +86,8 @@ describe('ProjectRegistry', (): void => {
         await deployStreamRegistryAndCreateStreams()
         await deployProjectRegistry()
 
-        for (let i = 0; i < 10; i++) {
-            await enableGrantPermissionForStream(streamIds[i])
-        }
-        streamIdNotGranted = await createStream()
+        const streamRegistryTrustedRole = await streamRegistry.TRUSTED_ROLE()
+        await streamRegistry.connect(admin).grantRole(streamRegistryTrustedRole, registry.address)
 
         domainIds.push(0x706f6c79) // polygon domain id assigned by hyperlane
         paymentDetailsDefault.push([
@@ -130,12 +126,12 @@ describe('ProjectRegistry', (): void => {
     }
 
     async function deployStreamRegistryAndCreateStreams(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
 
         for (let i = 0; i < 10; i++) {
             const s = await createStream(i.toString())
@@ -156,13 +152,6 @@ describe('ProjectRegistry', (): void => {
 
         const trustedForwarderRole = await registry.TRUSTED_FORWARDER_ROLE()
         await (await registry.grantRole(trustedForwarderRole, minimalForwarder.address)).wait()
-    }
-
-    // enable Grant subscription for stream to project registry
-    // the user adding a stream to project needs Edit permision on the project and Grant permission on the stream
-    // by having Grant permission on the stream, project registry can update the stream permissions (e.g. enable Subscribe for streams on buy)
-    async function enableGrantPermissionForStream(streamId: string): Promise<void> {
-        await (await streamRegistry.grantPermission(streamId, registry.address, StreamRegistryPermissionType.Grant)).wait()
     }
 
     async function createProject({
@@ -188,7 +177,6 @@ describe('ProjectRegistry', (): void => {
 
     describe('Project management', (): void => {
         it("createProject - positivetest - creates a project with correct params", async () => {
-            await enableGrantPermissionForStream(streamId)
             const minimumSubscriptionSeconds = 1
             const isPublicPurchable = false
             const projectIdbytes = generateBytesId()
@@ -311,14 +299,12 @@ describe('ProjectRegistry', (): void => {
         })
 
         it("updateProject - positivetest", async () => {
-            await enableGrantPermissionForStream(streamId)
             const id = hexlify(zeroPad(toUtf8Bytes('test-update'), 32))
             await registry.createProject(id, domainIds, paymentDetailsDefault, [streamId], 1, true, metadata)
             const project = await registry.getProject(id, domainIds)
             const minimumSubscriptionSeconds = project[1]
             const streamIds = project[4]
 
-            await enableGrantPermissionForStream(streamId1)
             await expect(registry.updateProject(id, domainIds, paymentDetailsDefault, [streamId1], 2, metadata))
                 .to.emit(registry, "ProjectUpdated")
             const projectUpdated = await registry.getProject(id, domainIds)
@@ -425,13 +411,6 @@ describe('ProjectRegistry', (): void => {
             expect(p2.streams).to.have.members(streamIds.slice(4, 6)) // ignore order
         })
 
-        it("setStreams - negativetest - permission not granted for stream", async () => {
-            const id = hexlify(zeroPad(toUtf8Bytes('test-setStreams7'), 32))
-            await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, true, metadata)
-            await expect(registry.setStreams(id, [streamIdNotGranted]))
-                .to.be.revertedWith('error_noSharePermission')
-        })
-
         it("updateProject - negativetest - throws for non existing projects", async () => {
             await expect(registry
                 .updateProject(projectIdbytesNonExistent, domainIds, paymentDetailsDefault, [], 2, metadata))
@@ -457,7 +436,6 @@ describe('ProjectRegistry', (): void => {
 
     describe('Streams', (): void => {
         it('addStream - positivetest - adds stream and updates permissions', async (): Promise<void> => {
-            await enableGrantPermissionForStream(streamId)
             const projectIdbytes = await createProject()
 
             expect(await registry.addStream(projectIdbytes, streamId))
@@ -497,8 +475,6 @@ describe('ProjectRegistry', (): void => {
             const projectIdbytes = await createProject()
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
                 .to.be.false
-
-            await enableGrantPermissionForStream(streamId1)
 
             await registry.addStream(projectIdbytes, streamId1)
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
@@ -558,7 +534,6 @@ describe('ProjectRegistry', (): void => {
             const subscriptionAfter = await registry.getSubscription(id, user1.address)
             expect(subscriptionAfter.endTimestamp)
                 .to.equal(subscriptionBefore.endTimestamp.add(addSeconds / pricePerSecond))
-
         })
 
         it('grantSubscription - negativetest - must have Grant permission', async () => {
@@ -940,8 +915,6 @@ describe('ProjectRegistry', (): void => {
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.false
 
-            await enableGrantPermissionForStream(streamIdMetatx)
-
             await minimalForwarder.connect(forwarder).execute(req, sign)
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.true
@@ -1011,8 +984,6 @@ describe('ProjectRegistry', (): void => {
                 streamIdMetatx: streamIdOld
             } = await prepareAddStreamMetatx(minimalForwarder, admin.privateKey)
 
-            await enableGrantPermissionForStream(streamIdOld)
-
             expect(await minimalForwarder.verify(reqOld, signOld))
                 .to.be.true
 
@@ -1035,8 +1006,6 @@ describe('ProjectRegistry', (): void => {
 
             // check that metatx works with new forwarder
             const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(newForwarder, admin.privateKey)
-
-            await enableGrantPermissionForStream(streamIdMetatx)
 
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
