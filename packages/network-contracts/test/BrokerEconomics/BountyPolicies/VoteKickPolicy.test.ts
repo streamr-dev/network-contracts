@@ -1,12 +1,12 @@
 import { ethers } from "hardhat"
+import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
-import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
-import { deployTestContracts, TestContracts, advanceToTimestamp, getBlockTimestamp } from "../deployTestContracts"
+import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { deployBountyContract } from "../deployBountyContract"
 import { deployBrokerPool } from "../deployBrokerPool"
 
-const { parseEther, formatEther } = utils
+const { parseEther } = utils
 
 describe("VoteKickPolicy", (): void => {
     let admin: Wallet
@@ -30,10 +30,11 @@ describe("VoteKickPolicy", (): void => {
         const { token } = contracts
         const pool1 = await deployBrokerPool(contracts, broker)
         const pool2 = await deployBrokerPool(contracts, broker2)
-        const pool3 = await deployBrokerPool(contracts, broker3)
+        await deployBrokerPool(contracts, broker3)
         await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(broker2).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
-        const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0), penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
+        const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0),
+            penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
         await bounty.sponsor(parseEther("10000"))
         await pool1.stake(bounty.address, parseEther("1000"))
         await pool2.stake(bounty.address, parseEther("1000"))

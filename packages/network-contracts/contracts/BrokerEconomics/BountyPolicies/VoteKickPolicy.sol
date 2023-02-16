@@ -106,7 +106,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
                 token.transfer(flagger, flaggerRewardWei);
-                _slash(broker, leftOverWei); // leftovers are added to sponsorship
+                _slash(broker, slashingWei); // leftovers are added to sponsorship
+                _addSponsorship(address(this), leftOverWei);
                 _removeBroker(broker);
                 emit BrokerKicked(broker, slashingWei);
             }
