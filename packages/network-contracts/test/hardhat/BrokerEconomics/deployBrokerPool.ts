@@ -1,4 +1,4 @@
-import { Wallet } from "ethers"
+import { Wallet, ContractReceipt } from "ethers"
 import { BrokerPool } from "../../../typechain"
 import { TestContracts } from "./deployTestContracts"
 
@@ -29,7 +29,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
      */
     const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
         0,
-        `Pool-${create2Salt ?? poolindex++}`,
+        create2Salt ?? `Pool-${Date.now()}-${poolindex++}`,
         [
             defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,
@@ -39,7 +39,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
             initialMargin, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent,
             0
         ]
-    )).wait()
-    const newPoolAddress = brokerPoolReceipt.events?.find((e: any) => e.event === "NewBrokerPool")?.args?.poolAddress
+    )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
+    const newPoolAddress = brokerPoolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
     return poolTemplate.attach(newPoolAddress).connect(deployer)
 }

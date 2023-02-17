@@ -1,5 +1,5 @@
 import { ethers } from "hardhat"
-import { BigNumber, utils, Wallet } from "ethers"
+import { BigNumber, utils, Wallet, ContractReceipt } from "ethers"
 import { expect } from "chai"
 
 import { deployTestContracts } from "../deployTestContracts"
@@ -37,12 +37,12 @@ describe("VoteKickPolicy", (): void => {
         await pool1.stake(bounty.address, parseEther("1000"))
         await pool2.stake(bounty.address, parseEther("1000"))
 
-        const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait()
-        expect(flagReceipt.events.filter((e: any) => e.event === "ReviewRequest")).to.have.length(1)
-        const reviewRequest = flagReceipt.events.find((e: any) => e.event === "ReviewRequest")
-        expect(reviewRequest.args?.bounty).to.equal(bounty.address)
-        expect(reviewRequest.args?.target).to.equal(pool2.address)
-        expect(reviewRequest.args?.reviewer).to.equal(broker3.address)
+        const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
+        expect(flagReceipt.events!.filter((e) => e.event === "ReviewRequest")).to.have.length(1)
+        const reviewRequest = flagReceipt.events!.find((e) => e.event === "ReviewRequest")
+        expect(reviewRequest?.args?.bounty).to.equal(bounty.address)
+        expect(reviewRequest?.args?.target).to.equal(pool2.address)
+        expect(reviewRequest?.args?.reviewer).to.equal(broker3.address)
 
         await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
             .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
@@ -73,10 +73,10 @@ describe("VoteKickPolicy", (): void => {
         await pool1.stake(bounty.address, parseEther("1000"))
         await pool2.stake(bounty.address, parseEther("1000"))
 
-        const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait()
-        const reviewRequests = flagReceipt.events.filter((e: any) => e.event === "ReviewRequest")
+        const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
+        const reviewRequests = flagReceipt.events!.filter((e) => e.event === "ReviewRequest")
         expect(reviewRequests.length).to.equal(3)
-        reviewRequests.forEach((reviewRequest: any) => {
+        reviewRequests.forEach((reviewRequest) => {
             expect(reviewRequest.args?.bounty).to.equal(bounty.address)
             expect(reviewRequest.args?.target).to.equal(pool2.address)
             expect([broker3.address, broker4.address, broker5.address]).to.include(reviewRequest.args?.reviewer)
@@ -145,7 +145,7 @@ describe("VoteKickPolicy", (): void => {
 
         await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
             .to.not.emit(bounty, "BrokerKicked")
-        
+
         await(await bounty.connect(broker).cancelFlag(pool2.address, pool1.address)).wait()
         // expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
 

@@ -50,7 +50,7 @@ let nodeRegistryAddress = ""
 let streamRegistryAddress = ""
 let wallet: Wallet
 
-async function deployNodeRegistry(initialNodes: any, initialMetadata: any) {
+async function deployNodeRegistry(initialNodes: string[], initialMetadata: string[]) {
     const strDeploy = await ethers.getContractFactory("NodeRegistry", wallet)
     const strDeployTx = await upgrades.deployProxy(strDeploy, [wallet.address, false, initialNodes, initialMetadata], { kind: "uups" })
     // const strDeployTx = await strDeploy.deploy(wallet.address, false, initialNodes, initialMetadata)
