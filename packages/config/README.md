@@ -103,3 +103,9 @@ make clean
 2.5.4: MarketplaceV3 address in dev1 added
 
 2.5.5: MarketplaceV4 address in dev1 added
+
+2.5.6: ProjectRegistry, MarketplaceV4, RemoteMarketplace address added on live testnet
+
+2.5.7: ProjectRegistry, ProjectStakingV1 address added on polygon
+
+2.5.8: LINK, ProjectStakingV1 address added on dev1

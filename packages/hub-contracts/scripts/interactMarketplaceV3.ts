@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 import { waffle, ethers, upgrades } from 'hardhat'
 import { BigNumber, Overrides, providers, utils, Wallet } from 'ethers'
-import { Marketplace, Uniswap2Adapter, IERC20, DATAv2, IUniswapV2Router02, StreamRegistryV3 } from '../typechain'
+import { MarketplaceV3, Uniswap2Adapter, IERC20, DATAv2, IUniswapV2Router02, StreamRegistryV4 } from '../typechain'
 import { Chains } from '@streamr/config'
 
 import * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
@@ -54,7 +54,7 @@ let market: any
 let uniswap2Adapter: Uniswap2Adapter
 let uniswapRouter: IUniswapV2Router02
 let uniswapFactory
-let streamRegistry: StreamRegistryV3
+let streamRegistry: StreamRegistryV4
 let wallet: Wallet
 let buyerWallet: Wallet
 let adminWallet: Wallet
@@ -112,8 +112,8 @@ const connectToAllContracts = async () => {
     otherTokenContract = await otherTokenFactoryTx.deployed() as IERC20
     log(`DATAv2 deployed at ${otherTokenContract.address}`)
 
-    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV3', adminPolygonWallet)
-    streamRegistry = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS) as StreamRegistryV3
+    const streamRegistryFactory = await ethers.getContractFactory('StreamRegistryV4', adminPolygonWallet)
+    streamRegistry = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS) as StreamRegistryV4
     await streamRegistry.deployed()
 
     // log("Uniswap has liquidity for pair DATA/OtherToken:")
@@ -132,7 +132,7 @@ const connectToAllContractsToHardhat = async () => {
     log("Deploy MarketplaceV3:")
     const marketplaceFactory = await ethers.getContractFactory('Marketplace', wallet)
     const marketFactoryTx = await upgrades.deployProxy(marketplaceFactory, [], { kind: 'uups' })
-    market = await marketFactoryTx.deployed() as Marketplace
+    market = await marketFactoryTx.deployed() as MarketplaceV3
     log(`   - deployed at: ${market.address}`)
 
     log("Deploy Uniswap2Factory:")
@@ -179,7 +179,7 @@ const connectToAllContractsToHardhat = async () => {
     log("Add liquidity to Uniswap:")
     const dataAmount = parseEther("1000")
     const otherAmount = parseEther("10000")
-    const deadline = 16725239999 // 12/31/2022
+    const deadline = 2525000000 // epoch time for year 2050
     log("   - approve uniswap to spend DATA and OtherToken")
     const dataBalance = await dataTokenContract.balanceOf(wallet.address)
     const otherBalance = await otherTokenContract.balanceOf(wallet.address)

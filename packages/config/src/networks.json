@@ -46,15 +46,42 @@
             "DataUnionFactory": "0x50aAa135AeBAC61E8394F80fF2Df091fcb66b072",
             "DefaultFeeOracle": "0xd1FA6C06E1D838Bb989640A2C4b8a499FD0ab187",
             "DataUnionTemplate": "0xC2F87E37019e227F2Be5030aabBCc7eAF136e05c",
+            "LINK": "0x3387F44140ea19100232873a5aAf9E46608c791E",
             "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
             "MarketplaceV3": "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2",
             "MarketplaceV4": "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37",
             "ProjectRegistry": "0x3C841B9Aa08166e9B864972930703e878d25804B",
+            "ProjectStakingV1": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
             "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
             "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
             "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
             "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415"
+        }
+    },
+    "alfajores": {
+        "id": 44787,
+        "rpcEndpoints": [
+            {
+                "url": "https://alfajores-forno.celo-testnet.org"
+            }
+        ],
+        "contracts": {
+            "ProjectRegistry": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
+            "MarketplaceV4": "0x14577e0D5BD77536E073712d98E471edDaFAE8b4",
+            "cUSD": "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
+        }
+    },
+    "optGoerli": {
+        "id": 420,
+        "rpcEndpoints": [
+            {
+                "url": "https://goerli.optimism.io"
+            }
+        ],
+        "contracts": {
+            "RemoteMarketplace": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
+            "DAI": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
         }
     },
     "ethereum": {
@@ -145,6 +172,8 @@
             "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
+            "ProjectRegistry": "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1",
+            "ProjectStakingV1": "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE",
             "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
             "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
             "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",

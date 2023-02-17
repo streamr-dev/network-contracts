@@ -52,9 +52,7 @@ example queries:
 ```
 {
   projects {
-    beneficiary
-    pricePerSecond
-    pricingTokenAddress
+    paymentDetails
     minimumSubscriptionSeconds
     subscriptions {
       endTimestamp
@@ -68,12 +66,12 @@ example queries:
       canDelete
       canEdit
     }
+    score
   }
 }
 ```
 
 ```
-
 {
   permissions {
     canBuy
@@ -87,9 +85,38 @@ example queries:
 
 ```
 {
+  paymentDetailsByChain {
+    domainId: BigInt
+    beneficiary: Bytes!
+    pricePerSecond: BigInt!
+    pricingTokenAddress: Bytes!
+  }
+}
+```
+
+```
+{
   timeBasedSubscriptions {
     endTimestamp
     userAddress
+  }
+}
+```
+```
+{
+  stakings {
+    user
+    amount
+    stakedAt
+  }
+}
+```
+```
+{
+  unstakings {
+    user
+    amount
+    unstakedAt
   }
 }
 ```
@@ -99,9 +126,13 @@ Full-text search:
 query {
   projectSearch(text: "metadata keyword") {
     id
-    beneficiary
-    pricePerSecond
-    pricingTokenAddress
+    domainIds
+    paymentDetails {
+      domainId
+      beneficiary
+      pricePerSecond
+      pricingTokenAddress
+    }
     minimumSubscriptionSeconds
     subscriptions {
       endTimestamp

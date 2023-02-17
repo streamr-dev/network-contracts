@@ -1,18 +1,34 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./IProjectRegistry.sol";
 
 interface IStreamRegistry {
+    struct Permission {
+        bool canEdit;
+        bool canDelete;
+        uint256 publishExpiration;
+        uint256 subscribeExpiration;
+        bool canGrant;
+    }
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) external view returns (bool userHasPermission);
-    function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function getPermissionsForUser(string calldata streamId, address user) external view returns (Permission memory permission);
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) external;
 }
 
 contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
@@ -20,9 +36,8 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    mapping (bytes32 => Project) public projects;
-
     IStreamRegistry public streamRegistry;
+    mapping (bytes32 => Project) public projects;
 
     modifier hasDeletePermission(bytes32 projectId) {
         require(hasPermissionType(projectId, _msgSender(), PermissionType.Delete), "error_noDeletePermission");
@@ -98,21 +113,28 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      * Returns Project struct items except for permissions which are linked to a user/projectVersion hash.
      */
     function getProject(
-        bytes32 id
-    ) public view returns (
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingTokenAddress,
-        uint minimumSubscriptionSeconds,
-        string memory metadata,
-        uint32 version,
-        string[] memory streams
-    ) {
+        bytes32 id,
+        uint32[] memory domainIds
+    )
+        external
+        view
+        returns (
+            PaymentDetailsByChain[] memory paymentDetails,
+            uint256 minimumSubscriptionSeconds,
+            string memory metadata,
+            uint32 version,
+            string[] memory streams
+        )
+    {
         Project storage p = projects[id];
+
+        paymentDetails = new PaymentDetailsByChain[](domainIds.length);
+        for (uint256 i = 0; i < domainIds.length; i++) {
+            paymentDetails[i] = p.paymentDetails[domainIds[i]];
+        }
+
         return (
-            p.beneficiary,
-            p.pricePerSecond,
-            p.pricingTokenAddress,
+            paymentDetails,
             p.minimumSubscriptionSeconds,
             p.metadata,
             p.version,
@@ -121,27 +143,60 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     /**
+     * Returns the payment details for a project on a specific chain
+     */
+    function getPaymentDetailsByChain(
+        bytes32 projectId,
+        uint32 domainId
+    ) external view returns (
+        address beneficiary,
+        address pricingTokenAddress,
+        uint256 pricePerSecond)
+    {
+        Project storage p = projects[projectId];
+        PaymentDetailsByChain storage paymentDetailsByChain = p.paymentDetails[domainId];
+        return (paymentDetailsByChain.beneficiary, paymentDetailsByChain.pricingTokenAddress, paymentDetailsByChain.pricePerSecond);
+    }
+
+    /**
+     * Add payment details for a project for a specific chain
+     */
+    function updatePaymentDetailsByChain(
+        bytes32 projectId,
+        uint32 domainId,
+        address beneficiary,
+        address pricingToken,
+        uint256 pricePerSecond
+    ) external projectExists(projectId) hasEditPermission(projectId) {
+        PaymentDetailsByChain memory paymentDetailsByChain = PaymentDetailsByChain({
+            beneficiary: beneficiary,
+            pricingTokenAddress: pricingToken,
+            pricePerSecond: pricePerSecond
+        });
+        Project storage p = projects[projectId];
+        p.paymentDetails[domainId] = paymentDetailsByChain;
+        emit PaymentDetailsByChainUpdated(projectId, domainId, beneficiary, pricingToken, pricePerSecond);
+    }
+
+    /**
     * Creates a new project in the registry. All permissions are enabled for msg.sender
-    * @param beneficiary The address that will receive the payments
+    * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @dev version is incrementally generated
-    * @dev streams are initialized to an empty string[]
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
-        bytes32 id,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        bytes32 projectId,
+        uint32[] calldata domainIds,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public {
-        _createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
-
-        projects[id].version = projects[id].version + 1;
-        _setPermissionBooleans(id, _msgSender(), true, true, true, true);
+        _createProject(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
+        _setPermissionBooleans(projectId, _msgSender(), true, true, true, true);
         if (isPublicPurchable) {
-            _setPermissionBooleans(id, address(0), true, true, true, true);
+            _setPermissionBooleans(projectId, address(0), true, true, true, true);
         }
     }
 
@@ -151,54 +206,75 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     }
 
     /**
-    * Updates project fields except for: version, streams[], permissions mapping
+    * Updates project fields except for: version, permissions mapping
     * @dev version is auto-incremented and is not editable
-    * @dev streams[] has dedicated methods under streams management
+    * @dev streams[] has dedicated methods under streams management as well
     * @dev permissions have dedicated methods under permissions management (supports other then msg.sender subscribers as well)
     */
     function updateProject(
         bytes32 projectId,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        uint32[] calldata domainIds,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         string calldata metadataJsonString
-    ) public hasEditPermission(projectId) {
+    ) public projectExists(projectId) hasEditPermission(projectId) {
         Project storage p = projects[projectId];
-        p.beneficiary = beneficiary;
-        p.pricePerSecond = pricePerSecond;
-        p.pricingTokenAddress = pricingToken;
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
+        setStreams(p.id, streams);
+        emit ProjectUpdated(projectId, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
-        emit ProjectUpdated(p.id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        for(uint256 i = 0; i < domainIds.length; i++) {
+            p.paymentDetails[domainIds[i]] = paymentDetailsByChain[i];
+            emit PaymentDetailsByChainUpdated(
+                projectId,
+                domainIds[i],
+                paymentDetailsByChain[i].beneficiary,
+                paymentDetailsByChain[i].pricingTokenAddress,
+                paymentDetailsByChain[i].pricePerSecond
+            );
+        }
     }
 
-    function _createProject(bytes32 id, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, string calldata metadataJsonString) internal {
+    function _createProject(
+        bytes32 id,
+        uint32[] calldata domainIds,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
+        uint256 minimumSubscriptionSeconds,
+        string calldata metadataJsonString
+    ) internal {
         require(id != 0x0, "error_nullProjectId");
         require(!exists(id), "error_alreadyExists");
-        require(bytes(ERC20(pricingToken).symbol()).length > 0, "error_invalidPricingTokenSymbol");
+        require(domainIds.length == paymentDetailsByChain.length, "error_invalidPaymentDetailsByChain");
 
         Project storage p = projects[id];
         p.id = id;
-        p.beneficiary = beneficiary;
-        p.pricePerSecond = pricePerSecond;
-        p.pricingTokenAddress = pricingToken;
+        for(uint256 i = 0; i < streams.length; i++) {
+            _addStream(id, streams[i]);
+        }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
+        p.version = projects[id].version + 1;
+        emit ProjectCreated(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
-        emit ProjectCreated(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        for(uint256 i = 0; i < domainIds.length; i++) {
+            PaymentDetailsByChain memory payment = paymentDetailsByChain[i];
+            p.paymentDetails[domainIds[i]] = payment;
+            emit PaymentDetailsByChainUpdated(id, domainIds[i], payment.beneficiary, payment.pricingTokenAddress, payment.pricePerSecond);
+        }
     }
 
-    // /////////////// Subscription management ///////////////
+    ///////////////// Subscription management ///////////////
 
     function getSubscription(bytes32 projectId, address subscriber) public view returns (bool isValid, uint endTimestamp) {
         (, TimeBasedSubscription storage sub) = _getSubscription(projectId, subscriber);
         return (_isValid(sub), sub.endTimestamp);
     }
 
-    function getOwnSubscription(bytes32 productId) public view returns (bool isValid, uint endTimestamp) {
-        return getSubscription(productId, _msgSender());
+    function getOwnSubscription(bytes32 projectId) public view returns (bool isValid, uint endTimestamp) {
+        return getSubscription(projectId, _msgSender());
     }
 
     function _isValid(TimeBasedSubscription storage s) internal view returns (bool) {
@@ -258,61 +334,124 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function addStream(bytes32 projectId, string calldata streamId) public projectExists(projectId) hasEditPermission(projectId) {
         require(!isStreamAdded(projectId, streamId), "error_streamAlreadyAdded");
+        _addStream(projectId, streamId);
+    }
+
+    /**
+     * Add multiple streams to the project; silently skips already added streams
+     */
+    function addStreams(bytes32 projectId, string[] calldata streamIds) public projectExists(projectId) hasEditPermission(projectId) {
+        for(uint256 i = 0; i < streamIds.length; i++) {
+            string calldata s = streamIds[i];
+            if (!isStreamAdded(projectId, s)) {
+                _addStream(projectId, s);
+            }
+        }
+    }
+
+    function _addStream(bytes32 projectId, string calldata streamId) private {
         require(streamRegistry.hasPermission(streamId, _msgSender(), IStreamRegistry.PermissionType.Grant), "error_noGrantPermissionForStream");
-        _grantSubscribeForStream(streamId, address(this));
         projects[projectId].streams.push(streamId);
+        projects[projectId].streamIndex[streamId] = projects[projectId].streams.length; // real array index + 1
         emit StreamAdded(projectId, streamId);
     }
 
+    /**
+     * Removes the stream from the project
+     * @dev streams order is not important
+     * @dev to leave no gaps, replaces the deleted streamId with the last element, then pops the last element
+     */
     function removeStream(bytes32 projectId, string memory streamId) public projectExists(projectId) hasEditPermission(projectId) {
-        string[] memory streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                delete streams[i];
-                break;
-            }
+        string[] storage streams = projects[projectId].streams;
+        mapping(string => uint) storage streamIndex = projects[projectId].streamIndex;
+        uint i = streamIndex[streamId];
+        require(i > 0, "error_streamNotFound");
+        // don't replace if there's only one stream...
+        if (streams.length > 1) {
+            string memory lastStream = streams[streams.length - 1];
+            streams[i - 1] = lastStream;
+            streamIndex[lastStream] = i; // real index + 1
         }
-        projects[projectId].streams = streams;
+        streams.pop();
+        delete streamIndex[streamId];
         emit StreamRemoved(projectId, streamId);
     }
 
-    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
-        string[] memory streams = projects[projectId].streams;
-        for(uint i = 0; i < streams.length; i++) {
-            string memory stream = streams[i];
-            if (keccak256(bytes(stream)) == keccak256(bytes(streamId))) {
-                return true;
+    function setStreams(bytes32 projectId, string[] calldata newStreams) public projectExists(projectId) hasEditPermission(projectId) {
+        Project storage p = projects[projectId];
+        string[] storage oldStreams = p.streams;
+        uint oldStreamCount = oldStreams.length;
+        mapping(string => uint) storage streamIndex = p.streamIndex;
+
+        // mark old streams for keeping if they're also found in new streams
+        for (uint i = 0; i < newStreams.length; i++) {
+            string calldata s = newStreams[i];
+            if (streamIndex[s] > 0) {
+                streamIndex[s] = 1 ether; // hack: mark using spare bits in index (no real index can be 1e18)
             }
         }
-        return false;
+
+        // compact the old streams: only keep the marked streams, remove the rest
+        uint target = 0;
+        for (uint source = 0; source < oldStreamCount; source++) {
+            string storage s = oldStreams[source];
+            if (streamIndex[s] == 1 ether) {
+                if (source > target) { // don't move if it's already in the right place
+                    oldStreams[target] = s;
+                }
+                target++;
+                streamIndex[s] = target; // real index + 1
+            } else {
+                delete streamIndex[s];
+                emit StreamRemoved(projectId, s);
+            }
+        }
+
+        // pop the remaining trash (marked streams were already copied below j)
+        for (; target < oldStreamCount; target++) {
+            oldStreams.pop();
+        }
+
+        // add new streams on top if they weren't in the old streams
+        addStreams(projectId, newStreams);
+    }
+
+    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
+        return projects[projectId].streamIndex[streamId] > 0;
     }
 
     /**
      * Enable Grant permission for stream stored inside the StreamRegistry contract.
-     * ProjectRegistry must have Grant permission on the stream in order to grant permissions to other users.
+     * Project registry has trusted role in stream registry and can grant permissions to other users
      * @param streamId for which the permission is granted. Streams permissions are handled by the StreamRegistry contract.
      * @param subscriber to which the permission is granted.
      */
     function _grantSubscribeForStream(string memory streamId, address subscriber) internal {
-        streamRegistry.grantPermission(streamId, subscriber, IStreamRegistry.PermissionType.Subscribe);
+        IStreamRegistry.Permission memory p = streamRegistry.getPermissionsForUser(streamId, subscriber);
+        streamRegistry.trustedSetPermissionsForUser(
+            streamId,
+            subscriber,
+            p.canEdit,
+            p.canDelete,
+            p.publishExpiration,
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, // MAX_INT for subscribeExpiration
+            p.canGrant
+        );
     }
 
     /**
      * Enables Grant permission for all streams added to project.
      */
-    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal { // must have grand permission on all streams
+    function _grantSubscribeForAllStreams(bytes32 projectId, address subscriber) internal {
         string[] memory streams = projects[projectId].streams;
         for(uint i = 0; i < streams.length; i++) {
-            streamRegistry.grantPermission(streams[i], subscriber, IStreamRegistry.PermissionType.Subscribe); // hasGrantPermission(streamId)
             _grantSubscribeForStream(streams[i], subscriber);
-
         }
     }
 
     /////////////// Permissions Management /////////////////
 
-    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view returns (bool userhasPermissionType) {
+    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view returns (bool userHasPermissionType) {
         if (permissionType == PermissionType.Buy) {
             return projects[projectId].permissions[getAddressKey(projectId, user)].canBuy;
         }
@@ -412,20 +551,20 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
      */
     /**
     * Creates a new project in the registry. Permissions are enabled for the given user.
-    * @param beneficiary The address that will receive the payments
+    * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
     * @param user The address that will have the permissions
     */
     function trustedCreateProject(
         bytes32 id,
-        address beneficiary,
-        uint pricePerSecond,
-        address pricingToken,
+        uint32[] calldata domainIds,
+        PaymentDetailsByChain[] calldata paymentDetailsByChain,
+        string[] calldata streams,
         uint minimumSubscriptionSeconds,
         address user,
         bool isPublicPurchable,
         string calldata metadataJsonString
     ) public isTrusted(){
-        _createProject(id, beneficiary, pricePerSecond, pricingToken, minimumSubscriptionSeconds, metadataJsonString);
+        _createProject(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
         _setPermissionBooleans(id, user, true, true, true, true);
         if (isPublicPurchable) {
             _setPermissionBooleans(id, address(0), true, true, true, true);

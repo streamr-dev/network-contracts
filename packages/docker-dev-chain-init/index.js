@@ -105,7 +105,7 @@ const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
-let linkTokenAddress = ''
+let linkToken
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -177,6 +177,17 @@ async function deployProjectRegistry(wallet) {
     return projectRegistry
 }
 
+async function deployProjectStakingV1(wallet, projectRegistryAddress, tokenStakingAddress) {
+    const projectStakingV1Factory = await ethers.getContractFactory("ProjectStakingV1", wallet)
+    const projectStakingV1FactoryTx = await upgrades.deployProxy(projectStakingV1Factory, [
+        projectRegistryAddress,
+        tokenStakingAddress
+    ], { kind: 'uups' })
+    const projectStakingV1 = await projectStakingV1FactoryTx.deployed()
+    log(`ProjectStakingV1 deployed at ${projectStakingV1.address}`)
+    return projectStakingV1
+}
+
 async function deployMarketplaceV3(wallet) {
     const marketplaceV3Factory = await ethers.getContractFactory("MarketplaceV3", wallet)
     const marketplaceV3FactoryTx = await upgrades.deployProxy(marketplaceV3Factory, [], { kind: 'uups' })
@@ -185,9 +196,9 @@ async function deployMarketplaceV3(wallet) {
     return marketplaceV3
 }
 
-async function deployMarketplaceV4(wallet) {
+async function deployMarketplaceV4(wallet, projectRegistryAddress, destinationChainId) {
     const marketplaceV4Factory = await ethers.getContractFactory("MarketplaceV4", wallet)
-    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [], { kind: 'uups' })
+    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [projectRegistryAddress, destinationChainId], { kind: 'uups' })
     const marketplaceV4 = await marketplaceV4FactoryTx.deployed()
     log(`MarketplaceV4 deployed on sidechain at ${marketplaceV4.address}`)
     return marketplaceV4
@@ -234,8 +245,7 @@ async function deployStreamRegistries() {
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
     const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    const linkToken = await linkTokenFactoryTx.deployed()
-    linkTokenAddress = linkToken.address
+    linkToken = await linkTokenFactoryTx.deployed()
     log(`Link Token deployed at ${linkToken.address}`)
 
     const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
@@ -596,12 +606,22 @@ async function smartContractInitialization() {
     await grantRoleTx2.wait()
 
     const projectRegistry = await deployProjectRegistry(sidechainWallet)
+
     await deployMarketplaceV3(sidechainWallet)
-    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet)
-    // link marketpalceV4 to the project registry contract
-    await(await marketplaceV4.setProjectRegistry(projectRegistry.address)).wait()
-    // grant trusted role to marketpalce contract => needed for granting permissions to buyers
+
+    const chainId = 8997 // dev1
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistry.address, chainId)    
+    log(`Granting role ${role} to MarketplaceV4 at ${marketplaceV4.address}. ` +
+        "Needed for granting permissions to streams using the trusted functions.")
     await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
+
+    await deployProjectStakingV1(sidechainWallet, projectRegistry.address, linkToken.address)
+
+    // granting here and not right after deployProjectRegistry to avoid changing the addresses of MarketplaceV3, MarketplaceV4 and ProjectStakingV1
+    log(`Granting role ${role} to ProjectRegistry at ${projectRegistry.address}. ` +
+        "Needed for granting permissions to streams using the trusted functions.")
+    const grantRoleProjectRegistryTx = await streamRegistryFromOwner.grantRole(role, projectRegistry.address)
+    await grantRoleProjectRegistryTx.wait()
 
     await deployBountyFactory()
 

@@ -4,7 +4,7 @@ import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV3, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { provider: waffleProvider } = waffle
@@ -68,7 +68,7 @@ describe("Uniswap2Adapter", () => {
     let erc677Token: DATAv2
     let fromToken: ERC20Mintable
     let market: MarketplaceV4
-    let streamRegistry: StreamRegistryV3
+    let streamRegistry: StreamRegistryV4
     let projectRegistry: ProjectRegistry
     let minimalForwarder: MinimalForwarder
     let uniswap2Adapter: Uniswap2Adapter
@@ -78,13 +78,22 @@ describe("Uniswap2Adapter", () => {
 
     const day = 86400
     const productIdbytes = hexlify(zeroPad(toUtf8Bytes("test-adapter"), 32))
+    const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
+    const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
+    const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
     before(async () => {
         await deployErc20ContractsAndMintTokens()
+        domainIds.push(deployedOnDomainId)
+        paymentDetailsDefault.push([
+            beneficiary.address, // beneficiary
+            dataToken.address, // pricingTokenAddress
+            parseEther("1") // pricePerSecond
+        ])
         await deployMinimalForwarder()
         await deployStreamRegistry()
         await deployProjectRegistry()
-        await projectRegistry.createProject(productIdbytes, beneficiary.address, parseEther("1"), dataToken.address, 0, true, 'metadata')
+        await projectRegistry.createProject(productIdbytes, domainIds, paymentDetailsDefault, [], 0, true, 'metadata')
         await deployMarketplace()
         await deployUniswap2Contracts(admin)
         await deployUniswap2Adapter()
@@ -129,7 +138,12 @@ describe("Uniswap2Adapter", () => {
 
     async function deployUniswap2Adapter(): Promise<void> {
         const uniswap2AdapterFactory = await getContractFactory("Uniswap2AdapterV4")
-        uniswap2Adapter = await uniswap2AdapterFactory.deploy(market.address, projectRegistry.address, uniswapRouter.address) as Uniswap2Adapter
+        uniswap2Adapter = await uniswap2AdapterFactory.deploy(
+            market.address,
+            projectRegistry.address,
+            uniswapRouter.address,
+            deployedOnDomainId
+        ) as Uniswap2Adapter
         log('Uniswap2Adapter was deployed at address: ', uniswap2Adapter.address)
     }
 
@@ -141,14 +155,13 @@ describe("Uniswap2Adapter", () => {
     }
 
     async function deployStreamRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             [ZERO_ADDRESS, ZERO_ADDRESS], // ensCacheAddr & trustedForwarderAddress can be set to zero address while testing this adapter
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("StreamRegistry was deployed at address: ", streamRegistry.address)
-        
     }
 
     async function deployProjectRegistry(): Promise<void> {
@@ -159,17 +172,9 @@ describe("Uniswap2Adapter", () => {
     }
 
     async function deployMarketplace(): Promise<void> {
-        // deploy the first upgradeable marketplace contract
-        const marketFactoryV3 = await getContractFactory("MarketplaceV3", admin)
-        const marketFactoryV3Tx = await upgrades.deployProxy(marketFactoryV3, [], { kind: 'uups' })
-
-        // upgrade the marketplace contract from V3 to V4
         const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-        const marketFactoryV4Tx = await upgrades.upgradeProxy(marketFactoryV3Tx.address, marketFactoryV4)
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
         market = await marketFactoryV4Tx.deployed() as MarketplaceV4
-
-        // initialize project registry contract for marketplace
-        await market.setProjectRegistry(projectRegistry.address)
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
         await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
     }
@@ -178,7 +183,7 @@ describe("Uniswap2Adapter", () => {
         // 10 dataToken ~= 1 fromToken
         const dataAmount = parseEther("10000") // product token amount
         const fromAmount = parseEther("1000")
-        const deadline = (new Date()).setFullYear((new Date()).getFullYear() + 1) // 1 year from now
+        const deadline = 2525000000 // epoch time for year 2050
 
         // Approve uniswap to spend DATA and ERC20 tokens
         await dataToken.approve(uniswapRouter.address, parseEther("100000"))
