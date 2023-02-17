@@ -213,6 +213,15 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         return (beneficiary, pricingTokenAddress, price, (txFee * price) / 1 ether, purchaseId, streamsCount);
     }
 
+    function getSubscriptionInfo(
+        bytes32 projectId,
+        address subscriber,
+        uint256 purchaseId
+    ) external view returns(bool, uint256, uint256) {
+        (bool isValid, uint256 subEndTimestamp) = projectRegistry.getSubscription(projectId, subscriber);
+        return (isValid, subEndTimestamp, purchaseId);
+    }
+
     /**
     * Extends project subscription purchased on a different chain.
     * @param _origin - the chain id where the sender contract is deployed (e.g. RemoteMarketplace).

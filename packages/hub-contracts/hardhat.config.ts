@@ -7,7 +7,7 @@ import '@openzeppelin/hardhat-upgrades'
 
 import "solidity-coverage"
 require('hardhat-dependency-compiler')
-require('dotenv').config()
+// require('dotenv').config()
 
 declare module 'hardhat/types/config' {
     interface HardhatUserConfig {

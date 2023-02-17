@@ -3,17 +3,22 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "./token/IERC677.sol";
+import "./IPurchaseListener.sol";
 
 interface IMarketplace {
-    function buy(bytes32 projectId, uint256 subscriptionSeconds) external;
-    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address recipient) external;
     function getPurchaseInfo(
         bytes32 projectId,
         uint256 subscriptionSeconds,
         uint32 originDomainId,
         uint256 purchaseId
     ) external view returns(address, address, uint256, uint256, uint256);
+    function getSubscriptionInfo(
+        bytes32 projectId,
+        address subscriber,
+        uint256 purchaseId
+    ) external view returns(bool, uint256, uint256);
 }
 
 struct Call {
@@ -56,15 +61,20 @@ interface IMailbox {
  * The marketplace interface through which the users on other networks can send cross-chain messages to MarketpalceV4 (e.g. buy projects)
  */
 contract RemoteMarketplace is Ownable {
-    struct PurchaseRequest {
+    struct ProjectPurchase {
         bytes32 projectId;
         address buyer;
         address subscriber;
+        address beneficiary;
+        address pricingTokenAddress;
         uint256 subscriptionSeconds;
+        uint256 requestTimestamp;
+        uint256 price;
+        uint256 fee;
     }
 
     uint256 public purchaseCount;
-    mapping(uint256 => PurchaseRequest) public purchases;
+    mapping(uint256 => ProjectPurchase) public purchases;
 
     uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
     uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistry & MarketplaceV4 is deployed
@@ -110,18 +120,28 @@ contract RemoteMarketplace is Ownable {
     function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
         uint256 purchaseId = purchaseCount + 1;
         purchaseCount = purchaseId;
-        purchases[purchaseId] = PurchaseRequest(projectId, msg.sender, subscriber, subscriptionSeconds);
-        bytes32 messageId = _queryPurchaseInfo(projectId, subscriptionSeconds, purchaseId);
-        uint256 gasAmount = _estimateQueryGasAmount();
-        _payInterchainGas(messageId, gasAmount, address(this));
+        purchases[purchaseId] = ProjectPurchase(
+            projectId,
+            msg.sender, // buyer
+            subscriber,
+            address(0x0), // beneficiary
+            address(0x0), // pricingTokenAddress
+            subscriptionSeconds,
+            block.timestamp, // requestTimestamp
+            0, // price
+            0 // fee
+        );
+        _queryPurchaseInfo(projectId, subscriptionSeconds, purchaseId);
     }
 
-    function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private returns(bytes32 messageId) {
-        return queryRouter.query(
+    function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
+        bytes32 messageId = queryRouter.query(
             destinationDomainId,
             Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
             abi.encodePacked(this.handlePurchaseInfo.selector)
         );
+        uint256 gasAmount = _estimateQueryGasAmount();
+        _payInterchainGas(messageId, gasAmount, address(this));
     }
 
     function handlePurchaseInfo(
@@ -132,33 +152,86 @@ contract RemoteMarketplace is Ownable {
         uint256 purchaseId,
         uint256 streamsCount
     ) external onlyQueryRouter {
-        PurchaseRequest memory purchase = purchases[purchaseId];
-        bytes32 projectId = purchase.projectId;
-        address buyer = purchase.buyer;
-        address subscriber = purchase.subscriber;
-        uint256 subscriptionSeconds = purchase.subscriptionSeconds;
-        _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
-        emit ProjectPurchasedFromRemote(projectId, subscriber, subscriptionSeconds, price, fee);
-        bytes32 messageId = _dispatchPurchase(projectId, subscriber, subscriptionSeconds);
-        uint256 gasAmount = _estimateDispatchGasAmount(streamsCount);
-        _payInterchainGas(messageId, gasAmount, address(this));
+        ProjectPurchase memory p = purchases[purchaseId];
+        p.beneficiary = beneficiary;
+        p.pricingTokenAddress = pricingTokenAddress;
+        p.price = price;
+        p.fee = fee;
+        purchases[purchaseId] = p;
+
+        IERC677 pricingToken = IERC677(pricingTokenAddress);
+        require(pricingToken.transferFrom(p.buyer, address(this), price), "error_projectPaymentFailed");
+        
+        _dispatchPurchase(p.projectId, p.subscriber, p.subscriptionSeconds, streamsCount);
+        _querySubscriptionState(p.projectId, p.subscriber, purchaseId);
     }
 
-    function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
-        IERC20 pricingToken = IERC20(pricingTokenAddress);
-        require(pricingToken.transferFrom(buyer, beneficiary, price - fee), "error_projectPaymentFailed");
-        if (fee > 0) {
-            require(pricingToken.transferFrom(buyer, owner(), fee), "error_feePaymentFailed");
-        }
-        // TODO: notify purchase listener
-    }
-
-    function _dispatchPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds) private returns (bytes32 messageId) {
-        return mailbox.dispatch(
+    function _dispatchPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 streamsCount) private {
+        bytes32 messageId =  mailbox.dispatch(
             destinationDomainId,
             _addressToBytes32(recipientAddress),
             abi.encode(projectId, subscriber, subscriptionSeconds)
         );
+        uint256 gasAmount = _estimateDispatchGasAmount(streamsCount);
+        _payInterchainGas(messageId, gasAmount, address(this));
+    }
+
+    function _querySubscriptionState(bytes32 projectId, address subscriber, uint256 purchaseId) private {
+        bytes32 messageId = queryRouter.query(
+            destinationDomainId,
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
+            abi.encodePacked(this.handleSubscriptionState.selector)
+        );
+        uint256 gasAmount = _estimateQueryGasAmount();
+        _payInterchainGas(messageId, gasAmount, address(this));
+    }
+
+    function handleSubscriptionState(bool isValid, uint256 subEndTimestamp, uint256 purchaseId) external onlyQueryRouter {
+        ProjectPurchase memory p = purchases[purchaseId];
+
+        IERC677 pricingToken = IERC677(p.pricingTokenAddress);
+        if (isValid && subEndTimestamp > p.requestTimestamp + p.subscriptionSeconds) { // subscription was extended => send tokens to the project beneficiary
+            try pricingToken.transferAndCall(p.beneficiary, p.price - p.fee, abi.encodePacked(p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee)) returns (bool success) {
+                require(success, "error_transferAndCallProject");
+            } catch {
+                // pricing token is NOT ERC677, so project beneficiary can only react to purchase by implementing IPurchaseListener
+                require(pricingToken.transfer(p.beneficiary, p.price - p.fee), "error_paymentFailed");
+            }
+
+            if (p.fee > 0) {
+                // pricing token is ERC677 and marketplace owner can react to project purchase
+                try pricingToken.transferAndCall(owner(), p.fee, abi.encodePacked(p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee)) returns (bool success) {
+                    require(success, "error_transferAndCallFee");
+                } catch {
+                    // pricing token is NOT ERC677 and marketplace owner can NOT react to project purchase
+                    require(pricingToken.transfer(owner(), p.fee), "error_paymentFailed");
+                }
+            }
+        } else { // subscription was NOT extended; revert tokens from this contract back to the buyer
+            require(pricingToken.transfer(p.buyer, p.price), "error_paymentFailedBuyer");
+        }
+
+        _notifyPurchaseListener(p.beneficiary, p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee);
+        emit ProjectPurchasedFromRemote(p.projectId, p.subscriber, p.subscriptionSeconds, p.price, p.fee);
+        delete purchases[purchaseId];
+    }
+
+    /**
+     * Notify the purchase listener of project purchase
+     * @param beneficiary is the project beneficiary (the address getting paid for project)
+     * @dev if the beneficiary is a contract, it can implement IPurchaseListener to react to project purchase
+     * @param subscriber is the address for which the project subscription is added/extended
+    */
+    function _notifyPurchaseListener(address beneficiary, bytes32 projectId, address subscriber, uint256 subEndTimestamp, uint256 price, uint256 fee) private {
+        uint256 codeSize;
+        assembly { codeSize := extcodesize(beneficiary) }  // solhint-disable-line no-inline-assembly
+        if (codeSize > 0) {
+            try IPurchaseListener(beneficiary).onPurchase(projectId, subscriber, subEndTimestamp, price, fee) returns (bool accepted) {
+                require(accepted, "error_rejectedBySeller");
+            } catch {
+                // purchase listener not notified
+            }
+        }
     }
 
     /**
@@ -206,4 +279,9 @@ contract RemoteMarketplace is Ownable {
      * Contract must be able to receive ETH for potential interchain payment refund
      */
     receive() external payable {}
+
+    function withdraw(uint256 amount) external onlyOwner {
+        require(amount <= address(this).balance, "error_insufficientBalance");
+        payable(msg.sender).transfer(amount);
+    }
 }
