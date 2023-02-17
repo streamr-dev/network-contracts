@@ -90,10 +90,28 @@ describe("VoteKickPolicy", (): void => {
             .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
         expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
 
-        // TODO: check that majority voters got paid, and minority one did NOT
+        expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
+        expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))
+        expect (await token.balanceOf(broker5.address)).to.equal(parseEther("1"))
     })
 
-    it("works with an even amount of voters", async function(): Promise<void> {
+    it("cleans up all the values correctly after a flag (successive flags with same flagger and target)", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("allows the flagger to wighdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("allows the flagger to wighdraw the correct amount AFTER the flag period", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("allows 2 flags to be active at the same time and not interfere with each other", async function(): Promise<void> {
+        // TODO
+    })
+
+    it("works with an even amount of voters (times out)", async function(): Promise<void> {
         // TODO
     })
 
@@ -102,7 +120,38 @@ describe("VoteKickPolicy", (): void => {
     })
 
     it("allowes to cancel a flag", async function(): Promise<void> {
-        // TODO
+        // cancel after some voter has voted (not all), pay the ones who voted
+        // broker flags broker2, broker3 votes, broker4 doesn't vote, broker cancels
+        const contracts = await deployTestContracts(admin)
+        const { token } = contracts
+        await (await token.mint(admin.address, parseEther("1000000"))).wait()
+        await (await token.mint(broker.address, parseEther("1000000"))).wait()
+        await (await token.mint(broker2.address, parseEther("100000"))).wait()
+
+        const pool1 = await deployBrokerPool(contracts, broker)
+        const pool2 = await deployBrokerPool(contracts, broker2)
+        await deployBrokerPool(contracts, broker3)
+        await deployBrokerPool(contracts, broker4)
+
+        await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(broker2).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
+        const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0),
+            penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
+        await bounty.sponsor(parseEther("10000"))
+        await pool1.stake(bounty.address, parseEther("1000"))
+        await pool2.stake(bounty.address, parseEther("1000"))
+
+        await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait()
+
+        await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
+            .to.not.emit(bounty, "BrokerKicked")
+        
+        await(await bounty.connect(broker).cancelFlag(pool2.address, pool1.address)).wait()
+        // expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
+
+        expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
+        expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))
+        // expect (await token.balanceOf(broker5.address)).to.equal(parseEther("1"))
     })
 
     it("does NOT allow to flag a broker that is already flagged", async function(): Promise<void> {

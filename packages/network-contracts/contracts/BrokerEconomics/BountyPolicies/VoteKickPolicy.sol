@@ -6,7 +6,7 @@ import "./IKickPolicy.sol";
 import "../Bounty.sol";
 import "../BrokerPoolFactory.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
@@ -14,10 +14,13 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     uint constant maxReviewerCount = 5;
     mapping (address => address) flaggerPoolAddress;
+
     mapping (address => mapping (address => uint)) reviewerState;
     mapping (address => address[]) reviewers;
     mapping (address => uint) votesForKick;
+    mapping (address => address[]) votersForKick;
     mapping (address => uint) votesAgainstKick;
+    mapping (address => address[]) votersAgainstKick;
 
     // function localData() internal view returns(LocalStorage storage data) {
     //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
@@ -78,47 +81,70 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         uint reviewerCount = reviewers[broker].length;
         if (vote == 1) {
             votesForKick[broker]++;
+            votersForKick[broker].push(voter);
             if (votesForKick[broker] > reviewerCount / 2) {
                 result = 1;
             }
         } else {
             votesAgainstKick[broker]++;
+            votersAgainstKick[broker].push(voter);
             if (votesAgainstKick[broker] > reviewerCount / 2) {
                 result = 2;
             }
         }
         if (result > 0) {
             uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
-            for (uint i = 0; i < reviewerCount; i++) {
-                token.transfer(reviewers[broker][i], rewardWei);
-            }
             address flagger = flaggerPoolAddress[broker];
             globalData().committedStakeWei[flagger] -= 10 ether;
+            uint slashingWei = globalData().stakedWei[broker] / 10; // TODO: add to streamrConstants?
             if (result == 1) { // kick
-                uint slashingWei = globalData().stakedWei[broker] / 10; // TODO: add to streamrConstants?
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
                 token.transfer(flagger, flaggerRewardWei);
                 _slash(broker, slashingWei); // leftovers are added to sponsorship
+                payReviewers(broker, votersForKick[broker]);
                 _addSponsorship(address(this), leftOverWei);
                 _removeBroker(broker);
                 emit BrokerKicked(broker, slashingWei);
             }
             if (result == 2) { // false flag, not kick
                 uint flagStakeWei = 10 ether; // TODO add to globalData().streamrConstants.flagStakeWei();
+                uint leftOverWei = flagStakeWei - rewardWei * reviewerCount;
                 _slash(flagger, flagStakeWei);
+                payReviewers(broker, votersAgainstKick[broker]);
+                _addSponsorship(address(this), leftOverWei);
             }
+            globalData().committedStakeWei[flaggerPoolAddress[flagger]] = 0;
             delete votesForKick[broker];
             delete votesAgainstKick[broker];
+            delete votersForKick[broker];
+            delete votersAgainstKick[broker];
         }
     }
     
-    function onCancelFlag(address) external {
-        // TODO
+    function onCancelFlag(address broker, address myBrokerPool) external {
+        address flagger = _msgSender();
+        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
+        require(flaggerPoolAddress[broker] == myBrokerPool, "error_notFlagger");
+        payReviewers(_msgSender(), votersForKick[broker]);
+        payReviewers(_msgSender(), votersAgainstKick[broker]);
+        globalData().committedStakeWei[flaggerPoolAddress[flagger]] = 0;
+        delete votesForKick[broker];
+        delete votesAgainstKick[broker];
+        delete votersForKick[broker];
+        delete votersAgainstKick[broker];
     }
 
     function onKick(address) external {
         // does nothing in this policy? or should admin be able to kick?
+    }
+
+    function payReviewers(address broker, address[] memory votersToPay) internal {
+        uint rewardWei = 1 ether; // TODO: add to streamrConstants?
+        for (uint i = 0; i < votersToPay.length; i++) {
+            console.log("paying reviewer %s", votersToPay[i]);
+            token.transfer(votersToPay[i], rewardWei);
+        }
     }
 
     /**

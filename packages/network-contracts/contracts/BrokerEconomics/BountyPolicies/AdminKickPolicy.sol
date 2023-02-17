@@ -30,7 +30,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     function onFlag(address broker, address brokerPool) external {
     }
 
-    function onCancelFlag(address) external {
+    function onCancelFlag(address, address brokerPool) external {
     }
 
     function onVote(address broker, bytes32 voteData) external {

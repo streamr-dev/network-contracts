@@ -298,9 +298,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */
-    function cancelFlag(address broker) external {
+    function cancelFlag(address broker, address myBrokerPool) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, broker), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, broker, myBrokerPool), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */
