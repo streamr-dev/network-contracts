@@ -19,7 +19,15 @@ import "./IPurchaseListener.sol";
 
 interface IProjectRegistry {
     enum PermissionType {  Buy, Delete, Edit, Grant }
-    function getPaymentDetailsByChain(bytes32 projectId, uint32 domainId) external view returns (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond);
+    function getPaymentDetailsByChain(
+        bytes32 projectId,
+        uint32 domainId
+    ) external view returns (
+        address beneficiary,
+        address pricingTokenAddress,
+        uint256 pricePerSecond,
+        uint256 streamsCount
+    );
     function grantSubscription(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) external;
     function canBuyProject(bytes32 projectId, address buyer) external view returns(bool isPurchable);
     function getSubscription(bytes32 projectId, address subscriber) external view returns (bool isValid, uint256 endTimestamp);
@@ -55,7 +63,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     // cross-chain messaging
     uint32 public chainId; // unique identifier for current chain (assigned by Hyperlane, but the same as the chainId in the EIP-155)
     address public mailbox; // address of the Hyperlane Mailbox contract
-    mapping(uint32 => address) public remoteMarketplaces; // key is the remote chain's id
+    mapping(uint32 => address) public remoteMarketplaces; // the key is the remote chain's id
 
     modifier whenNotHalted() {
         require(!halted || owner() == _msgSender(), "error_halted");
@@ -87,7 +95,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      * @dev price & fee is in wei
      */
     function _handleProjectPurchase(bytes32 projectId, uint256 addSeconds, address subscriber) internal {
-        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, chainId);
+        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond, ) = projectRegistry.getPaymentDetailsByChain(projectId, chainId);
         require(pricePerSecond > 0, "error_freeProjectsNotSupportedOnMarketplace");
         uint256 price = addSeconds * pricePerSecond;
         uint256 fee = (txFee * price) / 1 ether;
@@ -172,7 +180,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         bytes32 projectId;
         assembly { projectId := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
 
-        ( , address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, chainId);
+        ( , address pricingTokenAddress, uint256 pricePerSecond, ) = projectRegistry.getPaymentDetailsByChain(projectId, chainId);
         require(_msgSender() == pricingTokenAddress, "error_wrongPricingToken");
 
         uint256 subscriptionSeconds = amount / pricePerSecond / 1 ether;
@@ -197,35 +205,29 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         uint256 subscriptionSeconds,
         uint32 originDomainId,
         uint256 purchaseId
-    ) external view returns(address, address, uint256, uint256, uint256) {
-        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond) = projectRegistry.getPaymentDetailsByChain(projectId, originDomainId);
+    ) external view returns(address, address, uint256, uint256, uint256, uint256) {
+        // TODO: ETH-428 - guard against making a payment without receiving the service (e.g. subscription)
+        // require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
+        (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond, uint256 streamsCount ) = projectRegistry.getPaymentDetailsByChain(projectId, originDomainId);
         uint256 price = subscriptionSeconds * pricePerSecond;
-        uint256 fee = (txFee * price) / 1 ether;
-        return (beneficiary, pricingTokenAddress, price, fee, purchaseId);
+        return (beneficiary, pricingTokenAddress, price, (txFee * price) / 1 ether, purchaseId, streamsCount);
     }
 
     /**
     * Extends project subscription purchased on a different chain.
-    * @param _origin - the domain id, of the chain, the message is comming from (e.g. RemoteMarketplace).
-    * @param _sender - the contract the message is comming from (e.g. RemoteMarketplace).
-    * @dev _sender is bytes32 not address because the protocol will support non-evm chains as well
-    * @dev msg.sender is the hyperlane inbox address for the destination chain where destination contract is deployed (e.g. MarketplaceV4)
+    * @param _origin - the chain id where the sender contract is deployed (e.g. RemoteMarketplace).
+    * @param _sender - the contract sending the message (e.g. RemoteMarketplace).
     * @param _message - encoded purchase info
+    * @dev _sender is of type bytes32 not address because the protocol will support non-evm chains as well
+    * @dev msg.sender is the hyperlane Mailbox of the chain where this contract is deployed
     */
     function handle(
         uint32 _origin,
         bytes32 _sender,
         bytes calldata _message
     ) external onlyRemoteMarketplace(_origin, _sender) {
-        (bytes32 projectId, address subscriber, uint256 subscriptionSeconds, address beneficiary, uint256 price, uint256 fee) = 
-            abi.decode(_message, (bytes32, address, uint256, address, uint256, uint256));
-
-        require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
+        (bytes32 projectId, address subscriber, uint256 subscriptionSeconds) = abi.decode(_message, (bytes32, address, uint256));
         projectRegistry.grantSubscription(projectId, subscriptionSeconds, subscriber);
-
-        (, uint256 subEndTimestamp) = projectRegistry.getSubscription(projectId, subscriber);
-        emit ProjectPurchased(projectId, subscriber, subscriptionSeconds, price, fee);
-        _notifyPurchaseListener(beneficiary, projectId, subscriber, subEndTimestamp, price, fee);
     }
 
     function _bytes32ToAddress(bytes32 _buf) private pure returns (address) {

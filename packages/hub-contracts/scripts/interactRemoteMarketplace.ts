@@ -70,9 +70,9 @@ const buy = async (
     log('Buy project:')
     if(buyer) {
         log('   - buyer: ', buyer.address)
-        tx = await remoteMarketplace.connect(buyer).buy(projectId, subscriptionSeconds, 1000000)
+        tx = await remoteMarketplace.connect(buyer).buy(projectId, subscriptionSeconds)
     } else {
-        tx = await remoteMarketplace.buy(projectId, subscriptionSeconds, 1000000) // uses the cli exported KEY
+        tx = await remoteMarketplace.buy(projectId, subscriptionSeconds) // uses the cli exported KEY
     }
     log(`   - tx: ${blockExplorer}/tx/${tx.hash}`)
     log('   - subscriptionSeconds: ', subscriptionSeconds)
@@ -107,14 +107,14 @@ async function main() {
     log('   - queryRouter address', await remoteMarketplace.queryRouter())
     log('   - gasPaymaster address', await remoteMarketplace.gasPaymaster())
 
-    const existingProjectId = '0x0000000000000000000000000000000000000000000000000000000000000004'
-    const subscriptionSeconds = 500
+    const existingProjectId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+    const subscriptionSeconds = 400
     const pricePerToken = 2
 
     log('Remote marketplace balance before buy: %s', (await hardhatEthers.provider.getBalance(REMOTE_MARKETPLACE_ADDRESS)).toString())
     await linkToken.connect(admin).approve(remoteMarketplace.address, subscriptionSeconds * pricePerToken)
     await buy(existingProjectId, subscriptionSeconds, admin)
-    log('Remote marketplace balance before buy: %s', (await hardhatEthers.provider.getBalance(REMOTE_MARKETPLACE_ADDRESS)).toString())
+    log('Remote marketplace balance after buy: %s', (await hardhatEthers.provider.getBalance(REMOTE_MARKETPLACE_ADDRESS)).toString())
     
 }
 

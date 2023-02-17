@@ -607,6 +607,7 @@ describe("MarketplaceV4", () => {
             const subscriptionSeconds = 100
             const price = pricePerSecond.mul(subscriptionSeconds)
             const fee = BigNumber.from(0)
+            const streamsCount = BigNumber.from(0)
             const purchaseId = BigNumber.from(1)
             
             const projectId = await createProject({ payment })
@@ -617,6 +618,7 @@ describe("MarketplaceV4", () => {
             expect(purchaseInfo[2]).to.equal(price)
             expect(purchaseInfo[3]).to.equal(fee)
             expect(purchaseInfo[4]).to.equal(purchaseId)
+            expect(purchaseInfo[5]).to.equal(streamsCount)
         })
     })
 

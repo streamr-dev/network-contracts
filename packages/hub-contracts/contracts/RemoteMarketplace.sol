@@ -103,21 +103,87 @@ contract RemoteMarketplace is Ownable {
         recipientAddress = _recipientContractAddress;
     }
 
-    function buy(bytes32 projectId, uint256 subscriptionSeconds, uint256 gasAmount) public {
-        buyFor(projectId, subscriptionSeconds, msg.sender, gasAmount);
+    function buy(bytes32 projectId, uint256 subscriptionSeconds) public {
+        buyFor(projectId, subscriptionSeconds, msg.sender);
     }
 
-    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber, uint256 gasAmount) public {
+    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
         uint256 purchaseId = purchaseCount + 1;
         purchaseCount = purchaseId;
         purchases[purchaseId] = PurchaseRequest(projectId, msg.sender, subscriber, subscriptionSeconds);
-        bytes32 messageId = queryRouter.query(
-            destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
-            abi.encodePacked(this.handleQueryProjectResult.selector)
-        );
+        bytes32 messageId = _queryPurchaseInfo(projectId, subscriptionSeconds, purchaseId);
+        uint256 gasAmount = _estimateQueryGasAmount();
         _payInterchainGas(messageId, gasAmount, address(this));
     }
+
+    function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private returns(bytes32 messageId) {
+        return queryRouter.query(
+            destinationDomainId,
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
+            abi.encodePacked(this.handlePurchaseInfo.selector)
+        );
+    }
+
+    function handlePurchaseInfo(
+        address beneficiary,
+        address pricingTokenAddress,
+        uint256 price,
+        uint256 fee,
+        uint256 purchaseId,
+        uint256 streamsCount
+    ) external onlyQueryRouter {
+        PurchaseRequest memory purchase = purchases[purchaseId];
+        bytes32 projectId = purchase.projectId;
+        address buyer = purchase.buyer;
+        address subscriber = purchase.subscriber;
+        uint256 subscriptionSeconds = purchase.subscriptionSeconds;
+        _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
+        emit ProjectPurchasedFromRemote(projectId, subscriber, subscriptionSeconds, price, fee);
+        bytes32 messageId = _dispatchPurchase(projectId, subscriber, subscriptionSeconds);
+        uint256 gasAmount = _estimateDispatchGasAmount(streamsCount);
+        _payInterchainGas(messageId, gasAmount, address(this));
+    }
+
+    function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
+        IERC20 pricingToken = IERC20(pricingTokenAddress);
+        require(pricingToken.transferFrom(buyer, beneficiary, price - fee), "error_projectPaymentFailed");
+        if (fee > 0) {
+            require(pricingToken.transferFrom(buyer, owner(), fee), "error_feePaymentFailed");
+        }
+        // TODO: notify purchase listener
+    }
+
+    function _dispatchPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds) private returns (bytes32 messageId) {
+        return mailbox.dispatch(
+            destinationDomainId,
+            _addressToBytes32(recipientAddress),
+            abi.encode(projectId, subscriber, subscriptionSeconds)
+        );
+    }
+
+    /**
+     * Helper function to estimate the gas amount needed for the recipient's getPurchaseInfo function
+     */
+    function _estimateQueryGasAmount() private pure returns (uint256) {
+        uint256 gasAmount = 80000; // gas for query overhead (suggested on hyperlane docs)
+        gasAmount += 79322; // gas for getPurchaseInfo on destination chain
+        return gasAmount;
+    }
+
+    /**
+     * Helper function to estimate the gas amount needed for the recipient's handle function
+     */
+    function _estimateDispatchGasAmount(uint256 streamsCount) private pure returns (uint256) {
+        uint256 gasAmount = 78588; // gas to use by the recipient's handle function (projects without streams)
+        if (streamsCount == 1) {
+            gasAmount += 41283; // gas for the first stream
+        }
+        for (uint i = 1; i < streamsCount; i++) { // strart from index 1 to skip the first stream
+            gasAmount += 30263; // gas for each additional stream
+        }
+        return gasAmount;
+    }
+
 
     /**
      * @param messageId - the id of the message that is being paid for
@@ -130,41 +196,6 @@ contract RemoteMarketplace is Ownable {
     function _payInterchainGas(bytes32 messageId, uint256 gasAmount, address refundAddress) private {
         uint256 quotedPayment = gasPaymaster.quoteGasPayment(destinationDomainId, gasAmount);
         gasPaymaster.payForGas{value: quotedPayment}(messageId, destinationDomainId, gasAmount, refundAddress);
-    }
-
-    function handleQueryProjectResult(
-        address beneficiary,
-        address pricingTokenAddress,
-        uint256 price,
-        uint256 fee,
-        uint256 purchaseId
-    ) public onlyQueryRouter {
-        PurchaseRequest memory purchase = purchases[purchaseId];
-        bytes32 projectId = purchase.projectId;
-        address buyer = purchase.buyer;
-        address subscriber = purchase.subscriber;
-        uint256 subscriptionSeconds = purchase.subscriptionSeconds;
-        emit ProjectPurchasedFromRemote(projectId, subscriber, subscriptionSeconds, price, fee);
-        _subscribeToProject(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee);
-        _handleProjectPurchase(buyer, beneficiary, pricingTokenAddress, price, fee);
-    }
-
-    function _subscribeToProject(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, address beneficiary, uint256 price, uint256 fee) private {
-        bytes32 messageId = mailbox.dispatch(
-            destinationDomainId,
-            _addressToBytes32(recipientAddress),
-            abi.encode(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)
-        );
-        uint256 gasAmount = 100000; // TODO: estimate gas
-        _payInterchainGas(messageId, gasAmount, address(this));
-    }
-
-    function _handleProjectPurchase(address buyer, address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee) private {
-        IERC20 pricingToken = IERC20(pricingTokenAddress);
-        require(pricingToken.transferFrom(buyer, beneficiary, price - fee), "error_projectPaymentFailed");
-        if (fee > 0) {
-            require(pricingToken.transferFrom(buyer, owner(), fee), "error_feePaymentFailed");
-        }
     }
 
     function _addressToBytes32(address addr) private pure returns (bytes32) {

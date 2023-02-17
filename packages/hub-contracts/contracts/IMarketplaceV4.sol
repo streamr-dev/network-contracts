@@ -23,5 +23,5 @@ interface IMarketplaceV4 {
         uint256 subscriptionSeconds,
         uint32 originDomainId,
         uint256 purchaseId
-    ) external view returns(address, address, uint256, uint256, uint256);
+    ) external view returns(address, address, uint256, uint256, uint256, uint256);
 }
