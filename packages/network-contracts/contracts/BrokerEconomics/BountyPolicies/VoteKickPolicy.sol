@@ -6,7 +6,7 @@ import "./IKickPolicy.sol";
 import "../Bounty.sol";
 import "../BrokerPoolFactory.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
@@ -68,7 +68,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(reviewers[targetBrokerPool].length > 0, "error_notEnoughReviewers");
     }
 
-   
+
     function onVote(address broker, bytes32 voteData) external {
         address voter = _msgSender(); // ?
         require(reviewerState[broker][voter] != 0, "error_reviewersOnly");
@@ -121,7 +121,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             delete votersAgainstKick[broker];
         }
     }
-    
+
     function onCancelFlag(address broker, address myBrokerPool) external {
         address flagger = _msgSender();
         require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
@@ -142,7 +142,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     function payReviewers(address broker, address[] memory votersToPay) internal {
         uint rewardWei = 1 ether; // TODO: add to streamrConstants?
         for (uint i = 0; i < votersToPay.length; i++) {
-            console.log("paying reviewer %s", votersToPay[i]);
+            // console.log("paying reviewer %s", votersToPay[i]);
             token.transfer(votersToPay[i], rewardWei);
         }
     }

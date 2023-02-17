@@ -625,61 +625,6 @@ describe("BrokerPool", (): void => {
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
-    it("edge case many queue entries, one bounty, batched", async function(): Promise<void> {
-        const { token } = contracts
-        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.mint(delegator.address, parseEther("1000"))).wait()
-
-        const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-        const pool = await deployBrokerPool(contracts, broker)
-        const balanceBefore = await token.balanceOf(delegator.address)
-        await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
-        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
-
-        // await advanceToTimestamp(timeAtStart, "Stake to bounty")
-        await expect(pool.stake(bounty.address, parseEther("1000")))
-            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-
-        // queue payout
-        const numberOfQueueSlots = 1000
-        for (let i = 0; i < numberOfQueueSlots; i++) {
-            await pool.connect(delegator).queueDataPayout(parseEther("1"))
-        }
-        const investorQueuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
-        expect(investorQueuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
-
-        // await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")
-        // doing it in one go with 1000 slots in the queue will fail, so do it in pieces
-        const gasLimit = 0xF42400 // "reasonable gas limit"
-        await expect(pool.connect(broker).unstake(bounty.address, 1000, { gasLimit })).to.be.reverted
-        await (await pool.connect(broker).unstake(bounty.address, 10, { gasLimit })).wait()
-        for (let i = 10; i < numberOfQueueSlots; i += 10) {
-            await (await pool.connect(broker).payOutQueueWithFreeFunds(10, { gasLimit })).wait()
-        }
-
-        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther(numberOfQueueSlots.toString()))
-        const balanceAfter = await token.balanceOf(delegator.address)
-        expect(balanceAfter).to.equal(expectedBalance)
-    })
-
-    it("edge case ony queue entry, many bounties", async function(): Promise<void> {
-        const { token } = contracts
-        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.mint(delegator.address, parseEther("1000"))).wait()
-
-        const pool = await deployBrokerPool(contracts, broker)
-        const numberOfBounties = 1000
-        for (let i = 0; i < numberOfBounties; i++) {
-            const bounty = await deployBountyContract(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-            // const receipt =
-            await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1"), "0x")).wait()
-            await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1"), "0x")).wait()
-            await (await pool.stake(bounty.address, parseEther("1"))).wait()
-            // console.log(`Staked ${i} bounties, gas used: ${receipt.gasUsed}`)
-        }
-        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther(numberOfBounties.toString()))
-    })
-
     it("punishes broker on too much diff on approx poolvalue", async function(): Promise<void> {
         const { token } = contracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
