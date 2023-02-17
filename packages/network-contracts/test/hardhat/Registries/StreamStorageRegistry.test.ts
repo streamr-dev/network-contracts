@@ -1,8 +1,8 @@
 import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 
-import type { MinimalForwarder } from "../typechain/MinimalForwarder"
-import type { StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from "../typechain"
+import type { MinimalForwarder } from "../../../typechain"
+import type { StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from "../../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from "@metamask/eth-sig-util"
 
 // set timeout to 10 minutes

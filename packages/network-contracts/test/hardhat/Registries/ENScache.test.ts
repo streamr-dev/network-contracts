@@ -2,27 +2,11 @@ import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 import { utils, BigNumber } from "ethers"
 
-<<<<<<<< HEAD:packages/network-contracts/test/Registries/ENScache.test.ts
-import ENSCacheJson from "../../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json"
-import ForwarderJson from "../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json"
-import OracleJson from "../../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json"
-import LinkTokenJson from "../../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json"
-import type { ENSCache } from "../typechain/ENSCache"
-import type { MinimalForwarder } from "../typechain/MinimalForwarder"
-import type { Oracle } from "../typechain/Oracle"
-import type { LinkToken } from "../typechain/LinkToken"
-import type { StreamRegistry } from "../typechain/StreamRegistry"
-========
-import ENSCacheJson from '../../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json'
-import ForwarderJson from '../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json'
-import OracleJson from '../../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json'
-import LinkTokenJson from '../../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json'
-import type { ENSCache } from '../../typechain/ENSCache'
-import type { MinimalForwarder } from '../../typechain/MinimalForwarder'
-import type { Oracle } from '../../typechain/Oracle'
-import type { LinkToken } from '../../typechain/LinkToken'
-import type { StreamRegistry } from '../../typechain/StreamRegistry'
->>>>>>>> origin/master:packages/network-contracts/test/hardhat/ENScache.test.ts
+import ENSCacheJson from "../../../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json"
+import ForwarderJson from "../../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json"
+import OracleJson from "../../../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json"
+import LinkTokenJson from "../../../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json"
+import type { ENSCache, MinimalForwarder, Oracle, LinkToken, StreamRegistry } from "../../../typechain"
 
 describe("ENSCache", async (): Promise<void> => {
     let wallets

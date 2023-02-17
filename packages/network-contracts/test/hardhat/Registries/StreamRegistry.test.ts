@@ -3,9 +3,9 @@ import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from "@metamask/eth-sig-util"
 
-import type { MinimalForwarder } from "../typechain/MinimalForwarder"
-import type { StreamRegistry } from "../typechain/StreamRegistry"
-import type { StreamRegistryV4 } from "../typechain/StreamRegistryV4"
+import type { MinimalForwarder } from "../../../typechain"
+import type { StreamRegistry } from "../../../typechain"
+import type { StreamRegistryV4 } from "../../../typechain"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 const types = {
