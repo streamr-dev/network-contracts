@@ -30,6 +30,8 @@ describe("BrokerPool", (): void => {
         const { token } = sharedContracts
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
+        await (await token.mint(admin.address, parseEther("100000"))).wait()
+        await (await token.mint(sponsor.address, parseEther("100000"))).wait()
 
         const bounty = await deployBountyContract(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool(sharedContracts, broker)
@@ -65,10 +67,11 @@ describe("BrokerPool", (): void => {
 
     it("edge case ony queue entry, many bounties", async function(): Promise<void> {
         const { token } = sharedContracts
+        const pool = await deployBrokerPool(sharedContracts, broker)
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+        await (await token.mint(sponsor.address, parseEther("1000"))).wait()
         await (await token.mint(delegator.address, parseEther("1000"))).wait()
 
-        const pool = await deployBrokerPool(sharedContracts, broker)
         const numberOfBounties = 1000
         for (let i = 0; i < numberOfBounties; i++) {
             const bounty = await deployBountyContract(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
@@ -79,5 +82,7 @@ describe("BrokerPool", (): void => {
             // console.log(`Staked ${i} bounties, gas used: ${receipt.gasUsed}`)
         }
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther(numberOfBounties.toString()))
+
+        // TODO: unstake
     })
 })
