@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { BigNumber, utils, constants } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, GasReporter, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
@@ -71,6 +71,8 @@ describe("MarketplaceV4", () => {
     let minimalForwarder: MinimalForwarder
     let projectRegistry: ProjectRegistry
     let streamRegistry: StreamRegistryV4
+    const streamIds: string[] = []
+    let gasReporter: GasReporter
 
     const chainId = 137 // chain id for polygon mainnet
     const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
@@ -86,7 +88,9 @@ describe("MarketplaceV4", () => {
         await deployMinimalForwarder()
         await deployStreamRegistry()
         await deployProjectRegistry()
+        await streamRegistry.grantRole(id("TRUSTED_ROLE"), projectRegistry.address)
         marketplace = await deployMarketplace()
+        await deployGasReporter(marketplace.address)
 
         chainIds.push(chainId)
         paymentDetailsDefault.push([
@@ -140,6 +144,17 @@ describe("MarketplaceV4", () => {
 
     }
 
+    const createStream = async (id?: string, creator = admin): Promise<string> => {
+        // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
+        const streamPath = '/projects/' + (id ?? Date.now())
+        const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
+        await(await streamRegistry.connect(creator)
+            .createStream(streamPath, streamMetadata)).wait()
+        const streamId = creator.address.toLowerCase() + streamPath
+        log('Stream created (streamId: %s)', streamId)
+        return streamId
+    }
+    
     async function deployProjectRegistry(): Promise<void> {
         log("Deploying ProjectRegistry: ")
         const contractFactory = await getContractFactory("ProjectRegistry", admin)
@@ -159,9 +174,15 @@ describe("MarketplaceV4", () => {
         return market
     }
 
+    async function deployGasReporter(recipientAddress: string): Promise<void> {
+        const factory = await getContractFactory('GasReporter', admin)
+        gasReporter = await factory.deploy(recipientAddress, chainId) as GasReporter
+    }
+
     async function createProject({
         chains = chainIds,
         payment = paymentDetailsDefault,
+        streams = streamIds,
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
         metadata = ""
@@ -169,7 +190,7 @@ describe("MarketplaceV4", () => {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
         await projectRegistry
-            .createProject(projectId, chains, payment, [], minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, streams, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -623,6 +644,56 @@ describe("MarketplaceV4", () => {
     })
 
     describe('Hyperlane - cross-chain messaging', () => {
+        if (process.env.REPORT_GAS) {
+            describe.only('GasReporter', () => {
+                before(async () => {
+                    // needed for error_notHyperlaneMailbox validation
+                    await marketplace.addMailbox(gasReporter.address)
+                    // needed for error_notRemoteMarketplace validation
+                    await marketplace.addRemoteMarketplace(chainId, gasReporter.address)
+                })
+                it('handle()', async () => {
+                    const subscriber = admin.address
+                    const subscriptionSeconds = 100
+                    const beneficiary = admin.address
+                    const price = 100
+                    const fee = 0
+    
+                    let prevGasUsed = 0
+                    log('%s streams:', streamIds.length)
+                    const projectId0 = await createProject()
+                    let tx = await(await gasReporter.handle(projectId0, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                    log('Gas used for handle function is %s wei (with overhead )', tx.gasUsed.toNumber())
+                    prevGasUsed = tx.gasUsed.toNumber()
+    
+                    for (let i = 0; i < 3; i++) {
+                        const s = await createStream(i.toString())
+                        streamIds.push(s)
+                        log('\n %s streams:', streamIds.length)
+                        const projectId = await createProject()
+                        tx = await(await gasReporter.handle(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                        const gasUsed = tx.gasUsed.toNumber()
+                        log('Gas used for handle function is %s wei (with overhead ), difference is %s', gasUsed, gasUsed - prevGasUsed)
+                        prevGasUsed = gasUsed
+                    }
+                })
+                it('getPurchaseInfo()', async () => {
+                    const subscriptionSeconds = 100
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getPurchaseInfo(projectId, subscriptionSeconds, purchaseId)
+                })
+        
+                it('getSubscriptionInfo()', async () => {
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getSubscriptionInfo(projectId, buyer.address, purchaseId)
+                })
+            })
+        }
+
         it("should be able to send a message directly using the test recipient contract", async function () {
             const signer = (await hardhatEthers.getSigners())[0]
             const inbox = await new MockInbox__factory(signer).deploy()

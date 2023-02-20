@@ -134,16 +134,25 @@ contract RemoteMarketplace is Ownable {
         _queryPurchaseInfo(projectId, subscriptionSeconds, purchaseId);
     }
 
+    /**
+     * Query the destination chain, using the interchain query router
+     * The query will return the purchase informations (beneficiary, pricingTokenAddress, price, fee, streamsCount)
+     * Pay the query gas fee to the interchain gas paymaster
+     */
     function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
             Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
             abi.encodePacked(this.handlePurchaseInfo.selector)
         );
-        uint256 gasAmount = _estimateQueryGasAmount();
+        uint256 gasAmount = _estimateGasForQueryPurchaseInfo();
         _payInterchainGas(messageId, gasAmount, address(this));
     }
 
+    /**
+     * Recieve the purchase info from the destination chain. 
+     * If the buyer has enough allowance to purchase the project, dispatch message to the destination chain and grant the subscription
+     */
     function handlePurchaseInfo(
         address beneficiary,
         address pricingTokenAddress,
@@ -160,37 +169,52 @@ contract RemoteMarketplace is Ownable {
         purchases[purchaseId] = p;
 
         IERC677 pricingToken = IERC677(pricingTokenAddress);
-        require(pricingToken.transferFrom(p.buyer, address(this), price), "error_projectPaymentFailed");
+        require(pricingToken.allowance(p.buyer, address(this)) >= price, "error_insufficientAllowance");
         
         _dispatchPurchase(p.projectId, p.subscriber, p.subscriptionSeconds, streamsCount);
         _querySubscriptionState(p.projectId, p.subscriber, purchaseId);
     }
 
+    /**
+     * Send message to the destination chain, using the interchain mailbox. It will grant the subscription
+     * Pay the message gas fee to the interchain gas paymaster
+     */
     function _dispatchPurchase(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 streamsCount) private {
         bytes32 messageId =  mailbox.dispatch(
             destinationDomainId,
             _addressToBytes32(recipientAddress),
             abi.encode(projectId, subscriber, subscriptionSeconds)
         );
-        uint256 gasAmount = _estimateDispatchGasAmount(streamsCount);
+        uint256 gasAmount = _estimateGasForDispatch(streamsCount);
         _payInterchainGas(messageId, gasAmount, address(this));
     }
 
+    /**
+     * Check if the subscription was extended. The query will return the subscription state (isValid, subEndTimestamp)
+     * Pay the query gas fee to the interchain gas paymaster
+     */
     function _querySubscriptionState(bytes32 projectId, address subscriber, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
             Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
             abi.encodePacked(this.handleSubscriptionState.selector)
         );
-        uint256 gasAmount = _estimateQueryGasAmount();
+        uint256 gasAmount = _estimateGasForQuerySubscriptionState();
         _payInterchainGas(messageId, gasAmount, address(this));
     }
 
+    /**
+     * Subscription was extended on the destination chain
+     * Transfer payment from buyer to marketplace; pay the beneficiary & the marketplace owner
+     */
     function handleSubscriptionState(bool isValid, uint256 subEndTimestamp, uint256 purchaseId) external onlyQueryRouter {
         ProjectPurchase memory p = purchases[purchaseId];
 
         IERC677 pricingToken = IERC677(p.pricingTokenAddress);
-        if (isValid && subEndTimestamp > p.requestTimestamp + p.subscriptionSeconds) { // subscription was extended => send tokens to the project beneficiary
+        if (isValid && subEndTimestamp >= p.requestTimestamp + p.subscriptionSeconds) { // subscription was extended => buyers pays for the subscription
+            // transfer price (amount to beneficiary + fee to marketplace owner) from buyer to marketplace
+            require(pricingToken.transferFrom(p.buyer, address(this), p.price), "error_paymentFailed");
+
             try pricingToken.transferAndCall(p.beneficiary, p.price - p.fee, abi.encodePacked(p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee)) returns (bool success) {
                 require(success, "error_transferAndCallProject");
             } catch {
@@ -207,12 +231,13 @@ contract RemoteMarketplace is Ownable {
                     require(pricingToken.transfer(owner(), p.fee), "error_paymentFailed");
                 }
             }
-        } else { // subscription was NOT extended; revert tokens from this contract back to the buyer
-            require(pricingToken.transfer(p.buyer, p.price), "error_paymentFailedBuyer");
+
+            _notifyPurchaseListener(p.beneficiary, p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee);
+            emit ProjectPurchasedFromRemote(p.projectId, p.subscriber, p.subscriptionSeconds, p.price, p.fee);
+        } else {
+            // subscription was NOT extended => no payment is needed
         }
 
-        _notifyPurchaseListener(p.beneficiary, p.projectId, p.subscriber, subEndTimestamp, p.price, p.fee);
-        emit ProjectPurchasedFromRemote(p.projectId, p.subscriber, p.subscriptionSeconds, p.price, p.fee);
         delete purchases[purchaseId];
     }
 
@@ -237,22 +262,31 @@ contract RemoteMarketplace is Ownable {
     /**
      * Helper function to estimate the gas amount needed for the recipient's getPurchaseInfo function
      */
-    function _estimateQueryGasAmount() private pure returns (uint256) {
-        uint256 gasAmount = 80000; // gas for query overhead (suggested on hyperlane docs)
-        gasAmount += 79322; // gas for getPurchaseInfo on destination chain
+    function _estimateGasForQueryPurchaseInfo() private pure returns (uint256) {
+        uint256 gasAmount = 32877; // gas for getPurchaseInfo on destination chain
+        gasAmount += 80000; // gas for query overhead (suggested on hyperlane docs)
+        return gasAmount;
+    }
+
+    /**
+     * Helper function to estimate the gas amount needed for the recipient's getSubscriptionState function
+     */
+    function _estimateGasForQuerySubscriptionState() private pure returns (uint256) {
+        uint256 gasAmount = 25768; // gas for getSubscriptionState on destination chain
+        gasAmount += 80000; // gas for query overhead (suggested on hyperlane docs)
         return gasAmount;
     }
 
     /**
      * Helper function to estimate the gas amount needed for the recipient's handle function
      */
-    function _estimateDispatchGasAmount(uint256 streamsCount) private pure returns (uint256) {
-        uint256 gasAmount = 78588; // gas to use by the recipient's handle function (projects without streams)
+    function _estimateGasForDispatch(uint256 streamsCount) private pure returns (uint256) {
+        uint256 gasAmount = 69581; // gas to use by the recipient's handle function (projects without streams)
         if (streamsCount == 1) {
-            gasAmount += 41283; // gas for the first stream
+            gasAmount += 56673; // gas for the first stream
         }
         for (uint i = 1; i < streamsCount; i++) { // strart from index 1 to skip the first stream
-            gasAmount += 30263; // gas for each additional stream
+            gasAmount += 43650; // gas for each additional stream
         }
         return gasAmount;
     }

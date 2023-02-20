@@ -8,6 +8,8 @@ import '@openzeppelin/hardhat-upgrades'
 import "solidity-coverage"
 require('hardhat-dependency-compiler')
 // require('dotenv').config()
+// import 'hardhat-gas-reporter'
+// import 'hardhat-storage-layout'
 
 declare module 'hardhat/types/config' {
     interface HardhatUserConfig {
@@ -92,6 +94,13 @@ const config: HardhatUserConfig = {
     typechain: {
         outDir: "./typechain",
         target: "ethers-v5",
+    },
+    gasReporter: {
+        enabled: (process.env.REPORT_GAS) ? true : false,
+        currency: 'USD',
+        token: 'MATIC',
+        coinmarketcap: process.env.COINMARKETCAP_KEY,
+        showMethodSig: true,
     }
 }
 export default config
