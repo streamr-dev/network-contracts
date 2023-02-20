@@ -5,38 +5,85 @@ import { expect } from "chai"
 import { deployTestContracts } from "../deployTestContracts"
 import { deployBountyContract } from "../deployBountyContract"
 import { deployBrokerPool } from "../deployBrokerPool"
+import assert from "assert"
 
-const { parseEther } = utils
+const { parseEther, id } = utils
+
+const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
+const VOTE_CANCEL = "0x0000000000000000000000000000000000000000000000000000000000000000"
 
 describe("VoteKickPolicy", (): void => {
-    let admin: Wallet
-    let broker: Wallet
-    let broker2: Wallet
-    let broker3: Wallet
-    let broker4: Wallet
-    let broker5: Wallet
 
+    // default setup for test cases that don't need a clean set of contracts
+    // clean setup is needed when review selection has to be controlled (so that BrokerPools from old tests don't interfere)
+    let defaultSetup: any
     before(async (): Promise<void> => {
-        [admin, broker, broker2, broker3, broker4, broker5] = await ethers.getSigners() as unknown as Wallet[]
+        defaultSetup = await setup(3, 1)
     })
+
+    /**
+     * Sets up a Bounty and given number of brokers, each with BrokerPool that stakes 1000 tokens into the Bounty
+     */
+    async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, bountySettings: any = {}, cleanBrokerCount = 0, cleanBrokerSeed?: string) {
+        // Hardhat provides 20 pre-funded signers
+        const [admin, ...signers] = await ethers.getSigners() as unknown as Wallet[]
+        const stakedBrokers = signers.slice(0, stakedBrokerCount)
+        const nonStakedBrokers = signers.slice(stakedBrokerCount, stakedBrokerCount + nonStakedBrokerCount)
+
+        const contracts = await deployTestContracts(admin)
+
+        // TODO: maybe "clean brokers" weren't really necessary? BrokerPoolFactory CREATE2 salt can be freely set now
+        const cleanBrokers: Wallet[] = []
+        if (cleanBrokerCount > 0) {
+            assert(cleanBrokerSeed, "Test-specific cleanBrokerSeed must be provided if cleanBrokerCount > 0, to make sure they're clean")
+            for (let i = 0; i < cleanBrokerCount; i++) {
+                const key = id(id(cleanBrokerSeed) + i.toString())
+                const b = new Wallet(key, admin.provider)
+                cleanBrokers.push(b)
+
+                // clean brokers start from nothing => need ether to deploy BrokerPool etc.
+                await (await admin.sendTransaction({ to: b.address, value: parseEther("1") })).wait()
+            }
+        }
+        const brokers = [...stakedBrokers, ...nonStakedBrokers, ...cleanBrokers]
+
+        // minting must happen one by one since it's all done from admin account
+        const { token } = contracts
+        await (await token.mint(admin.address, parseEther("1000000"))).wait()
+        for (const b of brokers) {
+            await (await token.mint(b.address, parseEther("1000"))).wait()
+        }
+
+        // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
+        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b)))
+        await Promise.all(brokers.map((b, i) => token.connect(b).transferAndCall(pools[i].address, parseEther("1000"), "0x")))
+
+        const bounty = await deployBountyContract(contracts, {
+            allocationWeiPerSecond: BigNumber.from(0),
+            penaltyPeriodSeconds: 1000,
+            brokerPoolOnly: true,
+            ...bountySettings
+        })
+        await bounty.sponsor(parseEther("10000"))
+
+        await Promise.all(stakedBrokers.map((_, i) => pools[i].stake(bounty.address, parseEther("1000"))))
+
+        return {
+            contracts,
+            token,
+            admin,
+            bounty,
+            brokers,
+            stakedBrokers,
+            nonStakedBrokers,
+            cleanBrokers,
+            pools,
+        }
+    }
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and 1 voter", async function(): Promise<void> {
-            const contracts = await deployTestContracts(admin)
-            const { token } = contracts
-            await (await token.mint(admin.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker2.address, parseEther("1000000"))).wait()
-            const pool1 = await deployBrokerPool(contracts, broker)
-            const pool2 = await deployBrokerPool(contracts, broker2)
-            await deployBrokerPool(contracts, broker3)
-            await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
-            await (await token.connect(broker2).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
-            const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0),
-                penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
-            await bounty.sponsor(parseEther("10000"))
-            await pool1.stake(bounty.address, parseEther("1000"))
-            await pool2.stake(bounty.address, parseEther("1000"))
+            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2 ] } = await setup(3)
 
             const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
             expect(flagReceipt.events!.filter((e) => e.event === "ReviewRequest")).to.have.length(1)
@@ -45,51 +92,30 @@ describe("VoteKickPolicy", (): void => {
             expect(reviewRequest?.args?.target).to.equal(pool2.address)
             expect(reviewRequest?.args?.reviewer).to.equal(broker3.address)
 
-            await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
+            await expect(bounty.connect(broker3).voteOnFlag(pool2.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
             expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
         })
 
         it("with 3 voters", async function(): Promise<void> {
-            const badActorBroker = new Wallet("0x0000000000000000000000000000000000000000000000000000000000000002", admin.provider)
-            await (await admin.sendTransaction({ to: badActorBroker.address, value: parseEther("1") })).wait()
-            const contracts = await deployTestContracts(admin)
-            const { token } = contracts
-            await (await token.mint(admin.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker2.address, parseEther("100000"))).wait()
-            await (await token.mint(badActorBroker.address, parseEther("1000000"))).wait()
+            const { token, bounty, brokers: [ broker, _, broker3, broker4, broker5 ], pools: [ pool1, flaggedPool ] } = await setup(5)
 
-            const pool1 = await deployBrokerPool(contracts, broker)
-            const pool2 = await deployBrokerPool(contracts, badActorBroker, {}, "pool2salt")
-            await deployBrokerPool(contracts, broker3)
-            await deployBrokerPool(contracts, broker4)
-            await deployBrokerPool(contracts, broker5)
-
-            await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
-            await (await token.connect(badActorBroker).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
-            const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0),
-                penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
-            await bounty.sponsor(parseEther("10000"))
-            await pool1.stake(bounty.address, parseEther("1000"))
-            await pool2.stake(bounty.address, parseEther("1000"))
-
-            const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
+            const flagReceipt = await (await bounty.connect(broker).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
             const reviewRequests = flagReceipt.events!.filter((e) => e.event === "ReviewRequest")
             expect(reviewRequests.length).to.equal(3)
             reviewRequests.forEach((reviewRequest) => {
                 expect(reviewRequest.args?.bounty).to.equal(bounty.address)
-                expect(reviewRequest.args?.target).to.equal(pool2.address)
+                expect(reviewRequest.args?.target).to.equal(flaggedPool.address)
                 expect([broker3.address, broker4.address, broker5.address]).to.include(reviewRequest.args?.reviewer)
             })
 
-            await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
+            await expect(bounty.connect(broker3).voteOnFlag(flaggedPool.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(broker4).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000000"))
+            await expect(bounty.connect(broker4).voteOnFlag(flaggedPool.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(broker5).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
-                .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
-            expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
+            await expect(bounty.connect(broker5).voteOnFlag(flaggedPool.address, VOTE_KICK))
+                .to.emit(bounty, "BrokerKicked").withArgs(flaggedPool.address, parseEther("100"))
+            expect(await token.balanceOf(flaggedPool.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
             expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))
@@ -116,7 +142,9 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow to flag a broker that is not in the bounty", async function(): Promise<void> {
-            // TODO
+            const { bounty, brokers: [ flagger ], pools: [ flaggerPool,,, notStakedPool ] } = await defaultSetup
+            await expect(bounty.connect(flagger).flag(notStakedPool.address, flaggerPool.address))
+                .to.be.revertedWith("error_flagTargetNotStaked")
         })
     })
 
@@ -140,35 +168,18 @@ describe("VoteKickPolicy", (): void => {
         it("works (happy path)", async function(): Promise<void> {
             // cancel after some voter has voted (not all), pay the ones who voted
             // broker flags broker2, broker3 votes, broker4 doesn't vote, broker cancels
-            const contracts = await deployTestContracts(admin)
-            const { token } = contracts
-            await (await token.mint(admin.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker.address, parseEther("1000000"))).wait()
-            await (await token.mint(broker2.address, parseEther("100000"))).wait()
+            const { token, bounty, brokers: [ flagger, _, voter, nonVoter ], pools: [ flaggerPool, flagTarget ] } = await setup(4)
 
-            const pool1 = await deployBrokerPool(contracts, broker)
-            const pool2 = await deployBrokerPool(contracts, broker2)
-            await deployBrokerPool(contracts, broker3)
-            await deployBrokerPool(contracts, broker4)
+            await (await bounty.connect(flagger).flag(flagTarget.address, flaggerPool.address)).wait()
 
-            await (await token.connect(broker).transferAndCall(pool1.address, parseEther("1000"), "0x")).wait()
-            await (await token.connect(broker2).transferAndCall(pool2.address, parseEther("1000"), "0x")).wait()
-            const bounty = await deployBountyContract(contracts, { allocationWeiPerSecond: BigNumber.from(0),
-                penaltyPeriodSeconds: 1000, brokerPoolOnly: true })
-            await bounty.sponsor(parseEther("10000"))
-            await pool1.stake(bounty.address, parseEther("1000"))
-            await pool2.stake(bounty.address, parseEther("1000"))
-
-            await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait()
-
-            await expect(bounty.connect(broker3).voteOnFlag(pool2.address, "0x0000000000000000000000000000000000000000000000000000000000000001"))
+            await expect(bounty.connect(voter).voteOnFlag(flagTarget.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
 
-            await(await bounty.connect(broker).cancelFlag(pool2.address, pool1.address)).wait()
+            await(await bounty.connect(flagger).cancelFlag(flagTarget.address, flaggerPool.address)).wait()
             // expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
 
-            expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
-            expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))
+            expect (await token.balanceOf(voter.address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(nonVoter.address)).to.equal(parseEther("0"))
             // expect (await token.balanceOf(broker5.address)).to.equal(parseEther("1"))
         })
     })
