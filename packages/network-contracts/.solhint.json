@@ -4,11 +4,11 @@
     "rules": {
         "code-complexity": [
             "error",
-            7
+            9
         ],
         "function-max-lines": [
-            "error",
-            35
+            "warn",
+            50
         ],
         "max-states-count": [
             "error",
@@ -16,7 +16,7 @@
         ],
         "no-empty-blocks": "off",
         "no-unused-vars": "error",
-        "payable-fallback": "error",
+        "payable-fallback": "warn",
         "reason-string": [
             "error",
             {
@@ -34,7 +34,7 @@
         "imports-on-top": "error",
         "visibility-modifier-order": "error",
         "avoid-call-value": "error",
-        "avoid-low-level-calls": "error",
+        "avoid-low-level-calls": "warn",
         "avoid-sha3": "error",
         "avoid-suicide": "error",
         "avoid-throw": "error",

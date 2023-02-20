@@ -3,6 +3,9 @@
 **cache
 /packages/brubeck-migration-script/artifacts
 /packages/brubeck-migration-script/typechain
+/packages/tatum-thegraph-subgraph/artifacts
+/packages/tatum-thegraph-subgraph/cache
+/packages/tatum-thegraph-subgraph/generated
 /bin/
 .DS_Store
 .idea

@@ -1,10 +1,10 @@
-import { ethers, upgrades } from 'hardhat'
+import { ethers, upgrades } from "hardhat"
 import { networks } from "@streamr/config"
-import { parseUnits } from 'ethers/lib/utils'
+import { parseUnits } from "ethers/lib/utils"
 
 // Polygon mainet
 const STREAMSTORAGEREGISTRYADDRESS = networks.polygon.contracts.StreamStorageRegistry
-const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
+const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ""
 
 // localsidechain
 // const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'
@@ -23,13 +23,13 @@ async function main() {
 
     const deploymentOwner = new ethers.Wallet(DEPLOYMENT_OWNER_KEY, ethers.provider)
     deploymentOwner.getFeeData = async() => {
-        console.log('##########################')
+        console.log("##########################")
         return { maxFeePerGas: parseUnits("500", "gwei"), maxPriorityFeePerGas: parseUnits("50", "gwei"), gasPrice: parseUnits("200", "gwei") }
     }
-    const streamstorageregistryFactoryV2 = await ethers.getContractFactory('StreamStorageRegistryV2', deploymentOwner)
-    console.log('upgrading StreamStorageregistry: proxyaddress: ' + STREAMSTORAGEREGISTRYADDRESS)
-    const streamStorageRegistryUpgraded = await upgrades.upgradeProxy(STREAMSTORAGEREGISTRYADDRESS, streamstorageregistryFactoryV2, {kind: 'uups'})
-    console.log('streamstorageregistry upgraded, address is (should be same): ' + streamStorageRegistryUpgraded.address)
+    const streamstorageregistryFactoryV2 = await ethers.getContractFactory("StreamStorageRegistryV2", deploymentOwner)
+    console.log("upgrading StreamStorageregistry: proxyaddress: " + STREAMSTORAGEREGISTRYADDRESS)
+    const streamStorageRegistryUpgraded = await upgrades.upgradeProxy(STREAMSTORAGEREGISTRYADDRESS, streamstorageregistryFactoryV2, {kind: "uups"})
+    console.log("streamstorageregistry upgraded, address is (should be same): " + streamStorageRegistryUpgraded.address)
 }
 
 main()

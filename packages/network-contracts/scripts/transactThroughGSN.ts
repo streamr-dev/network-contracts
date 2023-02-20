@@ -1,11 +1,11 @@
 // scripts/deploy.js
-import { ethers } from 'hardhat'
-import { RelayProvider } from '@opengsn/provider'
+import { ethers } from "hardhat"
+import { RelayProvider } from "@opengsn/provider"
 
 // import { StreamRegistryV4 } from '../typechain/StreamRegistryV4'
 // import { ExternalProvider } from '@ethersproject/providers'
 // import * as Web3HttpProvider from 'web3-providers-http'
-import HttpProvider from 'web3-providers-http'
+import HttpProvider from "web3-providers-http"
 
 // const log = console.log
 const FORWARDER = "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d"
@@ -16,10 +16,10 @@ const STREAMREGISTRY = "0x0D483E10612F327FC11965Fc82E90dC19b141641"
 async function main() {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore web3-providers-http lies about its types: it exports HttpProvider and not { HttpProvider }
-    const web3provider = new HttpProvider('https://polygon-rpc.com/')
+    const web3provider = new HttpProvider("https://polygon-rpc.com/")
     // const web3provider = new Web3HttpProvider(process.env.POLYGON_RPC_URL)
 
-    const streamRegistryFactoryV4 = await ethers.getContractFactory('StreamRegistryV4')
+    const streamRegistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4")
     let registry = await streamRegistryFactoryV4.attach(STREAMREGISTRY)
     registry = await registry.deployed()
 
@@ -34,7 +34,7 @@ async function main() {
         // loggerConfiguration: {
         //     logLevel: 'debug'
         // },
-        preferredRelays: ['https://gsn.streamr.network/gsn1'],
+        preferredRelays: ["https://gsn.streamr.network/gsn1"],
         relayLookupWindowBlocks: 9000,
         relayRegistrationLookupBlocks: 9000,
         pastEventsQueryMaxPageSize: 9000,
@@ -53,7 +53,7 @@ async function main() {
     const gsnProvider = new ethers.providers.Web3Provider(gsnWeb3Provider)
 
     // empty account, no eth, no gas
-    const account = new ethers.Wallet('0x52090fc090bd60b26f8e907287d1b5a02105d5b59d1f6840f32a4cbadf81810d', gsnProvider)
+    const account = new ethers.Wallet("0x52090fc090bd60b26f8e907287d1b5a02105d5b59d1f6840f32a4cbadf81810d", gsnProvider)
     gsnWeb3Provider.addAccount(account.privateKey)
 
     // getSigner produces a JsonRpcSigner which apparently works differently from Wallet

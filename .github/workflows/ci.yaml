@@ -67,4 +67,4 @@ jobs:
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
-        run: npm run -w packages/network-contracts ens-chainlink-test
+        run: npm run -w packages/network-contracts test:ens-chainlink

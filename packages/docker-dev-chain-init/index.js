@@ -281,7 +281,7 @@ async function deployStreamRegistries() {
     initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
     const strDeploy = await ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
     // const strDeploy = await ethers.getContractFactory('NodeRegistry')
-    const strDeployTx = await upgrades.deployProxy(strDeploy, 
+    const strDeployTx = await upgrades.deployProxy(strDeploy,
         [sidechainWalletStreamReg.address, false, initialNodes, initialMetadata], { kind: 'uups' })
     // const strDeployTx = await strDeploy.deploy(sidechainWalletStreamReg.address, false, initialNodes, initialMetadata, {gasLimit: 6000000} )
     const nodeRegDeployed = await strDeployTx.deployed()
@@ -322,6 +322,28 @@ async function deployStreamRegistries() {
     const tx2 = await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId, MaxUint256, MaxUint256, { gasLimit: 5999990 })
     await tx2.wait()
 
+}
+
+async function deployBountyFactory() {
+    const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // some random address
+
+    const agreementTemplateFactory = await ethers.getContractFactory('Bounty')
+    const agreementTemplate = await agreementTemplateFactory.deploy()
+    await agreementTemplate.deployed()
+    log(`BountyTemplate deployed at ${agreementTemplate.address}`)
+
+    const allocationPolicyFactory = await ethers.getContractFactory('StakeWeightedAllocationPolicy')
+    const allocationPolicy = await allocationPolicyFactory.deploy()
+    await allocationPolicy.deployed()
+    log(`AllocationPolicyTemplate deployed at ${allocationPolicy.address}`)
+
+    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory')
+    const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
+        [ agreementTemplate.address, trustedForwarderAddress, linkTokenAddress ])
+    const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
+    log(`BountyFactory deployed at ${bountyFactory.address}`)
+    await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
+    log(`added allocation policy with address ${allocationPolicy.address} to BountyFactory`)
 }
 
 async function smartContractInitialization() {
@@ -601,6 +623,8 @@ async function smartContractInitialization() {
     const grantRoleProjectRegistryTx = await streamRegistryFromOwner.grantRole(role, projectRegistry.address)
     await grantRoleProjectRegistryTx.wait()
 
+    await deployBountyFactory()
+
     //put additions here
 
     //all TXs should now be confirmed:
@@ -620,7 +644,7 @@ async function smartContractInitialization() {
             continue
         }
         log(`create ${p.id}`)
-        const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond, 
+        const tx = await market.createProduct(`0x${p.id}`, p.name, wallet.address, p.pricePerSecond,
             p.priceCurrency == "DATA" ? 0 : 1, p.minimumSubscriptionInSeconds)
         await tx.wait()
         if (p.state == "NOT_DEPLOYED") {

@@ -1,11 +1,11 @@
-import { ethers } from 'hardhat'
-import { expect } from 'chai'
-import EthCrypto from 'eth-crypto'
+import { ethers } from "hardhat"
+import { expect } from "chai"
+import EthCrypto from "eth-crypto"
 import { BigNumber, Wallet, Contract, Signer } from "ethers"
 
 export type TypedValue = {
     value: string | number | BigNumber,
-    type: 'string' | 'uint256' | 'int256' | 'bool' | 'bytes' | 'bytes32' | 'address'
+    type: "string" | "uint256" | "int256" | "bool" | "bytes" | "bytes32" | "address"
 };
 
 const signDelegatedChallenge = async (
@@ -15,8 +15,8 @@ const signDelegatedChallenge = async (
 ) => {
 
     const message = EthCrypto.hash.keccak256([
-        { type: 'uint256', value: challengeType.toString()},
-        {type: 'address', value: main.address}
+        { type: "uint256", value: challengeType.toString()},
+        {type: "address", value: main.address}
     ])
     const signature = EthCrypto.sign(delegated.privateKey, message)
      
@@ -25,7 +25,7 @@ const signDelegatedChallenge = async (
     }
 }
 
-describe('DelegatedAccessRegistry', async (): Promise<void> => {
+describe("DelegatedAccessRegistry", async (): Promise<void> => {
 
     let wallets: Signer[]
 
@@ -36,14 +36,14 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
     before(async (): Promise<void> => {
         wallets = await ethers.getSigners()
 
-        const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry', wallets[0])
+        const DelegatedAccessRegistry = await ethers.getContractFactory("DelegatedAccessRegistry", wallets[0])
         
         contract = await DelegatedAccessRegistry.deploy()
         contract.connect(wallets[0])
 
     })
 
-    it ('should exercise the `isUserAuthorized` when not set', async () => {
+    it ("should exercise the `isUserAuthorized` when not set", async () => {
         const isAuthorized = await contract.isUserAuthorized(
             await wallets[0].getAddress(),
             delegated.address
@@ -52,7 +52,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isAuthorized).to.equal(false)
     })
 
-    it ('should exercise the `isAuthorized` method when not set', async () => {
+    it ("should exercise the `isAuthorized` method when not set", async () => {
         const isAuthorized = await contract.connect(wallets[0])
             .isAuthorized(
                 delegated.address
@@ -60,7 +60,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isAuthorized).to.equal(false)
     })
 
-    it ('happy-path for `authorize` method', async() => {
+    it ("happy-path for `authorize` method", async() => {
         const { signature } = await signDelegatedChallenge(
             wallets[0], 
             delegated,
@@ -86,7 +86,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(mainWallet).to.equal(wallets[0].address)
     })
 
-    it ('should exercise the `isAuthorized` method when set', async () => {
+    it ("should exercise the `isAuthorized` method when set", async () => {
         const isAuthorized = await contract.connect(wallets[0])
             .isAuthorized(
                 delegated.address
@@ -94,7 +94,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isAuthorized).to.equal(true)
     })
     
-    it ('happy-path for `getMainWalletFor`', async () => {
+    it ("happy-path for `getMainWalletFor`", async () => {
         const mainWallet = await contract.getMainWalletFor(
             delegated.address 
         )
@@ -118,7 +118,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isMainWallet).to.equal(true)
     })
 
-    it ('happy-path for `isDelegatedWallet`', async () => {
+    it ("happy-path for `isDelegatedWallet`", async () => {
         const isDelegatedWallet = await contract.isDelegatedWallet(
             delegated.address
         )
@@ -126,7 +126,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isDelegatedWallet).to.equal(true)
     })
 
-    it ('happy-path for `isWalletKnown`', async () => {
+    it ("happy-path for `isWalletKnown`", async () => {
         const isMainWalletKnown = await contract.isWalletKnown(
             wallets[0].address
         )
@@ -139,7 +139,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isDelegatedWalletKnown).to.equal(true)
     })
 
-    it ('happy-path for `areMainWallets`', async () => {
+    it ("happy-path for `areMainWallets`", async () => {
         const res = await contract.areMainWallets(
             [wallets[0].address, wallets[1].address]
         )
@@ -147,7 +147,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(res[1]).to.equal(false)
     })
 
-    it ('happy-path for `areDelegatedWallets`', async () => {
+    it ("happy-path for `areDelegatedWallets`", async () => {
         const res = await contract.areDelegatedWallets(
             [delegated.address, wallets[1].address]
         )
@@ -156,7 +156,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(res[1]).to.equal(false)
     })
 
-    it ('happy-path for `areWalletsKnown`', async () => {
+    it ("happy-path for `areWalletsKnown`", async () => {
         const res = await contract.areWalletsKnown(
             [wallets[0].address, delegated.address, wallets[1].address]
         )
@@ -166,7 +166,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(res[2]).to.equal(false)
     })
 
-    it ('happy-path for `revoke` method', async () => {
+    it ("happy-path for `revoke` method", async () => {
         const { signature } = await signDelegatedChallenge(
             wallets[0],
             delegated,
@@ -188,18 +188,18 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
             delegated.address 
         )
         
-        expect(mainWallet).to.equal('0x0000000000000000000000000000000000000000')
+        expect(mainWallet).to.equal("0x0000000000000000000000000000000000000000")
     })
 
-    it ('unset value upon `getMainWalletFor`', async () => {
+    it ("unset value upon `getMainWalletFor`", async () => {
         const mainWallet = await contract.getMainWalletFor(
             delegated.address 
         )
         
-        expect(mainWallet).to.equal('0x0000000000000000000000000000000000000000')
+        expect(mainWallet).to.equal("0x0000000000000000000000000000000000000000")
     })
 
-    it ('unset value upon `isMainWallet', async () => {
+    it ("unset value upon `isMainWallet", async () => {
         const isMainWallet = await contract.isMainWallet(
             wallets[0].address
         )
@@ -207,7 +207,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isMainWallet).to.equal(false)
     })
 
-    it ('unset value upon `isDelegatedWallet`', async () => {
+    it ("unset value upon `isDelegatedWallet`", async () => {
         const isDelegatedWallet = await contract.isDelegatedWallet(
             delegated.address
         )
@@ -215,7 +215,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(isDelegatedWallet).to.equal(false)
     })
 
-    it ('unset value upon `isWalletKnown`', async () => {
+    it ("unset value upon `isWalletKnown`", async () => {
         const isMainWalletKnown = await contract.isWalletKnown(
             wallets[0].address
         )
@@ -229,7 +229,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
     })
 
     // test coverage
-    it ('should trigger an error when a signature with invalid length is provided to `verifyDelegationChallenge`', async () => {
+    it ("should trigger an error when a signature with invalid length is provided to `verifyDelegationChallenge`", async () => {
         try {
  
             const { signature } = await signDelegatedChallenge(
@@ -243,12 +243,12 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
                 signature.slice(0, -2)
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_badSignatureLength'")
         }
     })
 
     // test coverage 
-    it ('should trigger an error when the signature\'s version is wrong', async () => {
+    it ("should trigger an error when the signature's version is wrong", async () => {
         try {
 
             const { signature } = await signDelegatedChallenge(
@@ -258,7 +258,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
             )
         
             // trick the version number in the formatted signature
-            const mockSignature = signature.slice(0, -2) + '02'
+            const mockSignature = signature.slice(0, -2) + "02"
 
             await contract.authorize(
                 delegated.address,
@@ -266,12 +266,12 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
             )
 
         }   catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureVersion\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_badSignatureVersion'")
         }
     })
 
     // test coverage 
-    it ('should trigger the require when invalid signature provided to `revoke` method', async () => {
+    it ("should trigger the require when invalid signature provided to `revoke` method", async () => {
         try {
             const { signature } = await signDelegatedChallenge(
                 wallets[0], 
@@ -283,7 +283,7 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
                 signature.slice(0, -2)
             )
         } catch (e: any){
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_badSignatureLength\'')
+            expect(e.message).to.equal("VM Exception while processing transaction: reverted with reason string 'error_badSignatureLength'")
         }
     })
 })

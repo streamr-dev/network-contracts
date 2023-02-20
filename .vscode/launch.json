@@ -39,7 +39,7 @@
             "cwd": "${workspaceFolder}/packages/smartcontracts"
         },
         {
-            "command": "npm run interact",
+            "command": "npm run localInteractTatum",
             "name": "Run interact",
             "request": "launch",
             "type": "node-terminal",
@@ -72,16 +72,17 @@
             "type": "node",
             "request": "launch",
             "name": "Hardhat test this file",
-            "runtimeExecutable": "${workspaceFolder}/packages/smartcontracts/node_modules/.bin/hardhat",
+            "runtimeExecutable": "npx",
             "env": {
                 "DEBUG": "*,-mocha:*"
             },
             "runtimeArgs": [
+                "hardhat",
                 "test",
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}/packages/smartcontracts"
+            "cwd": "${workspaceFolder}/packages/network-contracts"
         },
     ]
 }

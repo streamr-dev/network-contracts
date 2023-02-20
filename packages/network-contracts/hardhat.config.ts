@@ -2,10 +2,11 @@ import "@nomicfoundation/hardhat-toolbox"
 import "@nomicfoundation/hardhat-chai-matchers"
 import { HardhatUserConfig } from 'hardhat/types'
 import '@openzeppelin/hardhat-upgrades'
-
-require('solidity-coverage')
-require('hardhat-dependency-compiler')
-require('@nomiclabs/hardhat-etherscan')
+import 'hardhat-ignore-warnings'
+import 'solidity-coverage'
+import 'hardhat-dependency-compiler'
+import '@nomiclabs/hardhat-etherscan'
+// import "hardhat-gas-reporter"
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -84,6 +85,15 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
+                version: '0.8.13',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 100,
+                    },
+                },
+            },
+            {
                 version: '0.8.9',
                 settings: {
                     optimizer: {
@@ -120,12 +130,23 @@ const config: HardhatUserConfig = {
                 },
             }],
     },
-    // namedAccounts: {
+    // gasReporter: {
+    //     enabled: true,
+    // },
+    // namedAccounts: { // 224126
     //     deployer: 0,
     // },
+    warnings: {
+        '@chainlink/contracts/src/v0.4/**/*': {
+            default: 'off',
+        },
+    },
     typechain: {
         outDir: './typechain',
         target: 'ethers-v5',
+    },
+    mocha: {
+        timeout: 100000000
     }
 }
 export default config
