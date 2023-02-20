@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 
 
 import "../IMarketplaceV4.sol";
-import 'hardhat/console.sol';
+import "hardhat/console.sol";
 
 interface IMessageRecipient {
     function handle(
@@ -42,7 +42,7 @@ contract GasReporter {
         );
         
         uint gasAfter = gasleft();
-        console.log('Gas used for handle function is %s wei', gasBefore - gasAfter);
+        console.log("Gas used for handle function is %s wei", gasBefore - gasAfter);
     }
 
     function _addressToBytes32(address addr) private pure returns (bytes32) {
@@ -55,14 +55,12 @@ contract GasReporter {
         uint256 purchaseId
     ) external view {
         uint gasBefore = gasleft();
-        // consider memory allocation e.g. 20,000/32 bytes / 1 memory slot
-        // hardhat gas measurement => hardhatGasReporter (gives max ?!)
 
-        (address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, , uint256 streamsCount) = 
+        // (address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, , uint256 streamsCount) = 
             IMarketplaceV4(recipient).getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId);
 
         uint gasAfter = gasleft();
-        console.log('Gas used for getPurchaseInfo function is %s wei', gasBefore - gasAfter);
+        console.log("Gas used for getPurchaseInfo function is %s wei", gasBefore - gasAfter);
     }
 
     function getSubscriptionInfo(
@@ -72,10 +70,10 @@ contract GasReporter {
     ) external view {
         uint gasBefore = gasleft();
 
-        (bool isValid, uint256 subEndTimestamp, ) = 
+        // (bool isValid, uint256 subEndTimestamp, ) = 
             IMarketplaceV4(recipient).getSubscriptionInfo(projectId, subscriber, purchaseId);
 
         uint gasAfter = gasleft();
-        console.log('Gas used for getSubscriptionInfo function is %s wei', gasBefore - gasAfter);
+        console.log("Gas used for getSubscriptionInfo function is %s wei", gasBefore - gasAfter);
     }
 }
