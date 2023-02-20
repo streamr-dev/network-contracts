@@ -206,8 +206,6 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         uint32 originDomainId,
         uint256 purchaseId
     ) external view returns(address, address, uint256, uint256, uint256, uint256) {
-        // TODO: ETH-428 - guard against making a payment without receiving the service (e.g. subscription)
-        // require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
         (address beneficiary, address pricingTokenAddress, uint256 pricePerSecond, uint256 streamsCount ) = projectRegistry.getPaymentDetailsByChain(projectId, originDomainId);
         uint256 price = subscriptionSeconds * pricePerSecond;
         return (beneficiary, pricingTokenAddress, price, (txFee * price) / 1 ether, purchaseId, streamsCount);
