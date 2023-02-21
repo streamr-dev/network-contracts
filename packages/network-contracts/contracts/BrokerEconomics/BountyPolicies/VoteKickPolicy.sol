@@ -14,13 +14,16 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     uint constant maxReviewerCount = 5;
     mapping (address => address) flaggerPoolAddress;
+    mapping (address => uint) targetFlagVersion;
+    // target -> keccak256(version, flagger) -> permission struct above
+    mapping (address => mapping(bytes32 => Flag)) flags;
 
-    mapping (address => mapping (address => uint)) reviewerState;
-    mapping (address => address[]) reviewers;
-    mapping (address => uint) votesForKick;
-    mapping (address => address[]) votersForKick;
-    mapping (address => uint) votesAgainstKick;
-    mapping (address => address[]) votersAgainstKick;
+    struct Flag {
+        mapping(address => uint) reviewerState;
+        address[] reviewers;
+        address[] votersForKick;
+        address[] votersAgainstKick;
+    }
 
     // function localData() internal view returns(LocalStorage storage data) {
     //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
@@ -31,6 +34,10 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     }
 
+    function getVersionKey(address target, address flagger) public view returns (bytes32) {
+        return keccak256(abi.encode(targetFlagVersion[target], flagger));
+    }
+
     /**
      * Start flagging process
      */
@@ -38,6 +45,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
         require(globalData().stakedWei[myBrokerPool] > 0, "error_notStaked");
         require(globalData().stakedWei[targetBrokerPool] > 0, "error_flagTargetNotStaked");
+        targetFlagVersion[targetBrokerPool]++;
 
         uint flagStakeWei = 10 ether; // globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[myBrokerPool] += flagStakeWei;
@@ -52,43 +60,45 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
         uint reviewerCount = maxReviewerCount < brokerPoolCount - 2 ? maxReviewerCount : brokerPoolCount - 2;
         uint maxReviewersSearch = 20;
-        while(reviewers[targetBrokerPool].length < reviewerCount && maxReviewersSearch-- > 1) {
+        bytes32 versionKey = getVersionKey(targetBrokerPool, myBrokerPool);
+        while(flags[targetBrokerPool][versionKey].reviewers.length < reviewerCount && maxReviewersSearch-- > 1) {
             randomBytes >>= 8;
             BrokerPool pool = factory.deployedBrokerPools((randomBytes) % brokerPoolCount);
             address peer = pool.broker(); // TODO: via BrokerPool or directly?
             if (peer == _msgSender() || peer == BrokerPool(targetBrokerPool).broker()
-                || reviewerState[targetBrokerPool][peer] != 0) {
+                || flags[targetBrokerPool][versionKey].reviewerState[peer] != 0) {
                 continue;
             }
             // TODO: check is broker live
-            reviewerState[targetBrokerPool][peer] = 1;
+            flags[targetBrokerPool][versionKey].reviewerState[peer] = 1;
             emit ReviewRequest(peer, this, targetBrokerPool);
-            reviewers[targetBrokerPool].push(peer);
+            flags[targetBrokerPool][versionKey].reviewers.push(peer);
         }
-        require(reviewers[targetBrokerPool].length > 0, "error_notEnoughReviewers");
+        require(flags[targetBrokerPool][versionKey].reviewers.length > 0, "error_notEnoughReviewers");
     }
 
 
     function onVote(address broker, bytes32 voteData) external {
         address voter = _msgSender(); // ?
-        require(reviewerState[broker][voter] != 0, "error_reviewersOnly");
-        require(reviewerState[broker][voter] != 2, "error_alreadyVoted");
+        bytes32 versionKey = getVersionKey(broker, flaggerPoolAddress[broker]);
+        require(flags[broker][versionKey].reviewerState[voter] != 0, "error_reviewersOnly");
+        require(flags[broker][versionKey].reviewerState[voter] != 2, "error_alreadyVoted");
         uint vote = uint(voteData) & 0x1;
         assert (vote == 0 || vote == 1);
-        reviewerState[broker][voter] = 2;
+        flags[broker][versionKey].reviewerState[voter] = 2;
         // reviewers[broker].push(voter);
         uint result = 0;
-        uint reviewerCount = reviewers[broker].length;
+        uint reviewerCount = flags[broker][versionKey].reviewers.length;
         if (vote == 1) {
-            votesForKick[broker]++;
-            votersForKick[broker].push(voter);
-            if (votesForKick[broker] > reviewerCount / 2) {
+            // flags[broker].votesForKick++;
+            flags[broker][versionKey].votersForKick.push(voter);
+            if (flags[broker][versionKey].votersForKick.length > reviewerCount / 2) {
                 result = 1;
             }
         } else {
-            votesAgainstKick[broker]++;
-            votersAgainstKick[broker].push(voter);
-            if (votesAgainstKick[broker] > reviewerCount / 2) {
+            // votesAgainstKick[broker]++;
+            flags[broker][versionKey].votersAgainstKick.push(voter);
+            if (flags[broker][versionKey].votersAgainstKick.length > reviewerCount / 2) {
                 result = 2;
             }
         }
@@ -102,7 +112,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
                 token.transfer(flagger, flaggerRewardWei);
                 _slash(broker, slashingWei); // leftovers are added to sponsorship
-                payReviewers(broker, votersForKick[broker]);
+                payReviewers(broker, flags[broker][versionKey].votersForKick);
                 _addSponsorship(address(this), leftOverWei);
                 _removeBroker(broker);
                 emit BrokerKicked(broker, slashingWei);
@@ -111,28 +121,21 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 uint flagStakeWei = 10 ether; // TODO add to globalData().streamrConstants.flagStakeWei();
                 uint leftOverWei = flagStakeWei - rewardWei * reviewerCount;
                 _slash(flagger, flagStakeWei);
-                payReviewers(broker, votersAgainstKick[broker]);
+                payReviewers(broker, flags[broker][versionKey].votersAgainstKick);
                 _addSponsorship(address(this), leftOverWei);
             }
             globalData().committedStakeWei[flaggerPoolAddress[flagger]] = 0;
-            delete votesForKick[broker];
-            delete votesAgainstKick[broker];
-            delete votersForKick[broker];
-            delete votersAgainstKick[broker];
         }
     }
 
     function onCancelFlag(address broker, address myBrokerPool) external {
+        bytes32 versionKey = getVersionKey(broker, myBrokerPool);
         address flagger = _msgSender();
         require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
         require(flaggerPoolAddress[broker] == myBrokerPool, "error_notFlagger");
-        payReviewers(_msgSender(), votersForKick[broker]);
-        payReviewers(_msgSender(), votersAgainstKick[broker]);
+        payReviewers(_msgSender(), flags[broker][versionKey].votersForKick);
+        payReviewers(_msgSender(), flags[broker][versionKey].votersAgainstKick);
         globalData().committedStakeWei[flaggerPoolAddress[flagger]] = 0;
-        delete votesForKick[broker];
-        delete votesAgainstKick[broker];
-        delete votersForKick[broker];
-        delete votersAgainstKick[broker];
     }
 
     function onKick(address) external {
