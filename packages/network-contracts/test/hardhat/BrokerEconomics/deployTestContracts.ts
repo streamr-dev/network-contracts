@@ -46,7 +46,10 @@ export type TestContracts = {
  * @param deployer wallet used for all deployments
  * @returns mapping: name string -> ethers.Contract object
  */
-export async function deployTestContracts(deployer: Wallet): Promise<TestContracts> {
+export async function deployTestContracts(deployer: Wallet, overrides: {
+    bountyTemplate?: Bounty;
+    poolTemplate?: BrokerPool;
+} = {}): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST")
     const streamrConstants = await upgrades.deployProxy(await getContractFactory("StreamrConstants", deployer), []) as StreamrConstants
     await streamrConstants.deployed()
@@ -59,7 +62,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy()
     const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy()
     const voteKickPolicy = await (await getContractFactory("VoteKickPolicy", deployer)).deploy()
-    const bountyTemplate = await (await getContractFactory("Bounty")).deploy()
+    const bountyTemplate = overrides.bountyTemplate ?? await (await getContractFactory("Bounty")).deploy()
     await bountyTemplate.deployed()
 
     const bountyFactory = await upgrades.deployProxy(await getContractFactory("BountyFactory", deployer), [
@@ -79,7 +82,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
     ])).wait()
 
     // broker pool and policies
-    const poolTemplate = await (await getContractFactory("BrokerPool")).deploy()
+    const poolTemplate = overrides.poolTemplate ?? await (await getContractFactory("BrokerPool")).deploy()
     const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", deployer)).deploy()
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy()
     const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy()
@@ -101,7 +104,7 @@ export async function deployTestContracts(deployer: Wallet): Promise<TestContrac
 
     return {
         token, streamrConstants,
-        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, 
+        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }
 }

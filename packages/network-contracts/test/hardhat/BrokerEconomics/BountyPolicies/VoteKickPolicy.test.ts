@@ -5,9 +5,8 @@ import { expect } from "chai"
 import { deployTestContracts } from "../deployTestContracts"
 import { deployBountyContract } from "../deployBountyContract"
 import { deployBrokerPool } from "../deployBrokerPool"
-import assert from "assert"
 
-const { parseEther, id } = utils
+const { parseEther } = utils
 
 const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
 const VOTE_CANCEL = "0x0000000000000000000000000000000000000000000000000000000000000000"
@@ -18,34 +17,23 @@ describe("VoteKickPolicy", (): void => {
     // clean setup is needed when review selection has to be controlled (so that BrokerPools from old tests don't interfere)
     let defaultSetup: any
     before(async (): Promise<void> => {
-        defaultSetup = await setup(3, 1)
+        defaultSetup = await setupBounty(3, 1)
     })
 
     /**
      * Sets up a Bounty and given number of brokers, each with BrokerPool that stakes 1000 tokens into the Bounty
      */
-    async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, bountySettings: any = {}, cleanBrokerCount = 0, cleanBrokerSeed?: string) {
+    async function setupBounty(stakedBrokerCount = 3, nonStakedBrokerCount = 0, saltSeed?: string, bountySettings: any = {}) {
         // Hardhat provides 20 pre-funded signers
         const [admin, ...signers] = await ethers.getSigners() as unknown as Wallet[]
         const stakedBrokers = signers.slice(0, stakedBrokerCount)
         const nonStakedBrokers = signers.slice(stakedBrokerCount, stakedBrokerCount + nonStakedBrokerCount)
+        const brokers = [...stakedBrokers, ...nonStakedBrokers]
 
-        const contracts = await deployTestContracts(admin)
-
-        // TODO: maybe "clean brokers" weren't really necessary? BrokerPoolFactory CREATE2 salt can be freely set now
-        const cleanBrokers: Wallet[] = []
-        if (cleanBrokerCount > 0) {
-            assert(cleanBrokerSeed, "Test-specific cleanBrokerSeed must be provided if cleanBrokerCount > 0, to make sure they're clean")
-            for (let i = 0; i < cleanBrokerCount; i++) {
-                const key = id(id(cleanBrokerSeed) + i.toString())
-                const b = new Wallet(key, admin.provider)
-                cleanBrokers.push(b)
-
-                // clean brokers start from nothing => need ether to deploy BrokerPool etc.
-                await (await admin.sendTransaction({ to: b.address, value: parseEther("1") })).wait()
-            }
-        }
-        const brokers = [...stakedBrokers, ...nonStakedBrokers, ...cleanBrokers]
+        const contracts = await deployTestContracts(admin, {
+            bountyTemplate: defaultSetup?.contracts.bountyTemplate,
+            poolTemplate: defaultSetup?.contracts.poolTemplate,
+        })
 
         // minting must happen one by one since it's all done from admin account
         const { token } = contracts
@@ -55,7 +43,8 @@ describe("VoteKickPolicy", (): void => {
         }
 
         // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
-        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b)))
+        // see BrokerPoolFactory:_deployBrokerPool for how saltSeed is used in CREATE2
+        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, {}, saltSeed)))
         await Promise.all(brokers.map((b, i) => token.connect(b).transferAndCall(pools[i].address, parseEther("1000"), "0x")))
 
         const bounty = await deployBountyContract(contracts, {
@@ -76,14 +65,13 @@ describe("VoteKickPolicy", (): void => {
             brokers,
             stakedBrokers,
             nonStakedBrokers,
-            cleanBrokers,
             pools,
         }
     }
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and 1 voter", async function(): Promise<void> {
-            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2 ] } = await setup(3)
+            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2 ] } = await setupBounty(3)
 
             const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
             expect(flagReceipt.events!.filter((e) => e.event === "ReviewRequest")).to.have.length(1)
@@ -98,7 +86,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("with 3 voters", async function(): Promise<void> {
-            const { token, bounty, brokers: [ broker, _, broker3, broker4, broker5 ], pools: [ pool1, flaggedPool ] } = await setup(5)
+            const { token, bounty, brokers: [ broker, _, broker3, broker4, broker5 ], pools: [ pool1, flaggedPool ] } = await setupBounty(5)
 
             const flagReceipt = await (await bounty.connect(broker).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
             const reviewRequests = flagReceipt.events!.filter((e) => e.event === "ReviewRequest")
@@ -129,8 +117,14 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Flagging + reviewer selection", function(): void {
-        it("picks first brokers that are not in the same bounty", async () => {
-            // TODO
+        it.skip("picks first brokers that are not in the same bounty", async () => {
+            const { bounty, brokers, pools: [ pool1, flaggedPool ] } = await setupBounty(4, 4, "pick-first-nonstaked-brokers")
+            const flagReceipt = await (await bounty.connect(brokers[0]).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
+            const reviewers = flagReceipt.events!.filter((e) => e.event === "ReviewRequest").map((e) => e.args?.reviewer)
+            // console.log("Brokers %o", brokers.map((b) => b.address))
+            // console.log("Flagged pool %o", flaggedPool.address)
+            // console.log("Reviewers %o", reviewers)
+            expect(reviewers.slice(0, 4)).to.have.members([brokers[4].address, brokers[5].address, brokers[6].address, brokers[7].address])
         })
 
         it("does NOT allow to flag with a too small flagstakes", async function(): Promise<void> {
@@ -168,7 +162,7 @@ describe("VoteKickPolicy", (): void => {
         it("works (happy path)", async function(): Promise<void> {
             // cancel after some voter has voted (not all), pay the ones who voted
             // broker flags broker2, broker3 votes, broker4 doesn't vote, broker cancels
-            const { token, bounty, brokers: [ flagger, _, voter, nonVoter ], pools: [ flaggerPool, flagTarget ] } = await setup(4)
+            const { token, bounty, brokers: [ flagger, _, voter, nonVoter ], pools: [ flaggerPool, flagTarget ] } = await setupBounty(4)
 
             await (await bounty.connect(flagger).flag(flagTarget.address, flaggerPool.address)).wait()
 

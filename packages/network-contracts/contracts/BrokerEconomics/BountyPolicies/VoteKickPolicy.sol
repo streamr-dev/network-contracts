@@ -11,9 +11,9 @@ import "../BrokerPoolFactory.sol";
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
+    uint public flagStakeWei = 10 ether; // TODO: move to StreamrConstants?
 
     uint public constant REVIEWER_COUNT = 5;
-    uint public flagStakeWei = 10 ether;
     mapping (address => address) public flaggerPoolAddress;
 
     mapping (address => mapping (address => uint)) public reviewerState;
@@ -23,8 +23,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     mapping (address => uint) public votesAgainstKick;
     mapping (address => address[]) public votersAgainstKick;
 
-    // TODO: 10% of the target's stake that is in the risk of being slashed upon kick
-    // mapping (address => uint) public targetStakeWei;
+    // 10% of the target's stake that is in the risk of being slashed upon kick
+    mapping (address => uint) public targetStakeWei;
 
     // function localData() internal view returns(LocalStorage storage data) {
     //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
@@ -48,27 +48,46 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
         flaggerPoolAddress[target] = myBrokerPool;
 
-        // TODO
-        // targetStakeWei[target] = globalData().stakedWei[target] / 10;
-        // globalData().committedStakeWei[target] += targetStakeWei[target];
+        targetStakeWei[target] = globalData().stakedWei[target] / 10;
+        globalData().committedStakeWei[target] += targetStakeWei[target];
+
+        // only secondarily select peers that are in the same bounty as the flagging target
+        address[REVIEWER_COUNT] memory sameBountyPeers;
+        uint sameBountyPeerCount = 0;
 
         BrokerPoolFactory factory = BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
         uint brokerPoolCount = factory.deployedBrokerPoolsLength();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         uint randomBytes = uint(uint160(target)) ^ 0x1235467890123457689012345678901234567890123546789012345678901234; // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
-        assert(REVIEWER_COUNT <= 20); // tweak >>= below, address gives 160 bits of "randomness"
-        // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
-        uint reviewerCount = REVIEWER_COUNT < brokerPoolCount - 2 ? REVIEWER_COUNT : brokerPoolCount - 2;
         uint maxReviewersSearch = 20;
-        while(reviewers[target].length < reviewerCount && maxReviewersSearch-- > 1) {
+        assert(REVIEWER_COUNT <= 20); // to raise maxReviewersSearch, tweak >>= below, address gives 160 bits of "randomness"
+        // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
+
+        // primary selection: live peers that are not in the same bounty
+        for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
             randomBytes >>= 8;
-            BrokerPool pool = factory.deployedBrokerPools((randomBytes) % brokerPoolCount);
+            BrokerPool pool = factory.deployedBrokerPools(randomBytes % brokerPoolCount);
             address peer = pool.broker(); // TODO: via BrokerPool or directly?
             if (peer == _msgSender() || peer == BrokerPool(target).broker()
                 || reviewerState[target][peer] != 0) {
                 continue;
             }
             // TODO: check is broker live
+            if (globalData().stakedWei[peer] > 0) {
+                sameBountyPeers[sameBountyPeerCount++] = peer;
+                continue;
+            }
+            reviewerState[target][peer] = 1;
+            emit ReviewRequest(peer, this, target);
+            reviewers[target].push(peer);
+        }
+
+        // secondary selection: peers from the same bounty
+        for (uint i = 0; i < sameBountyPeerCount && reviewers[target].length < REVIEWER_COUNT; i++) {
+            address peer = sameBountyPeers[i];
+            if (reviewerState[target][peer] != 0) {
+                continue;
+            }
             reviewerState[target][peer] = 1;
             emit ReviewRequest(peer, this, target);
             reviewers[target].push(peer);
@@ -76,7 +95,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
     }
 
-
+    /**
+     * Tally votes and trigger resolution
+     */
     function onVote(address target, bytes32 voteData) external {
         address voter = _msgSender(); // ?
         require(reviewerState[target][voter] != 0, "error_reviewersOnly");
@@ -104,7 +125,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
             address flagger = flaggerPoolAddress[target];
             globalData().committedStakeWei[flagger] -= flagStakeWei;
-            // TODO: globalData().committedStakeWei[target] -= targetStakeWei[target];
+            globalData().committedStakeWei[target] -= targetStakeWei[target];
             uint slashingWei = globalData().stakedWei[target] / 10; // TODO: add to streamrConstants?
             if (result == 1) { // kick
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
@@ -126,7 +147,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             delete votesAgainstKick[target];
             delete votersForKick[target];
             delete votersAgainstKick[target];
-            // delete targetStakeWei[target];
+            delete targetStakeWei[target];
         }
     }
 
@@ -136,12 +157,12 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         payReviewers(votersForKick[target]);
         payReviewers(votersAgainstKick[target]);
         globalData().committedStakeWei[flaggerPoolAddress[target]] -= flagStakeWei;
-        // TODO: globalData().committedStakeWei[target] -= targetStakeWei[target];
+        globalData().committedStakeWei[target] -= targetStakeWei[target];
         delete votesForKick[target];
         delete votesAgainstKick[target];
         delete votersForKick[target];
         delete votersAgainstKick[target];
-        // delete targetStakeWei[target];
+        delete targetStakeWei[target];
     }
 
     function onKick(address) external {
@@ -155,8 +176,4 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             token.transfer(votersToPay[i], rewardWei);
         }
     }
-
-    /**
-     * Tally votes and trigger resolution
-     */
 }
