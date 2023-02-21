@@ -17,14 +17,14 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
 
     function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.TestAllocationPolicy", address(this)));
-        assembly {data.slot := storagePosition}
+        assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
     function setParam(uint256 testCase) external {
         if (testCase == 1) {
-            require(false, "test-error: setting param allocation policy");
+            require(false, "test_setParam");
         } else if (testCase == 2) {
-            require(false);
+            require(false); // solhint-disable-line reason-string
         } else if (testCase == 3) {
             localData().failOnjoin = true;
         } else if (testCase == 4) {
@@ -43,18 +43,18 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     // solc-ignore-next-line func-mutability
     function onJoin(address) external {
         if (localData().failOnjoin) {
-            require(false, "test-error: onJoin allocation policy");
+            require(false, "test_onJoin");
         } else if (localData().failEmptyOnjoin) {
-            require(false);
+            require(false); // solhint-disable-line reason-string
         }
     }
 
     // solc-ignore-next-line func-mutability
     function onLeave(address /*broker*/) external {
         if (localData().failOnLeave) {
-            require(false, "test-error: onLeave allocation policy");
+            require(false, "test_onLeave");
         } else if (localData().failEmptyOnLeave) {
-            require(false);
+            require(false); // solhint-disable-line reason-string
         }
     }
 
@@ -68,16 +68,16 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
      */
     function onStakeIncrease(address, uint) external view {
         if (localData().failOnIncrease) {
-            require(false, "test-error: onStakeIncrease allocation policy");
+            require(false, "test_onStakeIncrease");
         } else if (localData().failEmptyOnIncrease) {
-            require(false);
+            require(false); // solhint-disable-line reason-string
         }
     }
     function onStakeDecrease(address, uint) external view {
         // if (localData().failOnDecrease) {
-        //     require(false, "test-error: onStakeIncrease allocation policy");
-        // } else if (localData().failEmptyOnIncrease) {
-        //     require(false);
+        //     require(false, "test_onStakeDecrease");
+        // } else if (localData().failEmptyOnDecrease) {
+        //     require(false); // solhint-disable-line reason-string
         // }
     }
 

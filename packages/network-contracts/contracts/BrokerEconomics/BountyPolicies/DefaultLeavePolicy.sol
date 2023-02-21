@@ -7,7 +7,7 @@ import "../Bounty.sol";
 
 contract DefaultLeavePolicy is ILeavePolicy, Bounty {
 
-    uint penaltyPeriodSeconds = 0;
+    uint public penaltyPeriodSeconds = 0;
 
     /**
      * After penaltyPeriod, leaving is always okay
@@ -15,7 +15,7 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
      */
     function getLeavePenaltyWei(address broker) public override view returns (uint leavePenaltyWei) {
         uint joinTimestamp = globalData().joinTimeOfBroker[broker];
-        if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) {
+        if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) { // solhint-disable-line not-rely-on-time
             return 0;
         }
 
