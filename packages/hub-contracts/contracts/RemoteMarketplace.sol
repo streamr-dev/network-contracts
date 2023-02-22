@@ -118,8 +118,7 @@ contract RemoteMarketplace is Ownable {
     }
 
     function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public {
-        uint256 purchaseId = purchaseCount + 1;
-        purchaseCount = purchaseId;
+        uint256 purchaseId = ++purchaseCount;
         purchases[purchaseId] = ProjectPurchase(
             projectId,
             msg.sender, // buyer
