@@ -2,11 +2,14 @@
 
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
+import "./IRemoteMarketplace.sol";
 import "./IMailbox.sol";
 import "./IInterchainQueryRouter.sol";
 import "./IInterchainGasPaymaster.sol";
@@ -15,18 +18,7 @@ import "./IInterchainGasPaymaster.sol";
  * @title Streamr Remote Marketplace
  * The marketplace interface through which the users on other networks can send cross-chain messages to MarketpalceV4 (e.g. buy projects)
  */
-contract RemoteMarketplace is Ownable {
-    struct ProjectPurchase {
-        bytes32 projectId;
-        address buyer;
-        address subscriber;
-        address beneficiary;
-        address pricingTokenAddress;
-        uint256 subscriptionSeconds;
-        uint256 requestTimestamp;
-        uint256 price;
-        uint256 fee;
-    }
+contract RemoteMarketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IRemoteMarketplace {
 
     uint256 public purchaseCount;
     mapping(uint256 => ProjectPurchase) public purchases;
@@ -37,8 +29,6 @@ contract RemoteMarketplace is Ownable {
     IMailbox public mailbox;
     IInterchainQueryRouter public queryRouter;
     IInterchainGasPaymaster public gasPaymaster;
-
-    event ProjectPurchasedFromRemote(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
 
     modifier onlyQueryRouter() {
         require(msg.sender == address(queryRouter), "error_onlyQueryRouter");
@@ -51,12 +41,17 @@ contract RemoteMarketplace is Ownable {
      * @param _mailboxAddress - hyperlane Mailbox contract address. The same on all EVM chains
      * @param _gasPaymaster - hyperlane paymaster contract address. The same on all EVM chains
      */
-    constructor(uint32 _originDomainId, address _queryRouter, address _mailboxAddress, address _gasPaymaster) {
+    function initialize(uint32 _originDomainId, address _queryRouter, address _mailboxAddress, address _gasPaymaster) public initializer {
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+
         originDomainId = _originDomainId;
         queryRouter = IInterchainQueryRouter(_queryRouter);
         mailbox = IMailbox(_mailboxAddress);
         gasPaymaster = IInterchainGasPaymaster(_gasPaymaster);
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * Add recipient contract address for the destination chain; where the queries/messages are sent to
