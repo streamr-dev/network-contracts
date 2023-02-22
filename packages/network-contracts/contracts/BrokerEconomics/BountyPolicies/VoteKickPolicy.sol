@@ -75,6 +75,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             // TODO: check is broker live
             if (globalData().stakedWei[address(pool)] > 0) {
                 sameBountyPeers[sameBountyPeerCount++] = peer;
+                reviewerState[target][peer] = 10; // mark peer as "selected to the secondary selection list"
                 continue;
             }
             reviewerState[target][peer] = 1;
@@ -83,9 +84,13 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         }
 
         // secondary selection: peers from the same bounty
-        for (uint i = 0; i < sameBountyPeerCount && reviewers[target].length < REVIEWER_COUNT; i++) {
+        for (uint i = 0; i < sameBountyPeerCount; i++) {
             address peer = sameBountyPeers[i];
-            if (reviewerState[target][peer] != 0) {
+            if (reviewerState[target][peer] == 1) {
+                continue;
+            }
+            if (reviewers[target].length >= REVIEWER_COUNT) {
+                reviewerState[target][peer] = 0; // mark peer as "not selected"
                 continue;
             }
             reviewerState[target][peer] = 1;
