@@ -1,5 +1,5 @@
 import assert from "assert"
-import { utils, BigNumber } from "ethers"
+import { utils, BigNumber, ContractReceipt } from "ethers"
 import { Bounty, IAllocationPolicy, IJoinPolicy, IKickPolicy } from "../typechain"
 import type { TestContracts } from "./deployTestContracts"
 
@@ -78,7 +78,7 @@ export async function deployBountyContract(
         policyAdresses,
         policyParams
     )
-    const bountyDeployReceipt = await bountyDeployTx.wait()
+    const bountyDeployReceipt = await bountyDeployTx.wait() as ContractReceipt
     const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
     const newBountyAddress = newBountyEvent?.args?.bountyContract
     const bounty = bountyTemplate.attach(newBountyAddress)

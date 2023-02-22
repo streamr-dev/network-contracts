@@ -1,25 +1,10 @@
-import { upgrades, ethers as hardhatEthers } from "hardhat"
-const { provider: hardhatProvider } = hardhatEthers
+import { ethers as hardhatEthers } from "hardhat"
 import { Wallet } from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
-
-export const log = (..._: unknown[]): void => { /* skip logging */ }
-// export const { log } = console // TODO: use pino for logging?
-
-export async function advanceToTimestamp(timestamp: number, message?: string): Promise<void> {
-    log("\nt = %s ", timestamp, message ?? "")
-    await hardhatProvider.send("evm_setNextBlockTimestamp", [timestamp])
-    await hardhatProvider.send("evm_mine", [0])
-}
-
-/** Block timestamp, rounded up to nearest million for test log readability */
-export async function getBlockTimestamp(): Promise<number> {
-    return Math.floor(((await hardhatProvider.getBlock("latest")).timestamp / 1000000) + 1) * 1000000
-}
 
 export type TestContracts = {
     token: TestToken;
@@ -43,35 +28,35 @@ export type TestContracts = {
 /**
  * Deploy all contracts needed by tests. This should be called in "before/beforeAll".
  *     see @openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
- * @param deployer wallet used for all deployments
+ * @param signer wallet used for all deployments
  * @returns mapping: name string -> ethers.Contract object
  */
-export async function deployTestContracts(deployer: Wallet, overrides: {
-    bountyTemplate?: Bounty;
-    poolTemplate?: BrokerPool;
-} = {}): Promise<TestContracts> {
-    const token = await (await getContractFactory("TestToken", deployer)).deploy("TestToken", "TEST")
-    const streamrConstants = await upgrades.deployProxy(await getContractFactory("StreamrConstants", deployer), []) as StreamrConstants
+export async function deployTestContracts(signer: Wallet): Promise<TestContracts> {
+    const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
+    const streamrConstants = await (await getContractFactory("StreamrConstants", { signer })).deploy()
     await streamrConstants.deployed()
+    await(await streamrConstants.initialize()).wait()
 
     // bounty and policies
-    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", deployer)).deploy()
-    const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", deployer)).deploy()
-    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", deployer)).deploy()
-    const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", deployer)).deploy()
-    const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", deployer)).deploy()
-    const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", deployer)).deploy()
-    const voteKickPolicy = await (await getContractFactory("VoteKickPolicy", deployer)).deploy()
-    const bountyTemplate = overrides.bountyTemplate ?? await (await getContractFactory("Bounty")).deploy()
+    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", { signer })).deploy()
+    const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", { signer })).deploy()
+    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", { signer })).deploy()
+    const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", { signer })).deploy()
+    const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", { signer })).deploy()
+    const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", { signer })).deploy()
+    const voteKickPolicy = await (await getContractFactory("VoteKickPolicy", { signer })).deploy()
+    const bountyTemplate = await (await getContractFactory("Bounty", { signer })).deploy()
     await bountyTemplate.deployed()
 
-    const bountyFactory = await upgrades.deployProxy(await getContractFactory("BountyFactory", deployer), [
+    const bountyFactory = await (await getContractFactory("BountyFactory", { signer })).deploy()
+    await bountyFactory.deployed()
+    await (await bountyFactory.initialize(
         bountyTemplate.address,
         token.address,
         streamrConstants.address
-    ]) as BountyFactory
+    )).wait()
     await bountyFactory.deployed()
-    await (await bountyFactory.connect(deployer).addTrustedPolicies([
+    await (await bountyFactory.addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,
         adminKickPolicy.address,
@@ -82,18 +67,19 @@ export async function deployTestContracts(deployer: Wallet, overrides: {
     ])).wait()
 
     // broker pool and policies
-    const poolTemplate = overrides.poolTemplate ?? await (await getContractFactory("BrokerPool")).deploy()
-    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", deployer)).deploy()
-    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", deployer)).deploy()
-    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", deployer)).deploy()
+    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
+    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", { signer })).deploy()
+    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
+    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", { signer })).deploy()
 
-    const poolFactory = await upgrades.deployProxy(await getContractFactory("BrokerPoolFactory", deployer), [
+    const poolFactory = await (await getContractFactory("BrokerPoolFactory", { signer })).deploy()
+    await poolFactory.deployed()
+    await (await poolFactory.initialize(
         poolTemplate.address,
         token.address,
         streamrConstants.address
-    ]) as BrokerPoolFactory
-    await poolFactory.deployed()
-    await (await poolFactory.connect(deployer).addTrustedPolicies([
+    )).wait()
+    await (await poolFactory.addTrustedPolicies([
         defaultPoolJoinPolicy.address,
         defaultPoolYieldPolicy.address,
         defaultPoolExitPolicy.address,

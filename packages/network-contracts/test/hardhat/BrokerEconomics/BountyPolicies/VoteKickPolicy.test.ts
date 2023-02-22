@@ -6,7 +6,7 @@ import { deployTestContracts } from "../deployTestContracts"
 import { deployBountyContract } from "../deployBountyContract"
 import { deployBrokerPool } from "../deployBrokerPool"
 
-const { parseEther } = utils
+const { parseEther, id } = utils
 
 const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
 const VOTE_CANCEL = "0x0000000000000000000000000000000000000000000000000000000000000000"
@@ -30,14 +30,17 @@ describe("VoteKickPolicy", (): void => {
         const nonStakedBrokers = signers.slice(stakedBrokerCount, stakedBrokerCount + nonStakedBrokerCount)
         const brokers = [...stakedBrokers, ...nonStakedBrokers]
 
-        const contracts = await deployTestContracts(admin, {
-            bountyTemplate: defaultSetup?.contracts.bountyTemplate,
-            poolTemplate: defaultSetup?.contracts.poolTemplate,
-        })
+        // clean deployer wallet starts from nothing => needs ether to deploy BrokerPool etc.
+        const deployer = !saltSeed ? admin : new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
+        if (saltSeed) {
+            await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
+        }
+
+        const contracts = await deployTestContracts(deployer)
 
         // minting must happen one by one since it's all done from admin account
         const { token } = contracts
-        await (await token.mint(admin.address, parseEther("1000000"))).wait()
+        await (await token.mint(deployer.address, parseEther("1000000"))).wait()
         for (const b of brokers) {
             await (await token.mint(b.address, parseEther("1000"))).wait()
         }
@@ -60,7 +63,6 @@ describe("VoteKickPolicy", (): void => {
         return {
             contracts,
             token,
-            admin,
             bounty,
             brokers,
             stakedBrokers,
@@ -117,7 +119,7 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Flagging + reviewer selection", function(): void {
-        it.skip("picks first brokers that are not in the same bounty", async () => {
+        it("picks first brokers that are not in the same bounty", async () => {
             const { bounty, brokers, pools: [ pool1, flaggedPool ] } = await setupBounty(4, 4, "pick-first-nonstaked-brokers")
             const flagReceipt = await (await bounty.connect(brokers[0]).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
             const reviewers = flagReceipt.events!.filter((e) => e.event === "ReviewRequest").map((e) => e.args?.reviewer)

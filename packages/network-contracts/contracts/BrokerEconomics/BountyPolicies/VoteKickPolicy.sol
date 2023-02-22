@@ -73,7 +73,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 continue;
             }
             // TODO: check is broker live
-            if (globalData().stakedWei[peer] > 0) {
+            if (globalData().stakedWei[address(pool)] > 0) {
                 sameBountyPeers[sameBountyPeerCount++] = peer;
                 continue;
             }
