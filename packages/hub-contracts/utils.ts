@@ -1,5 +1,5 @@
 const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli']
-const mainnet = ['celo', 'avalanche', 'polygon', 'ethereum', 'optimism', 'arbitrum']
+const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
 
 /**
  * Maps the chain name to a unique hyperlane domain id
@@ -14,6 +14,8 @@ export function chainToDomainId(name: string) {
             return 5
         case 'mumbai':
             return 80001
+        case 'gnosis':
+            return 100
         case 'polygon':
             return 137
         case 'optGoerli':
@@ -46,12 +48,12 @@ export function chainToMailboxAddress(name: string) {
 /**
  * Maps the chain name to the hyperlane interchain paymaster address. The same for all EVM chains
  */
-export function chainToPaymasterAddress(name: string) {
+export function chainToDefaultPaymasterAddress(name: string) {
     switch (true) {
         case testnet.includes(name):
-            return '0x8f9C3888bFC8a5B25AED115A82eCbb788b196d2a'
+            return '0xF90cB82a76492614D07B82a7658917f3aC811Ac1'
         case mainnet.includes(name):
-            return '0x6cA0B6D22da47f091B7613223cD4BB03a2d77918'
+            return '0x56f52c0A1ddcD557285f7CBc782D3d83096CE1Cc'
         default:
             throw new Error(`Unknown interchain paymaster address for ${name} chain.`)
     }

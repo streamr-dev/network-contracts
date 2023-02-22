@@ -124,6 +124,7 @@
             "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
             "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
             "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
+            "RemoteMarketplace": "0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf",
             "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
             "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
             "Uniswap2AdapterForMarketplaceV3": "0xec92c5f94d45D1a4D917f2E07dD959b33e1AFe38",
