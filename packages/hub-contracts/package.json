@@ -17,6 +17,7 @@
   "dependencies": {
     "@chainlink/contracts": "^0.4.2",
     "@hyperlane-xyz/core": "0.5.5",
+    "@jridgewell/trace-mapping": "0.3.9",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@openzeppelin/contracts": "~4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",

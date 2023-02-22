@@ -1,16 +1,25 @@
+const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli']
+const mainnet = ['celo', 'avalanche', 'polygon', 'ethereum', 'optimism', 'arbitrum']
+
 /**
  * Maps the chain name to a unique hyperlane domain id
  */
 export function chainToDomainId(name: string) {
     switch (name) {
-        case 'mumbai':
-            return 80001
         case 'alfajores':
-            return 1000
-        case 'optGoerli':
-            return 420
+            return 44787
+        case 'fuji':
+            return 43113
         case 'goerli':
             return 5
+        case 'mumbai':
+            return 80001
+        case 'optGoerli':
+            return 420
+        case 'arbGoerli':
+            return 421613
+        case 'dev0':
+            return 8995
         case 'dev1':
             return 8997
         default:
@@ -19,22 +28,44 @@ export function chainToDomainId(name: string) {
 }
 
 /**
- * Maps the chain name to the hyperlane outbox address. Unique per chain.
+ * Maps the chain name to the hyperlane mailbox address. The same for all EVM chains
  */
-export function chainToOutboxAddress(name: string) {
-    switch (name) {
-        case 'mumbai':
-            return '0xe17c37212d785760E8331D4A4395B17b34Ba8cDF'
-        case 'fuji':
-            return '0xc507A7c848b59469cC44A3653F8a582aa8BeC71E'
-        case 'goerli':
-            return '0xDDcFEcF17586D08A5740B7D91735fcCE3dfe3eeD'
-        case 'optGoerli':
-            return '0x54148470292C24345fb828B003461a9444414517'
-        case 'dev1':
-            return '0x0000000000000000000000000000000000000000'
+export function chainToMailboxAddress(name: string) {
+    switch (true) {
+        case testnet.includes(name):
+            return '0xCC737a94FecaeC165AbCf12dED095BB13F037685'
+        case mainnet.includes(name):
+            return '0x35231d4c2D8B8ADcB5617A638A0c4548684c7C70'
         default:
-            throw new Error('Unknown outbox address for the given chain name.')
+            throw new Error(`Unknown mailbox address for ${name} chain.`)
+    }
+}
+
+/**
+ * Maps the chain name to the hyperlane interchain paymaster address. The same for all EVM chains
+ */
+export function chainToPaymasterAddress(name: string) {
+    switch (true) {
+        case testnet.includes(name):
+            return '0x8f9C3888bFC8a5B25AED115A82eCbb788b196d2a'
+        case mainnet.includes(name):
+            return '0x6cA0B6D22da47f091B7613223cD4BB03a2d77918'
+        default:
+            throw new Error(`Unknown interchain paymaster address for ${name} chain.`)
+    }
+}
+
+/**
+ * Maps the chain name to the hyperlane interchain query router address. The same for all EVM chains
+ */
+export function chainToQueryRouterAddress(name: string) {
+    switch (true) {
+        case testnet.includes(name):
+            return '0xF782C6C4A02f2c71BB8a1Db0166FAB40ea956818'
+        case mainnet.includes(name):
+            return '0x234b19282985882d6d6fd54dEBa272271f4eb784'
+        default:
+            throw new Error(`Unknown interchain query router address for ${name} chain.`)
     }
 }
 
@@ -44,9 +75,9 @@ export function chainToOutboxAddress(name: string) {
 export function chainToEthereumRpcUrl(name: string) {
     switch (name) {
         case 'mumbai':
-            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_API_KEY}`
+            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_KEY}`
         case 'goerli':
-            return `https://goerli.infura.io/v3/${process.env.GOERLI_API_KEY}`
+            return `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`
         case 'optGoerli':
             return ``
         case 'fuji':
@@ -80,5 +111,3 @@ export function chainToBlockExplorer(name: string) {
             throw new Error('Unknown block explorer for the given chain name.')
     }
 }
-
-export const queryRouterAddressTestchain = '0x6141e7E7fA2c1beB8be030B0a7DB4b8A10c7c3cd' // the same on all chains

@@ -54,7 +54,7 @@ const types = {
     ],
 }
 
-describe("Uniswap2Adapter", () => {
+describe("Uniswap2AdapterV4", () => {
     const [
         admin,
         beneficiary,
@@ -78,13 +78,13 @@ describe("Uniswap2Adapter", () => {
 
     const day = 86400
     const productIdbytes = hexlify(zeroPad(toUtf8Bytes("test-adapter"), 32))
-    const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
+    const chainId = 137 // domain id for polygon mainnet
     const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
     before(async () => {
         await deployErc20ContractsAndMintTokens()
-        domainIds.push(deployedOnDomainId)
+        domainIds.push(chainId)
         paymentDetailsDefault.push([
             beneficiary.address, // beneficiary
             dataToken.address, // pricingTokenAddress
@@ -142,7 +142,7 @@ describe("Uniswap2Adapter", () => {
             market.address,
             projectRegistry.address,
             uniswapRouter.address,
-            deployedOnDomainId
+            chainId
         ) as Uniswap2Adapter
         log('Uniswap2Adapter was deployed at address: ', uniswap2Adapter.address)
     }
@@ -173,8 +173,9 @@ describe("Uniswap2Adapter", () => {
 
     async function deployMarketplace(): Promise<void> {
         const marketFactoryV4 = await getContractFactory("MarketplaceV4")
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId], { kind: 'uups' })
         market = await marketFactoryV4Tx.deployed() as MarketplaceV4
+        // await market.addMailbox(interchainMailbox) // necessary for cross-chain purchases only
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
         await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
     }

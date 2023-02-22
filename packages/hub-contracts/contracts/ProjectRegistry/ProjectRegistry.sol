@@ -151,11 +151,12 @@ contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     ) external view returns (
         address beneficiary,
         address pricingTokenAddress,
-        uint256 pricePerSecond)
-    {
+        uint256 pricePerSecond,
+        uint256 streamsCount
+    ) {
         Project storage p = projects[projectId];
         PaymentDetailsByChain storage paymentDetailsByChain = p.paymentDetails[domainId];
-        return (paymentDetailsByChain.beneficiary, paymentDetailsByChain.pricingTokenAddress, paymentDetailsByChain.pricePerSecond);
+        return (paymentDetailsByChain.beneficiary, paymentDetailsByChain.pricingTokenAddress, paymentDetailsByChain.pricePerSecond, p.streams.length);
     }
 
     /**

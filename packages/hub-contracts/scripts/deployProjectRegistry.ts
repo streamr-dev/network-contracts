@@ -14,6 +14,7 @@ const {
 } = Chains.load()[CHAIN]
 
 if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${CHAIN}"`) }
+// const STREAM_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /**
  * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts
