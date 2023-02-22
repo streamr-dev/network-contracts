@@ -111,6 +111,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
      */
     function _buyWithUniswap(address subscriber, bytes32 projectId, uint minSubscriptionSeconds, uint timeWindow, uint pricePerSecond, uint amount, address fromToken, address toToken) internal{
         address[] memory path = _uniswapPath(fromToken, toToken); // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
+        // solhint-disable-next-line not-rely-on-time
         uint deadline = block.timestamp + timeWindow; // Unix timestamp after which the transaction will revert.
 
         // swapExactETHForTokens/swapExactTokensForTokens returns the input token amount and all subsequent output token amounts.
@@ -167,6 +168,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
         (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(projectId);
 
         address[] memory path = _uniswapPath(_msgSender(), pricingTokenAddress);
+        // solhint-disable-next-line not-rely-on-time
         uint receivedTokens = uniswapRouter.swapExactTokensForTokens(amount, 1, path, address(this), block.timestamp + 86400)[path.length - 1];
 
         require(IERC20(pricingTokenAddress).approve(address(marketplace), 0), "approval failed");

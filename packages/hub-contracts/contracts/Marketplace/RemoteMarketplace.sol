@@ -76,6 +76,7 @@ contract RemoteMarketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable
             address(0x0), // beneficiary
             address(0x0), // pricingTokenAddress
             subscriptionSeconds,
+            // solhint-disable-next-line not-rely-on-time
             block.timestamp, // requestTimestamp
             0, // price
             0 // fee

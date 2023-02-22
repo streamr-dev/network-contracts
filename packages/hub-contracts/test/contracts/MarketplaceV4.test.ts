@@ -730,12 +730,12 @@ describe("MarketplaceV4", () => {
                 await outbox.deployed()
 
                 const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-                sender = await remoteMarketFactory.deploy(
+                sender = await upgrades.deployProxy(remoteMarketFactory, [
                     originDomain,
                     interchainQueryRouter,
                     interchainMailbox,
                     interchainGasPaymaster
-                ) as RemoteMarketplace
+                ]) as RemoteMarketplace
                 await sender.addRecipient(destinationDomain, recipient.address)
                 await recipient.addRemoteMarketplace(originDomain, sender.address)
             })

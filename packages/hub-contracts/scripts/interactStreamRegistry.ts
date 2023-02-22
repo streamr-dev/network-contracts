@@ -3,12 +3,12 @@ import { Chains } from "@streamr/config"
 import { ProjectRegistry, StreamRegistryV4 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
+
 // export const log = (..._: unknown[]): void => { /* skip logging */ }
 const { log } = console
 
 const {
     CHAIN = 'polygon',
-    KEY = '' // export private KEY from cli
 } = process.env
 
 const {
