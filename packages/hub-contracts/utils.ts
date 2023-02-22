@@ -14,6 +14,8 @@ export function chainToDomainId(name: string) {
             return 5
         case 'mumbai':
             return 80001
+        case 'polygon':
+            return 137
         case 'optGoerli':
             return 420
         case 'arbGoerli':

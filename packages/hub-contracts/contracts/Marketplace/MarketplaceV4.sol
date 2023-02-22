@@ -1,8 +1,6 @@
 /**
- * Upgraded on: not yet deployed
- * https://polygonscan.com/tx/ not yet deployed
- * DO NOT EDIT
- * Instead, make a copy with new version number
+ * Deployed on polygon on 2023-02-22
+ * https://polygonscan.com/tx/0x76859b523227acc89e6c9bccc12f8c32cc912de494d50b912fc093bbf2efda8f
  */
 
 // SPDX-License-Identifier: MIT
