@@ -16,6 +16,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
+import "./IMessageRecipient.sol";
 
 interface IProjectRegistry {
     enum PermissionType {  Buy, Delete, Edit, Grant }
@@ -32,14 +33,6 @@ interface IProjectRegistry {
     function canBuyProject(bytes32 projectId, address buyer) external view returns(bool isPurchable);
     function getSubscription(bytes32 projectId, address subscriber) external view returns (bool isValid, uint256 endTimestamp);
     function isTrustedForwarder(address forwarder) external view returns (bool);
-}
-
-interface IMessageRecipient {
-    function handle(
-        uint32 _origin, // the chain id of the remote chain. Unique id assigned by Hyperlane (the same as the chainId in the EIP-155).
-        bytes32 _sender, // the contract address on the remote chain (e.g. RemoteMarketplace). It must match or the message will revert
-        bytes calldata _message // encoded purchase info
-    ) external;
 }
 
 /**

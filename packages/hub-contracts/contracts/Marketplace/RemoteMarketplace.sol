@@ -6,55 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
-
-interface IMarketplace {
-    function getPurchaseInfo(
-        bytes32 projectId,
-        uint256 subscriptionSeconds,
-        uint32 originDomainId,
-        uint256 purchaseId
-    ) external view returns(address, address, uint256, uint256, uint256);
-    function getSubscriptionInfo(
-        bytes32 projectId,
-        address subscriber,
-        uint256 purchaseId
-    ) external view returns(bool, uint256, uint256);
-}
-
-struct Call {
-    address to;
-    bytes data;
-}
-
-interface IInterchainQueryRouter {
-    function query(
-        uint32 _destinationDomain,
-        Call calldata call,
-        bytes calldata callback
-    ) external returns (bytes32);
-}
-
-interface IInterchainGasPaymaster {
-    function payForGas(
-        bytes32 _messageId,
-        uint32 _destinationDomain,
-        uint256 _gasAmount,
-        address _refundAddress
-    ) external payable;
-
-    function quoteGasPayment(uint32 _destinationDomain, uint256 _gasAmount)
-        external
-        view
-        returns (uint256);
-}
-
-interface IMailbox {
-    function dispatch(
-        uint32 destinationDomainId, // the chain id where MarketplaceV4 is deployed and where messages are sent to
-        bytes32 recipientAddress, // the address for the MarketplaceV4 contract. It must have the handle() function
-        bytes calldata messageBody // encoded purchase info
-    ) external returns (bytes32);
-}
+import "./IMarketplaceV4.sol";
+import "./IMailbox.sol";
+import "./IInterchainQueryRouter.sol";
+import "./IInterchainGasPaymaster.sol";
 
 /**
  * @title Streamr Remote Marketplace
@@ -141,7 +96,7 @@ contract RemoteMarketplace is Ownable {
     function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplaceV4.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
             abi.encodePacked(this.handlePurchaseInfo.selector)
         );
         uint256 gasAmount = _estimateGasForQueryPurchaseInfo();
@@ -195,7 +150,7 @@ contract RemoteMarketplace is Ownable {
     function _querySubscriptionState(bytes32 projectId, address subscriber, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplaceV4.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
             abi.encodePacked(this.handleSubscriptionState.selector)
         );
         uint256 gasAmount = _estimateGasForQuerySubscriptionState();
