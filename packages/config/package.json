@@ -1,5 +1,5 @@
 {
-    "version": "2.5.9",
+    "version": "2.5.10",
     "name": "@streamr/config",
     "description": "Zero dependency package that contains Streamr Network smart contract addresses",
     "main": "dist/src/index.js",
