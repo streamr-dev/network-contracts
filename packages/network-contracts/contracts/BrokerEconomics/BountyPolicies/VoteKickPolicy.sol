@@ -11,7 +11,7 @@ import "../BrokerPoolFactory.sol";
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
-    uint public flagStakeWei = 10 ether; // TODO: move to StreamrConstants?
+    uint public constant flagStakeWei = 10 ether; // TODO: move to StreamrConstants?
 
     uint public constant REVIEWER_COUNT = 5;
     mapping (address => address) public flaggerPoolAddress;
@@ -129,7 +129,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         if (result > 0) {
             uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
             address flagger = flaggerPoolAddress[target];
-            globalData().committedStakeWei[flagger] -= flagStakeWei;
+            if (globalData().committedStakeWei[flagger] > 0) {
+                globalData().committedStakeWei[flagger] -= flagStakeWei;
+            }
             globalData().committedStakeWei[target] -= targetStakeWei[target];
             uint slashingWei = globalData().stakedWei[target] / 10; // TODO: add to streamrConstants?
             if (result == 1) { // kick
