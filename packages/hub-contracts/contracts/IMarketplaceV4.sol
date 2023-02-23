@@ -17,12 +17,16 @@ interface IMarketplaceV4 {
     function buyFor(bytes32 projectId, uint subscriptionSeconds, address recipient) external;
     function onTokenTransfer(address sender, uint256 amount, bytes calldata data) external;
 
-    function addCrossChainInbox(uint32 originDomainId, address inboxAddress) external;
-    function addCrossChainMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external;
+    function addRemoteMarketplace(uint32 originDomainId, address remoteMarketplaceAddress) external;
     function getPurchaseInfo(
         bytes32 projectId,
         uint256 subscriptionSeconds,
         uint32 originDomainId,
         uint256 purchaseId
-    ) external view returns(address, address, uint256, uint256, uint256);
+    ) external view returns(address, address, uint256, uint256, uint256, uint256);
+    function getSubscriptionInfo(
+        bytes32 projectId,
+        address subscriber,
+        uint256 purchaseId
+    ) external view returns(bool, uint256, uint256);
 }

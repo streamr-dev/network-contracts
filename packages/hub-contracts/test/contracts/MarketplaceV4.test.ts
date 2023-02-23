@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { BigNumber, utils, constants } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, GasReporter, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
@@ -56,7 +56,7 @@ export const log = (..._: unknown[]): void => { /* skip logging */ }
 
 use(waffle.solidity)
 
-describe("Marketplace", () => {
+describe("MarketplaceV4", () => {
     const [
         admin,
         buyer,
@@ -71,11 +71,16 @@ describe("Marketplace", () => {
     let minimalForwarder: MinimalForwarder
     let projectRegistry: ProjectRegistry
     let streamRegistry: StreamRegistryV4
+    const streamIds: string[] = []
+    let gasReporter: GasReporter
 
-    const deployedOnDomainId = 0x706f6c79 // domain id for polygon mainnet
-    const domainIds: number[] = [] // not the actual network ids => unique ids assigned by hyperlane
+    const chainId = 137 // chain id for polygon mainnet
+    const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
+    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
+    const interchainQueryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
+    const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
         await deployERC20()
@@ -83,9 +88,11 @@ describe("Marketplace", () => {
         await deployMinimalForwarder()
         await deployStreamRegistry()
         await deployProjectRegistry()
+        await streamRegistry.grantRole(id("TRUSTED_ROLE"), projectRegistry.address)
         marketplace = await deployMarketplace()
+        await deployGasReporter(marketplace.address)
 
-        domainIds.push(deployedOnDomainId)
+        chainIds.push(chainId)
         paymentDetailsDefault.push([
             beneficiary.address, // beneficiary
             token.address, // pricingTokenAddress
@@ -137,6 +144,17 @@ describe("Marketplace", () => {
 
     }
 
+    const createStream = async (id?: string, creator = admin): Promise<string> => {
+        // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
+        const streamPath = '/projects/' + (id ?? Date.now())
+        const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
+        await(await streamRegistry.connect(creator)
+            .createStream(streamPath, streamMetadata)).wait()
+        const streamId = creator.address.toLowerCase() + streamPath
+        log('Stream created (streamId: %s)', streamId)
+        return streamId
+    }
+    
     async function deployProjectRegistry(): Promise<void> {
         log("Deploying ProjectRegistry: ")
         const contractFactory = await getContractFactory("ProjectRegistry", admin)
@@ -148,7 +166,7 @@ describe("Marketplace", () => {
     async function deployMarketplace(): Promise<MarketplaceV4> {
         log("Deploying MarketplaceV4: ")
         const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId], { kind: 'uups' })
         const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
         log("   - MarketplaceV4 deployed at: ", market.address)
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
@@ -156,9 +174,15 @@ describe("Marketplace", () => {
         return market
     }
 
+    async function deployGasReporter(recipientAddress: string): Promise<void> {
+        const factory = await getContractFactory('GasReporter', admin)
+        gasReporter = await factory.deploy(recipientAddress, chainId) as GasReporter
+    }
+
     async function createProject({
-        chains = domainIds,
+        chains = chainIds,
         payment = paymentDetailsDefault,
+        streams = streamIds,
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
         metadata = ""
@@ -166,7 +190,7 @@ describe("Marketplace", () => {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
         await projectRegistry
-            .createProject(projectId, chains, payment, [], minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, streams, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -174,7 +198,10 @@ describe("Marketplace", () => {
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+            ], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
             const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
@@ -283,7 +310,7 @@ describe("Marketplace", () => {
                     BigNumber.from(1) // pricePerSecond
                 ]
             ]
-            await projectRegistry.updateProject(projectId, domainIds, paymentDetails, [], 1, 'metadata')
+            await projectRegistry.updateProject(projectId, chainIds, paymentDetails, [], 1, 'metadata')
             await marketplace.buy(projectId, 100)
             const balanceAfter = await token.balanceOf(sellerAddress)
 
@@ -308,7 +335,10 @@ describe("Marketplace", () => {
 
         it('buy - positivetest - beneficiary can react on project purchase', async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, deployedOnDomainId], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+            ], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers
             await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
@@ -339,7 +369,7 @@ describe("Marketplace", () => {
 
             // create project with ERC677 pricingToken
             await projectRegistry
-                .createProject(projectId, domainIds, paymentDetails1, [], 1, true, 'metadata')
+                .createProject(projectId, chainIds, paymentDetails1, [], 1, true, 'metadata')
             expect(await token.balanceOf(beneficiaryAddress))
                 .to.equal(0)
             await token.approve(market.address, 1000)
@@ -350,7 +380,7 @@ describe("Marketplace", () => {
 
             // change pricing token to ERC20
             await projectRegistry
-                .updateProject(projectId, domainIds, paymentDetails2, [], 1, 'metadata')
+                .updateProject(projectId, chainIds, paymentDetails2, [], 1, 'metadata')
             await otherToken.approve(market.address, 1000)
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(0)
@@ -598,20 +628,72 @@ describe("Marketplace", () => {
             const subscriptionSeconds = 100
             const price = pricePerSecond.mul(subscriptionSeconds)
             const fee = BigNumber.from(0)
+            const streamsCount = BigNumber.from(0)
             const purchaseId = BigNumber.from(1)
             
             const projectId = await createProject({ payment })
-            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, deployedOnDomainId, purchaseId)
+            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId)
             
             expect(purchaseInfo[0]).to.equal(beneficiaryAddress)
             expect(purchaseInfo[1]).to.equal(pricingTokenAddress)
             expect(purchaseInfo[2]).to.equal(price)
             expect(purchaseInfo[3]).to.equal(fee)
             expect(purchaseInfo[4]).to.equal(purchaseId)
+            expect(purchaseInfo[5]).to.equal(streamsCount)
         })
     })
 
     describe('Hyperlane - cross-chain messaging', () => {
+        if (process.env.REPORT_GAS) {
+            describe.only('GasReporter', () => {
+                before(async () => {
+                    // needed for error_notHyperlaneMailbox validation
+                    await marketplace.addMailbox(gasReporter.address)
+                    // needed for error_notRemoteMarketplace validation
+                    await marketplace.addRemoteMarketplace(chainId, gasReporter.address)
+                })
+                it('handle()', async () => {
+                    const subscriber = admin.address
+                    const subscriptionSeconds = 100
+                    const beneficiary = admin.address
+                    const price = 100
+                    const fee = 0
+    
+                    let prevGasUsed = 0
+                    log('%s streams:', streamIds.length)
+                    const projectId0 = await createProject()
+                    let tx = await(await gasReporter.handle(projectId0, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                    log('Gas used for handle function is %s wei (with overhead )', tx.gasUsed.toNumber())
+                    prevGasUsed = tx.gasUsed.toNumber()
+    
+                    for (let i = 0; i < 3; i++) {
+                        const s = await createStream(i.toString())
+                        streamIds.push(s)
+                        log('\n %s streams:', streamIds.length)
+                        const projectId = await createProject()
+                        tx = await(await gasReporter.handle(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                        const gasUsed = tx.gasUsed.toNumber()
+                        log('Gas used for handle function is %s wei (with overhead ), difference is %s', gasUsed, gasUsed - prevGasUsed)
+                        prevGasUsed = gasUsed
+                    }
+                })
+                it('getPurchaseInfo()', async () => {
+                    const subscriptionSeconds = 100
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getPurchaseInfo(projectId, subscriptionSeconds, purchaseId)
+                })
+        
+                it('getSubscriptionInfo()', async () => {
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getSubscriptionInfo(projectId, buyer.address, purchaseId)
+                })
+            })
+        }
+
         it("should be able to send a message directly using the test recipient contract", async function () {
             const signer = (await hardhatEthers.getSigners())[0]
             const inbox = await new MockInbox__factory(signer).deploy()
@@ -648,11 +730,14 @@ describe("Marketplace", () => {
                 await outbox.deployed()
 
                 const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-                const queryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
-                sender = await remoteMarketFactory.deploy(originDomain, queryRouter, outbox.address) as RemoteMarketplace
+                sender = await remoteMarketFactory.deploy(
+                    originDomain,
+                    interchainQueryRouter,
+                    interchainMailbox,
+                    interchainGasPaymaster
+                ) as RemoteMarketplace
                 await sender.addRecipient(destinationDomain, recipient.address)
-                await recipient.addCrossChainInbox(originDomain, inbox.address)
-                await recipient.addCrossChainMarketplace(originDomain, sender.address)
+                await recipient.addRemoteMarketplace(originDomain, sender.address)
             })
     
             it("TODO: buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {})
