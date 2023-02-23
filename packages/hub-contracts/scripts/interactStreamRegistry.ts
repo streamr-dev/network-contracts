@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { Chains } from "@streamr/config"
-import { ProjectRegistry, StreamRegistryV4 } from "../typechain"
+import { ProjectRegistryV1, StreamRegistryV4 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -18,14 +18,14 @@ const {
     }
 } = Chains.load()[CHAIN]
 
-let projectRegistry: ProjectRegistry
+let projectRegistry: ProjectRegistryV1
 let streamRegistry: StreamRegistryV4
 
 const connectContracts = async () => {
-    const projectRegistryFactory = await getContractFactory("ProjectRegistry")
+    const projectRegistryFactory = await getContractFactory("ProjectRegistryV1")
     const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
-    projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistry
-    log("ProjectRegistry deployed at: ", projectRegistry.address)
+    projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistryV1
+    log("ProjectRegistryV1 deployed at: ", projectRegistry.address)
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4")
     const streamRegistryFactoryTx = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS)
@@ -42,7 +42,7 @@ const grantTrustedRoleToProjectRegistry = async (): Promise<void> => {
     const tx = await streamRegistry.grantRole(trustedRole, projectRegistry.address)
     log('tx', tx.hash)
     await tx.wait()
-    log('StreamRegistry granted trusted role to ProjectRegistry')
+    log('StreamRegistry granted trusted role to ProjectRegistryV1')
 }
 
 /**

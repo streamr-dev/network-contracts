@@ -16,7 +16,7 @@ import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
 import "./IMessageRecipient.sol";
 
-interface IProjectRegistry {
+interface IProjectRegistryV1 {
     enum PermissionType {  Buy, Delete, Edit, Grant }
     function getPaymentDetailsByChain(
         bytes32 projectId,
@@ -49,7 +49,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     bool public halted;
 
-    IProjectRegistry public projectRegistry;
+    IProjectRegistryV1 public projectRegistry;
 
     // cross-chain messaging
     uint32 public chainId; // unique identifier for current chain (assigned by Hyperlane, but the same as the chainId in the EIP-155)
@@ -72,7 +72,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         __UUPSUpgradeable_init();
 
         halted = false;
-        projectRegistry = IProjectRegistry(_projectRegistry);
+        projectRegistry = IProjectRegistryV1(_projectRegistry);
         chainId = _chainId;
     }
 

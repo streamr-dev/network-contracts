@@ -11,22 +11,22 @@ if (!CHAIN) { throw new Error("Please specify CHAIN environment variable (dev0, 
 
 const {
     contracts: {
-        ProjectRegistry: PROXY_ADDRESS
+        ProjectRegistryV1: PROXY_ADDRESS
     }
 } = Chains.load()[CHAIN]
 
-if (!PROXY_ADDRESS) { throw new Error(`No ProjectRegistry found in chain "${CHAIN}"`) }
+if (!PROXY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
 
 /**
  * npx hardhat run --network polygon scripts/upgradeProjectRegistry.ts
  */
 async function main() {
-    log(`Upgrading ProjectRegistry on ${CHAIN} chain at address ${PROXY_ADDRESS}...`)
+    log(`Upgrading ProjectRegistryV1 on ${CHAIN} chain at address ${PROXY_ADDRESS}...`)
 
-    const ProjectRegistryFactory = await ethers.getContractFactory("ProjectRegistry")
+    const ProjectRegistryFactory = await ethers.getContractFactory("ProjectRegistryV1")
     const projectRegistry = await upgrades.upgradeProxy(PROXY_ADDRESS, ProjectRegistryFactory)
     await projectRegistry.deployed()
-    log(`Upgraded ProjectRegistry at ${projectRegistry.address}`)
+    log(`Upgraded ProjectRegistryV1 at ${projectRegistry.address}`)
 }
 
 main().catch((error) => {

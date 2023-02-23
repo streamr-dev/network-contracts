@@ -9,7 +9,7 @@ import {
     StreamAdded,
     StreamRemoved,
     PaymentDetailsByChainUpdated,
-} from '../generated/ProjectRegistry/ProjectRegistry'
+} from '../generated/ProjectRegistryV1/ProjectRegistryV1'
 import { getIsDataUnionValue, loadOrCreateProject } from './helpers'
 
 export function handleProjectCreation(event: ProjectCreated): void {

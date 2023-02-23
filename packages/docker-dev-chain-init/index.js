@@ -169,8 +169,8 @@ async function deployStreamStorageRegistry(wallet) {
     log(`StreamStorageRegistryV2 deployed at ${str.address}`)
 }
 
-async function deployProjectRegistry(wallet) {
-    const projectRegistryFactory = await ethers.getContractFactory("ProjectRegistry", wallet)
+async function deployProjectRegistryV1(wallet) {
+    const projectRegistryFactory = await ethers.getContractFactory("ProjectRegistryV1", wallet)
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [streamRegistryAddress], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()
     log(`ProjectRegistry deployed at ${projectRegistry.address}`)
@@ -605,23 +605,23 @@ async function smartContractInitialization() {
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
 
-    const projectRegistry = await deployProjectRegistry(sidechainWallet)
+    const projectRegistryV1 = await deployProjectRegistryV1(sidechainWallet)
 
     await deployMarketplaceV3(sidechainWallet)
 
     const chainId = 8997 // dev1
-    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistry.address, chainId)    
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistryV1.address, chainId)    
     log(`Granting role ${role} to MarketplaceV4 at ${marketplaceV4.address}. ` +
         "Needed for granting permissions to streams using the trusted functions.")
-    await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
+    await(await projectRegistryV1.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
 
-    await deployProjectStakingV1(sidechainWallet, projectRegistry.address, linkToken.address)
+    await deployProjectStakingV1(sidechainWallet, projectRegistryV1.address, linkToken.address)
 
-    // granting here and not right after deployProjectRegistry to avoid changing the addresses of MarketplaceV3, MarketplaceV4 and ProjectStakingV1
-    log(`Granting role ${role} to ProjectRegistry at ${projectRegistry.address}. ` +
+    // granting here and not right after deployProjectRegistryV1 to avoid changing the addresses of MarketplaceV3, MarketplaceV4 and ProjectStakingV1
+    log(`Granting role ${role} to ProjectRegistryV1 at ${projectRegistryV1.address}. ` +
         "Needed for granting permissions to streams using the trusted functions.")
-    const grantRoleProjectRegistryTx = await streamRegistryFromOwner.grantRole(role, projectRegistry.address)
-    await grantRoleProjectRegistryTx.wait()
+    const grantRoleProjectRegistryV1Tx = await streamRegistryFromOwner.grantRole(role, projectRegistryV1.address)
+    await grantRoleProjectRegistryV1Tx.wait()
 
     await deployBountyFactory()
 

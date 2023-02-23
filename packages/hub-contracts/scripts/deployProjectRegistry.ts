@@ -18,15 +18,15 @@ if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chai
 
 /**
  * npx hardhat run --network dev1 scripts/deployProjectRegistry.ts
- * npx hardhat flatten contracts/ProjectRegistry/ProjectRegistry.sol > pr.sol
+ * npx hardhat flatten contracts/ProjectRegistry/ProjectRegistryV1.sol > pr.sol
  */
 async function main() {
     log(`StreamRegistry address: ${STREAM_REGISTRY_ADDRESS}`)
-    log(`Deploying ProjectRegistry to "${CHAIN}" chain:`)
-    const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistry")
+    log(`Deploying ProjectRegistryV1 to "${CHAIN}" chain:`)
+    const projectRegistryFactory = await hhEthers.getContractFactory("ProjectRegistryV1")
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [STREAM_REGISTRY_ADDRESS], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()
-    log(`ProjectRegistry deployed at: ${projectRegistry.address}`)
+    log(`ProjectRegistryV1 deployed at: ${projectRegistry.address}`)
 }
 
 main().catch((error) => {

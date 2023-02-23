@@ -3,9 +3,8 @@ import { expect, use } from "chai"
 import { BigNumber, utils, constants } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, GasReporter, MarketplaceV4, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
+import type { DATAv2, ERC20Mintable, GasReporter, MarketplaceV4, ProjectRegistryV1, RemoteMarketplaceV1, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
-import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 
@@ -69,7 +68,7 @@ describe("MarketplaceV4", () => {
     let otherToken: ERC20Mintable
     let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
-    let projectRegistry: ProjectRegistry
+    let projectRegistry: ProjectRegistryV1
     let streamRegistry: StreamRegistryV4
     const streamIds: string[] = []
     let gasReporter: GasReporter
@@ -156,11 +155,11 @@ describe("MarketplaceV4", () => {
     }
     
     async function deployProjectRegistry(): Promise<void> {
-        log("Deploying ProjectRegistry: ")
-        const contractFactory = await getContractFactory("ProjectRegistry", admin)
+        log("Deploying ProjectRegistryV1: ")
+        const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [streamRegistry.address], { kind: 'uups' })
-        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistry
-        log("   - ProjectRegistry deployed at: ", projectRegistry.address)
+        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistryV1
+        log("   - ProjectRegistryV1 deployed at: ", projectRegistry.address)
     }
 
     async function deployMarketplace(): Promise<MarketplaceV4> {
@@ -711,15 +710,15 @@ describe("MarketplaceV4", () => {
         })
 
         const originDomain = 1 // the domain id of the chain RemoteMarketplace is deployed on
-        const destinationDomain = 2 // the domain id of the chain ProjectRegistry & MarketplaceV4 are deployed on
-        let sender: RemoteMarketplace // the contract the messages are sent from
+        const destinationDomain = 2 // the domain id of the chain ProjectRegistryV1 & MarketplaceV4 are deployed on
+        let sender: RemoteMarketplaceV1 // the contract the messages are sent from
         let recipient: MarketplaceV4 // the contract the messages are sent to
 
         before(async () => {
             recipient = marketplace
         })
 
-        describe('RemoteMarketplace', () => {
+        describe('RemoteMarketplaceV1', () => {
             let inbox: any
             let outbox: any
 
@@ -729,13 +728,13 @@ describe("MarketplaceV4", () => {
                 outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
                 await outbox.deployed()
 
-                const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
+                const remoteMarketFactory = await getContractFactory("RemoteMarketplaceV1")
                 sender = await upgrades.deployProxy(remoteMarketFactory, [
                     originDomain,
                     interchainQueryRouter,
                     interchainMailbox,
                     interchainGasPaymaster
-                ]) as RemoteMarketplace
+                ]) as RemoteMarketplaceV1
                 await sender.addRecipient(destinationDomain, recipient.address)
                 await recipient.addRemoteMarketplace(originDomain, sender.address)
             })

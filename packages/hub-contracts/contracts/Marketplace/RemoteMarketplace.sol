@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
-import "./IRemoteMarketplace.sol";
+import "./IRemoteMarketplaceV1.sol";
 import "./IMailbox.sol";
 import "./IInterchainQueryRouter.sol";
 import "./IInterchainGasPaymaster.sol";
@@ -18,13 +18,13 @@ import "./IInterchainGasPaymaster.sol";
  * @title Streamr Remote Marketplace
  * The marketplace interface through which the users on other networks can send cross-chain messages to MarketpalceV4 (e.g. buy projects)
  */
-contract RemoteMarketplace is Initializable, OwnableUpgradeable, UUPSUpgradeable, IRemoteMarketplace {
+contract RemoteMarketplaceV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IRemoteMarketplaceV1 {
 
     uint256 public purchaseCount;
     mapping(uint256 => ProjectPurchase) public purchases;
 
-    uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
-    uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistry & MarketplaceV4 is deployed
+    uint32 public originDomainId; // the domain id of the chain where RemoteMarketplaceV1 is deployed
+    uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistryV1 & MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
     IMailbox public mailbox;
     IInterchainQueryRouter public queryRouter;

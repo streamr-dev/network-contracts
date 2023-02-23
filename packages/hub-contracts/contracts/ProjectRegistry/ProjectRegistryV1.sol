@@ -14,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 
-import "./IProjectRegistry.sol";
+import "./IProjectRegistryV1.sol";
 
 interface IStreamRegistry {
     struct Permission {
@@ -38,7 +38,7 @@ interface IStreamRegistry {
     ) external;
 }
 
-contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
+contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistryV1 {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");

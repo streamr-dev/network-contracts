@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-interface IProjectRegistry {
+interface IProjectRegistryV1 {
     struct PaymentDetailsByChain {
         address beneficiary; // account where revenue is directed to
         address pricingTokenAddress; // the token in which the project is paid to project beneficiary

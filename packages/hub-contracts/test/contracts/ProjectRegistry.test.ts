@@ -3,7 +3,7 @@ import { expect, use } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ProjectRegistry, StreamRegistryV4 } from "../../typechain"
+import type { DATAv2, ProjectRegistryV1, StreamRegistryV4 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -54,7 +54,7 @@ enum ProjectRegistryPermissionType { Buy, Delete, Edit, Grant }
 
 use(waffle.solidity)
 
-describe('ProjectRegistry', (): void => {
+describe('ProjectRegistryV1', (): void => {
     const [admin, user1, user2, user3, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
     const projectIdbytesNonExistent = hexlify(zeroPad(toUtf8Bytes('notexistentproject'), 32))
     const streamIds: string[] = []
@@ -75,7 +75,7 @@ describe('ProjectRegistry', (): void => {
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
 
-    let registry: ProjectRegistry
+    let registry: ProjectRegistryV1
     let minimalForwarder: MinimalForwarder
     let streamRegistry: StreamRegistryV4
     let token: DATAv2
@@ -143,9 +143,9 @@ describe('ProjectRegistry', (): void => {
     }
 
     async function deployProjectRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("ProjectRegistry", admin)
+        const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [streamRegistry.address], { kind: 'uups' })
-        registry = await contractFactoryTx.deployed() as ProjectRegistry
+        registry = await contractFactoryTx.deployed() as ProjectRegistryV1
 
         const trustedRole = await registry.getTrustedRole()
         await registry.grantRole(trustedRole, trusted.address)

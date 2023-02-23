@@ -11,7 +11,7 @@ import {
     StreamAdded,
     StreamRemoved,
     Subscribed,
-} from "../../generated/ProjectRegistry/ProjectRegistry"
+} from "../../generated/ProjectRegistryV1/ProjectRegistryV1"
 import { 
     Stake,
     Unstake,

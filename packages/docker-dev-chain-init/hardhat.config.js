@@ -79,7 +79,7 @@ module.exports = {
             '@streamr-contracts/hub-contracts/contracts/Marketplace/MarketplaceV3.sol',
             '@streamr-contracts/hub-contracts/contracts/Marketplace/MarketplaceV4.sol',
             '@streamr-contracts/hub-contracts/contracts/Marketplace/Uniswap2Adapter.sol',
-            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistry.sol',
+            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistryV1.sol',
             '@streamr-contracts/hub-contracts/contracts/ProjectStaking/ProjectStakingV1.sol'
         ],
     },

@@ -50,7 +50,7 @@
             "Marketplace": "0xa072C42CB167d68D4c1cA15d0e4d0bd93E74A80f",
             "MarketplaceV3": "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2",
             "MarketplaceV4": "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37",
-            "ProjectRegistry": "0x3C841B9Aa08166e9B864972930703e878d25804B",
+            "ProjectRegistryV1": "0x3C841B9Aa08166e9B864972930703e878d25804B",
             "ProjectStakingV1": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
             "Mediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "StorageNodeRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
@@ -67,7 +67,7 @@
             }
         ],
         "contracts": {
-            "ProjectRegistry": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
+            "ProjectRegistryV1": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
             "MarketplaceV4": "0x14577e0D5BD77536E073712d98E471edDaFAE8b4",
             "cUSD": "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
         }
@@ -80,7 +80,7 @@
             }
         ],
         "contracts": {
-            "RemoteMarketplace": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
+            "RemoteMarketplaceV1": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
             "DAI": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
         }
     },
@@ -124,7 +124,7 @@
             "MediatorDATA": "0x53f3F44c434494da73EC44a6E8a8D091332bC2ce",
             "MediatorXDATA": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
             "MigrationManager": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
-            "RemoteMarketplace": "0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf",
+            "RemoteMarketplaceV1": "0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf",
             "StorageNodeRegistry": "0xC746847d7916623fb75849696f04827bbc34854f",
             "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
             "Uniswap2AdapterForMarketplaceV3": "0xec92c5f94d45D1a4D917f2E07dD959b33e1AFe38",
@@ -174,7 +174,7 @@
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
             "MarketplaceV4": "0xdF8b74D735197dCD5C94bE933db080E69A958de6",
-            "ProjectRegistry": "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1",
+            "ProjectRegistryV1": "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1",
             "ProjectStakingV1": "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE",
             "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
             "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",

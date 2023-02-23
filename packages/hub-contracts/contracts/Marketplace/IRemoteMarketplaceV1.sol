@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-interface IRemoteMarketplace {
+interface IRemoteMarketplaceV1 {
     struct ProjectPurchase {
         bytes32 projectId;
         address buyer;
