@@ -11,7 +11,7 @@ import "../BrokerPoolFactory.sol";
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
-    uint public constant flagStakeWei = 10 ether; // TODO: move to StreamrConstants?
+    uint public constant FLAG_STAKE_WEI = 10 ether; // TODO: move to StreamrConstants?
 
     uint public constant REVIEWER_COUNT = 5;
     mapping (address => address) public flaggerPoolAddress;
@@ -44,7 +44,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
-        globalData().committedStakeWei[myBrokerPool] += flagStakeWei;
+        globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
         require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
         flaggerPoolAddress[target] = myBrokerPool;
 
@@ -137,7 +137,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             uint rewardWei = 1 ether; // globalData().streamrConstants.reviewerRewardWei();
             address flagger = flaggerPoolAddress[target];
             if (globalData().committedStakeWei[flagger] > 0) {
-                globalData().committedStakeWei[flagger] -= flagStakeWei;
+                globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
             }
             globalData().committedStakeWei[target] -= targetStakeWei[target];
             uint slashingWei = globalData().stakedWei[target] / 10; // TODO: add to streamrConstants?
@@ -152,8 +152,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 token.transfer(flagger, flaggerRewardWei);
             } else if (result == 2) { // false flag, not kick
                 // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
-                uint leftOverWei = flagStakeWei - rewardWei * reviewerCount;
-                _slash(flagger, flagStakeWei);
+                uint leftOverWei = FLAG_STAKE_WEI - rewardWei * reviewerCount;
+                _slash(flagger, FLAG_STAKE_WEI);
                 payReviewers(votersAgainstKick[target]);
                 _addSponsorship(address(this), leftOverWei);
             }
@@ -170,7 +170,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(flaggerPoolAddress[target] == myBrokerPool, "error_notFlagger");
         payReviewers(votersForKick[target]);
         payReviewers(votersAgainstKick[target]);
-        globalData().committedStakeWei[flaggerPoolAddress[target]] -= flagStakeWei;
+        globalData().committedStakeWei[flaggerPoolAddress[target]] -= FLAG_STAKE_WEI;
         globalData().committedStakeWei[target] -= targetStakeWei[target];
         delete votesForKick[target];
         delete votesAgainstKick[target];
