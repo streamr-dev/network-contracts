@@ -66,18 +66,22 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // primary selection: live peers that are not in the same bounty
         for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
             randomBytes >>= 8;
-            BrokerPool pool = factory.deployedBrokerPools(randomBytes % brokerPoolCount);
+            uint index = randomBytes % brokerPoolCount;
+            BrokerPool pool = factory.deployedBrokerPools(index);
             address peer = pool.broker(); // TODO: via BrokerPool or directly?
             if (peer == _msgSender() || peer == BrokerPool(target).broker()
                 || reviewerState[target][peer] != 0) {
+                // console.log(index, "skipping", peer);
                 continue;
             }
             // TODO: check is broker live
             if (globalData().stakedWei[address(pool)] > 0) {
                 sameBountyPeers[sameBountyPeerCount++] = peer;
                 reviewerState[target][peer] = 10; // mark peer as "selected to the secondary selection list"
+                // console.log(index, "in same bounty", peer);
                 continue;
             }
+            // console.log(index, "selecting", peer);
             reviewerState[target][peer] = 1;
             emit ReviewRequest(peer, this, target);
             reviewers[target].push(peer);
@@ -87,12 +91,15 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < sameBountyPeerCount; i++) {
             address peer = sameBountyPeers[i];
             if (reviewerState[target][peer] == 1) {
+                // console.log("already selected", peer);
                 continue;
             }
             if (reviewers[target].length >= REVIEWER_COUNT) {
                 reviewerState[target][peer] = 0; // mark peer as "not selected"
+                // console.log("not selecting", peer);
                 continue;
             }
+            // console.log("selecting from same bounty", peer);
             reviewerState[target][peer] = 1;
             emit ReviewRequest(peer, this, target);
             reviewers[target].push(peer);
