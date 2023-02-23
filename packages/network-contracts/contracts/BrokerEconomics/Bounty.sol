@@ -183,27 +183,22 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Get both stake and allocations out */
     function leave() external { // TODO: rename into unstake
-        // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
-        uint slashingWei = getLeavePenalty(broker) + globalData().committedStakeWei[broker];
-        _slash(broker, slashingWei);
-        _addSponsorship(address(this), slashingWei);
+        require(globalData().committedStakeWei[broker] == 0, "error_cannotUnstakeAll");
         _removeBroker(broker);
-        delete globalData().committedStakeWei[broker];
     }
 
     function reduceStake(uint amountWei) external {
         address broker = _msgSender();
         require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
-        uint penaltyWei = getLeavePenalty(broker);
+        // TODO: check minimumstake with join policy: we don't want that stake can be reduced to less than minimum for joining!
         if (amountWei == globalData().stakedWei[broker]) {
-            _slash(broker, penaltyWei);
-            _addSponsorship(address(this), penaltyWei);
             _removeBroker(broker);
         } else {
             globalData().stakedWei[broker] -= amountWei;
             globalData().totalStakedWei -= amountWei;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+            uint penaltyWei = getLeavePenalty(broker);
             if (amountWei > penaltyWei) {
                 token.transfer(broker, amountWei - penaltyWei);
             }
@@ -224,8 +219,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(stakedWei > 0, "error_brokerNotStaked");
         // console.log("leaving:", broker);
 
-        _withdraw(broker);
+        uint penaltyWei = getLeavePenalty(broker);
+        _slash(broker, penaltyWei);
+        _addSponsorship(address(this), penaltyWei);
 
+        _withdraw(broker);
         require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
 
         GlobalStorage storage s = globalData();
@@ -293,7 +291,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Start the flagging process to kick an abusive broker */
     function flag(address broker, address myBrokerPool) external {
-        require(address(kickPolicy) != address(0), "error_notSupported");        
+        require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, broker, myBrokerPool), "error_kickPolicyFailed");
     }
 
