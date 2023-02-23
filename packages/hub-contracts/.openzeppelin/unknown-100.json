@@ -332,15 +332,15 @@
             "offset": 0,
             "slot": "201",
             "type": "t_uint256",
-            "contract": "RemoteMarketplace",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:23"
           },
           {
             "label": "purchases",
             "offset": 0,
             "slot": "202",
-            "type": "t_mapping(t_uint256,t_struct(ProjectPurchase)1479_storage)",
-            "contract": "RemoteMarketplace",
+            "type": "t_mapping(t_uint256,t_struct(ProjectPurchase)3566_storage)",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:24"
           },
           {
@@ -348,7 +348,7 @@
             "offset": 0,
             "slot": "203",
             "type": "t_uint32",
-            "contract": "RemoteMarketplace",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:26"
           },
           {
@@ -356,7 +356,7 @@
             "offset": 4,
             "slot": "203",
             "type": "t_uint32",
-            "contract": "RemoteMarketplace",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:27"
           },
           {
@@ -364,31 +364,31 @@
             "offset": 8,
             "slot": "203",
             "type": "t_address",
-            "contract": "RemoteMarketplace",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:28"
           },
           {
             "label": "mailbox",
             "offset": 0,
             "slot": "204",
-            "type": "t_contract(IMailbox)1346",
-            "contract": "RemoteMarketplace",
+            "type": "t_contract(IMailbox)3433",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:29"
           },
           {
             "label": "queryRouter",
             "offset": 0,
             "slot": "205",
-            "type": "t_contract(IInterchainQueryRouter)1332",
-            "contract": "RemoteMarketplace",
+            "type": "t_contract(IInterchainQueryRouter)3419",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:30"
           },
           {
             "label": "gasPaymaster",
             "offset": 0,
             "slot": "206",
-            "type": "t_contract(IInterchainGasPaymaster)1312",
-            "contract": "RemoteMarketplace",
+            "type": "t_contract(IInterchainGasPaymaster)3399",
+            "contract": "RemoteMarketplaceV1",
             "src": "contracts/Marketplace/RemoteMarketplace.sol:31"
           }
         ],
@@ -413,24 +413,24 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IInterchainGasPaymaster)1312": {
+          "t_contract(IInterchainGasPaymaster)3399": {
             "label": "contract IInterchainGasPaymaster",
             "numberOfBytes": "20"
           },
-          "t_contract(IInterchainQueryRouter)1332": {
+          "t_contract(IInterchainQueryRouter)3419": {
             "label": "contract IInterchainQueryRouter",
             "numberOfBytes": "20"
           },
-          "t_contract(IMailbox)1346": {
+          "t_contract(IMailbox)3433": {
             "label": "contract IMailbox",
             "numberOfBytes": "20"
           },
-          "t_mapping(t_uint256,t_struct(ProjectPurchase)1479_storage)": {
-            "label": "mapping(uint256 => struct IRemoteMarketplace.ProjectPurchase)",
+          "t_mapping(t_uint256,t_struct(ProjectPurchase)3566_storage)": {
+            "label": "mapping(uint256 => struct IRemoteMarketplaceV1.ProjectPurchase)",
             "numberOfBytes": "32"
           },
-          "t_struct(ProjectPurchase)1479_storage": {
-            "label": "struct IRemoteMarketplace.ProjectPurchase",
+          "t_struct(ProjectPurchase)3566_storage": {
+            "label": "struct IRemoteMarketplaceV1.ProjectPurchase",
             "members": [
               {
                 "label": "projectId",

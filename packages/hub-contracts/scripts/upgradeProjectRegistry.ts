@@ -19,6 +19,7 @@ if (!PROXY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CH
 
 /**
  * npx hardhat run --network polygon scripts/upgradeProjectRegistry.ts
+ * npx hardhat flatten contracts/ProjectRegistry/ProjectRegistryV1.sol > pr.sol
  */
 async function main() {
     log(`Upgrading ProjectRegistryV1 on ${CHAIN} chain at address ${PROXY_ADDRESS}...`)
