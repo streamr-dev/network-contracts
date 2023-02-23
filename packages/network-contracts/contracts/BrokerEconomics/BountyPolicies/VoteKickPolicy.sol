@@ -76,7 +76,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
     }
 
-
+    /**
+     * Tally votes and trigger resolution
+     */
     function onVote(address target, bytes32 voteData) external {
         address voter = _msgSender(); // ?
         require(reviewerState[target][voter] != 0, "error_reviewersOnly");
@@ -144,10 +146,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // delete targetStakeWei[target];
     }
 
-    function onKick(address) external {
-        // does nothing in this policy? or should admin be able to kick?
-    }
-
     function payReviewers(address[] memory votersToPay) internal {
         uint rewardWei = 1 ether; // TODO: add to streamrConstants?
         for (uint i = 0; i < votersToPay.length; i++) {
@@ -155,8 +153,4 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             token.transfer(votersToPay[i], rewardWei);
         }
     }
-
-    /**
-     * Tally votes and trigger resolution
-     */
 }

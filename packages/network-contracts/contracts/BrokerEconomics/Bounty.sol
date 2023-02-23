@@ -35,7 +35,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     // event SponsorshipReceived(address indexed sponsor, uint amount);
-    event BrokerReported(address indexed broker, address indexed reporter);
     event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
@@ -185,6 +184,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function leave() public { // TODO: rename into unstake
         address broker = _msgSender();
         require(globalData().committedStakeWei[broker] == 0, "error_cannotUnstakeAll");
+        uint penaltyWei = getLeavePenalty(broker);
+        _slash(broker, penaltyWei);
+        _addSponsorship(address(this), penaltyWei);
         _removeBroker(broker);
     }
 
@@ -217,14 +219,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      */
     function _removeBroker(address broker) internal {
         GlobalStorage storage s = globalData();
-        require(s.stakedWei[broker] > 0, "error_brokerNotStaked");
+        uint stakedWei = s.stakedWei[broker];
+        require(stakedWei > 0, "error_brokerNotStaked");
         // console.log("leaving:", broker);
 
-        uint penaltyWei = getLeavePenalty(broker);
-        _slash(broker, penaltyWei);
-        _addSponsorship(address(this), penaltyWei);
-        uint stakedWei = s.stakedWei[broker]; // after penalty, this will be paid out
-
+        // send out both allocations and stake
         _withdraw(broker);
         require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
 
@@ -305,12 +304,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function voteOnFlag(address broker, bytes32 voteData) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, broker, voteData), "error_kickPolicyFailed");
-    }
-
-    function kick(address broker) external {
-        require(address(kickPolicy) != address(0), "error_kickingNotSupported");
-        // console.log("Reporting", broker);
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onKick.selector, broker), "error_kickPolicyFailed");
     }
 
     /////////////////////////////////////////
