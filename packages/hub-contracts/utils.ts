@@ -46,7 +46,7 @@ export function chainToMailboxAddress(name: string) {
 }
 
 /**
- * Maps the chain name to the hyperlane interchain paymaster address. The same for all EVM chains
+ * Maps the chain name to the hyperlane interchain default paymaster address. The same for all EVM chains
  */
 export function chainToDefaultPaymasterAddress(name: string) {
     switch (true) {
@@ -54,6 +54,20 @@ export function chainToDefaultPaymasterAddress(name: string) {
             return '0xF90cB82a76492614D07B82a7658917f3aC811Ac1'
         case mainnet.includes(name):
             return '0x56f52c0A1ddcD557285f7CBc782D3d83096CE1Cc'
+        default:
+            throw new Error(`Unknown interchain paymaster address for ${name} chain.`)
+    }
+}
+
+/**
+ * Maps the chain name to the hyperlane interchain paymaster address. The same for all EVM chains
+ */
+export function chainToPaymasterAddress(name: string) {
+    switch (true) {
+        case testnet.includes(name):
+            return '0x8f9C3888bFC8a5B25AED115A82eCbb788b196d2a'
+        case mainnet.includes(name):
+            return '0x6cA0B6D22da47f091B7613223cD4BB03a2d77918'
         default:
             throw new Error(`Unknown interchain paymaster address for ${name} chain.`)
     }
