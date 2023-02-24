@@ -297,7 +297,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Start the flagging process to kick an abusive broker */
     function flag(address target, address myBrokerPool) external {
-        require(address(kickPolicy) != address(0), "error_notSupported");        
+        require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target, myBrokerPool), "error_kickPolicyFailed");
     }
 
