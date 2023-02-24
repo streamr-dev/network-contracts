@@ -241,6 +241,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BrokerLeft(broker, stakedWei);
     }
 
+    /**
+     * Slash moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
+     * The caller should ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     **/
     function _slash(address broker, uint amountWei) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
