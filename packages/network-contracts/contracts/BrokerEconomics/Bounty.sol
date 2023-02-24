@@ -183,7 +183,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /** Get both stake and allocations out */
     function leave() public { // TODO: rename into unstake
         address broker = _msgSender();
-        require(globalData().committedStakeWei[broker] == 0, "error_cannotUnstakeWhileActiveFlag");
+        require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
         uint penaltyWei = getLeavePenalty(broker);
         _slash(broker, penaltyWei);
         _addSponsorship(address(this), penaltyWei);
