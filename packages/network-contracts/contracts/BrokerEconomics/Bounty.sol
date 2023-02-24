@@ -29,7 +29,7 @@ interface IFactory {
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeUpdate(address indexed broker, uint totalWei, uint allocatedWei);
+    event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei);
     event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning);
 
     event BrokerJoined(address indexed broker);
@@ -183,13 +183,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /** Get both stake and allocations out */
     function leave() public { // TODO: rename into unstake
         address broker = _msgSender();
-        require(globalData().committedStakeWei[broker] == 0, "error_cannotUnstakeAll");
+        require(globalData().committedStakeWei[broker] == 0, "error_cannotUnstakeWhileActiveFlag");
         uint penaltyWei = getLeavePenalty(broker);
         _slash(broker, penaltyWei);
         _addSponsorship(address(this), penaltyWei);
         _removeBroker(broker);
     }
 
+    /** Reduce your stake in the bounty without leaving */
     function reduceStake(uint cashoutWei) external {
         address broker = _msgSender();
         // TODO: check minimumstake with join policy: we don't want that stake can be reduced to less than minimum for joining!
