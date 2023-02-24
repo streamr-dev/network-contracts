@@ -238,6 +238,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BrokerLeft(broker, stakedWei);
     }
 
+    /**
+     * Slash moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
+     * The caller should ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     **/
     function _slash(address broker, uint amountWei) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
@@ -289,21 +293,21 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Start the flagging process to kick an abusive broker */
-    function flag(address broker, address myBrokerPool) external {
+    function flag(address target, address myBrokerPool) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, broker, myBrokerPool), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target, myBrokerPool), "error_kickPolicyFailed");
     }
 
     /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */
-    function cancelFlag(address broker, address myBrokerPool) external {
+    function cancelFlag(address target, address myBrokerPool) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, broker, myBrokerPool), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, target, myBrokerPool), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */
-    function voteOnFlag(address broker, bytes32 voteData) external {
+    function voteOnFlag(address target, bytes32 voteData) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, broker, voteData), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData), "error_kickPolicyFailed");
     }
 
     /////////////////////////////////////////

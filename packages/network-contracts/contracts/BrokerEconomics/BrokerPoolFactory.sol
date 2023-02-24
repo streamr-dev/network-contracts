@@ -34,7 +34,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         streamrConstants = constants;
         tokenAddress = _tokenAddress;
         brokerPoolTemplate = templateAddress;
@@ -150,6 +150,11 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         deploymentTimestamp[poolAddress] = block.timestamp;
         deployedBrokerPools.push(pool);
         return poolAddress;
+    }
+
+    function predictAddress(string calldata poolName) public view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
+        return ClonesUpgradeable.predictDeterministicAddress(brokerPoolTemplate, salt, address(this));
     }
 
     /*
