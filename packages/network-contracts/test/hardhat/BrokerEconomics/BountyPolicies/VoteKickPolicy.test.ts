@@ -116,7 +116,7 @@ describe("VoteKickPolicy", (): void => {
         it("with 2 flags active at the same time (not interfere with each other)", async function(): Promise<void> {
             const { token, bounty, brokers: [ flagger1, flagger2, broker3, broker4 ],
                 pools: [ pool1, pool2, target1, target2 ],
-                nonStakedBrokers: [voter1, voter2, voter3] } = await setup(4, 3, this.test?.title)
+                nonStakedBrokers: [voter1, voter2, voter3] } = await setup(4, 3, "2-simultaneous-flags")
 
             const flagReceipt1 = await (await bounty.connect(flagger1).flag(target1.address, pool1.address)).wait() as ContractReceipt
             const reviewRequests1 = flagReceipt1.events!.filter((e) => e.event === "ReviewRequest")
