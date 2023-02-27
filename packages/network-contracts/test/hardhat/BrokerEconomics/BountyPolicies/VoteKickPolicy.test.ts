@@ -235,10 +235,12 @@ describe("VoteKickPolicy", (): void => {
             // expect(reviewRequests.length).to.equal(1)
             expect(reviewRequest?.args?.reviewer).to.equal(voter1.address)
 
-            await expect(targetPool.reduceStake(bounty.address, parseEther("901")))
+            const maxStakeReduction = await bounty.maxStakeReduction(bounty.address)
+            expect(maxStakeReduction).to.equal(parseEther("888"))
+            await expect(targetPool.reduceStake(bounty.address, parseEther("889")))
                 .to.be.revertedWith("error_cannotReduceStake")
-            await expect(targetPool.reduceStake(bounty.address, parseEther("900")))
-                .to.emit(bounty, "StakeUpdate").withArgs(targetPool.address, parseEther("100"), parseEther("0"))
+            await expect(targetPool.reduceStake(bounty.address, parseEther("888")))
+                .to.emit(bounty, "StakeUpdate").withArgs(targetPool.address, parseEther("112"), parseEther("0"))
         })
 
         it("allows the target to withdraw the correct amount AFTER the flag period (not kicked)", async function(): Promise<void> {
@@ -263,10 +265,12 @@ describe("VoteKickPolicy", (): void => {
 
             await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt
 
-            await expect(flaggerPool.reduceStake(bounty.address, parseEther("991")))
+            const maxStakeReduction = await bounty.maxStakeReduction(bounty.address)
+            expect(maxStakeReduction).to.equal(parseEther("988"))
+            await expect(flaggerPool.reduceStake(bounty.address, parseEther("989")))
                 .to.be.revertedWith("error_cannotReduceStake")
-            await expect(flaggerPool.reduceStake(bounty.address, parseEther("990")))
-                .to.emit(bounty, "StakeUpdate").withArgs(flaggerPool.address, parseEther("10"), parseEther("0"))
+            await expect(flaggerPool.reduceStake(bounty.address, parseEther("988")))
+                .to.emit(bounty, "StakeUpdate").withArgs(flaggerPool.address, parseEther("12"), parseEther("0"))
         })
 
         it("allows the flagger to withdraw the correct amount AFTER the flag period (stake-commited)", async function(): Promise<void> {

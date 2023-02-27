@@ -190,6 +190,17 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _addSponsorship(address(this), penaltyWei);
     }
 
+    /**
+     * In order to pay for all the flags AND still afford to get slashed 10%, there's a limit to how much stake can be reduced
+     *     stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+     * =>  remaining stake * 9/10 >= committedStake
+     * =>  remaining stake == stake - cashoutWei >= committedStake * 10/9
+     * =>  cashoutWei <= stake - committedStake * 10/9
+     */
+    function maxStakeReduction(address broker) public view returns (uint maxStakeReductionWei) {
+        return globalData().stakedWei[broker] - globalData().committedStakeWei[broker] * 10/9;
+    }
+
     /** Reduce your stake in the bounty without leaving */
     function reduceStake(uint cashoutWei) external {
         address broker = _msgSender();
@@ -199,7 +210,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             leave();
             return;
         }
-        require(cashoutWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
+
+        // stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+        //   in order to pay for all the flags AND still afford to get slashed 10%
+        require(cashoutWei <= maxStakeReduction(broker), "error_cannotReduceStake");
 
         globalData().stakedWei[broker] -= cashoutWei;
         globalData().totalStakedWei -= cashoutWei;

@@ -45,7 +45,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
+        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool] * 9/10, "error_notEnoughStake");
         flaggerPoolAddress[target] = myBrokerPool;
 
         targetStakeWei[target] = globalData().stakedWei[target] / 10;
