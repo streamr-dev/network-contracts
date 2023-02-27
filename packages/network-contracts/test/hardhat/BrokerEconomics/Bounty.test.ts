@@ -37,7 +37,7 @@ describe("Bounty", (): void => {
         const { bountyFactory } = contracts
         testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as unknown as IAllocationPolicy
         testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as unknown as IJoinPolicy
-        await (await bountyFactory.addTrustedPolicies([ testJoinPolicy.address, testAllocationPolicy.address])).wait()
+        await (await bountyFactory.addTrustedPolicies([testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         token = contracts.token
         await (await token.mint(admin.address, parseEther("1000000"))).wait()

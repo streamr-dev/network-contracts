@@ -49,15 +49,12 @@ describe("AdminKickPolicy", (): void => {
 
         log("IsAdmin %o", await bounty.isAdmin(admin.address))
 
-        // event BrokerReported(address indexed broker, address indexed reporter);
         // event BrokerKicked(address indexed broker, uint slashedWei);
         const brokerCountBeforeKick = await bounty.getBrokerCount()
         await advanceToTimestamp(timeAtStart + 200, "broker 1 is kicked out")
-        expect (await bounty.connect(admin).kick(await broker.getAddress()))
-            .to.emit(bounty, "BrokerReported")
-            .withArgs(await broker.getAddress(), admin.address)
-            .and.to.emit(bounty, "BrokerKicked")
-            .withArgs(await broker.getAddress(), "1")
+        expect (await bounty.connect(admin).flag(await broker.getAddress(), admin.address))
+            .to.emit(bounty, "BrokerKicked")
+            .withArgs(await broker.getAddress(), "0")
         const brokerCountAfterKick = await bounty.getBrokerCount()
 
         await advanceToTimestamp(timeAtStart + 300, "broker 2 leaves and gets slashed")
@@ -77,11 +74,10 @@ describe("AdminKickPolicy", (): void => {
         const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 
-        // event BrokerReported(address indexed broker, address indexed reporter);
         const brokerCountBeforeReport = await bounty.getBrokerCount()
-        expect(bounty.connect(broker2).kick(await broker.getAddress()))
-            .to.emit(bounty, "BrokerReported")
-            .withArgs(await broker.getAddress(), broker2.address)
+        expect(bounty.connect(broker2).flag(await broker.getAddress(), admin.address))
+            .to.emit(bounty, "BrokerKicked")
+            .withArgs(await broker.getAddress(), "0")
         const brokerCountAfterReport = await bounty.getBrokerCount()
 
         expect(brokerCountBeforeReport.toString()).to.equal("1")
