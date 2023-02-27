@@ -14,7 +14,7 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
 
     function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MinimumStakeJoinPolicy", address(this)));
-        assembly {data.slot := storagePosition}
+        assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
     function setParam(uint256 minimumStake) external {

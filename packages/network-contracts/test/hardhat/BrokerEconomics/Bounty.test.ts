@@ -130,13 +130,13 @@ describe("Bounty", (): void => {
 
         it("error setting param on allocationPolicy", async function(): Promise<void> {
             await expect(deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "1")) // 1 => will revert in setParam
-                .to.be.revertedWith("test-error: setting param allocation policy")
+                .to.be.revertedWith("test_setParam")
         })
 
         it("error onJoin on allocationPolicy", async function(): Promise<void> {
             const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "3") // 3 => onJoin will revert
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
-                .to.be.revertedWith("test-error: onJoin allocation policy")
+                .to.be.revertedWith("test_onJoin")
         })
 
         it("error onJoin on allocationPolicy, empty error", async function(): Promise<void> {
@@ -148,7 +148,7 @@ describe("Bounty", (): void => {
         it("error onleave on allocationPolicy", async function(): Promise<void> {
             const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).leave()).to.be.revertedWith("test-error: onLeave allocation policy")
+            await expect(bounty.connect(broker).leave()).to.be.revertedWith("test_onLeave")
         })
 
         it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
@@ -161,7 +161,7 @@ describe("Bounty", (): void => {
             const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "7") // 7 => onStakeIncrease will revert
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
-                .to.be.revertedWith("test-error: onStakeIncrease allocation policy")
+                .to.be.revertedWith("test_onStakeIncrease")
         })
 
         it("error onstakeIncrease, empty error", async function(): Promise<void> {

@@ -17,7 +17,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
     function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("brokerPool.storage.DefaultPoolYieldPolicy", address(this)));
-        assembly {data.slot := storagePosition}
+        assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
     function setParam(uint256 initialMargin, uint256 maintenanceMarginPercent, uint256 minimumMarginPercent, uint256 brokerSharePercent, uint256 brokerShareMaxDivertPercent) external {

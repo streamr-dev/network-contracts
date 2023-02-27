@@ -1,12 +1,13 @@
 import "@nomicfoundation/hardhat-toolbox"
 import "@nomicfoundation/hardhat-chai-matchers"
-import { HardhatUserConfig } from 'hardhat/types'
-import '@openzeppelin/hardhat-upgrades'
-import 'hardhat-ignore-warnings'
-import 'solidity-coverage'
-import 'hardhat-dependency-compiler'
-import '@nomiclabs/hardhat-etherscan'
+import "@openzeppelin/hardhat-upgrades"
+import "hardhat-ignore-warnings"
+import "solidity-coverage"
+import "hardhat-dependency-compiler"
+import "@nomiclabs/hardhat-etherscan"
 // import "hardhat-gas-reporter"
+
+import { HardhatUserConfig } from "hardhat/types"
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -19,8 +20,9 @@ import '@nomiclabs/hardhat-etherscan'
 //     }
 // })
 
+// TODO: check regularly if this is actually needed...
 // TODO: add this to the hardhat-dependency-compiler repo as a pull request or whatever
-declare module 'hardhat/types/config' {
+declare module "hardhat/types/config" {
     interface HardhatUserConfig {
       dependencyCompiler?: any;
     }
@@ -34,7 +36,7 @@ declare module 'hardhat/types/config' {
  */
 const config: HardhatUserConfig = {
 
-    defaultNetwork: 'hardhat',
+    defaultNetwork: "hardhat",
     networks: {
         hardhat: {
             gas: 12000000,
@@ -69,23 +71,23 @@ const config: HardhatUserConfig = {
         }
     },
     etherscan: {
-        apiKey: ''
+        apiKey: ""
     },
     dependencyCompiler: {
         paths: [
-            '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
-            '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol',
-            '@opengsn/contracts/src/forwarder/Forwarder.sol',
-            '@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol',
-            '@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol',
-            '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
+            "@openzeppelin/contracts/metatx/MinimalForwarder.sol",
+            "@chainlink/contracts/src/v0.4/LinkToken.sol",
+            "@chainlink/contracts/src/v0.6/Oracle.sol",
+            "@opengsn/contracts/src/forwarder/Forwarder.sol",
+            "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
+            "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
+            "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
         ],
     },
     solidity: {
         compilers: [
             {
-                version: '0.8.13',
+                version: "0.8.13",
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -94,7 +96,7 @@ const config: HardhatUserConfig = {
                 },
             },
             {
-                version: '0.8.9',
+                version: "0.8.9",
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -103,7 +105,7 @@ const config: HardhatUserConfig = {
                 },
             },
             {
-                version: '0.6.6',
+                version: "0.6.6",
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -112,7 +114,7 @@ const config: HardhatUserConfig = {
                 },
             },
             {
-                version: '0.4.24',
+                version: "0.4.24",
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -121,7 +123,7 @@ const config: HardhatUserConfig = {
                 },
             },
             {
-                version: '0.6.12',
+                version: "0.6.12",
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -137,13 +139,13 @@ const config: HardhatUserConfig = {
     //     deployer: 0,
     // },
     warnings: {
-        '@chainlink/contracts/src/v0.4/**/*': {
-            default: 'off',
+        "@chainlink/contracts/src/v0.4/**/*": {
+            default: "off",
         },
     },
     typechain: {
-        outDir: './typechain',
-        target: 'ethers-v5',
+        outDir: "./typechain",
+        target: "ethers-v5",
     },
     mocha: {
         timeout: 100000000
