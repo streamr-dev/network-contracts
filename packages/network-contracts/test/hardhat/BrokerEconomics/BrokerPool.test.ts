@@ -710,7 +710,7 @@ describe("BrokerPool", (): void => {
         await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        const a = await (await bounty.connect(admin).flag(pool.address, pool.address)).wait()
+        await (await bounty.connect(admin).flag(pool.address, pool.address)).wait()
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 

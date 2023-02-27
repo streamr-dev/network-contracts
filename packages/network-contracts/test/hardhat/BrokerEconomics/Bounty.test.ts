@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { Contract, utils as ethersUtils, Wallet } from "ethers"
 
-import { Bounty, IAllocationPolicy, IJoinPolicy, IKickPolicy, TestToken } from "../../../typechain"
+import { Bounty, IAllocationPolicy, IJoinPolicy, TestToken } from "../../../typechain"
 
 const { defaultAbiCoder, parseEther } = ethersUtils
 const { getSigners, getContractFactory } = hardhatEthers
@@ -23,7 +23,6 @@ describe("Bounty", (): void => {
 
     let testJoinPolicy: IJoinPolicy
     let testAllocationPolicy: IAllocationPolicy
-    let testKickPolicy: IKickPolicy
 
     let contracts: TestContracts
 

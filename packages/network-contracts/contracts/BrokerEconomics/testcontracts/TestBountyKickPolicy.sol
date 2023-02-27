@@ -31,6 +31,7 @@ contract TestBountyKickPolicy is IKickPolicy, Bounty {
         emit BrokerKicked(broker, 0);
     }
 
+    // solhint-disable-next-line no-unused-vars
     function onFlag(address broker, address brokerPool) external {
         console.log("onflag");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
