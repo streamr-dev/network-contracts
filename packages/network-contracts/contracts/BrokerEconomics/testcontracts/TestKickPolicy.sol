@@ -7,7 +7,7 @@ import "../Bounty.sol";
 
 import "hardhat/console.sol";
 
-contract TestBountyKickPolicy is IKickPolicy, Bounty {
+contract TestKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
 
@@ -19,17 +19,6 @@ contract TestBountyKickPolicy is IKickPolicy, Bounty {
     function setParam(uint256 _param) external {
     }
 
-    /**
-     * Only admin can kick.
-     * Stake isn't slashed, broker is simply removed.
-     */
-    function onKick(address broker) external {
-        console.log("onkick");
-        require(isAdmin(_msgSender()), "error_onlyAdmin");
-        _slash(broker, 0, true);
-        emit BrokerKicked(broker, 0);
-    }
-
     // solhint-disable-next-line no-unused-vars
     function onFlag(address broker, address brokerPool) external {
         console.log("onflag");
@@ -37,7 +26,12 @@ contract TestBountyKickPolicy is IKickPolicy, Bounty {
         _slash(broker, 10 ether, false);
     }
 
-    function onCancelFlag(address, address brokerPool) external {
+    // solhint-disable-next-line no-unused-vars
+    function onCancelFlag(address broker, address brokerPool) external {
+        console.log("onkick");
+        require(isAdmin(_msgSender()), "error_onlyAdmin");
+        _slash(broker, 0, true);
+        emit BrokerKicked(broker, 0);
     }
 
     function onVote(address broker, bytes32 voteData) external {
