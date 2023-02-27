@@ -1,10 +1,3 @@
-/**
- * Upgraded on: not yet deployed
- * https://polygonscan.com/tx/ not yet deployed
- * DO NOT EDIT
- * Instead, make a copy with new version number
- */
-
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.9;

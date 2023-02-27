@@ -68,7 +68,14 @@ interface IMarketplace {
     function hasValidSubscription(bytes32 productId, address subscriber) external view returns (bool isValid);
 
     function getProduct(bytes32 id) external view returns (
-        string memory name, address owner, address beneficiary, uint pricePerSecond, address pricingTokenAddress, uint minimumSubscriptionSeconds, ProductState state, bool requiresWhitelist
+        string memory name,
+        address owner,
+        address beneficiary,
+        uint pricePerSecond,
+        address pricingTokenAddress,
+        uint minimumSubscriptionSeconds,
+        ProductState state,
+        bool requiresWhitelist
     );
 
     function buy(bytes32 productId, uint subscriptionSeconds) external;
