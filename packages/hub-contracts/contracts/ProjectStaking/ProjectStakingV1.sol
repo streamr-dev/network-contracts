@@ -1,3 +1,8 @@
+/**
+ * Deployed on polygon on 2023-01-30
+ * https://polygonscan.com/tx/0x9ac1675b54bc91ea199a682eb0b0a7e8e15a098b4fb1a66d2eec59072253380f
+ */
+ 
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.9;
@@ -6,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../ProjectRegistry/IProjectRegistry.sol";
+import "../ProjectRegistry/IProjectRegistryV1.sol";
 import "./IProjectStakingV1.sol";
 
 /**
@@ -18,7 +23,7 @@ import "./IProjectStakingV1.sol";
 contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable, IProjectStakingV1 {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     
-    IProjectRegistry public projectRegistry;
+    IProjectRegistryV1 public projectRegistry;
     address public stakingTokenAddress;
 
     mapping(address => mapping(bytes32 => uint256)) private stakedTokens;
@@ -42,7 +47,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
 
-        projectRegistry = IProjectRegistry(projectRegistryAddress);
+        projectRegistry = IProjectRegistryV1(projectRegistryAddress);
         stakingTokenAddress = tokenAddress;
     }
 

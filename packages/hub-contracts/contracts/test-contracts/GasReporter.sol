@@ -3,7 +3,7 @@
 pragma solidity ^0.8.9;
 
 
-import "../IMarketplaceV4.sol";
+import "../Marketplace/IMarketplaceV4.sol";
 import "hardhat/console.sol";
 
 interface IMessageRecipient {

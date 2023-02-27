@@ -1,3 +1,10 @@
+/**
+ * Deployed on polygon on 2023-01-30
+ * https://polygonscan.com/tx/0x855fa123c508542a2a9ddd055bfa1e4cea0d8723ba8f381e9c68ec78afda2a96
+ * Upgraded on polygon on 2023-02-22
+ * https://polygonscan.com/tx/0x5c8ece9f5326614bb73e0e2965a79d0c5c3a1724f7d94f5a04174a96772f0533
+ */
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.9;
@@ -7,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 
-import "./IProjectRegistry.sol";
+import "./IProjectRegistryV1.sol";
 
 interface IStreamRegistry {
     struct Permission {
@@ -31,7 +38,7 @@ interface IStreamRegistry {
     ) external;
 }
 
-contract ProjectRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistry {
+contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IProjectRegistryV1 {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");

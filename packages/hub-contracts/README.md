@@ -53,7 +53,7 @@ These examples use older contracts:
 - MarketplaceV4 deployed on alfajores at: `0x14577e0D5BD77536E073712d98E471edDaFAE8b4`
 - RemoteMarketplace deployed on optimistic-goerli at: `0xBef916b1EC6EAA3F522368f75094DAed5c228aF6`
 
-## ProjectRegistry
+## ProjectRegistryV1
 
 ### Deloyed on:
 - polygon at `0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1`.
@@ -69,7 +69,7 @@ The following two alternatives will lead to the same end result:
 
 ### Interface:
 - `stake(projectId, amount)`
-    - Checks that `projectId` is a valid project in the `ProjectRegistry` identified by `projectRegistryAddress`
+    - Checks that `projectId` is a valid project in the `ProjectRegistryV1` identified by `projectRegistryAddress`
     - Transfers amount of tokens (identified by `tokenAddress`) from the caller into the contract and updates the internal bookkeeping to mark them as staked against `projectId` and owned by the caller
     - Fires a `Stake(projectId, user, amount)` event
 - `unstake(projectId, amount)`, the opposite of stake

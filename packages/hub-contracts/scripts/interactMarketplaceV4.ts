@@ -9,7 +9,7 @@ const { log } = console
 
 const {
     ORIGIN_CHAIN = 'dev0', // where RemoteMarketplace is deployed
-    DESTINATION_CHAIN = 'dev1', // where ProjectRegistry & MarketplaceV4 is deployed
+    DESTINATION_CHAIN = 'dev1', // where ProjectRegistryV1 & MarketplaceV4 is deployed
 } = process.env
 
 const {

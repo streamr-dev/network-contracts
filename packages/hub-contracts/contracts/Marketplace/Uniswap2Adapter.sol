@@ -27,8 +27,8 @@ contract Uniswap2Adapter {
         return (pricePerSecond, pricingTokenAddress);
     }
 
-    function buyWithERC20(bytes32 productId, uint minSubscriptionSeconds,uint timeWindow, address erc20_address, uint amount) public {
-        require(erc20_address != address(0), "use buyWithETH instead");
+    function buyWithERC20(bytes32 productId, uint minSubscriptionSeconds,uint timeWindow, address erc20Address, uint amount) public {
+        require(erc20Address != address(0), "use buyWithETH instead");
         (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(productId);
 
         if (pricePerSecond == 0x0) {
@@ -37,12 +37,12 @@ contract Uniswap2Adapter {
             return;
         }
 
-        IERC20 fromToken = IERC20(erc20_address);
+        IERC20 fromToken = IERC20(erc20Address);
         require(fromToken.transferFrom(msg.sender, address(this), amount), "must pre approve token transfer");
         require(fromToken.approve(address(uniswapRouter), 0), "approval failed");
         require(fromToken.approve(address(uniswapRouter), amount), "approval failed");
 
-        _buyWithUniswap(productId, minSubscriptionSeconds, timeWindow, pricePerSecond, amount, erc20_address, pricingTokenAddress);
+        _buyWithUniswap(productId, minSubscriptionSeconds, timeWindow, pricePerSecond, amount, erc20Address, pricingTokenAddress);
     }
 
     function buyWithETH(bytes32 productId, uint minSubscriptionSeconds,uint timeWindow) public payable{
@@ -75,6 +75,7 @@ contract Uniswap2Adapter {
         uint amountOutMin = 1; // The minimum amount of output tokens that must be received for the transaction not to revert.
         address[] memory path = _uniswapPath(fromToken, toToken); // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
         address to = address(this); // Recipient of the output tokens.
+        // solhint-disable-next-line not-rely-on-time
         uint deadline = block.timestamp + timeWindow; // Unix timestamp after which the transaction will revert.
 
         // swapExactETHForTokens/swapExactTokensForTokens returns the input token amount and all subsequent output token amounts.
@@ -131,6 +132,7 @@ contract Uniswap2Adapter {
         (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(productId);
 
         address[] memory path = _uniswapPath(msg.sender, pricingTokenAddress);
+        // solhint-disable-next-line not-rely-on-time
         uint receivedTokens = uniswapRouter.swapExactTokensForTokens(amount, 1, path, address(this), block.timestamp + 86400)[path.length - 1];
 
         require(IERC20(pricingTokenAddress).approve(address(marketplace), 0), "approval failed");
