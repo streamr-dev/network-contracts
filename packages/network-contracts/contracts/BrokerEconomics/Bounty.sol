@@ -186,8 +186,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
         uint penaltyWei = getLeavePenalty(broker);
         _slash(broker, penaltyWei, false);
-        _addSponsorship(address(this), penaltyWei);
         _removeBroker(broker);
+        _addSponsorship(address(this), penaltyWei);
     }
 
     /** Reduce your stake in the bounty without leaving */
@@ -248,6 +248,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+        if (alsoKick) {
+            _removeBroker(broker);
+        }
         if (broker.code.length > 0) {
             try ISlashListener(broker).onSlash(alsoKick) {} catch {}
         }

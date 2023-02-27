@@ -26,7 +26,6 @@ contract TestBountyKickPolicy is IKickPolicy, Bounty {
     function onKick(address broker) external {
         console.log("onkick");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
-        _removeBroker(broker);
         _slash(broker, 0, true);
         emit BrokerKicked(broker, 0);
     }

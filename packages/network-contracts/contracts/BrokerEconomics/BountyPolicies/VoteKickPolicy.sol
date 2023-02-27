@@ -149,7 +149,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 _slash(target, slashingWei, true); // leftovers are added to sponsorship
                 payReviewers(votersForKick[target]);
                 _addSponsorship(address(this), leftOverWei);
-                _removeBroker(target);
                 emit BrokerKicked(target, slashingWei);
                 token.transfer(flagger, flaggerRewardWei);
             } else if (result == 2) { // false flag, not kick
