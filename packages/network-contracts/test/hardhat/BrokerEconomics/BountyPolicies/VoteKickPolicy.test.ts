@@ -47,7 +47,7 @@ describe("VoteKickPolicy", (): void => {
 
         // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
         // see BrokerPoolFactory:_deployBrokerPool for how saltSeed is used in CREATE2
-        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, saltSeed)))
+        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, {}, saltSeed)))
         await Promise.all(brokers.map((b, i) => token.connect(b).transferAndCall(pools[i].address, parseEther("1000"), "0x")))
 
         const bounty = await deployBountyContract(contracts, {
