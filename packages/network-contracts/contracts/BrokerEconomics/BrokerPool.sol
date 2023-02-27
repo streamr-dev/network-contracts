@@ -143,22 +143,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function onSlash(bool kicked) external override {
+        Bounty bounty = Bounty(msg.sender);
+        uint index = indexOfBounties[bounty];
+        require(index > 0, "error_onlyBounty");
         // console.log("## onSlash");
-        // TODO: check msg.sender is a bounty
         if (kicked) {
             // console.log("onSlash kicked");
-            Bounty bounty = Bounty(msg.sender);
-            uint index = indexOfBounties[bounty];
-            if (index > 0) {
-                bounties[index-1] = bounties[bounties.length-1];
-                indexOfBounties[bounties[index-1]] = index;
-                bounties.pop();
-                delete indexOfBounties[bounty];
-                emit Unstaked(bounty, 0, 0);
-            }
-        } else {
-            updateApproximatePoolvalueOfBounty(Bounty(msg.sender));
+            bounties[index-1] = bounties[bounties.length-1];
+            indexOfBounties[bounties[index-1]] = index;
+            bounties.pop();
+            delete indexOfBounties[bounty];
+            emit Unstaked(bounty, 0, 0);
         }
+        updateApproximatePoolvalueOfBounty(bounty);
     }
 
     /////////////////////////////////////////
