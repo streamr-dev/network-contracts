@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./IPurchaseListener.sol";
 import "./IMarketplace.sol";
-import "./token/IERC677.sol";
+import "../token/IERC677.sol";
 
 /**
  * @title Streamr Marketplace
@@ -120,7 +120,9 @@ contract MarketplaceV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     }
 
 
-    function _createProduct(bytes32 id, string memory name, address productOwner, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, bool requiresWhitelist) internal {
+    function _createProduct(
+            bytes32 id, string memory name, address productOwner, address beneficiary, uint pricePerSecond, address pricingToken, uint minimumSubscriptionSeconds, bool requiresWhitelist
+        ) internal {
         require(id != 0x0, "error_nullProductId");
         require(pricePerSecond > 0, "error_freeProductsNotSupported");
         require(bytes(ERC20(pricingToken).symbol()).length > 0, "error_invalidPricingTokenSymbol");

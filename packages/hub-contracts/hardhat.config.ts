@@ -95,12 +95,12 @@ const config: HardhatUserConfig = {
         outDir: "./typechain",
         target: "ethers-v5",
     },
-    gasReporter: {
-        enabled: (process.env.REPORT_GAS) ? true : false,
-        currency: 'USD',
-        token: 'MATIC',
-        coinmarketcap: process.env.COINMARKETCAP_KEY,
-        showMethodSig: true,
-    }
+    // gasReporter: {
+    //     enabled: (process.env.REPORT_GAS) ? true : false,
+    //     currency: 'USD',
+    //     token: 'MATIC',
+    //     coinmarketcap: process.env.COINMARKETCAP_KEY,
+    //     showMethodSig: true,
+    // }
 }
 export default config

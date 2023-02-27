@@ -1,8 +1,6 @@
 /**
- * Upgraded on: not yet deployed
- * https://polygonscan.com/tx/ not yet deployed
- * DO NOT EDIT
- * Instead, make a copy with new version number
+ * Deployed on polygon on 2023-02-22
+ * https://polygonscan.com/tx/0x76859b523227acc89e6c9bccc12f8c32cc912de494d50b912fc093bbf2efda8f
  */
 
 // SPDX-License-Identifier: MIT
@@ -12,12 +10,13 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./token/IERC677.sol";
 
-import "./IMarketplaceV4.sol";
+import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
+import "./IMarketplaceV4.sol";
+import "./IMessageRecipient.sol";
 
-interface IProjectRegistry {
+interface IProjectRegistryV1 {
     enum PermissionType {  Buy, Delete, Edit, Grant }
     function getPaymentDetailsByChain(
         bytes32 projectId,
@@ -32,14 +31,6 @@ interface IProjectRegistry {
     function canBuyProject(bytes32 projectId, address buyer) external view returns(bool isPurchable);
     function getSubscription(bytes32 projectId, address subscriber) external view returns (bool isValid, uint256 endTimestamp);
     function isTrustedForwarder(address forwarder) external view returns (bool);
-}
-
-interface IMessageRecipient {
-    function handle(
-        uint32 _origin, // the chain id of the remote chain. Unique id assigned by Hyperlane (the same as the chainId in the EIP-155).
-        bytes32 _sender, // the contract address on the remote chain (e.g. RemoteMarketplace). It must match or the message will revert
-        bytes calldata _message // encoded purchase info
-    ) external;
 }
 
 /**
@@ -58,7 +49,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
 
     bool public halted;
 
-    IProjectRegistry public projectRegistry;
+    IProjectRegistryV1 public projectRegistry;
 
     // cross-chain messaging
     uint32 public chainId; // unique identifier for current chain (assigned by Hyperlane, but the same as the chainId in the EIP-155)
@@ -81,7 +72,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
         __UUPSUpgradeable_init();
 
         halted = false;
-        projectRegistry = IProjectRegistry(_projectRegistry);
+        projectRegistry = IProjectRegistryV1(_projectRegistry);
         chainId = _chainId;
     }
 

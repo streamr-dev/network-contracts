@@ -13,10 +13,10 @@ const {
 
 const {
     contracts: {
-        ProjectRegistry: PROJECT_REGISTRY_ADDRESS,
+        ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
     }
 } = Chains.load()[CHAIN]
-if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistry found in chain "${CHAIN}"`) }
+if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 
 const destinationDomainId = chainToDomainId(CHAIN)
@@ -30,10 +30,10 @@ async function main() {
     log(`Deploying MarketplaceV4 to ${CHAIN}:`)
     log(`   - project registry address: ${PROJECT_REGISTRY_ADDRESS}`)
 
-    const projectRegistryFactory = await getContractFactory("ProjectRegistry")
+    const projectRegistryFactory = await getContractFactory("ProjectRegistryV1")
     const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
     const projectRegistry = await projectRegistryFactoryTx.deployed()
-    log("ProjectRegistry attached at: ", projectRegistry.address)
+    log("ProjectRegistryV1 attached at: ", projectRegistry.address)
 
     log(`Deploying MarketplaceV4 to ${CHAIN}:`)
     const Marketplace = await getContractFactory("MarketplaceV4")

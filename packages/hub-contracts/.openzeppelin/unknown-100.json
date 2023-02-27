@@ -5,6 +5,11 @@
       "address": "0x2022E1F7749D355726Fb65285E29605A098bcb52",
       "txHash": "0x3f1ecc53db466d723adca82e3af7087f83f437658b86a0504a0b231202073eb9",
       "kind": "uups"
+    },
+    {
+      "address": "0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf",
+      "txHash": "0xb0e91897c894e695cdc8f909661195a6d46208051e8e1ed3a69bfc1eba0c84a5",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -251,6 +256,246 @@
           "t_uint256": {
             "label": "uint256",
             "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "bf3268b74d63d4b07963a123aaf036a509cca7995471d0bc26b5e80e9b6fc6c6": {
+      "address": "0xaec3f9c904773E1B1B35668128A5bb821A901F56",
+      "txHash": "0xd3c1ac399d32341d328f8fcb928f19fb558ce5edea3511e2b4cfc5c43a867a02",
+      "layout": {
+        "solcVersion": "0.8.13",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "purchaseCount",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_uint256",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:23"
+          },
+          {
+            "label": "purchases",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_mapping(t_uint256,t_struct(ProjectPurchase)3566_storage)",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:24"
+          },
+          {
+            "label": "originDomainId",
+            "offset": 0,
+            "slot": "203",
+            "type": "t_uint32",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:26"
+          },
+          {
+            "label": "destinationDomainId",
+            "offset": 4,
+            "slot": "203",
+            "type": "t_uint32",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:27"
+          },
+          {
+            "label": "recipientAddress",
+            "offset": 8,
+            "slot": "203",
+            "type": "t_address",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:28"
+          },
+          {
+            "label": "mailbox",
+            "offset": 0,
+            "slot": "204",
+            "type": "t_contract(IMailbox)3433",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:29"
+          },
+          {
+            "label": "queryRouter",
+            "offset": 0,
+            "slot": "205",
+            "type": "t_contract(IInterchainQueryRouter)3419",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:30"
+          },
+          {
+            "label": "gasPaymaster",
+            "offset": 0,
+            "slot": "206",
+            "type": "t_contract(IInterchainGasPaymaster)3399",
+            "contract": "RemoteMarketplaceV1",
+            "src": "contracts/Marketplace/RemoteMarketplace.sol:31"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IInterchainGasPaymaster)3399": {
+            "label": "contract IInterchainGasPaymaster",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IInterchainQueryRouter)3419": {
+            "label": "contract IInterchainQueryRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IMailbox)3433": {
+            "label": "contract IMailbox",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_uint256,t_struct(ProjectPurchase)3566_storage)": {
+            "label": "mapping(uint256 => struct IRemoteMarketplaceV1.ProjectPurchase)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(ProjectPurchase)3566_storage": {
+            "label": "struct IRemoteMarketplaceV1.ProjectPurchase",
+            "members": [
+              {
+                "label": "projectId",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "buyer",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "subscriber",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "beneficiary",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "pricingTokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "subscriptionSeconds",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "requestTimestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "price",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "fee",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              }
+            ],
+            "numberOfBytes": "288"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
           },
           "t_uint8": {
             "label": "uint8",

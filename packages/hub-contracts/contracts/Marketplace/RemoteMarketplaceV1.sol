@@ -1,89 +1,39 @@
+/**
+ * Deployed on gnosis on 2023-02-22
+ * https://gnosisscan.io/address/0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf
+ */
+ 
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "./token/IERC677.sol";
+import "../token/IERC677.sol";
 import "./IPurchaseListener.sol";
-
-interface IMarketplace {
-    function getPurchaseInfo(
-        bytes32 projectId,
-        uint256 subscriptionSeconds,
-        uint32 originDomainId,
-        uint256 purchaseId
-    ) external view returns(address, address, uint256, uint256, uint256);
-    function getSubscriptionInfo(
-        bytes32 projectId,
-        address subscriber,
-        uint256 purchaseId
-    ) external view returns(bool, uint256, uint256);
-}
-
-struct Call {
-    address to;
-    bytes data;
-}
-
-interface IInterchainQueryRouter {
-    function query(
-        uint32 _destinationDomain,
-        Call calldata call,
-        bytes calldata callback
-    ) external returns (bytes32);
-}
-
-interface IInterchainGasPaymaster {
-    function payForGas(
-        bytes32 _messageId,
-        uint32 _destinationDomain,
-        uint256 _gasAmount,
-        address _refundAddress
-    ) external payable;
-
-    function quoteGasPayment(uint32 _destinationDomain, uint256 _gasAmount)
-        external
-        view
-        returns (uint256);
-}
-
-interface IMailbox {
-    function dispatch(
-        uint32 destinationDomainId, // the chain id where MarketplaceV4 is deployed and where messages are sent to
-        bytes32 recipientAddress, // the address for the MarketplaceV4 contract. It must have the handle() function
-        bytes calldata messageBody // encoded purchase info
-    ) external returns (bytes32);
-}
+import "./IMarketplaceV4.sol";
+import "./IRemoteMarketplaceV1.sol";
+import "./IMailbox.sol";
+import "./IInterchainQueryRouter.sol";
+import "./IInterchainGasPaymaster.sol";
 
 /**
  * @title Streamr Remote Marketplace
  * The marketplace interface through which the users on other networks can send cross-chain messages to MarketpalceV4 (e.g. buy projects)
  */
-contract RemoteMarketplace is Ownable {
-    struct ProjectPurchase {
-        bytes32 projectId;
-        address buyer;
-        address subscriber;
-        address beneficiary;
-        address pricingTokenAddress;
-        uint256 subscriptionSeconds;
-        uint256 requestTimestamp;
-        uint256 price;
-        uint256 fee;
-    }
+contract RemoteMarketplaceV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IRemoteMarketplaceV1 {
 
     uint256 public purchaseCount;
     mapping(uint256 => ProjectPurchase) public purchases;
 
-    uint32 public originDomainId; // the domain id of the chain where RemoteMarketplace is deployed
-    uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistry & MarketplaceV4 is deployed
+    uint32 public originDomainId; // the domain id of the chain where RemoteMarketplaceV1 is deployed
+    uint32 public destinationDomainId; // the domain id of the chain where ProjectRegistryV1 & MarketplaceV4 is deployed
     address public recipientAddress; // the address of the MarketplaceV4 contract on the destination chain
     IMailbox public mailbox;
     IInterchainQueryRouter public queryRouter;
     IInterchainGasPaymaster public gasPaymaster;
-
-    event ProjectPurchasedFromRemote(bytes32 projectId, address subscriber, uint256 subscriptionSeconds, uint256 price, uint256 fee);
 
     modifier onlyQueryRouter() {
         require(msg.sender == address(queryRouter), "error_onlyQueryRouter");
@@ -96,12 +46,17 @@ contract RemoteMarketplace is Ownable {
      * @param _mailboxAddress - hyperlane Mailbox contract address. The same on all EVM chains
      * @param _gasPaymaster - hyperlane paymaster contract address. The same on all EVM chains
      */
-    constructor(uint32 _originDomainId, address _queryRouter, address _mailboxAddress, address _gasPaymaster) {
+    function initialize(uint32 _originDomainId, address _queryRouter, address _mailboxAddress, address _gasPaymaster) public initializer {
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+
         originDomainId = _originDomainId;
         queryRouter = IInterchainQueryRouter(_queryRouter);
         mailbox = IMailbox(_mailboxAddress);
         gasPaymaster = IInterchainGasPaymaster(_gasPaymaster);
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * Add recipient contract address for the destination chain; where the queries/messages are sent to
@@ -126,6 +81,7 @@ contract RemoteMarketplace is Ownable {
             address(0x0), // beneficiary
             address(0x0), // pricingTokenAddress
             subscriptionSeconds,
+            // solhint-disable-next-line not-rely-on-time
             block.timestamp, // requestTimestamp
             0, // price
             0 // fee
@@ -141,7 +97,7 @@ contract RemoteMarketplace is Ownable {
     function _queryPurchaseInfo(bytes32 projectId, uint256 subscriptionSeconds, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplaceV4.getPurchaseInfo, (projectId, subscriptionSeconds, originDomainId, purchaseId))}),
             abi.encodePacked(this.handlePurchaseInfo.selector)
         );
         uint256 gasAmount = _estimateGasForQueryPurchaseInfo();
@@ -195,7 +151,7 @@ contract RemoteMarketplace is Ownable {
     function _querySubscriptionState(bytes32 projectId, address subscriber, uint256 purchaseId) private {
         bytes32 messageId = queryRouter.query(
             destinationDomainId,
-            Call({to: recipientAddress, data: abi.encodeCall(IMarketplace.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
+            Call({to: recipientAddress, data: abi.encodeCall(IMarketplaceV4.getSubscriptionInfo, (projectId, subscriber, purchaseId))}),
             abi.encodePacked(this.handleSubscriptionState.selector)
         );
         uint256 gasAmount = _estimateGasForQuerySubscriptionState();

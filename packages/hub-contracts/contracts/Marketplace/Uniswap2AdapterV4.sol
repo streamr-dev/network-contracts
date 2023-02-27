@@ -5,9 +5,10 @@ pragma solidity ^0.8.9;
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "./IMarketplaceV4.sol";
 
-interface IProjectRegistry {
+interface IProjectRegistryV1 {
     struct PaymentDetails {
         address beneficiary; // account where revenue is directed to
         address pricingTokenAddress; // the token in which the project is paid to project beneficiary
@@ -30,7 +31,7 @@ interface IProjectRegistry {
 contract Uniswap2AdapterV4 is ERC2771Context {
 
     IMarketplaceV4 public marketplace;
-    IProjectRegistry public projectRegistry;
+    IProjectRegistryV1 public projectRegistry;
     IUniswapV2Router02 public uniswapRouter;
     address public liquidityToken;
     uint32[] public domainIds; // assigned at contract creation
@@ -40,7 +41,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
      */
     constructor(address _marketplace, address _projectRegistry, address _uniswapRouter, uint32 _deployedOnDomainId) ERC2771Context(address(0x0)) {
         marketplace = IMarketplaceV4(_marketplace);
-        projectRegistry = IProjectRegistry(_projectRegistry);
+        projectRegistry = IProjectRegistryV1(_projectRegistry);
         uniswapRouter = IUniswapV2Router02(_uniswapRouter);
         domainIds.push(_deployedOnDomainId);
     }
@@ -110,6 +111,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
      */
     function _buyWithUniswap(address subscriber, bytes32 projectId, uint minSubscriptionSeconds, uint timeWindow, uint pricePerSecond, uint amount, address fromToken, address toToken) internal{
         address[] memory path = _uniswapPath(fromToken, toToken); // An array of token addresses. path.length must be >= 2. Pools for each consecutive pair of addresses must exist and have liquidity.
+        // solhint-disable-next-line not-rely-on-time
         uint deadline = block.timestamp + timeWindow; // Unix timestamp after which the transaction will revert.
 
         // swapExactETHForTokens/swapExactTokensForTokens returns the input token amount and all subsequent output token amounts.
@@ -166,6 +168,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
         (uint pricePerSecond, address pricingTokenAddress) = _getPriceInfo(projectId);
 
         address[] memory path = _uniswapPath(_msgSender(), pricingTokenAddress);
+        // solhint-disable-next-line not-rely-on-time
         uint receivedTokens = uniswapRouter.swapExactTokensForTokens(amount, 1, path, address(this), block.timestamp + 86400)[path.length - 1];
 
         require(IERC20(pricingTokenAddress).approve(address(marketplace), 0), "approval failed");
@@ -176,7 +179,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
 
     function _getPriceInfo(bytes32 projectId) internal view returns (uint256 pricePerSecond, address pricingTokenAddress) {
         require(projectRegistry.exists(projectId), "error_projectDoesNotExist");
-        (IProjectRegistry.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, domainIds);
+        (IProjectRegistryV1.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, domainIds);
         pricePerSecond = paymentDetails[0].pricePerSecond;
         pricingTokenAddress = paymentDetails[0].pricingTokenAddress;
         return (pricePerSecond, pricingTokenAddress);

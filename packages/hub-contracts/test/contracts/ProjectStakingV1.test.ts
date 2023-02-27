@@ -2,7 +2,7 @@ import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect, use } from "chai"
 import { utils, constants, BigNumber } from "ethers"
 
-import type { DATAv2, ProjectRegistry, ProjectStakingV1 } from "../../typechain"
+import type { DATAv2, ProjectRegistryV1, ProjectStakingV1 } from "../../typechain"
 import { MinimalForwarder } from "../../typechain/MinimalForwarder"
 
 const { provider: waffleProvider } = waffle
@@ -22,7 +22,7 @@ describe('ProjectStakingV1', (): void => {
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
 
     let projectStaking: ProjectStakingV1
-    let projectRegistry: ProjectRegistry
+    let projectRegistry: ProjectRegistryV1
     let minimalForwarder: MinimalForwarder
     let token: DATAv2
     let token2: DATAv2
@@ -70,9 +70,9 @@ describe('ProjectStakingV1', (): void => {
     }
 
     async function deployProjectRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("ProjectRegistry", admin)
+        const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [constants.AddressZero], { kind: 'uups' })
-        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistry
+        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistryV1
 
         const trustedRole = await projectRegistry.getTrustedRole()
         await projectRegistry.grantRole(trustedRole, trusted.address)

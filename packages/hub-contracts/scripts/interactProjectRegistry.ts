@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
 // import { chainToDomainId, chainToMailboxAddress } from "../utils"
-import { DATAv2, MarketplaceV4, ProjectRegistry, StreamRegistryV4, ProjectStakingV1 } from "../typechain"
+import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV4, ProjectStakingV1 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -25,7 +25,7 @@ const {
         DATA: DATA_V2_ADDRESS,
         LINK: LINK_TOKEN_ADDRESS = '0x3387F44140ea19100232873a5aAf9E46608c791E',
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
-        ProjectRegistry: PROJECT_REGISTRY_ADDRESS,
+        ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
         MarketplaceV4: MARKETPLACE_ADDRESS,
         ProjectStakingV1: PROJECT_STAKING_ADDRESS = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF',
     }
@@ -34,7 +34,7 @@ const {
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 // const MARKETPLACE_ADDRESS = "" // mumbai
 
-let projectRegistry: ProjectRegistry
+let projectRegistry: ProjectRegistryV1
 let projectStaking: ProjectStakingV1
 let streamRegistry: StreamRegistryV4
 let marketplace: MarketplaceV4
@@ -66,9 +66,9 @@ const connectContracts = async () => {
     log("LinkToken deployed at: ", linkToken.address)
     log("LinkToken balance buyer: ", await linkToken.balanceOf(buyerWallet.address))
 
-    const projectRegistryFactory = await getContractFactory("ProjectRegistry", deployerWallet)
+    const projectRegistryFactory = await getContractFactory("ProjectRegistryV1", deployerWallet)
     const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
-    projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistry
+    projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistryV1
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", deployerWallet)

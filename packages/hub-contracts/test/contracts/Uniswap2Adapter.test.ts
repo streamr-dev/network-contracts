@@ -4,7 +4,7 @@ import { utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistry, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { provider: waffleProvider } = waffle
@@ -69,7 +69,7 @@ describe("Uniswap2AdapterV4", () => {
     let fromToken: ERC20Mintable
     let market: MarketplaceV4
     let streamRegistry: StreamRegistryV4
-    let projectRegistry: ProjectRegistry
+    let projectRegistry: ProjectRegistryV1
     let minimalForwarder: MinimalForwarder
     let uniswap2Adapter: Uniswap2Adapter
     let uniswapFactory: any
@@ -165,10 +165,10 @@ describe("Uniswap2AdapterV4", () => {
     }
 
     async function deployProjectRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("ProjectRegistry", admin)
+        const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [streamRegistry.address], { kind: 'uups' })
-        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistry
-        log("ProjectRegistry was deployed at address: ", projectRegistry.address)
+        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistryV1
+        log("ProjectRegistryV1 was deployed at address: ", projectRegistry.address)
     }
 
     async function deployMarketplace(): Promise<void> {
