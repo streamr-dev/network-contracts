@@ -186,7 +186,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // console.log("timestamp now", block.timestamp);
         address broker = _msgSender();
         uint slashingWei = getLeavePenalty(broker) + globalData().committedStakeWei[broker];
-        _slash(broker, slashingWei);
+        _slash(broker, slashingWei, false);
         _addSponsorship(address(this), slashingWei);
         _removeBroker(broker);
         delete globalData().committedStakeWei[broker];
@@ -197,7 +197,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
         uint penaltyWei = getLeavePenalty(broker);
         if (amountWei == globalData().stakedWei[broker]) {
-            _slash(broker, penaltyWei);
+            _slash(broker, penaltyWei, false);
             _addSponsorship(address(this), penaltyWei);
             _removeBroker(broker);
         } else {
@@ -245,13 +245,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Slash moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
      * The caller should ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
-    function _slash(address broker, uint amountWei) internal {
+    function _slash(address broker, uint amountWei, bool alsoKick) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
         if (broker.code.length > 0) {
-            try ISlashListener(broker).onSlash() {} catch {}
+            try ISlashListener(broker).onSlash(alsoKick) {} catch {}
         }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());

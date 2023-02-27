@@ -47,7 +47,7 @@ describe("VoteKickPolicy", (): void => {
 
         // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
         // see BrokerPoolFactory:_deployBrokerPool for how saltSeed is used in CREATE2
-        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, saltSeed)))
+        const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, {}, saltSeed)))
         await Promise.all(brokers.map((b, i) => token.connect(b).transferAndCall(pools[i].address, parseEther("1000"), "0x")))
 
         const bounty = await deployBountyContract(contracts, {
@@ -116,7 +116,7 @@ describe("VoteKickPolicy", (): void => {
         it("with 2 flags active at the same time (not interfere with each other)", async function(): Promise<void> {
             const { token, bounty, brokers: [ flagger1, flagger2, broker3, broker4 ],
                 pools: [ pool1, pool2, target1, target2 ],
-                nonStakedBrokers: [voter1, voter2, voter3] } = await setup(4, 3, this.test?.title)
+                nonStakedBrokers: [voter1, voter2, voter3] } = await setup(4, 3, this.test?.title + "2")
 
             const flagReceipt1 = await (await bounty.connect(flagger1).flag(target1.address, pool1.address)).wait() as ContractReceipt
             const reviewRequests1 = flagReceipt1.events!.filter((e) => e.event === "ReviewRequest")

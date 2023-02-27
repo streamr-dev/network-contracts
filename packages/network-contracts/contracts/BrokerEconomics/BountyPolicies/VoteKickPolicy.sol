@@ -144,7 +144,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             if (result == 1) { // kick
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
-                _slash(target, slashingWei); // leftovers are added to sponsorship
+                _slash(target, slashingWei, true); // leftovers are added to sponsorship
                 payReviewers(votersForKick[target]);
                 _addSponsorship(address(this), leftOverWei);
                 _removeBroker(target);
@@ -153,7 +153,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             } else if (result == 2) { // false flag, not kick
                 // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
                 uint leftOverWei = FLAG_STAKE_WEI - rewardWei * reviewerCount;
-                _slash(flagger, FLAG_STAKE_WEI);
+                _slash(flagger, FLAG_STAKE_WEI, false);
                 payReviewers(votersAgainstKick[target]);
                 _addSponsorship(address(this), leftOverWei);
             }

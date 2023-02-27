@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.13;
 
-import "./IKickPolicy.sol";
+import "../BountyPolicies/IKickPolicy.sol";
 import "../Bounty.sol";
 
-contract AdminKickPolicy is IKickPolicy, Bounty {
+import "hardhat/console.sol";
+
+contract TestBountyKickPolicy is IKickPolicy, Bounty {
     // struct LocalStorage {
     // }
 
@@ -14,7 +16,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     //     assembly {data.slot := storagePosition}
     // }
 
-    function setParam(uint256) external {
+    function setParam(uint256 _param) external {
     }
 
     /**
@@ -22,6 +24,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
      * Stake isn't slashed, broker is simply removed.
      */
     function onKick(address broker) external {
+        console.log("onkick");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _removeBroker(broker);
         _slash(broker, 0, true);
@@ -29,6 +32,9 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     }
 
     function onFlag(address broker, address brokerPool) external {
+        console.log("onflag");
+        require(isAdmin(_msgSender()), "error_onlyAdmin");
+        _slash(broker, 10 ether, false);
     }
 
     function onCancelFlag(address, address brokerPool) external {
