@@ -1,6 +1,6 @@
 import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
-import { Contract} from 'ethers'
+import { Contract } from 'ethers'
 
 const { provider } = waffle
 
@@ -17,15 +17,15 @@ describe('JoinPolicyRegistry', (): void => {
     const TokenId = 1234567890
     const DeployedPolicyAddress = '0x0000000000000000000000000000000000000001'
 
-    let CalculatedPolicyId: string 
+    let CalculatedPolicyId: string
 
     let joinPolicyRegistry: Contract
-    before( async (): Promise<void> => {
+    before(async (): Promise<void> => {
         const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyRegistry')
         joinPolicyRegistry = await JoinPolicyRegistry.deploy()
     })
 
-    it ('should verify that a new instance can be registered positively', async () => {
+    it('should verify that a new instance can be registered positively', async () => {
         const [policyId, canBeRegistered] = await joinPolicyRegistry.canBeRegistered(
             TokenAddress,
             StreamId,
@@ -33,11 +33,13 @@ describe('JoinPolicyRegistry', (): void => {
             StakingEnabled
         )
         expect(canBeRegistered).to.be.true
-        expect(policyId).to.not.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
+        expect(policyId).to.not.equal(
+            '0x0000000000000000000000000000000000000000000000000000000000000000'
+        )
         CalculatedPolicyId = policyId
     })
 
-    it ('should positively register a new instance', async () => {
+    it('should positively register a new instance', async () => {
         await joinPolicyRegistry.register(
             TokenAddress,
             StreamId,
@@ -46,9 +48,7 @@ describe('JoinPolicyRegistry', (): void => {
             StakingEnabled
         )
 
-        const events = await joinPolicyRegistry.queryFilter(
-            joinPolicyRegistry.filters.Registered()
-        )
+        const events = await joinPolicyRegistry.queryFilter(joinPolicyRegistry.filters.Registered())
         expect(events.length).to.equal(1)
         expect(events[0].args).to.not.be.undefined
 
@@ -62,7 +62,7 @@ describe('JoinPolicyRegistry', (): void => {
         expect(eventArgs.policyId).to.equal(CalculatedPolicyId)
     })
 
-    it ('should fail to register an existing instance', async () => {
+    it('should fail to register an existing instance', async () => {
         try {
             await joinPolicyRegistry.register(
                 TokenAddress,
@@ -72,11 +72,13 @@ describe('JoinPolicyRegistry', (): void => {
                 StakingEnabled
             )
         } catch (e: any) {
-            expect(e.message).to.equal('VM Exception while processing transaction: reverted with reason string \'error_alreadyRegistered\'')
+            expect(e.message).to.equal(
+                "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
+            )
         }
     })
 
-    it ('should fetch the deployed policy', async() => {
+    it('should fetch the deployed policy', async () => {
         const fetchedPolicyAddress = await joinPolicyRegistry.getPolicy(
             TokenAddress,
             TokenId,

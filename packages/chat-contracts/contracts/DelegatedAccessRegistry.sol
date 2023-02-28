@@ -18,6 +18,14 @@ contract DelegatedAccessRegistry is Ownable {
     // mainWallet => isKnown 
     mapping(address=>bool) public mainWallets;
 
+    /*
+    // wallet => joinedPolicyAddresses => isJoined
+    mapping(address => mapping(address => bool)) public joinedPolicies;
+    */
+    
+    // wallet => joinedPolicyAddresses
+    mapping(address => address[]) public joinedPolicies;
+
     constructor() Ownable(){}
 
     function verifyDelegationChallenge(
@@ -114,5 +122,24 @@ contract DelegatedAccessRegistry is Ownable {
             out[i] = isWalletKnown(queryWallets[i]);
         }
         return out;
+    }
+
+    function addPolicyToWallet(address policyAddress_) public {
+        joinedPolicies[_msgSender()].push(policyAddress_);
+    }
+
+    function removePolicyFromWallet(address policyAddress_) public {
+        for (uint i = 0; i < joinedPolicies[_msgSender()].length; i++) {
+            if (joinedPolicies[_msgSender()][i] == policyAddress_) {
+                joinedPolicies[_msgSender()][i] = joinedPolicies[_msgSender()][joinedPolicies[_msgSender()].length - 1];
+                joinedPolicies[_msgSender()].pop();
+                break;
+            }
+        }   
+
+    }
+
+    function getPoliciesForWallet(address wallet_) public view returns (address[] memory){
+       return joinedPolicies[wallet_];
     }
 } 

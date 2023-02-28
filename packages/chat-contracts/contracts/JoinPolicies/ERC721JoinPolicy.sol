@@ -34,7 +34,7 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
         _;
     }
 
-function depositStake(
+    function depositStake(
         uint256 tokenId,
         uint256 /*amount*/
     )

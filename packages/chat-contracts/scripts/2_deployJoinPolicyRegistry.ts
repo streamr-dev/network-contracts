@@ -14,17 +14,17 @@ const chainURL = 'https://polygon-rpc.com'
 const privKeyStreamRegistry = process.env.KEY || ''
 */
 
-let wallet: Wallet 
+let wallet: Wallet
 
-async function getGasStationPrices(): Promise<{maxFeePerGas: BigNumber, maxPriorityFeePerGas: BigNumber}> {
+async function getGasStationPrices(): Promise<{
+    maxFeePerGas: BigNumber
+    maxPriorityFeePerGas: BigNumber
+}> {
     const { data } = await axios({
         method: 'get',
-        url: 'https://gasstation-mainnet.matic.network/v2'
+        url: 'https://gasstation-mainnet.matic.network/v2',
     })
-    const maxFeePerGas = ethers.utils.parseUnits(
-        Math.ceil(data.fast.maxFee) + '',
-        'gwei'
-    )
+    const maxFeePerGas = ethers.utils.parseUnits(Math.ceil(data.fast.maxFee) + '', 'gwei')
     const maxPriorityFeePerGas = ethers.utils.parseUnits(
         Math.ceil(data.fast.maxPriorityFee) + '',
         'gwei'
@@ -33,13 +33,13 @@ async function getGasStationPrices(): Promise<{maxFeePerGas: BigNumber, maxPrior
     return { maxFeePerGas, maxPriorityFeePerGas }
 }
 
-async function deployJoinPolicyRegistry(){
+async function deployJoinPolicyRegistry() {
     const JoinPolicyRegistry = await ethers.getContractFactory('JoinPolicyRegistry', wallet)
     const { maxFeePerGas, maxPriorityFeePerGas } = await getGasStationPrices()
 
     const tx = await JoinPolicyRegistry.deploy({
-        maxFeePerGas, maxPriorityFeePerGas
-
+        maxFeePerGas,
+        maxPriorityFeePerGas,
     })
 
     const instance = await tx.deployed()

@@ -15,6 +15,9 @@ abstract contract BaseJoinPolicy {
     event Accepted (address indexed mainWallet, address delegatedWallet);
     event Revoked (address indexed mainWallet, address delegatedWallet);
 
+    // owner => isAccepted
+    mapping(address => bool) public accepted;
+
     bool public stakingEnabled;
 
     // tokenId => isTokenIdIncluded
@@ -37,7 +40,6 @@ abstract contract BaseJoinPolicy {
         streamId = streamId_;
         permissions = permissions_;
         stakingEnabled = stakingEnabled_;
-
     }
 
     modifier isUserAuthorized {
@@ -50,33 +52,60 @@ abstract contract BaseJoinPolicy {
         _;
     }
 
-    function accept(address mainWallet, address delegatedWallet) internal {
+    modifier isWalletAccepted (address wallet) {
+        require(accepted[wallet], "error_walletNotAccepted");
+        _;
+    }
+
+    function _accept(address wallet) internal {
         for (uint256 i = 0; i < permissions.length; i++) {
-            streamRegistry.grantPermission(streamId, mainWallet, permissions[i]);
-            streamRegistry.grantPermission(streamId, delegatedWallet, permissions[i]);
+            streamRegistry.grantPermission(streamId, wallet, permissions[i]);
         }
+        accepted[wallet] = true;
+        delegatedAccessRegistry.addPolicyToWallet(address(this));
+    }
+
+    function accept(address mainWallet, address delegatedWallet) internal {
+        _accept(mainWallet);
+        _accept(delegatedWallet);
         emit Accepted(mainWallet, delegatedWallet);
     }
 
     function accept(address mainWallet) internal {
-        for (uint256 i = 0; i < permissions.length; i++) {
-            streamRegistry.grantPermission(streamId, mainWallet, permissions[i]);
-        }
+        _accept(mainWallet);
         emit Accepted(mainWallet, address(0x0));
     }
 
-    function revoke(address mainWallet, address delegatedWallet) internal {
+    function _revoke(address wallet) internal {
         for (uint256 i = 0; i < permissions.length; i++) {
-            streamRegistry.revokePermission(streamId, mainWallet, permissions[i]);
-            streamRegistry.revokePermission(streamId, delegatedWallet, permissions[i]);
+            streamRegistry.revokePermission(streamId, wallet, permissions[i]);
         }
+        delegatedAccessRegistry.removePolicyFromWallet(address(this));
+        accepted[wallet] = false;
+    }
+
+    function revoke(address mainWallet, address delegatedWallet) internal isWalletAccepted(mainWallet) isWalletAccepted(delegatedWallet) {
+        _revoke(mainWallet);
+        _revoke(delegatedWallet);
         emit Revoked(mainWallet, delegatedWallet);
     }
 
-    function revoke(address mainWallet) internal {
-        for (uint256 i = 0; i < permissions.length; i++) {
-            streamRegistry.revokePermission(streamId, mainWallet, permissions[i]);
-        }
+    function revoke(address mainWallet) internal isWalletAccepted(mainWallet) {
+        _revoke(mainWallet);
         emit Revoked(mainWallet, address(0x0));
     }
+
+    function requestLeave() public {
+        revoke(msg.sender);
+    }
+
+    
+    function requestDelegatedLeave() 
+        public
+        isUserAuthorized() 
+    {
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+        revoke(msg.sender, delegatedWallet);
+    }
+
 }

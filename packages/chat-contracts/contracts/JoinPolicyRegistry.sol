@@ -62,5 +62,5 @@ contract JoinPolicyRegistry {
         bool stakingEnabled_
     ) public view returns (address) {
         return policies[tokenAddress_][tokenId_][streamId_][stakingEnabled_];
-    }    
+    }
 }

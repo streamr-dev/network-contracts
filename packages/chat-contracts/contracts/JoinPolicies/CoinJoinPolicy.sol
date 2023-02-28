@@ -23,7 +23,7 @@ abstract contract CoinJoinPolicy is BaseJoinPolicy {
         minRequiredBalance = minRequiredBalance_;
     }
 
-   function requestJoin() public canJoin() {
+    function requestJoin() public canJoin() {
         accept(msg.sender);
     }
 
@@ -37,12 +37,12 @@ abstract contract CoinJoinPolicy is BaseJoinPolicy {
     }
 
     function depositStake(uint256 amount)
-        virtual 
-        public ;
+    virtual 
+    public;
 
     function withdrawStake(uint256 amount) 
     virtual 
-    public ;
+    public;
 
     modifier canJoin() virtual;
 

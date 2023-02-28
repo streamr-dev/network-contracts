@@ -26,10 +26,10 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
         }
     }
 
-   function requestJoin(uint256 tokenId) public canJoin(tokenId) {
+    function requestJoin(uint256 tokenId) public canJoin(tokenId) {
         accept(msg.sender);
     }
-
+    
     function requestDelegatedJoin(uint256 tokenId) 
         public
         isUserAuthorized() 
@@ -40,14 +40,14 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
     }
 
     function depositStake(uint256 tokenId, uint256 amount)
-        virtual 
-        public ;
+    virtual 
+    public;
 
     function withdrawStake(uint256 tokenId, uint256 amount) 
     virtual 
-    public ;
+    public;
 
-modifier isTokenIdIncluded(uint256 tokenId) {
+    modifier isTokenIdIncluded(uint256 tokenId) {
         require(tokenIds[tokenId], "error_tokenIdNotIncluded");
         _;
     }
