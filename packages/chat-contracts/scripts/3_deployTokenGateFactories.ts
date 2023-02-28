@@ -12,14 +12,14 @@ const JoinPolicyRegistryAddress = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF'
 const StreamRegistryAddress = '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222'
 const DelegatedAccessRegistryAddress = '0x1CF4ee3a493f9B07AE9394F78E1407c2682B0e8C'
 
-// polygon
 /*
+// polygon
 const chainURL = 'https://polygon-rpc.com'
 const privKeyStreamRegistry = process.env.KEY || ''
 
-const JoinPolicyRegistryAddress = '0x3eB2Ec4d2876d22EE103aBc1e0A7CCEefD117CD3'
+const JoinPolicyRegistryAddress = '0x8b3D38Ad6568eb4146A93b2a0da40174B3841213'
 const StreamRegistryAddress = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
-const DelegatedAccessRegistryAddress = '0x0143825C65D59CD09F5c896d9DE8b7fe952bc5EB'
+const DelegatedAccessRegistryAddress = '0x7D7272C07705a5729b5D229c15192455Fa2b1eb4'
 */
 let wallet: Wallet
 

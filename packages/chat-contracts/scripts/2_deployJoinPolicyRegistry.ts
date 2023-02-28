@@ -7,9 +7,8 @@ import axios from 'axios'
 // localsidechain
 const chainURL = 'http://10.200.10.1:8546'
 const privKeyStreamRegistry = ''
-
-// polygon
 /*
+// polygon
 const chainURL = 'https://polygon-rpc.com'
 const privKeyStreamRegistry = process.env.KEY || ''
 */
