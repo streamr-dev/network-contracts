@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 
 import "./IKickPolicy.sol";
 import "../Bounty.sol";
-import "../BrokerPoolFactory.sol";
+import "../IBrokerPoolFactory.sol";
 
 // import "hardhat/console.sol";
 
@@ -39,7 +39,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * Start flagging process
      */
     function onFlag(address target, address myBrokerPool) external {
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
         require(globalData().stakedWei[myBrokerPool] > 0, "error_notStaked");
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
 
@@ -55,7 +54,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         address[REVIEWER_COUNT] memory sameBountyPeers;
         uint sameBountyPeerCount = 0;
 
-        BrokerPoolFactory factory = BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
+        IBrokerPoolFactory factory = IBrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
         uint brokerPoolCount = factory.deployedBrokerPoolsLength();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         uint randomBytes = uint(uint160(target)) ^ 0x1235467890123457689012345678901234567890123546789012345678901234; // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
@@ -67,26 +66,26 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
             randomBytes >>= 8;
             uint index = randomBytes % brokerPoolCount;
-            BrokerPool pool = factory.deployedBrokerPools(index);
-            address peer = pool.broker(); // TODO: via BrokerPool or directly?
-            if (peer == _msgSender() || peer == BrokerPool(target).broker()
-                || reviewerState[target][peer] != 0) {
+            IBrokerPool pool = factory.deployedBrokerPools(index);
+            address poolAddress = address(pool);
+            if (poolAddress == _msgSender() || poolAddress == address(target)
+                || reviewerState[target][poolAddress] != 0) {
                 // console.log(index, "skipping", peer);
                 continue;
             }
             // TODO: check is broker live
             if (globalData().stakedWei[address(pool)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < REVIEWER_COUNT) {
-                    sameBountyPeers[sameBountyPeerCount++] = peer;
-                    reviewerState[target][peer] = 10; // mark peer as "selected to the secondary selection list"
+                    sameBountyPeers[sameBountyPeerCount++] = poolAddress;
+                    reviewerState[target][poolAddress] = 10; // mark peer as "selected to the secondary selection list"
                 }
                 // console.log(index, "in same bounty", peer);
                 continue;
             }
             // console.log(index, "selecting", peer);
-            reviewerState[target][peer] = 1;
-            emit ReviewRequest(peer, this, target);
-            reviewers[target].push(peer);
+            reviewerState[target][poolAddress] = 1;
+            emit ReviewRequest(poolAddress, this, target);
+            reviewers[target].push(poolAddress);
         }
 
         // secondary selection: peers from the same bounty
@@ -168,7 +167,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     }
 
     function onCancelFlag(address target, address myBrokerPool) external {
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
         require(flaggerPoolAddress[target] == myBrokerPool, "error_notFlagger");
         payReviewers(votersForKick[target]);
         payReviewers(votersAgainstKick[target]);

@@ -6,10 +6,12 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Bounty.sol";
+import "./IBounty.sol";
+import "./IBountyFactory.sol";
 import "./IERC677.sol";
+import "./StreamrConstants.sol";
 
-contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
+contract BountyFactory is IBountyFactory, Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     StreamrConstants public streamrConstants;
     address public bountyContractTemplate;
@@ -122,7 +124,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         }
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        Bounty bounty = Bounty(bountyAddress);
+        IBounty bounty = IBounty(bountyAddress);
         bounty.initialize(
             streamrConstants,
             address(this), // this is needed in order to set the policies
@@ -143,9 +145,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
                 bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
-        bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
-        bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
-        bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
+        bounty.grantRole(bounty.getAdminRole(), bountyOwner);
+        bounty.renounceRole(bounty.getDefaultAdminRole(), address(this));
+        bounty.renounceRole(bounty.getAdminRole(), address(this));
         emit NewBounty(bountyAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[bountyAddress] = block.timestamp;
@@ -158,5 +160,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    function isStreamrBounty(address bountyAddress) public view returns (bool) {
+        return deploymentTimestamp[bountyAddress] > 0;
     }
 }

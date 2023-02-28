@@ -15,13 +15,10 @@ import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
 import "./ISlashListener.sol";
 import "./StreamrConstants.sol";
+import "./IBounty.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
-
-interface IFactory {
-    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
-}
 
 /**
  * Bounty ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
@@ -81,6 +78,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function isAdmin(address a) public view returns(bool) {
         return hasRole(ADMIN_ROLE, a);
+    }
+
+    function getAdminRole() public pure returns(bytes32) {
+        return ADMIN_ROLE;
+    }
+
+    function getDefaultAdminRole() public pure returns(bytes32) {
+        return DEFAULT_ADMIN_ROLE;
     }
 
     /**

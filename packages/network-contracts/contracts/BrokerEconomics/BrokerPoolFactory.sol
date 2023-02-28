@@ -8,10 +8,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./BrokerPool.sol";
+import "./IBrokerPool.sol";
+import "./IBrokerPoolFactory.sol";
 import "./IERC677.sol";
 
-contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
+contract BrokerPoolFactory is IBrokerPoolFactory, Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -22,7 +23,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     // array needed for peer broker selection for VoteKickPolicy peer review
-    BrokerPool[] public deployedBrokerPools;
+    IBrokerPool[] public deployedBrokerPools;
     function deployedBrokerPoolsLength() public view returns (uint) {
         return deployedBrokerPools.length;
     }
@@ -125,7 +126,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         }
         bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
-        BrokerPool pool = BrokerPool(poolAddress);
+        IBrokerPool pool = IBrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
             streamrConstants,
@@ -142,9 +143,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         if (policies[2] != address(0)) {
             pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
         }
-        pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
-        pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
-        pool.renounceRole(pool.ADMIN_ROLE(), address(this));
+        pool.grantRole(pool.getAdminRole(), poolOwner);
+        pool.renounceRole(pool.getDefaultAdminRole(), address(this));
+        pool.renounceRole(pool.getAdminRole(), address(this));
         emit NewBrokerPool(poolAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[poolAddress] = block.timestamp;
@@ -163,5 +164,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    function isStreamrBrokerPool(address poolAddress) external view returns (bool) {
+         return deploymentTimestamp[poolAddress] > 0;
     }
 }
