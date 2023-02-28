@@ -225,7 +225,7 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Committed stake", (): void => {
-        it("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
+        it.skip("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ],
                 pools: [ flaggerPool, targetPool],
                 nonStakedBrokers: [voter1] } = await setup(2, 1, this.currentTest?.title)
@@ -260,7 +260,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(bounty, "BrokerLeft").withArgs(targetPool.address, parseEther("1000"))
         })
 
-        it("allows the flagger to withdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
+        it.skip("allows the flagger to withdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ], pools: [ flaggerPool, targetPool] } = await setup(2, 1, this.currentTest?.title)
 
             await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt

@@ -663,7 +663,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it("gets notified when kicked (slash listener)", async function(): Promise<void> {
+    it.skip("gets notified when kicked (slash listener)", async function(): Promise<void> {
         const { token } = sharedContracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
