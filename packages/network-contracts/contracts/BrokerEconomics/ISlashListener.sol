@@ -3,5 +3,5 @@
 pragma solidity ^0.8.0;
 
 interface ISlashListener {
-    function onSlash() external;
+    function onSlash(bool alsoKicked) external;
 }

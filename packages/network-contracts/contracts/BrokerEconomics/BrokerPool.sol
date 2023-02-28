@@ -17,6 +17,8 @@ import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
 import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
 
+// import "hardhat/console.sol";
+
 /**
  * BrokerPool receives the delegators' investments and pays out yields
  * It also is an ERC20 token for the pool tokens that each delegator receives and can swap back to DATA when they want to exit the pool
@@ -140,11 +142,20 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    // TODO: should know if we were kicked out, remove from bounties
-    function onSlash() external override {
+    function onSlash(bool kicked) external override {
+        Bounty bounty = Bounty(msg.sender);
+        uint index = indexOfBounties[bounty];
+        require(index > 0, "error_onlyBounty");
         // console.log("## onSlash");
-        // TODO: check msg.sender is a bounty
-        updateApproximatePoolvalueOfBounty(Bounty(msg.sender));
+        if (kicked) {
+            // console.log("onSlash kicked");
+            bounties[index-1] = bounties[bounties.length-1];
+            indexOfBounties[bounties[index-1]] = index;
+            bounties.pop();
+            delete indexOfBounties[bounty];
+            emit Unstaked(bounty, 0, 0);
+        }
+        updateApproximatePoolvalueOfBounty(bounty);
     }
 
     /////////////////////////////////////////

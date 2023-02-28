@@ -81,6 +81,10 @@ describe("Bounty", (): void => {
             .to.be.revertedWith("error_cannotStakeZero")
     })
 
+    it("lets add and reduce stake", async function(): Promise<void> {
+        // TODO: test for error_cannotReduceStake
+    })
+
     describe("Adding policies", (): void => {
 
         it("will FAIL for non-admins", async function(): Promise<void> {

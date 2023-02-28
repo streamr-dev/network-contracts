@@ -24,7 +24,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     mapping (address => address[]) public votersAgainstKick;
 
     // 10% of the target's stake that is in the risk of being slashed upon kick
-    mapping (address => uint) public targetStakeWei;
+    mapping (address => uint) public targetStakeAtRiskWei;
 
     // function localData() internal view returns(LocalStorage storage data) {
     //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
@@ -45,11 +45,11 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
+        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool] * 9/10, "error_notEnoughStake");
         flaggerPoolAddress[target] = myBrokerPool;
 
-        targetStakeWei[target] = globalData().stakedWei[target] / 10;
-        globalData().committedStakeWei[target] += targetStakeWei[target];
+        targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
+        globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // only secondarily select peers that are in the same bounty as the flagging target
         address[REVIEWER_COUNT] memory sameBountyPeers;
@@ -141,21 +141,20 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             if (globalData().committedStakeWei[flagger] > 0) {
                 globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
             }
-            globalData().committedStakeWei[target] -= targetStakeWei[target];
-            uint slashingWei = globalData().stakedWei[target] / 10; // TODO: add to streamrConstants?
+            globalData().committedStakeWei[target] -= targetStakeAtRiskWei[target];
+            uint slashingWei = targetStakeAtRiskWei[target];
             if (result == 1) { // kick
                 uint flaggerRewardWei = 1 ether; // TODO: add to streamrConstants?
                 uint leftOverWei = slashingWei - flaggerRewardWei - rewardWei * reviewerCount;
-                _slash(target, slashingWei); // leftovers are added to sponsorship
+                _slash(target, slashingWei, true); // leftovers are added to sponsorship
                 payReviewers(votersForKick[target]);
                 _addSponsorship(address(this), leftOverWei);
-                _removeBroker(target);
                 emit BrokerKicked(target, slashingWei);
                 token.transfer(flagger, flaggerRewardWei);
             } else if (result == 2) { // false flag, not kick
                 // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
                 uint leftOverWei = FLAG_STAKE_WEI - rewardWei * reviewerCount;
-                _slash(flagger, FLAG_STAKE_WEI);
+                _slash(flagger, FLAG_STAKE_WEI, false);
                 payReviewers(votersAgainstKick[target]);
                 _addSponsorship(address(this), leftOverWei);
             }
@@ -163,7 +162,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             delete votesAgainstKick[target];
             delete votersForKick[target];
             delete votersAgainstKick[target];
-            delete targetStakeWei[target];
+            delete targetStakeAtRiskWei[target];
         }
     }
 
@@ -173,12 +172,12 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         payReviewers(votersForKick[target]);
         payReviewers(votersAgainstKick[target]);
         globalData().committedStakeWei[flaggerPoolAddress[target]] -= FLAG_STAKE_WEI;
-        globalData().committedStakeWei[target] -= targetStakeWei[target];
+        globalData().committedStakeWei[target] -= targetStakeAtRiskWei[target];
         delete votesForKick[target];
         delete votesAgainstKick[target];
         delete votersForKick[target];
         delete votersAgainstKick[target];
-        delete targetStakeWei[target];
+        delete targetStakeAtRiskWei[target];
     }
 
     function payReviewers(address[] memory votersToPay) internal {

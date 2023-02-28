@@ -185,9 +185,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address broker = _msgSender();
         require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
         uint penaltyWei = getLeavePenalty(broker);
-        _slash(broker, penaltyWei);
-        _addSponsorship(address(this), penaltyWei);
+        _slash(broker, penaltyWei, false);
         _removeBroker(broker);
+        _addSponsorship(address(this), penaltyWei);
+    }
+
+    /**
+     * In order to pay for all the flags AND still afford to get slashed 10%, there's a limit to how much stake can be reduced
+     *     stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+     * =>  remaining stake * 9/10 >= committedStake
+     * =>  remaining stake == stake - cashoutWei >= committedStake * 10/9
+     * =>  cashoutWei <= stake - committedStake * 10/9
+     */
+    function maxStakeReduction(address broker) public view returns (uint maxStakeReductionWei) {
+        return globalData().stakedWei[broker] - globalData().committedStakeWei[broker] * 10/9;
     }
 
     /** Reduce your stake in the bounty without leaving */
@@ -199,7 +210,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             leave();
             return;
         }
-        require(cashoutWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
+
+        // stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+        //   in order to pay for all the flags AND still afford to get slashed 10%
+        require(cashoutWei <= maxStakeReduction(broker), "error_cannotReduceStake");
 
         globalData().stakedWei[broker] -= cashoutWei;
         globalData().totalStakedWei -= cashoutWei;
@@ -243,13 +257,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Slash moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
      * The caller should ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
-    function _slash(address broker, uint amountWei) internal {
+    function _slash(address broker, uint amountWei, bool alsoKick) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+        if (alsoKick) {
+            _removeBroker(broker);
+        }
         if (broker.code.length > 0) {
-            try ISlashListener(broker).onSlash() {} catch {}
+            try ISlashListener(broker).onSlash(alsoKick) {} catch {}
         }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
