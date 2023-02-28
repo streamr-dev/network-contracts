@@ -15,13 +15,14 @@
         "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
         "test": "hardhat test",
         "coverage": "hardhat coverage",
+        "prettier": "prettier --write test scripts",
         "lint": "eslint scripts/* test/* && solhint contracts/**/*.sol",
         "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/1_deployDelegatedAccessRegistry.ts",
         "deployDelegatedAccessRegistryProd": "hardhat run --network polygon scripts/1_deployDelegatedAccessRegistry.ts",
         "deployJoinPolicyRegistry": "hardhat run --network dev1 scripts/2_deployJoinPolicyRegistry.ts",
-        "deployJoinPolicyRegistryProd": "source ./.env && hardhat run --network polygon scripts/2_deployJoinPolicyRegistry.ts",
+        "deployJoinPolicyRegistryProd": "hardhat run --network polygon scripts/2_deployJoinPolicyRegistry.ts",
         "deployTokenGateFactories": "hardhat run --network dev1 scripts/3_deployTokenGateFactories.ts",
-        "deployTokenGateFactoriesProd": "source ./.env && hardhat run --network polygon scripts/3_deployTokenGateFactories.ts",
+        "deployTokenGateFactoriesProd": "hardhat run --network polygon scripts/3_deployTokenGateFactories.ts",
         "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon"
     },
     "author": "Streamr Network AG",
@@ -30,9 +31,10 @@
         "@chainlink/contracts": "0.3.1",
         "@opengsn/contracts": "2.2.6",
         "@openzeppelin/contracts": "4.4.2",
-        "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
-      },
-      "devDependencies": {
+        "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2",
+        "prettier": "2.8.4"
+    },
+    "devDependencies": {
         "@ensdomains/ens": "0.6.2",
         "@ensdomains/resolver": "0.2.4",
         "@ethersproject/bignumber": "5.5.0",
@@ -62,9 +64,8 @@
         "hardhat-typechain": "0.3.5",
         "solc": "0.8.6",
         "solhint": "3.3.7",
-        "solidity-coverage": "0.8.2",
         "ts-generator": "0.1.1",
         "typechain": "4.0.3",
         "web3-providers-http": "1.8.0"
-      }
+    }
 }

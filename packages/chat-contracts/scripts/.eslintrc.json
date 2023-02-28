@@ -2,8 +2,11 @@
     "rules": {
         "no-console": "off",
         "object-curly-newline": "off",
-        "max-len": ["warn", {
-            "code": 150
-        }]
+        "max-len": [
+            "warn",
+            {
+                "code": 150
+            }
+        ]
     }
 }
