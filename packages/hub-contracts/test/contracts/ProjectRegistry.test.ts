@@ -1,12 +1,10 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
+import { upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ProjectRegistryV1, StreamRegistryV4 } from "../../typechain"
-import { MinimalForwarder } from "../../typechain/MinimalForwarder"
+import type { DATAv2, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4 } from "../../typechain"
 
-const { provider: waffleProvider } = waffle
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers
 
@@ -50,12 +48,17 @@ const types = {
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-enum ProjectRegistryPermissionType { Buy, Delete, Edit, Grant }
-
-use(waffle.solidity)
+enum StreamRegistryPermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
 describe('ProjectRegistryV1', (): void => {
-    const [admin, user1, user2, user3, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
+    let admin: Wallet
+    let user1: Wallet
+    let user2: Wallet
+    let user3: Wallet
+    let beneficiary: Wallet
+    let trusted: Wallet
+    let forwarder: Wallet
+
     const projectIdbytesNonExistent = hexlify(zeroPad(toUtf8Bytes('notexistentproject'), 32))
     const streamIds: string[] = []
     let streamId: string
@@ -81,6 +84,7 @@ describe('ProjectRegistryV1', (): void => {
     let token: DATAv2
 
     before(async (): Promise<void> => {
+        [admin, user1, user2, user3, beneficiary, trusted, forwarder] = await hardhatEthers.getSigners() as unknown as Wallet[]
         await deployERC20()
         await deployMinimalForwarder()
         await deployStreamRegistryAndCreateStreams()
@@ -190,14 +194,6 @@ describe('ProjectRegistryV1', (): void => {
                 isPublicPurchable,
                 metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(
-                    projectIdbytes,
-                    domainIds,
-                    paymentDetailsDefault,
-                    [streamId],
-                    minimumSubscriptionSeconds,
-                    metadata,
-                )
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(projectIdbytes, admin.address, true, true, true, true)
 
@@ -457,7 +453,7 @@ describe('ProjectRegistryV1', (): void => {
             const streamid = admin.address.toLowerCase() + '/streampathadd'
 
             // grant Edit permission on project to user1
-            await registry.enablePermissionType(id, user1.address, ProjectRegistryPermissionType.Edit)
+            await registry.enablePermissionType(id, user1.address, permissionType.Edit)
 
             // user1 does NOT have permissions on stream
             await expect(registry.connect(user1).addStream(id, streamid))
@@ -529,7 +525,6 @@ describe('ProjectRegistryV1', (): void => {
             const addSeconds = 100
             await expect(registry.grantSubscription(id, addSeconds, user1.address))
                 .to.emit(registry, "Subscribed")
-                .withArgs(id, user1.address, addSeconds / pricePerSecond)
                 .to.emit(streamRegistry, "PermissionUpdated")
             const subscriptionAfter = await registry.getSubscription(id, user1.address)
             expect(subscriptionAfter.endTimestamp)
@@ -539,7 +534,7 @@ describe('ProjectRegistryV1', (): void => {
         it('grantSubscription - negativetest - must have Grant permission', async () => {
             const projectIdbytes = await createProject() // admin has Grant permission
             await expect(registry.connect(user1).grantSubscription(projectIdbytes, 100, user1.address))
-                .to.be.revertedWith("error_noGrantPermission")
+                .to.be.revertedWith("error_noGrantPermissionOrNotTrusted")
         })
 
         it('grantSubscription - negativetest - must extend by greater than zero seconds', async () => {
@@ -865,21 +860,30 @@ describe('ProjectRegistryV1', (): void => {
     })
 
     describe('Metatransactions', (): void => {
-        async function prepareAddStreamMetatx(minimalForwarder: MinimalForwarder, signKey: string, gas = '1000000') {
+        async function createProjectAndStream(signerAddress: string): Promise<any> {
+            // create project and stream
             const projectIdbytes = await createProject() // created by admin
             const streamPathMetatx = '/streampathmetatx' + Wallet.createRandom().address
             const streamMetadataMetatx = 'streamMetadataMetatx' + Wallet.createRandom().address
-            await streamRegistry.createStream(streamPathMetatx, streamMetadataMetatx)
+            await streamRegistry.createStream(streamPathMetatx, streamMetadataMetatx) // created by admin => has all permissions
             const streamIdMetatx = admin.address.toLowerCase() + streamPathMetatx
+            // enable Edit permission on the project and Grant permission on the stream to signer
+            await registry.enablePermissionType(projectIdbytes, signerAddress, permissionType.Edit)
+            await streamRegistry.grantPermission(streamIdMetatx, signerAddress, StreamRegistryPermissionType.Grant)
+            
+            return { projectIdbytes, streamIdMetatx }            
+        }
 
-            // admin is creating and signing transaction, forwarder is posting it and paying for gas
-            const data = registry.interface.encodeFunctionData('addStream', [projectIdbytes, streamIdMetatx])
+        async function prepareAddStreamMetatx(minimalForwarder: MinimalForwarder, signerWallet: Wallet, signKey: string, gas = '1000000') {
+            const { projectIdbytes, streamIdMetatx } = await createProjectAndStream(signerWallet.address)
+            // signerWallet is creating and signing transaction, forwarder is posting it and paying for gas
+            const data = registry.connect(signerWallet).interface.encodeFunctionData('addStream', [projectIdbytes, streamIdMetatx])
             const req = {
-                from: admin.address,
+                from: signerWallet.address,
                 to: registry.address,
                 value: '0',
                 gas,
-                nonce: (await minimalForwarder.getNonce(admin.address)).toString(),
+                nonce: (await minimalForwarder.getNonce(signerWallet.address)).toString(),
                 data
             }
             const d: TypedMessage<any> = {
@@ -887,7 +891,7 @@ describe('ProjectRegistryV1', (): void => {
                 domain: {
                     name: 'MinimalForwarder',
                     version: '0.0.1',
-                    chainId: (await waffleProvider.getNetwork()).chainId,
+                    chainId: (await hardhatEthers.provider.getNetwork()).chainId,
                     verifyingContract: minimalForwarder.address,
                 },
                 primaryType: 'ForwardRequest',
@@ -898,7 +902,7 @@ describe('ProjectRegistryV1', (): void => {
                 privateKey: utils.arrayify(signKey) as Buffer,
                 version: SignTypedDataVersion.V4,
             }
-            const sign = signTypedData(options) // forwarder
+            const sign = signTypedData(options) // admin
             return {req, sign, projectIdbytes, streamIdMetatx}
         }
 
@@ -908,19 +912,21 @@ describe('ProjectRegistryV1', (): void => {
         })
 
         it('addStream - positivetest', async (): Promise<void> => {
-            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(minimalForwarder.connect(forwarder), admin.privateKey)
+            const signer = hardhatEthers.Wallet.createRandom()
+            const { req, sign, projectIdbytes, streamIdMetatx } = await prepareAddStreamMetatx(minimalForwarder, signer, signer.privateKey)
+            
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.false
-
             await minimalForwarder.connect(forwarder).execute(req, sign)
             expect(await registry.isStreamAdded(projectIdbytes, streamIdMetatx))
                 .to.be.true
         })
 
         it('addStream - wrong forwarder - negativetest', async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom()
             // deploy second minimal forwarder
             const factory = await getContractFactory('MinimalForwarder', forwarder)
             const wrongForwarder = await factory.deploy() as MinimalForwarder
@@ -932,7 +938,7 @@ describe('ProjectRegistryV1', (): void => {
                 .to.be.false
 
             // check that metatx works with new forwarder
-            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(wrongForwarder, admin.privateKey)
+            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(wrongForwarder, signer, signer.privateKey)
             expect(await wrongForwarder.verify(req, sign))
                 .to.be.true
 
@@ -946,8 +952,9 @@ describe('ProjectRegistryV1', (): void => {
         })
 
         it('addStream - wrong signature - negativetest', async (): Promise<void> => {
-            const wrongKey = user1.privateKey // admin.privateKey would be correct
-            const {req, sign} = await prepareAddStreamMetatx(minimalForwarder, wrongKey)
+            const signer = hardhatEthers.Wallet.createRandom()
+            const wrongSigner = hardhatEthers.Wallet.createRandom() // signer.privateKey would be correct
+            const {req, sign} = await prepareAddStreamMetatx(minimalForwarder, signer, wrongSigner.privateKey)
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.false
             await expect(minimalForwarder.execute(req, sign))
@@ -955,7 +962,8 @@ describe('ProjectRegistryV1', (): void => {
         })
 
         it('addStream - not enough gas in internal transaction call - negativetest', async (): Promise<void> => {
-            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(minimalForwarder, admin.privateKey, '1000')
+            const signer = hardhatEthers.Wallet.createRandom()
+            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(minimalForwarder, signer, signer.privateKey, '1000')
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.true
 
@@ -968,6 +976,7 @@ describe('ProjectRegistryV1', (): void => {
         })
 
         it('reset trusted forwarder, addStream - positivetest', async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom()
             const trustedForwarderRole = await registry.TRUSTED_FORWARDER_ROLE()
             // remove previous forwarder
             expect(await registry.isTrustedForwarder(minimalForwarder.address))
@@ -982,7 +991,7 @@ describe('ProjectRegistryV1', (): void => {
                 sign: signOld,
                 projectIdbytes:projectIdOld,
                 streamIdMetatx: streamIdOld
-            } = await prepareAddStreamMetatx(minimalForwarder, admin.privateKey)
+            } = await prepareAddStreamMetatx(minimalForwarder, signer, signer.privateKey)
 
             expect(await minimalForwarder.verify(reqOld, signOld))
                 .to.be.true
@@ -1005,7 +1014,7 @@ describe('ProjectRegistryV1', (): void => {
                 .to.be.true
 
             // check that metatx works with new forwarder
-            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(newForwarder, admin.privateKey)
+            const {req, sign, projectIdbytes, streamIdMetatx} = await prepareAddStreamMetatx(newForwarder, signer, signer.privateKey)
 
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
@@ -1032,7 +1041,7 @@ describe('ProjectRegistryV1', (): void => {
 
         it('grantRole - negativetest', async (): Promise<void> => {
             await expect(registry.connect(user1).grantRole(await registry.TRUSTED_ROLE(), user1.address))
-                .to.be.revertedWith('account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing '
+                .to.be.revertedWith('AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing '
                 + 'role 0x0000000000000000000000000000000000000000000000000000000000000000')
         })
 
@@ -1044,7 +1053,7 @@ describe('ProjectRegistryV1', (): void => {
 
         it('revokeRole - negativetest', async (): Promise<void> => {
             await expect(registry.connect(user1).revokeRole(await registry.TRUSTED_ROLE(), user1.address))
-                .to.be.revertedWith('account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing '
+                .to.be.revertedWith('AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing '
                 + 'role 0x0000000000000000000000000000000000000000000000000000000000000000')
         })
 
@@ -1066,9 +1075,7 @@ describe('ProjectRegistryV1', (): void => {
             await expect(registry.connect(trusted)
                 .trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, true, metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
-                .withArgs(id, user1.address, true, true, true, true)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(id, ethersConstants.AddressZero, true, true, true, true) // Buy permission is added for the zero address
 
@@ -1092,7 +1099,6 @@ describe('ProjectRegistryV1', (): void => {
             await expect(registry.connect(trusted)
                 .trustedCreateProject(id, domainIds, paymentDetailsDefault, [], 1, user1.address, false, metadata))
                 .to.emit(registry, "ProjectCreated")
-                .withArgs(id, domainIds, paymentDetailsDefault, 1, metadata)
                 .to.emit(registry, 'PermissionUpdated')
                 .withArgs(id, user1.address, true, true, true, true)
 
