@@ -122,7 +122,7 @@ describe('ERC721JoinPolicy', (): void => {
 
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
         await expect(contract.requestDelegatedJoin(TokenIds.A)).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
+            'error_notAuthorized'
         )
     })
 
@@ -134,9 +134,7 @@ describe('ERC721JoinPolicy', (): void => {
 
         await expect(
             contract.connect(wallets[0]).requestDelegatedJoin(TokenIds.A)
-        ).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
-        )
+        ).to.be.revertedWith('error_notEnoughTokens')
     })
 
     it('should fulfill requestDelegatedJoin from a wallet owning the token', async () => {
@@ -193,7 +191,7 @@ describe('ERC721JoinPolicy', (): void => {
 
     it('should fail to exercise the requestJoin when not enough tokens are available', async () => {
         await expect(contract.connect(wallets[5]).requestJoin(TokenIds.A)).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
+            'error_notEnoughTokens'
         )
     })
 
@@ -339,28 +337,33 @@ describe('ERC721JoinPolicy', (): void => {
             ).to.equal(false)
         })
 
+        it('should verify that the tokenId has been added to `balances` and `stakedTokenIds`', async () => {
+            const stakedBalance = await stakedContract.getStakedBalance(
+                mainWallet.address,
+                TokenIds.B
+            )
+            expect(stakedBalance).to.equal(1)
+            const stakedTokenIds = await stakedContract.getStakedTokenIds(mainWallet.address)
+            expect(stakedTokenIds.length).to.equal(1)
+            expect(stakedTokenIds[0]).to.equal(TokenIds.B)
+        })
+
         it('should fail depositStake, reason: not enough balance', async () => {
             await expect(
                 stakedContract.connect(mainWallet).depositStake(TokenIds.B, 100)
-            ).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
-            )
+            ).to.be.revertedWith('error_notEnoughTokens')
         })
 
         it('should fail to complete depositStake, reason: unauthorized', async () => {
             await expect(
                 stakedContract.connect(wallets[5]).depositStake(TokenIds.B, 100)
-            ).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
-            )
+            ).to.be.revertedWith('error_notAuthorized')
         })
 
         it('should fail to complete withdrawStake, reason: unauthorized', async () => {
             await expect(
                 stakedContract.connect(wallets[5]).withdrawStake(TokenIds.B, 100)
-            ).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
-            )
+            ).to.be.revertedWith('error_notAuthorized')
         })
 
         it('should exercise the withdrawStake, happy-path', async () => {
@@ -376,12 +379,20 @@ describe('ERC721JoinPolicy', (): void => {
             expect(afterBalance).to.equal(1)
         })
 
+        it('should verify that the tokenId has been removed from `balances` and `stakedTokenIds`', async () => {
+            const stakedBalance = await stakedContract.getStakedBalance(
+                mainWallet.address,
+                TokenIds.B
+            )
+            expect(stakedBalance).to.equal(0)
+            const stakedTokenIds = await stakedContract.getStakedTokenIds(mainWallet.address)
+            expect(stakedTokenIds.length).to.equal(0)
+        })
+
         it('should fail to call withdrawStake, reason: insufficient balance', async () => {
             await expect(
                 stakedContract.connect(mainWallet).withdrawStake(TokenIds.B, 0)
-            ).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'ERC721: transfer caller is not owner nor approved'"
-            )
+            ).to.be.revertedWith('ERC721: transfer caller is not owner nor approved')
         })
     })
 })

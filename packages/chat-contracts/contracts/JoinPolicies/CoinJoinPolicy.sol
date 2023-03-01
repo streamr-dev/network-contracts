@@ -4,7 +4,9 @@ pragma solidity ^0.8.9;
 import "./BaseJoinPolicy.sol";
 
 abstract contract CoinJoinPolicy is BaseJoinPolicy {
-
+    // owner => tokenBalance
+    mapping(address => uint256) public balances;
+    
     constructor(
         address streamRegistryAddress,
         string memory streamId_,

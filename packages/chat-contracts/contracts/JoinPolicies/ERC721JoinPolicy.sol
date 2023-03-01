@@ -46,7 +46,8 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
         canJoin(tokenId) 
     {
         token.safeTransferFrom(msg.sender, address(this), tokenId);
-        balances[msg.sender] = 1;
+        balances[msg.sender][tokenId] = 1;
+        stakedTokenIds[msg.sender].push(tokenId);
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
@@ -61,9 +62,16 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
         isTokenIdIncluded(tokenId)
         isUserAuthorized() 
     {
-       token.safeTransferFrom(address(this), msg.sender, tokenId);
-         balances[msg.sender] = 0;
-         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-         revoke(msg.sender, delegatedWallet);
+        token.safeTransferFrom(address(this), msg.sender, tokenId);
+        balances[msg.sender][tokenId] = 0;
+        for (uint i = 0; i < stakedTokenIds[msg.sender].length; i++) {
+            if (stakedTokenIds[msg.sender][i] == tokenId) {
+                stakedTokenIds[msg.sender][i] = stakedTokenIds[msg.sender][stakedTokenIds[msg.sender].length - 1];
+                stakedTokenIds[msg.sender].pop();
+                break;
+            }
+        }
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+        revoke(msg.sender, delegatedWallet);
     }
 }

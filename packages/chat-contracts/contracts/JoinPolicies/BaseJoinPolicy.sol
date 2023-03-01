@@ -24,9 +24,6 @@ abstract contract BaseJoinPolicy {
     mapping(uint256 => bool) public tokenIds;
     uint256 public minRequiredBalance;
 
-    // owner => tokenBalance
-    mapping(address => uint256) public balances;
-
     constructor (
         address streamRegistryAddress,
         address delegatedAccessRegistryAddress,

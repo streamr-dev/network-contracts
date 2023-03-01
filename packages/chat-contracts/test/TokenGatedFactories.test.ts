@@ -82,8 +82,8 @@ describe('TokenGatedFactories', (): void => {
         })
 
         it('should fail to deploy a duplicated policy', async () => {
-            try {
-                await factory.create(
+            await expect(
+                factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -91,11 +91,7 @@ describe('TokenGatedFactories', (): void => {
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish] // permissions
                 )
-            } catch (e: any) {
-                expect(e.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
-                )
-            }
+            ).to.be.revertedWith('error_alreadyRegistered')
         })
     })
 
@@ -138,8 +134,8 @@ describe('TokenGatedFactories', (): void => {
         })
 
         it('should fail to deploy a duplicated policy', async () => {
-            try {
-                await factory.create(
+            await expect(
+                factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -147,11 +143,7 @@ describe('TokenGatedFactories', (): void => {
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish] // permissions
                 )
-            } catch (e: any) {
-                expect(e.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
-                )
-            }
+            ).to.be.revertedWith('error_alreadyRegistered')
         })
     })
 
@@ -194,8 +186,8 @@ describe('TokenGatedFactories', (): void => {
         })
 
         it('should fail to deploy a duplicated policy', async () => {
-            try {
-                await factory.create(
+            await expect(
+                factory.create(
                     token.address,
                     streamId,
                     1, // minRequiredBalance,
@@ -203,11 +195,7 @@ describe('TokenGatedFactories', (): void => {
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish] // permissions
                 )
-            } catch (e: any) {
-                expect(e.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
-                )
-            }
+            ).to.be.revertedWith('error_alreadyRegistered')
         })
     })
 
@@ -250,8 +238,8 @@ describe('TokenGatedFactories', (): void => {
         })
 
         it('should fail to deploy a duplicated policy', async () => {
-            try {
-                await factory.create(
+            await expect(
+                factory.create(
                     token.address,
                     streamId,
                     7, // minRequiredBalance,
@@ -259,11 +247,7 @@ describe('TokenGatedFactories', (): void => {
                     StakingEnabled,
                     [PermissionType.Subscribe, PermissionType.Publish] // permissions
                 )
-            } catch (e: any) {
-                expect(e.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
-                )
-            }
+            ).to.be.revertedWith('error_alreadyRegistered')
         })
     })
 })

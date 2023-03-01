@@ -63,19 +63,15 @@ describe('JoinPolicyRegistry', (): void => {
     })
 
     it('should fail to register an existing instance', async () => {
-        try {
-            await joinPolicyRegistry.register(
+        await expect(
+            joinPolicyRegistry.register(
                 TokenAddress,
                 StreamId,
                 DeployedPolicyAddress,
                 TokenId,
                 StakingEnabled
             )
-        } catch (e: any) {
-            expect(e.message).to.equal(
-                "VM Exception while processing transaction: reverted with reason string 'error_alreadyRegistered'"
-            )
-        }
+        ).to.be.revertedWith('error_alreadyRegistered')
     })
 
     it('should fetch the deployed policy', async () => {

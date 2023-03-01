@@ -117,15 +117,11 @@ describe('ERC777JoinPolicy', (): void => {
                 delegatedAccessRegistry.address,
                 false
             )
-        ).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_minReqBalanceGt0'"
-        )
+        ).to.be.revertedWith('error_minReqBalanceGt0')
     })
 
     it('should fail to grant permissions if account is not authorized on DelegatedAccessRegistry', async () => {
-        await expect(contract.requestDelegatedJoin()).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
-        )
+        await expect(contract.requestDelegatedJoin()).to.be.revertedWith('error_notAuthorized')
     })
 
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
@@ -133,7 +129,7 @@ describe('ERC777JoinPolicy', (): void => {
         expect(balance).to.equal(BigNumber.from(0))
 
         await expect(contract.connect(wallets[1]).requestDelegatedJoin()).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
+            'error_notEnoughTokens'
         )
     })
 
@@ -191,7 +187,7 @@ describe('ERC777JoinPolicy', (): void => {
 
     it('should fail to exercise the requestJoin when not enough tokens are available', async () => {
         await expect(contract.connect(wallets[5]).requestJoin()).to.be.revertedWith(
-            "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
+            'error_notEnoughTokens'
         )
     })
 
@@ -332,19 +328,19 @@ describe('ERC777JoinPolicy', (): void => {
 
         it('should fail depositStake, reason: not enough balance', async () => {
             await expect(stakedContract.connect(mainWallet).depositStake(100)).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'"
+                'error_notEnoughTokens'
             )
         })
 
         it('should fail to complete depositStake, reason: unauthorized', async () => {
             await expect(stakedContract.connect(wallets[5]).depositStake(100)).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
+                'error_notAuthorized'
             )
         })
 
         it('should fail to complete withdrawStake, reason: unauthorized', async () => {
             await expect(stakedContract.connect(wallets[5]).withdrawStake(100)).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_notAuthorized'"
+                'error_notAuthorized'
             )
         })
 
@@ -369,7 +365,7 @@ describe('ERC777JoinPolicy', (): void => {
 
         it('should fail to call withdrawStake, reason: insufficient balance', async () => {
             await expect(stakedContract.connect(mainWallet).withdrawStake(10)).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'ERC777: transfer amount exceeds balance'"
+                'ERC777: transfer amount exceeds balance'
             )
         })
     })

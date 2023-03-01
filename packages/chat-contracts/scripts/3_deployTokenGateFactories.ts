@@ -52,9 +52,6 @@ async function getGasStationPrices(): Promise<{
 async function deployPolicyFactory(standard: TokenStandard) {
     const policyDeployer = await ethers.getContractFactory(`${standard}PolicyFactory`, wallet)
 
-    const { maxFeePerGas, maxPriorityFeePerGas } = await getGasStationPrices()
-
-    console.log({ maxFeePerGas, maxPriorityFeePerGas })
     const tx = await policyDeployer.deploy(
         JoinPolicyRegistryAddress,
         StreamRegistryAddress,

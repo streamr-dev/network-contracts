@@ -4,6 +4,10 @@ pragma solidity ^0.8.9;
 import "./BaseJoinPolicy.sol";
 
 abstract contract NFTJoinPolicy is BaseJoinPolicy {
+    // owner => tokenId => tokenBalance
+    mapping(address => mapping(uint256=>uint256)) internal balances;
+    // owner => tokenIds
+    mapping(address => uint256[]) internal stakedTokenIds;
 
     constructor(
         address streamRegistryAddress,
@@ -47,12 +51,22 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
     virtual 
     public;
 
+    function getStakedBalance(address owner, uint256 tokenId) public view isStakingEnabled() returns (uint256) {
+        return balances[owner][tokenId];
+    }
+
+    function getStakedTokenIds(address owner) public view isStakingEnabled() returns (uint256[] memory) {
+        return stakedTokenIds[owner];
+    }
+
     modifier isTokenIdIncluded(uint256 tokenId) {
         require(tokenIds[tokenId], "error_tokenIdNotIncluded");
         _;
     }
 
     modifier canJoin(uint256 tokenId) virtual;
+
+   
 
 
 }

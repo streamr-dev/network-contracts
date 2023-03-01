@@ -123,7 +123,7 @@ describe('CoinJoinPolicy (via ERC20JoinPolicy)', (): void => {
 
         it('should fail to leave a stream if not joined', async () => {
             await expect(contract.connect(wallet).requestLeave()).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_walletNotAccepted'"
+                'error_walletNotAccepted'
             )
         })
 
@@ -218,7 +218,7 @@ describe('CoinJoinPolicy (via ERC20JoinPolicy)', (): void => {
 
         it('should fail to leave a stream if not joined', async () => {
             await expect(contract.connect(wallet).requestDelegatedLeave()).to.be.revertedWith(
-                "VM Exception while processing transaction: reverted with reason string 'error_walletNotAccepted'"
+                'error_walletNotAccepted'
             )
         })
 
