@@ -29,13 +29,12 @@ interface IFactory {
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeUpdate(address indexed broker, uint totalWei, uint allocatedWei);
+    event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei);
     event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning);
 
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     // event SponsorshipReceived(address indexed sponsor, uint amount);
-    event BrokerReported(address indexed broker, address indexed reporter);
     event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
@@ -182,58 +181,71 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Get both stake and allocations out */
-    function leave() external { // TODO: rename into unstake
-        // console.log("timestamp now", block.timestamp);
+    function leave() public { // TODO: rename into unstake
         address broker = _msgSender();
-        uint slashingWei = getLeavePenalty(broker) + globalData().committedStakeWei[broker];
-        _slash(broker, slashingWei);
-        _addSponsorship(address(this), slashingWei);
+        require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
+        uint penaltyWei = getLeavePenalty(broker);
+        _slash(broker, penaltyWei, false);
         _removeBroker(broker);
-        delete globalData().committedStakeWei[broker];
+        _addSponsorship(address(this), penaltyWei);
     }
 
-    function reduceStake(uint amountWei) external {
+    /**
+     * In order to pay for all the flags AND still afford to get slashed 10%, there's a limit to how much stake can be reduced
+     *     stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+     * =>  remaining stake * 9/10 >= committedStake
+     * =>  remaining stake == stake - cashoutWei >= committedStake * 10/9
+     * =>  cashoutWei <= stake - committedStake * 10/9
+     */
+    function maxStakeReduction(address broker) public view returns (uint maxStakeReductionWei) {
+        return globalData().stakedWei[broker] - globalData().committedStakeWei[broker] * 10/9;
+    }
+
+    /** Reduce your stake in the bounty without leaving */
+    function reduceStake(uint cashoutWei) external {
         address broker = _msgSender();
-        require(amountWei + globalData().committedStakeWei[broker] <= globalData().stakedWei[broker], "error_cannotReduceStake");
-        uint penaltyWei = getLeavePenalty(broker);
-        if (amountWei == globalData().stakedWei[broker]) {
-            _slash(broker, penaltyWei);
-            _addSponsorship(address(this), penaltyWei);
-            _removeBroker(broker);
-        } else {
-            globalData().stakedWei[broker] -= amountWei;
-            globalData().totalStakedWei -= amountWei;
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
-            if (amountWei > penaltyWei) {
-                token.transfer(broker, amountWei - penaltyWei);
-            }
-            if (penaltyWei > 0) {
-                _addSponsorship(address(this), penaltyWei);
-            }
-            emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
-            emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        // TODO: check minimumstake with join policy: we don't want that stake can be reduced to less than minimum for joining!
+        // TODO: change this check so that if stake goes below minimum (or zero if no minimum), the broker is removed completely
+        if (cashoutWei == globalData().stakedWei[broker] && globalData().committedStakeWei[broker] == 0) {
+            leave();
+            return;
         }
+
+        // stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
+        //   in order to pay for all the flags AND still afford to get slashed 10%
+        require(cashoutWei <= maxStakeReduction(broker), "error_cannotReduceStake");
+
+        globalData().stakedWei[broker] -= cashoutWei;
+        globalData().totalStakedWei -= cashoutWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, cashoutWei), "error_stakeDecreaseFailed");
+        uint penaltyWei = getLeavePenalty(broker);
+        require(cashoutWei > penaltyWei, "error_stakeWouldBeLostToPenalty");
+        token.transfer(broker, cashoutWei - penaltyWei);
+        if (penaltyWei > 0) {
+            _addSponsorship(address(this), penaltyWei);
+        }
+        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
-     * If number of brokers falls below minBrokerCount, the stream is closed.
+     * If number of brokers falls below minBrokerCount, the bounty will no longer be "running" and the stream will be closed
      */
     function _removeBroker(address broker) internal {
-        uint stakedWei = globalData().stakedWei[broker];
+        GlobalStorage storage s = globalData();
+        uint stakedWei = s.stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
         // console.log("leaving:", broker);
 
+        // send out both allocations and stake
         _withdraw(broker);
-
         require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
 
-        GlobalStorage storage s = globalData();
         s.brokerCount -= 1;
         s.totalStakedWei -= stakedWei;
         delete s.stakedWei[broker];
         delete s.joinTimeOfBroker[broker];
-        // console.log("Unallocated: ", s.unallocatedFunds);
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker)); // TODO: stake and allocation will be zero after withdraw; write a test and then hardcode zeros
@@ -245,13 +257,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Slash moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
      * The caller should ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
-    function _slash(address broker, uint amountWei) internal {
+    function _slash(address broker, uint amountWei, bool alsoKick) internal {
         require(amountWei <= globalData().stakedWei[broker], "error_cannotSlashStake");
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
+        if (alsoKick) {
+            _removeBroker(broker);
+        }
         if (broker.code.length > 0) {
-            try ISlashListener(broker).onSlash() {} catch {}
+            try ISlashListener(broker).onSlash(alsoKick) {} catch {}
         }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
@@ -311,12 +326,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function voteOnFlag(address target, bytes32 voteData) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData), "error_kickPolicyFailed");
-    }
-
-    function kick(address broker) external {
-        require(address(kickPolicy) != address(0), "error_kickingNotSupported");
-        // console.log("Reporting", broker);
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onKick.selector, broker), "error_kickPolicyFailed");
     }
 
     /////////////////////////////////////////

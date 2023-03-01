@@ -7,6 +7,7 @@ import { advanceToTimestamp, getBlockTimestamp } from "./utils"
 import { deployBrokerPool } from "./deployBrokerPool"
 
 import { deployBountyContract } from "./deployBountyContract"
+import { IKickPolicy } from "../../../typechain"
 
 const { parseEther, formatEther } = utils
 const { getSigners, getContractFactory } = hardhatEthers
@@ -21,10 +22,14 @@ describe("BrokerPool", (): void => {
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
+    let testKickPolicy: IKickPolicy
 
     before(async (): Promise<void> => {
         [admin, broker, delegator, delegator2, delegator3, sponsor] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
+
+        testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
+        await (await sharedContracts.bountyFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
 
         const { token } = sharedContracts
         await (await token.mint(sponsor.address, parseEther("1000000"))).wait()
@@ -658,12 +663,12 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it.skip("gets notified when slashed (slash listener)", async function(): Promise<void> {
+    it.skip("gets notified when kicked (slash listener)", async function(): Promise<void> {
         const { token } = sharedContracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
 
-        const bounty = await deployBountyContract(sharedContracts)
+        const bounty = await deployBountyContract(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
         const pool = await deployBrokerPool(sharedContracts, broker)
         // const balanceBefore = await token.balanceOf(listener.address)
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
@@ -679,9 +684,34 @@ describe("BrokerPool", (): void => {
         await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        // slash
-        await bounty.connect(admin).slash(pool.address, parseEther("5"))
-        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1995")) // approximate poolvalue only contains allocations at t=1000
+        await expect(bounty.connect(admin).cancelFlag(pool.address, pool.address)) // TestKickPolicy actually kicks without slashing
+            .to.emit(bounty, "BrokerKicked").withArgs(pool.address, parseEther("0"))
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
+    })
+
+    it("gets notified when slashed (slash listener)", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
+        await (await token.mint(broker.address, parseEther("1000"))).wait()
+
+        const bounty = await deployBountyContract(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+        const pool = await deployBrokerPool(sharedContracts, broker)
+        // const balanceBefore = await token.balanceOf(listener.address)
+        await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
+
+        const timeAtStart = await getBlockTimestamp()
+        await advanceToTimestamp(timeAtStart, "Stake to bounty")
+        await expect(pool.stake(bounty.address, parseEther("1000")))
+            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+
+        // update poolvalue
+        await advanceToTimestamp(timeAtStart + 1000, "slash")
+        await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
+
+        await (await bounty.connect(admin).flag(pool.address, pool.address)).wait()
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
     it("will NOT let anyone else to stake except the broker of the BrokerPool", async function(): Promise<void> {

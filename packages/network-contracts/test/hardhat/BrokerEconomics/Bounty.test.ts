@@ -37,7 +37,7 @@ describe("Bounty", (): void => {
         const { bountyFactory } = contracts
         testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as unknown as IAllocationPolicy
         testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as unknown as IJoinPolicy
-        await (await bountyFactory.addTrustedPolicies([ testJoinPolicy.address, testAllocationPolicy.address])).wait()
+        await (await bountyFactory.addTrustedPolicies([testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         token = contracts.token
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
@@ -79,6 +79,10 @@ describe("Bounty", (): void => {
     it("will NOT let stake zero", async function(): Promise<void> {
         await expect(token.transferAndCall(defaultBounty.address, parseEther("0"), broker.address))
             .to.be.revertedWith("error_cannotStakeZero")
+    })
+
+    it("lets add and reduce stake", async function(): Promise<void> {
+        // TODO: test for error_cannotReduceStake
     })
 
     describe("Adding policies", (): void => {
