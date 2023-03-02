@@ -33,7 +33,8 @@ describe("AdminKickPolicy", (): void => {
         // broker1:       100  +  50                = 150 - penalty 1wei = 150 - 1wei
         // broker2:               50   +  100       = 150 - penalty 100  = 50
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, 
+            skipBountyFactory: true, adminKickInsteadOfVoteKick: true })
 
         await bounty.sponsor(parseEther("10000"))
 
@@ -71,7 +72,8 @@ describe("AdminKickPolicy", (): void => {
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true,
+            skipBountyFactory: true })
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 
         const brokerCountBeforeReport = await bounty.getBrokerCount()

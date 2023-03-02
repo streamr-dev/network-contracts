@@ -35,8 +35,13 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
      */
     uint public PUNISH_BROKERS_PT_THOUSANDTH; // TODO: use wei/ether
 
+
     address public bountyFactory;
     address public brokerPoolFactory;
+    /**
+     * A mandatory joinpolicy for bounties, that ensures only streamr pools can join.
+     */
+    address public poolOnlyJoinPolicy;
 
     function initialize() public initializer {
         __AccessControl_init();
@@ -56,6 +61,10 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
 
     function setBrokerPoolFactory(address brokerPoolFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         brokerPoolFactory = brokerPoolFactoryAddress;
+    }
+
+    function setPoolOnlyJoinPolicy(address poolOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        poolOnlyJoinPolicy = poolOnlyJoinPolicyAddress;
     }
 
     // TODO: what would this be used for?

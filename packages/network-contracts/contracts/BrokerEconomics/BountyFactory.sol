@@ -145,6 +145,7 @@ contract BountyFactory is IBountyFactory, Initializable, UUPSUpgradeable, ERC277
                 bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
+        bounty.addJoinPolicy(IJoinPolicy(streamrConstants.poolOnlyJoinPolicy()), 0);
         bounty.grantRole(bounty.getAdminRole(), bountyOwner);
         bounty.renounceRole(bounty.getDefaultAdminRole(), address(this));
         bounty.renounceRole(bounty.getAdminRole(), address(this));

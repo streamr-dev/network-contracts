@@ -1,9 +1,12 @@
 import assert from "assert"
-import { utils, BigNumber, ContractReceipt } from "ethers"
+import { utils, BigNumber, ContractReceipt, Wallet } from "ethers"
+import { ethers as hardhatEthers } from "hardhat"
+
 import { Bounty, IAllocationPolicy, IJoinPolicy, IKickPolicy } from "../typechain"
 import type { TestContracts } from "./deployTestContracts"
 
 const { parseEther } = utils
+const { getContractFactory } = hardhatEthers
 
 export let bountyCounter = 0
 
@@ -21,6 +24,8 @@ export async function deployBountyContract(
         allocationWeiPerSecond = parseEther("1"),
         brokerPoolOnly = false,
         adminKickInsteadOfVoteKick = false,
+        skipBountyFactory = false,
+        signer = contracts.deployer
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
@@ -71,17 +76,40 @@ export async function deployBountyContract(
             policyParams.push(extraJoinPolicyParams[i])
         }
     }
-    const bountyDeployTx = await bountyFactory.deployBountyAgreement(
-        minHorizonSeconds.toString(),
-        minBrokerCount.toString(),
-        `Bounty-${bountyCounter++}-${Date.now()}`,
-        policyAdresses,
-        policyParams
-    )
-    const bountyDeployReceipt = await bountyDeployTx.wait() as ContractReceipt
-    const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
-    const newBountyAddress = newBountyEvent?.args?.bountyContract
-    const bounty = bountyTemplate.attach(newBountyAddress)
-    await (await token.approve(bounty.address, parseEther("100000"))).wait()
-    return bounty
+    if (!skipBountyFactory) {
+        const bountyDeployTx = await bountyFactory.deployBountyAgreement(
+            minHorizonSeconds.toString(),
+            minBrokerCount.toString(),
+            `Bounty-${bountyCounter++}-${Date.now()}`,
+            policyAdresses,
+            policyParams
+        )
+        const bountyDeployReceipt = await bountyDeployTx.wait() as ContractReceipt
+        const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
+        const newBountyAddress = newBountyEvent?.args?.bountyContract
+        const bounty = bountyTemplate.attach(newBountyAddress)
+        await (await token.approve(bounty.address, parseEther("100000"))).wait()
+        return bounty
+    } else {
+        const bounty = await (await getContractFactory("Bounty", { signer })).deploy()
+        await bounty.deployed()
+        await bounty.initialize(
+            contracts.streamrConstants.address,
+            (signer as unknown as Wallet).address ?? "",
+            token.address,
+            minHorizonSeconds.toString(),
+            minBrokerCount.toString(),
+            allocationPolicyAddress,
+            allocationPolicyParam
+        )
+        await bounty.setLeavePolicy(leavePolicyAddress, leavePolicyParam)
+        await bounty.setKickPolicy(adminKickPolicy.address, policyParams[2]) //skipping factory disables vote kick
+        for (let i = 3; i < policyAdresses.length; i++) {
+            await bounty.addJoinPolicy(policyAdresses[i], policyParams[i])
+        }
+        await (await bounty.renounceRole(await bounty.DEFAULT_ADMIN_ROLE(), (signer as unknown as Wallet).address ?? "")).wait()
+        // await (await bounty.renounceRole(await bounty.ADMIN_ROLE(), (signer as unknown as Wallet).address ?? "")).wait()
+        await (await token.approve(bounty.address, parseEther("100000"))).wait()
+        return bounty
+    }
 }
