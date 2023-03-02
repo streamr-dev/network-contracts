@@ -84,8 +84,24 @@ contract DelegatedAccessRegistry is Ownable {
         return delegatedToMainWallets[delegatedUser_];
     }
 
+    function getMainWalletsFor(address[] memory delegatedUsers_) public view returns (address[] memory) {
+        address[] memory mainWallets_ = new address[](delegatedUsers_.length);
+        for (uint i = 0; i < delegatedUsers_.length; i++) {
+            mainWallets_[i] = getMainWalletFor(delegatedUsers_[i]);
+        }
+        return mainWallets_;
+    }
+
     function getDelegatedWalletFor(address mainUser_) public view returns (address){
         return mainToDelegatedWallets[mainUser_];
+    }
+
+    function getDelegatedWalletsFor(address[] memory mainUsers_) public view returns (address[] memory) {
+        address[] memory delegatedWallets_ = new address[](mainUsers_.length);
+        for (uint i = 0; i < mainUsers_.length; i++) {
+            delegatedWallets_[i] = getDelegatedWalletFor(mainUsers_[i]);
+        }
+        return delegatedWallets_;
     }
     
     function isMainWallet(address wallet) public view returns (bool) {

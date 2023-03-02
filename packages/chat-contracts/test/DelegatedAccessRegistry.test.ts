@@ -27,6 +27,8 @@ const signDelegatedChallenge = async (
 }
 
 describe('DelegatedAccessRegistry', async (): Promise<void> => {
+    const zeroAddress = '0x0000000000000000000000000000000000000000'
+
     let wallets: Signer[]
 
     const delegated = Wallet.createRandom()
@@ -90,10 +92,32 @@ describe('DelegatedAccessRegistry', async (): Promise<void> => {
         expect(mainWallet).to.equal(wallets[0].address)
     })
 
+    it('should exercise getMainWalletsFor', async () => {
+        const mainWallets = await contract.getMainWalletsFor([
+            delegated.address,
+            wallets[1].address, // non-existent delegated address
+        ])
+
+        expect(mainWallets.length).to.equal(2)
+        expect(mainWallets[0]).to.equal(wallets[0].address)
+        expect(mainWallets[1]).to.equal(zeroAddress)
+    })
+
     it('happy-path for `getDelegatedWalletFor`', async () => {
         const delegatedWallet = await contract.getDelegatedWalletFor(wallets[0].address)
 
         expect(delegatedWallet).to.equal(delegated.address)
+    })
+
+    it('should exercise getDelegatedWalletsFor', async () => {
+        const delegatedWallets = await contract.getDelegatedWalletsFor([
+            wallets[0].address,
+            wallets[1].address,
+        ])
+
+        expect(delegatedWallets.length).to.equal(2)
+        expect(delegatedWallets[0]).to.equal(delegated.address)
+        expect(delegatedWallets[1]).to.equal(zeroAddress)
     })
 
     it('happy-path for `isMainWallet`', async () => {
