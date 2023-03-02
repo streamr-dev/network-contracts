@@ -66,7 +66,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      *       that might also get rid of lastUpdateTotalStake and lastUpdateWasRunning
      *         after changing the order of change and listener in Bounty->onJoin, like was done for onSponsor
      */
-    function update(int256 newFundsWei) private {
+    function update(uint newFundsWei) private {
         LocalStorage storage localVars = localData();
         GlobalStorage storage globalVars = globalData();
         if (localVars.lastUpdateWasRunning) {
@@ -129,15 +129,15 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     /** When broker joins, the current reference point is reset, and later the broker's allocation can be measured from the accumulated difference */
     function onJoin(address broker) external {
-        // console.log("onJoin", broker);
+        // console.log("onJoin update", broker);
         update(0);
         localData().cumulativeReference[broker] = localData().cumulativeWeiPerStake;
         // console.log("  cumulative reference <-", localData().cumulativeReference[broker]);
     }
 
-    /** When broker leaves, its allocations so far are saved so that they continue to increase after next join */
+    /** When broker leaves, its state is cleared as if it had never joined */
     function onLeave(address broker) external {
-        // console.log("onLeave", broker);
+        // console.log("onLeave update", broker);
         update(0);
         delete localData().onReferenceResetWei[broker];
         delete localData().cumulativeReference[broker];
@@ -146,47 +146,29 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     /**
      * When stake changes, reset the reference point
      */
-    function onStakeIncrease(address broker, uint newStakeWei) external {
+    function onStakeChange(address broker, int stakeChangeWei) external {
         LocalStorage storage local = localData();
-        // console.log("onStakeIncrease", broker);
+        // console.log("onStakeChange", broker, globalData().stakedWei[broker]);
+        // console.logInt(stakeChangeWei);
         update(0);
 
-        // update pre-reset allocations
-        // NB: can't use calculateAllocation(), must use pre-increase stake for the past period
-        uint oldStakeWei = globalData().stakedWei[broker] - newStakeWei;
-        uint brokerWeiPerStake = local.cumulativeWeiPerStake - local.cumulativeReference[broker];
-        uint newAllocationsWei = oldStakeWei * brokerWeiPerStake / 1e18; // stake full token = 1e18 stake wei
-        local.onReferenceResetWei[broker] += newAllocationsWei;
+        // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
+        uint oldStakeWei = uint(int(globalData().stakedWei[broker]) - stakeChangeWei);
 
         // reset reference point
+        local.onReferenceResetWei[broker] = _calculateAllocation(broker, oldStakeWei);
         local.cumulativeReference[broker] = local.cumulativeWeiPerStake;
 
         // console.log("  pre-reset allocation <-", local.onReferenceResetWei[broker]);
         // console.log("  cumulative reference <-", local.cumulativeReference[broker]);
-
     }
 
-    function onStakeDecrease(address broker, uint decreaseAmount) external {
-        // console.log("onStakeDecrease", broker);
-        // LocalStorage storage local = localData();
-
-        update(0);
-        uint oldStakeWei = globalData().stakedWei[broker] + decreaseAmount;
-        uint brokerWeiPerStake = localData().cumulativeWeiPerStake - localData().cumulativeReference[broker];
-        uint newAllocationsWei = oldStakeWei * brokerWeiPerStake / 1e18; // stake full token = 1e18 stake wei
-        localData().onReferenceResetWei[broker] += newAllocationsWei;
-
-        localData().cumulativeReference[broker] = localData().cumulativeWeiPerStake;
-
-        // console.log("  pre-reset allocation <-", localData().onReferenceResetWei[broker]);
-        // console.log("  cumulative reference <-", localData().cumulativeReference[broker]);
-    }
-
-    // TODO: DRY out commonalities with onStakeIncrease
+    /** @return payoutWei how many tokens to send out from Bounty */
     function onWithdraw(address broker) external returns (uint payoutWei) {
         // console.log("onWithdraw", broker);
         update(0);
 
+        // calculate payout FIRST, before zeroing the allocation onReferenceReset
         payoutWei = calculateAllocation(broker);
 
         // reset reference point, also zero the "unpaid allocations" because they will be paid out
@@ -201,7 +183,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
         // in case the bounty had gone insolvent, now it got a top-up => return from insolvency
         if (getInsolvencyTimestamp() < block.timestamp) {
-            update(int(amount));
+            update(amount);
         }
     }
 
@@ -234,15 +216,18 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      */
     function calculateAllocation(address broker) public view returns (uint allocation) {
         if (globalData().stakedWei[broker] == 0) { return 0; }
+        return _calculateAllocation(broker, globalData().stakedWei[broker]);
+    }
 
+    function _calculateAllocation(address broker, uint stakeWei) internal view returns (uint allocation) {
         // console.log("Calculate allocation for", broker);
         // console.log("  cumulative ", getCumulativeWeiPerStake());
         // console.log("  reference  ", localData().cumulativeReference[broker]);
         uint weiPerStake = getCumulativeWeiPerStake() - localData().cumulativeReference[broker];
         // console.log("  alloc / full token", weiPerStake);
-        uint afterReferenceResetWei = globalData().stakedWei[broker] * weiPerStake / 1e18; // full token = 1e18 wei
-        // console.log("  onReferenceResetWei", localData().onReferenceResetWei[broker]);
-        // console.log("  allocation ", afterReferenceResetWei);
-        return localData().onReferenceResetWei[broker] + afterReferenceResetWei;
+        uint allocationSinceReferenceResetWei = stakeWei * weiPerStake / 1e18; // full token = 1e18 wei
+        // console.log("  onReferenceResetWei  ", localData().onReferenceResetWei[broker]);
+        // console.log("  since reference reset", allocationSinceReferenceResetWei);
+        return localData().onReferenceResetWei[broker] + allocationSinceReferenceResetWei;
     }
 }

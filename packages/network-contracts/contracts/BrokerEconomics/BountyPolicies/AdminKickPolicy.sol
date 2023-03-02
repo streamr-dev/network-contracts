@@ -20,12 +20,15 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     function onFlag(address broker, address) external {
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _slash(broker, 0, true);
-        emit BrokerKicked(broker, 0);
     }
 
     function onCancelFlag(address, address) external {
     }
 
     function onVote(address, bytes32) external {
+    }
+
+    function getFlagData(address) override external pure returns (uint flagData) {
+        return 0;
     }
 }

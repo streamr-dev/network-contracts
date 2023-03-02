@@ -66,19 +66,12 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     /**
      * When stake changes, effectively do a leave + join, resetting the CE for this broker
      */
-    function onStakeIncrease(address, uint) external view {
+    function onStakeChange(address, int) external view {
         if (localData().failOnIncrease) {
-            require(false, "test_onStakeIncrease");
+            require(false, "test_onStakeChange");
         } else if (localData().failEmptyOnIncrease) {
             require(false); // solhint-disable-line reason-string
         }
-    }
-    function onStakeDecrease(address, uint) external view {
-        // if (localData().failOnDecrease) {
-        //     require(false, "test_onStakeDecrease");
-        // } else if (localData().failEmptyOnDecrease) {
-        //     require(false); // solhint-disable-line reason-string
-        // }
     }
 
     function onWithdraw(address) external pure returns (uint payoutWei) {

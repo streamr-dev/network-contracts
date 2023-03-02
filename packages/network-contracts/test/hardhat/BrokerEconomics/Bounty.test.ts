@@ -7,6 +7,8 @@ import { Bounty, IAllocationPolicy, IJoinPolicy, TestToken } from "../../../type
 const { defaultAbiCoder, parseEther } = ethersUtils
 const { getSigners, getContractFactory } = hardhatEthers
 
+import { advanceToTimestamp, getBlockTimestamp } from "./utils"
+
 import {
     deployTestContracts,
     TestContracts,
@@ -85,6 +87,46 @@ describe("Bounty", (): void => {
         // TODO: test for error_cannotReduceStake
     })
 
+    it("shows zero allocation after a withdraw", async function(): Promise<void> {
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("10000"))).wait()
+        const start = await getBlockTimestamp()
+
+        // join tx actually happens at timeAtStart + 1
+        await advanceToTimestamp(start, "Stake to bounty")
+        await (await token.transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
+
+        await advanceToTimestamp(start + 101, "Withdraw from bounty")
+        const allocationBeforeWithdraw = await bounty.getAllocation(broker.address)
+        await (await bounty.connect(broker).withdraw()).wait()
+        const allocationAfterWithdraw = await bounty.getAllocation(broker.address)
+
+        expect(allocationBeforeWithdraw).to.equal(parseEther("100"))
+        expect(allocationAfterWithdraw).to.equal(0)
+    })
+
+    it("shows zero allocation and zero stake after unstaking (no committed stake)", async function(): Promise<void> {
+        const bounty = await deployBountyContract(contracts)
+        await (await bounty.sponsor(parseEther("10000"))).wait()
+        const start = await getBlockTimestamp()
+
+        // join tx actually happens at timeAtStart + 1
+        await advanceToTimestamp(start, "Stake to bounty")
+        await (await token.transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
+
+        await advanceToTimestamp(start + 101, "Withdraw from bounty") // queries will see start + 100 (off by one, NEXT tx will be start + 101)
+        const allocationBeforeUnstake = await bounty.getAllocation(broker.address)
+        const stakeBeforeUnstake = await bounty.connect(broker).getMyStake()
+        await (await bounty.connect(broker).leave()).wait()
+        const allocationAfterUnstake = await bounty.getAllocation(broker.address)
+        const stakeAfterUnstake = await bounty.connect(broker).getMyStake()
+
+        expect(allocationBeforeUnstake).to.equal(parseEther("100"))
+        expect(stakeBeforeUnstake).to.equal(parseEther("10"))
+        expect(allocationAfterUnstake).to.equal(0)
+        expect(stakeAfterUnstake).to.equal(0)
+    })
+
     describe("Adding policies", (): void => {
 
         it("will FAIL for non-admins", async function(): Promise<void> {
@@ -105,7 +147,7 @@ describe("Bounty", (): void => {
         })
     })
 
-    describe("IJoinPolicy negative test", (): void => {
+    describe("IJoinPolicy negative tests", (): void => {
 
         it("error setting param on joinpolicy", async function(): Promise<void> {
             await expect(deployBountyContract(contracts, {}, [testJoinPolicy], ["1"])) // 1 => TestJoinPolicy:setParam will revert
@@ -130,7 +172,7 @@ describe("Bounty", (): void => {
         })
     })
 
-    describe("IAllocationPolicy negative test", (): void => {
+    describe("IAllocationPolicy negative tests", (): void => {
 
         it("error setting param on allocationPolicy", async function(): Promise<void> {
             await expect(deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "1")) // 1 => will revert in setParam
@@ -161,15 +203,15 @@ describe("Bounty", (): void => {
             await expect(bounty.connect(broker).leave()).to.be.revertedWith("error_brokerLeaveFailed")
         })
 
-        it("error onstakeIncrease", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "7") // 7 => onStakeIncrease will revert
+        it("error onStakeChange", async function(): Promise<void> {
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "7") // 7 => onStakeChange will revert
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
-                .to.be.revertedWith("test_onStakeIncrease")
+                .to.be.revertedWith("test_onStakeChange")
         })
 
-        it("error onstakeIncrease, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "8") // 8 => onStakeIncrease revert without reason
+        it("error onStakeChange, empty error", async function(): Promise<void> {
+            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "8") // 8 => onStakeChange revert without reason
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_stakeIncreaseFailed")
