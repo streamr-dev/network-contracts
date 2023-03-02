@@ -29,7 +29,7 @@ describe("MaxAmountBrokersJoinPolicy", (): void => {
 
     it("will NOT let too many brokers join", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { maxBrokerCount: 1 })
+        const bounty = await deployBountyContract(contracts, { maxBrokerCount: 1, skipBountyFactory: true })
         await expect(token.transferAndCall(bounty.address, parseEther("1"), broker.address))
             .to.emit(bounty, "BrokerJoined")
         await expect(token.transferAndCall(bounty.address, parseEther("1"), broker2.address))

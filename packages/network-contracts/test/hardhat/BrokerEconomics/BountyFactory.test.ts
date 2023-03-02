@@ -25,7 +25,7 @@ describe("BountyFactory", () => {
     it("can deploy a Bounty; then can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
 
-        const bounty = await deployBountyContract(contracts, { minStakeWei: parseEther("2") })
+        const bounty = await deployBountyContract(contracts, { minStakeWei: parseEther("2"), skipBountyFactory: true })
         await expect(token.transferAndCall(bounty.address, parseEther("2"), admin.address))
             .to.emit(bounty, "BrokerJoined").withArgs(admin.address)
         await expect(token.transferAndCall(bounty.address, parseEther("2"), admin.address))

@@ -35,7 +35,8 @@ describe("DefaultLeavePolicy", (): void => {
 
     it("penalizes only from the broker that leaves early while bounty is running", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 1000 })
+        const bounty = await deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 1000,
+            skipBountyFactory: true})
         expect(!await bounty.isRunning())
         expect(!await bounty.isFunded())
 
@@ -80,7 +81,7 @@ describe("DefaultLeavePolicy", (): void => {
         // broker1:       400  +  300               =  700
         // broker2:               300  +  700       = 1000
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000 })
+        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, skipBountyFactory: true })
         expect(!await bounty.isRunning())
         expect(!await bounty.isFunded())
 
