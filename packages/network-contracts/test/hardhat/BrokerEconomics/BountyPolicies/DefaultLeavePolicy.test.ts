@@ -65,13 +65,13 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await bounty.isRunning())
         expect(await bounty.isFunded())
 
-        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, bounty stops")
-        await (await bounty.connect(broker).leave()).wait()
+        await advanceToTimestamp(timeAtStart + 300, "broker 1 leaves while bounty is running, loses 10% of 1000 = 100")
+        await (await bounty.connect(broker).unstake()).wait()
         expect(!await bounty.isRunning())
         expect(await bounty.isFunded())
 
-        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped")
-        await (await bounty.connect(broker2).leave()).wait()
+        await advanceToTimestamp(timeAtStart + 400, "broker 2 leaves when bounty is stopped, keeps stake")
+        await (await bounty.connect(broker2).unstake()).wait()
         expect(!await bounty.isRunning())
         expect(await bounty.isFunded())
 
@@ -111,12 +111,12 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 1000)
-        await (await bounty.connect(broker).leave()).wait()
+        await (await bounty.connect(broker).unstake()).wait()
         expect(await bounty.isRunning())
         expect(await bounty.isFunded())
 
         await advanceToTimestamp(timeAtStart + 1700)
-        await (await bounty.connect(broker2).leave()).wait()
+        await (await bounty.connect(broker2).unstake()).wait()
         expect(!await bounty.isRunning())
         expect(await bounty.isFunded())
 
