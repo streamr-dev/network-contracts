@@ -3,7 +3,7 @@ import { ethers } from "hardhat"
 import { utils, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
-import { advanceToTimestamp, getBlockTimestamp, log } from "../utils"
+import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
 import { deployBountyContract } from "../deployBountyContract"
 
