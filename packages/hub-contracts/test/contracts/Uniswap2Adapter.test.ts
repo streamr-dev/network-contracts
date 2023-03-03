@@ -1,22 +1,18 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
-import { utils, Wallet } from "ethers"
+import { config, upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
+import { constants, utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
 import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-const { provider: waffleProvider } = waffle
 const { hexlify, id, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-use(waffle.solidity)
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const types = {
     EIP712Domain: [
         {
@@ -55,14 +51,13 @@ const types = {
 }
 
 describe("Uniswap2AdapterV4", () => {
-    const [
-        admin,
-        beneficiary,
-        buyer,
-        forwarder,
-        forwarder2,
-        other,
-    ]: Wallet[] = waffleProvider.getWallets()
+    let admin: Wallet
+    let beneficiary: Wallet
+    let buyer: Wallet
+    let forwarder: Wallet
+    let forwarder2: Wallet
+    let signer: Wallet
+    let signerWallet: Wallet
 
     let dataToken: DATAv2 // the token in which the product is paid to product beneficiary
     let erc677Token: DATAv2
@@ -83,6 +78,11 @@ describe("Uniswap2AdapterV4", () => {
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
     before(async () => {
+        [admin, beneficiary, buyer, forwarder, forwarder2, signer] = await hardhatEthers.getSigners() as unknown as Wallet[]
+        const accounts = config.networks.hardhat.accounts as any
+        const indexSigner = 5 // sixth account => the signer from getSigners() above
+        signerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexSigner}`)
+
         await deployErc20ContractsAndMintTokens()
         domainIds.push(chainId)
         paymentDetailsDefault.push([
@@ -158,7 +158,7 @@ describe("Uniswap2AdapterV4", () => {
         const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
-            [ZERO_ADDRESS, ZERO_ADDRESS], // ensCacheAddr & trustedForwarderAddress can be set to zero address while testing this adapter
+            [constants.AddressZero, constants.AddressZero], // ensCacheAddr & trustedForwarderAddress can be zero address while testing this adapter
             { kind: 'uups' })
         streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("StreamRegistry was deployed at address: ", streamRegistry.address)
@@ -321,18 +321,24 @@ describe("Uniswap2AdapterV4", () => {
     })
     
     describe('Metatransactions', (): void => {
-        async function prepareBuyWithERC20Metatx(minimalForwarder: MinimalForwarder, signKey: string, gas = '1000000') {
+        let trustedForwarderRole: string
+        before(async () => {
+            trustedForwarderRole = await projectRegistry.TRUSTED_FORWARDER_ROLE()
+            await projectRegistry.grantRole(trustedForwarderRole, minimalForwarder.address)
+        })
+
+        async function prepareBuyWithERC20Metatx(minimalForwarder: MinimalForwarder, signerObj: Wallet, signKey: string, gas = '1000000') {
             // 1 second ~= 0.1 ERC20
             const value = parseEther("0.1")
 
-            // buyer is creating and signing transaction, forwarder is posting it and paying for gas
+            // signerObj is creating and signing transaction, forwarder is posting it and paying for gas
             const data = uniswap2Adapter.interface.encodeFunctionData('buyWithERC20', [productIdbytes, 0, day, fromToken.address, value])
             const req = {
-                from: buyer.address,
+                from: signerObj.address,
                 to: uniswap2Adapter.address,
                 value: '0',
                 gas,
-                nonce: (await minimalForwarder.getNonce(buyer.address)).toString(),
+                nonce: (await minimalForwarder.getNonce(signerObj.address)).toString(),
                 data
             }
             const d: TypedMessage<any> = {
@@ -340,7 +346,7 @@ describe("Uniswap2AdapterV4", () => {
                 domain: {
                     name: 'MinimalForwarder',
                     version: '0.0.1',
-                    chainId: (await waffleProvider.getNetwork()).chainId,
+                    chainId: (await hardhatEthers.provider.getNetwork()).chainId,
                     verifyingContract: minimalForwarder.address,
                 },
                 primaryType: 'ForwardRequest',
@@ -354,12 +360,6 @@ describe("Uniswap2AdapterV4", () => {
             const sign = signTypedData(options) // forwarder
             return {req, sign, value}
         }
-
-        let trustedForwarderRole: string
-        before(async () => {
-            trustedForwarderRole = await projectRegistry.TRUSTED_FORWARDER_ROLE()
-            await projectRegistry.grantRole(trustedForwarderRole, minimalForwarder.address)
-        })
         
         it('isTrustedForwarder - positivetest', async (): Promise<void> => {
             expect(await projectRegistry.isTrustedForwarder(minimalForwarder.address))
@@ -367,16 +367,17 @@ describe("Uniswap2AdapterV4", () => {
         })
 
         it('buyWithERC20 - positivetest', async (): Promise<void> => {
-            const {req, sign, value} = await prepareBuyWithERC20Metatx(minimalForwarder.connect(forwarder), buyer.privateKey)
-            await fromToken.connect(buyer).approve(uniswap2Adapter.address, value)
+            const {req, sign, value} = await prepareBuyWithERC20Metatx(minimalForwarder.connect(forwarder), signer, signerWallet.privateKey)
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
+            await(await fromToken.mint(signer.address, value)).wait()
+            await(await fromToken.connect(signer).approve(uniswap2Adapter.address, value)).wait()
 
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
             await minimalForwarder.connect(forwarder)
                 .execute(req, sign)
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.true
         })
 
@@ -388,24 +389,26 @@ describe("Uniswap2AdapterV4", () => {
                 .to.be.false
 
             // check that metatx works with new forwarder
-            const {req, sign} = await prepareBuyWithERC20Metatx(wrongForwarder.connect(forwarder), buyer.privateKey)
+            const signer = hardhatEthers.Wallet.createRandom()
+            const {req, sign} = await prepareBuyWithERC20Metatx(wrongForwarder.connect(forwarder), signer, signer.privateKey)
             expect(await wrongForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
             // check that the project doesn't have a valid subscription
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
             
             await wrongForwarder.connect(forwarder).execute(req, sign)
 
             // internal call will have failed => subscription not extended
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
         })
 
         it('buyWithERC20 - negativetest - wrong signature', async (): Promise<void> => {
-            const wrongKey = other.privateKey // buyer.privateKey would be correct
-            const {req, sign} = await prepareBuyWithERC20Metatx(minimalForwarder, wrongKey)
+            const signer = hardhatEthers.Wallet.createRandom()
+            const wrongSigner = hardhatEthers.Wallet.createRandom() // signer.privateKey would be correct
+            const {req, sign} = await prepareBuyWithERC20Metatx(minimalForwarder, signer, wrongSigner.privateKey)
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.false
             await expect(minimalForwarder.execute(req, sign))
@@ -413,15 +416,16 @@ describe("Uniswap2AdapterV4", () => {
         })
 
         it('buyWithERC20 - negativetest - not enough gas in internal transaction call', async (): Promise<void> => {
-            const {req, sign} = await prepareBuyWithERC20Metatx(minimalForwarder, buyer.privateKey, '1000')
+            const signer = hardhatEthers.Wallet.createRandom()
+            const {req, sign} = await prepareBuyWithERC20Metatx(minimalForwarder, signer, signer.privateKey, '1000')
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.true
 
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
             await minimalForwarder.execute(req, sign)
             // internal call will have failed => subscription not extended
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
         })
 
@@ -445,15 +449,17 @@ describe("Uniswap2AdapterV4", () => {
                 .to.be.true
                 
             // check that metatx works with new forwarder
-            const {req, sign, value} = await prepareBuyWithERC20Metatx(newForwarder, buyer.privateKey)
+            // const signer = hardhatEthers.Wallet.createRandom()
+            const {req, sign, value} = await prepareBuyWithERC20Metatx(newForwarder, signer, signerWallet.privateKey)
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
+            await(await fromToken.mint(signer.address, value)).wait()
+            await(await fromToken.connect(signer).approve(uniswap2Adapter.address, value)).wait()
 
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
-            await fromToken.connect(buyer).approve(uniswap2Adapter.address, value)
             await newForwarder.execute(req, sign)
-            expect(await projectRegistry.hasValidSubscription(productIdbytes, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.true
         })
     })

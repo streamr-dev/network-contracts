@@ -1,14 +1,21 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
-import { BigNumber, utils, constants } from "ethers"
+import { config, upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
+import { BigNumber, utils, constants, Wallet } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, GasReporter, MarketplaceV4, ProjectRegistryV1, RemoteMarketplaceV1, StreamRegistryV4 } from "../../typechain"
-import { MinimalForwarder } from "../../typechain/MinimalForwarder"
+import type {
+    DATAv2,
+    ERC20Mintable,
+    GasReporter,
+    MarketplaceV4,
+    MinimalForwarder,
+    ProjectRegistryV1,
+    RemoteMarketplaceV1,
+    StreamRegistryV4,
+} from "../../typechain"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 
-const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
 const { addressToBytes32} = hyperlaneUtils
@@ -53,16 +60,16 @@ const types = {
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-use(waffle.solidity)
-
 describe("MarketplaceV4", () => {
-    const [
-        admin,
-        buyer,
-        other,
-        beneficiary,
-        forwarder,
-    ] = waffleProvider.getWallets()
+    let admin: Wallet
+    let buyer: Wallet
+    let other: Wallet
+    let beneficiary: Wallet
+    let forwarder: Wallet
+    let signer: Wallet
+    let signerWallet: Wallet
+    let wrongSigner: Wallet
+    let wrongSignerWallet: Wallet
 
     let token: DATAv2
     let otherToken: ERC20Mintable
@@ -82,6 +89,14 @@ describe("MarketplaceV4", () => {
     const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
+        [admin, buyer, other, beneficiary, forwarder, signer, wrongSigner] = await hardhatEthers.getSigners() as unknown as Wallet[]
+        const accounts = config.networks.hardhat.accounts as any
+        const indexSigner = 5 // sixth account => the signer from getSigners() above
+        signerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexSigner}`)
+        const indexWrongSigner = 6 // sixth account => the signer from getSigners() above
+        wrongSignerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexWrongSigner}`)
+        log("WrongSigner: ", wrongSigner.address)
+
         await deployERC20()
         await deployOtherERC20()
         await deployMinimalForwarder()
@@ -464,24 +479,23 @@ describe("MarketplaceV4", () => {
         before(async () => {
             const trustedForwarderRole = await projectRegistry.TRUSTED_FORWARDER_ROLE()
             await projectRegistry.grantRole(trustedForwarderRole, minimalForwarder.address)
-
             // each unit test must have at least subscriptionSeconds * pricePerSecond for mint/approve
-            await token.mint(buyer.address, 10000)
-            await token.connect(buyer).approve(marketplace.address, 10000)
+            await(await token.mint(signer.address, 10000)).wait()
+            await(await token.connect(signer).approve(marketplace.address, 10000)).wait()
         })
 
-        async function prepareBuyMetatx(minimalForwarder: MinimalForwarder, signKey: string, gas = '1000000') {
+        async function prepareBuyMetatx(minimalForwarder: MinimalForwarder, signerObj: Wallet, signKey: string, gas = '1000000') {
             const projectId = await createProject()
             const subscriptionSeconds = 100
 
-            // buyer is creating and signing transaction, forwarder is posting it and paying for gas
+            // signerObj is creating and signing transaction, forwarder is posting it and paying for gas
             const data = marketplace.interface.encodeFunctionData('buy', [projectId, subscriptionSeconds])
             const req = {
-                from: buyer.address,
+                from: signerObj.address,
                 to: marketplace.address,
                 value: '0',
                 gas,
-                nonce: (await minimalForwarder.getNonce(buyer.address)).toString(),
+                nonce: (await minimalForwarder.getNonce(signerObj.address)).toString(),
                 data
             }
             const d: TypedMessage<any> = {
@@ -489,7 +503,7 @@ describe("MarketplaceV4", () => {
                 domain: {
                     name: 'MinimalForwarder',
                     version: '0.0.1',
-                    chainId: (await waffleProvider.getNetwork()).chainId,
+                    chainId: (await hardhatEthers.provider.getNetwork()).chainId,
                     verifyingContract: minimalForwarder.address,
                 },
                 primaryType: 'ForwardRequest',
@@ -510,16 +524,16 @@ describe("MarketplaceV4", () => {
         })
 
         it('buy - positivetest', async (): Promise<void> => {
-            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder.connect(forwarder), buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder.connect(forwarder), signer, signerWallet.privateKey)
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
 
             await minimalForwarder.connect(forwarder).execute(req, sign)
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.true
         })
 
@@ -535,24 +549,23 @@ describe("MarketplaceV4", () => {
                 .to.be.false
 
             // check that metatx works with new forwarder
-            const {req, sign, projectId} = await prepareBuyMetatx(wrongForwarder.connect(forwarder), buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(wrongForwarder.connect(forwarder), signer, signerWallet.privateKey)
             expect(await wrongForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
             // check that the project doesn't have a valid subscription
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
 
             await wrongForwarder.connect(forwarder).execute(req, sign)
 
             // internal call will have failed => subscription was not extended
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
         })
 
         it('buy - negativetest - wrong signature', async (): Promise<void> => {
-            const wrongKey = other.privateKey // buyer.privateKey would be correct
-            const {req, sign} = await prepareBuyMetatx(minimalForwarder, wrongKey)
+            const {req, sign} = await prepareBuyMetatx(minimalForwarder, signer, wrongSignerWallet.privateKey)
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.false
             await expect(minimalForwarder.execute(req, sign))
@@ -560,15 +573,15 @@ describe("MarketplaceV4", () => {
         })
 
         it('buy - negativetest - not enough gas in internal transaction call', async (): Promise<void> => {
-            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder, buyer.privateKey, '1000')
+            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder, signer, signerWallet.privateKey, '1000')
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.true
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
             await minimalForwarder.execute(req, sign)
             // internal call will have failed
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
         })
 
@@ -583,7 +596,8 @@ describe("MarketplaceV4", () => {
                 .to.be.false
 
             // check that metatx does NOT works with old forwarder
-            const {req: reqOld, sign: signOld, projectId: projectIdOld}: any = await prepareBuyMetatx(minimalForwarder, buyer.privateKey)
+            const { req: reqOld, sign: signOld, projectId: projectIdOld }: any = 
+                await prepareBuyMetatx(minimalForwarder, signer, signerWallet.privateKey)
             expect(await projectRegistry.hasValidSubscription(projectIdOld, buyer.address))
                 .to.be.false
             expect(await minimalForwarder.verify(reqOld, signOld))
@@ -603,13 +617,13 @@ describe("MarketplaceV4", () => {
                 .to.be.true
 
             // check that metatx works with new forwarder
-            const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, signer, signerWallet.privateKey)
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
             await newForwarder.execute(req, sign)
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.true
         })
 

@@ -21,7 +21,6 @@ contract MinimumStakeJoinPolicy is IJoinPolicy, Bounty {
         localData().minimumStake = minimumStake;
     }
 
-
     // solc-ignore-next-line func-mutability
     function onJoin(address broker, uint256 amount) external {
         require(globalData().stakedWei[broker] + amount >= localData().minimumStake, "error_stakeUnderMinimum");
