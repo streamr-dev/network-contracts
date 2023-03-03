@@ -174,7 +174,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             s.totalStakedWei += amount;
 
             // re-calculate the cumulative earnings
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeIncrease.selector, broker, amount), "error_stakeIncreaseFailed");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amount)), "error_stakeIncreaseFailed");
         }
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
