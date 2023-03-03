@@ -31,9 +31,13 @@ contract TestKickPolicy is IKickPolicy, Bounty {
         console.log("onkick");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _slash(broker, 0, true);
-        emit BrokerKicked(broker, 0);
     }
 
     function onVote(address broker, bytes32 voteData) external {
+    }
+
+    // solhint-disable-next-line no-unused-vars
+    function getFlagData(address broker) override external pure returns (uint flagData) {
+        return 0;
     }
 }

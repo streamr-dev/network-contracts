@@ -33,8 +33,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const balanceBefore = await token.balanceOf(broker.address)
         const timeAtStart = await getBlockTimestamp()
 
+        // join tx actually happens at timeAtStart + 1
         await advanceToTimestamp(timeAtStart, "broker joins")
-        // this tx this happens at timeAtStart + 1
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), broker.address)).wait()
         const allocationAfterJoin = await bounty.getAllocation(broker.address)
         const stakeAfterJoin = await bounty.getStake(broker.address)
