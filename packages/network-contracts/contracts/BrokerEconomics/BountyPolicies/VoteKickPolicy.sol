@@ -52,7 +52,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * During review period, the target still gets a chance to resume working; and flagger gets a chance to cancel the flag
      **/
     function canVote(address target) internal view returns (bool) {
-        return block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS; // false if flagTimestamp[broker] == 0
+        // false if flagTimestamp[broker] == 0
+        return block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS;  // solhint-disable-line not-rely-on-time
     }
 
     function voteEndTimestamp(address target) internal view returns (uint) {
@@ -77,7 +78,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * Start flagging process
      */
     function onFlag(address target, address myBrokerPool) external {
-        require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain");
+        require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
         require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
         require(globalData().stakedWei[myBrokerPool] > FLAG_STAKE_WEI, "error_notEnoughStake");
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
@@ -90,7 +91,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
         globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
 
-        flagTimestamp[target] = block.timestamp;
+        flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
 
         // only secondarily select peers that are in the same bounty as the flagging target
         address[REVIEWER_COUNT] memory sameBountyPeers;
@@ -156,7 +157,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      */
     function onVote(address target, bytes32 voteData) external {
         require(canVote(target), "error_votingNotStarted");
-        if (block.timestamp > voteEndTimestamp(target)) {
+        if (block.timestamp > voteEndTimestamp(target)) { // solhint-disable-line not-rely-on-time
             _endVote(target);
             return;
         }
@@ -181,6 +182,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         }
     }
 
+    /* solhint-disable reentrancy */ // TODO: figure out what solhint means with this exactly
+
     function _endVote(address target) internal {
         address flagger = flaggerPoolAddress[target];
         uint reviewerCount = reviewers[target].length;
@@ -201,6 +204,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake
+            protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS; // solhint-disable-line not-rely-on-time
             uint slashingWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
@@ -210,10 +214,11 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 }
             }
             _slash(flagger, slashingWei, false);
-            protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS;
         }
         _cleanup(target);
     }
+
+    /* solhint-enable reentrancy */
 
     /** Cancel the flag before voting starts => every reviewer gets paid */
     function onCancelFlag(address target, address myBrokerPool) external {
