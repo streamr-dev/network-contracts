@@ -1,21 +1,22 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
-import { utils, constants, BigNumber } from "ethers"
+import { upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
+import { utils, constants, BigNumber, Wallet } from "ethers"
 
-import type { DATAv2, ProjectRegistryV1, ProjectStakingV1 } from "../../typechain"
-import { MinimalForwarder } from "../../typechain/MinimalForwarder"
+import type { DATAv2, MinimalForwarder, ProjectRegistryV1, ProjectStakingV1 } from "../../typechain"
 
-const { provider: waffleProvider } = waffle
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-use(waffle.solidity)
-
 describe('ProjectStakingV1', (): void => {
-    const [admin, staker1, staker2, beneficiary, trusted, forwarder] = waffleProvider.getWallets()
+    let admin: Wallet
+    let staker1: Wallet
+    let staker2: Wallet
+    let beneficiary: Wallet
+    let trusted: Wallet
+    let forwarder: Wallet
     
     const domainIds: number[] = []
     const paymentDetails: any[] = [] // PaymentDetailsByChain[]
@@ -36,6 +37,7 @@ describe('ProjectStakingV1', (): void => {
     const nonExistingProject = hexlify(zeroPad(toUtf8Bytes('nonExistingProject'), 32))
 
     before(async (): Promise<void> => {
+        [admin, staker1, staker2, beneficiary, trusted, forwarder] = await hardhatEthers.getSigners() as unknown as Wallet[]
         await deployERC20()
         await deployMinimalForwarder()
         await deployProjectRegistry()

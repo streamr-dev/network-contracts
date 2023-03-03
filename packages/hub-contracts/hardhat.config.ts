@@ -1,11 +1,8 @@
 import { HardhatUserConfig } from "hardhat/types"
 
-import 'hardhat-typechain'
-import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-waffle'
+import '@nomicfoundation/hardhat-toolbox'
 import '@openzeppelin/hardhat-upgrades'
 
-import "solidity-coverage"
 require('hardhat-dependency-compiler')
 // require('dotenv').config()
 // import 'hardhat-gas-reporter'
