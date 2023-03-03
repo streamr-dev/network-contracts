@@ -28,8 +28,8 @@ interface IBounty is IAccessControlUpgradeable {
     function reduceStake(uint cashoutWei) external;
     function withdraw() external;
     
-    function flag(address target, address myBrokerPool) external;
-    function cancelFlag(address target, address myBrokerPool) external;
+    function flag(address target) external;
+    function cancelFlag(address target) external;
     function voteOnFlag(address target, bytes32 voteData) external;
 
     function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) external;

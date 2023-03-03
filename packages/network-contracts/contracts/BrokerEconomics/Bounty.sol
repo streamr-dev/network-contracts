@@ -13,9 +13,9 @@ import "./BountyPolicies/IJoinPolicy.sol";
 import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
-import "./ISlashListener.sol";
 import "./StreamrConstants.sol";
 import "./IBounty.sol";
+import "./IBrokerPool.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
@@ -254,7 +254,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeDecrease.selector, broker, amountWei), "error_stakeDecreaseFailed");
         if (broker.code.length > 0) {
-            try ISlashListener(broker).onSlash() {} catch {}
+            try IBrokerPool(broker).onSlash() {} catch {}
         }
         emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
@@ -299,15 +299,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /** Start the flagging process to kick an abusive broker */
-    function flag(address target, address myBrokerPool) external {
+    function flag(address target) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target, myBrokerPool), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
 
     /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */
-    function cancelFlag(address target, address myBrokerPool) external {
+    function cancelFlag(address target) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, target, myBrokerPool), "error_kickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, target), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */

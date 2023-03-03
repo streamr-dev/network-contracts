@@ -10,8 +10,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./IBounty.sol";
-import "./IBountyFactory.sol";
+import "./Bounty.sol";
+import "./BountyFactory.sol";
 import "./IBrokerPool.sol";
 import "./StreamrConstants.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
@@ -219,7 +219,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(IBounty bounty, uint amountWei) external onlyBroker {
-        require(IBountyFactory(globalData().streamrConstants.bountyFactory()).isStreamrBounty(address(bounty)), "error_badBounty");
+        require(BountyFactory(globalData().streamrConstants.bountyFactory()).isStreamrBounty(address(bounty)), "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
@@ -326,6 +326,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // globalData().approxPoolValue however should NOT change, because winnings are simply moved from bounty to this contract
         //   minus broker's share (which is deducted during approxPoolValue calculation anyway, see `getPoolValueFromBounty`)
         approxPoolValueOfBounty[bounty] = bounty.getMyStake();
+    }
+
+    function flag(IBounty bounty, address targetBroker) external onlyBroker {
+        bounty.flag(targetBroker);
+    }
+
+    function cancelFlag(IBounty bounty, address targetBroker) external onlyBroker {
+        bounty.cancelFlag(targetBroker);
+    }
+
+    function voteOnFlag(IBounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
+        bounty.voteOnFlag(targetBroker, voteData);
     }
 
     ////////////////////////////////////////

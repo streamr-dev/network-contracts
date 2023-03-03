@@ -72,41 +72,33 @@ describe("VoteKickPolicy", (): void => {
     }
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
-        it("with one flagger, one target and 1 voter", async function(): Promise<void> {
-            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2 ] } = await setup(3, 0, this.test?.title)
+        it("with one flagger, one target and one voter", async function(): Promise<void> {
+            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2, pool3 ] } = await setup(3, 0, this.test?.title)
+            
+            await expect(pool1.connect(broker).flag(bounty.address, pool2.address)).to.emit(bounty, "ReviewRequest")
+                .withArgs(pool3.address, bounty.address, pool2.address)
 
-            const flagReceipt = await (await bounty.connect(broker).flag(pool2.address, pool1.address)).wait() as ContractReceipt
-            expect(flagReceipt.events!.filter((e) => e.event === "ReviewRequest")).to.have.length(1)
-            const reviewRequest = flagReceipt.events!.find((e) => e.event === "ReviewRequest")
-            expect(reviewRequest?.args?.bounty).to.equal(bounty.address)
-            expect(reviewRequest?.args?.target).to.equal(pool2.address)
-            expect(reviewRequest?.args?.reviewer).to.equal(broker3.address)
-
-            await expect(bounty.connect(broker3).voteOnFlag(pool2.address, VOTE_KICK))
+            await expect(pool3.connect(broker3).voteOnFlag(bounty.address, pool2.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
             expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
         })
 
         it("with 3 voters", async function(): Promise<void> {
             const { token, bounty, brokers: [ broker, _, broker3, broker4, broker5 ],
-                pools: [ pool1, flaggedPool ] } = await setup(5, 0, this.test?.title)
+                pools: [ pool1, flagTarget, pool3, pool4, pool5 ] } = await setup(5, 0, this.test?.title)
 
-            const flagReceipt = await (await bounty.connect(broker).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
-            const reviewRequests = flagReceipt.events!.filter((e) => e.event === "ReviewRequest")
-            expect(reviewRequests.length).to.equal(3)
-            reviewRequests.forEach((reviewRequest) => {
-                expect(reviewRequest.args?.bounty).to.equal(bounty.address)
-                expect(reviewRequest.args?.target).to.equal(flaggedPool.address)
-                expect([broker3.address, broker4.address, broker5.address]).to.include(reviewRequest.args?.reviewer)
-            })
+            await expect(pool1.connect(broker).flag(bounty.address, flagTarget.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(pool3.address, bounty.address, flagTarget.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool4.address, bounty.address, flagTarget.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool5.address, bounty.address, flagTarget.address)
 
-            await expect(bounty.connect(broker3).voteOnFlag(flaggedPool.address, VOTE_KICK))
+            await expect(pool3.connect(broker3).voteOnFlag(bounty.address, flagTarget.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(broker4).voteOnFlag(flaggedPool.address, VOTE_CANCEL))
+            await expect(pool4.connect(broker4).voteOnFlag(bounty.address, flagTarget.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(broker5).voteOnFlag(flaggedPool.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(flaggedPool.address, parseEther("100"))
-            expect(await token.balanceOf(flaggedPool.address)).to.equal(parseEther("900"))
+            await expect(pool5.connect(broker5).voteOnFlag(bounty.address, flagTarget.address, VOTE_KICK))
+                .to.emit(bounty, "BrokerKicked").withArgs(flagTarget.address, parseEther("100"))
+            expect(await token.balanceOf(flagTarget.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
             expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))
@@ -114,40 +106,35 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("with 2 flags active at the same time (not interfere with each other)", async function(): Promise<void> {
-            const { token, bounty, brokers: [ flagger1, flagger2, broker3, broker4 ],
-                pools: [ pool1, pool2, target1, target2 ],
+            const { token, bounty, brokers: [ flagger1, flagger2],
+                pools: [ pool1, pool2, target1, target2, voterPool1, voterPool2, voterPool3 ],
                 nonStakedBrokers: [voter1, voter2, voter3] } = await setup(4, 3, "2-simultaneous-flags")
 
-            const flagReceipt1 = await (await bounty.connect(flagger1).flag(target1.address, pool1.address)).wait() as ContractReceipt
-            const reviewRequests1 = flagReceipt1.events!.filter((e) => e.event === "ReviewRequest")
-            expect(reviewRequests1.length).to.equal(5)
-            reviewRequests1.forEach((reviewRequest) => {
-                expect(reviewRequest.args?.bounty).to.equal(bounty.address)
-                expect(reviewRequest.args?.target).to.equal(target1.address)
-                expect([voter1.address, voter2.address, voter3.address, flagger2.address, broker4.address])
-                    .to.include(reviewRequest.args?.reviewer)
-            })
-            const flagReceipt2 = await (await bounty.connect(flagger2).flag(target2.address, pool2.address)).wait() as ContractReceipt
-            const reviewRequests2 = flagReceipt2.events!.filter((e) => e.event === "ReviewRequest")
-            expect(reviewRequests2.length).to.equal(5)
-            reviewRequests2.forEach((reviewRequest) => {
-                expect(reviewRequest.args?.bounty).to.equal(bounty.address)
-                expect(reviewRequest.args?.target).to.equal(target2.address)
-                expect([voter1.address, voter2.address, voter3.address, flagger1.address, broker3.address])
-                    .to.include(reviewRequest.args?.reviewer)
-            })
+            await expect (pool1.connect(flagger1).flag(bounty.address, target1.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool1.address, bounty.address, target1.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool2.address, bounty.address, target1.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool3.address, bounty.address, target1.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool2.address, bounty.address, target1.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(target2.address, bounty.address, target1.address)
 
-            await expect(bounty.connect(voter1).voteOnFlag(target1.address, VOTE_KICK))
+            await expect (pool2.connect(flagger2).flag(bounty.address, target2.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool1.address, bounty.address, target2.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool2.address, bounty.address, target2.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool3.address, bounty.address, target2.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool1.address, bounty.address, target2.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(target1.address, bounty.address, target2.address)
+
+            await expect(voterPool1.connect(voter1).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(voter2).voteOnFlag(target2.address, VOTE_KICK))
+            await expect(voterPool2.connect(voter2).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(voter3).voteOnFlag(target1.address, VOTE_KICK))
+            await expect(voterPool3.connect(voter3).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(voter3).voteOnFlag(target2.address, VOTE_KICK))
+            await expect(voterPool3.connect(voter3).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(bounty.connect(voter2).voteOnFlag(target1.address, VOTE_KICK))
+            await expect(voterPool2.connect(voter2).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target1.address, parseEther("100"))
-            await expect(bounty.connect(voter1).voteOnFlag(target2.address, VOTE_KICK))
+            await expect(voterPool1.connect(voter1).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target2.address, parseEther("100"))
 
             expect(await token.balanceOf(target1.address)).to.equal(parseEther("900"))
@@ -164,13 +151,14 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Flagging + reviewer selection", function(): void {
         it("picks first brokers that are not in the same bounty", async () => {
-            const { bounty, brokers, pools: [ pool1, flaggedPool ] } = await setup(4, 4, "pick-first-nonstaked-brokers")
-            const flagReceipt = await (await bounty.connect(brokers[0]).flag(flaggedPool.address, pool1.address)).wait() as ContractReceipt
-            const reviewers = flagReceipt.events!.filter((e) => e.event === "ReviewRequest").map((e) => e.args?.reviewer)
-            // console.log("Brokers %o", brokers.map((b) => b.address))
-            // console.log("Flagged pool %o", flaggedPool.address)
-            // console.log("Reviewers %o", reviewers)
-            expect(reviewers.slice(0, 4)).to.have.members([brokers[4].address, brokers[5].address, brokers[6].address, brokers[7].address])
+            const { bounty, brokers, pools: [ pool1, flaggedPool,,, p4, p5, p6, p7] } = await setup(4, 4, "pick-first-nonstaked-brokers")
+            
+            await expect (pool1.connect(brokers[0]).flag(bounty.address, flaggedPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(p4.address, bounty.address, flaggedPool.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(p5.address, bounty.address, flaggedPool.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(p6.address, bounty.address, flaggedPool.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(p7.address, bounty.address, flaggedPool.address)
+                
         })
 
         it("does NOT allow to flag with a too small flagstakes", async function(): Promise<void> {
@@ -183,7 +171,7 @@ describe("VoteKickPolicy", (): void => {
 
         it("does NOT allow to flag a broker that is not in the bounty", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ], pools: [ flaggerPool,,, notStakedPool ] } = await defaultSetup
-            await expect(bounty.connect(flagger).flag(notStakedPool.address, flaggerPool.address))
+            await expect(flaggerPool.connect(flagger).flag(bounty.address, notStakedPool.address))
                 .to.be.revertedWith("error_flagTargetNotStaked")
         })
     })
@@ -208,14 +196,14 @@ describe("VoteKickPolicy", (): void => {
         it("works (happy path)", async function(): Promise<void> {
             // cancel after some voter has voted (not all), pay the ones who voted
             // broker flags broker2, broker3 votes, broker4 doesn't vote, broker cancels
-            const { token, bounty, brokers: [ flagger, _, voter, nonVoter ], pools: [ flaggerPool, flagTarget ] } = await setup(4)
+            const { token, bounty, brokers: [ flagger, _, voter, nonVoter ], pools: [ flaggerPool, flagTarget, voterPool ] } = await setup(4)
 
-            await (await bounty.connect(flagger).flag(flagTarget.address, flaggerPool.address)).wait()
+            await (await flaggerPool.connect(flagger).flag(bounty.address, flagTarget.address)).wait()
 
-            await expect(bounty.connect(voter).voteOnFlag(flagTarget.address, VOTE_KICK))
+            await expect(voterPool.connect(voter).voteOnFlag(bounty.address, flagTarget.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
 
-            await(await bounty.connect(flagger).cancelFlag(flagTarget.address, flaggerPool.address)).wait()
+            await(await flaggerPool.connect(flagger).cancelFlag(bounty.address, flagTarget.address)).wait()
             // expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(voter.address)).to.equal(parseEther("1"))
@@ -227,13 +215,10 @@ describe("VoteKickPolicy", (): void => {
     describe("Committed stake", (): void => {
         it("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ],
-                pools: [ flaggerPool, targetPool],
-                nonStakedBrokers: [voter1] } = await setup(2, 1, this.currentTest?.title)
+                pools: [ flaggerPool, targetPool, voterPool] } = await setup(2, 1, this.currentTest?.title)
 
-            const flagReceipt1 = await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt
-            const reviewRequest = flagReceipt1.events!.find((e) => e.event === "ReviewRequest")
-            // expect(reviewRequests.length).to.equal(1)
-            expect(reviewRequest?.args?.reviewer).to.equal(voter1.address)
+            await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
 
             await expect(targetPool.reduceStake(bounty.address, parseEther("901")))
                 .to.be.revertedWith("error_cannotReduceStake")
@@ -243,15 +228,13 @@ describe("VoteKickPolicy", (): void => {
 
         it("allows the target to withdraw the correct amount AFTER the flag period (not kicked)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ],
-                pools: [ flaggerPool, targetPool],
+                pools: [ flaggerPool, targetPool, voterPool],
                 nonStakedBrokers: [voter1] } = await setup(2, 1, this.currentTest?.title)
 
-            const flagReceipt1 = await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt
-            const reviewRequest = flagReceipt1.events!.find((e) => e.event === "ReviewRequest")
-            // expect(reviewRequests.length).to.equal(1)
-            expect(reviewRequest?.args?.reviewer).to.equal(voter1.address)
+            await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
 
-            await expect(bounty.connect(voter1).voteOnFlag(targetPool.address, VOTE_CANCEL))
+            await expect(voterPool.connect(voter1).voteOnFlag(bounty. address, targetPool.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
 
             await expect(targetPool.unstake(bounty.address, "0"))
@@ -261,7 +244,7 @@ describe("VoteKickPolicy", (): void => {
         it("allows the flagger to withdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ], pools: [ flaggerPool, targetPool] } = await setup(2, 1, this.currentTest?.title)
 
-            await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt
+            await (await flaggerPool.connect(flagger).flag(bounty.address, targetPool.address)).wait() as ContractReceipt
 
             await expect(flaggerPool.reduceStake(bounty.address, parseEther("991")))
                 .to.be.revertedWith("error_cannotReduceStake")
@@ -271,20 +254,21 @@ describe("VoteKickPolicy", (): void => {
 
         it("allows the flagger to withdraw the correct amount AFTER the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, brokers: [ flagger ],
-                pools: [ flaggerPool, targetPool],
+                pools: [ flaggerPool, targetPool, voterPool],
                 nonStakedBrokers: [voter1] } = await setup(2, 1, this.currentTest?.title)
 
-            const flagReceipt1 = await (await bounty.connect(flagger).flag(targetPool.address, flaggerPool.address)).wait() as ContractReceipt
-            const reviewRequest = flagReceipt1.events!.find((e) => e.event === "ReviewRequest")
-            // expect(reviewRequests.length).to.equal(1)
-            expect(reviewRequest?.args?.reviewer).to.equal(voter1.address)
+            await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
 
-            await expect(bounty.connect(voter1).voteOnFlag(targetPool.address, VOTE_CANCEL))
+            await expect(voterPool.connect(voter1).voteOnFlag(bounty.address, targetPool.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
 
             await expect(flaggerPool.unstake(bounty.address, "0"))
                 .to.emit(bounty, "BrokerLeft").withArgs(flaggerPool.address, parseEther("990"))
         })
 
+        it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
+            // TODO
+        })
     })
 })

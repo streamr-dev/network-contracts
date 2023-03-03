@@ -53,7 +53,7 @@ describe("AdminKickPolicy", (): void => {
         // event BrokerKicked(address indexed broker, uint slashedWei);
         const brokerCountBeforeKick = await bounty.getBrokerCount()
         await advanceToTimestamp(timeAtStart + 200, "broker 1 is kicked out")
-        expect (await bounty.connect(admin).flag(await broker.getAddress(), admin.address))
+        expect (await bounty.connect(admin).flag(await broker.getAddress()))
             .to.emit(bounty, "BrokerKicked")
             .withArgs(await broker.getAddress(), "0")
         const brokerCountAfterKick = await bounty.getBrokerCount()

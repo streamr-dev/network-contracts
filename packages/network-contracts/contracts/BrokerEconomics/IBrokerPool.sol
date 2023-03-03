@@ -36,6 +36,9 @@ interface IBrokerPool is IAccessControlUpgradeable {
     function unstake(IBounty bounty, uint maxPayoutCount) external;
     function reduceStake(IBounty bounty, uint amountWei) external;
     function withdrawWinningsFromBounty(IBounty bounty) external;
+    function flag(address bounty, address targetBroker) external;
+    function cancelFlag(address bounty, address targetBroker) external;
+    function voteOnFlag(address bounty, address targetBroker, bytes32 voteData) external;
 
     // everyon can call
     function payOutQueueWithFreeFunds(uint maxIterations) external;
@@ -48,6 +51,7 @@ interface IBrokerPool is IAccessControlUpgradeable {
     // admin/setup functions
     function getAdminRole() external view returns(bytes32);
     function getDefaultAdminRole() external view returns(bytes32);
+    function broker() external view returns (address);
     function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) external;
     function setYieldPolicy(IPoolYieldPolicy policy,
         uint256 initialMargin,

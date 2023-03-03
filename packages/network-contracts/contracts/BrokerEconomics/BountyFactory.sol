@@ -6,12 +6,11 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./IBounty.sol";
-import "./IBountyFactory.sol";
+import "./Bounty.sol";
 import "./IERC677.sol";
 import "./StreamrConstants.sol";
 
-contract BountyFactory is IBountyFactory, Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     StreamrConstants public streamrConstants;
     address public bountyContractTemplate;

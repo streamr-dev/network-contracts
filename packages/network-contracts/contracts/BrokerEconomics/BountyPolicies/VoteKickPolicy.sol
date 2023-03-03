@@ -38,14 +38,15 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /**
      * Start flagging process
      */
-    function onFlag(address target, address myBrokerPool) external {
-        require(globalData().stakedWei[myBrokerPool] > 0, "error_notStaked");
+    function onFlag(address target) external {
+        address sender = _msgSender();
+        require(globalData().stakedWei[sender] > 0, "error_notStaked");
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
-        globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool], "error_notEnoughStake");
-        flaggerPoolAddress[target] = myBrokerPool;
+        globalData().committedStakeWei[sender] += FLAG_STAKE_WEI;
+        require(globalData().committedStakeWei[sender] <= globalData().stakedWei[sender], "error_notEnoughStake");
+        flaggerPoolAddress[target] = sender;
 
         targetStakeWei[target] = globalData().stakedWei[target] / 10;
         globalData().committedStakeWei[target] += targetStakeWei[target];
@@ -112,7 +113,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * Tally votes and trigger resolution
      */
     function onVote(address target, bytes32 voteData) external {
-        address voter = _msgSender(); // ?
+        address voter = _msgSender();
         require(reviewerState[target][voter] != 0, "error_reviewersOnly");
         require(reviewerState[target][voter] != 2, "error_alreadyVoted");
         uint vote = uint(voteData) & 0x1;
@@ -166,8 +167,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         }
     }
 
-    function onCancelFlag(address target, address myBrokerPool) external {
-        require(flaggerPoolAddress[target] == myBrokerPool, "error_notFlagger");
+    function onCancelFlag(address target) external {
+        require(flaggerPoolAddress[target] == _msgSender(), "error_notFlagger");
         payReviewers(votersForKick[target]);
         payReviewers(votersAgainstKick[target]);
         globalData().committedStakeWei[flaggerPoolAddress[target]] -= FLAG_STAKE_WEI;
@@ -183,7 +184,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         uint rewardWei = 1 ether; // TODO: add to streamrConstants?
         for (uint i = 0; i < votersToPay.length; i++) {
             // console.log("paying reviewer %s", votersToPay[i]);
-            token.transfer(votersToPay[i], rewardWei);
+            token.transfer(IBrokerPool(votersToPay[i]).broker(), rewardWei);
         }
     }
 }
