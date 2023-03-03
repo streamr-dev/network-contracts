@@ -14,8 +14,8 @@ import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
 import "./StreamrConstants.sol";
-import "./IBounty.sol";
-import "./IBrokerPool.sol";
+import "./Bounty.sol";
+import "./ISlashListener.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";

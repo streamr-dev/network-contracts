@@ -20,14 +20,14 @@ contract TestKickPolicy is IKickPolicy, Bounty {
     }
 
     // solhint-disable-next-line no-unused-vars
-    function onFlag(address broker, address brokerPool) external {
+    function onFlag(address broker) external {
         console.log("onflag");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _slash(broker, 10 ether, false);
     }
 
     // solhint-disable-next-line no-unused-vars
-    function onCancelFlag(address broker, address brokerPool) external {
+    function onCancelFlag(address broker) external {
         console.log("onkick");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
         _slash(broker, 0, true);

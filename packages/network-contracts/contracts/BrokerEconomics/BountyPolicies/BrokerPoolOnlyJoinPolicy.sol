@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 
 import "./IJoinPolicy.sol";
 import "../Bounty.sol";
-import "../IBrokerPoolFactory.sol";
+import "../BrokerPoolFactory.sol";
 
 contract BrokerPoolOnlyJoinPolicy is IJoinPolicy, Bounty {
     function setParam(uint256) external {
@@ -13,6 +13,6 @@ contract BrokerPoolOnlyJoinPolicy is IJoinPolicy, Bounty {
     // only BrokerPool contracts that were deployed using our own BrokerPoolFactory are allowed to join
     // solc-ignore-next-line func-mutability
     function onJoin(address broker, uint256) external {
-        require(IBrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory()).isStreamrBrokerPool(broker), "error_onlyBrokerPools");
+        require(BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory()).isStreamrBrokerPool(broker), "error_onlyBrokerPools");
     }
 }

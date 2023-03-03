@@ -12,7 +12,7 @@ import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 import "./Bounty.sol";
 import "./BountyFactory.sol";
-import "./IBrokerPool.sol";
+import "./BrokerPool.sol";
 import "./StreamrConstants.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
@@ -30,9 +30,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     event InvestmentReceived(address indexed investor, uint amountWei);
     event InvestmentReturned(address indexed investor, uint amountWei);
-    event Staked(IBounty indexed bounty, uint amountWei);
-    event Losses(IBounty indexed bounty, uint amountWei);
-    event Unstaked(IBounty indexed bounty, uint stakeWei, uint gainsWei);
+    event Staked(Bounty indexed bounty, uint amountWei);
+    event Losses(Bounty indexed bounty, uint amountWei);
+    event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
     event QueuedDataPayout(address user, uint amountPoolTokenWei);
     event QueueUpdated(address user, uint amountPoolTokenWei);
 
@@ -57,8 +57,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         StreamrConstants streamrConstants;
     }
 
-    IBounty[] public bounties;
-    mapping(IBounty => uint) public indexOfBounties; // real array index PLUS ONE! use 0 as "is it already in the array?" check
+    Bounty[] public bounties;
+    mapping(Bounty => uint) public indexOfBounties; // real array index PLUS ONE! use 0 as "is it already in the array?" check
 
     struct PayoutQueueEntry {
         address user;
@@ -75,7 +75,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // 1. real actual poolvalue = local free funds + stake in bounties + allocation in bounties; loops over bounties
     // 2. val = Sum over local mapping approxPoolValueOfBounty + free funds
     // 3. val = approxPoolValue in globalstorage
-    mapping(IBounty => uint) public approxPoolValueOfBounty; // in Data wei
+    mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
 
     modifier onlyBroker() {
         require(msg.sender == globalData().broker, "error_onlyBroker");
@@ -119,6 +119,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
+    function getAdminRole() external pure returns (bytes32) {
+        return ADMIN_ROLE;
+    }
+
+    function getDefaultAdminRole() external pure returns (bytes32) {
+        return DEFAULT_ADMIN_ROLE;
+    }
+
     function getApproximatePoolValue() external view returns (uint) {
         return globalData().approxPoolValue;
     }
@@ -143,7 +151,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function onSlash(bool kicked) external override {
+    function onSlash(bool kicked) external {
         Bounty bounty = Bounty(msg.sender);
         uint index = indexOfBounties[bounty];
         require(index > 0, "error_onlyBounty");
@@ -175,7 +183,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // check if sender is a bounty: unstaking from bounties will call this method
         // ignore returned tokens, handle them in unstake() instead
-        IBounty bounty = IBounty(sender);
+        Bounty bounty = Bounty(sender);
         if (indexOfBounties[bounty] > 0) {
             return;
         }
@@ -221,7 +229,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // BROKER FUNCTIONS
     /////////////////////////////////////////
 
-    function stake(IBounty bounty, uint amountWei) external onlyBroker {
+    function stake(Bounty bounty, uint amountWei) external onlyBroker {
         require(BountyFactory(globalData().streamrConstants.bountyFactory()).isStreamrBounty(address(bounty)), "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
@@ -234,12 +242,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit Staked(bounty, amountWei);
     }
 
-    function unstake(IBounty bounty, uint maxPayoutCount) external onlyBroker {
+    function unstake(Bounty bounty, uint maxPayoutCount) external onlyBroker {
         _unstake(bounty);
         payOutQueueWithFreeFunds(maxPayoutCount);
     }
 
-    function _unstake(IBounty bounty) private {
+    function _unstake(Bounty bounty) private {
         // console.log("## unstakeWithoutQueue bounty", address(bounty));
         uint amountStaked = bounty.getMyStake();
         require(amountStaked > 0, "error_notStaked");
@@ -270,20 +278,20 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // remove from array: replace with the last element
         uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
-        IBounty lastBounty = bounties[bounties.length - 1];
+        Bounty lastBounty = bounties[bounties.length - 1];
         bounties[index] = lastBounty;
         bounties.pop();
         indexOfBounties[lastBounty] = index + 1; // indexOfBounties is the real array index + 1
         delete indexOfBounties[bounty];
     }
 
-    function reduceStake(IBounty bounty, uint amountWei) external onlyBroker {
+    function reduceStake(Bounty bounty, uint amountWei) external onlyBroker {
         // console.log("## reduceStake amountWei", amountWei);
         _reduceStakeWithoutQueue(bounty, amountWei);
         payOutQueueWithFreeFunds(0);
     }
 
-    function _reduceStakeWithoutQueue(IBounty bounty, uint amountWei) public onlyBroker {
+    function _reduceStakeWithoutQueue(Bounty bounty, uint amountWei) public onlyBroker {
         // console.log("## _reduceStakeWithoutQueue amountWei", amountWei);
         // console.log("reduceStake balanceOf this", globalData().token.balanceOf(address(this)));
         uint amountStaked = bounty.getMyStake();
@@ -306,14 +314,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
-    function withdrawWinningsFromBounty(IBounty bounty) external onlyBroker {
+    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
         // console.log("## withdrawWinningsFromBounty");
         updateApproximatePoolvalueOfBounty(bounty);
         _withdrawWinningsFromBountyWithoutQueue(bounty);
         payOutQueueWithFreeFunds(0);
     }
 
-    function _withdrawWinningsFromBountyWithoutQueue(IBounty bounty) public onlyBroker {
+    function _withdrawWinningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
         // console.log("## withdrawWinnings bounty", address(bounty));
         // require(staked[bounty] > 0, "error_notStaked");
         uint balanceBefore = globalData().token.balanceOf(address(this));
@@ -331,15 +339,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         approxPoolValueOfBounty[bounty] = bounty.getMyStake();
     }
 
-    function flag(IBounty bounty, address targetBroker) external onlyBroker {
+    function flag(Bounty bounty, address targetBroker) external onlyBroker {
         bounty.flag(targetBroker);
     }
 
-    function cancelFlag(IBounty bounty, address targetBroker) external onlyBroker {
+    function cancelFlag(Bounty bounty, address targetBroker) external onlyBroker {
         bounty.cancelFlag(targetBroker);
     }
 
-    function voteOnFlag(IBounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
+    function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
         bounty.voteOnFlag(targetBroker, voteData);
     }
 
@@ -456,7 +464,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * @param bounty the funds (unstake) to pay out the queue
      * @param maxIterations how many queue items to pay out
      */
-    function forceUnstake(IBounty bounty, uint maxIterations) external {
+    function forceUnstake(Bounty bounty, uint maxIterations) external {
         require(payoutQueue[queuePayoutIndex].timestamp + gracePeriodSeconds < block.timestamp, "error_gracePeriod"); // solhint-disable-line not-rely-on-time
 
         // updateApproximatePoolvalueOfBounty(bounty);
@@ -515,7 +523,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /**
-     * Delegate-call ("library call") a module's method: it will use this IBounty's storage
+     * Delegate-call ("library call") a module's method: it will use this Bounty's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
     function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
@@ -551,14 +559,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * The broker is supposed to keep the approximate pool value up to date by calling updateApproximatePoolvalueOfBounty
      *   on the bounties that have generated most winnings = discrepancy between the approximate and the real pool value.
      */
-    function updateApproximatePoolvalueOfBounty(IBounty bounty) public {
+    function updateApproximatePoolvalueOfBounty(Bounty bounty) public {
         uint actual = getPoolValueFromBounty(bounty);
         uint approx = approxPoolValueOfBounty[bounty];
         approxPoolValueOfBounty[bounty] = actual;
         globalData().approxPoolValue = globalData().approxPoolValue + actual - approx;
     }
 
-    function getPoolValueFromBounty(IBounty bounty) public view returns (uint256 poolValue) {
+    function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
         uint alloc = bounty.getAllocation(address(this));
         uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
         poolValue = bounty.getMyStake() + alloc - share;
@@ -585,11 +593,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
-    function updateApproximatePoolvalueOfBounties(IBounty[] memory bountyAddresses) public {
+    function updateApproximatePoolvalueOfBounties(Bounty[] memory bountyAddresses) public {
         uint sumActual = 0;
         uint sumApprox = 0;
         for (uint i = 0; i < bountyAddresses.length; i++) {
-            IBounty bounty = bountyAddresses[i];
+            Bounty bounty = bountyAddresses[i];
             uint actual = getPoolValueFromBounty(bounty);
             uint approx = approxPoolValueOfBounty[bounty];
             sumActual += actual;

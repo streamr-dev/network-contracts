@@ -123,7 +123,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         }
         bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
-        IBounty bounty = IBounty(bountyAddress);
+        Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
             streamrConstants,
             address(this), // this is needed in order to set the policies

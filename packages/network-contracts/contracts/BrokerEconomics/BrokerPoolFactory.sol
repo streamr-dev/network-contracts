@@ -8,11 +8,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./IBrokerPool.sol";
-import "./IBrokerPoolFactory.sol";
+import "./BrokerPool.sol";
 import "./IERC677.sol";
 
-contract BrokerPoolFactory is IBrokerPoolFactory, Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -23,7 +22,7 @@ contract BrokerPoolFactory is IBrokerPoolFactory, Initializable, UUPSUpgradeable
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     // array needed for peer broker selection for VoteKickPolicy peer review
-    IBrokerPool[] public deployedBrokerPools;
+    BrokerPool[] public deployedBrokerPools;
     function deployedBrokerPoolsLength() public view returns (uint) {
         return deployedBrokerPools.length;
     }
@@ -126,7 +125,7 @@ contract BrokerPoolFactory is IBrokerPoolFactory, Initializable, UUPSUpgradeable
         }
         bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
-        IBrokerPool pool = IBrokerPool(poolAddress);
+        BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
             streamrConstants,

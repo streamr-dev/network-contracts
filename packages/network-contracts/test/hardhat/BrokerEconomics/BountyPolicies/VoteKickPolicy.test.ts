@@ -87,12 +87,12 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and 1 voter", async function(): Promise<void> {
-            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2 ] } = await setup(3, 0, this.test?.title)
+            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2, pool3 ] } = await setup(3, 0, this.test?.title)
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${broker.address} flags ${pool2.address}`)
             await expect(pool1.connect(broker).flag(bounty.address, pool2.address)).to.emit(bounty, "ReviewRequest")
-                .withArgs(pool3.address, bounty.address, pool2.address)
+                .withArgs(pool2.address, bounty.address, pool1.address)
 
             await advanceToTimestamp(start + 1*DAYS + 10, `${broker3} votes to kick ${pool2.address}`)
             await expect(pool3.connect(broker3).voteOnFlag(bounty.address, pool2.address, VOTE_KICK))
@@ -102,22 +102,22 @@ describe("VoteKickPolicy", (): void => {
 
         it("with 3 voters", async function(): Promise<void> {
             const { token, bounty, brokers: [ broker, _, broker3, broker4, broker5 ],
-                pools: [ pool1, flaggedPool ] } = await setup(5, 0, this.test?.title)
+                pools: [ pool1, flaggedPool, pool3, pool4, pool5 ] } = await setup(5, 0, this.test?.title)
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${broker.address} flags ${flaggedPool.address}`)
-             await expect(pool1.connect(broker).flag(bounty.address, flagTarget.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(pool3.address, bounty.address, flagTarget.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(pool4.address, bounty.address, flagTarget.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(pool5.address, bounty.address, flagTarget.address)
+            await expect(pool1.connect(broker).flag(bounty.address, flaggedPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(pool3.address, bounty.address, flaggedPool.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool4.address, bounty.address, flaggedPool.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(pool5.address, bounty.address, flaggedPool.address)
             await advanceToTimestamp(start + 1*DAYS + 10, `votes to kick ${flaggedPool.address}`)
-            await expect(pool3.connect(broker3).voteOnFlag(bounty.address, flagTarget.address, VOTE_KICK))
+            await expect(pool3.connect(broker3).voteOnFlag(bounty.address, flaggedPool.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(pool4.connect(broker4).voteOnFlag(bounty.address, flagTarget.address, VOTE_CANCEL))
+            await expect(pool4.connect(broker4).voteOnFlag(bounty.address, flaggedPool.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(pool5.connect(broker5).voteOnFlag(bounty.address, flagTarget.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(flagTarget.address, parseEther("100"))
-            expect(await token.balanceOf(flagTarget.address)).to.equal(parseEther("900"))
+            await expect(pool5.connect(broker5).voteOnFlag(bounty.address, flaggedPool.address, VOTE_KICK))
+                .to.emit(bounty, "BrokerKicked").withArgs(flaggedPool.address, parseEther("100"))
+            expect(await token.balanceOf(flaggedPool.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(broker3.address)).to.equal(parseEther("1"))
             expect (await token.balanceOf(broker4.address)).to.equal(parseEther("0"))

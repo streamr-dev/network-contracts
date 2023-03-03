@@ -4,7 +4,8 @@ pragma solidity ^0.8.13;
 
 import "./IKickPolicy.sol";
 import "../Bounty.sol";
-import "../IBrokerPoolFactory.sol";
+import "../BrokerPoolFactory.sol";
+import "../BrokerPool.sol";
 
 // import "hardhat/console.sol";
 
@@ -77,16 +78,16 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /**
      * Start flagging process
      */
-    function onFlag(address target, address myBrokerPool) external {
+    function onFlag(address target) external {
+        address sender = _msgSender();
         require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
-        require(globalData().stakedWei[myBrokerPool] > FLAG_STAKE_WEI, "error_notEnoughStake");
+        require(globalData().stakedWei[sender] > FLAG_STAKE_WEI, "error_notEnoughStake");
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
-        globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool] * 9/10, "error_notEnoughStake");
-        flaggerPoolAddress[target] = myBrokerPool;
+        globalData().committedStakeWei[sender] += FLAG_STAKE_WEI;
+        require(globalData().committedStakeWei[sender] <= globalData().stakedWei[sender] * 9/10, "error_notEnoughStake");
+        flaggerPoolAddress[target] = sender;
 
         targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
         globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
@@ -221,10 +222,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-enable reentrancy */
 
     /** Cancel the flag before voting starts => every reviewer gets paid */
-    function onCancelFlag(address target, address myBrokerPool) external {
+    function onCancelFlag(address target) external {
         require(!canVote(target), "error_votingStarted");
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
-        require(flaggerPoolAddress[target] == myBrokerPool, "error_notFlagger");
+        require(flaggerPoolAddress[target] == _msgSender(), "error_notFlagger");
         uint rewardWei = 1 ether; // TODO: add to streamrConstants?
         uint reviewerCount = reviewers[target].length;
         for (uint i = 0; i < reviewerCount; i++) {
