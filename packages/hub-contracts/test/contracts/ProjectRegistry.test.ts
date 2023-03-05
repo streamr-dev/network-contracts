@@ -4,46 +4,10 @@ import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 import type { DATAv2, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4 } from "../../typechain"
+import { types } from "../constants"
 
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers
-
-const types = {
-    EIP712Domain: [
-        {
-            name: 'name', type: 'string'
-        },
-        {
-            name: 'version', type: 'string'
-        },
-        {
-            name: 'chainId', type: 'uint256'
-        },
-        {
-            name: 'verifyingContract', type: 'address'
-        },
-    ],
-    ForwardRequest: [
-        {
-            name: 'from', type: 'address'
-        },
-        {
-            name: 'to', type: 'address'
-        },
-        {
-            name: 'value', type: 'uint256'
-        },
-        {
-            name: 'gas', type: 'uint256'
-        },
-        {
-            name: 'nonce', type: 'uint256'
-        },
-        {
-            name: 'data', type: 'bytes'
-        },
-    ],
-}
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
@@ -60,6 +24,7 @@ describe('ProjectRegistryV1', (): void => {
     let forwarder: Wallet
 
     const projectIdbytesNonExistent = hexlify(zeroPad(toUtf8Bytes('notexistentproject'), 32))
+    const streamIdNonExistent = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266/projects/1000000'
     const streamIds: string[] = []
     let streamId: string
     let streamId1: string
@@ -248,16 +213,29 @@ describe('ProjectRegistryV1', (): void => {
                 .to.be.revertedWith('error_alreadyExists')
         })
 
-        it("canBuyProject - positivetest", async () => {
+        it("createProject - negativetest - chainIds and paiment details by chain have different lengths", async () => {
+            const id = hexlify(zeroPad(toUtf8Bytes('test-invalid-array-lenghts'), 32))
+            await expect(registry.createProject(id, [8997], [], [], 1, true, metadata))
+                .to.be.revertedWith('error_invalidPaymentDetailsByChain')
+        })
+
+        it("canBuyProject - positivetest - public purchable", async () => {
             const id = hexlify(zeroPad(toUtf8Bytes('test-can-buy-project'), 32))
             const isPublicPurchable = true
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, isPublicPurchable, metadata)
             expect(await registry.canBuyProject(id, user1.address))
                 .to.be.true
         })
+        
+        it("canBuyProject - positivetest - non-public purchable", async () => {
+            const projectId = await createProject({ isPublicPurchable: false })
+            await registry.enablePermissionType(projectId, user1.address, permissionType.Buy)
+            expect(await registry.canBuyProject(projectId, user1.address))
+                .to.be.true
+        })
 
-        it("canBuyProject - negativetest", async () => {
-            const id = hexlify(zeroPad(toUtf8Bytes('test-cant-buy-project'), 32))
+        it("canBuyProject - negativetest - non-public purchable", async () => {
+            const id = hexlify(zeroPad(toUtf8Bytes('test-cant-buy-non-public'), 32))
             const isPublicPurchable = false
             await registry.createProject(id, domainIds, paymentDetailsDefault, [], 1, isPublicPurchable, metadata)
             expect(await registry.canBuyProject(id, user1.address))
@@ -428,6 +406,17 @@ describe('ProjectRegistryV1', (): void => {
             expect(pricingTokenAddress).to.equal(pricingTokenAddressActual)
             expect(pricePerSecond).to.equal(pricePerSecondActual)
         })
+
+        it("updatePaymentDetailsByChain - negativetest - non-existing projects", async () => {
+            await expect(registry.updatePaymentDetailsByChain(projectIdbytesNonExistent, 8997, beneficiary.address, token.address, BigNumber.from(2)))
+                .to.be.revertedWith('error_projectDoesNotExist')
+        })
+
+        it("updatePaymentDetailsByChain - negativetest - no Edit permission", async () => {
+            const projectId = await createProject()
+            await expect(registry.connect(user1).updatePaymentDetailsByChain(projectId, 8997, beneficiary.address, token.address, BigNumber.from(2)))
+                .to.be.revertedWith('error_noEditPermission')
+        })
     })
 
     describe('Streams', (): void => {
@@ -467,6 +456,22 @@ describe('ProjectRegistryV1', (): void => {
                 .to.be.revertedWith('error_streamAlreadyAdded')
         })
 
+        it('addStream - negativetest - fails if project does not exist', async (): Promise<void> => {
+            await expect(registry.addStream(projectIdbytesNonExistent, streamId))
+                .to.be.revertedWith('error_projectDoesNotExist')
+        })
+
+        it('addStreams - negativetest - fails if project does not exist', async (): Promise<void> => {
+            await expect(registry.addStreams(projectIdbytesNonExistent, [streamId]))
+                .to.be.revertedWith('error_projectDoesNotExist')
+        })
+
+        it('addStreams - negativetest - fails if user does not have Edit permission', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.connect(user1).addStreams(projectId, [streamId]))
+                .to.be.revertedWith('error_noEditPermission')
+        })
+
         it('removeStream - removes stream from project', async (): Promise<void> => {
             const projectIdbytes = await createProject()
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
@@ -480,6 +485,40 @@ describe('ProjectRegistryV1', (): void => {
                 .withArgs(projectIdbytes, streamId1)
             expect(await registry.isStreamAdded(projectIdbytes, streamId1))
                 .to.be.false
+        })
+
+        it('removeStream - negativetest - fails if project does not exist', async (): Promise<void> => {
+            await expect(registry.removeStream(projectIdbytesNonExistent, streamId))
+                .to.be.revertedWith('error_projectDoesNotExist')
+        })
+
+        it('removeStream - negativetest - fails if user does not have Edit permission', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.connect(user1).removeStream(projectId, streamId))
+                .to.be.revertedWith('error_noEditPermission')
+        })
+
+        it('removeStream - negativetest - fails if stream does not exist', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.removeStream(projectId, streamIdNonExistent))
+                .to.be.revertedWith('error_streamNotFound')
+        })
+
+        it('removeStream - negativetest - fails if stream was not added to project', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.removeStream(projectId, streamId))
+                .to.be.revertedWith('error_streamNotFound')
+        })
+        
+        it('setStreams - negativetest - fails if project does not exist', async (): Promise<void> => {
+            await expect(registry.setStreams(projectIdbytesNonExistent, [streamId]))
+                .to.be.revertedWith('error_projectDoesNotExist')
+        })
+        
+        it('setStreams - negativetest - fails if user does not have Edit permission', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.connect(user1).setStreams(projectId, [streamId]))
+                .to.be.revertedWith('error_noEditPermission')
         })
     })
 
@@ -641,6 +680,12 @@ describe('ProjectRegistryV1', (): void => {
                 .to.be.revertedWith('error_noGrantPermission')
         })
 
+        it('hasPermissionType - negativetest - reverts for invalid permission type', async (): Promise<void> => {
+            const projectId = await createProject()
+            await expect(registry.hasPermissionType(projectId, admin.address, 9)) // valid permissions are 0, 1, 2, 3
+                .to.be.reverted
+        })
+
         it('setPermissionsForMultipleUsers - positivetest', async (): Promise<void> => {
             const projectIdbytes = await createProject() // created by admin
             // user1 and user2 have all permissions set to false
@@ -668,7 +713,16 @@ describe('ProjectRegistryV1', (): void => {
                 .to.deep.equal([permission2.canBuy, permission2.canDelete, permission2.canEdit, permission2.canGrant])
         })
 
-        it('setPermissionsForMultipleUsers - negativetest', async (): Promise<void> => {
+        it('setPermissionsForMultipleUsers - negativetest - fails if user does not have Grant permission on the project', async (): Promise<void> => {
+            const projectId = await createProject( {creator: user1})
+            await expect(registry.connect(user2).setPermissionsForMultipleUsers(
+                projectId,
+                [user1.address],
+                [permission1]))
+                .to.be.revertedWith('error_noGrantPermission')
+        })
+
+        it('setPermissionsForMultipleUsers - negativetest - fails if users & permissions arrays have different lenghts', async (): Promise<void> => {
             const projectIdbytes = await createProject() // created by admin
             await expect(registry.setPermissionsForMultipleUsers(
                 projectIdbytes,
@@ -829,6 +883,12 @@ describe('ProjectRegistryV1', (): void => {
             // user1 revoked all his permisions
             expect (await registry.getPermission(projectIdbytes, user1.address))
                 .to.deep.equal([false, false, false, false])
+        })
+
+        it('revokePermissionType - negativetest - fails if user does not have grant permission on the project', async (): Promise<void> => {
+            const projectId = await createProject({ creator: user1 })
+            await expect(registry.connect(user2).revokePermissionType(projectId, user1.address, permissionType.Buy))
+                .to.be.revertedWith('error_noGrantPermission')
         })
 
         it('revokeAllPermissionsForUser - positivetest', async (): Promise<void> => {
@@ -1156,6 +1216,14 @@ describe('ProjectRegistryV1', (): void => {
                 .to.deep.equal([permission1.canBuy, permission1.canDelete, permission1.canEdit, permission1.canGrant])
             expect(await registry.getPermission(projectId2, user2.address))
                 .to.deep.equal([permission2.canBuy, permission2.canDelete, permission2.canEdit, permission2.canGrant])
+        })
+
+        it('trustedSetPermissionsForMultipleProjects - negativetest - must have the trusted role', async (): Promise<void> => {
+            const projectId1 = await createProject() // created by admin
+            const projectId2 = await createProject() // created by admin
+            await expect(registry.connect(admin)
+                .trustedSetPermissionsForMultipleProjects([projectId1, projectId2], [user1.address, user2.address], [permission1, permission2]))
+                .to.be.revertedWith('error_mustBeTrustedRole')
         })
 
         it('trustedSetPermissionsForMultipleProjects - negativetest - users[] & permissions[] must have the same length', async (): Promise<void> => {
