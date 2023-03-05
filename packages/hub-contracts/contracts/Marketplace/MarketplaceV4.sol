@@ -140,7 +140,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
      * Pay subscription for someone else
      * @param subscriber is the address for which the project subscription is added/extended
     */
-    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public override whenNotHalted {
+    function buyFor(bytes32 projectId, uint256 subscriptionSeconds, address subscriber) public whenNotHalted {
         require(projectRegistry.canBuyProject(projectId, subscriber), "error_unableToBuyProject");
 
         // MarketplaceV4 isTrusted by the project registry
