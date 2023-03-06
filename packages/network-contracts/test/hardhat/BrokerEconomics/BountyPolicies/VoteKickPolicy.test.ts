@@ -171,13 +171,13 @@ describe("VoteKickPolicy", (): void => {
     describe("Flagging + reviewer selection", function(): void {
         it("picks first brokers that are not in the same bounty", async () => {
             const { bounty, brokers, pools: [ pool1, flaggedPool,,, p4, p5, p6, p7] } = await setup(4, 4, "pick-first-nonstaked-brokers")
-            
+
             await expect (pool1.connect(brokers[0]).flag(bounty.address, flaggedPool.address))
                 .to.emit(bounty, "ReviewRequest").withArgs(p4.address, bounty.address, flaggedPool.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(p5.address, bounty.address, flaggedPool.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(p6.address, bounty.address, flaggedPool.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(p7.address, bounty.address, flaggedPool.address)
-                
+
         })
 
         it("can NOT flag if not enough stake", async function(): Promise<void> {
@@ -269,7 +269,6 @@ describe("VoteKickPolicy", (): void => {
             await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
                 .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
 
-
             await advanceToTimestamp(start + 1*DAYS + 10, `${voter1} votes`)
             await expect(voterPool.connect(voter1).voteOnFlag(bounty. address, targetPool.address, VOTE_CANCEL))
                 .to.not.emit(bounty, "BrokerKicked")
@@ -302,7 +301,6 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start, `${flagger.address} flags ${targetPool.address}`)
             await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
                 .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
-
 
             await advanceToTimestamp(start + 1*DAYS + 10, `${voter1} votes`)
             await expect(voterPool.connect(voter1).voteOnFlag(bounty.address, targetPool.address, VOTE_CANCEL))

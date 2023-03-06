@@ -213,14 +213,16 @@ describe("Bounty", (): void => {
         })
 
         it("error onStakeChange", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "7") // 7 => onStakeChange will revert
+            // 7 => onStakeChange will revert
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "7")
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("test_onStakeChange")
         })
 
         it("error onStakeChange, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "8") // 8 => onStakeChange revert without reason
+            // 8 => onStakeChange revert without reason
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "8")
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_stakeIncreaseFailed")
