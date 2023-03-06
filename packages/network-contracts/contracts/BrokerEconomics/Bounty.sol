@@ -18,7 +18,7 @@ import "./Bounty.sol";
 import "./ISlashListener.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * Bounty ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
@@ -233,6 +233,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
     function _slash(address broker, uint amountWei, bool alsoKick) internal {
+        console.log("  internal _slash", broker, amountWei, alsoKick);
         _reduceStakeBy(broker, amountWei);
         if (alsoKick) {
             _removeBroker(broker);
@@ -270,7 +271,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // send out both allocations and stake
         _withdraw(broker);
         require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
-        // console.log("removeBroker stake ->", broker, stakedWei);
+        console.log("removeBroker stake ->", broker, stakedWei);
 
         s.brokerCount -= 1;
         s.totalStakedWei -= stakedWei;

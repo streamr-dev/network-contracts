@@ -30,7 +30,7 @@ contract TestKickPolicy is IKickPolicy, Bounty {
     function onCancelFlag(address broker) external {
         console.log("onkick");
         require(isAdmin(_msgSender()), "error_onlyAdmin");
-        _slash(broker, 0, true);
+        _slash(broker, 10 ether, true);
     }
 
     function onVote(address broker, bytes32 voteData) external {

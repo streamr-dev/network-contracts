@@ -86,18 +86,18 @@ describe("VoteKickPolicy", (): void => {
     }
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
-        it("with one flagger, one target and 1 voter", async function(): Promise<void> {
-            const { token, bounty, brokers: [ broker, _, broker3 ], pools: [ pool1, pool2, pool3 ] } = await setup(3, 0, this.test?.title)
+        it("with one flagger, one target and one voter", async function(): Promise<void> {
+            const { token, bounty, pools: [ flagger, target, reviewer ] } = await setup(3, 0, this.test?.title)
             const start = await getBlockTimestamp()
 
-            await advanceToTimestamp(start, `${broker.address} flags ${pool2.address}`)
-            await expect(pool1.connect(broker).flag(bounty.address, pool2.address)).to.emit(bounty, "ReviewRequest")
-                .withArgs(pool2.address, bounty.address, pool1.address)
+            await advanceToTimestamp(start, `${flagger.address} flags ${target.address}`)
+            await expect(flagger.flag(bounty.address, target.address)).to.emit(bounty, "ReviewRequest")
+                .withArgs(reviewer.address, bounty.address, target.address)
 
-            await advanceToTimestamp(start + 1*DAYS + 10, `${broker3} votes to kick ${pool2.address}`)
-            await expect(pool3.connect(broker3).voteOnFlag(bounty.address, pool2.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(pool2.address, parseEther("100"))
-            expect(await token.balanceOf(pool2.address)).to.equal(parseEther("900"))
+            await advanceToTimestamp(start + 1*DAYS + 10, `${flagger.address} votes to kick ${target.address}`)
+            await expect(reviewer.voteOnFlag(bounty.address, target.address, VOTE_KICK))
+                .to.emit(bounty, "BrokerKicked").withArgs(target.address, parseEther("100"))
+            expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
         })
 
         it("with 3 voters", async function(): Promise<void> {
@@ -126,37 +126,33 @@ describe("VoteKickPolicy", (): void => {
 
         it("with 2 flags active at the same time (not interfere with each other)", async function(): Promise<void> {
             const { token, bounty, brokers: [ flagger1, flagger2, broker3, broker4 ],
-                pools: [ pool1, pool2, target1, target2 ],
+                pools: [ pool1, pool2, target1, target2, unstakedPool ],
                 nonStakedBrokers: [voter] } = await setup(4, 1, "2-simultaneous-active-flags")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${target1.address} and ${target2.address} are flagged`)
             await expect (pool1.connect(flagger1).flag(bounty.address, target1.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool1.address, bounty.address, target1.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool2.address, bounty.address, target1.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool3.address, bounty.address, target1.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(pool2.address, bounty.address, target1.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(unstakedPool.address, bounty.address, target1.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(target2.address, bounty.address, target1.address)
 
             await expect (pool2.connect(flagger2).flag(bounty.address, target2.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool1.address, bounty.address, target2.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool2.address, bounty.address, target2.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool3.address, bounty.address, target2.address)
+                .to.emit(bounty, "ReviewRequest").withArgs(unstakedPool.address, bounty.address, target2.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(pool1.address, bounty.address, target2.address)
                 .to.emit(bounty, "ReviewRequest").withArgs(target1.address, bounty.address, target2.address)
 
             await advanceToTimestamp(start + 1*DAYS + 10, `votes to kick ${target1.address} and ${target2.address}`)
-            await expect(voterPool1.connect(voter1).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
+            await expect(pool2.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(voterPool2.connect(voter2).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
+            await expect(pool1.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(voterPool3.connect(voter3).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
+            await expect(unstakedPool.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(voterPool3.connect(voter3).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
+            await expect(unstakedPool.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
-            await expect(voterPool2.connect(voter2).voteOnFlag(bounty.address, target1.address, VOTE_KICK))
+            await expect(target2.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target1.address, parseEther("100"))
-            await expect(voterPool1.connect(voter1).voteOnFlag(bounty.address, target2.address, VOTE_KICK))
+            await expect(target1.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target2.address, parseEther("100"))
 
             // slashing happens to pools
@@ -236,10 +232,10 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Voting timeline", function(): void {
         it("NO voting before the voting starts", async function(): Promise<void> {
-            const { bounty, brokers: [ flagger,, voter ], pools: [ flaggerPool, targetPool ] } = await setup(2, 1)
-            await expect(bounty.connect(flagger).flag(targetPool.address, flaggerPool.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, targetPool.address)
-            await expect(bounty.connect(voter).voteOnFlag(targetPool.address, VOTE_KICK))
+            const { bounty, pools: [ flaggerPool, targetPool, voterPool ] } = await setup(2, 1)
+            await expect(flaggerPool.flag(bounty.address, targetPool.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
+            await expect(voterPool.voteOnFlag(bounty.address, targetPool.address, VOTE_KICK))
                 .to.be.revertedWith("error_votingNotStarted")
         })
 
@@ -270,7 +266,7 @@ describe("VoteKickPolicy", (): void => {
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${flagger.address} flags ${targetPool.address}`)
-           await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
+            await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
                 .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
 
 

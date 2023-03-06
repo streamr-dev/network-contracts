@@ -663,7 +663,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it.skip("gets notified when kicked (slash listener)", async function(): Promise<void> {
+    it.only("gets notified when kicked (slash listener)", async function(): Promise<void> {
         const { token } = sharedContracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
@@ -684,9 +684,9 @@ describe("BrokerPool", (): void => {
         await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        await expect(bounty.connect(admin).cancelFlag(pool.address, pool.address)) // TestKickPolicy actually kicks without slashing
-            .to.emit(bounty, "BrokerKicked").withArgs(pool.address, parseEther("0"))
-        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
+        await expect(bounty.connect(admin).cancelFlag(pool.address)) // TestKickPolicy actually kicks without slashing
+            .to.emit(bounty, "BrokerKicked").withArgs(pool.address, parseEther("10"))
+        expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
     it("gets notified when slashed (slash listener)", async function(): Promise<void> {
@@ -710,7 +710,7 @@ describe("BrokerPool", (): void => {
         await pool.connect(broker).updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        await (await bounty.connect(admin).flag(pool.address, pool.address)).wait()
+        await (await bounty.connect(admin).flag(pool.address)).wait()
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 

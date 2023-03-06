@@ -111,25 +111,26 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             randomBytes >>= 8; // if REVIEWER_COUNT > 20, replace this with keccak256(randomBytes) or smth
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool pool = factory.deployedBrokerPools(index);
-            address peer = pool.broker(); // TODO: via BrokerPool or directly?
-            if (peer == _msgSender() || peer == BrokerPool(target).broker()
-                || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", peer);
+            address poolAddress = address(pool);
+            if (poolAddress == _msgSender() || poolAddress == target
+                || reviewerState[target][poolAddress] != Reviewer.NOT_SELECTED) {
+                console.log(index, "skipping", poolAddress);
                 continue;
             }
             // TODO: check is broker live
             if (globalData().stakedWei[address(pool)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < REVIEWER_COUNT) {
-                    sameBountyPeers[sameBountyPeerCount++] = peer;
-                    reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
+                    sameBountyPeers[sameBountyPeerCount++] = poolAddress;
+                    reviewerState[target][poolAddress] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same bounty", peer);
+                console.log(index, "in same bounty", poolAddress);
                 continue;
             }
             // console.log(index, "selecting", peer);
-            reviewerState[target][peer] = Reviewer.IS_SELECTED;
-            emit ReviewRequest(peer, this, target);
-            reviewers[target].push(peer);
+            reviewerState[target][poolAddress] = Reviewer.IS_SELECTED;
+            emit ReviewRequest(poolAddress, this, target);
+            console.log("selected", poolAddress, "for", target);
+            reviewers[target].push(poolAddress);
         }
 
         // secondary selection: peers from the same bounty
@@ -178,6 +179,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         }
 
         // end voting early when everyone's vote is in
+        console.log("totalVotesBefore", totalVotesBefore, addVotes, reviewers[target].length);
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
             _endVote(target);
         }
@@ -186,6 +188,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-disable reentrancy */ // TODO: figure out what solhint means with this exactly
 
     function _endVote(address target) internal {
+        console.log("endVote", target);
         address flagger = flaggerPoolAddress[target];
         uint reviewerCount = reviewers[target].length;
         if (votesForKick[target] > votesAgainstKick[target]) {
@@ -198,7 +201,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(reviewer, REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
             }
@@ -210,7 +213,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(reviewer, REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     slashingWei += REVIEWER_REWARD_WEI;
                 }
             }
@@ -230,7 +233,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < reviewerCount; i++) {
             address reviewer = reviewers[target][i];
             // console.log("paying reviewer", reviewer);
-            token.transfer(reviewer, rewardWei);
+            token.transfer(BrokerPool(reviewer).broker(), rewardWei);
         }
         _cleanup(target);
     }

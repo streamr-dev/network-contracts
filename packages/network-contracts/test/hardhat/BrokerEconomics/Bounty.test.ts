@@ -88,7 +88,7 @@ describe("Bounty", (): void => {
     })
 
     it("shows zero allocation after a withdraw", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const start = await getBlockTimestamp()
 
@@ -106,7 +106,7 @@ describe("Bounty", (): void => {
     })
 
     it("shows zero allocation and zero stake after unstaking (no committed stake)", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const start = await getBlockTimestamp()
 
