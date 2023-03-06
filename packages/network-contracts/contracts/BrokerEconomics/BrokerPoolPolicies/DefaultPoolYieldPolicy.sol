@@ -100,7 +100,9 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
 
             uint256 missingPoolToken = brokerStakeGoal - balanceOf(globalData().broker);
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.missingPoolToken", missingPoolToken);
-            uint256 divertDataWei = pooltokenToData(missingPoolToken, dataWei - brokersShareDataWei); // brokers share is already deducted from poolvalue
+            // "2 *" comes from that the incoming winnings are already in the pool's balance;
+            //   and DOUBLE counted because update is done first and it adds winnings to total pool value
+            uint256 divertDataWei = pooltokenToData(missingPoolToken, 2 * dataWei - brokersShareDataWei); // brokers share is already deducted from poolvalue
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.divertDataWei", divertDataWei);
             uint256 maxDivertableDataWei = brokersShareDataWei * localData().brokerShareMaxDivertPercent / 100;
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.maxDivertableDataWei", maxDivertableDataWei);
@@ -108,7 +110,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
                 divertDataWei = maxDivertableDataWei;
             }
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare diverting", divertDataWei);
-            uint256 poolTokenToMint = dataToPooltoken(divertDataWei, dataWei - brokersShareDataWei);
+            uint256 poolTokenToMint = dataToPooltoken(divertDataWei, 2 * dataWei - brokersShareDataWei);
             brokersShareDataWei -= divertDataWei;
             _mint(globalData().broker, poolTokenToMint);
             // consolelog("DefaultPoolYieldPolicy.deductBrokersShare minted", poolTokenToMint);
