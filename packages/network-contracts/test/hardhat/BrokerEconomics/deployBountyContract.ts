@@ -108,7 +108,6 @@ export async function deployBountyContract(
             await bounty.addJoinPolicy(policyAdresses[i], policyParams[i])
         }
         await (await bounty.renounceRole(await bounty.DEFAULT_ADMIN_ROLE(), (signer as unknown as Wallet).address ?? "")).wait()
-        // await (await bounty.renounceRole(await bounty.ADMIN_ROLE(), (signer as unknown as Wallet).address ?? "")).wait()
         await (await token.approve(bounty.address, parseEther("100000"))).wait()
         return bounty
     }

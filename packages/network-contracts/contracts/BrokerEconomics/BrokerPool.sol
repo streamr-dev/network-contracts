@@ -10,9 +10,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
+import "./ISlashListener.sol";
 import "./Bounty.sol";
-import "./BountyFactory.sol";
-import "./BrokerPool.sol";
 import "./StreamrConstants.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
@@ -26,7 +25,7 @@ import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
  *
  * The whole token balance of the pool IS SAME AS the "free funds", so there's no need to track the unallocated tokens separately
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable { //}, ERC2771Context {
+contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, ISlashListener { //}, ERC2771Context {
 
     event InvestmentReceived(address indexed investor, uint amountWei);
     event InvestmentReturned(address indexed investor, uint amountWei);
@@ -117,14 +116,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function globalData() internal pure returns(GlobalStorage storage data) {
         bytes32 storagePosition = keccak256("brokerpool.storage.GlobalStorage");
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
-    }
-
-    function getAdminRole() external pure returns (bytes32) {
-        return ADMIN_ROLE;
-    }
-
-    function getDefaultAdminRole() external pure returns (bytes32) {
-        return DEFAULT_ADMIN_ROLE;
     }
 
     function getApproximatePoolValue() public view returns (uint) {
@@ -229,7 +220,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        require(BountyFactory(globalData().streamrConstants.bountyFactory()).isStreamrBounty(address(bounty)), "error_badBounty");
+        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {

@@ -145,9 +145,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             }
         }
         bounty.addJoinPolicy(IJoinPolicy(streamrConstants.poolOnlyJoinPolicy()), 0);
-        bounty.grantRole(bounty.getAdminRole(), bountyOwner);
-        bounty.renounceRole(bounty.getDefaultAdminRole(), address(this));
-        bounty.renounceRole(bounty.getAdminRole(), address(this));
+        bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
+        bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
+        bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
         emit NewBounty(bountyAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[bountyAddress] = block.timestamp;
@@ -160,9 +160,5 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
-    }
-
-    function isStreamrBounty(address bountyAddress) public view returns (bool) {
-        return deploymentTimestamp[bountyAddress] > 0;
     }
 }

@@ -39,8 +39,11 @@ describe("DefaultLeavePolicy", (): void => {
         // earnings b1: 0       0     100
         // earnings b2:         0     100       0
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 1000,
-            skipBountyFactory: true})
+        const bounty = await deployBountyContract(contracts, {
+            minBrokerCount: 2,
+            penaltyPeriodSeconds: 1000,
+            skipBountyFactory: true
+        })
         expect(!await bounty.isRunning())
         expect(!await bounty.isFunded())
 

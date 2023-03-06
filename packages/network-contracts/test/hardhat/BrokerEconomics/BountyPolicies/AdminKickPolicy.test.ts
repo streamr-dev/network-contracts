@@ -31,8 +31,11 @@ describe("AdminKickPolicy", (): void => {
         const { token } = contracts
         await (await token.mint(broker.address, parseEther("1000"))).wait()
         await (await token.mint(broker2.address, parseEther("1000"))).wait()
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, 
-            skipBountyFactory: true, adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyContract(contracts, {
+            penaltyPeriodSeconds: 1000,
+            skipBountyFactory: true,
+            adminKickInsteadOfVoteKick: true
+        })
 
         await bounty.sponsor(parseEther("10000"))
 

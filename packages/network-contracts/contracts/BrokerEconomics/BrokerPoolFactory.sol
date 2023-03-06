@@ -142,9 +142,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         if (policies[2] != address(0)) {
             pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
         }
-        pool.grantRole(pool.getAdminRole(), poolOwner);
-        pool.renounceRole(pool.getDefaultAdminRole(), address(this));
-        pool.renounceRole(pool.getAdminRole(), address(this));
+        pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
+        pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
+        pool.renounceRole(pool.ADMIN_ROLE(), address(this));
         emit NewBrokerPool(poolAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[poolAddress] = block.timestamp;
@@ -163,9 +163,5 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
-    }
-
-    function isStreamrBrokerPool(address poolAddress) external view returns (bool) {
-         return deploymentTimestamp[poolAddress] > 0;
     }
 }

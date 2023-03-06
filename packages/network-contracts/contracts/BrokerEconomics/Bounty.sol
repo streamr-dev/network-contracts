@@ -13,12 +13,15 @@ import "./BountyPolicies/IJoinPolicy.sol";
 import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
-import "./StreamrConstants.sol";
-import "./Bounty.sol";
 import "./ISlashListener.sol";
+import "./StreamrConstants.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
+
+interface IFactory {
+    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
+}
 
 /**
  * Bounty ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
@@ -78,14 +81,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function isAdmin(address a) public view returns(bool) {
         return hasRole(ADMIN_ROLE, a);
-    }
-
-    function getAdminRole() public pure returns(bytes32) {
-        return ADMIN_ROLE;
-    }
-
-    function getDefaultAdminRole() public pure returns(bytes32) {
-        return DEFAULT_ADMIN_ROLE;
     }
 
     /**
@@ -233,7 +228,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
     function _slash(address broker, uint amountWei, bool alsoKick) internal {
-        console.log("  internal _slash", broker, amountWei, alsoKick);
         _reduceStakeBy(broker, amountWei);
         if (alsoKick) {
             _removeBroker(broker);
@@ -271,7 +265,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         // send out both allocations and stake
         _withdraw(broker);
         require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
-        console.log("removeBroker stake ->", broker, stakedWei);
+        // console.log("removeBroker stake ->", broker, stakedWei);
 
         s.brokerCount -= 1;
         s.totalStakedWei -= stakedWei;
