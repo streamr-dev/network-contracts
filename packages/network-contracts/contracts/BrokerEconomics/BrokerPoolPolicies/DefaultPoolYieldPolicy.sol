@@ -53,7 +53,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // consolelog("DefaultPoolYieldPolicy.pooltokenToData data balance of this", globalData().token.balanceOf(address(this)));
         // consolelog("DefaultPoolYieldPolicy.pooltokenToData this totlasupply", this.totalSupply());
         // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
-        uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
+        uint poolValueData = getApproximatePoolValue() - substractFromPoolvalue;
         // consolelog("DefaultPoolYieldPolicy.pooltokenToData poolValueData", poolValueData);
         return poolTokenWei * poolValueData / this.totalSupply();
     }
@@ -65,13 +65,13 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
             // consolelog("total supply is 0");
             return dataWei;
         }
-
-        assert(substractFromPoolvalue < globalData().approxPoolValue);
+        uint poolValue = getApproximatePoolValue();
+        assert(substractFromPoolvalue < poolValue);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken amount to convert", dataWei);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken substract", substractFromPoolvalue);
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data balance of this", globalData().token.balanceOf(address(this)));
         // uint poolValueData = this.calculatePoolValueInData(substractFromPoolvalue);
-        uint poolValueData = globalData().approxPoolValue - substractFromPoolvalue;
+        uint poolValueData = poolValue - substractFromPoolvalue;
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data this totlasupply", this.totalSupply());
         // consolelog("DefaultPoolYieldPolicy.dataToPooltoken data poolValueData", poolValueData);
         return dataWei * this.totalSupply() / poolValueData;
