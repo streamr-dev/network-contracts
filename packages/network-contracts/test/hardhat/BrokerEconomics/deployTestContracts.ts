@@ -23,6 +23,7 @@ export type TestContracts = {
     defaultPoolJoinPolicy: IPoolJoinPolicy;
     defaultPoolYieldPolicy: IPoolYieldPolicy;
     defaultPoolExitPolicy: IPoolExitPolicy;
+    deployer: Wallet;
 }
 
 /**
@@ -87,10 +88,12 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
     await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
+    await (await streamrConstants.setPoolOnlyJoinPolicy(brokerPoolOnlyJoinPolicy.address)).wait()
 
     return {
         token, streamrConstants,
         bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+        deployer: signer
     }
 }

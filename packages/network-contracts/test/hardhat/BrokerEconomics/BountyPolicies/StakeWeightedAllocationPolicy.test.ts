@@ -28,7 +28,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
     it("allocates correctly for single broker (positive test)", async () => {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, { skipBountyFactory: true })
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const balanceBefore = await token.balanceOf(broker.address)
         const timeAtStart = await getBlockTimestamp()
@@ -73,7 +73,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const totalTokensExpected = parseEther("4000")
 
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await token.transferAndCall(bounty.address, sponsorshipWei, "0x")).wait() // sponsor using ERC677
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
@@ -115,7 +115,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const totalTokensExpected = parseEther("4000")
 
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("100000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -153,7 +153,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have 2000 + 1000 + 1600 + 1000 + 2000 = 7600
         // broker2 should have        1000 +  400 + 1000        = 2400
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10008"))).wait()
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
@@ -192,7 +192,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 2000: broker leaves
         // broker should have 2000
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10008"))).wait()
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const timeAtStart = await getBlockTimestamp()
@@ -219,7 +219,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 2000: broker leaves
         // broker should have 2000
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10008"))).wait()
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const timeAtStart = await getBlockTimestamp()
@@ -249,7 +249,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have 2000 + 1000 + 1200 + 1000 + 2000 = 7200
         // broker2 should have        1000 +  800 + 1000        = 2800
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10008"))).wait()
         const tokensBroker1Before = await token.balanceOf(broker.address)
         const tokensBroker2Before = await token.balanceOf(broker2.address)
@@ -295,7 +295,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have half * (half + 20% of half) = 30% of the expected winnings
         // broker2 should have half * (80% of half) = 20% of the expected winnings
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         const totalTokensExpected = parseEther("4000")
         await (await bounty.sponsor(totalTokensExpected.div(2))).wait()
 
@@ -347,7 +347,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
         // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -407,7 +407,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         //   brokers would've gotten 2000 tokens more, i.e. 3000 + 2000 tokens
         //   broker1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("1000"))).wait()
         await (await token.connect(broker2).approve(bounty.address, parseEther("100000"))).wait()
 
@@ -457,7 +457,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // t = t0 + 2000: broker leaves
         // expecting to get 1000 tokens and defaulting 1000
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
@@ -492,7 +492,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // tokens should NOT be counted as defaulted when the bounty isn't running (between 2000...3000)
         //   (although defaulted tokens can't be read from anywhere because broker didn't stay through insolvency!)
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBefore = await token.balanceOf(broker.address)
@@ -549,7 +549,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         //   brokers would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
         //   broker2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -605,7 +605,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should get 1000 +  500 tokens
         // broker2 should get    0 + 1500 tokens
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("1000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -654,7 +654,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have 1000 + 500 tokens
         // broker2 should have 500 + 1000 tokens
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -703,7 +703,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // broker1 should have 1000 + 500 + 500 +    0 = 2000 tokens
         // broker2 should have    0 + 500 + 500 + 1000 = 2000 tokens
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("2000"))).wait()
 
         const tokensBroker1Before = await token.balanceOf(broker.address)
@@ -747,6 +747,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             minHorizonSeconds: 1000,
             penaltyPeriodSeconds: 1000,
             allocationWeiPerSecond: BigNumber.from("0"),
+            skipBountyFactory: true
         })
 
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // zero the balance
@@ -771,7 +772,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
     })
 
     it("gets allocation 0 from unjoined broker", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         const allocation = await bounty.getAllocation(broker.address)
         expect(allocation.toString()).to.equal("0")
     })

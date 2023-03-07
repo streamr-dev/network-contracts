@@ -8,8 +8,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
 import "./IERC677.sol";
+import "./StreamrConstants.sol";
 
-contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IFactory {
+contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     StreamrConstants public streamrConstants;
     address public bountyContractTemplate;
@@ -143,6 +144,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
                 bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
+        bounty.addJoinPolicy(IJoinPolicy(streamrConstants.poolOnlyJoinPolicy()), 0);
         bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));

@@ -52,7 +52,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     struct GlobalStorage {
         address broker;
         IERC677 token;
-        uint approxPoolValue; // in Data wei
+        uint totalValueInBountiesWei; // DATA value of all stake + earnings in bounties - broker's share of those earnings
         StreamrConstants streamrConstants;
     }
 
@@ -118,8 +118,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
-    function getApproximatePoolValue() external view returns (uint) {
-        return globalData().approxPoolValue;
+    function getApproximatePoolValue() public view returns (uint) {
+        return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
     }
 
     function broker() external view returns (address) {
@@ -142,7 +142,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function onSlash(bool kicked) external override {
+    function onSlash(bool kicked) external {
         Bounty bounty = Bounty(msg.sender);
         uint index = indexOfBounties[bounty];
         require(index > 0, "error_onlyBounty");
@@ -197,14 +197,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /** Invest by first calling ERC20.approve(brokerPool.address, amountWei) then this function */
-    function invest(uint amountWei) public payable {
+    function invest(uint amountWei) public {
         // console.log("## invest");
         globalData().token.transferFrom(_msgSender(), address(this), amountWei);
         _invest(_msgSender(), amountWei);
     }
 
     function _invest(address investor, uint amountWei) internal {
-        globalData().approxPoolValue += amountWei;
         if (address(joinPolicy) != address(0)) {
             uint allowedToJoin = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, investor, address(joinPolicy)), "error_joinPolicyFailed");
             require(allowedToJoin == 1, "error_joinPolicyFailed");
@@ -229,6 +228,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             bounties.push(bounty);
             indexOfBounties[bounty] = bounties.length; // real array index + 1
             approxPoolValueOfBounty[bounty] += amountWei;
+            globalData().totalValueInBountiesWei += amountWei;
         }
         emit Staked(bounty, amountWei);
     }
@@ -246,10 +246,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("unstake balanceBefore", balanceBefore);
         bounty.leave();
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
-        globalData().approxPoolValue -= approxPoolValueOfBounty[bounty];
+        globalData().totalValueInBountiesWei -= approxPoolValueOfBounty[bounty];
         // console.log("bounties approx pool value", approxPoolValueOfBounty[bounty]);
         // console.log("unstake receivedWei", receivedWei);
-        globalData().approxPoolValue += receivedWei;
         // console.log("unstake new approxPoolValue", globalData().approxPoolValue);
         approxPoolValueOfBounty[bounty] = 0;
 
@@ -292,8 +291,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("reduceStake balanceBefore", balanceBefore);
         bounty.reduceStake(amountWei);
         uint receivedWei = globalData().token.balanceOf(address(this)) - balanceBefore;
-        globalData().approxPoolValue -= amountWei;
-        globalData().approxPoolValue += receivedWei;
+        globalData().totalValueInBountiesWei -= amountWei;
         approxPoolValueOfBounty[bounty] -= amountWei;
         // console.log("reduceStake receivedWei", receivedWei);
         // unallocatedWei += receivedWei;
@@ -312,6 +310,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         payOutQueueWithFreeFunds(0);
     }
 
+    // TODO: should be internal? probably should demand queue be paid with the withdrawn winnings, at least one slot
     function _withdrawWinningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
         // console.log("## withdrawWinnings bounty", address(bounty));
         // require(staked[bounty] > 0, "error_notStaked");
@@ -323,11 +322,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("withdrawWinnings winnings", winnings);
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, winnings),
             "error_yieldPolicy_deductBrokersPart_Failed");
+        updateApproximatePoolvalueOfBounty(bounty);
+    }
 
-        // value left in bounty === stake, after the allocations have been withdrawn
-        // globalData().approxPoolValue however should NOT change, because winnings are simply moved from bounty to this contract
-        //   minus broker's share (which is deducted during approxPoolValue calculation anyway, see `getPoolValueFromBounty`)
-        approxPoolValueOfBounty[bounty] = bounty.getMyStake();
+    function flag(Bounty bounty, address targetBroker) external onlyBroker {
+        bounty.flag(targetBroker);
+    }
+
+    function cancelFlag(Bounty bounty, address targetBroker) external onlyBroker {
+        bounty.cancelFlag(targetBroker);
+    }
+
+    function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
+        bounty.voteOnFlag(targetBroker, voteData);
     }
 
     ////////////////////////////////////////
@@ -379,8 +386,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             queuedPayoutsPerUser[user] -= amountPoolTokens;
             _burn(user, amountPoolTokens);
             globalData().token.transfer(user, amountDataWei);
-            globalData().approxPoolValue -= amountDataWei;
             emit InvestmentReturned(user, amountDataWei);
+            return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
             uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
@@ -391,27 +398,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             payoutQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(user, partialAmountPoolTokens);
             globalData().token.transfer(user, balanceDataWei);
-            globalData().approxPoolValue -= balanceDataWei;
             emit InvestmentReturned(user, balanceDataWei);
             emit QueueUpdated(user, poolTokensLeftInQueue);
+            return false;
         }
-        return false;
     }
 
     /* solhint-enable reentrancy */
 
     function getMyQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
         return queuedPayoutsPerUser[_msgSender()];
-    }
-
-    /**
-     * @dev Don't call from smart contract, could be expensive
-     */
-    function calculatePoolValueInData() public view returns (uint256 poolValue) {
-        poolValue = globalData().token.balanceOf(address(this));
-        for (uint i = 0; i < bounties.length; i++) {
-            poolValue += getPoolValueFromBounty(bounties[i]);
-        }
     }
 
     // TODO: exit(uint amountPoolTokenWei) public
@@ -542,7 +538,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         uint actual = getPoolValueFromBounty(bounty);
         uint approx = approxPoolValueOfBounty[bounty];
         approxPoolValueOfBounty[bounty] = actual;
-        globalData().approxPoolValue = globalData().approxPoolValue + actual - approx;
+        globalData().totalValueInBountiesWei = globalData().totalValueInBountiesWei + actual - approx;
     }
 
     function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
@@ -555,7 +551,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * Convenience method to get all (approximate) bounty values
      * The broker needs to keep an eye on the approximate values at all times, so that the approximation is not too far off.
      * If someone else notices that the approximation is too far off, they can call updateApproximatePoolvalueOfBounties to get a small prize (paid from broker's pool tokens)
-     * @dev this is not meant to be called from a smart contract, could be expensive
+     * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
     function getApproximatePoolValuesPerBounty() external view returns (
         address[] memory bountyAdresses,
@@ -572,6 +568,24 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
+    /**
+     * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
+     * If the difference is too large. call updateApproximatePoolvalueOfBounties to get a small prize (paid from broker's pool tokens)
+     * @dev Don't call from other smart contracts in a transaction, could be expensive!
+     * TODO: is this function needed? getApproximatePoolValuesPerBounty gives same info, and more
+     */
+    function calculatePoolValueInData() external view returns (uint256 poolValue) {
+        poolValue = globalData().token.balanceOf(address(this));
+        for (uint i = 0; i < bounties.length; i++) {
+            poolValue += getPoolValueFromBounty(bounties[i]);
+        }
+    }
+
+    /**
+     * If the difference between calculatePoolValueInData() and getApproximatePoolValue() becomes too large,
+     *   then anyone can call this method and point out a set of bounties that together sum up to PERCENT_DIFF_APPROX_POOL_VALUE
+     * Caller gets rewarded PUNISH_BROKERS_PT_THOUSANDTH of the broker's pool tokens
+     */
     function updateApproximatePoolvalueOfBounties(Bounty[] memory bountyAddresses) public {
         uint sumActual = 0;
         uint sumApprox = 0;
@@ -584,10 +598,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
             approxPoolValueOfBounty[bounty] = actual;
         }
-        globalData().approxPoolValue = globalData().approxPoolValue + sumActual - sumApprox;
+        globalData().totalValueInBountiesWei = globalData().totalValueInBountiesWei + sumActual - sumApprox;
 
         // if total difference is more than allowed, then slash the broker a bit
-        uint allowedDifference = globalData().approxPoolValue * globalData().streamrConstants.PERCENT_DIFF_APPROX_POOL_VALUE() / 100;
+        // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
+        uint allowedDifference = getApproximatePoolValue() * globalData().streamrConstants.PERCENT_DIFF_APPROX_POOL_VALUE() / 100;
         if (sumActual > sumApprox + allowedDifference) {
             _transfer(globalData().broker, _msgSender(),
                 balanceOf(globalData().broker) * globalData().streamrConstants.PUNISH_BROKERS_PT_THOUSANDTH() / 1000);

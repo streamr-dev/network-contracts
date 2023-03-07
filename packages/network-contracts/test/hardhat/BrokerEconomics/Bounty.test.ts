@@ -46,17 +46,17 @@ describe("Bounty", (): void => {
         await (await token.transfer(broker.address, parseEther("100000"))).wait()
         await (await token.transfer(broker2.address, parseEther("100000"))).wait()
 
-        defaultBounty = await deployBountyContract(contracts)
+        defaultBounty = await deployBountyContract(contracts, {skipBountyFactory: true})
     })
 
     it("accepts 32 byte long address in transferAndCall data", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await token.transferAndCall(bounty.address, parseEther("1"), defaultAbiCoder.encode(["address"], [broker.address]))).wait()
         expect(await bounty.connect(broker).getMyStake()).to.be.equal(parseEther("1"))
     })
 
     it("accepts 2-step staking: approve + stake", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await token.approve(bounty.address, parseEther("1"))).wait()
         await (await bounty.stake(broker.address, parseEther("1"))).wait()
         expect(await bounty.connect(broker).getMyStake()).to.be.equal(parseEther("1"))
@@ -88,7 +88,7 @@ describe("Bounty", (): void => {
     })
 
     it("shows zero allocation after a withdraw", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const start = await getBlockTimestamp()
 
@@ -106,7 +106,7 @@ describe("Bounty", (): void => {
     })
 
     it("shows zero allocation and zero stake after unstaking (no committed stake)", async function(): Promise<void> {
-        const bounty = await deployBountyContract(contracts)
+        const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10000"))).wait()
         const start = await getBlockTimestamp()
 
@@ -150,23 +150,27 @@ describe("Bounty", (): void => {
     describe("IJoinPolicy negative tests", (): void => {
 
         it("error setting param on joinpolicy", async function(): Promise<void> {
-            await expect(deployBountyContract(contracts, {}, [testJoinPolicy], ["1"])) // 1 => TestJoinPolicy:setParam will revert
+            await expect(deployBountyContract(contracts, {skipBountyFactory: true},
+                [testJoinPolicy], ["1"])) // 1 => TestJoinPolicy:setParam will revert
                 .to.be.revertedWith("test-error: setting param join policy")
         })
 
         it("error setting param on joinpolicy no revert reason", async function(): Promise<void> {
-            await expect(deployBountyContract(contracts, {}, [testJoinPolicy], ["2"])) // 2 => TestJoinPolicy:setParam will revert without reason
+            await expect(deployBountyContract(contracts, {skipBountyFactory: true},
+                [testJoinPolicy], ["2"])) // 2 => TestJoinPolicy:setParam will revert without reason
                 .to.be.revertedWith("error_addJoinPolicyFailed")
         })
 
         it("error joining on joinpolicy", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [testJoinPolicy], ["0"])
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [testJoinPolicy], ["0"])
             await expect(token.transferAndCall(bounty.address, 1, admin.address))
                 .to.be.revertedWith("test-error: onJoin join policy")
         })
 
         it("error joining on joinpolicy, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [testJoinPolicy], ["0"])
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [testJoinPolicy], ["0"])
             await expect(token.transferAndCall(bounty.address, 2, admin.address))
                 .to.be.revertedWith("error_joinPolicyOnJoin")
         })
@@ -175,43 +179,50 @@ describe("Bounty", (): void => {
     describe("IAllocationPolicy negative tests", (): void => {
 
         it("error setting param on allocationPolicy", async function(): Promise<void> {
-            await expect(deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "1")) // 1 => will revert in setParam
+            await expect(deployBountyContract(contracts, {},
+                [], [], testAllocationPolicy, "1")) // 1 => will revert in setParam
                 .to.be.revertedWith("test_setParam")
         })
 
         it("error onJoin on allocationPolicy", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "3") // 3 => onJoin will revert
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [], [], testAllocationPolicy, "3") // 3 => onJoin will revert
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("test_onJoin")
         })
 
         it("error onJoin on allocationPolicy, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "4") // 4 => onJoin will revert without reason
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [], [], testAllocationPolicy, "4") // 4 => onJoin will revert without reason
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_allocationPolicyOnJoin")
         })
 
         it("error onleave on allocationPolicy", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
             await expect(bounty.connect(broker).leave()).to.be.revertedWith("test_onLeave")
         })
 
         it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
+                [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
             await expect(bounty.connect(broker).leave()).to.be.revertedWith("error_brokerLeaveFailed")
         })
 
         it("error onStakeChange", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "7") // 7 => onStakeChange will revert
+            // 7 => onStakeChange will revert
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "7")
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("test_onStakeChange")
         })
 
         it("error onStakeChange, empty error", async function(): Promise<void> {
-            const bounty = await deployBountyContract(contracts, {}, [], [], testAllocationPolicy, "8") // 8 => onStakeChange revert without reason
+            // 8 => onStakeChange revert without reason
+            const bounty = await deployBountyContract(contracts, {skipBountyFactory: true}, [], [], testAllocationPolicy, "8")
             await (await token.transferAndCall(bounty.address, parseEther("1"), admin.address)).wait()
             await expect(token.transferAndCall(bounty.address, parseEther("1"), admin.address))
                 .to.be.revertedWith("error_stakeIncreaseFailed")

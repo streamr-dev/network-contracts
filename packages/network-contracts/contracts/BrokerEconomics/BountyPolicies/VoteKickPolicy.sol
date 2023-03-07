@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 import "./IKickPolicy.sol";
 import "../Bounty.sol";
 import "../BrokerPoolFactory.sol";
+import "../BrokerPool.sol";
 
 // import "hardhat/console.sol";
 
@@ -18,7 +19,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     uint public constant FLAGGER_REWARD_WEI = 1 ether;
     uint public constant PROTECTION_SECONDS = 1 hours; // can't be flagged again right after a no-kick result
 
-    mapping (address => address) public flaggerPoolAddress;
+    mapping (address => address) public flaggerAddress;
 
     enum Reviewer {
         NOT_SELECTED,
@@ -65,7 +66,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             return 0;
         }
         return uint(bytes32(abi.encodePacked(
-            uint160(flaggerPoolAddress[broker]),
+            uint160(flaggerAddress[broker]),
             uint32(flagTimestamp[broker]),
             uint16(reviewers[broker].length),
             uint16(votesForKick[broker]),
@@ -77,16 +78,16 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /**
      * Start flagging process
      */
-    function onFlag(address target, address myBrokerPool) external {
+    function onFlag(address target) external {
+        address flagger = _msgSender();
         require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
-        require(globalData().stakedWei[myBrokerPool] > FLAG_STAKE_WEI, "error_notEnoughStake");
+        require(globalData().stakedWei[flagger] > FLAG_STAKE_WEI, "error_notEnoughStake");
         require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
-        globalData().committedStakeWei[myBrokerPool] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[myBrokerPool] <= globalData().stakedWei[myBrokerPool] * 9/10, "error_notEnoughStake");
-        flaggerPoolAddress[target] = myBrokerPool;
+        globalData().committedStakeWei[flagger] += FLAG_STAKE_WEI;
+        require(globalData().committedStakeWei[flagger] <= globalData().stakedWei[flagger] * 9/10, "error_notEnoughStake");
+        flaggerAddress[target] = flagger;
 
         targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
         globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
@@ -110,25 +111,25 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             randomBytes >>= 8; // if REVIEWER_COUNT > 20, replace this with keccak256(randomBytes) or smth
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool pool = factory.deployedBrokerPools(index);
-            address peer = pool.broker(); // TODO: via BrokerPool or directly?
-            if (peer == _msgSender() || peer == BrokerPool(target).broker()
-                || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", peer);
+            address poolAddress = address(pool);
+            if (poolAddress == _msgSender() || poolAddress == target
+                || reviewerState[target][poolAddress] != Reviewer.NOT_SELECTED) {
+                // console.log(index, "skipping", poolAddress);
                 continue;
             }
             // TODO: check is broker live
             if (globalData().stakedWei[address(pool)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < REVIEWER_COUNT) {
-                    sameBountyPeers[sameBountyPeerCount++] = peer;
-                    reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
+                    sameBountyPeers[sameBountyPeerCount++] = poolAddress;
+                    reviewerState[target][poolAddress] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same bounty", peer);
+                // console.log(index, "in same bounty", poolAddress);
                 continue;
             }
             // console.log(index, "selecting", peer);
-            reviewerState[target][peer] = Reviewer.IS_SELECTED;
-            emit ReviewRequest(peer, this, target);
-            reviewers[target].push(peer);
+            reviewerState[target][poolAddress] = Reviewer.IS_SELECTED;
+            emit ReviewRequest(poolAddress, this, target);
+            reviewers[target].push(poolAddress);
         }
 
         // secondary selection: peers from the same bounty
@@ -185,7 +186,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-disable reentrancy */ // TODO: figure out what solhint means with this exactly
 
     function _endVote(address target) internal {
-        address flagger = flaggerPoolAddress[target];
+        address flagger = flaggerAddress[target];
         uint reviewerCount = reviewers[target].length;
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
@@ -197,7 +198,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(reviewer, REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
             }
@@ -209,7 +210,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(reviewer, REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     slashingWei += REVIEWER_REWARD_WEI;
                 }
             }
@@ -221,16 +222,14 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-enable reentrancy */
 
     /** Cancel the flag before voting starts => every reviewer gets paid */
-    function onCancelFlag(address target, address myBrokerPool) external {
+    function onCancelFlag(address target) external {
         require(!canVote(target), "error_votingStarted");
-        require(BrokerPool(myBrokerPool).broker() == _msgSender(), "error_wrongBrokerPool"); // TODO replace with BrokerPoolInterfa
-        require(flaggerPoolAddress[target] == myBrokerPool, "error_notFlagger");
+        require(flaggerAddress[target] == _msgSender(), "error_notFlagger");
         uint rewardWei = 1 ether; // TODO: add to streamrConstants?
         uint reviewerCount = reviewers[target].length;
         for (uint i = 0; i < reviewerCount; i++) {
             address reviewer = reviewers[target][i];
-            // console.log("paying reviewer", reviewer);
-            token.transfer(reviewer, rewardWei);
+            token.transfer(BrokerPool(reviewer).broker(), rewardWei);
         }
         _cleanup(target);
     }
@@ -238,7 +237,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /** Remove stake commitments and clear flag data */
     function _cleanup(address target) internal {
         // flagger might already have been kicked
-        address flagger = flaggerPoolAddress[target];
+        address flagger = flaggerAddress[target];
         if (globalData().committedStakeWei[flagger] > 0) {
             globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
         }
@@ -250,7 +249,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             delete reviewerState[target][reviewer];
         }
         delete reviewers[target];
-        delete flaggerPoolAddress[target];
+        delete flaggerAddress[target];
         delete flagTimestamp[target];
         delete targetStakeAtRiskWei[target];
         delete votesForKick[target];

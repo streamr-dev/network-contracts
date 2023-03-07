@@ -31,7 +31,12 @@ describe("AdminKickPolicy", (): void => {
         const { token } = contracts
         await (await token.mint(broker.address, parseEther("1000"))).wait()
         await (await token.mint(broker2.address, parseEther("1000"))).wait()
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000, adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyContract(contracts, {
+            penaltyPeriodSeconds: 1000,
+            skipBountyFactory: true,
+            adminKickInsteadOfVoteKick: true
+        })
+
         await bounty.sponsor(parseEther("10000"))
 
         const timeAtStart = await getBlockTimestamp()
@@ -45,7 +50,7 @@ describe("AdminKickPolicy", (): void => {
         // event BrokerKicked(address indexed broker, uint slashedWei);
         const brokerCountBeforeKick = await bounty.getBrokerCount()
         await advanceToTimestamp(timeAtStart + 200, "broker 1 is kicked out")
-        expect (await bounty.connect(admin).flag(await broker.getAddress(), admin.address))
+        expect (await bounty.connect(admin).flag(await broker.getAddress()))
             .to.emit(bounty, "BrokerKicked")
             .withArgs(await broker.getAddress(), "0")
         const brokerCountAfterKick = await bounty.getBrokerCount()
@@ -61,7 +66,8 @@ describe("AdminKickPolicy", (): void => {
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true,
+            skipBountyFactory: true })
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 
         const brokerCountBeforeReport = await bounty.getBrokerCount()
