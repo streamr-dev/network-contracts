@@ -117,7 +117,7 @@ describe("Bounty", (): void => {
         await advanceToTimestamp(start + 101, "Withdraw from bounty") // queries will see start + 100 (off by one, NEXT tx will be start + 101)
         const allocationBeforeUnstake = await bounty.getAllocation(broker.address)
         const stakeBeforeUnstake = await bounty.connect(broker).getMyStake()
-        await (await bounty.connect(broker).leave()).wait()
+        await (await bounty.connect(broker).unstake()).wait()
         const allocationAfterUnstake = await bounty.getAllocation(broker.address)
         const stakeAfterUnstake = await bounty.connect(broker).getMyStake()
 

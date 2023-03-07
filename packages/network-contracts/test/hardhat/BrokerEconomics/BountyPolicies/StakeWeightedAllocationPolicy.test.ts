@@ -201,7 +201,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("4"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 1000, "Broker 1 adds 1 stake 4 -> 5")
-        // await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
@@ -228,7 +227,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("4"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 1000, "Broker 2 reduces 1 stake 4 -> 2")
-        await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
+        await (await bounty.connect(broker).reduceStakeTo(parseEther("2"))).wait()
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
         await (await bounty.connect(broker).unstake()).wait()
@@ -262,11 +261,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 reduces stake 3 -> 1")
-        await (await bounty.connect(broker2).reduceStake(parseEther("2"))).wait()
+        await (await bounty.connect(broker2).reduceStakeTo(parseEther("1"))).wait()
         // await (await token.connect(broker).transferAndCall(bounty.address, parseEther("3"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 6000, "Broker 1 reduces stake 2 -> 1")
-        await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
+        await (await bounty.connect(broker).reduceStakeTo(parseEther("1"))).wait()
         // await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")

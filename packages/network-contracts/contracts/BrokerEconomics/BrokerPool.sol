@@ -240,7 +240,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         uint amountStakedBeforeWei = bounty.getMyStake();
         uint balanceBeforeWei = globalData().token.balanceOf(address(this));
         bounty.unstake();
-        _postUnstake(bounty);
+        _postUnstake(bounty, amountStakedBeforeWei, balanceBeforeWei);
         payOutQueueWithFreeFunds(maxQueuePayoutIterations);
     }
 
@@ -260,7 +260,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         uint amountStakedBeforeWei = bounty.getMyStake();
         uint balanceBeforeWei = globalData().token.balanceOf(address(this));
         bounty.forceUnstake();
-        _postUnstake(bounty);
+        _postUnstake(bounty, amountStakedBeforeWei, balanceBeforeWei);
         payOutQueueWithFreeFunds(maxQueuePayoutIterations);
     }
 
@@ -405,9 +405,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                 balanceDataWei, 0), "error_yieldPolicy_dataToPooltoken_Failed");
             totalQueuedPerDelegatorWei[user] -= partialAmountPoolTokens;
-            PayoutQueueEntry memory oldEntry = undelegationQueue[queuePayoutIndex];
+            UndelegationQueueEntry memory oldEntry = undelegationQueue[queuePayoutIndex];
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
-            undelegationQueue[queuePayoutIndex] = PayoutQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
+            undelegationQueue[queuePayoutIndex] = UndelegationQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(user, partialAmountPoolTokens);
             globalData().token.transfer(user, balanceDataWei);
             emit Undelegated(user, balanceDataWei);
@@ -440,7 +440,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
         // _burn(_msgSender(), amountPoolTokenWei);
         totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
-        undelegationQueue[queueLength] = PayoutQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         queueLength++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
     }
