@@ -820,7 +820,7 @@ describe("MarketplaceV4", () => {
             await destinationMailbox.addRemoteMailbox(originDomain, originMailbox.address)
     
             await marketplace.addMailbox(destinationMailbox.address)
-            await marketplace.addRemoteMarketplace(originDomain, other.address)
+            await marketplace.addRemoteMarketplace(originDomain, other.address) // other acts as the remote contract
         })
 
         it("handle - positivetest", async function () {
@@ -852,12 +852,10 @@ describe("MarketplaceV4", () => {
                 [projectId, subscriber, subscriptionSeconds]
             )
 
-            await marketplace.addMailbox(constants.AddressZero)
-            // admin acts as the remote contract
+            // admin acts as the remote contract, but it should be other
             await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
             await expect(destinationMailbox.processNextInboundMessage())
-                .to.be.revertedWith("error_notHyperlaneMailbox")
-            await marketplace.addMailbox(destinationMailbox.address)
+                .to.be.revertedWith("error_notRemoteMarketplace")
         })
 
         it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the hyperlane mailbox", async function () {
@@ -869,10 +867,10 @@ describe("MarketplaceV4", () => {
                 [projectId, subscriber, subscriptionSeconds]
             )
 
-            // admin acts as the remote contract
-            await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await marketplace.addMailbox(hardhatEthers.Wallet.createRandom().address)
+            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
             await expect(destinationMailbox.processNextInboundMessage())
-                .to.be.revertedWith("error_notRemoteMarketplace")
+                .to.be.revertedWith("error_notHyperlaneMailbox")
         })
     })
 })
