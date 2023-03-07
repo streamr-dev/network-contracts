@@ -16,7 +16,7 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@chainlink/contracts": "^0.4.2",
-    "@hyperlane-xyz/core": "0.5.5",
+    "@hyperlane-xyz/core": "1.2.0",
     "@jridgewell/trace-mapping": "0.3.9",
     "@openzeppelin/contracts": "~4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",

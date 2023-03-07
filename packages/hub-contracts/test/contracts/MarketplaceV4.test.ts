@@ -10,10 +10,9 @@ import type {
     MarketplaceV4,
     MinimalForwarder,
     ProjectRegistryV1,
-    RemoteMarketplaceV1,
     StreamRegistryV4,
 } from "../../typechain"
-import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
+import { MockMailbox } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 import { types } from "../constants"
 
@@ -48,9 +47,6 @@ describe("MarketplaceV4", () => {
     const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
-    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
-    const interchainQueryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
-    const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
         [admin, buyer, other, beneficiary, forwarder, signer, wrongSigner] = await hardhatEthers.getSigners() as unknown as Wallet[]
@@ -811,53 +807,72 @@ describe("MarketplaceV4", () => {
             })
         }
 
-        it("should be able to send a message directly using the test recipient contract", async function () {
-            const signer = (await hardhatEthers.getSigners())[0]
-            const inbox = await new MockInbox__factory(signer).deploy()
-            await inbox.deployed()
-            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address)
-            await outbox.deployed()
-            const recipient = await new TestRecipient__factory(signer).deploy()
-            const data = toUtf8Bytes("This is a test message")
-        
-            await outbox.dispatch(1, addressToBytes32(recipient.address), data)
-            await inbox.processNextPendingMessage()
-        
-            const dataReceived = await recipient.lastData()
-            expect(dataReceived).to.eql(hexlify(data))
-        })
-
-        const originDomain = 1 // the domain id of the chain RemoteMarketplace is deployed on
-        const destinationDomain = 2 // the domain id of the chain ProjectRegistryV1 & MarketplaceV4 are deployed on
-        let sender: RemoteMarketplaceV1 // the contract the messages are sent from
-        let recipient: MarketplaceV4 // the contract the messages are sent to
+        const originDomain = 1000
+        const destinationDomain = 2000
+        let originMailbox: MockMailbox
+        let destinationMailbox: MockMailbox
 
         before(async () => {
-            recipient = marketplace
+            const MockMailbox = await hardhatEthers.getContractFactory("MockMailbox")
+            originMailbox = await MockMailbox.deploy(originDomain)
+            destinationMailbox = await MockMailbox.deploy(destinationDomain)
+            await originMailbox.addRemoteMailbox(destinationDomain, destinationMailbox.address)
+            await destinationMailbox.addRemoteMailbox(originDomain, originMailbox.address)
+    
+            await marketplace.addMailbox(destinationMailbox.address)
+            await marketplace.addRemoteMarketplace(originDomain, other.address)
         })
 
-        describe('RemoteMarketplaceV1', () => {
-            let inbox: any
-            let outbox: any
+        it("handle - positivetest", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
 
-            before(async () => {
-                inbox = await new MockInbox__factory(admin).deploy()
-                await inbox.deployed()
-                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
-                await outbox.deployed()
+            const subscriptionBefore = await projectRegistry.getSubscription(projectId, subscriber)
+            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await destinationMailbox.processNextInboundMessage()
+            const subscriptionAfter = await projectRegistry.getSubscription(projectId, subscriber)
 
-                const remoteMarketFactory = await getContractFactory("RemoteMarketplaceV1")
-                sender = await upgrades.deployProxy(remoteMarketFactory, [
-                    originDomain,
-                    interchainQueryRouter,
-                    interchainMailbox,
-                    interchainGasPaymaster
-                ]) as RemoteMarketplaceV1
-                await sender.addRecipient(destinationDomain, recipient.address)
-                await recipient.addRemoteMarketplace(originDomain, sender.address)
-            })
-    
-            it("TODO: buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {})
+            expect(subscriptionBefore[0]).to.be.false // isValid
+            expect(subscriptionBefore[1]).to.equal(0) // endTimestamp
+            expect(subscriptionAfter[0]).to.be.true // isValid
+            expect(subscriptionAfter[1]).to.gt((await hardhatEthers.provider.getBlock("latest")).timestamp) // endTimestamp
+        })
+
+        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the remote contract", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
+
+            await marketplace.addMailbox(constants.AddressZero)
+            // admin acts as the remote contract
+            await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await expect(destinationMailbox.processNextInboundMessage())
+                .to.be.revertedWith("error_notHyperlaneMailbox")
+            await marketplace.addMailbox(destinationMailbox.address)
+        })
+
+        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the hyperlane mailbox", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
+
+            // admin acts as the remote contract
+            await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await expect(destinationMailbox.processNextInboundMessage())
+                .to.be.revertedWith("error_notRemoteMarketplace")
         })
     })
 })
