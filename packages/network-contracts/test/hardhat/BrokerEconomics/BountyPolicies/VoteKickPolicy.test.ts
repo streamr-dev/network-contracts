@@ -1,5 +1,5 @@
 import { ethers } from "hardhat"
-import { BigNumber, utils, Wallet, ContractReceipt } from "ethers"
+import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
 import { deployTestContracts } from "../deployTestContracts"
