@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.9;
+pragma solidity ^0.8.9;
 
-import "../IPurchaseListener.sol";
+import "../Marketplace/IPurchaseListener.sol";
 
 contract MockMarketplaceBeneficiary is IPurchaseListener {
     event OnTokenTransferCalled(address recipient, uint256 value, bytes data);

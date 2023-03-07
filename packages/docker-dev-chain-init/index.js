@@ -105,6 +105,7 @@ const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
+let linkToken
 let linkTokenAddress = ''
 
 async function getProducts() {
@@ -169,12 +170,23 @@ async function deployStreamStorageRegistry(wallet) {
     log(`StreamStorageRegistryV2 deployed at ${str.address}`)
 }
 
-async function deployProjectRegistry(wallet) {
-    const projectRegistryFactory = await ethers.getContractFactory("ProjectRegistry", wallet)
+async function deployProjectRegistryV1(wallet) {
+    const projectRegistryFactory = await ethers.getContractFactory("ProjectRegistryV1", wallet)
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [streamRegistryAddress], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()
     log(`ProjectRegistry deployed at ${projectRegistry.address}`)
     return projectRegistry
+}
+
+async function deployProjectStakingV1(wallet, projectRegistryAddress, tokenStakingAddress) {
+    const projectStakingV1Factory = await ethers.getContractFactory("ProjectStakingV1", wallet)
+    const projectStakingV1FactoryTx = await upgrades.deployProxy(projectStakingV1Factory, [
+        projectRegistryAddress,
+        tokenStakingAddress
+    ], { kind: 'uups' })
+    const projectStakingV1 = await projectStakingV1FactoryTx.deployed()
+    log(`ProjectStakingV1 deployed at ${projectStakingV1.address}`)
+    return projectStakingV1
 }
 
 async function deployMarketplaceV3(wallet) {
@@ -185,9 +197,9 @@ async function deployMarketplaceV3(wallet) {
     return marketplaceV3
 }
 
-async function deployMarketplaceV4(wallet) {
+async function deployMarketplaceV4(wallet, projectRegistryAddress, destinationChainId) {
     const marketplaceV4Factory = await ethers.getContractFactory("MarketplaceV4", wallet)
-    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [], { kind: 'uups' })
+    const marketplaceV4FactoryTx = await upgrades.deployProxy(marketplaceV4Factory, [projectRegistryAddress, destinationChainId], { kind: 'uups' })
     const marketplaceV4 = await marketplaceV4FactoryTx.deployed()
     log(`MarketplaceV4 deployed on sidechain at ${marketplaceV4.address}`)
     return marketplaceV4
@@ -595,13 +607,25 @@ async function smartContractInitialization() {
     const grantRoleTx2 = await streamRegistryFromOwner.grantRole(role, watcherWallet.address)
     await grantRoleTx2.wait()
 
-    const projectRegistry = await deployProjectRegistry(sidechainWallet)
+    const projectRegistryV1 = await deployProjectRegistryV1(sidechainWallet)
+
     await deployMarketplaceV3(sidechainWallet)
-    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet)
-    // link marketpalceV4 to the project registry contract
-    await(await marketplaceV4.setProjectRegistry(projectRegistry.address)).wait()
-    // grant trusted role to marketpalce contract => needed for granting permissions to buyers
-    await(await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
+
+    const chainId = 8997 // dev1
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistryV1.address, chainId)    
+    log(`Granting role ${role} to MarketplaceV4 at ${marketplaceV4.address}. ` +
+        "Needed for granting permissions to streams using the trusted functions.")
+    await(await projectRegistryV1.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()
+
+    await deployProjectStakingV1(sidechainWallet, projectRegistryV1.address, linkToken.address)
+
+    // granting here and not right after deployProjectRegistryV1 to avoid changing the addresses of MarketplaceV3, MarketplaceV4 and ProjectStakingV1
+    log(`Granting role ${role} to ProjectRegistryV1 at ${projectRegistryV1.address}. ` +
+        "Needed for granting permissions to streams using the trusted functions.")
+    const grantRoleProjectRegistryV1Tx = await streamRegistryFromOwner.grantRole(role, projectRegistryV1.address)
+    await grantRoleProjectRegistryV1Tx.wait()
+
+    await deployBountyFactory()
 
     await deployBountyFactory()
 

@@ -1,0 +1,18 @@
+type Bounty @entity {
+  id: ID! # bounty address
+  isRunning: Boolean!
+  stakes: [Stake!]! @derivedFrom(field: "bounty")
+  brokerCount: Int!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
+}
+
+type Stake @entity {
+  id: ID! # 0xbountyAddress-0xbrokerAddress
+  broker: String!
+  amount: BigInt!
+  allocatedWei: BigInt!
+  date: BigInt
+  bounty: Bounty
+}

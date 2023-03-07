@@ -1,5 +1,5 @@
-import { log, store } from '@graphprotocol/graph-ts'
-import { Permission, Project, TimeBasedSubscription } from '../generated/schema'
+import { BigInt, log, store } from '@graphprotocol/graph-ts'
+import { PaymentDetailsByChain, Permission, TimeBasedSubscription } from '../generated/schema'
 import {
     ProjectCreated,
     ProjectDeleted,
@@ -8,23 +8,26 @@ import {
     Subscribed,
     StreamAdded,
     StreamRemoved,
-} from '../generated/ProjectRegistry/ProjectRegistry'
+    PaymentDetailsByChainUpdated,
+} from '../generated/ProjectRegistryV1/ProjectRegistryV1'
+import { getIsDataUnionValue, loadOrCreateProject } from './helpers'
 
 export function handleProjectCreation(event: ProjectCreated): void {
     const id = event.params.id.toHexString()
     const metadata = event.params.metadata
     log.info('handleProjectCreated: id={} metadata={} blockNumber={}',
         [id, metadata, event.block.number.toString()])
-    let project = new Project(id)
-    project.id = id
-    project.beneficiary = event.params.beneficiary
-    project.pricePerSecond = event.params.pricePerSecond
-    project.pricingTokenAddress = event.params.pricingTokenAddress
+        
+    let project = loadOrCreateProject(event.params.id)
+
+    project.domainIds = event.params.domainIds
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = metadata
-    project.streams = new Array<string>()
+    project.isDataUnion = getIsDataUnionValue(metadata)
+    project.streams = event.params.streams
     project.createdAt = event.block.timestamp
-    project.purchasesCount = 0
+    project.counter = 0
+    project.score = BigInt.fromI32(0)
     project.save()
 }
 
@@ -40,14 +43,13 @@ export function handleProjectUpdate(event: ProjectUpdated): void {
     log.info('handleProjectUpdated: id={} metadata={} blockNumber={}',
         [id, event.params.metadata, event.block.number.toString()])
 
-    let project = Project.load(id)
-    if (project == null) { project = new Project(id) }
+    let project = loadOrCreateProject(event.params.id)
 
-    project.beneficiary = event.params.beneficiary
-    project.pricePerSecond = event.params.pricePerSecond
-    project.pricingTokenAddress = event.params.pricingTokenAddress
+    project.domainIds = event.params.domainIds
+    project.streams = event.params.streams
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
     project.metadata = event.params.metadata
+    project.isDataUnion = getIsDataUnionValue(event.params.metadata)
     project.updatedAt = event.block.timestamp
     project.save()
 }
@@ -58,19 +60,18 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} projectId={} blockNumber={}',
         [user, projectId, event.block.number.toString()])
 
-    let project = Project.load(projectId)
-    if (project != null) {
-        let permissionId = projectId + '-' + user
-        let permission = new Permission(permissionId)
-        permission.userAddress = event.params.user
-        permission.project = projectId
-        permission.canBuy = event.params.canBuy
-        permission.canDelete = event.params.canDelete
-        permission.canEdit = event.params.canEdit
-        permission.canGrant = event.params.canGrant
-        permission.save()
-        project.save()
-    }
+    let project = loadOrCreateProject(event.params.projectId)
+
+    let permissionId = projectId + '-' + user
+    let permission = new Permission(permissionId)
+    permission.userAddress = event.params.user
+    permission.project = projectId
+    permission.canBuy = event.params.canBuy
+    permission.canDelete = event.params.canDelete
+    permission.canEdit = event.params.canEdit
+    permission.canGrant = event.params.canGrant
+    permission.save()
+    project.save()
 }
 
 export function handleSubscriptionUpdate(event: Subscribed): void {
@@ -79,16 +80,37 @@ export function handleSubscriptionUpdate(event: Subscribed): void {
     log.info('handleSubscriptionUpdate: projectId={} subscriber={} blockNumber={}',
         [projectId, subscriber, event.block.number.toString()])
 
-    let project = Project.load(projectId)
-    if (project != null) {
-        let subscriptionId = projectId + '-' + subscriber
-        let subscription = new TimeBasedSubscription(subscriptionId)
-        subscription.project = projectId
-        subscription.userAddress = event.params.subscriber
-        subscription.endTimestamp = event.params.endTimestamp
-        subscription.save()
-        project.save()
-    }
+    let project = loadOrCreateProject(event.params.projectId)
+
+    let subscriptionId = projectId + '-' + subscriber
+    let subscription = new TimeBasedSubscription(subscriptionId)
+    subscription.project = projectId
+    subscription.userAddress = event.params.subscriber
+    subscription.endTimestamp = event.params.endTimestamp
+    subscription.save()
+    project.save()
+}
+
+export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUpdated): void {
+    const projectId = event.params.id.toHexString()
+    const domainId = event.params.domainId.toString()
+    const beneficiary = event.params.beneficiary.toHexString()
+    const pricingTokenAddress = event.params.pricingTokenAddress.toHexString()
+    const pricePerSecond = event.params.pricePerSecond.toString()
+    log.info('handlePaymentDetailsByChainUpdate: projectId={} domainId={} beneficiary={} pricingTokenAddress={} pricePerSecond={} blockNumber={}',
+        [projectId, domainId, beneficiary, pricingTokenAddress, pricePerSecond, event.block.number.toString()])
+
+    let project = loadOrCreateProject(event.params.id)
+
+    let paymentDetailsId = projectId + '-' + domainId
+    let paymentDetails = new PaymentDetailsByChain(paymentDetailsId)
+    paymentDetails.project = projectId
+    paymentDetails.domainId = event.params.domainId
+    paymentDetails.beneficiary = event.params.beneficiary
+    paymentDetails.pricingTokenAddress = event.params.pricingTokenAddress
+    paymentDetails.pricePerSecond = event.params.pricePerSecond
+    project.save()
+    paymentDetails.save()
 }
 
 export function handleStreamAdition(event: StreamAdded): void {
@@ -97,13 +119,12 @@ export function handleStreamAdition(event: StreamAdded): void {
     log.info('handleStreamAdition: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
 
-    let project = Project.load(projectId)
-    if (project != null) {
-        const streams = project.streams
-        streams.push(streamId)
-        project.streams = streams
-        project.save()
-    }
+    let project = loadOrCreateProject(event.params.projectId)
+    
+    const streams = project.streams
+    streams.push(streamId)
+    project.streams = streams
+    project.save()
 }
 
 export function handleStreamRemoval(event: StreamRemoved): void {
@@ -112,14 +133,13 @@ export function handleStreamRemoval(event: StreamRemoved): void {
     log.info('handleStreamRemoval: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
 
-    let project = Project.load(projectId)
-    if (project != null) {
-        let streams = project.streams
-        const streamIndex  = streams.indexOf(streamId)
-        if (streamIndex != -1) {
-            streams.splice(streamIndex, 1)
-        }
-        project.streams = streams
-        project.save()
+    let project = loadOrCreateProject(event.params.projectId)
+
+    let streams = project.streams
+    const streamIndex  = streams.indexOf(streamId)
+    if (streamIndex != -1) {
+        streams.splice(streamIndex, 1)
     }
+    project.streams = streams
+    project.save()
 }

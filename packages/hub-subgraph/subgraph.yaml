@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: Subgraph definitions for the project registry
+description: Subgraph definitions for the hub contracts
 repository:
 schema:
   file: ./schema.graphql
@@ -7,11 +7,11 @@ features:
   - fullTextSearch
 dataSources:
   - kind: ethereum/contract
-    name: ProjectRegistry
+    name: ProjectRegistryV1
     network: xDai # xDai means dev1
     source:
       address: "0x3C841B9Aa08166e9B864972930703e878d25804B"
-      abi: ProjectRegistry
+      abi: ProjectRegistryV1
       startBlock: 0
     mapping:
       kind: ethereum/events
@@ -20,15 +20,17 @@ dataSources:
       entities:
         - Project
       abis:
-        - name: ProjectRegistry
-          file: ./abis/ProjectRegistry.json
+        - name: ProjectRegistryV1
+          file: ./abis/ProjectRegistryV1.json
       eventHandlers:
-        - event: ProjectCreated(indexed bytes32,address,uint256,address,uint256,string)
+        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
           handler: handleProjectCreation
         - event: ProjectDeleted(indexed bytes32)
           handler: handleProjectDeletion
-        - event: ProjectUpdated(indexed bytes32,address,uint256,address,uint256,string)
+        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
           handler: handleProjectUpdate
+        - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
+          handler: handlePaymentDetailsByChainUpdate
         - event: StreamAdded(bytes32,string)
           handler: handleStreamAdition
         - event: StreamRemoved(bytes32,string)
@@ -58,3 +60,26 @@ dataSources:
         - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
           handler: handleProjectPurchase
       file: ./src/marketplaceV4.ts
+  - kind: ethereum/contract
+    name: ProjectStakingV1
+    network: xDai
+    source:
+      address: "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF"
+      abi: ProjectStakingV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stake
+        - Unstake
+      abis:
+        - name: ProjectStakingV1
+          file: ./abis/ProjectStakingV1.json
+      eventHandlers:
+        - event: Stake(indexed bytes32,indexed address,uint256)
+          handler: handleStake
+        - event: Unstake(indexed bytes32,indexed address,uint256)
+          handler: handleUnstake
+      file: ./src/projectStaking.ts

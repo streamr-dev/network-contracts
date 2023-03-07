@@ -17,9 +17,9 @@ const DataUnionFactoryMainnet = require("./ethereumContractJSONs/DataUnionFactor
 const MainnetMigrationManager = require("./ethereumContractJSONs/MainnetMigrationManager.json")
 const SidechainMigrationManager = require("./ethereumContractJSONs/SidechainMigrationManager.json")
 // unichain
-const DefaultFeeOracle = require("./ethereumContractJSONs/DefaultFeeOracle.json")
-const DataUnionFactory = require("./ethereumContractJSONs/DataUnionFactory.json")
-const DataUnionTemplate = require("./ethereumContractJSONs/DataUnionTemplate.json")
+const DefaultFeeOracle = require("./artifacts/@dataunions/contracts/contracts/DefaultFeeOracle.sol/DefaultFeeOracle.json")
+const DataUnionFactory = require("./artifacts/@dataunions/contracts/contracts/DataUnionFactory.sol/DataUnionFactory.json")
+const DataUnionTemplate = require("./artifacts/@dataunions/contracts/contracts/DataUnionTemplate.sol/DataUnionTemplate.json")
 
 const log = process.env.QUIET ? (() => { }) : console.log // eslint-disable-line no-console
 // class LoggingProvider extends JsonRpcProvider {

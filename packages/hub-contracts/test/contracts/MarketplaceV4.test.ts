@@ -1,15 +1,21 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
-import { utils } from "ethers"
+import { config, upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
+import { BigNumber, utils, constants, Wallet } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, ERC20Mintable, MarketplaceV4, ProjectRegistry, StreamRegistryV3 } from "../../typechain"
-import { MinimalForwarder } from "../../typechain/MinimalForwarder"
-import { RemoteMarketplace } from "../../typechain/RemoteMarketplace"
+import type {
+    DATAv2,
+    ERC20Mintable,
+    GasReporter,
+    MarketplaceV4,
+    MinimalForwarder,
+    ProjectRegistryV1,
+    RemoteMarketplaceV1,
+    StreamRegistryV4,
+} from "../../typechain"
 import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 
-const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
 const { addressToBytes32} = hyperlaneUtils
@@ -54,32 +60,63 @@ const types = {
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
 
-use(waffle.solidity)
+describe("MarketplaceV4", () => {
+    let admin: Wallet
+    let buyer: Wallet
+    let other: Wallet
+    let beneficiary: Wallet
+    let forwarder: Wallet
+    let signer: Wallet
+    let signerWallet: Wallet
+    let wrongSigner: Wallet
+    let wrongSignerWallet: Wallet
 
-describe("Marketplace", () => {
-    const [
-        admin,
-        buyer,
-        other,
-        beneficiary,
-        forwarder,
-    ] = waffleProvider.getWallets()
-
-    let projectId: string
     let token: DATAv2
     let otherToken: ERC20Mintable
     let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
-    let projectRegistry: ProjectRegistry
-    let streamRegistry: StreamRegistryV3
+    let projectRegistry: ProjectRegistryV1
+    let streamRegistry: StreamRegistryV4
+    const streamIds: string[] = []
+    let gasReporter: GasReporter
+
+    const chainId = 137 // chain id for polygon mainnet
+    const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
+    const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
+    const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
+    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
+    const interchainQueryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
+    const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
+        [admin, buyer, other, beneficiary, forwarder, signer, wrongSigner] = await hardhatEthers.getSigners() as unknown as Wallet[]
+        const accounts = config.networks.hardhat.accounts as any
+        const indexSigner = 5 // sixth account => the signer from getSigners() above
+        signerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexSigner}`)
+        const indexWrongSigner = 6 // sixth account => the signer from getSigners() above
+        wrongSignerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexWrongSigner}`)
+        log("WrongSigner: ", wrongSigner.address)
+
         await deployERC20()
         await deployOtherERC20()
         await deployMinimalForwarder()
         await deployStreamRegistry()
         await deployProjectRegistry()
+        await streamRegistry.grantRole(id("TRUSTED_ROLE"), projectRegistry.address)
         marketplace = await deployMarketplace()
+        await deployGasReporter(marketplace.address)
+
+        chainIds.push(chainId)
+        paymentDetailsDefault.push([
+            beneficiary.address, // beneficiary
+            token.address, // pricingTokenAddress
+            BigNumber.from(2) // pricePerSecond
+        ])
+        paymentDetailsFreeProject.push([
+            beneficiary.address, // beneficiary
+            token.address, // pricingTokenAddress
+            BigNumber.from(0) // pricePerSecond
+        ])
     })
 
     async function deployERC20(): Promise<void> {
@@ -111,52 +148,63 @@ describe("Marketplace", () => {
 
     async function deployStreamRegistry(): Promise<void> {
         log("Deploying StreamRegistry: ")
-        const contractFactory = await getContractFactory("StreamRegistryV3", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV3
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
 
     }
 
+    const createStream = async (id?: string, creator = admin): Promise<string> => {
+        // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
+        const streamPath = '/projects/' + (id ?? Date.now())
+        const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
+        await(await streamRegistry.connect(creator)
+            .createStream(streamPath, streamMetadata)).wait()
+        const streamId = creator.address.toLowerCase() + streamPath
+        log('Stream created (streamId: %s)', streamId)
+        return streamId
+    }
+    
     async function deployProjectRegistry(): Promise<void> {
-        log("Deploying ProjectRegistry: ")
-        const contractFactory = await getContractFactory("ProjectRegistry", admin)
+        log("Deploying ProjectRegistryV1: ")
+        const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
         const contractFactoryTx = await upgrades.deployProxy(contractFactory, [streamRegistry.address], { kind: 'uups' })
-        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistry
-        log("   - ProjectRegistry deployed at: ", projectRegistry.address)
+        projectRegistry = await contractFactoryTx.deployed() as ProjectRegistryV1
+        log("   - ProjectRegistryV1 deployed at: ", projectRegistry.address)
     }
 
     async function deployMarketplace(): Promise<MarketplaceV4> {
         log("Deploying MarketplaceV4: ")
         const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
+        const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [projectRegistry.address, chainId], { kind: 'uups' })
         const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
         log("   - MarketplaceV4 deployed at: ", market.address)
-
-        // initialize project registry contract for marketplace
-        await market.setProjectRegistry(projectRegistry.address)
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
         await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
-
-        await createProject()
         return market
     }
 
+    async function deployGasReporter(recipientAddress: string): Promise<void> {
+        const factory = await getContractFactory('GasReporter', admin)
+        gasReporter = await factory.deploy(recipientAddress, chainId) as GasReporter
+    }
+
     async function createProject({
-        beneficiaryAddress = beneficiary.address,
-        pricePerSecond = 1,
-        pricingToken = token.address,
+        chains = chainIds,
+        payment = paymentDetailsDefault,
+        streams = streamIds,
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
         metadata = ""
     } = {}): Promise<string> {
         const name = 'project-' + Math.round(Math.random() * 1000000)
-        projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
+        const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
         await projectRegistry
-            .createProject(projectId, beneficiaryAddress, pricePerSecond, pricingToken, minimumSubscriptionSeconds, isPublicPurchable, metadata)
+            .createProject(projectId, chains, payment, streams, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
     }
@@ -164,14 +212,15 @@ describe("Marketplace", () => {
     describe("UUPS upgradeability", () => {
         it("works before and after upgrading", async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+            ], { kind: 'uups' })
             const marketplaceV4 = await marketFactoryV4Tx.deployed() as MarketplaceV4
 
             const marketFactoryV4_1 = await getContractFactory("MarketplaceV4") // this would be the upgraded version (e.g. MarketplaceV4_1)
             const marketFactoryV4_1Tx = await upgrades.upgradeProxy(marketFactoryV4Tx.address, marketFactoryV4_1)
             const marketplaceV4_1 = await marketFactoryV4_1Tx.deployed() as MarketplaceV4
-
-            await marketplaceV4_1.setProjectRegistry(projectRegistry.address)
 
             expect(marketplaceV4.address)
                 .to.equal(marketplaceV4_1.address)
@@ -179,28 +228,41 @@ describe("Marketplace", () => {
     })
 
     describe('Buying products', () => {
-        it('setTxFee checks argument between 0...1 (inclusive)', async () => {
-            const market = await deployMarketplace()
-            await expect(await market.setTxFee(parseEther('1.0')))
-                .to.emit(market, 'TxFeeChanged')
-                .withArgs(parseEther('1.0'))
-            await expect(market.setTxFee(parseEther('1.1')))
+        it('setTxFee - positivetest', async () => {
+            // set market fee to 25%
+            const fee = parseEther('0.25')
+            await expect(marketplace.setTxFee(fee))
+                .to.emit(marketplace, 'TxFeeChanged')
+                .withArgs(fee)
+            // set market fee to 100%
+            const fee2 = parseEther('1.0')
+            await expect(marketplace.setTxFee(fee2))
+                .to.emit(marketplace, 'TxFeeChanged')
+                .withArgs(fee2)
+            // reset market fee to 0
+            await expect(marketplace.setTxFee(0))
+                .to.emit(marketplace, 'TxFeeChanged')
+                .withArgs(0)
+        })
+
+        it('setTxFee - negativetest - must be less than 1 (1 ether means 100%)', async () => {
+            await expect(marketplace.setTxFee(parseEther('1.1')))
                 .to.be.revertedWith('error_invalidTxFee')
         })
 
         it('txFee token distribution works', async () => {
-            const market = await deployMarketplace()
+            const projectId = await createProject()
             const fee = parseEther('0.25')
-            await expect(market.setTxFee(fee))
-                .to.emit(market, 'TxFeeChanged')
+            await expect(marketplace.setTxFee(fee))
+                .to.emit(marketplace, 'TxFeeChanged')
                 .withArgs(fee)
 
             // enough approved with added fee
-            await token.connect(other).approve(market.address, 1000)
+            await token.connect(other).approve(marketplace.address, 1000) // pricePerSecond = 2
             const ownerBefore = await token.balanceOf(admin.address)
             const sellerBefore = await token.balanceOf(beneficiary.address)
 
-            await market.connect(other).buy(projectId, 1000)
+            await marketplace.connect(other).buy(projectId, 500) // pricePerSecond = 2
 
             // fee is correct
             const ownerAfter = await token.balanceOf(admin.address)
@@ -209,35 +271,40 @@ describe("Marketplace", () => {
             expect(ownerAfter.sub(ownerBefore)).to.equal(250)
             // seller receives price - fee
             expect(sellerAfter.sub(sellerBefore)).to.equal(750)
+
+            // reset marketplace fee to 0
+            await expect(marketplace.setTxFee(0))
+                .to.emit(marketplace, 'TxFeeChanged')
+                .withArgs(0)
         })
 
         it('fails for bad arguments', async () => {
-            const market = await deployMarketplace()
+            const projectId = await createProject()
 
-            await expect(market.buy(projectId, 0))
+            await expect(marketplace.buy(projectId, 0))
                 .to.be.revertedWith('error_newSubscriptionTooSmall')
 
-            await expect(market.connect(other).buy(projectId, 0))
+            await expect(marketplace.connect(other).buy(projectId, 0))
                 .to.be.revertedWith('error_newSubscriptionTooSmall')
         })
 
         it('fails if allowance not given', async () => {
-            const market = await deployMarketplace()
-            await expect(market.buy(projectId, 100))
+            const projectId = await createProject()
+            await expect(marketplace.buy(projectId, 100))
                 .to.be.revertedWith('ERC20: transfer amount exceeds allowance')
         })
 
         it('fails if too little allowance was given', async () => {
-            const market = await deployMarketplace()
-            await token.approve(market.address, 99)
-            await expect(market.buy(projectId, 100))
+            const projectId = await createProject()
+            await token.approve(marketplace.address, 99)
+            await expect(marketplace.buy(projectId, 100))
                 .to.be.revertedWith('ERC20: transfer amount exceeds allowance')
         })
 
         it('works if enough allowance was given', async () => {
-            const market = await deployMarketplace()
-            await token.approve(market.address, 1000)
-            await expect(market.buy(projectId, 100))
+            const projectId = await createProject()
+            await token.approve(marketplace.address, 1000)
+            await expect(marketplace.buy(projectId, 100))
                 .to.emit(projectRegistry, 'NewSubscription')
                 // TODO: test for endTtimestamps
             expect(await projectRegistry.hasValidSubscription(projectId, admin.address))
@@ -245,13 +312,20 @@ describe("Marketplace", () => {
         })
 
         it('can pay to non-contract addresses', async () => {
-            const market = await deployMarketplace()
+            const projectId = await createProject()
             const sellerAddress = '0x1234567890123456789012345678901234567890'
             const balanceBefore = await token.balanceOf(sellerAddress)
 
-            await token.approve(market.address, 100)
-            await projectRegistry.updateProject(projectId, sellerAddress, 1, token.address, 1, 'metadata')
-            await market.buy(projectId, 100)
+            await token.approve(marketplace.address, 1000)
+            const paymentDetails: any = [
+                [
+                    sellerAddress, // beneficiary
+                    token.address, // pricingTokenAddress
+                    BigNumber.from(1) // pricePerSecond
+                ]
+            ]
+            await projectRegistry.updateProject(projectId, chainIds, paymentDetails, [], 1, 'metadata')
+            await marketplace.buy(projectId, 100)
             const balanceAfter = await token.balanceOf(sellerAddress)
 
             expect(balanceBefore).to.equal(0)
@@ -259,26 +333,27 @@ describe("Marketplace", () => {
         })
 
         it('can buy products in one transaction (transferAndCall)', async () => {
-            const market = await deployMarketplace()
+            const projectId = await createProject()
 
             await projectRegistry.grantSubscription(projectId, 1, admin.address)
             const subscription = await projectRegistry.getOwnSubscription(projectId)
 
             const pricingTokenIn = 100
-            const pricePerSecond = 1
+            const pricePerSecond = paymentDetailsDefault[0][2]
             const expectedEndTimestamp = subscription.endTimestamp.add(pricingTokenIn / pricePerSecond)
 
-            await expect(token.transferAndCall(market.address, parseEther(String(pricingTokenIn)), projectId))
+            await expect(token.transferAndCall(marketplace.address, parseEther(String(pricingTokenIn)), projectId))
                 .to.emit(projectRegistry, 'Subscribed')
                 .withArgs(projectId, admin.address, expectedEndTimestamp)
         })
 
-        it('buy - positivetest - beneficiary can react on product purchase', async () => {
+        it('buy - positivetest - beneficiary can react on project purchase', async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
-            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [], { kind: 'uups' })
+            const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
+                projectRegistry.address,
+                chainId,
+            ], { kind: 'uups' })
             const market = await marketFactoryV4Tx.deployed() as MarketplaceV4
-            // initialize project registry contract for marketplace
-            await market.setProjectRegistry(projectRegistry.address)
             // grant trusted role to marketpalce contract => needed for granting permissions to buyers
             await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
 
@@ -286,15 +361,29 @@ describe("Marketplace", () => {
             const mockBeneficiaryFactory = await getContractFactory("MockMarketplaceBeneficiary")
             const mockBeneficiary = await mockBeneficiaryFactory.deploy()
 
-            const name = 'project-' + Math.round(Math.random() * 1000000)
-            const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
+            // // const name = 'project-' + Math.round(Math.random() * 1000000)
+            const projectId = hexlify(zeroPad(toUtf8Bytes('project-react'), 32))
             const beneficiaryAddress = mockBeneficiary.address
             const pricePerSecond = 2
             const subscriptionSeconds = 500
+            const paymentDetails1: any[] = [
+                [
+                    beneficiaryAddress, // beneficiary
+                    token.address, // pricingTokenAddress
+                    pricePerSecond, // pricePerSecond
+                ]
+            ]
+            const paymentDetails2: any[] = [
+                [
+                    beneficiaryAddress, // beneficiary
+                    otherToken.address, // pricingTokenAddress
+                    pricePerSecond, // pricePerSecond
+                ]
+            ]
 
             // create project with ERC677 pricingToken
             await projectRegistry
-                .createProject(projectId, beneficiaryAddress, pricePerSecond, token.address, 1, true, 'metadata')
+                .createProject(projectId, chainIds, paymentDetails1, [], 1, true, 'metadata')
             expect(await token.balanceOf(beneficiaryAddress))
                 .to.equal(0)
             await token.approve(market.address, 1000)
@@ -305,7 +394,7 @@ describe("Marketplace", () => {
 
             // change pricing token to ERC20
             await projectRegistry
-                .updateProject(projectId, beneficiaryAddress, pricePerSecond, otherToken.address, 1, 'metadata')
+                .updateProject(projectId, chainIds, paymentDetails2, [], 1, 'metadata')
             await otherToken.approve(market.address, 1000)
             expect(await otherToken.balanceOf(beneficiaryAddress))
                 .to.equal(0)
@@ -315,18 +404,11 @@ describe("Marketplace", () => {
                 .to.equal(subscriptionSeconds * pricePerSecond)
         })
 
-        it('ProjectPurchased event emitted for free projects', async () => {
-            const freeProjectId = await createProject({minimumSubscriptionSeconds: 0, pricePerSecond: 0})
+        it('buy - negativetest - unable to purchase free projects (pricePerSecond=0)', async () => {
+            const freeProjectId = await createProject({ payment: paymentDetailsFreeProject })
             
-            const hasValidSubscriptionBefore = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
-            await expect(marketplace.buy(projectId, 100))
-                .to.emit(marketplace, 'ProjectPurchased')
-            const hasValidSubscriptionAfter = await projectRegistry.hasValidSubscription(freeProjectId, admin.address)
-
-            expect(hasValidSubscriptionBefore)
-                .to.be.false
-            expect(hasValidSubscriptionAfter)
-                .to.be.true
+            await expect(marketplace.buy(freeProjectId, 100))
+                .to.be.revertedWith("error_freeProjectsNotSupportedOnMarketplace")
         })
     })
 
@@ -340,29 +422,29 @@ describe("Marketplace", () => {
         })
 
         it('halt, resume - positivetest - can halt buying except for the owner', async () => {
-            const market = await deployMarketplace()
-            await token.approve(market.address, 1000)
-            await token.connect(other).approve(market.address, 1000)
+            const projectId = await createProject()
+            await token.approve(marketplace.address, 1000)
+            await token.connect(other).approve(marketplace.address, 1000)
 
             // anyone can buy products
-            await expect(market.connect(other).buy(projectId, 100))
+            await expect(marketplace.connect(other).buy(projectId, 100))
                 .to.emit(projectRegistry, "Subscribed")
 
-            await expect(market.halt())
-                .to.emit(market, "Halted")
+            await expect(marketplace.halt())
+                .to.emit(marketplace, "Halted")
 
-            // market is halted => admin can buy products
-            await expect(market.buy(projectId, 100))
+            // marketplace is halted => admin can buy products
+            await expect(marketplace.buy(projectId, 100))
                 .to.emit(projectRegistry, "Subscribed")
-            // market is halted => other users can't buy products
-            await expect(market.connect(other).buy(projectId, 100))
+            // marketplace is halted => other users can't buy products
+            await expect(marketplace.connect(other).buy(projectId, 100))
                 .to.be.revertedWith("error_halted")
 
-            await expect(market.resume())
-                .to.emit(market, "Resumed")
+            await expect(marketplace.resume())
+                .to.emit(marketplace, "Resumed")
 
-            // market is resumed => anyone can buy products
-            await expect(market.connect(other).buy(projectId, 100))
+            // marketplace is resumed => anyone can buy products
+            await expect(marketplace.connect(other).buy(projectId, 100))
                 .to.emit(projectRegistry, "Subscribed")
         })
 
@@ -397,24 +479,23 @@ describe("Marketplace", () => {
         before(async () => {
             const trustedForwarderRole = await projectRegistry.TRUSTED_FORWARDER_ROLE()
             await projectRegistry.grantRole(trustedForwarderRole, minimalForwarder.address)
-
             // each unit test must have at least subscriptionSeconds * pricePerSecond for mint/approve
-            await token.mint(buyer.address, 10000)
-            await token.connect(buyer).approve(marketplace.address, 10000)
+            await(await token.mint(signer.address, 10000)).wait()
+            await(await token.connect(signer).approve(marketplace.address, 10000)).wait()
         })
 
-        async function prepareBuyMetatx(minimalForwarder: MinimalForwarder, signKey: string, gas = '1000000') {
+        async function prepareBuyMetatx(minimalForwarder: MinimalForwarder, signerObj: Wallet, signKey: string, gas = '1000000') {
             const projectId = await createProject()
             const subscriptionSeconds = 100
 
-            // buyer is creating and signing transaction, forwarder is posting it and paying for gas
+            // signerObj is creating and signing transaction, forwarder is posting it and paying for gas
             const data = marketplace.interface.encodeFunctionData('buy', [projectId, subscriptionSeconds])
             const req = {
-                from: buyer.address,
+                from: signerObj.address,
                 to: marketplace.address,
                 value: '0',
                 gas,
-                nonce: (await minimalForwarder.getNonce(buyer.address)).toString(),
+                nonce: (await minimalForwarder.getNonce(signerObj.address)).toString(),
                 data
             }
             const d: TypedMessage<any> = {
@@ -422,7 +503,7 @@ describe("Marketplace", () => {
                 domain: {
                     name: 'MinimalForwarder',
                     version: '0.0.1',
-                    chainId: (await waffleProvider.getNetwork()).chainId,
+                    chainId: (await hardhatEthers.provider.getNetwork()).chainId,
                     verifyingContract: minimalForwarder.address,
                 },
                 primaryType: 'ForwardRequest',
@@ -443,16 +524,16 @@ describe("Marketplace", () => {
         })
 
         it('buy - positivetest', async (): Promise<void> => {
-            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder.connect(forwarder), buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder.connect(forwarder), signer, signerWallet.privateKey)
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
 
             await minimalForwarder.connect(forwarder).execute(req, sign)
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.true
         })
 
@@ -468,24 +549,23 @@ describe("Marketplace", () => {
                 .to.be.false
 
             // check that metatx works with new forwarder
-            const {req, sign, projectId} = await prepareBuyMetatx(wrongForwarder.connect(forwarder), buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(wrongForwarder.connect(forwarder), signer, signerWallet.privateKey)
             expect(await wrongForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 
             // check that the project doesn't have a valid subscription
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
 
             await wrongForwarder.connect(forwarder).execute(req, sign)
 
             // internal call will have failed => subscription was not extended
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
         })
 
         it('buy - negativetest - wrong signature', async (): Promise<void> => {
-            const wrongKey = other.privateKey // buyer.privateKey would be correct
-            const {req, sign} = await prepareBuyMetatx(minimalForwarder, wrongKey)
+            const {req, sign} = await prepareBuyMetatx(minimalForwarder, signer, wrongSignerWallet.privateKey)
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.false
             await expect(minimalForwarder.execute(req, sign))
@@ -493,15 +573,15 @@ describe("Marketplace", () => {
         })
 
         it('buy - negativetest - not enough gas in internal transaction call', async (): Promise<void> => {
-            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder, buyer.privateKey, '1000')
+            const {req, sign, projectId} = await prepareBuyMetatx(minimalForwarder, signer, signerWallet.privateKey, '1000')
             expect(await minimalForwarder.verify(req, sign))
                 .to.be.true
 
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
             await minimalForwarder.execute(req, sign)
             // internal call will have failed
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
         })
 
@@ -516,7 +596,8 @@ describe("Marketplace", () => {
                 .to.be.false
 
             // check that metatx does NOT works with old forwarder
-            const {req: reqOld, sign: signOld, projectId: projectIdOld}: any = await prepareBuyMetatx(minimalForwarder, buyer.privateKey)
+            const { req: reqOld, sign: signOld, projectId: projectIdOld }: any = 
+                await prepareBuyMetatx(minimalForwarder, signer, signerWallet.privateKey)
             expect(await projectRegistry.hasValidSubscription(projectIdOld, buyer.address))
                 .to.be.false
             expect(await minimalForwarder.verify(reqOld, signOld))
@@ -536,18 +617,96 @@ describe("Marketplace", () => {
                 .to.be.true
 
             // check that metatx works with new forwarder
-            const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, buyer.privateKey)
+            const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, signer, signerWallet.privateKey)
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.false
             await newForwarder.execute(req, sign)
-            expect(await projectRegistry.hasValidSubscription(projectId, buyer.address))
+            expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
                 .to.be.true
+        })
+
+        it('getPurchaseInfo - positivetest', async (): Promise<void> => {
+            const beneficiaryAddress: string = beneficiary.address
+            const pricingTokenAddress = token.address
+            const pricePerSecond = BigNumber.from(2)
+            const payment: any[] = [
+                [
+                    beneficiaryAddress,
+                    pricingTokenAddress,
+                    pricePerSecond
+                ]
+            ]
+            const subscriptionSeconds = 100
+            const price = pricePerSecond.mul(subscriptionSeconds)
+            const fee = BigNumber.from(0)
+            const streamsCount = BigNumber.from(0)
+            const purchaseId = BigNumber.from(1)
+            
+            const projectId = await createProject({ payment })
+            const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId)
+            
+            expect(purchaseInfo[0]).to.equal(beneficiaryAddress)
+            expect(purchaseInfo[1]).to.equal(pricingTokenAddress)
+            expect(purchaseInfo[2]).to.equal(price)
+            expect(purchaseInfo[3]).to.equal(fee)
+            expect(purchaseInfo[4]).to.equal(purchaseId)
+            expect(purchaseInfo[5]).to.equal(streamsCount)
         })
     })
 
     describe('Hyperlane - cross-chain messaging', () => {
+        if (process.env.REPORT_GAS) {
+            describe.only('GasReporter', () => {
+                before(async () => {
+                    // needed for error_notHyperlaneMailbox validation
+                    await marketplace.addMailbox(gasReporter.address)
+                    // needed for error_notRemoteMarketplace validation
+                    await marketplace.addRemoteMarketplace(chainId, gasReporter.address)
+                })
+                it('handle()', async () => {
+                    const subscriber = admin.address
+                    const subscriptionSeconds = 100
+                    const beneficiary = admin.address
+                    const price = 100
+                    const fee = 0
+    
+                    let prevGasUsed = 0
+                    log('%s streams:', streamIds.length)
+                    const projectId0 = await createProject()
+                    let tx = await(await gasReporter.handle(projectId0, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                    log('Gas used for handle function is %s wei (with overhead )', tx.gasUsed.toNumber())
+                    prevGasUsed = tx.gasUsed.toNumber()
+    
+                    for (let i = 0; i < 3; i++) {
+                        const s = await createStream(i.toString())
+                        streamIds.push(s)
+                        log('\n %s streams:', streamIds.length)
+                        const projectId = await createProject()
+                        tx = await(await gasReporter.handle(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
+                        const gasUsed = tx.gasUsed.toNumber()
+                        log('Gas used for handle function is %s wei (with overhead ), difference is %s', gasUsed, gasUsed - prevGasUsed)
+                        prevGasUsed = gasUsed
+                    }
+                })
+                it('getPurchaseInfo()', async () => {
+                    const subscriptionSeconds = 100
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getPurchaseInfo(projectId, subscriptionSeconds, purchaseId)
+                })
+        
+                it('getSubscriptionInfo()', async () => {
+                    const purchaseId = 1
+        
+                    const projectId = await createProject()
+                    await gasReporter.getSubscriptionInfo(projectId, buyer.address, purchaseId)
+                })
+            })
+        }
+
         it("should be able to send a message directly using the test recipient contract", async function () {
             const signer = (await hardhatEthers.getSigners())[0]
             const inbox = await new MockInbox__factory(signer).deploy()
@@ -564,47 +723,37 @@ describe("Marketplace", () => {
             expect(dataReceived).to.eql(hexlify(data))
         })
 
-        const originDomain = 1 // e.g. gnosis id - where RemoteMarketplace is deployed
-        const destinationDomain = 2 // e.g. polygon id - where MarketplaceV4 is deployed
-        let sender: RemoteMarketplace // e.g. gnosis - the cross-chain contract from where purchase was submitted
-        let receiver: MarketplaceV4 // e.g. polygon - the contract receiving the message (contract logic and storage are here)
-    
+        const originDomain = 1 // the domain id of the chain RemoteMarketplace is deployed on
+        const destinationDomain = 2 // the domain id of the chain ProjectRegistryV1 & MarketplaceV4 are deployed on
+        let sender: RemoteMarketplaceV1 // the contract the messages are sent from
+        let recipient: MarketplaceV4 // the contract the messages are sent to
+
         before(async () => {
-            receiver = marketplace
+            recipient = marketplace
         })
 
-        describe('RemoteMarketplace', () => {
+        describe('RemoteMarketplaceV1', () => {
             let inbox: any
             let outbox: any
-        
+
             before(async () => {
                 inbox = await new MockInbox__factory(admin).deploy()
                 await inbox.deployed()
                 outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
                 await outbox.deployed()
-                
-                const remoteMarketFactory = await getContractFactory("RemoteMarketplace")
-                sender = await remoteMarketFactory.deploy(destinationDomain, receiver.address, outbox.address) as RemoteMarketplace
-                await receiver.setCrossChainInbox(inbox.address)
-                await receiver.addCrossChainMarketplace(originDomain, sender.address)
+
+                const remoteMarketFactory = await getContractFactory("RemoteMarketplaceV1")
+                sender = await upgrades.deployProxy(remoteMarketFactory, [
+                    originDomain,
+                    interchainQueryRouter,
+                    interchainMailbox,
+                    interchainGasPaymaster
+                ]) as RemoteMarketplaceV1
+                await sender.addRecipient(destinationDomain, recipient.address)
+                await recipient.addRemoteMarketplace(originDomain, sender.address)
             })
     
-            it("buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {
-                const subscriptionSeconds = 100
-                const projectId = await createProject()
-                
-                const subscriptionBefore = await projectRegistry.getSubscription(projectId, other.address)
-                await expect(sender.connect(buyer).buyFor(projectId, subscriptionSeconds, other.address))
-                    .to.emit(sender, 'CrossChainPurchase')
-                    .withArgs(projectId, other.address, subscriptionSeconds)
-                await expect(inbox.processNextPendingMessage()) // mimics hyperlane inbox mail
-                    .to.emit(receiver, "ProjectPurchased")
-                    .withArgs(projectId, other.address, subscriptionSeconds, 0, 0)
-                const subscriptionAfter = await projectRegistry.getSubscription(projectId, other.address)
-    
-                expect(subscriptionBefore.isValid).to.be.false
-                expect(subscriptionAfter.isValid).to.be.true
-            })
+            it("TODO: buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {})
         })
     })
 })

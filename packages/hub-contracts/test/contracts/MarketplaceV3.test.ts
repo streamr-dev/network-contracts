@@ -1,23 +1,18 @@
-import { waffle, upgrades, ethers as hardhatEthers } from "hardhat"
-import { expect, use } from "chai"
-import { utils } from "ethers"
+import { upgrades, ethers as hardhatEthers } from "hardhat"
+import { expect } from "chai"
+import { utils, Wallet } from "ethers"
 
 import type { MarketplaceV3, DATAv2, ERC20Mintable, MockMarketplaceBeneficiary } from "../../typechain"
 
 import { ProductState } from "../../src/contracts/enums"
 
-const { provider: waffleProvider } = waffle
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
 
-use(waffle.solidity)
-
 describe("MarketplaceV3", () => {
-    const [
-        admin,
-        other,
-        beneficiary,
-    ] = waffleProvider.getWallets()
+    let admin: Wallet
+    let beneficiary: Wallet
+    let other: Wallet
 
     const productId = "test1"
     const productIdbytes = hexlify(zeroPad(toUtf8Bytes(productId), 32))
@@ -27,6 +22,8 @@ describe("MarketplaceV3", () => {
     let mockBeneficiary: MockMarketplaceBeneficiary
 
     before(async () => {
+        [admin, beneficiary, other] = await hardhatEthers.getSigners() as unknown as Wallet[]
+
         const tokenFactory = await getContractFactory("DATAv2", admin)
         token = await tokenFactory.deploy() as DATAv2
         await token.grantRole(id("MINTER_ROLE"), admin.address)
@@ -54,7 +51,8 @@ describe("MarketplaceV3", () => {
             const market = await deployMarketplace()
 
             // upgrade the marketplace to the new version
-            const marketNewFactory = await getContractFactory("Marketplace") // TODO: replace with the new marketplace contract
+            // TODO: replace MarketplaceV3 with the new marketplace contract if V3 gets an update, e.g. V3_1
+            const marketNewFactory = await getContractFactory("MarketplaceV3")
             const marketNew = await upgrades.upgradeProxy(market, marketNewFactory)
 
             expect(market.address)
