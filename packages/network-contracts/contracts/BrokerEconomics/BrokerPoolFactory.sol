@@ -98,14 +98,14 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      * @param policies smart contract addresses, must be in the trustedPolicies
      */
     function deployBrokerPool(
-        uint32 initialMinWeiInvestment,
+        uint32 initialMinimumDelegationWei,
         string calldata poolName,
         address[3] calldata policies,
         uint[8] calldata initParams
     ) public returns (address) {
         return _deployBrokerPool(
             _msgSender(),
-            initialMinWeiInvestment,
+            initialMinimumDelegationWei,
             poolName,
             policies,
             initParams
@@ -114,7 +114,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     function _deployBrokerPool(
         address poolOwner,
-        uint32 initialMinWeiInvestment,
+        uint32 initialMinimumDelegationWei,
         string calldata poolName,
         address[3] calldata policies,
         uint[8] calldata initParams
@@ -131,7 +131,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             streamrConstants,
             _msgSender(),
             poolName,
-            initialMinWeiInvestment
+            initialMinimumDelegationWei
         );
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);

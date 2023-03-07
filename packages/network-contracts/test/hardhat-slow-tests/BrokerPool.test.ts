@@ -48,8 +48,8 @@ describe("BrokerPool", (): void => {
         for (let i = 0; i < numberOfQueueSlots; i++) {
             await pool.connect(delegator).queueDataPayout(parseEther("1"))
         }
-        const investorQueuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
-        expect(investorQueuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
+        const queuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+        expect(queuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
 
         // await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")
         // doing it in one go with 1000 slots in the queue will fail, so do it in pieces
