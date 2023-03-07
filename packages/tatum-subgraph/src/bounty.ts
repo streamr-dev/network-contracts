@@ -5,7 +5,7 @@ import { StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: broker={} totalStake={} allocation={}', [event.params.broker.toHexString(),
-        event.params.totalWei.toString(), event.params.allocatedWei.toString()])
+        event.params.stakedWei.toString(), event.params.allocatedWei.toString()])
     let bountyAddress = event.address
     let brokerAddress = event.params.broker
 
@@ -18,7 +18,7 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake.broker = brokerAddress.toHexString()
     }
     stake.date = event.block.timestamp
-    stake.amount = event.params.totalWei
+    stake.amount = event.params.stakedWei
     stake.allocatedWei = event.params.allocatedWei
 
     // link to pool

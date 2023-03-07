@@ -1,4 +1,4 @@
-specVersion: 0.0.2
+specVersion: 0.0.4
 description: Subgraph definitions for tatum bounty contracts
 repository:
 schema:
@@ -14,14 +14,14 @@ dataSources:
       startBlock: 0
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/bountyFactory.ts
       entities:
         - Bounty
       abis:
         - name: BountyFactory
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounties/BountyFactory.sol/BountyFactory.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BountyFactory.sol/BountyFactory.json
       eventHandlers:
         - event: NewBounty(address)
           handler: handleBountyCreated
@@ -35,7 +35,7 @@ dataSources:
       startBlock: 0
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/poolFactory.ts
       entities:
@@ -43,7 +43,7 @@ dataSources:
         - PoolInvestment
       abis:
         - name: BrokerPoolFactory
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Delegation/BrokerPoolFactory.sol/BrokerPoolFactory.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPoolFactory.sol/BrokerPoolFactory.json
       eventHandlers:
         - event: NewBrokerPool(address)
           handler: handlePoolCreated
@@ -56,7 +56,7 @@ templates:
       abi: Bounty
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/bounty.ts
       entities:
@@ -65,7 +65,7 @@ templates:
         - BrokerPool
       abis:
         - name: Bounty
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounties/Bounty.sol/Bounty.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
@@ -86,7 +86,7 @@ templates:
       abi: BrokerPool
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/pool.ts
       entities:
@@ -94,7 +94,7 @@ templates:
         - PoolInvestment
       abis:
         - name: BrokerPool
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Delegation/BrokerPool.sol/BrokerPool.json
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPool.sol/BrokerPool.json
       eventHandlers:
           # - event: Staked(indexed address,uint256)
           #   handler: handleStakeUpdated
