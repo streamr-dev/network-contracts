@@ -9,7 +9,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873'
+      address: '0x1E8613C668D752C81EDE249Bfe347D14da238d0d'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -30,7 +30,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x1Cc93b7f91727e7c9bC86025C622A664e93DFb29'
+      address: '0x6d0676e83fcB02b12dd6413A7Bc6c4355c0BcE16'
       abi: BrokerPoolFactory
       startBlock: 0
     mapping:
@@ -40,7 +40,7 @@ dataSources:
       file: ./src/poolFactory.ts
       entities:
         - Pool
-        - PoolInvestment
+        - PoolDelegation
       abis:
         - name: BrokerPoolFactory
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPoolFactory.sol/BrokerPoolFactory.json
@@ -91,20 +91,10 @@ templates:
       file: ./src/pool.ts
       entities:
         - BrokerPool
-        - PoolInvestment
+        - PoolDelegation
       abis:
         - name: BrokerPool
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPool.sol/BrokerPool.json
       eventHandlers:
-          # - event: Staked(indexed address,uint256)
-          #   handler: handleStakeUpdated
-          # - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
-          #   handler: handleBountyUpdated
-          - event: InvestmentReceived(indexed address,uint256)
-            handler: handleInvestmentReceived
-    # event InvestmentReturned(address indexed investor, uint amountWei);
-    # event Staked(Bounty indexed bounty, uint amountWei);
-    # event Losses(Bounty indexed bounty, uint amountWei);
-    # event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
-    # event QueuedDataPayout(address user, uint amountDataWei);
-    # event UnqueuedDataPayout(address user, uint amountDataWei);
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegationReceived

@@ -8,7 +8,7 @@ export function handlePoolCreated(event: NewBrokerPool): void {
     log.info('handlePoolCreated: pooladdress={} blockNumber={}', [event.params.poolAddress.toHexString(), event.block.number.toString()])
     let pool = new BrokerPool(event.params.poolAddress.toHexString())
     pool.id = event.params.poolAddress.toHexString()
-    pool.investorCount = 0
+    pool.delegatorCount = 0
     pool.approximatePoolValue = BigInt.fromI32(0)
     pool.unallocatedWei = BigInt.fromI32(0)
     // pool.stakes = new Array<string>()

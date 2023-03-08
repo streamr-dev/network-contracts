@@ -1,24 +1,24 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { BrokerPool, PoolInvestment, Stake } from '../generated/schema'
-import { InvestmentReceived, Staked } from '../generated/templates/BrokerPool/BrokerPool'
+import { BrokerPool, PoolDelegation } from '../generated/schema'
+import { Delegated } from '../generated/templates/BrokerPool/BrokerPool'
 
-export function handleInvestmentReceived (event: InvestmentReceived): void {
-    log.info('handleInvestmentReceived: pooladdress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+export function handleDelegationReceived (event: Delegated): void {
+    log.info('handleDelegationReceived: pooladdress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     let pool = BrokerPool.load(event.address.toHexString())
-    pool!.investorCount = pool!.investorCount + 1
+    pool!.delegatorCount = pool!.delegatorCount + 1
     
     pool!.save()
 
-    let investment = PoolInvestment.load(event.params.investor.toHexString())
-    if (investment === null) {
-        investment = new PoolInvestment(event.params.investor.toHexString())
-        investment.pool = event.address.toHexString()
-        investment.id =  event.address.toHexString() + "-" + event.params.investor.toHexString()
-        investment.investor = event.params.investor.toHexString()
+    let delegation = PoolDelegation.load(event.params.delegator.toHexString())
+    if (delegation === null) {
+        delegation = new PoolDelegation(event.params.delegator.toHexString())
+        delegation.pool = event.address.toHexString()
+        delegation.id =  event.address.toHexString() + "-" + event.params.delegator.toHexString()
+        delegation.delegator = event.params.delegator.toHexString()
     }
-    investment.amount = event.params.amountWei
-    investment.save()
+    delegation.amount = event.params.amountWei
+    delegation.save()
 }
 
 // export function handleStakeUpdated (event: Staked): void {

@@ -21,15 +21,15 @@ type Stake @entity {
 type BrokerPool @entity {
   id: ID! # pool address
   stakes: [Stake!]! @derivedFrom(field: "pool")
-  investors: [PoolInvestment!]! @derivedFrom(field: "pool")
-  investorCount: Int
+  delegators: [PoolDelegation!]! @derivedFrom(field: "pool")
+  delegatorCount: Int
   approximatePoolValue: BigInt!
   unallocatedWei: BigInt!
 }
 
-type PoolInvestment @entity {
+type PoolDelegation @entity {
   id: ID! # 0xpoolAddress-0xbrokerAddress
-  investor: String!
+  delegator: String!
   amount: BigInt!
   pool: BrokerPool
 }
