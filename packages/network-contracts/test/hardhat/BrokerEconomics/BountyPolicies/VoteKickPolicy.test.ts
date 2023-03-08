@@ -245,6 +245,39 @@ describe("VoteKickPolicy", (): void => {
             expect (await token.balanceOf(voterBrokers[3].address)).to.equal(parseEther("2"))
             expect (await token.balanceOf(voterBrokers[4].address)).to.equal(parseEther("2"))
         })
+
+        it("pays reviewers who correctly voted NO_KICK even if flagger forceUnstaked", async function(): Promise<void> {
+            const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "kicked-flagger")
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(bounty.address, target.address)).wait()
+
+            await advanceToTimestamp(start + 10, `${addr(flagger)} forceUnstakes`)
+            const flaggerBalanceBefore = await token.balanceOf(flagger.address)
+            await expect(flagger.unstake(bounty.address, "1")).to.be.revertedWith("error_activeFlag")
+            await (await flagger.forceUnstake(bounty.address, "1")).wait()
+            const flaggerBalanceAfter = await token.balanceOf(flagger.address)
+
+            await advanceToTimestamp(start + VOTE_START + 50, `Voting to not kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
+            await (await voters[1].voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            await (await voters[3].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[4].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK))
+                .to.emit(bounty, "SponsorshipReceived").withArgs(bounty.address, parseEther("7")) // 3 goes to reviewers
+
+            expect(await bounty.getFlag(target.address)).to.equal("0") // flag is resolved
+
+            expect (await token.balanceOf(voterBrokers[0].address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(voterBrokers[1].address)).to.equal(parseEther("0"))
+            expect (await token.balanceOf(voterBrokers[2].address)).to.equal(parseEther("0"))
+            expect (await token.balanceOf(voterBrokers[3].address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(voterBrokers[4].address)).to.equal(parseEther("1"))
+
+            expect(flaggerBalanceBefore).to.equal("0")
+            expect(flaggerBalanceAfter).to.equal(parseEther("990")) // flag-stake was forfeited
+        })
     })
 
     describe("Canceling a flag", function(): void {
