@@ -108,18 +108,6 @@ describe('ERC721JoinPolicy', (): void => {
         await authorizeDelegatedWallet(wallets[1], signerIdentity, delegatedAccessRegistry)
     })
 
-    it('should fail to complete depositStake, reason: stakingDisabled', async () => {
-        await expect(contract.connect(wallets[0]).depositStake(TokenIds.A, 0)).to.be.revertedWith(
-            'stakingDisabled'
-        )
-    })
-
-    it('should fail to complete withdrawStake, reason: stakingDisabled', async () => {
-        await expect(contract.connect(wallets[0]).withdrawStake(TokenIds.B, 0)).to.be.revertedWith(
-            'stakingDisabled'
-        )
-    })
-
     it('should fail to grant permissions to an unauthorized user by DelegatedAccessRegistry', async () => {
         await expect(contract.requestDelegatedJoin(TokenIds.A)).to.be.revertedWith(
             'error_notAuthorized'
@@ -282,12 +270,12 @@ describe('ERC721JoinPolicy', (): void => {
                 .authorize(delegatedWallet.address, signature)
         })
 
-        it('should exercise the depositStake method, happy-path', async () => {
+        it('should exercise the requestDelegatedJoin with stakingEnabled method, happy-path', async () => {
             await token.mint(mainWallet.address, TokenIds.B)
             const balance = await token.balanceOf(mainWallet.address)
             expect(balance).to.equal(BigNumber.from(1))
             await token.connect(mainWallet).approve(stakedContract.address, TokenIds.B)
-            await stakedContract.connect(mainWallet).depositStake(TokenIds.B, 0)
+            await stakedContract.connect(mainWallet).requestDelegatedJoin(TokenIds.B)
 
             const afterBalance = await token.balanceOf(mainWallet.address)
             expect(afterBalance).to.equal(0)
@@ -348,32 +336,32 @@ describe('ERC721JoinPolicy', (): void => {
             expect(stakedTokenIds[0]).to.equal(TokenIds.B)
         })
 
-        it('should fail depositStake, reason: not enough balance', async () => {
+        it('should fail requestDelegatedJoin with stakingEnabled, reason: not enough balance', async () => {
             await expect(
-                stakedContract.connect(mainWallet).depositStake(TokenIds.B, 100)
+                stakedContract.connect(mainWallet).requestDelegatedJoin(TokenIds.B)
             ).to.be.revertedWith('error_notEnoughTokens')
         })
 
-        it('should fail to complete depositStake, reason: unauthorized', async () => {
+        it('should fail to complete requestDelegatedJoin with stakingEnabled, reason: unauthorized', async () => {
             await expect(
-                stakedContract.connect(wallets[5]).depositStake(TokenIds.B, 100)
+                stakedContract.connect(wallets[5]).requestDelegatedJoin(TokenIds.B)
             ).to.be.revertedWith('error_notAuthorized')
         })
 
-        it('should fail to complete withdrawStake, reason: unauthorized', async () => {
+        it('should fail to complete requestDelegatedLeave with stakingEnabled, reason: unauthorized', async () => {
             await expect(
-                stakedContract.connect(wallets[5]).withdrawStake(TokenIds.B, 100)
+                stakedContract.connect(wallets[5]).requestDelegatedLeave(TokenIds.B)
             ).to.be.revertedWith('error_notAuthorized')
         })
 
-        it('should exercise the withdrawStake, happy-path', async () => {
+        it('should exercise the requestDelegatedLeave with stakingEnabled, happy-path', async () => {
             const initialBalance = await token.balanceOf(mainWallet.address)
             expect(initialBalance).to.equal(0)
 
             const contractBalance = await token.balanceOf(stakedContract.address)
             expect(contractBalance).to.equal(1)
 
-            await stakedContract.connect(mainWallet).withdrawStake(TokenIds.B, contractBalance)
+            await stakedContract.connect(mainWallet).requestDelegatedLeave(TokenIds.B)
 
             const afterBalance = await token.balanceOf(mainWallet.address)
             expect(afterBalance).to.equal(1)
@@ -389,9 +377,9 @@ describe('ERC721JoinPolicy', (): void => {
             expect(stakedTokenIds.length).to.equal(0)
         })
 
-        it('should fail to call withdrawStake, reason: insufficient balance', async () => {
+        it('should fail to call requestDelegatedLeave with stakingEnabled, reason: insufficient balance', async () => {
             await expect(
-                stakedContract.connect(mainWallet).withdrawStake(TokenIds.B, 0)
+                stakedContract.connect(mainWallet).requestDelegatedLeave(TokenIds.B)
             ).to.be.revertedWith('ERC721: transfer caller is not owner nor approved')
         })
     })

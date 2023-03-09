@@ -26,6 +26,9 @@ abstract contract CoinJoinPolicy is BaseJoinPolicy {
     }
 
     function requestJoin() public canJoin() {
+        if (stakingEnabled){
+            _depositStake(minRequiredBalance);
+        }
         accept(msg.sender);
     }
 
@@ -34,17 +37,38 @@ abstract contract CoinJoinPolicy is BaseJoinPolicy {
         isUserAuthorized() 
         canJoin() 
     {
+        if (stakingEnabled){
+            _depositStake(minRequiredBalance);
+        }
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
 
-    function depositStake(uint256 amount)
-    virtual 
-    public;
+    function requestLeave() public {
+        if (stakingEnabled){
+            _withdrawStake(minRequiredBalance);
+        }
+        revoke(msg.sender);
+    }
 
-    function withdrawStake(uint256 amount) 
+    function requestDelegatedLeave() 
+        public
+        isUserAuthorized() 
+    {
+        if (stakingEnabled){
+            _withdrawStake(minRequiredBalance);
+        }
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+        revoke(msg.sender, delegatedWallet);
+    }
+
+    function _depositStake(uint256 amount)
     virtual 
-    public;
+    internal;
+
+    function _withdrawStake(uint256 amount) 
+    virtual 
+    internal;
 
     modifier canJoin() virtual;
 

@@ -37,12 +37,12 @@ contract ERC1155JoinPolicy is NFTJoinPolicy, ERC1155Holder {
         _;
     }
 
-    function depositStake(
+    function _depositStake(
         uint256 tokenId,
         uint256 amount
     )
         override
-        public 
+        internal 
         isStakingEnabled()
         isTokenIdIncluded(tokenId)
         isUserAuthorized()
@@ -51,16 +51,14 @@ contract ERC1155JoinPolicy is NFTJoinPolicy, ERC1155Holder {
         token.safeTransferFrom(msg.sender, address(this), tokenId, amount, "");
         balances[msg.sender][tokenId] = balances[msg.sender][tokenId] + amount;
         stakedTokenIds[msg.sender].push(tokenId);
-        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-        accept(msg.sender, delegatedWallet);
     }
 
-    function withdrawStake(
+    function _withdrawStake(
         uint256 tokenId,
         uint256 amount
     )
         override
-        public 
+        internal 
         isStakingEnabled()
         isTokenIdIncluded(tokenId)
         isUserAuthorized() 
@@ -75,8 +73,6 @@ contract ERC1155JoinPolicy is NFTJoinPolicy, ERC1155Holder {
                     break;
                 }
             }
-            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-            revoke(msg.sender, delegatedWallet);
         }
     }
 }

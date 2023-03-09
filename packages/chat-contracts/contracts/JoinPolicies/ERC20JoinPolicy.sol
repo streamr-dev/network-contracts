@@ -31,35 +31,29 @@ contract ERC20JoinPolicy is CoinJoinPolicy {
         _;
     }
 
-    function depositStake(
+    function _depositStake(
         uint256 amount
     ) 
         override
-        public 
+        internal 
         isStakingEnabled()
         isUserAuthorized() 
         canJoin() 
     {
         token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender] = balances[msg.sender] + amount;
-        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-        accept(msg.sender, delegatedWallet);
     }
 
-    function withdrawStake(
+    function _withdrawStake(
         uint256 amount
     ) 
         override
-        public 
+        internal 
         isStakingEnabled()
         isUserAuthorized() 
     {
         token.transfer(msg.sender, amount);
         balances[msg.sender] = balances[msg.sender] - amount;
-        if (balances[msg.sender] < minRequiredBalance) {
-            address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-            revoke(msg.sender, delegatedWallet);
-        }
     }
 
 }

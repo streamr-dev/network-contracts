@@ -34,12 +34,12 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
         _;
     }
 
-    function depositStake(
+    function _depositStake(
         uint256 tokenId,
         uint256 /*amount*/
     )
         override
-        public 
+        internal
         isStakingEnabled()
         isTokenIdIncluded(tokenId)
         isUserAuthorized()
@@ -48,16 +48,14 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
         token.safeTransferFrom(msg.sender, address(this), tokenId);
         balances[msg.sender][tokenId] = 1;
         stakedTokenIds[msg.sender].push(tokenId);
-        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-        accept(msg.sender, delegatedWallet);
     }
 
-    function withdrawStake(
+    function _withdrawStake(
         uint256 tokenId,
         uint256 /*amount*/
     )
         override
-        public 
+        internal
         isStakingEnabled()
         isTokenIdIncluded(tokenId)
         isUserAuthorized() 
@@ -71,7 +69,5 @@ contract ERC721JoinPolicy is NFTJoinPolicy, ERC721Holder {
                 break;
             }
         }
-        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-        revoke(msg.sender, delegatedWallet);
     }
 }

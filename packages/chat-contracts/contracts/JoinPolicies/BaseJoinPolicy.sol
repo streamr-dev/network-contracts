@@ -30,7 +30,6 @@ abstract contract BaseJoinPolicy {
         string memory streamId_,
         StreamRegistryV3.PermissionType[] memory permissions_,
         bool stakingEnabled_
-
     ) {
         streamRegistry = StreamRegistryV3(streamRegistryAddress);
         delegatedAccessRegistry = DelegatedAccessRegistry(delegatedAccessRegistryAddress);
@@ -91,18 +90,4 @@ abstract contract BaseJoinPolicy {
         _revoke(mainWallet);
         emit Revoked(mainWallet, address(0x0));
     }
-
-    function requestLeave() public {
-        revoke(msg.sender);
-    }
-
-    
-    function requestDelegatedLeave() 
-        public
-        isUserAuthorized() 
-    {
-        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
-        revoke(msg.sender, delegatedWallet);
-    }
-
 }

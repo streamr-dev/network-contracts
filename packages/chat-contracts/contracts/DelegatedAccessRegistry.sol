@@ -17,11 +17,6 @@ contract DelegatedAccessRegistry is Ownable {
 
     // mainWallet => isKnown 
     mapping(address=>bool) public mainWallets;
-
-    /*
-    // wallet => joinedPolicyAddresses => isJoined
-    mapping(address => mapping(address => bool)) public joinedPolicies;
-    */
     
     // wallet => joinedPolicyAddresses
     mapping(address => address[]) public joinedPolicies;

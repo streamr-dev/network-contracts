@@ -31,6 +31,9 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
     }
 
     function requestJoin(uint256 tokenId) public canJoin(tokenId) {
+        if (stakingEnabled) {
+            _depositStake(tokenId, minRequiredBalance);
+        }
         accept(msg.sender);
     }
     
@@ -39,17 +42,38 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
         isUserAuthorized() 
         canJoin(tokenId) 
     {
+        if (stakingEnabled) {
+            _depositStake(tokenId, minRequiredBalance);
+        }
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);
     }
 
-    function depositStake(uint256 tokenId, uint256 amount)
-    virtual 
-    public;
+    function requestLeave(uint256 tokenId) public {
+        if (stakingEnabled){
+            _withdrawStake(tokenId, minRequiredBalance);
+        }
+        revoke(msg.sender);
+    }
 
-    function withdrawStake(uint256 tokenId, uint256 amount) 
+    function requestDelegatedLeave(uint256 tokenId) 
+        public
+        isUserAuthorized() 
+    {
+        if (stakingEnabled){
+            _withdrawStake(tokenId, minRequiredBalance);
+        }
+        address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
+        revoke(msg.sender, delegatedWallet);
+    }
+
+    function _depositStake(uint256 tokenId, uint256 amount)
     virtual 
-    public;
+    internal;
+
+    function _withdrawStake(uint256 tokenId, uint256 amount) 
+    virtual 
+    internal;
 
     function getStakedBalance(address owner, uint256 tokenId) public view isStakingEnabled() returns (uint256) {
         return balances[owner][tokenId];

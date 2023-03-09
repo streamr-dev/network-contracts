@@ -9,7 +9,7 @@ import "./JoinPolicies/ERC1155JoinPolicy.sol";
 contract JoinPolicyRegistry {
     // policyId => JoinPolicy
     mapping(bytes32 => address) public registeredPoliciesById;
-
+    
     // tokenAddress => mapping(tokenId => mapping(streamId => mapping(isStakingEnabled => JoinPolicy)))
     mapping(address => mapping(uint256 => mapping(string => mapping(bool => address)))) public policies;
 
