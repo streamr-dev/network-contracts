@@ -247,7 +247,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("pays reviewers who correctly voted NO_KICK even if flagger forceUnstaked", async function(): Promise<void> {
-            const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "kicked-flagger")
+            const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "flgr-forceunstake")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
