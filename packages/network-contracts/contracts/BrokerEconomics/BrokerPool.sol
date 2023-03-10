@@ -10,14 +10,19 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./ISlashListener.sol";
-import "./Bounty.sol";
-import "./StreamrConstants.sol";
+import "./IBroker.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
 import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
 
+import "./StreamrConstants.sol";
+import "./Bounty.sol";
+
 // import "hardhat/console.sol";
+
+interface IFactory {
+    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
+}
 
 /**
  * BrokerPool receives the delegators' tokens and stakes them to Bounties of the streams that the broker services
@@ -25,7 +30,7 @@ import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
  *
  * The whole token balance of the pool IS THE SAME AS the "free funds", so there's no need to track the unallocated tokens separately
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, ISlashListener { //}, ERC2771Context {
+contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IBroker { //}, ERC2771Context {
 
     event Delegated(address indexed delegator, uint amountWei);
     event Undelegated(address indexed delegator, uint amountWei);
@@ -36,6 +41,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event QueueUpdated(address user, uint amountPoolTokenWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant NODE_ROLE = keccak256("NODE_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     uint public minimumDelegationWei;
@@ -80,6 +86,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _;
     }
 
+    modifier onlyWhenStakedTo(Bounty bounty) {
+        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
@@ -121,6 +132,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
     }
 
+    // TODO: rename to owner
     function broker() external view returns (address) {
         return globalData().broker;
     }
@@ -139,22 +151,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
-    }
-
-    function onSlash(bool kicked) external {
-        Bounty bounty = Bounty(msg.sender);
-        uint index = indexOfBounties[bounty];
-        require(index > 0, "error_onlyBounty");
-        // console.log("## onSlash");
-        if (kicked) {
-            // console.log("onSlash kicked");
-            bounties[index-1] = bounties[bounties.length-1];
-            indexOfBounties[bounties[index-1]] = index;
-            bounties.pop();
-            delete indexOfBounties[bounty];
-            emit Unstaked(bounty, 0, 0);
-        }
-        updateApproximatePoolvalueOfBounty(bounty);
     }
 
     /////////////////////////////////////////
@@ -236,7 +232,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * Unstake from a bounty
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
      **/
-    function unstake(Bounty bounty, uint maxQueuePayoutIterations) public onlyBroker {
+    function unstake(Bounty bounty, uint maxQueuePayoutIterations) public onlyBroker onlyWhenStakedTo(bounty) {
         uint amountStakedBeforeWei = bounty.getMyStake();
         uint balanceBeforeWei = globalData().token.balanceOf(address(this));
         bounty.unstake();
@@ -251,7 +247,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * @param bounty the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out
      */
-    function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external {
+    function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external onlyWhenStakedTo(bounty) {
         // onlyBroker check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
             require(msg.sender == globalData().broker, "error_onlyBroker");
@@ -287,7 +283,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             emit Unstaked(bounty, amountStakedBeforeWei, gainsWei);
         }
 
-        // remove from array: replace with the last element
+        _removeBountyFromArray(bounty);
+    }
+
+    // remove from array: replace with the last element
+    function _removeBountyFromArray(Bounty bounty) internal {
         uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
         Bounty lastBounty = bounties[bounties.length - 1];
         bounties[index] = lastBounty;
@@ -300,7 +300,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * Take out some of the stake from a bounty without completely unstaking
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
-    function reduceStakeTo(Bounty bounty, uint targetStakeWei) external onlyBroker {
+    function reduceStakeTo(Bounty bounty, uint targetStakeWei) external onlyBroker onlyWhenStakedTo(bounty) {
         // console.log("## reduceStake amountWei", amountWei);
         _reduceStakeWithoutQueue(bounty, targetStakeWei);
         payOutQueueWithFreeFunds(0);
@@ -315,7 +315,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         updateApproximatePoolvalueOfBounty(bounty);
     }
 
-    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
+    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker onlyWhenStakedTo(bounty) {
         // console.log("## withdrawWinningsFromBounty");
         updateApproximatePoolvalueOfBounty(bounty);
         _withdrawWinningsFromBountyWithoutQueue(bounty);
@@ -337,12 +337,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         updateApproximatePoolvalueOfBounty(bounty);
     }
 
-    function flag(Bounty bounty, address targetBroker) external onlyBroker {
+    function flag(Bounty bounty, address targetBroker) external onlyBroker onlyWhenStakedTo(bounty) {
         bounty.flag(targetBroker);
-    }
-
-    function cancelFlag(Bounty bounty, address targetBroker) external onlyBroker {
-        bounty.cancelFlag(targetBroker);
     }
 
     function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
@@ -443,6 +439,24 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         queueLength++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
+    }
+
+    /////////////////////////////////////////
+    // BOUNTY CALLBACKS
+    /////////////////////////////////////////
+
+    function onSlash() external {
+        Bounty bounty = Bounty(msg.sender);
+        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
+        updateApproximatePoolvalueOfBounty(bounty);
+    }
+
+    function onKick() external {
+        Bounty bounty = Bounty(msg.sender);
+        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
+        _removeBountyFromArray(bounty);
+        updateApproximatePoolvalueOfBounty(bounty);
+        emit Unstaked(bounty, 0, 0);
     }
 
     ////////////////////////////////////////

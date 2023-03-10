@@ -9,23 +9,33 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
+import "./IBroker.sol";
 import "./BountyPolicies/IJoinPolicy.sol";
 import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
-import "./ISlashListener.sol";
 import "./StreamrConstants.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
 
-interface IFactory {
-    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
-}
-
 /**
- * Bounty ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
- * Those tokens are the *Bounty* that the *sponsor* puts on servicing the stream
+ * `Bounty` ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
+ * Those tokens are the *bounty* that the *sponsor* puts on servicing the stream
+ * *Brokers* that have `stake`d on the Bounty and receive *earnings* specified by the `IAllocationPolicy`
+ * Brokers can also `unstake` and stop earning, signalling to stop servicing the stream.
+ *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
+ *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
+ * The tokens held by `Bounty` are tracked in several accounts:
+ * - totalStakedWei: total amount of tokens staked by all brokers
+ *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
+ * - unallocatedFunds: part of the sponsorship that hasn't been paid out yet
+ *  -> decides the `solventUntil` timestamp: more unallocated funds left means the `Bounty` is solvent for a longer time
+ * - committedFundsWei: forfeited stakes that were committed to a flag by a past broker who `forceUnstake`d (or was kicked)
+ *  -> should be zero when there are no active flags
+ *
+ * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
+ *  either via _stake/_slash (to/from stake) or _addSponsorship (to unallocatedFunds)
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
@@ -63,8 +73,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint32 brokerCount;
         uint32 minBrokerCount;
         uint32 minHorizonSeconds;
-        uint unallocatedFunds;
         uint totalStakedWei;
+        uint unallocatedFunds;
     }
 
     function globalData() internal pure returns(GlobalStorage storage data) {
@@ -181,26 +191,21 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Get both stake and allocations out, throw if that's not possible */
     function unstake() public {
-        require(getMyStake() > 0, "error_notStaked"); // TODO: add this to other methods too? Turn into modifier?
         address broker = _msgSender();
         require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
-        uint penaltyWei = getLeavePenalty(broker);
-        if (penaltyWei > 0) {
-            _slash(broker, penaltyWei, false);
-            _addSponsorship(address(this), penaltyWei);
-        }
-        _removeBroker(broker);
+        forceUnstake();
     }
 
     /** Get both stake and allocations out, forfeitting all stake that is committed to flagging */
     function forceUnstake() public {
+        require(getMyStake() > 0, "error_notStaked"); // TODO: add this to other methods too? Turn into modifier?
         address broker = _msgSender();
-        if (globalData().committedStakeWei[broker] > 0) {
-            _slash(broker, globalData().committedStakeWei[broker], false);
-            globalData().committedFundsWei += globalData().committedStakeWei[broker];
-            globalData().committedStakeWei[broker] = 0;
+        uint penaltyWei = getLeavePenalty(broker);
+        if (penaltyWei > 0) {
+            _slash(broker, penaltyWei);
+            _addSponsorship(address(this), penaltyWei);
         }
-        unstake();
+        _removeBroker(broker);
     }
 
     /**
@@ -236,14 +241,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Slashing moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
-    function _slash(address broker, uint amountWei, bool alsoKick) internal {
+    function _slash(address broker, uint amountWei) internal {
         _reduceStakeBy(broker, amountWei);
-        if (alsoKick) {
-            _removeBroker(broker);
-            emit BrokerKicked(broker, amountWei);
-        }
         if (broker.code.length > 0) {
-            try ISlashListener(broker).onSlash(alsoKick) {} catch {}
+            try IBroker(broker).onSlash() {} catch {}
+        }
+    }
+
+    // TODO: separate slashing and kicking such that BrokerKicked only emits address and BrokerSlashed or similar is emitted from _slash
+    function _kick(address broker, uint slashingWei) internal {
+        _slash(broker, slashingWei);
+        _removeBroker(broker);
+        emit BrokerKicked(broker, slashingWei);
+        if (broker.code.length > 0) {
+            try IBroker(broker).onKick() {} catch {}
         }
     }
 
@@ -262,28 +273,34 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /**
      * Broker stops servicing the stream and withdraws their stake + earnings.
-     * If number of brokers falls below minBrokerCount, the bounty will no longer be "running" and the stream will be closed
+     * If number of brokers falls below minBrokerCount, the bounty will no longer be "running" and the stream will be closed.
+     * If broker had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
      */
     function _removeBroker(address broker) internal {
         GlobalStorage storage s = globalData();
-        uint stakedWei = s.stakedWei[broker];
-        require(stakedWei > 0, "error_brokerNotStaked");
+        require(s.stakedWei[broker] > 0, "error_brokerNotStaked");
         // console.log("leaving:", broker);
+
+        if (globalData().committedStakeWei[broker] > 0) {
+            _slash(broker, globalData().committedStakeWei[broker]);
+            globalData().committedFundsWei += globalData().committedStakeWei[broker];
+            globalData().committedStakeWei[broker] = 0;
+        }
 
         // send out both allocations and stake
         _withdraw(broker);
-        require(token.transferAndCall(broker, stakedWei, "stake"), "error_transfer");
-        // console.log("removeBroker stake ->", broker, stakedWei);
+        uint paidOutStakeWei = s.stakedWei[broker];
+        require(token.transferAndCall(broker, paidOutStakeWei, "stake"), "error_transfer");
 
         s.brokerCount -= 1;
-        s.totalStakedWei -= stakedWei;
+        s.totalStakedWei -= paidOutStakeWei;
         delete s.stakedWei[broker];
         delete s.joinTimeOfBroker[broker];
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
         emit StakeUpdate(broker, 0, 0); // stake and allocation must be zero when the broker is gone
-        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
-        emit BrokerLeft(broker, stakedWei);
+        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
+        emit BrokerLeft(broker, paidOutStakeWei);
     }
 
     /** Get allocations out, leave stake in */
@@ -333,18 +350,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
 
-    /** Flagger can cancel the flag to avoid losing flagStake, if the flagged broker resumes good work */
-    function cancelFlag(address target) external {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onCancelFlag.selector, target), "error_kickPolicyFailed");
-    }
-
     /** Peer reviewers vote on the flag */
     function voteOnFlag(address target, bytes32 voteData) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData), "error_kickPolicyFailed");
     }
 
+    /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */
     function getFlag(address target) external view returns (uint flagData) {
         require(address(kickPolicy) != address(0), "error_notSupported");
         return moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");

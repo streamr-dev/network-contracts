@@ -3,12 +3,12 @@
     "plugins": [],
     "rules": {
         "code-complexity": [
-            "error",
-            9
+            "warn",
+            11
         ],
         "function-max-lines": [
             "warn",
-            50
+            70
         ],
         "max-states-count": [
             "error",

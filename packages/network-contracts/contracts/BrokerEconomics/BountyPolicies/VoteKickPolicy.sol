@@ -11,12 +11,13 @@ import "../BrokerPool.sol";
 
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // TODO: move to StreamrConstants?
-    uint public constant FLAG_STAKE_WEI = 10 ether;
     uint public constant REVIEWER_COUNT = 5;
-    uint public constant REVIEW_PERIOD_SECONDS = 1 days;
-    uint public constant VOTING_PERIOD_SECONDS = 1 hours;
     uint public constant REVIEWER_REWARD_WEI = 1 ether;
     uint public constant FLAGGER_REWARD_WEI = 1 ether;
+    uint public constant FLAG_STAKE_WEI = 10 ether; // must be >= REVIEWER_COUNT * REVIEWER_REWARD_WEI
+
+    uint public constant REVIEW_PERIOD_SECONDS = 1 days;
+    uint public constant VOTING_PERIOD_SECONDS = 1 hours;
     uint public constant PROTECTION_SECONDS = 1 hours; // can't be flagged again right after a no-kick result
 
     mapping (address => address) public flaggerAddress;
@@ -50,7 +51,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     /**
      * Voting period starts after the review period ends
-     * During review period, the target still gets a chance to resume working; and flagger gets a chance to cancel the flag
+     * During review period, the target still gets a chance to resume working, so it's a "grace period" for a suspected freerider
      **/
     function canVote(address target) internal view returns (bool) {
         // false if flagTimestamp[broker] == 0
@@ -112,8 +113,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool pool = factory.deployedBrokerPools(index);
             address poolAddress = address(pool);
-            if (poolAddress == _msgSender() || poolAddress == target
-                || reviewerState[target][poolAddress] != Reviewer.NOT_SELECTED) {
+            if (poolAddress == _msgSender() || poolAddress == target || reviewerState[target][poolAddress] != Reviewer.NOT_SELECTED) {
                 // console.log(index, "skipping", poolAddress);
                 continue;
             }
@@ -187,23 +187,42 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     function _endVote(address target) internal {
         address flagger = flaggerAddress[target];
-        bool flaggerWasKicked = globalData().stakedWei[flagger] == 0;
+        bool flaggerIsGone = globalData().stakedWei[flagger] == 0;
+        bool targetIsGone = globalData().stakedWei[target] == 0;
         uint reviewerCount = reviewers[target].length;
+
+        // release stake commitments before vote resolution so that slashings and kickings during resolution aren't affected
+        // if either the flagger or the target has forceUnstaked or been kicked, the committed stake was moved to committedFundsWei
+        if (flaggerIsGone) {
+            globalData().committedFundsWei -= FLAG_STAKE_WEI;
+        } else {
+            globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
+        }
+        if (targetIsGone) {
+            globalData().committedFundsWei -= targetStakeAtRiskWei[target];
+        } else {
+            globalData().committedStakeWei[target] -= targetStakeAtRiskWei[target];
+        }
+
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
-            _slash(target, slashingWei, true); // true = kick
+            // if targetIsGone: the tokens are still in Bounty, accounted in committedFundsWei (which will be subtracted in cleanup, so no need to _slash)
+            if (!targetIsGone) {
+                _kick(target, slashingWei);
+            }
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
-            if (!flaggerWasKicked) {
+            if (!flaggerIsGone) {
                 token.transfer(flagger, FLAGGER_REWARD_WEI);
                 slashingWei -= FLAGGER_REWARD_WEI;
             }
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
+                delete reviewerState[target][reviewer]; // clean up
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
         } else {
@@ -213,66 +232,19 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
                     rewardsWei += REVIEWER_REWARD_WEI;
                 }
+                delete reviewerState[target][reviewer]; // clean up
             }
-            if (flaggerWasKicked) {
+            if (flaggerIsGone) {
                 uint leftoverWei = FLAG_STAKE_WEI - rewardsWei;
-                _addSponsorship(address(this), leftoverWei); // flagger had been kicked, so the remaining flagstake is added to sponsorship
+                _addSponsorship(address(this), leftoverWei); // flagger forfeited its flagstake, so the leftovers go to sponsorship
             } else {
-                _slash(flagger, rewardsWei, false); // just slash enough to cover the rewards, the rest will be uncommitted = released
+                _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be uncommitted = released
             }
         }
-        _cleanup(target); // TODO: if cancelFlag is removed, inline the _cleanup and esp. the delete reviewerState loop
-    }
 
-    /* solhint-enable reentrancy */
-
-    /**
-     * Cancel the flag before voting starts => every reviewer gets paid
-     * If a reviewer was kicked, we assume his flags may have been bad, too => can be cancelled by anyone
-     **/
-    function onCancelFlag(address target) external {
-        address flagger = flaggerAddress[target];
-        bool flaggerWasKicked = globalData().stakedWei[flagger] == 0;
-        require(!canVote(target), "error_votingStarted");
-        require(flagger == _msgSender() || flaggerWasKicked, "error_notFlagger");
-        // TODO: protection after cancel can be abused to shield freeriders, because ANYONE in bounty can flag then cancel
-        protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS; // solhint-disable-line not-rely-on-time
-        uint reviewerCount = reviewers[target].length;
-        uint rewardsWei = reviewerCount * REVIEWER_REWARD_WEI;
-        if (flaggerWasKicked) {
-            uint leftoverWei = FLAG_STAKE_WEI - rewardsWei;
-            _addSponsorship(address(this), leftoverWei); // flagger had been kicked, so the remaining flagstake is added to sponsorship
-        } else {
-            _slash(flagger, rewardsWei, false); // just slash enough to cover the rewards, the rest will be uncommitted = released
-        }
-        for (uint i = 0; i < reviewerCount; i++) {
-            address reviewer = reviewers[target][i];
-            token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
-        }
-        _cleanup(target);
-    }
-
-    // TODO: if cancelFlag is removed, inline the _cleanup and esp. the delete reviewerState loop
-    /** Remove stake commitments and clear flag data */
-    function _cleanup(address target) internal {
-        // flagger might already have been kicked
-        address flagger = flaggerAddress[target];
-        if (globalData().committedStakeWei[flagger] >= FLAG_STAKE_WEI) {
-            globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
-        } else {
-            // flagger was kicked during the flag
-            globalData().committedFundsWei -= FLAG_STAKE_WEI;
-        }
-        globalData().committedStakeWei[target] -= targetStakeAtRiskWei[target];
-
-        uint reviewerCount = reviewers[target].length;
-        for (uint i = 0; i < reviewerCount; i++) {
-            address reviewer = reviewers[target][i];
-            delete reviewerState[target][reviewer];
-        }
         delete reviewers[target];
         delete flaggerAddress[target];
         delete flagTimestamp[target];
@@ -280,4 +252,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         delete votesForKick[target];
         delete votesAgainstKick[target];
     }
+
+    /* solhint-enable reentrancy */
 }
