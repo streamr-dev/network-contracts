@@ -14,11 +14,13 @@ const config = Chains.load()["dev1"]
 const CHAINURL = config.rpcEndpoints[0].url
 const chainProvider = new JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
+localConfig.pools = []
 let deploymentOwner: Wallet
 let investor: Wallet
 let poolFactory: BrokerPoolFactory
 let pool: BrokerPool
 let token: LinkToken
+let pools: BrokerPool[] = []
 
 const connectToAllContracts = async () => {
     investor = Wallet.createRandom().connect(chainProvider)
@@ -45,32 +47,40 @@ const connectToAllContracts = async () => {
     }
 }
 
-const deployNewPool = async () => {
-    const pooltx = await poolFactory.connect(deploymentOwner).deployBrokerPool(
-        0, // min initial investment
-        `Pool-${Date.now()}`,
-        [localConfig.defaultPoolJoinPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultPoolExitPolicy],
-        [0, 0, 0, 0, 0, 10, 10, 0]
-    )
-    const poolReceipt = await pooltx.wait()
-    const poolAddress = poolReceipt.events?.find((e: any) => e.event === "NewBrokerPool")?.args?.poolAddress
-    // eslint-disable-next-line require-atomic-updates
-    localConfig.pool = poolAddress
-    log("Pool deployed at: ", poolAddress)
-    pool = await ethers.getContractAt("BrokerPool", poolAddress, investor) as BrokerPool
+const deployNewPools = async (amount: number) => {
+    for (let i = 0; i < amount; i++) {
+        const pooltx = await poolFactory.connect(deploymentOwner).deployBrokerPool(
+            0, // min initial investment
+            `Pool-${Date.now()}`,
+            [localConfig.defaultPoolJoinPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultPoolExitPolicy],
+            [0, 0, 0, 0, 0, 10, 10, 0]
+        )
+        const poolReceipt = await pooltx.wait()
+        const poolAddress = poolReceipt.events?.find((e: any) => e.event === "NewBrokerPool")?.args?.poolAddress
+        // eslint-disable-next-line require-atomic-updates
+        localConfig.pool = poolAddress
+        log("Pool deployed at: ", poolAddress)
+        pool = await ethers.getContractAt("BrokerPool", poolAddress, investor) as BrokerPool
+        localConfig.pools.push(poolAddress)
+        pools.push(pool)
+    }
 }
 
 const investToPool = async () => {
-    const tx = await token.connect(investor).transferAndCall(pool.address, ethers.utils.parseEther("1"),
-        investor.address)
-    await tx.wait()
-    log("Invested to pool")
+    for (const pool of pools) {
+        const tx = await token.connect(investor).transferAndCall(pool.address, ethers.utils.parseEther("1"),
+            investor.address)
+        await tx.wait()
+        log("Invested to pool ", pool.address)
+    }
 }
 
 const stakeIntoBounty = async () => {
-    const tx = await pool.connect(deploymentOwner).stake(localConfig.bounty, ethers.utils.parseEther("1"))
-    await tx.wait()
-    log("Staked into bounty")
+    for (const pool of pools) {
+        const tx = await pool.connect(deploymentOwner).stake(localConfig.bounty, ethers.utils.parseEther("1"))
+        await tx.wait()
+        log("Staked into bounty from pool ", pool.address)
+    }
 }
 
 const divestFromPool = async () => {
@@ -85,11 +95,17 @@ const brokerUnstakesFromBounty = async () => {
     log("Broker unstaked from bounty")
 }
 
+const flag = async () => {
+    const res = await (await pools[0].flag(localConfig.bounty, pools[1].address)).wait()
+    console.log(res)
+}
+
 async function main() {
     await connectToAllContracts()
-    await deployNewPool()
+    await deployNewPools(3)
     await investToPool()
     await stakeIntoBounty()
+    await flag()
     // await divestFromPool()
     // await brokerUnstakesFromBounty()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))

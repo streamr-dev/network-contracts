@@ -31,7 +31,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei);
     event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning);
-
+    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     // event SponsorshipReceived(address indexed sponsor, uint amount);

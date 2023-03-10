@@ -6,6 +6,7 @@ type Bounty @entity {
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
+  flags: [Flag!]! @derivedFrom(field: "bounty")
 }
 
 type Stake @entity {
@@ -15,7 +16,18 @@ type Stake @entity {
   allocatedWei: BigInt!
   date: BigInt
   bounty: Bounty
-  pool: BrokerPool 
+  pool: BrokerPool
+}
+
+type Flag @entity {
+  id: ID! # 0xbountyAddress-0xbrokerAddress
+  flagger: BrokerPool!
+  target: BrokerPool!
+  # flagStake: BigInt! always fixed?
+  date: BigInt
+  bounty: Bounty
+  result: BigInt! # 0: pending, 1: target kicked, 2: flag failed
+  targetSlashAmount: BigInt
 }
 
 type BrokerPool @entity {
@@ -25,6 +37,8 @@ type BrokerPool @entity {
   delegatorCount: Int
   approximatePoolValue: BigInt!
   unallocatedWei: BigInt!
+  flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
+  flagsTargeted: [Flag!]! @derivedFrom(field: "target")
 }
 
 type PoolDelegation @entity {

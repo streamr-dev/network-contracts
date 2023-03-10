@@ -63,6 +63,7 @@ templates:
         - Bounty
         - Stake
         - BrokerPool
+        - Flag
       abis:
         - name: Bounty
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
@@ -71,6 +72,9 @@ templates:
             handler: handleStakeUpdated
           - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
             handler: handleBountyUpdated
+          - event: FlagUpdate(indexed address,address,uint256,uint256)
+            handler: handleFlagUpdate
+
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
         # - event: SponsorshipReceived(indexed address,uint256)

@@ -1,7 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { Bounty, BrokerPool, Stake } from '../generated/schema'
-import { StakeUpdate, BountyUpdate } from '../generated/templates/Bounty/Bounty'
+import { Bounty, BrokerPool, Stake, Flag } from '../generated/schema'
+import { StakeUpdate, BountyUpdate, FlagUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: broker={} totalStake={} allocation={}', [event.params.broker.toHexString(),
@@ -48,4 +48,24 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     bounty!.brokerCount = event.params.brokerCount.toI32()
     bounty!.isRunning = event.params.isRunning
     bounty!.save()
+}
+
+export function handleFlagUpdate(event: FlagUpdate): void {
+    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}',
+        [event.params.flagger.toHexString(),
+            event.params.target.toHexString(),
+            event.params.targetCommittedStake.toString(),
+            event.params.result.toString()]) 
+    let bountyAddress = event.address
+    let flagID = bountyAddress.toHexString() + "-" + event.params.target.toHexString()
+    let flag = Flag.load(flagID)
+    if (flag === null) {
+        flag = new Flag(flagID)
+        flag.id = flagID
+        flag.bounty = bountyAddress.toHexString()
+        flag.target = event.params.target.toHexString()
+    }
+    flag.flagger = event.params.flagger.toHexString()
+    flag.targetSlashAmount = event.params.targetCommittedStake
+    flag.result = event.params.result
 }
