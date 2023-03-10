@@ -42,7 +42,7 @@ const deployNewBounty = async () => {
         [
             localConfig.allocationPolicy,
             ethers.constants.AddressZero,
-            ethers.constants.AddressZero,
+            localConfig.voteKickPolicy,
         ], [
             ethers.utils.parseEther("0.01"),
             "0",

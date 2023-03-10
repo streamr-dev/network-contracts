@@ -150,7 +150,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
-        emit FlagUpdate(target, flagger, targetStakeAtRiskWei[target], 0);
+        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0);
     }
 
     /**
@@ -220,7 +220,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         _cleanup(target);
 
         uint state = votesForKick[target] > votesAgainstKick[target] ? 1 : 2;
-        emit FlagUpdate(target, flagger, targetStakeAtRiskWei[target], state);
+        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], state);
     }
 
     /* solhint-enable reentrancy */

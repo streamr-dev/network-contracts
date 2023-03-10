@@ -2,9 +2,8 @@ import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 import hhat from "hardhat"
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, ILeavePolicy, StreamrConstants, TestToken } from "../../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConstants, TestToken } from "../../typechain"
 import * as fs from "fs"
-import { ContractFactory } from "ethers"
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 // import { BountyFactory } from '../../typechain/BountyFactory'
@@ -28,12 +27,12 @@ async function deployBountyFactory() {
     const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", { signer: adminWallet })
     const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
     const streamrConstants = await streamrConstantsFactoryTx.deployed() as StreamrConstants
-    const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), (await ethers.getSigners())[0].address)
+    const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), adminWallet.address)
     log(`hasrole ${hasroleEthSigner}`)
     localConfig.streamrConstants = streamrConstants.address
     log(`streamrConstants address ${streamrConstants.address}`)
 
-    const token = await (await ethers.getContractFactory("TestToken", adminWallet)).deploy("Test token", "TEST") as TestToken
+    const token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
     await token.deployed()
     localConfig.token = token.address
     log(`token address ${token.address}`)
@@ -61,6 +60,12 @@ async function deployBountyFactory() {
     localConfig.leavePolicy = leavePolicy.address
     log(`leavePolicy address ${leavePolicy.address}`)
 
+    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy",
+        { signer: adminWallet })).deploy() as IKickPolicy
+    await voteKickPolicy.deployed()
+    localConfig.voteKickPolicy = voteKickPolicy.address
+    log(`voteKickPolicy address ${voteKickPolicy.address}`)
+
     const bountyTemplate = await (await ethers.getContractFactory("Bounty")).deploy() as Bounty
     await bountyTemplate.deployed()
     localConfig.bountyTemplate = bountyTemplate.address
@@ -71,7 +76,7 @@ async function deployBountyFactory() {
         [ bountyTemplate.address, token.address, streamrConstants.address ], { kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
-        allocationPolicy.address, leavePolicy.address])).wait()
+        allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
     await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
     localConfig.bountyFactory = bountyFactory.address

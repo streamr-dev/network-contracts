@@ -68,4 +68,5 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.flagger = event.params.flagger.toHexString()
     flag.targetSlashAmount = event.params.targetCommittedStake
     flag.result = event.params.result
+    flag.save()
 }

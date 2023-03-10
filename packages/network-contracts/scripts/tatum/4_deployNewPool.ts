@@ -20,7 +20,7 @@ let investor: Wallet
 let poolFactory: BrokerPoolFactory
 let pool: BrokerPool
 let token: LinkToken
-let pools: BrokerPool[] = []
+const pools: BrokerPool[] = []
 
 const connectToAllContracts = async () => {
     investor = Wallet.createRandom().connect(chainProvider)
@@ -30,17 +30,17 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
-    const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory", deploymentOwner)
+    const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory", {signer: deploymentOwner })
     const poolFactoryContact = await poolFactoryFactory.attach(localConfig.poolFactory) as BrokerPoolFactory
     poolFactory = await poolFactoryContact.connect(deploymentOwner) as BrokerPoolFactory
 
-    const linkTokenFactory = await ethers.getContractFactory("LinkToken", deploymentOwner)
+    const linkTokenFactory = await ethers.getContractFactory("LinkToken", {signer: deploymentOwner })
     const linkTokenFactoryTx = await linkTokenFactory.attach(localConfig.token)
     const linkTokenContract = await linkTokenFactoryTx.deployed()
     token = await linkTokenContract.connect(deploymentOwner) as LinkToken
 
     //send some tokens to investor
-    await (await token.transfer(investor.address, ethers.utils.parseEther("100"))).wait()
+    await (await token.transfer(investor.address, ethers.utils.parseEther("10000"))).wait()
 
     if (localConfig.pool) {
         pool = await ethers.getContractAt("BrokerPool", localConfig.pool, deploymentOwner) as BrokerPool
@@ -68,7 +68,7 @@ const deployNewPools = async (amount: number) => {
 
 const investToPool = async () => {
     for (const pool of pools) {
-        const tx = await token.connect(investor).transferAndCall(pool.address, ethers.utils.parseEther("1"),
+        const tx = await token.connect(investor).transferAndCall(pool.address, ethers.utils.parseEther("1000"),
             investor.address)
         await tx.wait()
         log("Invested to pool ", pool.address)
@@ -77,7 +77,7 @@ const investToPool = async () => {
 
 const stakeIntoBounty = async () => {
     for (const pool of pools) {
-        const tx = await pool.connect(deploymentOwner).stake(localConfig.bounty, ethers.utils.parseEther("1"))
+        const tx = await pool.connect(deploymentOwner).stake(localConfig.bounty, ethers.utils.parseEther("1000"))
         await tx.wait()
         log("Staked into bounty from pool ", pool.address)
     }
@@ -96,8 +96,9 @@ const brokerUnstakesFromBounty = async () => {
 }
 
 const flag = async () => {
-    const res = await (await pools[0].flag(localConfig.bounty, pools[1].address)).wait()
-    console.log(res)
+    await (await pools[0].connect(deploymentOwner).flag(localConfig.bounty, pools[1].address)).wait()
+    // console.log(res)
+    log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
 }
 
 async function main() {
