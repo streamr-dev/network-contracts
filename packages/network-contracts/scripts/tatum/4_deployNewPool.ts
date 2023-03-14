@@ -1,11 +1,11 @@
 // first register ens domain on mainnet
 // scripts/deploy.js
 import { JsonRpcProvider } from "@ethersproject/providers"
-import { ethers, upgrades } from "hardhat"
+import { ethers } from "hardhat"
 import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 
-import { BrokerPool, BrokerPoolFactory, IPoolExitPolicy, IPoolJoinPolicy, IPoolYieldPolicy, LinkToken } from "../../typechain"
+import { BrokerPool, BrokerPoolFactory, LinkToken } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
@@ -83,17 +83,17 @@ const stakeIntoBounty = async () => {
     }
 }
 
-const divestFromPool = async () => {
-    const tx = await pool.connect(investor).queueDataPayout(ethers.utils.parseEther("1"))
-    await tx.wait()
-    log("Queued data payout")
-}
+// const divestFromPool = async () => {
+//     const tx = await pool.connect(investor).queueDataPayout(ethers.utils.parseEther("1"))
+//     await tx.wait()
+//     log("Queued data payout")
+// }
 
-const brokerUnstakesFromBounty = async () => {
-    const tx = await pool.connect(deploymentOwner).unstake(localConfig.bounty)
-    await tx.wait()
-    log("Broker unstaked from bounty")
-}
+// const brokerUnstakesFromBounty = async () => {
+//     const tx = await pool.connect(deploymentOwner).unstake(localConfig.bounty)
+//     await tx.wait()
+//     log("Broker unstaked from bounty")
+// }
 
 const flag = async () => {
     await (await pools[0].connect(deploymentOwner).flag(localConfig.bounty, pools[1].address)).wait()

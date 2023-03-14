@@ -59,6 +59,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
         mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
         mapping(address => uint) joinTimeOfBroker;
+        uint committedFundsWei;
         uint32 brokerCount;
         uint32 minBrokerCount;
         uint32 minHorizonSeconds;
@@ -180,12 +181,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
-    /** Get both stake and allocations out */
-    function leave() public { // TODO: rename into unstake
+    /** Get both stake and allocations out, throw if that's not possible */
+    function unstake() public {
+        require(getMyStake() > 0, "error_notStaked"); // TODO: add this to other methods too? Turn into modifier?
         address broker = _msgSender();
         require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
         uint penaltyWei = getLeavePenalty(broker);
-        // console.log("Leave penalty", penaltyWei);
         if (penaltyWei > 0) {
             _slash(broker, penaltyWei, false);
             _addSponsorship(address(this), penaltyWei);
@@ -193,34 +194,43 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _removeBroker(broker);
     }
 
+    /** Get both stake and allocations out, forfeitting all stake that is committed to flagging */
+    function forceUnstake() public {
+        address broker = _msgSender();
+        if (globalData().committedStakeWei[broker] > 0) {
+            globalData().committedFundsWei += globalData().committedStakeWei[broker];
+            globalData().committedStakeWei[broker] = 0;
+        }
+        unstake();
+    }
+
     /**
      * In order to pay for all the flags AND still afford to get slashed 10%, there's a limit to how much stake can be reduced
-     *     stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
-     * =>  remaining stake * 9/10 >= committedStake
-     * =>  remaining stake == stake - cashoutWei >= committedStake * 10/9
-     * =>  cashoutWei <= stake - committedStake * 10/9
+     *     stake >= committedStake + 10 % of stake for slashing
+     * =>  stake * 9/10 >= committedStake
+     * =>  stake >= committedStake * 10/9
      */
-    function maxStakeReduction(address broker) public view returns (uint maxStakeReductionWei) {
-        return globalData().stakedWei[broker] - globalData().committedStakeWei[broker] * 10/9;
+    function minimumStakeOf(address broker) public view returns (uint minimumStakeWei) {
+        // TODO: add the Bounty's minimum stake here (inline MinimumStakeJoinPolicy into main Bounty)
+        return globalData().committedStakeWei[broker] * 10/9;
     }
 
     /** Reduce your stake in the bounty without leaving */
-    function reduceStake(uint cashoutWei) external {
+    function reduceStakeTo(uint targetStakeWei) external {
         address broker = _msgSender();
-        // TODO: check minimumstake with join policy: we don't want that stake can be reduced to less than minimum for joining!
-        // TODO: change this check so that if stake goes below minimum (or zero if no minimum), the broker is removed completely
-        if (cashoutWei == globalData().stakedWei[broker] && globalData().committedStakeWei[broker] == 0) {
-            leave();
+        if (targetStakeWei == 0) { // TODO: remove, since this redirection already is in BrokerPool
+            unstake();
             return;
         }
+        require(targetStakeWei < globalData().stakedWei[broker], "error_cannotIncreaseStake");
 
         // stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
         //   in order to pay for all the flags AND still afford to get slashed 10%
-        require(cashoutWei <= maxStakeReduction(broker), "error_cannotReduceStake");
+        require(targetStakeWei >= minimumStakeOf(broker), "error_cannotReduceStake");
 
+        uint cashoutWei = globalData().stakedWei[broker] - targetStakeWei;
         _reduceStakeBy(broker, cashoutWei);
-        // console.log("reduceStake ->", broker, cashoutWei);
-        require(token.transferAndCall(broker, cashoutWei, "reduceStake"), "error_transfer");
+        token.transfer(broker, cashoutWei);
     }
 
     /**
@@ -243,7 +253,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
     function _reduceStakeBy(address broker, uint amountWei) internal {
-        // console.log("  internal _reduceStake", broker, amountWei);
         require(amountWei <= globalData().stakedWei[broker], "error_cannotReduceStake");
         globalData().stakedWei[broker] -= amountWei;
         globalData().totalStakedWei -= amountWei;
@@ -314,7 +323,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return globalData().stakedWei[broker];
     }
 
-    function getMyStake() external view returns (uint) {
+    function getMyStake() public view returns (uint) {
         return globalData().stakedWei[_msgSender()];
     }
 

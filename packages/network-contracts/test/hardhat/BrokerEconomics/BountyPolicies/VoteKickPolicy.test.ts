@@ -1,5 +1,5 @@
 import { ethers } from "hardhat"
-import { BigNumber, utils, Wallet, ContractReceipt } from "ethers"
+import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
 import { deployTestContracts } from "../deployTestContracts"
@@ -244,19 +244,20 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Committed stake", (): void => {
-        it.skip("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { bounty, brokers: [ flagger ],
-                pools: [ flaggerPool, targetPool, voterPool] } = await setup(2, 1, this.currentTest?.title)
+        it("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
+            const { bounty, pools: [ flagger, target, voter ] } = await setup(2, 1, this.currentTest?.title)
 
-            await expect(flaggerPool.connect(flagger).flag(bounty.address, targetPool.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voterPool.address, bounty.address, targetPool.address)
+            await (await target.reduceStakeTo(bounty.address, parseEther("900"))).wait() // get a nicer rounder number... 10/9 of 90 is 100
 
-            const maxStakeReduction = await bounty.maxStakeReduction(bounty.address)
-            expect(maxStakeReduction).to.equal(parseEther("888"))
-            await expect(targetPool.reduceStake(bounty.address, parseEther("889")))
+            await expect(flagger.flag(bounty.address, target.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+
+            const minimumStake = await bounty.minimumStakeOf(target.address)
+            expect(minimumStake).to.equal(parseEther("100"))
+            await expect(target.reduceStakeTo(bounty.address, parseEther("99")))
                 .to.be.revertedWith("error_cannotReduceStake")
-            await expect(targetPool.reduceStake(bounty.address, parseEther("888")))
-                .to.emit(bounty, "StakeUpdate").withArgs(targetPool.address, parseEther("112"), parseEther("0"))
+            await expect(target.reduceStakeTo(bounty.address, parseEther("100")))
+                .to.emit(bounty, "StakeUpdate").withArgs(target.address, parseEther("100"), parseEther("0"))
         })
 
         it("allows the target to withdraw the correct amount AFTER the flag resolves to 'no kick'", async function(): Promise<void> {
@@ -279,17 +280,18 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(bounty, "BrokerLeft").withArgs(targetPool.address, parseEther("1000"))
         })
 
-        it.skip("allows the flagger to withdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { bounty, brokers: [ flagger ], pools: [ flaggerPool, targetPool] } = await setup(2, 1, this.currentTest?.title)
+        it("allows the flagger to withdraw the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
+            const { bounty, pools: [ flagger, target, voter] } = await setup(2, 1, this.currentTest?.title)
 
-            await (await flaggerPool.connect(flagger).flag(bounty.address, targetPool.address)).wait() as ContractReceipt
+            await expect(flagger.flag(bounty.address, target.address))
+                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
 
-            const maxStakeReduction = await bounty.maxStakeReduction(bounty.address)
-            expect(maxStakeReduction).to.equal(parseEther("988"))
-            await expect(flaggerPool.reduceStake(bounty.address, parseEther("989")))
+            const minimumStake = await bounty.minimumStakeOf(flagger.address)
+            expect(minimumStake).to.equal("11111111111111111111") // 10/9 of 100
+            await expect(flagger.reduceStakeTo(bounty.address, parseEther("11")))
                 .to.be.revertedWith("error_cannotReduceStake")
-            await expect(flaggerPool.reduceStake(bounty.address, parseEther("988")))
-                .to.emit(bounty, "StakeUpdate").withArgs(flaggerPool.address, parseEther("12"), parseEther("0"))
+            await expect(flagger.reduceStakeTo(bounty.address, "11111111111111111111"))
+                .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, "11111111111111111111", parseEther("0"))
         })
 
         it("allows the flagger to withdraw all their stake AFTER the flag resolves to 'no kick'", async function(): Promise<void> {
