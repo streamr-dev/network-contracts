@@ -69,7 +69,7 @@ type Project @entity {
   "Streams added to the project"
   streams: [String!]!
   "Permissions mapping (bytes32 => Permission)"
-  permissions: [Permission!]! @derivedFrom(field: "project")
+  permissions: [Permission!]!
   "date created. This is a timestamp in seconds"
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
@@ -103,7 +103,7 @@ type ProjectPurchase @entity {
 
   "The amount of tokens paid to marketplace for project subscription"
   fee: BigInt!
-  
+
   "purchase date. This is a timestamp in seconds"
   purchasedAt: BigInt
 }
@@ -122,7 +122,7 @@ type Staking @entity {
 
   "The amount being staked"
   amount: BigInt!
-  
+
   "stake date. This is a timestamp in seconds"
   stakedAt: BigInt
 }
@@ -139,7 +139,7 @@ type Unstaking @entity {
 
   "The amount being unstaked"
   amount: BigInt!
-  
+
   "unstake date. This is a timestamp in seconds"
   unstakedAt: BigInt
 }

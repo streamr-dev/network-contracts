@@ -17,7 +17,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     const metadata = event.params.metadata
     log.info('handleProjectCreated: id={} metadata={} blockNumber={}',
         [id, metadata, event.block.number.toString()])
-        
+
     let project = loadOrCreateProject(event.params.id)
 
     project.domainIds = event.params.domainIds
@@ -25,6 +25,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     project.metadata = metadata
     project.isDataUnion = getIsDataUnionValue(metadata)
     project.streams = event.params.streams
+    project.permissions = []
     project.createdAt = event.block.timestamp
     project.counter = 0
     project.score = BigInt.fromI32(0)
@@ -33,8 +34,12 @@ export function handleProjectCreation(event: ProjectCreated): void {
 
 export function handleProjectDeletion(event: ProjectDeleted): void {
     const id = event.params.id.toHexString()
-    log.info('handleProjectDeletion: id={} blockNumber={}',
-        [id, event.block.number.toString()])
+    log.info('handleProjectDeletion: id={} blockNumber={}', [id, event.block.number.toString()])
+
+    let project = loadOrCreateProject(event.params.id)
+    project.permissions.forEach((permissionId) => {
+        store.remove('Permission', permissionId)
+    })
     store.remove('Project', id)
 }
 
@@ -60,8 +65,6 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} projectId={} blockNumber={}',
         [user, projectId, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.projectId)
-
     let permissionId = projectId + '-' + user
     let permission = new Permission(permissionId)
     permission.userAddress = event.params.user
@@ -71,6 +74,14 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     permission.canEdit = event.params.canEdit
     permission.canGrant = event.params.canGrant
     permission.save()
+
+    let project = loadOrCreateProject(event.params.projectId)
+    let i = project.permissions.indexOf(permissionId)
+    if (i < 0) {
+        let permissionsArray = project.permissions
+        permissionsArray.push(permissionId)
+        project.permissions = permissionsArray
+    }
     project.save()
 }
 
@@ -113,14 +124,14 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     paymentDetails.save()
 }
 
-export function handleStreamAdition(event: StreamAdded): void {
+export function handleStreamAddition(event: StreamAdded): void {
     let projectId = event.params.projectId.toHexString()
     const streamId = event.params.streamId
-    log.info('handleStreamAdition: projectId={} streamId={} blockNumber={}',
+    log.info('handleStreamAddition: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
 
     let project = loadOrCreateProject(event.params.projectId)
-    
+
     const streams = project.streams
     streams.push(streamId)
     project.streams = streams

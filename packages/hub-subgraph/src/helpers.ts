@@ -13,6 +13,7 @@ export function loadOrCreateProject(projectId: Bytes): Project {
         project.minimumSubscriptionSeconds = BigInt.fromI32(0)
         project.metadata = ""
         project.streams = []
+        project.permissions = []
         project.createdAt = BigInt.fromI32(0)
         project.counter = 0
         project.score = BigInt.fromI32(0)
