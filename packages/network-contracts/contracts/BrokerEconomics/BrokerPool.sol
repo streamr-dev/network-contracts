@@ -253,7 +253,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external {
         // onlyBroker check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) {
+        if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
             require(msg.sender == globalData().broker, "error_onlyBroker");
         }
 
