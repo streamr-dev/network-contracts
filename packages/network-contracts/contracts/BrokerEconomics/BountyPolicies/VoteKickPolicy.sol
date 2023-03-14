@@ -188,62 +188,84 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     function _endVote(address target) internal {
         address flagger = flaggerAddress[target];
+        bool flaggerWasKicked = globalData().stakedWei[flagger] == 0;
         uint reviewerCount = reviewers[target].length;
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
             _slash(target, slashingWei, true); // true = kick
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
-            token.transfer(flagger, FLAGGER_REWARD_WEI);
-            slashingWei -= FLAGGER_REWARD_WEI;
+            if (!flaggerWasKicked) {
+                token.transfer(flagger, FLAGGER_REWARD_WEI);
+                slashingWei -= FLAGGER_REWARD_WEI;
+            }
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
         } else {
-            // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake
+            // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS; // solhint-disable-line not-rely-on-time
-            uint slashingWei = 0;
+            uint rewardsWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
-                    slashingWei += REVIEWER_REWARD_WEI;
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
+                    rewardsWei += REVIEWER_REWARD_WEI;
                 }
             }
-            _slash(flagger, slashingWei, false);
+            if (flaggerWasKicked) {
+                uint leftoverWei = FLAG_STAKE_WEI - rewardsWei;
+                _addSponsorship(address(this), leftoverWei); // flagger had been kicked, so the remaining flagstake is added to sponsorship
+            } else {
+                _slash(flagger, rewardsWei, false); // just slash enough to cover the rewards, the rest will be uncommitted = released
+            }
         }
-        _cleanup(target);
-
-        uint state = votesForKick[target] > votesAgainstKick[target] ? 1 : 2;
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], state);
+        _cleanup(target); // TODO: if cancelFlag is removed, inline the _cleanup and esp. the delete reviewerState loop
     }
 
     /* solhint-enable reentrancy */
 
-    /** Cancel the flag before voting starts => every reviewer gets paid */
+    /**
+     * Cancel the flag before voting starts => every reviewer gets paid
+     * If a reviewer was kicked, we assume his flags may have been bad, too => can be cancelled by anyone
+     **/
     function onCancelFlag(address target) external {
+        address flagger = flaggerAddress[target];
+        bool flaggerWasKicked = globalData().stakedWei[flagger] == 0;
         require(!canVote(target), "error_votingStarted");
-        require(flaggerAddress[target] == _msgSender(), "error_notFlagger");
-        uint rewardWei = 1 ether; // TODO: add to streamrConstants?
+        require(flagger == _msgSender() || flaggerWasKicked, "error_notFlagger");
+        // TODO: protection after cancel can be abused to shield freeriders, because ANYONE in bounty can flag then cancel
+        protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS; // solhint-disable-line not-rely-on-time
         uint reviewerCount = reviewers[target].length;
+        uint rewardsWei = reviewerCount * REVIEWER_REWARD_WEI;
+        if (flaggerWasKicked) {
+            uint leftoverWei = FLAG_STAKE_WEI - rewardsWei;
+            _addSponsorship(address(this), leftoverWei); // flagger had been kicked, so the remaining flagstake is added to sponsorship
+        } else {
+            _slash(flagger, rewardsWei, false); // just slash enough to cover the rewards, the rest will be uncommitted = released
+        }
         for (uint i = 0; i < reviewerCount; i++) {
             address reviewer = reviewers[target][i];
-            token.transfer(BrokerPool(reviewer).broker(), rewardWei);
+            token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
         }
         _cleanup(target);
     }
 
+    // TODO: if cancelFlag is removed, inline the _cleanup and esp. the delete reviewerState loop
     /** Remove stake commitments and clear flag data */
     function _cleanup(address target) internal {
         // flagger might already have been kicked
         address flagger = flaggerAddress[target];
-        if (globalData().committedStakeWei[flagger] > 0) {
+        if (globalData().committedStakeWei[flagger] >= FLAG_STAKE_WEI) {
             globalData().committedStakeWei[flagger] -= FLAG_STAKE_WEI;
+        } else {
+            // flagger was kicked during the flag
+            globalData().committedFundsWei -= FLAG_STAKE_WEI;
         }
         globalData().committedStakeWei[target] -= targetStakeAtRiskWei[target];
 

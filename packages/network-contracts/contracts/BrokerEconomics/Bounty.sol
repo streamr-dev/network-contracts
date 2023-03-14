@@ -34,7 +34,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
-    // event SponsorshipReceived(address indexed sponsor, uint amount);
+    event SponsorshipReceived(address indexed sponsor, uint amount);
     event BrokerKicked(address indexed broker, uint slashedWei);
 
     // Emitted from the allocation policy
@@ -57,9 +57,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     struct GlobalStorage {
         StreamrConstants streamrConstants;
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
-        mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
         mapping(address => uint) joinTimeOfBroker;
-        uint committedFundsWei;
+        mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
+        uint committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
         uint32 brokerCount;
         uint32 minBrokerCount;
         uint32 minHorizonSeconds;
@@ -147,35 +147,33 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    /** Stake by first calling ERC20.approve(bounty.address, amountTokenWei) then this function */
-    function stake(address broker, uint amountTokenWei) external {
-        token.transferFrom(_msgSender(), address(this), amountTokenWei);
-        _stake(broker, amountTokenWei);
+    /** Stake by first calling DATA.approve(bounty.address, amountWei) then this function */
+    function stake(address broker, uint amountWei) external {
+        token.transferFrom(_msgSender(), address(this), amountWei);
+        _stake(broker, amountWei);
     }
 
-    function _stake(address broker, uint amount) internal {
-        // console.log("join/stake at ", block.timestamp);
-        require(amount > 0, "error_cannotStakeZero");
+    function _stake(address broker, uint amountWei) internal {
+        // console.log("join/stake at ", block.timestamp, broker, amountWei);
+        require(amountWei > 0, "error_cannotStakeZero");
         GlobalStorage storage s = globalData();
         if (s.stakedWei[broker] == 0) {
-           // console.log("Broker joins and stakes", broker, amount);
+           // console.log("Broker joins and stakes", broker, amountWei);
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
-                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amount), "error_joinPolicyOnJoin");
+                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amountWei), "error_joinPolicyOnJoin");
             }
-            s.stakedWei[broker] += amount;
+            s.stakedWei[broker] += amountWei;
             s.brokerCount += 1;
-            s.totalStakedWei += amount;
+            s.totalStakedWei += amountWei;
             s.joinTimeOfBroker[broker] = block.timestamp; // solhint-disable-line not-rely-on-time
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
         } else {
-           // console.log("Broker already joined, increasing stake", broker, amount);
-            s.stakedWei[broker] += amount;
-            s.totalStakedWei += amount;
-
-            // re-calculate the cumulative earnings
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amount)), "error_stakeIncreaseFailed");
+           // console.log("Broker already joined, increasing stake", broker, amountWei);
+            s.stakedWei[broker] += amountWei;
+            s.totalStakedWei += amountWei;
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amountWei)), "error_stakeIncreaseFailed");
         }
         emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
@@ -198,6 +196,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function forceUnstake() public {
         address broker = _msgSender();
         if (globalData().committedStakeWei[broker] > 0) {
+            _slash(broker, globalData().committedStakeWei[broker], false);
             globalData().committedFundsWei += globalData().committedStakeWei[broker];
             globalData().committedStakeWei[broker] = 0;
         }
@@ -306,16 +305,17 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    /** Sponsor a stream by first calling ERC20.approve(agreement.address, amountTokenWei) then this function */
-    function sponsor(uint amountTokenWei) external {
-        token.transferFrom(_msgSender(), address(this), amountTokenWei);
-        _addSponsorship(_msgSender(), amountTokenWei);
+    /** Sponsor a stream by first calling DATA.approve(agreement.address, amountWei) then this function */
+    function sponsor(uint amountWei) external {
+        token.transferFrom(_msgSender(), address(this), amountWei);
+        _addSponsorship(_msgSender(), amountWei);
     }
 
-    function _addSponsorship(address sponsorAddress, uint amountTokenWei) internal {
+    function _addSponsorship(address sponsorAddress, uint amountWei) internal {
         // TODO: sweep also unaccounted tokens into unallocated funds?
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountTokenWei), "error_sponsorFailed");
-        globalData().unallocatedFunds += amountTokenWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
+        globalData().unallocatedFunds += amountWei;
+        emit SponsorshipReceived(sponsorAddress, amountWei);
         emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
     }
 
