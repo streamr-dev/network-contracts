@@ -12,7 +12,6 @@
   },
   "scripts": {
     "build": "hardhat compile",
-    "flag": "hardhat run --network dev1 scripts/tatum/1_deployBountyFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewBounty.ts && hardhat run --network dev1 scripts/tatum/3_deployPoolContracts.ts && npx hardhat run --network dev1 scripts/tatum/4_deployNewPool.ts",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",

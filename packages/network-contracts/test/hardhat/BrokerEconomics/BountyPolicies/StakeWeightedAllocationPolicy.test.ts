@@ -49,7 +49,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // this getter happens at timeAtStart + 100
         // const allocationBeforeLeave = await bounty.getAllocation(broker.address)
         // but this tx happens at timeAtStart + 101...
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
         const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
 
         // broker now has his stake back plus additional winnings
@@ -87,10 +87,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "broker2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "broker1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -129,10 +129,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("4"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -172,10 +172,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 10000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -201,10 +201,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("4"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 1000, "Broker 1 adds 1 stake 4 -> 5")
+        // await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker1Expected = parseEther("2000")
@@ -227,10 +228,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("4"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 1000, "Broker 2 reduces 1 stake 4 -> 2")
-        await (await bounty.connect(broker).reduceStakeTo(parseEther("2"))).wait()
+        await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker1Expected = parseEther("2000")
@@ -261,18 +262,18 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 reduces stake 3 -> 1")
-        await (await bounty.connect(broker2).reduceStakeTo(parseEther("1"))).wait()
+        await (await bounty.connect(broker2).reduceStake(parseEther("2"))).wait()
         // await (await token.connect(broker).transferAndCall(bounty.address, parseEther("3"), broker.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 6000, "Broker 1 reduces stake 2 -> 1")
-        await (await bounty.connect(broker).reduceStakeTo(parseEther("1"))).wait()
+        await (await bounty.connect(broker).reduceStake(parseEther("2"))).wait()
         // await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("3"), broker2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 10000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -319,11 +320,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 2001: money runs out (+1 because joins happen at +1)
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 2 leaves")
-        const leave2Tr = await (await bounty.connect(broker2).unstake() as ContractTransaction).wait()
+        const leave2Tr = await (await bounty.connect(broker2).leave() as ContractTransaction).wait()
         const insolvencyEvent = leave2Tr.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake() as ContractTransaction).wait()
+        await (await bounty.connect(broker).leave() as ContractTransaction).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -367,10 +368,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 5000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -428,10 +429,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 5000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -468,7 +469,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
-        const leaveTr = await (await bounty.connect(broker).unstake()).wait()
+        const leaveTr = await (await bounty.connect(broker).leave()).wait()
         const insolvencyEvent = leaveTr.events?.find((e) => e.event == "InsolvencyStarted")
 
         const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
@@ -503,7 +504,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
-        const tr1 = await (await bounty.connect(broker).unstake()).wait()
+        const tr1 = await (await bounty.connect(broker).leave()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker joins again")
@@ -514,7 +515,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 5000, "Broker leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
 
@@ -564,7 +565,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        const tr1 = await (await bounty.connect(broker).unstake()).wait()
+        const tr1 = await (await bounty.connect(broker).leave()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 1 joins again")
@@ -575,10 +576,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 6000, "Broker 1 leaves again")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 7000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -624,10 +625,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -668,7 +669,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // timeAtStart + 2001: money runs out AND broker leaves
         await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr = await (await bounty.sponsor(parseEther("10000"))).wait()
@@ -676,7 +677,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -721,11 +722,11 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        const tr2 = await (await bounty.connect(broker).unstake()).wait()
+        const tr2 = await (await bounty.connect(broker).leave()).wait()
         const insolvencyEvent2 = tr2.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
         const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
@@ -762,7 +763,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tokensAfterStaking = await token.balanceOf(broker.address)
 
         // lose 10% = 1 token because leaving a "running" bounty too early
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
         const tokensAfterLeaving = await token.balanceOf(broker.address)
 
         expect(formatEther(tokensBefore)).to.equal("10.0")

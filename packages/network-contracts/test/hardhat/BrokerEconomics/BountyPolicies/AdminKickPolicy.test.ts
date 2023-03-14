@@ -56,7 +56,7 @@ describe("AdminKickPolicy", (): void => {
         const brokerCountAfterKick = await bounty.getBrokerCount()
 
         await advanceToTimestamp(timeAtStart + 300, "broker 2 leaves and gets slashed")
-        await (await bounty.connect(broker2).unstake()).wait()
+        await (await bounty.connect(broker2).leave()).wait()
 
         expect(brokerCountBeforeKick.toString()).to.equal("2")
         expect(brokerCountAfterKick.toString()).to.equal("1")

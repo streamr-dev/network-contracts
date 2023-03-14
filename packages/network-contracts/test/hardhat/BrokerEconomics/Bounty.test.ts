@@ -117,7 +117,7 @@ describe("Bounty", (): void => {
         await advanceToTimestamp(start + 101, "Withdraw from bounty") // queries will see start + 100 (off by one, NEXT tx will be start + 101)
         const allocationBeforeUnstake = await bounty.getAllocation(broker.address)
         const stakeBeforeUnstake = await bounty.connect(broker).getMyStake()
-        await (await bounty.connect(broker).unstake()).wait()
+        await (await bounty.connect(broker).leave()).wait()
         const allocationAfterUnstake = await bounty.getAllocation(broker.address)
         const stakeAfterUnstake = await bounty.connect(broker).getMyStake()
 
@@ -202,14 +202,14 @@ describe("Bounty", (): void => {
             const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
                 [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).unstake()).to.be.revertedWith("test_onLeave")
+            await expect(bounty.connect(broker).leave()).to.be.revertedWith("test_onLeave")
         })
 
         it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
             const bounty = await deployBountyContract(contracts, {skipBountyFactory: true},
                 [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).unstake()).to.be.revertedWith("error_brokerLeaveFailed")
+            await expect(bounty.connect(broker).leave()).to.be.revertedWith("error_brokerLeaveFailed")
         })
 
         it("error onStakeChange", async function(): Promise<void> {

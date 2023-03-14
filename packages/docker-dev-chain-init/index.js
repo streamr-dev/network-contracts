@@ -106,7 +106,6 @@ let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
 let linkToken
-let linkTokenAddress = ''
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -246,8 +245,7 @@ async function deployStreamRegistries() {
     log('Deploying Streamregistry and chainlink contracts to sidechain:')
     const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    const linkToken = await linkTokenFactoryTx.deployed()
-    linkTokenAddress = linkToken.address
+    linkToken = await linkTokenFactoryTx.deployed()
     log(`Link Token deployed at ${linkToken.address}`)
 
     const oracleFactory = new ContractFactory(ChainlinkOracle.compilerOutput.abi,
@@ -624,8 +622,6 @@ async function smartContractInitialization() {
         "Needed for granting permissions to streams using the trusted functions.")
     const grantRoleProjectRegistryV1Tx = await streamRegistryFromOwner.grantRole(role, projectRegistryV1.address)
     await grantRoleProjectRegistryV1Tx.wait()
-
-    await deployBountyFactory()
 
     await deployBountyFactory()
 
