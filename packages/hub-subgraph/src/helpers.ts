@@ -1,5 +1,6 @@
-import { BigInt, Bytes, json, JSONValue, JSONValueKind, Result } from "@graphprotocol/graph-ts"
-import { Project } from '../generated/schema'
+import { BigInt, Bytes, json, JSONValue, JSONValueKind, Result, store } from "@graphprotocol/graph-ts"
+import { InternalBookeeping, Project } from '../generated/schema'
+import { INTERNAL_BOOKEEPING_ID, PAYMENT_DETAILS_ENTITY_TYPE, PERMISSION_ENTITY_TYPE, SUBSCRIPTION_ENTITY_TYPE } from "./constants"
 
 /**
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
@@ -19,6 +20,94 @@ export function loadOrCreateProject(projectId: Bytes): Project {
         project.isDataUnion = false
     }
     return project
+}
+
+/**
+ * Helper function to load projects internal bookeeping. Contains arrays of ids of derived entities.'
+ */
+export function loadInternalBookeeping(): InternalBookeeping {
+    let internalBookeeping = InternalBookeeping.load(INTERNAL_BOOKEEPING_ID)
+    if (internalBookeeping == null) {
+        internalBookeeping = new InternalBookeeping(INTERNAL_BOOKEEPING_ID)
+        internalBookeeping.permissionIds = []
+        internalBookeeping.subscriptionIds = []
+        internalBookeeping.paymentDetailsIds = []
+    }
+    return internalBookeeping
+}
+
+/**
+ * Helper function to update the internal bookeeping of the store. Contains arrays of ids of derived entities.
+ */
+export function updateInternalBookeeping(derivedEntity: string, id: string): InternalBookeeping {
+    let internalBookeeping = loadInternalBookeeping()
+
+    if (derivedEntity == PERMISSION_ENTITY_TYPE) {
+        let permissionIds = internalBookeeping.permissionIds
+        permissionIds.push(id)
+        internalBookeeping.permissionIds = permissionIds
+    }
+    else if (derivedEntity == SUBSCRIPTION_ENTITY_TYPE) {
+        let subscriptionIds = internalBookeeping.subscriptionIds
+        subscriptionIds.push(id)
+        internalBookeeping.subscriptionIds = subscriptionIds
+    }
+    else if (derivedEntity == PAYMENT_DETAILS_ENTITY_TYPE) {
+        let paymentDetailsIds = internalBookeeping.paymentDetailsIds
+        paymentDetailsIds.push(id)
+        internalBookeeping.paymentDetailsIds = paymentDetailsIds
+    }
+    
+    internalBookeeping.save()
+    return internalBookeeping
+}
+
+/**
+ * Helper function to remove derived project entities from the store, when the project is deleted
+ */
+export function storeRemoveCascadedEntities(projectId: string): void {
+    let internalBookeeping = loadInternalBookeeping()
+    
+    // clear store of permissions related to deleted project
+    let permissionIds = internalBookeeping.permissionIds
+    let filteredPermissionIds: string[] = []
+    for(let i = 0; i < permissionIds.length; i++) {
+        let permissionId = permissionIds[i]
+        if (permissionId.slice(0, 66) == projectId) {
+            store.remove(PERMISSION_ENTITY_TYPE, permissionId)
+        } else {
+            filteredPermissionIds.push(permissionId)
+        }
+    }
+    internalBookeeping.permissionIds = filteredPermissionIds
+
+    // clear store of subscriptions related to deleted project
+    let subscriptionIds = internalBookeeping.subscriptionIds
+    let filteredSubscriptionIds: string[] = []
+    for(let i = 0; i < subscriptionIds.length; i++) {
+        let subscriptionId = subscriptionIds[i]
+        if (subscriptionId.slice(0, 66) == projectId) {
+            store.remove(SUBSCRIPTION_ENTITY_TYPE, subscriptionId)
+        } else {
+            filteredSubscriptionIds.push(subscriptionId)
+        }
+    }
+    internalBookeeping.subscriptionIds = filteredSubscriptionIds
+
+    // clear store of payment details related to deleted project
+    let paymentDetailsIds = internalBookeeping.paymentDetailsIds
+    let filteredPaymentDetailsIds: string[] = []
+    for(let i = 0; i < paymentDetailsIds.length; i++) {
+        let paymentDetailsId = paymentDetailsIds[i]
+        if (paymentDetailsId.slice(0, 66) == projectId) {
+            store.remove(PAYMENT_DETAILS_ENTITY_TYPE, paymentDetailsId)
+        } else {
+            filteredPaymentDetailsIds.push(paymentDetailsId)
+        }
+    }
+    internalBookeeping.paymentDetailsIds = filteredPaymentDetailsIds
+
+    internalBookeeping.save()
 }
 
 /**

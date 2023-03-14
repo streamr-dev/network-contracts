@@ -28,6 +28,13 @@ import {
     createSubscriptionEntity
 } from "./helpers/mocked-entity"
 
+import {
+    PROJECT_ENTITY_TYPE,
+    PAYMENT_DETAILS_ENTITY_TYPE,
+    PERMISSION_ENTITY_TYPE,
+    SUBSCRIPTION_ENTITY_TYPE,
+} from "../src/constants"
+
 // handlers need to be exported from the test file when running test coverage
 export {
     handleProjectCreation,
@@ -39,11 +46,6 @@ export {
     handlePermissionUpdate,
     handleSubscriptionUpdate,
 } from "../src/projectRegistry"
-
-const PROJECT_ENTITY_TYPE = "Project"
-const PERMISSION_ENTITY_TYPE = "Permission"
-const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
-const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
 
 describe("Entity store", () => {
     const projectId = "projectId0"

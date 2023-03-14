@@ -13,15 +13,17 @@ import {
     createUnstakingEntity,
 } from "./helpers/mocked-entity"
 
+import {
+    PROJECT_ENTITY_TYPE,
+    STAKING_ENTITY_TYPE,
+    UNSTAKING_ENTITY_TYPE,
+} from "../src/constants"
+
 // handlers need to be exported from the test file when running test coverage
 export {
     handleStake,
     handleUnstake,
 } from "../src/projectStaking"
-
-const PROJECT_ENTITY_TYPE = "Project"
-const STAKING_ENTITY_TYPE = "Staking"
-const UNSTAKING_ENTITY_TYPE = "Unstaking"
 
 describe("Entity stores", () => {
     const projectId = "0x1234"

@@ -10,7 +10,12 @@ import {
     StreamRemoved,
     PaymentDetailsByChainUpdated,
 } from '../generated/ProjectRegistryV1/ProjectRegistryV1'
-import { getIsDataUnionValue, loadOrCreateProject } from './helpers'
+import { storeRemoveCascadedEntities, getIsDataUnionValue, updateInternalBookeeping, loadOrCreateProject } from './helpers'
+import {
+    PAYMENT_DETAILS_ENTITY_TYPE,
+    PERMISSION_ENTITY_TYPE,
+    SUBSCRIPTION_ENTITY_TYPE,
+} from './constants'
 
 export function handleProjectCreation(event: ProjectCreated): void {
     const id = event.params.id.toHexString()
@@ -36,6 +41,7 @@ export function handleProjectDeletion(event: ProjectDeleted): void {
     log.info('handleProjectDeletion: id={} blockNumber={}',
         [id, event.block.number.toString()])
     store.remove('Project', id)
+    storeRemoveCascadedEntities(id)
 }
 
 export function handleProjectUpdate(event: ProjectUpdated): void {
@@ -72,6 +78,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     permission.canGrant = event.params.canGrant
     permission.save()
     project.save()
+    updateInternalBookeeping(PERMISSION_ENTITY_TYPE, permissionId)
 }
 
 export function handleSubscriptionUpdate(event: Subscribed): void {
@@ -89,6 +96,7 @@ export function handleSubscriptionUpdate(event: Subscribed): void {
     subscription.endTimestamp = event.params.endTimestamp
     subscription.save()
     project.save()
+    updateInternalBookeeping(SUBSCRIPTION_ENTITY_TYPE, subscriptionId)
 }
 
 export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUpdated): void {
@@ -111,6 +119,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     paymentDetails.pricePerSecond = event.params.pricePerSecond
     project.save()
     paymentDetails.save()
+    updateInternalBookeeping(PAYMENT_DETAILS_ENTITY_TYPE, paymentDetailsId)
 }
 
 export function handleStreamAdition(event: StreamAdded): void {

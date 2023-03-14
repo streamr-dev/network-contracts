@@ -12,13 +12,15 @@ import {
     createProjectPurchaseEntity,
 } from "./helpers/mocked-entity"
 
+import {
+    PROJECT_ENTITY_TYPE,
+    PROJECT_PURCHASE_ENTITY_TYPE,
+} from "../src/constants"
+
 // handlers need to be exported from the test file when running test coverage
 export {
     handleProjectPurchase,
 } from "../src/marketplaceV4"
-
-const PROJECT_ENTITY_TYPE = "Project"
-const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
 
 describe("ProjectPurchase entity store", () => {
     const projectId = "0x1234"

@@ -108,6 +108,18 @@ type ProjectPurchase @entity {
   purchasedAt: BigInt
 }
 
+# Used for cascade detelion of the linked project entities
+type InternalBookeeping @entity {
+  "internal bookkeeping id - constant"
+  id: ID!
+  "Keeps a record of all permission ever added to a project"
+  permissionIds: [String!]!
+  "Keeps a record of all subscription ever added to a project"
+  subscriptionIds: [String!]!
+  "Keeps a record of all paymentDetails ever added to a project"
+  paymentDetailsIds: [String!]!
+}
+
 # ProjectStakingV1
 
 type Staking @entity {
