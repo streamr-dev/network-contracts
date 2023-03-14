@@ -9,7 +9,7 @@ import { deployBrokerPool } from "./deployBrokerPool"
 import { deployBountyContract } from "./deployBountyContract"
 import { IKickPolicy } from "../../../typechain"
 
-const { parseEther, formatEther } = utils
+const { parseEther, formatEther, hexZeroPad } = utils
 const { getSigners, getContractFactory } = hardhatEthers
 
 describe("BrokerPool", (): void => {
@@ -656,8 +656,8 @@ describe("BrokerPool", (): void => {
         await expect(pool.stake(bounty2.address, parseEther("500")))
             .to.emit(pool, "Staked").withArgs(bounty2.address, parseEther("500"))
 
-        await advanceToTimestamp(timeAtStart + 5000, "withdraw winnings from bounty")
         // poolvalue will have changed, will be 3000, approx poolvalue will be 1000
+        await advanceToTimestamp(timeAtStart + 5000, "withdraw winnings from bounty")
         expect(await pool.calculatePoolValueInData()).to.equal(parseEther("3000"))
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1000"))
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000"))
@@ -668,14 +668,13 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(broker.address)).to.equal(parseEther("1000").sub(parseEther("5")))
     })
 
-    it("gets notified when kicked (slash listener)", async function(): Promise<void> {
+    it("gets notified when kicked (IBroker interface)", async function(): Promise<void> {
         const { token } = sharedContracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
 
         const bounty = await deployBountyContract(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
         const pool = await deployBrokerPool(sharedContracts, broker)
-        // const balanceBefore = await token.balanceOf(listener.address)
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
 
@@ -684,24 +683,23 @@ describe("BrokerPool", (): void => {
         await expect(pool.stake(bounty.address, parseEther("1000")))
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
 
-        // update poolvalue
-        await advanceToTimestamp(timeAtStart + 1000, "slash")
+        await advanceToTimestamp(timeAtStart + 1000, "Slash, update pool value")
         await pool.updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        await expect(bounty.connect(admin).cancelFlag(pool.address)) // TestKickPolicy actually kicks without slashing
+        // TestKickPolicy actually kicks and slashes given amount
+        await expect(bounty.connect(admin).voteOnFlag(pool.address, hexZeroPad(parseEther("10").toHexString(), 32)))
             .to.emit(bounty, "BrokerKicked").withArgs(pool.address, parseEther("10"))
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
-    it("gets notified when slashed (slash listener)", async function(): Promise<void> {
+    it("reduces pool value when it gets slashed without kicking (IBroker interface)", async function(): Promise<void> {
         const { token } = sharedContracts
         await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // burn all tokens
         await (await token.mint(broker.address, parseEther("1000"))).wait()
 
         const bounty = await deployBountyContract(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
         const pool = await deployBrokerPool(sharedContracts, broker)
-        // const balanceBefore = await token.balanceOf(listener.address)
         await (await token.connect(broker).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1000"), "0x")).wait()
 
@@ -715,7 +713,7 @@ describe("BrokerPool", (): void => {
         await pool.updateApproximatePoolvalueOfBounties([bounty.address])
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
-        await (await bounty.connect(admin).flag(pool.address)).wait()
+        await (await bounty.connect(admin).flag(pool.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 

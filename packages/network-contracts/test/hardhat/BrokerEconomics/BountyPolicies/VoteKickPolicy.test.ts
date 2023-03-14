@@ -13,6 +13,7 @@ const VOTE_KICK = "0x00000000000000000000000000000000000000000000000000000000000
 const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const VOTE_START = 24 * 60 * 60 // 1 day
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseFlag(flagData: BigNumber) {
     return {
         flagger: getAddress(hexZeroPad(flagData.shr(96).mask(160).toHexString(), 20)),
@@ -211,7 +212,7 @@ describe("VoteKickPolicy", (): void => {
             // TODO: error_cannotFlagAgain
         })
 
-        it("pays reviewers who correctly voted NO_KICK even if flagger was kicked", async function(): Promise<void> {
+        it("pays reviewers who correctly voted NO_KICK even if flagger already was kicked", async function(): Promise<void> {
             const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "kicked-flagger")
             const start = await getBlockTimestamp()
 
@@ -246,7 +247,7 @@ describe("VoteKickPolicy", (): void => {
             expect (await token.balanceOf(voterBrokers[4].address)).to.equal(parseEther("2"))
         })
 
-        it("pays reviewers who correctly voted NO_KICK even if flagger forceUnstaked", async function(): Promise<void> {
+        it("pays reviewers who correctly voted NO_KICK even if flagger already forceUnstaked", async function(): Promise<void> {
             const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "flgr-forceunstake")
             const start = await getBlockTimestamp()
 
@@ -278,26 +279,38 @@ describe("VoteKickPolicy", (): void => {
             expect(flaggerBalanceBefore).to.equal("0")
             expect(flaggerBalanceAfter).to.equal(parseEther("990")) // flag-stake was forfeited
         })
-    })
 
-    describe("Canceling a flag", function(): void {
-        it("works (happy path)", async function(): Promise<void> {
-            // cancel after some voter has voted (not all), pay the ones who voted
-            // broker flags broker2, broker3 votes, broker4 doesn't vote, broker cancels => all get paid nevertheless
-            const { token, bounty, brokers: [ , , voter, nonVoter ], pools: [ flagger, target ] } = await setup(4)
+        it("pays reviewers who correctly voted KICK even if target already forceUnstaked", async function(): Promise<void> {
+            const { token, bounty, brokers: [ , , ...voterBrokers ], pools: [ flagger, target, ...voters ] } = await setup(2, 5, "trgt-forceunstake")
+            const start = await getBlockTimestamp()
 
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await (await flagger.flag(bounty.address, target.address)).wait()
-            expect(parseFlag(await bounty.getFlag(target.address))).to.include({
-                flagger: flagger.address,
-                reviewerCount: 2,
-                votesForKick: 0,
-                votesAgainstKick: 0,
-            })
-            await(await flagger.cancelFlag(bounty.address, target.address)).wait()
-            expect(await bounty.getFlag(target.address)).to.equal("0")
 
-            expect (await token.balanceOf(voter.address)).to.equal(parseEther("1"))
-            expect (await token.balanceOf(nonVoter.address)).to.equal(parseEther("1"))
+            await advanceToTimestamp(start + 10, `${addr(target)} forceUnstakes`)
+            const targetBalanceBefore = await token.balanceOf(target.address)
+            await expect(target.unstake(bounty.address, "1")).to.be.revertedWith("error_activeFlag")
+            await (await target.forceUnstake(bounty.address, "1")).wait()
+            const targetBalanceAfter = await token.balanceOf(target.address)
+
+            await advanceToTimestamp(start + VOTE_START + 50, `Voting to kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            await (await voters[3].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[4].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK))
+                .to.emit(bounty, "SponsorshipReceived").withArgs(bounty.address, parseEther("96")) // 1 goes to flagger + 3 goes to reviewers
+
+            expect(await bounty.getFlag(target.address)).to.equal("0") // flag is resolved
+
+            expect (await token.balanceOf(voterBrokers[0].address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(voterBrokers[1].address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(voterBrokers[2].address)).to.equal(parseEther("1"))
+            expect (await token.balanceOf(voterBrokers[3].address)).to.equal(parseEther("0"))
+            expect (await token.balanceOf(voterBrokers[4].address)).to.equal(parseEther("0"))
+
+            expect(targetBalanceBefore).to.equal("0")
+            expect(targetBalanceAfter).to.equal(parseEther("900")) // 10% stake was forfeited
         })
 
         it("can be called by anyone if the flagger was kicked (and pays everyone correctly)", async function(): Promise<void> {
