@@ -106,30 +106,30 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     }
 
     function exists(bytes32 projectId) public view returns (bool) {
-        return projects[projectId].version != 0;
+        return projects[projectId].state == 1;
+    }
+
+    function isDeleted(bytes32 projectId) public view returns (bool) {
+        return projects[projectId].state == 2;
     }
 
     /**
-     * Computes the key from project version and user address. Is incremented when project is (re-)created
+     * Computes the key from project state and user address.
      */
     function getAddressKey(bytes32 projectId, address user) public view returns (bytes32) {
-        return keccak256(abi.encode(projects[projectId].version, user));
+        return keccak256(abi.encode(projects[projectId].state, user));
     }
 
     /**
-     * Returns Project struct items except for permissions which are linked to a user/projectVersion hash.
+     * Returns Project struct items except for permissions which are linked to a user/projectState hash.
      */
     function getProject(
         bytes32 id,
         uint32[] memory domainIds
-    )
-        external
-        view
-        returns (
+    ) external view projectExists(id) returns (
             PaymentDetailsByChain[] memory paymentDetails,
             uint256 minimumSubscriptionSeconds,
             string memory metadata,
-            uint32 version,
             string[] memory streams
         )
     {
@@ -144,7 +144,6 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             paymentDetails,
             p.minimumSubscriptionSeconds,
             p.metadata,
-            p.version,
             p.streams
         );
     }
@@ -155,7 +154,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     function getPaymentDetailsByChain(
         bytes32 projectId,
         uint32 domainId
-    ) external view returns (
+    ) external view projectExists(projectId) returns (
         address beneficiary,
         address pricingTokenAddress,
         uint256 pricePerSecond,
@@ -189,7 +188,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     /**
     * Creates a new project in the registry. All permissions are enabled for msg.sender
     * @param paymentDetailsByChain contains the beneficiary & pricingToken & pricePerSecond for supported chains
-    * @dev version is incrementally generated
+    * @dev state is changed when project is deleted
     * @dev permissions are enabled for msg.sender (and the zero address if project is public purchable)
     */
     function createProject(
@@ -208,14 +207,17 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         }
     }
 
-    function deleteProject(bytes32 projectId) public hasDeletePermission(projectId) {
-        delete projects[projectId];
+    /**
+    * Deletes project from registry. Deleting means updating the project to a "deleted" state
+    */
+    function deleteProject(bytes32 projectId) public projectExists(projectId) hasDeletePermission(projectId) {
+        projects[projectId].state = 2; // deleted
         emit ProjectDeleted(projectId);
     }
 
     /**
-    * Updates project fields except for: version, permissions mapping
-    * @dev version is auto-incremented and is not editable
+    * Updates project fields except for: state, permissions mapping
+    * @dev state field is not editable
     * @dev streams[] has dedicated methods under streams management as well
     * @dev permissions have dedicated methods under permissions management (supports other then msg.sender subscribers as well)
     */
@@ -254,6 +256,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         string calldata metadataJsonString
     ) internal {
         require(id != 0x0, "error_nullProjectId");
+        require(!isDeleted(id), "error_usedProjectId");
         require(!exists(id), "error_alreadyExists");
         require(domainIds.length == paymentDetailsByChain.length, "error_invalidPaymentDetailsByChain");
 
@@ -264,7 +267,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         }
         p.minimumSubscriptionSeconds = minimumSubscriptionSeconds;
         p.metadata = metadataJsonString;
-        p.version = projects[id].version + 1;
+        p.state = 1; // created
         emit ProjectCreated(id, domainIds, paymentDetailsByChain, streams, minimumSubscriptionSeconds, metadataJsonString);
 
         for(uint256 i = 0; i < domainIds.length; i++) {
@@ -276,12 +279,12 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     ///////////////// Subscription management ///////////////
 
-    function getSubscription(bytes32 projectId, address subscriber) public view returns (bool isValid, uint endTimestamp) {
+    function getSubscription(bytes32 projectId, address subscriber) public view projectExists(projectId) returns (bool isValid, uint endTimestamp) {
         (, TimeBasedSubscription storage sub) = _getSubscription(projectId, subscriber);
         return (_isValid(sub), sub.endTimestamp);
     }
 
-    function getOwnSubscription(bytes32 projectId) public view returns (bool isValid, uint endTimestamp) {
+    function getOwnSubscription(bytes32 projectId) public view projectExists(projectId) returns (bool isValid, uint endTimestamp) {
         return getSubscription(projectId, _msgSender());
     }
 
@@ -294,7 +297,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      * Must have either Grant permission on the project or be a trusted role
      * e.g. Marketplace will need to be a trusted role when granting subscriptions to buyers
      */
-    function grantSubscription(bytes32 projectId, uint subscriptionSeconds, address subscriber) public hasGrantPermissionOrIsTrusted(projectId) {
+    function grantSubscription(bytes32 projectId, uint subscriptionSeconds, address subscriber) public projectExists(projectId) hasGrantPermissionOrIsTrusted(projectId) {
         _addOrExtendSubscription(projectId, subscriptionSeconds, subscriber);
         _grantSubscribeForAllStreams(projectId, subscriber);
     }
@@ -311,7 +314,6 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      */
     function _getSubscription(bytes32 projectId, address subscriber) internal view returns (Project storage p, TimeBasedSubscription storage s) {
         p = projects[projectId];
-        require(p.id != 0x0, "error_notFound");
         s = p.subscriptions[subscriber];
     }
 
@@ -424,7 +426,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         addStreams(projectId, newStreams);
     }
 
-    function isStreamAdded(bytes32 projectId, string calldata streamId) public view returns (bool) {
+    function isStreamAdded(bytes32 projectId, string calldata streamId) public view projectExists(projectId) returns (bool) {
         return projects[projectId].streamIndex[streamId] > 0;
     }
 
@@ -459,7 +461,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
 
     /////////////// Permissions Management /////////////////
 
-    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view returns (bool userHasPermissionType) {
+    function hasPermissionType(bytes32 projectId, address user, PermissionType permissionType) public view projectExists(projectId) returns (bool userHasPermissionType) {
         if (permissionType == PermissionType.Buy) {
             return projects[projectId].permissions[getAddressKey(projectId, user)].canBuy;
         }
@@ -476,7 +478,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         }
     }
 
-    function enablePermissionType(bytes32 projectId, address user, PermissionType permissionType) public hasGrantPermission(projectId) {
+    function enablePermissionType(bytes32 projectId, address user, PermissionType permissionType) public projectExists(projectId) hasGrantPermission(projectId) {
         _setPermission(projectId, user, permissionType, true);
     }
 
@@ -486,7 +488,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         _setPermission(projectId, recipient, permissionType, true);
     }
 
-    function revokePermissionType(bytes32 projectId, address user, PermissionType permissionType) public hasGrantPermission(projectId) {
+    function revokePermissionType(bytes32 projectId, address user, PermissionType permissionType) public projectExists(projectId) hasGrantPermission(projectId) {
         _setPermission(projectId, user, permissionType, false);
     }
 
@@ -494,11 +496,11 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         return projects[projectId].permissions[getAddressKey(projectId, user)];
     }
 
-    function setPermissionBooleans(bytes32 projectId, address user, bool canBuy, bool deletePerm, bool canEdit, bool canGrant) public hasGrantPermission(projectId) {
+    function setPermissionBooleans(bytes32 projectId, address user, bool canBuy, bool deletePerm, bool canEdit, bool canGrant) public projectExists(projectId) hasGrantPermission(projectId) {
             _setPermissionBooleans(projectId, user, canBuy, deletePerm, canEdit, canGrant);
     }
 
-    function revokeAllPermissionsForUser(bytes32 projectId, address user) public hasGrantPermission(projectId){
+    function revokeAllPermissionsForUser(bytes32 projectId, address user) public projectExists(projectId) hasGrantPermission(projectId){
         delete projects[projectId].permissions[getAddressKey(projectId, user)];
         emit PermissionUpdated(projectId, user, false, false, false, false);
     }
@@ -507,7 +509,7 @@ contract ProjectRegistryV1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      * Adds permissions for multiple users
      * users[] and permissions[] must have the same length
      */
-    function setPermissionsForMultipleUsers(bytes32 projectId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(projectId) {
+    function setPermissionsForMultipleUsers(bytes32 projectId, address[] calldata users, Permission[] calldata permissions) public projectExists(projectId) hasGrantPermission(projectId) {
         require(users.length == permissions.length, "error_invalidUserPermissionArrayLengths");
         uint arrayLength = users.length;
         for (uint i=0; i<arrayLength; i++) {

@@ -21,7 +21,6 @@ interface IProjectRegistryV1 {
         PaymentDetails[] calldata paymentDetails,
         uint256 minimumSubscriptionSeconds,
         string calldata metadata,
-        uint32 version,
         string[] calldata streams
     );
     function exists(bytes32 projectId) external view returns (bool);
@@ -179,7 +178,7 @@ contract Uniswap2AdapterV4 is ERC2771Context {
 
     function _getPriceInfo(bytes32 projectId) internal view returns (uint256 pricePerSecond, address pricingTokenAddress) {
         require(projectRegistry.exists(projectId), "error_projectDoesNotExist");
-        (IProjectRegistryV1.PaymentDetails[] memory paymentDetails, , , , ) = projectRegistry.getProject(projectId, domainIds);
+        (IProjectRegistryV1.PaymentDetails[] memory paymentDetails, , , ) = projectRegistry.getProject(projectId, domainIds);
         pricePerSecond = paymentDetails[0].pricePerSecond;
         pricingTokenAddress = paymentDetails[0].pricingTokenAddress;
         return (pricePerSecond, pricingTokenAddress);

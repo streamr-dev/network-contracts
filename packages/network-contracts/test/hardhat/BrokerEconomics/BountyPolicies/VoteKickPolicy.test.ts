@@ -312,6 +312,10 @@ describe("VoteKickPolicy", (): void => {
             expect(targetBalanceBefore).to.equal("0")
             expect(targetBalanceAfter).to.equal(parseEther("900")) // 10% stake was forfeited
         })
+
+        it("can be called by anyone if the flagger was kicked (and pays everyone correctly)", async function(): Promise<void> {
+
+        })
     })
 
     describe("Voting timeline", function(): void {

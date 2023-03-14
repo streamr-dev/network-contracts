@@ -219,7 +219,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 address reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
+                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
