@@ -17,12 +17,9 @@ import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
 
 import "./StreamrConstants.sol";
 import "./Bounty.sol";
+import "./BountyFactory.sol";
 
 // import "hardhat/console.sol";
-
-interface IFactory {
-    function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
-}
 
 /**
  * BrokerPool receives the delegators' tokens and stakes them to Bounties of the streams that the broker services
@@ -215,7 +212,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
+        require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
