@@ -83,11 +83,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _;
     }
 
-    modifier onlyWhenStakedTo(Bounty bounty) {
-        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
-        _;
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
@@ -229,7 +224,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * Unstake from a bounty
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
      **/
-    function unstake(Bounty bounty, uint maxQueuePayoutIterations) public onlyBroker onlyWhenStakedTo(bounty) {
+    function unstake(Bounty bounty, uint maxQueuePayoutIterations) public onlyBroker {
         uint amountStakedBeforeWei = bounty.getMyStake();
         uint balanceBeforeWei = globalData().token.balanceOf(address(this));
         bounty.unstake();
@@ -244,7 +239,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * @param bounty the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out
      */
-    function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external onlyWhenStakedTo(bounty) {
+    function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external {
         // onlyBroker check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
             require(msg.sender == globalData().broker, "error_onlyBroker");
@@ -297,7 +292,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      * Take out some of the stake from a bounty without completely unstaking
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
-    function reduceStakeTo(Bounty bounty, uint targetStakeWei) external onlyBroker onlyWhenStakedTo(bounty) {
+    function reduceStakeTo(Bounty bounty, uint targetStakeWei) external onlyBroker {
         // console.log("## reduceStake amountWei", amountWei);
         _reduceStakeWithoutQueue(bounty, targetStakeWei);
         payOutQueueWithFreeFunds(0);
@@ -312,7 +307,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         updateApproximatePoolvalueOfBounty(bounty);
     }
 
-    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker onlyWhenStakedTo(bounty) {
+    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
         // console.log("## withdrawWinningsFromBounty");
         updateApproximatePoolvalueOfBounty(bounty);
         _withdrawWinningsFromBountyWithoutQueue(bounty);
@@ -334,7 +329,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         updateApproximatePoolvalueOfBounty(bounty);
     }
 
-    function flag(Bounty bounty, address targetBroker) external onlyBroker onlyWhenStakedTo(bounty) {
+    function flag(Bounty bounty, address targetBroker) external onlyBroker {
         bounty.flag(targetBroker);
     }
 
