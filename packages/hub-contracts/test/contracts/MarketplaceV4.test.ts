@@ -10,52 +10,15 @@ import type {
     MarketplaceV4,
     MinimalForwarder,
     ProjectRegistryV1,
-    RemoteMarketplaceV1,
     StreamRegistryV4,
 } from "../../typechain"
-import { MockInbox__factory, MockOutbox__factory, TestRecipient__factory } from "@hyperlane-xyz/core"
+import { MockMailbox } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
+import { types } from "../constants"
 
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
 const { addressToBytes32} = hyperlaneUtils
-
-const types = {
-    EIP712Domain: [
-        {
-            name: 'name', type: 'string'
-        },
-        {
-            name: 'version', type: 'string'
-        },
-        {
-            name: 'chainId', type: 'uint256'
-        },
-        {
-            name: 'verifyingContract', type: 'address'
-        },
-    ],
-    ForwardRequest: [
-        {
-            name: 'from', type: 'address'
-        },
-        {
-            name: 'to', type: 'address'
-        },
-        {
-            name: 'value', type: 'uint256'
-        },
-        {
-            name: 'gas', type: 'uint256'
-        },
-        {
-            name: 'nonce', type: 'uint256'
-        },
-        {
-            name: 'data', type: 'bytes'
-        },
-    ],
-}
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
@@ -84,9 +47,6 @@ describe("MarketplaceV4", () => {
     const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
     const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
     const paymentDetailsFreeProject: any[] = [] // PaymentDetailsByChain[]
-    const interchainMailbox = constants.AddressZero // TODO: add Mailbox to dev env
-    const interchainQueryRouter = constants.AddressZero // TODO: add InterchainQueryRouter to dev env
-    const interchainGasPaymaster = constants.AddressZero // TODO: add InterchainGasPaymaster to dev env
 
     before(async () => {
         [admin, buyer, other, beneficiary, forwarder, signer, wrongSigner] = await hardhatEthers.getSigners() as unknown as Wallet[]
@@ -199,11 +159,12 @@ describe("MarketplaceV4", () => {
         streams = streamIds,
         minimumSubscriptionSeconds = 1,
         isPublicPurchable = true,
-        metadata = ""
+        metadata = "",
+        creator = admin,
     } = {}): Promise<string> {
         const name = 'project-' + Math.round(Math.random() * 1000000)
         const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
-        await projectRegistry
+        await projectRegistry.connect(creator)
             .createProject(projectId, chains, payment, streams, minimumSubscriptionSeconds, isPublicPurchable, metadata)
         log("   - created project: ", projectId)
         return projectId
@@ -248,6 +209,11 @@ describe("MarketplaceV4", () => {
         it('setTxFee - negativetest - must be less than 1 (1 ether means 100%)', async () => {
             await expect(marketplace.setTxFee(parseEther('1.1')))
                 .to.be.revertedWith('error_invalidTxFee')
+        })
+
+        it('setTxFee - negativetest - fails if not called by the owner', async () => {
+            await expect(marketplace.connect(other).setTxFee(parseEther('0.25')))
+                .to.be.revertedWith('Ownable: caller is not the owner')
         })
 
         it('txFee token distribution works', async () => {
@@ -347,6 +313,39 @@ describe("MarketplaceV4", () => {
                 .withArgs(projectId, admin.address, expectedEndTimestamp)
         })
 
+        it('transferAndCall | onTokenTransfer - negativetest - fails is the pricing token is not an ERC677', async () => {
+            const paymentDetails = [
+                [
+                    beneficiary.address,
+                    otherToken.address, // pricingTokenAddress is not ERC677
+                    BigNumber.from(2)
+                ]
+            ]
+            const projectId = await createProject({ payment: paymentDetails })
+
+            await expect(token.transferAndCall(marketplace.address, parseEther('10'), projectId))
+                .to.be.revertedWith('error_wrongPricingToken')
+        })
+
+        it('transferAndCall | onTokenTransfer - negativetest - fails if the pricing token is not an ERC677', async () => {
+            const paymentDetails = [
+                [
+                    beneficiary.address,
+                    otherToken.address, // pricingTokenAddress is not ERC677
+                    BigNumber.from(2)
+                ]
+            ]
+            const projectId = await createProject({ payment: paymentDetails })
+
+            await expect(token.transferAndCall(marketplace.address, parseEther('10'), projectId))
+                .to.be.revertedWith('error_wrongPricingToken')
+        })
+
+        it(`transferAndCall | onTokenTransfer - negativetest - fails bad project id`, async () => {
+            await expect(token.transferAndCall(marketplace.address, parseEther('10'), '0x1234')) // not bytes32
+                .to.be.revertedWith("error_badProjectId")
+        })
+
         it('buy - positivetest - beneficiary can react on project purchase', async () => {
             const marketFactoryV4 = await getContractFactory("MarketplaceV4", admin)
             const marketFactoryV4Tx = await upgrades.deployProxy(marketFactoryV4, [
@@ -404,11 +403,46 @@ describe("MarketplaceV4", () => {
                 .to.equal(subscriptionSeconds * pricePerSecond)
         })
 
+        it('buy - positivetest - marketplace owner can buy project on halted market', async () => {
+            const projectId = await createProject()
+            await token.connect(admin).approve(marketplace.address, 200) // admin is also the marketplace owner
+            
+            await marketplace.halt()
+            await expect(marketplace.connect(admin).buy(projectId, 100))
+                .to.emit(projectRegistry, 'Subscribed')
+            await marketplace.resume()
+        })
+
+        it('buy - negativetest - reverts if marketplace is halted', async () => {
+            const projectId = await createProject()
+            
+            await marketplace.halt()
+            await expect(marketplace.connect(other).buy(projectId, 100))
+                .to.be.revertedWith("error_halted")
+            await marketplace.resume()
+        })
+
         it('buy - negativetest - unable to purchase free projects (pricePerSecond=0)', async () => {
             const freeProjectId = await createProject({ payment: paymentDetailsFreeProject })
             
             await expect(marketplace.buy(freeProjectId, 100))
                 .to.be.revertedWith("error_freeProjectsNotSupportedOnMarketplace")
+        })
+
+        it('buy - negativetest - unable to purchase private projects', async () => {
+            const projectId = await createProject({ isPublicPurchable: false })
+            
+            await expect(marketplace.connect(other).buy(projectId, 100))
+                .to.be.revertedWith("error_unableToBuyProject")
+        })
+
+        it('buyFor - negativetest - reverts if marketplace is halted', async () => {
+            const projectId = await createProject()
+            
+            await marketplace.halt()
+            await expect(marketplace.connect(other).buyFor(projectId, 100, admin.address))
+                .to.be.revertedWith("error_halted")
+            await marketplace.resume()
         })
     })
 
@@ -448,7 +482,7 @@ describe("MarketplaceV4", () => {
                 .to.emit(projectRegistry, "Subscribed")
         })
 
-        it('can be transferred', async () => {
+        it('transferOwnership - positivetest', async () => {
             const market = await deployMarketplace()
             const admin2 = other
 
@@ -472,6 +506,54 @@ describe("MarketplaceV4", () => {
             // admin3 can now resume market
             await expect(market.connect(admin3).resume())
                 .to.emit(market, "Resumed")
+        })
+
+        it('transferOwnership - negativetest - can not be transferred to zero address', async () => {
+            await expect(marketplace.transferOwnership(constants.AddressZero))
+                .to.be.revertedWith("Ownable: new owner is the zero address")
+        })
+
+        it('transferOwnership - negativetest - fails if not called by the owner', async () => {
+            await expect(marketplace.connect(other).transferOwnership(admin.address))
+                .to.be.revertedWith("Ownable: caller is not the owner")
+        })
+
+        it('claimOwnership - negativetest - fails if not called by the pending owner', async () => {
+            await expect(marketplace.connect(other).claimOwnership())
+                .to.be.revertedWith("onlyPendingOwner")
+        })
+
+        it('renounceOwnership - negativetest - fails if not called by the owner', async () => {
+            await expect(marketplace.connect(other).renounceOwnership())
+                .to.be.revertedWith("Ownable: caller is not the owner")
+        })
+
+        it('addMailbox - positivetest', async () => {
+            const randomAddress = hardhatEthers.Wallet.createRandom().address
+            await marketplace.connect(admin).addMailbox(randomAddress)
+            expect(await marketplace.mailbox())
+                .to.equal(randomAddress)
+        })
+
+        it('addMailbox - negativetest', async () => {
+            const randomAddress = hardhatEthers.Wallet.createRandom().address
+            await expect(marketplace.connect(other).addMailbox(randomAddress))
+                .to.be.revertedWith("Ownable: caller is not the owner")
+        })
+
+        it('addRemoteMarketplace - positivetest', async () => {
+            const randomAddress = hardhatEthers.Wallet.createRandom().address
+            const remoteCahinId = 1
+            await marketplace.connect(admin).addRemoteMarketplace(remoteCahinId, randomAddress)
+            expect(await marketplace.remoteMarketplaces(remoteCahinId))
+                .to.equal(randomAddress)
+        })
+
+        it('addRemoteMarketplace - negativetest', async () => {
+            const randomAddress = hardhatEthers.Wallet.createRandom().address
+            const remoteCahinId = 1
+            await expect(marketplace.connect(other).addRemoteMarketplace(remoteCahinId, randomAddress))
+                .to.be.revertedWith("Ownable: caller is not the owner")
         })
     })
 
@@ -654,6 +736,24 @@ describe("MarketplaceV4", () => {
             expect(purchaseInfo[4]).to.equal(purchaseId)
             expect(purchaseInfo[5]).to.equal(streamsCount)
         })
+
+        it('getSubscriptionInfo - positivetest', async (): Promise<void> => {
+            const projectId = await createProject()
+            const purchaseId = BigNumber.from(1)
+            const subscriptionInfoBefore = await marketplace.getSubscriptionInfo(projectId, other.address, purchaseId)
+            
+            expect(subscriptionInfoBefore[0]).to.be.false // isValid
+            expect(subscriptionInfoBefore[1]).to.equal(0) // subEndTimestamp
+            expect(subscriptionInfoBefore[2]).to.equal(purchaseId) // purchaseId
+
+            await projectRegistry.grantSubscription(projectId, 100, other.address)
+            const subscription = await projectRegistry.getSubscription(projectId, other.address)
+            const subscriptionInfoAfter = await marketplace.getSubscriptionInfo(projectId, other.address, purchaseId)
+
+            expect(subscriptionInfoAfter[0]).to.be.true // isValid
+            expect(subscriptionInfoAfter[1]).to.equal(subscription.endTimestamp) // subEndTimestamp
+            expect(subscriptionInfoAfter[2]).to.equal(purchaseId) // purchaseId
+        })
     })
 
     describe('Hyperlane - cross-chain messaging', () => {
@@ -707,53 +807,70 @@ describe("MarketplaceV4", () => {
             })
         }
 
-        it("should be able to send a message directly using the test recipient contract", async function () {
-            const signer = (await hardhatEthers.getSigners())[0]
-            const inbox = await new MockInbox__factory(signer).deploy()
-            await inbox.deployed()
-            const outbox = await new MockOutbox__factory(signer).deploy(originDomain, inbox.address)
-            await outbox.deployed()
-            const recipient = await new TestRecipient__factory(signer).deploy()
-            const data = toUtf8Bytes("This is a test message")
-        
-            await outbox.dispatch(1, addressToBytes32(recipient.address), data)
-            await inbox.processNextPendingMessage()
-        
-            const dataReceived = await recipient.lastData()
-            expect(dataReceived).to.eql(hexlify(data))
-        })
-
-        const originDomain = 1 // the domain id of the chain RemoteMarketplace is deployed on
-        const destinationDomain = 2 // the domain id of the chain ProjectRegistryV1 & MarketplaceV4 are deployed on
-        let sender: RemoteMarketplaceV1 // the contract the messages are sent from
-        let recipient: MarketplaceV4 // the contract the messages are sent to
+        const originDomain = 1000
+        const destinationDomain = 2000
+        let originMailbox: MockMailbox
+        let destinationMailbox: MockMailbox
 
         before(async () => {
-            recipient = marketplace
+            const MockMailbox = await hardhatEthers.getContractFactory("MockMailbox")
+            originMailbox = await MockMailbox.deploy(originDomain)
+            destinationMailbox = await MockMailbox.deploy(destinationDomain)
+            await originMailbox.addRemoteMailbox(destinationDomain, destinationMailbox.address)
+            await destinationMailbox.addRemoteMailbox(originDomain, originMailbox.address)
+    
+            await marketplace.addMailbox(destinationMailbox.address)
+            await marketplace.addRemoteMarketplace(originDomain, other.address) // other acts as the remote contract
         })
 
-        describe('RemoteMarketplaceV1', () => {
-            let inbox: any
-            let outbox: any
+        it("handle - positivetest", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
 
-            before(async () => {
-                inbox = await new MockInbox__factory(admin).deploy()
-                await inbox.deployed()
-                outbox = await new MockOutbox__factory(admin).deploy(originDomain, inbox.address)
-                await outbox.deployed()
+            const subscriptionBefore = await projectRegistry.getSubscription(projectId, subscriber)
+            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await destinationMailbox.processNextInboundMessage()
+            const subscriptionAfter = await projectRegistry.getSubscription(projectId, subscriber)
 
-                const remoteMarketFactory = await getContractFactory("RemoteMarketplaceV1")
-                sender = await upgrades.deployProxy(remoteMarketFactory, [
-                    originDomain,
-                    interchainQueryRouter,
-                    interchainMailbox,
-                    interchainGasPaymaster
-                ]) as RemoteMarketplaceV1
-                await sender.addRecipient(destinationDomain, recipient.address)
-                await recipient.addRemoteMarketplace(originDomain, sender.address)
-            })
-    
-            it("TODO: buy() - positivetest - subscription purchased on remote chain is added to source chain", async () => {})
+            expect(subscriptionBefore[0]).to.be.false // isValid
+            expect(subscriptionBefore[1]).to.equal(0) // endTimestamp
+            expect(subscriptionAfter[0]).to.be.true // isValid
+            expect(subscriptionAfter[1]).to.gt((await hardhatEthers.provider.getBlock("latest")).timestamp) // endTimestamp
+        })
+
+        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the remote contract", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
+
+            // admin acts as the remote contract, but it should be other
+            await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await expect(destinationMailbox.processNextInboundMessage())
+                .to.be.revertedWith("error_notRemoteMarketplace")
+        })
+
+        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the hyperlane mailbox", async function () {
+            const projectId = await createProject()
+            const subscriber = buyer.address
+            const subscriptionSeconds = 100
+            const message = hardhatEthers.utils.defaultAbiCoder.encode(
+                ['uint256', 'address', 'uint256'],
+                [projectId, subscriber, subscriptionSeconds]
+            )
+
+            await marketplace.addMailbox(hardhatEthers.Wallet.createRandom().address)
+            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
+            await expect(destinationMailbox.processNextInboundMessage())
+                .to.be.revertedWith("error_notHyperlaneMailbox")
         })
     })
 })
