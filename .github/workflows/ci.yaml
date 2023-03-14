@@ -30,9 +30,7 @@ jobs:
             packages/*/node_modules
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+        run: npm ci --no-audit && npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build and lint
         run: npm run build && npm run lint
       - name: Unit tests
@@ -58,9 +56,7 @@ jobs:
             packages/*/node_modules
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+        run: npm ci --no-audit && npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build packages
         run: npm run build -w packages/network-contracts
       - name: Start Streamr Docker Stack
