@@ -44,6 +44,7 @@ const PROJECT_ENTITY_TYPE = "Project"
 const PERMISSION_ENTITY_TYPE = "Permission"
 const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
 const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
+const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
 
 describe("Entity store", () => {
     const projectId = "projectId0"
@@ -218,9 +219,26 @@ describe("Mocked Project Events: create/update/delete", () => {
 
     test("handleProjectDeletion - positivetest", () => {
         const projectDeletedEvent = createProjectDeletedEvent(Bytes.fromHexString(projectId))
+        const project = Project.load(projectId) as Project
+        const permissions = project.permissions
+        const subscriptions = project.subscriptions
+        const paymentDetails = project.paymentDetails
+        const purchases = project.purchases
 
         handleProjectDeletion(projectDeletedEvent)
 
+        permissions.forEach((permission) => {
+            assert.notInStore(PERMISSION_ENTITY_TYPE, permission)
+        })
+        subscriptions.forEach((subscription) => {
+            assert.notInStore(SUBSCRIPTION_ENTITY_TYPE, subscription)
+        })
+        paymentDetails.forEach((payment) => {
+            assert.notInStore(PAYMENT_DETAILS_ENTITY_TYPE, payment)
+        })
+        purchases.forEach((purchase) => {
+            assert.notInStore(PROJECT_PURCHASE_ENTITY_TYPE, purchase)
+        })
         assert.notInStore(PROJECT_ENTITY_TYPE, projectId)
     })
 })
@@ -286,7 +304,7 @@ describe("Mocked Permission Events", () => {
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "id", permissionId)
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "userAddress", userAddress)
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "project", projectId)
-        // subscription linked to Project
+        // permissions linked to Project
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "permissions", `[${permissionId}]`)
         // permissions are initially disabled
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "canBuy", "false")
