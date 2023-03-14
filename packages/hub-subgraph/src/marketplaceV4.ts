@@ -26,6 +26,14 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
     projectPurchase.fee = event.params.fee
     projectPurchase.purchasedAt = event.block.timestamp
     project.counter = newCounter
+
+    let i = project.purchases.indexOf(projectPurchaseId)
+    if (i < 0) {
+        let purchasesArray = project.purchases
+        purchasesArray.push(projectPurchaseId)
+        project.purchases = purchasesArray
+    }
+
     project.save()
     projectPurchase.save()
 }

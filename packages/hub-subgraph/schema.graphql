@@ -57,11 +57,11 @@ type Project @entity {
   "List of domain ids for the chains from which this project can be purchased"
   domainIds: [BigInt!]!
   "Payment details for the chains where the project can be purchased: mapping (uint32 => PaymentDetailsByChain)"
-  paymentDetails: [PaymentDetailsByChain!]! @derivedFrom(field: "project")
+  paymentDetails: [PaymentDetailsByChain!]!
   "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
   minimumSubscriptionSeconds: BigInt!
   "Subscriptions mapping (address => TimeBasedSubscription)"
-  subscriptions: [TimeBasedSubscription!]! @derivedFrom(field: "project")
+  subscriptions: [TimeBasedSubscription!]!
   "Project metadata JSON"
   metadata: String!
   "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
@@ -75,7 +75,7 @@ type Project @entity {
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
   "Marketplace purchases"
-  purchases: [ProjectPurchase!]! @derivedFrom(field: "project")
+  purchases: [ProjectPurchase!]!
   "Incremented/decremented when Stake/Unstake events are fired. It may not always be 1:1 with the stake (with future implementations)"
   score: BigInt
   "Increases when various actions are triggered (e.g. purchase, stake, unstake). Used to generate unique ids"

@@ -40,6 +40,16 @@ export function handleProjectDeletion(event: ProjectDeleted): void {
     project.permissions.forEach((permissionId) => {
         store.remove('Permission', permissionId)
     })
+    project.subscriptions.forEach((subscriptionId) => {
+        store.remove('TimeBasedSubscription', subscriptionId)
+    })
+    project.paymentDetails.forEach((paymentId) => {
+        store.remove('PaymentDetailsByChain', paymentId)
+    })
+    project.purchases.forEach((purchaseId) => {
+        store.remove('ProjectPurchase', purchaseId)
+    })
+
     store.remove('Project', id)
 }
 
@@ -91,14 +101,20 @@ export function handleSubscriptionUpdate(event: Subscribed): void {
     log.info('handleSubscriptionUpdate: projectId={} subscriber={} blockNumber={}',
         [projectId, subscriber, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.projectId)
-
     let subscriptionId = projectId + '-' + subscriber
     let subscription = new TimeBasedSubscription(subscriptionId)
     subscription.project = projectId
     subscription.userAddress = event.params.subscriber
     subscription.endTimestamp = event.params.endTimestamp
     subscription.save()
+
+    let project = loadOrCreateProject(event.params.projectId)
+    let i = project.subscriptions.indexOf(subscriptionId)
+    if (i < 0) {
+        let subscriptionsArray = project.subscriptions
+        subscriptionsArray.push(subscriptionId)
+        project.subscriptions = subscriptionsArray
+    }
     project.save()
 }
 
@@ -110,9 +126,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     const pricePerSecond = event.params.pricePerSecond.toString()
     log.info('handlePaymentDetailsByChainUpdate: projectId={} domainId={} beneficiary={} pricingTokenAddress={} pricePerSecond={} blockNumber={}',
         [projectId, domainId, beneficiary, pricingTokenAddress, pricePerSecond, event.block.number.toString()])
-
-    let project = loadOrCreateProject(event.params.id)
-
+    
     let paymentDetailsId = projectId + '-' + domainId
     let paymentDetails = new PaymentDetailsByChain(paymentDetailsId)
     paymentDetails.project = projectId
@@ -120,8 +134,16 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     paymentDetails.beneficiary = event.params.beneficiary
     paymentDetails.pricingTokenAddress = event.params.pricingTokenAddress
     paymentDetails.pricePerSecond = event.params.pricePerSecond
-    project.save()
     paymentDetails.save()
+    
+    let project = loadOrCreateProject(event.params.id)
+    let i = project.paymentDetails.indexOf(paymentDetailsId)
+    if (i < 0) {
+        let paymentDetailsArray = project.paymentDetails
+        paymentDetailsArray.push(paymentDetailsId)
+        project.paymentDetails = paymentDetailsArray
+    }
+    project.save()
 }
 
 export function handleStreamAddition(event: StreamAdded): void {
