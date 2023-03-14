@@ -15,9 +15,9 @@ interface IProjectRegistryV1 {
         mapping(uint32 => PaymentDetailsByChain) paymentDetails;
         mapping(address => TimeBasedSubscription) subscriptions;
         string metadata;
-        uint32 version; // incremented when project is (re-)created, so that users from old projects don't re-appear in the new project (if they have permissions)
+        uint32 state; // 0 | 1 | 2 => not-created | created | deleted
         string[] streams;
-        mapping(bytes32 => Permission) permissions; // keccak256(projectIdToVersion, userAddress) -> Permission
+        mapping(bytes32 => Permission) permissions; // keccak256(projectState, userAddress) => Permission
         mapping(string => uint) streamIndex; // in the streams array PLUS ONE, so that default value zero means stream doesn't exist in the array
     }
 
@@ -70,7 +70,6 @@ interface IProjectRegistryV1 {
         PaymentDetailsByChain[] calldata paymentDetailsByChain,
         uint256 minimumSubscriptionSeconds,
         string calldata metadata,
-        uint32 version,
         string[] calldata streams
     );
 

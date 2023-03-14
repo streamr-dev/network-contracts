@@ -19,6 +19,7 @@ const config: HardhatUserConfig = {
         paths: [
             '@openzeppelin/contracts/metatx/MinimalForwarder.sol',
             '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol',
+            '@hyperlane-xyz/core/contracts/mock/MockMailbox.sol',
         ],
     },
     solidity: {

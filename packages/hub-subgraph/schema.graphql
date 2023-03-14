@@ -66,8 +66,6 @@ type Project @entity {
   metadata: String!
   "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
   isDataUnion: Boolean
-  "Project version. This is a normal int value (not wei)"
-  version: BigInt
   "Streams added to the project"
   streams: [String!]!
   "Permissions mapping (bytes32 => Permission)"
