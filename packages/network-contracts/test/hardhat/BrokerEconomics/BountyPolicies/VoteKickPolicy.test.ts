@@ -12,6 +12,7 @@ const { parseEther, id, getAddress, hexZeroPad } = utils
 const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
 const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const VOTE_START = 24 * 60 * 60 // 1 day
+const VOTE_END = VOTE_START + 60 * 60 // +1 hour
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseFlag(flagData: BigNumber) {
@@ -205,7 +206,20 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("results in NO_KICK if no one voted", async function(): Promise<void> {
-            // TODO
+            const { bounty, pools: [ flagger, target ] } = defaultSetup
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(bounty.address, target.address)).wait()
+
+            // attempting to vote actually ends the vote because voting period is over
+            await advanceToTimestamp(start + VOTE_END + 10, "End vote")
+            expect(await bounty.getFlag(target.address)).to.not.equal("0") // open
+            await (await target.voteOnFlag(bounty.address, target.address, VOTE_KICK)).wait()
+            expect(await bounty.getFlag(target.address)).to.equal("0") // closed
+
+            // target is not kicked
+            expect(await bounty.getStake(target.address)).to.not.equal("0")
         })
 
         it("prevents immediately flagging the same broker again after NO_KICK result", async function(): Promise<void> {
