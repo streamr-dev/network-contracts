@@ -78,7 +78,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     function globalData() internal pure returns(GlobalStorage storage data) {
-        bytes32 storagePosition = keccak256("agreement.storage.GlobalStorage");
+        bytes32 storagePosition = keccak256("bounty.storage.GlobalStorage");
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
@@ -322,7 +322,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    /** Sponsor a stream by first calling DATA.approve(agreement.address, amountWei) then this function */
+    /** Sponsor a stream by first calling DATA.approve(bounty.address, amountWei) then this function */
     function sponsor(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _addSponsorship(_msgSender(), amountWei);

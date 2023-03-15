@@ -79,7 +79,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     //     ) = abi.decode(param,
     //         (uint32,uint32,string,address[],uint[])
     //     );
-    //     address bountyAddress = _deployBountyAgreement(
+    //     address bountyAddress = _deployBounty(
     //         sender,
     //         initialMinHorizonSeconds,
     //         initialMinBrokerCount,

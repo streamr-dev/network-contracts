@@ -49,10 +49,10 @@ const log = require("debug")("streamr:deploy-tatum")
 let wallet: Wallet
 
 async function deployBountyFactory() {
-    const agreementTemplateFactory = await ethers.getContractFactory("Bounty")
-    const agreementTemplate = await agreementTemplateFactory.deploy()
-    await agreementTemplate.deployed()
-    log(`BountyTemplate deployed at ${agreementTemplate.address}`)
+    const bountyTemplateFactory = await ethers.getContractFactory("Bounty")
+    const bountyTemplate = await bountyTemplateFactory.deploy()
+    await bountyTemplate.deployed()
+    log(`BountyTemplate deployed at ${bountyTemplate.address}`)
 
     const allocationPolicyFactory = await ethers.getContractFactory("StakeWeightedAllocationPolicy")
     const allocationPolicy = await allocationPolicyFactory.deploy()
@@ -61,7 +61,7 @@ async function deployBountyFactory() {
 
     const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", wallet)
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ agreementTemplate.address, trustedForwarderAddress, LINKTOKEN_ADDRESS ])
+        [ bountyTemplate.address, trustedForwarderAddress, LINKTOKEN_ADDRESS ])
     const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
     log(`BountyFactory deployed at ${bountyFactory.address}`)
     await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()

@@ -81,7 +81,7 @@ describe("BountyFactory", () => {
          *   2: kick policy (address(0) for none)
          *   3+: join policies (leave out if none)
          * @param policies smart contract addresses found in the trustedPolicies
-         function deployBountyAgreement(
+         function deployBounty(
             uint initialMinHorizonSeconds,
             uint initialMinBrokerCount,
             string memory bountyName,
@@ -91,19 +91,19 @@ describe("BountyFactory", () => {
         const untrustedAddress = "0x1234567890123456789012345678901234567890"
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(0, 1, "Bounty-" + bountyCounter++,
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(0, 1, "Bounty-" + bountyCounter++,
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // kickpolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(0, 1, "Bounty-" + bountyCounter++,
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // joinpolicy
-        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(0, 1, "Bounty-" + bountyCounter++,
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
     })
@@ -111,7 +111,7 @@ describe("BountyFactory", () => {
     it("will NOT create a Bounty with mismatching number of policies and params", async function(): Promise<void> {
         const { bountyFactory, allocationPolicy, leavePolicy } = contracts
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
-        await expect(bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(0, 1, "Bounty-" + bountyCounter++,
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })

@@ -87,7 +87,7 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const agreementtx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+    const bountytx = await bountyFactory.deployBounty(0, 1, "Bounty-" + Date.now(),
         [
             ALLOCATIONPOLICY,
             ethers.constants.AddressZero,
@@ -98,12 +98,12 @@ const deployNewBounty = async () => {
             "0"
         ]
     )
-    const agreementReceipt = await agreementtx.wait()
-    const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
+    const bountyReceipt = await bountytx.wait()
+    const newBountyAddress = bountyReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
     log("new bounty address: " + newBountyAddress)
     bountyAddress = newBountyAddress
 }
-    
+
 const sponsorNewBounty = async () => {
     bounty = await ethers.getContractAt("Bounty", bountyAddress, adminWallet) as Bounty
     // sponsor with token approval

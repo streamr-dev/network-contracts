@@ -71,7 +71,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         ) = abi.decode(param,
             (uint32,uint32,string,address[],uint[])
         );
-        address bountyAddress = _deployBountyAgreement(
+        address bountyAddress = _deployBounty(
             sender,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
@@ -90,14 +90,14 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      *   3+: join policies (leave out if none)
      * @param policies smart contract addresses found in the trustedPolicies
      */
-    function deployBountyAgreement(
+    function deployBounty(
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory bountyName,
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
-        return _deployBountyAgreement(
+        return _deployBounty(
             _msgSender(),
             initialMinHorizonSeconds,
             initialMinBrokerCount,
@@ -107,7 +107,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         );
     }
 
-    function _deployBountyAgreement(
+    function _deployBounty(
         address bountyOwner,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,

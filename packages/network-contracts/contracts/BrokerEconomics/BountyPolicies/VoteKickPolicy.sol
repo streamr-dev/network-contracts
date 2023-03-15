@@ -41,7 +41,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     mapping (address => uint) public targetStakeAtRiskWei;
 
     // function localData() internal view returns(LocalStorage storage data) {
-    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
+    //     bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.AdminKickPolicy", address(this)));
     //     assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     // }
 

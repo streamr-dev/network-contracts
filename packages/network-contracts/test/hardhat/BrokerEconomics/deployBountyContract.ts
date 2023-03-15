@@ -41,7 +41,7 @@ export async function deployBountyContract(
     } = contracts
 
     /**
-     * From BountyFactory.sol:deployBountyAgreement:
+     * From BountyFactory.sol:deployBounty:
      * Policies array is interpreted as follows:
      *   0: allocation policy (address(0) for none)
      *   1: leave policy (address(0) for none)
@@ -77,7 +77,7 @@ export async function deployBountyContract(
         }
     }
     if (!skipBountyFactory) {
-        const bountyDeployTx = await bountyFactory.deployBountyAgreement(
+        const bountyDeployTx = await bountyFactory.deployBounty(
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
             `Bounty-${bountyCounter++}-${Date.now()}`,
