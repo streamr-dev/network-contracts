@@ -87,6 +87,10 @@ describe("Bounty", (): void => {
         // TODO: test for error_cannotReduceStake
     })
 
+    it("won't let reduce stake below minimum", async function(): Promise<void> {
+
+    })
+
     it("shows zero allocation after a withdraw", async function(): Promise<void> {
         const bounty = await deployBountyContract(contracts, {skipBountyFactory: true})
         await (await bounty.sponsor(parseEther("10000"))).wait()
