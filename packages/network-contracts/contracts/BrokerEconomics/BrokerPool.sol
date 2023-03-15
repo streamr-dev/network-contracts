@@ -10,12 +10,14 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./ISlashListener.sol";
-import "./Bounty.sol";
-import "./StreamrConstants.sol";
+import "./IBroker.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
 import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
+
+import "./StreamrConstants.sol";
+import "./Bounty.sol";
+import "./BountyFactory.sol";
 
 // import "hardhat/console.sol";
 
@@ -25,7 +27,7 @@ import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
  *
  * The whole token balance of the pool IS THE SAME AS the "free funds", so there's no need to track the unallocated tokens separately
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, ISlashListener { //}, ERC2771Context {
+contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IBroker { //}, ERC2771Context {
 
     event Delegated(address indexed delegator, uint amountWei);
     event Undelegated(address indexed delegator, uint amountWei);
@@ -36,6 +38,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event QueueUpdated(address user, uint amountPoolTokenWei);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant NODE_ROLE = keccak256("NODE_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     uint public minimumDelegationWei;
@@ -121,6 +124,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
     }
 
+    // TODO: rename to owner
     function broker() external view returns (address) {
         return globalData().broker;
     }
@@ -139,22 +143,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
-    }
-
-    function onSlash(bool kicked) external {
-        Bounty bounty = Bounty(msg.sender);
-        uint index = indexOfBounties[bounty];
-        require(index > 0, "error_onlyBounty");
-        // console.log("## onSlash");
-        if (kicked) {
-            // console.log("onSlash kicked");
-            bounties[index-1] = bounties[bounties.length-1];
-            indexOfBounties[bounties[index-1]] = index;
-            bounties.pop();
-            delete indexOfBounties[bounty];
-            emit Unstaked(bounty, 0, 0);
-        }
-        updateApproximatePoolvalueOfBounty(bounty);
     }
 
     /////////////////////////////////////////
@@ -219,7 +207,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        require(IFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
+        require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
@@ -287,7 +275,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             emit Unstaked(bounty, amountStakedBeforeWei, gainsWei);
         }
 
-        // remove from array: replace with the last element
+        _removeBountyFromArray(bounty);
+    }
+
+    // remove from array: replace with the last element
+    function _removeBountyFromArray(Bounty bounty) internal {
         uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
         Bounty lastBounty = bounties[bounties.length - 1];
         bounties[index] = lastBounty;
@@ -339,10 +331,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function flag(Bounty bounty, address targetBroker) external onlyBroker {
         bounty.flag(targetBroker);
-    }
-
-    function cancelFlag(Bounty bounty, address targetBroker) external onlyBroker {
-        bounty.cancelFlag(targetBroker);
     }
 
     function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
@@ -443,6 +431,24 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         queueLength++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
+    }
+
+    /////////////////////////////////////////
+    // BOUNTY CALLBACKS
+    /////////////////////////////////////////
+
+    function onSlash() external {
+        Bounty bounty = Bounty(msg.sender);
+        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
+        updateApproximatePoolvalueOfBounty(bounty);
+    }
+
+    function onKick() external {
+        Bounty bounty = Bounty(msg.sender);
+        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
+        _removeBountyFromArray(bounty);
+        updateApproximatePoolvalueOfBounty(bounty);
+        emit Unstaked(bounty, 0, 0);
     }
 
     ////////////////////////////////////////

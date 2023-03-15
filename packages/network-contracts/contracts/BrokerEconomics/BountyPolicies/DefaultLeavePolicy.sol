@@ -16,16 +16,17 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
     function getLeavePenaltyWei(address broker) public override view returns (uint leavePenaltyWei) {
         uint joinTimestamp = globalData().joinTimeOfBroker[broker];
         if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) { // solhint-disable-line not-rely-on-time
+            // console.log("Penalty period over, get stake back");
             return 0;
         }
 
         uint stake = globalData().stakedWei[broker];
         // console.log("getLeavePenaltyWei, stake =", stake);
         if (isRunning() && isFunded()) {
-            // console.log("Leaving a running bounty, lose 10% of stake");
+            // console.log("Leaving a running bounty too early, lose 10% of stake");
             return stake / 10;
         }
-        // console.log("Get stake back");
+        // console.log("Bounty not running, get stake back");
         return 0;
     }
 

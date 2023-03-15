@@ -18,6 +18,8 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
      * MAX_PENALTY_PERIOD_SECONDS is the global maximum value that MIN_JOIN_TIME can have across all bounties.
      * This garuantees that a broker (and thus a pool) can get the money back from any and all bounties
      * without being slashed (provided it does the work) in a fixed maximum time.
+     *
+     * TODO: is this actually used/needed? It's only used when setting penaltyperiod, but what's the other constraint where it should be used?
      */
     uint public MAX_PENALTY_PERIOD_SECONDS;
 
