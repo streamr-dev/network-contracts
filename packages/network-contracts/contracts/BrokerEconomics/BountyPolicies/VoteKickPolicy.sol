@@ -49,19 +49,6 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     }
 
-    /**
-     * Voting period starts after the review period ends
-     * During review period, the target still gets a chance to resume working, so it's a "grace period" for a suspected freerider
-     **/
-    function canVote(address target) internal view returns (bool) {
-        // false if flagTimestamp[broker] == 0
-        return block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS;  // solhint-disable-line not-rely-on-time
-    }
-
-    function voteEndTimestamp(address target) internal view returns (uint) {
-        return flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS;
-    }
-
     function getFlagData(address broker) override external view returns (uint flagData) {
         if (flagTimestamp[broker] == 0) {
             return 0;
@@ -158,8 +145,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
     function onVote(address target, bytes32 voteData) external {
-        require(canVote(target), "error_votingNotStarted");
-        if (block.timestamp > voteEndTimestamp(target)) { // solhint-disable-line not-rely-on-time
+        require(flagTimestamp[target] > 0, "error_notFlagged");
+        require(block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS, "error_votingNotStarted");
+        if (block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS) { // solhint-disable-line not-rely-on-time
             _endVote(target);
             return;
         }
