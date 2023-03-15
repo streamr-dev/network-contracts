@@ -10,7 +10,7 @@ import {
     TestContracts,
 } from "../deployTestContracts"
 import { deployBrokerPool } from "../deployBrokerPool"
-import { deployBountyContract } from "../deployBountyContract"
+import { deployBounty } from "../deployBounty"
 
 describe("BrokerPoolOnlyJoinPolicy", (): void => {
     let admin: Wallet
@@ -28,7 +28,7 @@ describe("BrokerPoolOnlyJoinPolicy", (): void => {
 
     it("only allows BrokerPools to stake", async function(): Promise<void> {
         const { streamrConstants, token } = contracts
-        const bounty = await deployBountyContract(contracts, { brokerPoolOnly: true })
+        const bounty = await deployBounty(contracts, { brokerPoolOnly: true })
 
         await (await token.approve(bounty.address, parseEther("1"))).wait()
         await expect(bounty.stake(broker.address, parseEther("1")))

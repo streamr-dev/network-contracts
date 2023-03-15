@@ -5,7 +5,7 @@ import { utils, Wallet } from "ethers"
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
-import { deployBountyContract } from "../deployBountyContract"
+import { deployBountyContract } from "../deployBounty"
 
 const { parseEther, formatEther } = utils
 
@@ -33,7 +33,6 @@ describe("AdminKickPolicy", (): void => {
         await (await token.mint(broker2.address, parseEther("1000"))).wait()
         const bounty = await deployBountyContract(contracts, {
             penaltyPeriodSeconds: 1000,
-            skipBountyFactory: true,
             adminKickInsteadOfVoteKick: true
         })
 
@@ -66,12 +65,12 @@ describe("AdminKickPolicy", (): void => {
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true,
-            skipBountyFactory: true })
+        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
+        await (await token.mint(broker.address, parseEther("1000"))).wait()
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 
         const brokerCountBeforeReport = await bounty.getBrokerCount()
-        expect(bounty.connect(broker2).flag(await broker.getAddress(), admin.address))
+        expect(bounty.connect(broker2).flag(await broker.getAddress()))
             .to.emit(bounty, "BrokerKicked")
             .withArgs(await broker.getAddress(), "0")
         const brokerCountAfterReport = await bounty.getBrokerCount()

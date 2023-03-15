@@ -3,7 +3,7 @@ import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
 import { deployTestContracts } from "../deployTestContracts"
-import { deployBountyContract } from "../deployBountyContract"
+import { deployBounty } from "../deployBounty"
 import { deployBrokerPool } from "../deployBrokerPool"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
@@ -70,7 +70,7 @@ describe("VoteKickPolicy", (): void => {
         const pools = await Promise.all(brokers.map((b) => deployBrokerPool(contracts, b, {}, saltSeed)))
         await Promise.all(brokers.map((b, i) => token.connect(b).transferAndCall(pools[i].address, parseEther("1000"), "0x")))
 
-        const bounty = await deployBountyContract(contracts, {
+        const bounty = await deployBounty(contracts, {
             allocationWeiPerSecond: BigNumber.from(0),
             penaltyPeriodSeconds: 0,
             brokerPoolOnly: true,

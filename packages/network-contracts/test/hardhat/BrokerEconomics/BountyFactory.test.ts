@@ -6,7 +6,8 @@ const { defaultAbiCoder, parseEther } = ethersUtils
 const { getSigners } = hardhatEthers
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deployBountyContract } from "./deployBountyContract"
+import { deployBounty } from "./deployBounty"
+import { deployBrokerPool } from "./deployBrokerPool"
 
 let bountyCounter = 0
 
@@ -22,13 +23,14 @@ describe("BountyFactory", () => {
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
     })
 
-    it("can deploy a Bounty; then can join, increase stake (happy path)", async function(): Promise<void> {
+    it("can deploy a Bounty; then BrokerPool can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
-
-        const bounty = await deployBountyContract(contracts, { minStakeWei: parseEther("2"), skipBountyFactory: true })
-        await expect(token.transferAndCall(bounty.address, parseEther("2"), admin.address))
-            .to.emit(bounty, "BrokerJoined").withArgs(admin.address)
-        await expect(token.transferAndCall(bounty.address, parseEther("2"), admin.address))
+        const bounty = await deployBounty(contracts, { minStakeWei: parseEther("2") })
+        const pool = await deployBrokerPool(contracts, admin)
+        await (await token.mint(pool.address, parseEther("2"))).wait()
+        await expect(pool.stake(bounty.address, parseEther("2")))
+            .to.emit(bounty, "BrokerJoined").withArgs(pool.address)
+        await expect(pool.stake(bounty.address, parseEther("2")))
             .to.not.emit(bounty, "BrokerJoined")
     })
 

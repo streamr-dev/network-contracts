@@ -10,7 +10,7 @@ import {
     TestContracts,
 } from "../deployTestContracts"
 
-import { deployBountyContract } from "../deployBountyContract"
+import { deployBounty } from "../deployBounty"
 
 describe("MinimumStakeJoinPolicy", (): void => {
     let admin: Wallet
@@ -28,7 +28,7 @@ describe("MinimumStakeJoinPolicy", (): void => {
 
     it("will NOT let join with too small stake", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { minStakeWei: parseEther("2") })
+        const bounty = await deployBounty(contracts, { minStakeWei: parseEther("2") })
         await expect(token.transferAndCall(bounty.address, parseEther("1"), broker.address))
             .to.be.revertedWith("error_stakeUnderMinimum")
     })
