@@ -1,11 +1,10 @@
 {
-  "name": "tatum-thegraph-subgraph",
+  "name": "@streamr-contracts/tatum-subgraph",
   "version": "0.0.1",
   "description": "Subgraph definitions for the tatum contracts",
   "scripts": {
     "clean": "rm -rf build generated artifacts cache",
-    "build": "npm run compile-contracts && graph codegen subgraph.development.yaml && graph build subgraph.development.yaml",
-    "compile-contracts": "hardhat compile",
+    "build": "graph codegen subgraph.development.yaml && graph build subgraph.development.yaml",
     "build-production": "graph codegen $npm_config_config && graph build $npm_config_config",
     "lint": "eslint ./src/*.ts",
     "docker:build": "npm run build && docker build . -t streamr/graph-deploy-subgraph:dev",
@@ -19,12 +18,9 @@
     "doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.26.0",
-    "hardhat": "2.8.2",
-    "hardhat-dependency-compiler": "1.1.2"
+    "@graphprotocol/graph-cli": "^0.26.0"
   },
   "dependencies": {
-    "@graphprotocol/graph-ts": "^0.24.1",
-    "@streamr/network-contracts": "2.4.0"
+    "@graphprotocol/graph-ts": "^0.24.1"
   }
 }

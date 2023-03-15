@@ -150,6 +150,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
+        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0);
     }
 
     /**

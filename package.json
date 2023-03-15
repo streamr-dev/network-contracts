@@ -12,7 +12,8 @@
     "./packages/network-subgraphs",
     "./packages/hub-subgraph",
     "./packages/docker-dev-chain-init",
-    "./packages/chat-contracts"
+    "./packages/chat-contracts",
+    "./packages/tatum-subgraph"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",

@@ -1,0 +1,104 @@
+specVersion: 0.0.4
+description: Subgraph definitions for tatum bounty contracts
+repository:
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: BountyFactory
+    network: xDai
+    source:
+      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0x491AA49eCFb81FDE6cc682E6925173b681624947'
+      abi: BountyFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/bountyFactory.ts
+      entities:
+        - Bounty
+      abis:
+        - name: BountyFactory
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BountyFactory.sol/BountyFactory.json
+      eventHandlers:
+        - event: NewBounty(address)
+          handler: handleBountyCreated
+  - kind: ethereum/contract
+    name: BrokerPoolFactory
+    network: xDai
+    source:
+      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0x4D0787CdB700C6942f843f716345EbDb2dd020E8'
+      abi: BrokerPoolFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/poolFactory.ts
+      entities:
+        - Pool
+        - PoolDelegation
+      abis:
+        - name: BrokerPoolFactory
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPoolFactory.sol/BrokerPoolFactory.json
+      eventHandlers:
+        - event: NewBrokerPool(address)
+          handler: handlePoolCreated
+
+templates:
+  - name: Bounty
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: Bounty
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/bounty.ts
+      entities:
+        - Bounty
+        - Stake
+        - BrokerPool
+        - Flag
+      abis:
+        - name: Bounty
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
+      eventHandlers:
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+          - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
+            handler: handleBountyUpdated
+          - event: FlagUpdate(indexed address,address,uint256,uint256)
+            handler: handleFlagUpdate
+
+        # - event: StakeAdded(indexed address,uint256,uint256)
+        #   handler: handleStakeAdded
+        # - event: SponsorshipReceived(indexed address,uint256)
+        #   handler: handleSponsorshipReceived
+        # - event: BrokerJoined(indexed address)
+        #   handler: handleBrokerJoined
+        # - event: BrokerLeft(indexed address,uint256)
+        #   handler: handleBrokerLeft
+  - name: BrokerPool
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: BrokerPool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - BrokerPool
+        - PoolDelegation
+      abis:
+        - name: BrokerPool
+          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPool.sol/BrokerPool.json
+      eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegationReceived
