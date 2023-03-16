@@ -32,7 +32,7 @@ dataSources:
         - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
           handler: handlePaymentDetailsByChainUpdate
         - event: StreamAdded(bytes32,string)
-          handler: handleStreamAdition
+          handler: handleStreamAddition
         - event: StreamRemoved(bytes32,string)
           handler: handleStreamRemoval
         - event: PermissionUpdated(bytes32,address,bool,bool,bool,bool)
