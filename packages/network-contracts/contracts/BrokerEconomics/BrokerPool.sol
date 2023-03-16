@@ -211,7 +211,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
-            bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
+            bounty.stake(address(this), amountWei); // may fail if amountWei < minimumStake
             bounties.push(bounty);
             indexOfBounties[bounty] = bounties.length; // real array index + 1
             approxPoolValueOfBounty[bounty] += amountWei;

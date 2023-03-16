@@ -80,7 +80,7 @@ describe("Bounty", (): void => {
 
     it("will NOT let stake zero", async function(): Promise<void> {
         await expect(token.transferAndCall(defaultBounty.address, parseEther("0"), broker.address))
-            .to.be.revertedWith("error_cannotStakeZero")
+            .to.be.revertedWith("error_minimumStake")
     })
 
     it("lets add and reduce stake", async function(): Promise<void> {
@@ -88,7 +88,11 @@ describe("Bounty", (): void => {
     })
 
     it("won't let reduce stake below minimum", async function(): Promise<void> {
-
+        const bounty = await deployBountyContract(contracts, { minimumStakeWei: parseEther("10") })
+        await (await bounty.sponsor(parseEther("10000"))).wait()
+        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("20"), broker.address)).wait()
+        await expect(bounty.connect(broker).reduceStakeTo(parseEther("5")))
+            .to.be.revertedWith("error_minimumStake")
     })
 
     it("shows zero allocation after a withdraw", async function(): Promise<void> {
@@ -134,9 +138,9 @@ describe("Bounty", (): void => {
     describe("Adding policies", (): void => {
 
         it("will FAIL for non-admins", async function(): Promise<void> {
-            const { minStakeJoinPolicy } = contracts
+            const { maxBrokersJoinPolicy } = contracts
             const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
-            await expect(defaultBounty.connect(broker).addJoinPolicy(minStakeJoinPolicy.address, "2000000000000000000"))
+            await expect(defaultBounty.connect(broker).addJoinPolicy(maxBrokersJoinPolicy.address, "2000000000000000000"))
                 .to.be.revertedWith(`AccessControl: account ${broker.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
         })
 
@@ -209,7 +213,7 @@ describe("Bounty", (): void => {
             const bounty = await deployBountyContract(contracts, {},
                 [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
             await (await token.transferAndCall(bounty.address, parseEther("1"), broker.address)).wait()
-            await expect(bounty.connect(broker).unstake()).to.be.revertedWith("error_brokerLeaveFailed")
+            await expect(bounty.connect(broker).unstake()).to.be.revertedWith("error_leaveHandlerFailed")
         })
 
         it("error onStakeChange", async function(): Promise<void> {

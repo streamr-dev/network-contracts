@@ -2,14 +2,13 @@ import { ethers as hardhatEthers } from "hardhat"
 import { Wallet } from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
     streamrConstants: StreamrConstants;
-    minStakeJoinPolicy: IJoinPolicy;
     maxBrokersJoinPolicy: IJoinPolicy;
     brokerPoolOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
@@ -39,7 +38,6 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await(await streamrConstants.initialize()).wait()
 
     // bounty and policies
-    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", { signer })).deploy()
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", { signer })).deploy()
     const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", { signer })).deploy()
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", { signer })).deploy()
@@ -62,7 +60,6 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         leavePolicy.address,
         adminKickPolicy.address,
         voteKickPolicy.address,
-        minStakeJoinPolicy.address,
         maxBrokersJoinPolicy.address,
         brokerPoolOnlyJoinPolicy.address,
     ])).wait()
@@ -92,7 +89,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     return {
         token, streamrConstants,
-        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
+        bountyTemplate, bountyFactory, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
         deployer: signer
     }

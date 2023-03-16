@@ -16,10 +16,10 @@ export let bountyCounter = 0
  */
 export async function deployBounty(
     contracts: TestContracts, {
+        minimumStakeWei = BigNumber.from(1),
         minHorizonSeconds = 0,
         minBrokerCount = 1,
         penaltyPeriodSeconds = -1,
-        minStakeWei = BigNumber.from(-1),
         maxBrokerCount = -1,
         allocationWeiPerSecond = parseEther("1"),
         brokerPoolOnly = false,
@@ -33,7 +33,7 @@ export async function deployBounty(
 ): Promise<Bounty> {
     const {
         token,
-        minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
+        maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
         allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
         bountyTemplate, bountyFactory
     } = contracts
@@ -54,10 +54,6 @@ export async function deployBounty(
     const kickPolicyParam = "0"
     const policyAdresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
     const policyParams = [allocationPolicyParam, leavePolicyParam, kickPolicyParam]
-    if (minStakeWei.gt(-1)) {
-        policyAdresses.push(minStakeJoinPolicy.address)
-        policyParams.push(minStakeWei.toString())
-    }
     if (maxBrokerCount > -1) {
         policyAdresses.push(maxBrokersJoinPolicy.address)
         policyParams.push(maxBrokerCount.toString())
@@ -75,6 +71,7 @@ export async function deployBounty(
         }
     }
     const bountyDeployTx = await bountyFactory.deployBounty(
+        minimumStakeWei.toString(),
         minHorizonSeconds.toString(),
         minBrokerCount.toString(),
         `Bounty-${bountyCounter++}-${Date.now()}`,
@@ -95,10 +92,10 @@ export async function deployBounty(
  */
 export async function deployBountyContract(
     contracts: TestContracts, {
+        minimumStakeWei = BigNumber.from(1),
         minHorizonSeconds = 0,
         minBrokerCount = 1,
         penaltyPeriodSeconds = -1,
-        minStakeWei = BigNumber.from(-1),
         maxBrokerCount = -1,
         allocationWeiPerSecond = parseEther("1"),
         brokerPoolOnly = false,
@@ -111,7 +108,7 @@ export async function deployBountyContract(
 ): Promise<Bounty> {
     const {
         token, deployer,
-        minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
+        maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
         allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
     } = contracts
 
@@ -121,6 +118,7 @@ export async function deployBountyContract(
         contracts.streamrConstants.address,
         deployer.address,
         token.address,
+        minimumStakeWei.toString(),
         minHorizonSeconds.toString(),
         minBrokerCount.toString(),
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
@@ -130,9 +128,6 @@ export async function deployBountyContract(
     await bounty.setKickPolicy(adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address, "0")
     if (penaltyPeriodSeconds > -1) {
         await bounty.setLeavePolicy(leavePolicy.address, penaltyPeriodSeconds.toString())
-    }
-    if (minStakeWei.gt(-1)) {
-        bounty.addJoinPolicy(minStakeJoinPolicy.address, minStakeWei.toString())
     }
     if (maxBrokerCount > -1) {
         bounty.addJoinPolicy(maxBrokersJoinPolicy.address, maxBrokerCount.toString())

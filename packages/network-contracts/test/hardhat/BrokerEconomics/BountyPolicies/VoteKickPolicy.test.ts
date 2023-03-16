@@ -109,7 +109,7 @@ describe("VoteKickPolicy", (): void => {
 
         it("with 3 voters", async function(): Promise<void> {
             const { token, bounty, brokers: [ , , broker3, broker4, broker5 ],
-                pools: [ flagger, target, voter1, voter2, voter3 ] } = await setup(5, 0, this.test?.title)
+                pools: [ flagger, target, voter1, voter2, voter3 ] } = await setup(5, 0, "3-voters-test")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -357,7 +357,7 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await bounty.minimumStakeOf(target.address)
             expect(minimumStake).to.equal(parseEther("100"))
             await expect(target.reduceStakeTo(bounty.address, parseEther("99")))
-                .to.be.revertedWith("error_cannotReduceStake")
+                .to.be.revertedWith("error_minimumStake")
             await expect(target.reduceStakeTo(bounty.address, parseEther("100")))
                 .to.emit(bounty, "StakeUpdate").withArgs(target.address, parseEther("100"), parseEther("0"))
         })
@@ -389,7 +389,7 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal("11111111111111111111") // 10/9 of 100
             await expect(flagger.reduceStakeTo(bounty.address, parseEther("11")))
-                .to.be.revertedWith("error_cannotReduceStake")
+                .to.be.revertedWith("error_minimumStake")
             await expect(flagger.reduceStakeTo(bounty.address, "11111111111111111111"))
                 .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, "11111111111111111111", parseEther("0"))
         })

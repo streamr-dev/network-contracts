@@ -46,12 +46,13 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
     event BrokerKicked(address indexed broker, uint slashedWei);
+    event BrokerSlashed(address indexed broker, uint amountWei);
 
     // Emitted from the allocation policy
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
-    // Emitted from the kick policy
+    // Emitted from the VoteKickPolicy
     event ReviewRequest(address indexed reviewer, Bounty indexed bounty, address indexed target);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -75,6 +76,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         uint32 minHorizonSeconds;
         uint totalStakedWei;
         uint unallocatedFunds;
+        uint minimumStakeWei;
     }
 
     function globalData() internal pure returns(GlobalStorage storage data) {
@@ -117,17 +119,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         StreamrConstants streamrConstants,
         address newOwner,
         address tokenAddress,
+        uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         IAllocationPolicy initialAllocationPolicy,
         uint allocationPolicyParam
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
+        require(initialMinimumStakeWei > 0, "error_minimumStakeZero");
         // __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
         _setupRole(ADMIN_ROLE, newOwner);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
+        globalData().minimumStakeWei = initialMinimumStakeWei;
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
@@ -165,8 +170,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _stake(address broker, uint amountWei) internal {
         // console.log("join/stake at ", block.timestamp, broker, amountWei);
-        require(amountWei > 0, "error_cannotStakeZero");
         GlobalStorage storage s = globalData();
+        require(amountWei >= s.minimumStakeWei, "error_minimumStake");
         if (s.stakedWei[broker] == 0) {
            // console.log("Broker joins and stakes", broker, amountWei);
             for (uint i = 0; i < joinPolicies.length; i++) {
@@ -215,22 +220,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * =>  stake >= committedStake * 10/9
      */
     function minimumStakeOf(address broker) public view returns (uint minimumStakeWei) {
-        // TODO: add the Bounty's minimum stake here (inline MinimumStakeJoinPolicy into main Bounty)
-        return globalData().committedStakeWei[broker] * 10/9;
+        GlobalStorage storage s = globalData();
+        return max(s.committedStakeWei[broker] * 10/9, s.minimumStakeWei);
     }
 
     /** Reduce your stake in the bounty without leaving */
     function reduceStakeTo(uint targetStakeWei) external {
         address broker = _msgSender();
-        if (targetStakeWei == 0) { // TODO: remove, since this redirection already is in BrokerPool
-            unstake();
-            return;
-        }
         require(targetStakeWei < globalData().stakedWei[broker], "error_cannotIncreaseStake");
-
-        // stake - cashoutWei == remaining stake >= committedStake + 1/10 * remaining stake
-        //   in order to pay for all the flags AND still afford to get slashed 10%
-        require(targetStakeWei >= minimumStakeOf(broker), "error_cannotReduceStake");
+        require(targetStakeWei >= minimumStakeOf(broker), "error_minimumStake");
 
         uint cashoutWei = globalData().stakedWei[broker] - targetStakeWei;
         _reduceStakeBy(broker, cashoutWei);
@@ -240,17 +238,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /**
      * Slashing moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     * @dev do not slash more than the whole stake!
      **/
     function _slash(address broker, uint amountWei) internal {
         _reduceStakeBy(broker, amountWei);
+        emit BrokerSlashed(broker, amountWei);
         if (broker.code.length > 0) {
             try IBroker(broker).onSlash() {} catch {}
         }
     }
 
-    // TODO: separate slashing and kicking such that BrokerKicked only emits address and BrokerSlashed or similar is emitted from _slash
+    /**
+     * Kicking does what slashing does, plus removes the broker
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     * @dev do not slash more than the whole stake!
+     */
     function _kick(address broker, uint slashingWei) internal {
-        _slash(broker, slashingWei);
+        _reduceStakeBy(broker, slashingWei);
         _removeBroker(broker);
         emit BrokerKicked(broker, slashingWei);
         if (broker.code.length > 0) {
@@ -260,15 +264,21 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /**
      * Moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
+     * Does not actually send out tokens!
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
     function _reduceStakeBy(address broker, uint amountWei) internal {
-        require(amountWei <= globalData().stakedWei[broker], "error_cannotReduceStake");
-        globalData().stakedWei[broker] -= amountWei;
-        globalData().totalStakedWei -= amountWei;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, -int(amountWei)), "error_stakeDecreaseFailed");
-        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
-        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        GlobalStorage storage s = globalData();
+        assert(amountWei <= s.stakedWei[broker]); // should never happen! _slashing must be designed to not slash more than the whole stake
+        s.stakedWei[broker] -= amountWei;
+        s.totalStakedWei -= amountWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, -int(amountWei)), "error_stakeChangeHandlerFailed");
+        if (s.stakedWei[broker] < minimumStakeOf(broker)) {
+            _removeBroker(broker);
+        } else {
+            emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+            emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
+        }
     }
 
     /**
@@ -297,7 +307,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         delete s.stakedWei[broker];
         delete s.joinTimeOfBroker[broker];
 
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_brokerLeaveFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_leaveHandlerFailed");
         emit StakeUpdate(broker, 0, 0); // stake and allocation must be zero when the broker is gone
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
         emit BrokerLeft(broker, paidOutStakeWei);
@@ -470,5 +480,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    function max(uint a, uint b) internal pure returns (uint) {
+        return a > b ? a : b;
     }
 }

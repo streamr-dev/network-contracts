@@ -63,16 +63,18 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
         (
+            uint initialMinimumStakeWei,
             uint32 initialMinHorizonSeconds,
             uint32 initialMinBrokerCount,
             string memory bountyName,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint32,uint32,string,address[],uint[])
+            (uint,uint32,uint32,string,address[],uint[])
         );
         address bountyAddress = _deployBounty(
             sender,
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             bountyName,
@@ -91,6 +93,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      * @param policies smart contract addresses found in the trustedPolicies
      */
     function deployBounty(
+        uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory bountyName,
@@ -99,6 +102,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     ) public returns (address) {
         return _deployBounty(
             _msgSender(),
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             bountyName,
@@ -109,6 +113,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function _deployBounty(
         address bountyOwner,
+        uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory bountyName,
@@ -128,6 +133,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             IAllocationPolicy(policies[0]),
