@@ -37,6 +37,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event QueuedDataPayout(address user, uint amountPoolTokenWei);
     event QueueUpdated(address user, uint amountPoolTokenWei);
 
+    event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant NODE_ROLE = keccak256("NODE_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -449,6 +451,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _removeBountyFromArray(bounty);
         updateApproximatePoolvalueOfBounty(bounty);
         emit Unstaked(bounty, 0, 0);
+    }
+
+    function onReviewRequest(address targetBroker) external {
+        require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(msg.sender) > 0, "error_onlyBounty");
+        Bounty bounty = Bounty(msg.sender);
+        emit ReviewRequest(bounty, targetBroker);
     }
 
     ////////////////////////////////////////

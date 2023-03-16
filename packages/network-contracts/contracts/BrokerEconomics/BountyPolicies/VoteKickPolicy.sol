@@ -9,6 +9,9 @@ import "../BrokerPool.sol";
 
 // import "hardhat/console.sol";
 
+/**
+ * @dev Only BrokerPools can be selected as reviewers, so BrokerPoolOnlyJoinPolicy is expected on the Bounty!
+ */
 contract VoteKickPolicy is IKickPolicy, Bounty {
     // TODO: move to StreamrConstants?
     uint public constant REVIEWER_COUNT = 5;
@@ -31,8 +34,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     }
 
     mapping (address => uint) public flagTimestamp;
-    mapping (address => mapping (address => Reviewer)) public reviewerState;
-    mapping (address => address[]) public reviewers;
+    mapping (address => mapping (BrokerPool => Reviewer)) public reviewerState;
+    mapping (address => BrokerPool[]) public reviewers;
     mapping (address => uint) public votesForKick;
     mapping (address => uint) public votesAgainstKick;
     mapping (address => uint) public protectionEndTimestamp; // can't be flagged again right after a no-kick result
@@ -83,7 +86,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
 
         // only secondarily select peers that are in the same bounty as the flagging target
-        address[REVIEWER_COUNT] memory sameBountyPeers;
+        BrokerPool[REVIEWER_COUNT] memory sameBountyPeers;
         uint sameBountyPeerCount = 0;
 
         BrokerPoolFactory factory = BrokerPoolFactory(globalData().streamrConstants.brokerPoolFactory());
@@ -98,30 +101,29 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
             randomBytes >>= 8; // if REVIEWER_COUNT > 20, replace this with keccak256(randomBytes) or smth
             uint index = uint(randomBytes) % brokerPoolCount;
-            BrokerPool pool = factory.deployedBrokerPools(index);
-            address poolAddress = address(pool);
-            if (poolAddress == _msgSender() || poolAddress == target || reviewerState[target][poolAddress] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", poolAddress);
+            BrokerPool peer = factory.deployedBrokerPools(index);
+            if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
+                // console.log(index, "skipping", peer);
                 continue;
             }
             // TODO: check is broker live
-            if (globalData().stakedWei[address(pool)] > 0) {
+            if (globalData().stakedWei[address(peer)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < REVIEWER_COUNT) {
-                    sameBountyPeers[sameBountyPeerCount++] = poolAddress;
-                    reviewerState[target][poolAddress] = Reviewer.IS_SELECTED_SECONDARY;
+                    sameBountyPeers[sameBountyPeerCount++] = peer;
+                    reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same bounty", poolAddress);
+                // console.log(index, "in same bounty", peerAddress);
                 continue;
             }
             // console.log(index, "selecting", peer);
-            reviewerState[target][poolAddress] = Reviewer.IS_SELECTED;
-            emit ReviewRequest(poolAddress, this, target);
-            reviewers[target].push(poolAddress);
+            reviewerState[target][peer] = Reviewer.IS_SELECTED;
+            peer.onReviewRequest(target);
+            reviewers[target].push(peer);
         }
 
         // secondary selection: peers from the same bounty
         for (uint i = 0; i < sameBountyPeerCount; i++) {
-            address peer = sameBountyPeers[i];
+            BrokerPool peer = sameBountyPeers[i];
             if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
                 // console.log("already selected", peer);
                 continue;
@@ -133,7 +135,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             }
             // console.log("selecting from same bounty", peer);
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
-            emit ReviewRequest(peer, this, target);
+            peer.onReviewRequest(target);
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
@@ -151,7 +153,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             _endVote(target);
             return;
         }
-        address voter = _msgSender(); // ?
+        BrokerPool voter = BrokerPool(_msgSender());
         require(reviewerState[target][voter] != Reviewer.NOT_SELECTED, "error_reviewersOnly");
         require(reviewerState[target][voter] == Reviewer.IS_SELECTED, "error_alreadyVoted");
         bool votedKick = uint(voteData) & 0x1 == 1;
@@ -206,9 +208,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 slashingWei -= FLAGGER_REWARD_WEI;
             }
             for (uint i = 0; i < reviewerCount; i++) {
-                address reviewer = reviewers[target][i];
+                BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI); // TODO: pay broker or BrokerPool?
+                    token.transfer(reviewer.broker(), REVIEWER_REWARD_WEI);
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
@@ -219,9 +221,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             protectionEndTimestamp[target] = block.timestamp + PROTECTION_SECONDS; // solhint-disable-line not-rely-on-time
             uint rewardsWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
-                address reviewer = reviewers[target][i];
+                BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(BrokerPool(reviewer).broker(), REVIEWER_REWARD_WEI);
+                    token.transfer(reviewer.broker(), REVIEWER_REWARD_WEI);
                     rewardsWei += REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
