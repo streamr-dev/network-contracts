@@ -106,6 +106,7 @@ let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
 let linkToken
+let dataToken
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -325,25 +326,107 @@ async function deployStreamRegistries() {
 }
 
 async function deployBountyFactory() {
-    const trustedForwarderAddress = '0x2fb7Cd141026fcF23Abb07593A14D6E45dC33D54' // some random address
+    // const adminWallet = await ethersWallet(sidechainURL, privKeyStreamRegistry)
+    const adminWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
 
-    const agreementTemplateFactory = await ethers.getContractFactory('Bounty')
-    const agreementTemplate = await agreementTemplateFactory.deploy()
-    await agreementTemplate.deployed()
-    log(`BountyTemplate deployed at ${agreementTemplate.address}`)
+    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", adminWallet)
+    const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
+    const streamrConstants = await streamrConstantsFactoryTx.deployed()
+    const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), adminWallet.address)
+    log(`hasrole adminwallet ${hasroleEthSigner}`)
+    log(`streamrConstants address ${streamrConstants.address}`)
+    const etherssigner = (await ethers.getSigners())[0]
+    const hasroleEthersSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), etherssigner.address)
+    log(`hasrole etherssingers ${hasroleEthersSigner}`)
 
-    const allocationPolicyFactory = await ethers.getContractFactory('StakeWeightedAllocationPolicy')
-    const allocationPolicy = await allocationPolicyFactory.deploy()
+    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy", adminWallet)).deploy()
+    await minStakeJoinPolicy.deployed()
+    log(`minStakeJoinPolicy address ${minStakeJoinPolicy.address}`)
+
+    const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy")).deploy()
+    await maxBrokersJoinPolicy.deployed()
+    log(`maxBrokersJoinPolicy address ${maxBrokersJoinPolicy.address}`)
+
+    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy")).deploy()
     await allocationPolicy.deployed()
-    log(`AllocationPolicyTemplate deployed at ${allocationPolicy.address}`)
+    log(`allocationPolicy address ${allocationPolicy.address}`)
 
-    const bountyFactoryFactory = await ethers.getContractFactory('BountyFactory')
+    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy")).deploy()
+    await leavePolicy.deployed()
+    log(`leavePolicy address ${leavePolicy.address}`)
+
+    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy")).deploy()
+    await voteKickPolicy.deployed()
+    log(`voteKickPolicy address ${voteKickPolicy.address}`)
+
+    const bountyTemplate = await (await ethers.getContractFactory("Bounty")).deploy()
+    await bountyTemplate.deployed()
+    log(`bountyTemplate address ${bountyTemplate.address}`)
+
+    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ agreementTemplate.address, trustedForwarderAddress, linkTokenAddress ])
-    const bountyFactory = await bountyFactoryFactoryTx.deployed()// as BountyFactory
-    log(`BountyFactory deployed at ${bountyFactory.address}`)
-    await (await bountyFactory.addTrustedPolicy(allocationPolicy.address)).wait()
-    log(`added allocation policy with address ${allocationPolicy.address} to BountyFactory`)
+        [ bountyTemplate.address, linkToken.address, streamrConstants.address ], { kind: "uups" })
+    const bountyFactory = await bountyFactoryFactoryTx.deployed()
+    await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+        allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
+
+    await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
+    log(`bountyFactory address ${bountyFactory.address}`)
+
+    const transfertx = await linkToken.transfer(adminWallet.address, bigNumberify('10000000000000000000000')) // 1000 link
+    await transfertx.wait()
+    log(`transferred 1000 link to ${adminWallet.address}`)
+    // await (await linkToken.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
+    // log(`minted 1000000 datatokens to ${adminWallet.address}`)
+    // await (await linkToken.mint(dataTokenOwner.address, ethers.utils.parseEther("1000000"))).wait()
+    // log(`minted 1000000 datatokens to ${dataTokenOwner.address}`)
+    // await (await dataToken.connect(dataTokenOwner).mint(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
+    // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
+    // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
+    // log(`transferred 1 ETH to ${brokerWallet.address}`)
+    const agreementtx = await bountyFactory.connect(adminWallet).deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+        [
+            allocationPolicy.address,
+            ethers.constants.AddressZero,
+            voteKickPolicy.address,
+        ], [
+            ethers.utils.parseEther("0.01"),
+            "0",
+            "0"
+        ]
+    )
+    const agreementReceipt = await agreementtx.wait()
+    const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
+    log("new bounty address: " + newBountyAddress)
+
+    // bounty = await ethers.getContractAt("Bounty", newBountyAddress, adminWallet)
+    const bountyEthersFactory = await ethers.getContractFactory("Bounty", adminWallet)
+    const bounty = await bountyEthersFactory.attach(newBountyAddress)
+    const hasrole = await bounty.hasRole(await bounty.DEFAULT_ADMIN_ROLE(), adminWallet.address)
+    log(`hasrole ${hasrole}`)
+    log(`adminwallet ${adminWallet.address}`)
+    log(`broker of bounty ${await bounty.broker()}`)
+    // bounty = await bountyEFContrac.connect(adminWallet)
+    // sponsor with token approval
+    // const ownerbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
+    const adminWalletBalance = await linkToken.balanceOf(adminWallet.address)
+    log("adminWalletBalance: " + adminWalletBalance.toString())
+    await (await linkToken.approve(newBountyAddress, ethers.utils.parseEther("20"))).wait()
+    const allowance = await linkToken.allowance(adminWallet.address, newBountyAddress)
+    log("allowance: " + allowance.toString())
+    // const tokenOwnerBalance = await dataToken.balanceOf(dataTokenOwner.address)
+    // log("tokenOwnerBalance: " + tokenOwnerBalance.toString())
+    // await (await dataToken.approve(newBountyAddress, ethers.utils.parseEther("7"))).wait()
+    // const allowance2 = await dataToken.allowance(dataTokenOwner.address, newBountyAddress)
+    // log("allowance2: " + allowance2.toString())
+    const sponsorTx = await bounty.sponsor(ethers.utils.parseEther("20"))
+    await sponsorTx.wait()
+    log("sponsored through token approval")
+
+    const tx = await dataToken.transferAndCall(newBountyAddress, ethers.utils.parseEther("1"),
+        userWallet.address)
+    await tx.wait()
+    log("staked in bounty with transfer and call")
 }
 
 async function smartContractInitialization() {
@@ -356,11 +439,13 @@ async function smartContractInitialization() {
     // const token = await tokenDeployTx.deployed()
     // log(`New DATAv2 ERC20 deployed at ${token.address}`)
 
-    log(`Deploying test DATAv2 from ${wallet.address}`)
-    const tokenDeployer = await new ContractFactory(DATAv2.abi, DATAv2.bytecode, wallet)
-    const tokenDeployTx = await tokenDeployer.deploy()
-    const token = await tokenDeployTx.deployed()
-    log(`New DATAv2 ERC20 deployed at ${token.address}`)
+    const sidechainWalletStreamReg = await ethersWallet(sidechainURL, privKeyStreamRegistry)
+    log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
+    const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    linkToken = await linkTokenFactoryTx.deployed()
+    log(`Link Token deployed at ${linkToken.address}`)
+    await deployBountyFactory()
 
     // log(`Deploying Marketplace1 contract from ${wallet.address}`)
     const marketDeployer1 = new ContractFactory(MarketplaceJson.abi, MarketplaceJson.bytecode, wallet)
