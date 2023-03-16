@@ -95,14 +95,7 @@ describe("BountyFactory", () => {
          *   1: leave policy (address(0) for none)
          *   2: kick policy (address(0) for none)
          *   3+: join policies (leave out if none)
-         * @param policies smart contract addresses found in the trustedPolicies
-         function deployBounty(
-            uint initialMinHorizonSeconds,
-            uint initialMinBrokerCount,
-            string memory bountyName,
-            address[] memory policies,
-            uint[] memory initParams
-        ) */
+         */
         const untrustedAddress = "0x1234567890123456789012345678901234567890"
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
