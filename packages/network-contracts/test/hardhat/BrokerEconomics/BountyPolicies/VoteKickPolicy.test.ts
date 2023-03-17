@@ -347,8 +347,6 @@ describe("VoteKickPolicy", (): void => {
         it("allows the target to get out the correct amount of stake DURING the flag period (stake-commited)", async function(): Promise<void> {
             const { bounty, pools: [ flagger, target, voter ] } = await setup(2, 1, this.currentTest?.title)
 
-            await (await target.reduceStakeTo(bounty.address, parseEther("900"))).wait() // get a nicer rounder number... 10/9 of 90 is 100
-
             await expect(flagger.flag(bounty.address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
@@ -385,11 +383,11 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
-            expect(minimumStake).to.equal("11111111111111111111") // 10/9 of 100
-            await expect(flagger.reduceStakeTo(bounty.address, parseEther("11")))
+            expect(minimumStake).to.equal(parseEther("10"))
+            await expect(flagger.reduceStakeTo(bounty.address, parseEther("9")))
                 .to.be.revertedWith("error_minimumStake")
-            await expect(flagger.reduceStakeTo(bounty.address, "11111111111111111111"))
-                .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, "11111111111111111111", parseEther("0"))
+            await expect(flagger.reduceStakeTo(bounty.address, parseEther("10")))
+                .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, parseEther("10"), parseEther("0"))
         })
 
         it("allows the flagger to withdraw all their stake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
@@ -412,6 +410,14 @@ describe("VoteKickPolicy", (): void => {
 
         it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
             // TODO
+        })
+
+        it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
+            // joins
+            // raises as many as flags as they can: 90% of stake committed
+            // reduces stake as much as they can: nothing I guess?
+            // gets kicked
+            // all flags become NO_KICK, reviewers get paid
         })
     })
 })

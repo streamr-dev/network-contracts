@@ -17,7 +17,19 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     uint public constant REVIEWER_COUNT = 5;
     uint public constant REVIEWER_REWARD_WEI = 1 ether;
     uint public constant FLAGGER_REWARD_WEI = 1 ether;
-    uint public constant FLAG_STAKE_WEI = 10 ether; // must be >= REVIEWER_COUNT * REVIEWER_REWARD_WEI
+
+    /**
+     * FLAG_STAKE_WEI must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed 10% of the total stake).
+     * If the broker decides to reduceStake, committed stake is the limit how much stake must be left into Bounty.
+     * The total committed stake must be enough to pay the reviewers of all flags.
+     *     flag stakes >= reviewer fees + 10% of stake that's left into the bounty (= committed)
+     * After n flags: n * FLAG_STAKE_WEI >= n * reviewer fees + 10% of total committed stake
+     *            =>  n * FLAG_STAKE_WEI >= n * (REVIEWER_COUNT * REVIEWER_REWARD_WEI) + 10% of (n * FLAG_STAKE_WEI) (assuming only flagging causes committed stake)
+     *            =>  FLAG_STAKE_WEI * 9/10 >= REVIEWER_COUNT * REVIEWER_REWARD_WEI
+     *            =>  FLAG_STAKE_WEI >= REVIEWER_COUNT * REVIEWER_REWARD_WEI * 10/9
+     * That is where the 10/9 comes from.
+     */
+    uint public constant FLAG_STAKE_WEI = 10 ether; // must be >= REVIEWER_COUNT * REVIEWER_REWARD_WEI * 10/9
 
     uint public constant REVIEW_PERIOD_SECONDS = 1 days;
     uint public constant VOTING_PERIOD_SECONDS = 1 hours;
@@ -70,18 +82,21 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * Start flagging process
      */
     function onFlag(address target) external {
+        GlobalStorage storage s = globalData();
         address flagger = _msgSender();
         require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(globalData().stakedWei[flagger] > FLAG_STAKE_WEI, "error_notEnoughStake");
-        require(globalData().stakedWei[target] > 0, "error_flagTargetNotStaked");
+        require(s.stakedWei[flagger] > s.minimumStakeWei, "error_notEnoughStake");
+        require(s.stakedWei[target] > 0, "error_flagTargetNotStaked");
 
+        // the flag target risks to lose 10% if the flag resolves to KICK
+        targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
+        globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
+
+        // the limit for flagging is 9/10s of the stake so that there's still room to get flagged for the remaining 1/10
         // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[flagger] += FLAG_STAKE_WEI;
         require(globalData().committedStakeWei[flagger] <= globalData().stakedWei[flagger] * 9/10, "error_notEnoughStake");
         flaggerAddress[target] = flagger;
-
-        targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
-        globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
 

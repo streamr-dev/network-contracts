@@ -93,6 +93,24 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return hasRole(ADMIN_ROLE, a);
     }
 
+    function getStake(address broker) external view returns (uint) {
+        return globalData().stakedWei[broker];
+    }
+
+    function getMyStake() public view returns (uint) {
+        return globalData().stakedWei[_msgSender()];
+    }
+
+    /**
+     * You can't unstake the committed part or go below the minimum stake (by cashing out your stake),
+     *   hence there is an individual limit for reduceStakeTo.
+     * When joining, committed stake is zero, so the it's the same minimumStakeWei for everyone.
+     */
+    function minimumStakeOf(address broker) public view returns (uint minimumStakeWei) {
+        GlobalStorage storage s = globalData();
+        return max(s.committedStakeWei[broker], s.minimumStakeWei);
+    }
+
     /**
      * Running means there's enough brokers signed up for the bounty,
      *  and the bounty should pay tokens to the brokers from the remaining sponsorship
@@ -159,7 +177,27 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         }
     }
 
-    /** Stake by first calling DATA.approve(bounty.address, amountWei) then this function */
+    /**
+     * Sponsor a stream by first calling DATA.approve(bounty.address, amountWei) then this function (2-step ERC20)
+     *   or alternatively call DATA.transferAndCall(bounty.address, amountWei, "0x") (1-step ERC677)
+     */
+    function sponsor(uint amountWei) external {
+        token.transferFrom(_msgSender(), address(this), amountWei);
+        _addSponsorship(_msgSender(), amountWei);
+    }
+
+    function _addSponsorship(address sponsorAddress, uint amountWei) internal {
+        // TODO: sweep also unaccounted tokens into unallocated funds?
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
+        globalData().unallocatedFunds += amountWei;
+        emit SponsorshipReceived(sponsorAddress, amountWei);
+        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+    }
+
+    /**
+     * Stake by first calling DATA.approve(bounty.address, amountWei) then this function (2-step ERC20)
+     *   or alternatively call DATA.transferAndCall(bounty.address, amountWei, brokerAddress) (1-step ERC677)
+     */
     function stake(address broker, uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _stake(broker, amountWei);
@@ -191,45 +229,42 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
-    /** Get both stake and allocations out, throw if that's not possible */
+    /**
+     * Get all the stake and allocations out
+     * Throw if that's not possible due to open flags or leave penalty (e.g. leaving too early)
+     */
     function unstake() public {
         address broker = _msgSender();
+        uint penaltyWei = getLeavePenalty(broker);
+        require(penaltyWei == 0, "error_leavePenalty");
         require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
-        forceUnstake();
+        _removeBroker(broker);
     }
 
-    /** Get both stake and allocations out, forfeitting all stake that is committed to flagging */
+    /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is committed to flags */
     function forceUnstake() public {
-        require(getMyStake() > 0, "error_notStaked"); // TODO: add this to other methods too? Turn into modifier?
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
         if (penaltyWei > 0) {
             _slash(broker, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        _removeBroker(broker);
-    }
-
-    /**
-     * In order to pay for all the flags AND still afford to get slashed 10%, there's a limit to how much stake can be reduced
-     *     stake >= committedStake + 10 % of stake for slashing
-     * =>  stake * 9/10 >= committedStake
-     * =>  stake >= committedStake * 10/9
-     */
-    function minimumStakeOf(address broker) public view returns (uint minimumStakeWei) {
-        GlobalStorage storage s = globalData();
-        return max(s.committedStakeWei[broker] * 10/9, s.minimumStakeWei);
+        _removeBroker(broker); // forfeits committed stake
     }
 
     /** Reduce your stake in the bounty without leaving */
     function reduceStakeTo(uint targetStakeWei) external {
         address broker = _msgSender();
-        require(targetStakeWei < globalData().stakedWei[broker], "error_cannotIncreaseStake");
+        GlobalStorage storage s = globalData();
+        require(targetStakeWei < s.stakedWei[broker], "error_cannotIncreaseStake");
         require(targetStakeWei >= minimumStakeOf(broker), "error_minimumStake");
 
-        uint cashoutWei = globalData().stakedWei[broker] - targetStakeWei;
+        uint cashoutWei = s.stakedWei[broker] - targetStakeWei;
         _reduceStakeBy(broker, cashoutWei);
         token.transfer(broker, cashoutWei);
+
+        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
+        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
     }
 
     /**
@@ -243,6 +278,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (broker.code.length > 0) {
             try IBroker(broker).onSlash() {} catch {}
         }
+        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
     }
 
     /**
@@ -264,18 +300,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * Does not actually send out tokens!
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
      **/
-    function _reduceStakeBy(address broker, uint amountWei) internal {
+    function _reduceStakeBy(address broker, uint amountWei) private {
         GlobalStorage storage s = globalData();
         assert(amountWei <= s.stakedWei[broker]); // should never happen! _slashing must be designed to not slash more than the whole stake
         s.stakedWei[broker] -= amountWei;
         s.totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, -int(amountWei)), "error_stakeChangeHandlerFailed");
-        if (s.stakedWei[broker] < minimumStakeOf(broker)) {
-            _removeBroker(broker);
-        } else {
-            emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
-            emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
-        }
     }
 
     /**
@@ -286,7 +316,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function _removeBroker(address broker) internal {
         GlobalStorage storage s = globalData();
         require(s.stakedWei[broker] > 0, "error_brokerNotStaked");
-        // console.log("leaving:", broker);
+        // console.log("_removeBroker", broker);
 
         if (globalData().committedStakeWei[broker] > 0) {
             _slash(broker, globalData().committedStakeWei[broker]);
@@ -312,43 +342,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Get allocations out, leave stake in */
     function withdraw() external {
-        _withdraw(_msgSender());
-    }
-
-    function _withdraw(address broker) internal {
+        address broker = _msgSender();
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        uint payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
-        // console.log("withdraw ->", broker, payoutWei);
+        uint payoutWei = _withdraw(broker);
         if (payoutWei > 0) {
-            require(token.transferAndCall(broker, payoutWei, "allocation"), "error_transfer");
-
             emit StakeUpdate(broker, globalData().stakedWei[broker], 0); // allocation will be zero after withdraw (see test)
             emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         }
     }
 
-    /** Sponsor a stream by first calling DATA.approve(bounty.address, amountWei) then this function */
-    function sponsor(uint amountWei) external {
-        token.transferFrom(_msgSender(), address(this), amountWei);
-        _addSponsorship(_msgSender(), amountWei);
-    }
-
-    function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        // TODO: sweep also unaccounted tokens into unallocated funds?
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
-        globalData().unallocatedFunds += amountWei;
-        emit SponsorshipReceived(sponsorAddress, amountWei);
-        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
-    }
-
-    function getStake(address broker) external view returns (uint) {
-        return globalData().stakedWei[broker];
-    }
-
-    function getMyStake() public view returns (uint) {
-        return globalData().stakedWei[_msgSender()];
+    function _withdraw(address broker) internal returns (uint payoutWei) {
+        payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
+        // console.log("withdraw ->", broker, payoutWei);
+        if (payoutWei > 0) {
+            require(token.transferAndCall(broker, payoutWei, "allocation"), "error_transfer");
+        }
     }
 
     /** Start the flagging process to kick an abusive broker */

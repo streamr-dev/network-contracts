@@ -46,7 +46,9 @@ describe("Bounty", (): void => {
         await (await token.transfer(broker.address, parseEther("100000"))).wait()
         await (await token.transfer(broker2.address, parseEther("100000"))).wait()
 
-        defaultBounty = await deployBountyContract(contracts)
+        defaultBounty = await deployBountyContract(contracts, {
+            minimumStakeWei: parseEther("1"),
+        })
     })
 
     it("accepts 32 byte long address in transferAndCall data", async function(): Promise<void> {
@@ -83,8 +85,9 @@ describe("Bounty", (): void => {
             .to.be.revertedWith("error_minimumStake")
     })
 
-    it("lets add and reduce stake", async function(): Promise<void> {
-        // TODO: test for error_cannotReduceStake
+    it("will NOT let stake below minimum", async function(): Promise<void> {
+        await expect(token.transferAndCall(defaultBounty.address, parseEther("0.5"), broker.address))
+            .to.be.revertedWith("error_minimumStake")
     })
 
     it("won't let reduce stake below minimum", async function(): Promise<void> {
@@ -152,6 +155,24 @@ describe("Bounty", (): void => {
             await expect(defaultBounty.setAllocationPolicy(testAllocPolicy.address, "2"))
                 .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
                 + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
+        })
+    })
+
+    describe("Non-staked (non-)broker", (): void => {
+        it("cannot unstake", async function(): Promise<void> {
+            // TODO
+        })
+        it("cannot reduceStakeTo", async function(): Promise<void> {
+            // TODO
+        })
+        it("cannot forceUnstake", async function(): Promise<void> {
+            // TODO
+        })
+        it("cannot unstake", async function(): Promise<void> {
+            // TODO
+        })
+        it("cannot flag/voteOnFlag", async function(): Promise<void> {
+            // TODO
         })
     })
 

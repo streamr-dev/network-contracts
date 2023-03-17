@@ -740,35 +740,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // TODO
     })
 
-    it("deducts penalty from a broker that leaves too early", async function(): Promise<void> {
-        const { token } = contracts
-        const bounty = await deployBountyContract(contracts, {
-            minHorizonSeconds: 1000,
-            penaltyPeriodSeconds: 1000,
-            allocationWeiPerSecond: BigNumber.from("0")
-        })
-
-        await (await token.connect(broker).transfer(admin.address, await token.balanceOf(broker.address))).wait() // zero the balance
-        await (await token.transfer(broker.address, parseEther("10"))).wait()
-        const tokensBefore = await token.balanceOf(broker.address)
-
-        // sponsor 1 token to make bounty "running" (don't distribute tokens though, since allocationWeiPerSecond = 0)
-        await token.approve(bounty.address, parseEther("1"))
-        await bounty.sponsor(parseEther("1"))
-
-        // stake 10 token
-        await (await token.connect(broker).transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
-        const tokensAfterStaking = await token.balanceOf(broker.address)
-
-        // lose 10% = 1 token because leaving a "running" bounty too early
-        await (await bounty.connect(broker).unstake()).wait()
-        const tokensAfterLeaving = await token.balanceOf(broker.address)
-
-        expect(formatEther(tokensBefore)).to.equal("10.0")
-        expect(formatEther(tokensAfterStaking)).to.equal("0.0")
-        expect(formatEther(tokensAfterLeaving)).to.equal("9.0")
-    })
-
     it("gets allocation 0 from unjoined broker", async function(): Promise<void> {
         const bounty = await deployBountyContract(contracts)
         const allocation = await bounty.getAllocation(broker.address)
