@@ -57,11 +57,11 @@ type Project @entity {
   "List of domain ids for the chains from which this project can be purchased"
   domainIds: [BigInt!]!
   "Payment details for the chains where the project can be purchased: mapping (uint32 => PaymentDetailsByChain)"
-  paymentDetails: [PaymentDetailsByChain!]! @derivedFrom(field: "project")
+  paymentDetails: [PaymentDetailsByChain!]!
   "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
   minimumSubscriptionSeconds: BigInt!
   "Subscriptions mapping (address => TimeBasedSubscription)"
-  subscriptions: [TimeBasedSubscription!]! @derivedFrom(field: "project")
+  subscriptions: [TimeBasedSubscription!]!
   "Project metadata JSON"
   metadata: String!
   "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
@@ -69,13 +69,13 @@ type Project @entity {
   "Streams added to the project"
   streams: [String!]!
   "Permissions mapping (bytes32 => Permission)"
-  permissions: [Permission!]! @derivedFrom(field: "project")
+  permissions: [Permission!]!
   "date created. This is a timestamp in seconds"
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
   "Marketplace purchases"
-  purchases: [ProjectPurchase!]! @derivedFrom(field: "project")
+  purchases: [ProjectPurchase!]!
   "Incremented/decremented when Stake/Unstake events are fired. It may not always be 1:1 with the stake (with future implementations)"
   score: BigInt
   "Increases when various actions are triggered (e.g. purchase, stake, unstake). Used to generate unique ids"
@@ -103,7 +103,7 @@ type ProjectPurchase @entity {
 
   "The amount of tokens paid to marketplace for project subscription"
   fee: BigInt!
-  
+
   "purchase date. This is a timestamp in seconds"
   purchasedAt: BigInt
 }
@@ -122,7 +122,7 @@ type Staking @entity {
 
   "The amount being staked"
   amount: BigInt!
-  
+
   "stake date. This is a timestamp in seconds"
   stakedAt: BigInt
 }
@@ -139,7 +139,7 @@ type Unstaking @entity {
 
   "The amount being unstaked"
   amount: BigInt!
-  
+
   "unstake date. This is a timestamp in seconds"
   unstakedAt: BigInt
 }

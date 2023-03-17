@@ -52,9 +52,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
-    // Emitted from the VoteKickPolicy
-    event ReviewRequest(address indexed reviewer, Bounty indexed bounty, address indexed target);
-
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 

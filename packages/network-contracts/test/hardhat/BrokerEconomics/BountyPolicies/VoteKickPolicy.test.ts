@@ -9,7 +9,7 @@ import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
 const { parseEther, id, getAddress, hexZeroPad } = utils
 
-const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
+const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
 const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const VOTE_START = 24 * 60 * 60 // 1 day
 const VOTE_END = VOTE_START + 60 * 60 // +1 hour
@@ -94,17 +94,18 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and one voter", async function(): Promise<void> {
-            const { token, bounty, pools: [ flagger, target, reviewer ] } = await setup(3, 0, this.test?.title)
+            const { token, bounty, pools: [ flagger, target, voter ] } = await setup(3, 0, this.test?.title)
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
-            await expect(flagger.flag(bounty.address, target.address)).to.emit(bounty, "ReviewRequest")
-                .withArgs(reviewer.address, bounty.address, target.address)
+            await expect(flagger.flag(bounty.address, target.address))
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             await advanceToTimestamp(start + VOTE_START + 10, `${addr(flagger)} votes to kick ${addr(target)}`)
-            await expect(reviewer.voteOnFlag(bounty.address, target.address, VOTE_KICK))
+            await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target.address, parseEther("100"))
-            expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
+
+            expect(await token.balanceOf(target.address)).to.equal(parseEther("900")) // slash 10%
         })
 
         it("with 3 voters", async function(): Promise<void> {
@@ -114,9 +115,9 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter1.address, bounty.address, target.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voter2.address, bounty.address, target.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voter3.address, bounty.address, target.address)
+                .to.emit(voter1, "ReviewRequest").withArgs(bounty.address, target.address)
+                .to.emit(voter2, "ReviewRequest").withArgs(bounty.address, target.address)
+                .to.emit(voter3, "ReviewRequest").withArgs(bounty.address, target.address)
             await advanceToTimestamp(start + VOTE_START + 10, `votes to kick ${addr(target)}`)
             await expect(voter1.voteOnFlag(bounty.address, target.address, VOTE_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
@@ -138,23 +139,20 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(target1)} and ${addr(target2)} are flagged`)
             await expect (flagger1.flag(bounty.address, target1.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(flagger2.address, bounty.address, target1.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target1.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(target2.address, bounty.address, target1.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target1.address)
+                .to.emit(target2, "ReviewRequest").withArgs(bounty.address, target1.address)
+                .to.emit(flagger2, "ReviewRequest").withArgs(bounty.address, target1.address)
             await expect (flagger2.flag(bounty.address, target2.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target2.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(flagger1.address, bounty.address, target2.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(target1.address, bounty.address, target2.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target2.address)
+                .to.emit(target1, "ReviewRequest").withArgs(bounty.address, target2.address)
+                .to.emit(flagger1, "ReviewRequest").withArgs(bounty.address, target2.address)
 
             await advanceToTimestamp(start + VOTE_START + 10, `votes to kick ${addr(target1)} and ${addr(target2)}`)
-            await expect(flagger2.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
-                .to.not.emit(bounty, "BrokerKicked")
-            await expect(flagger1.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
-                .to.not.emit(bounty, "BrokerKicked")
-            await expect(voter.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
-                .to.not.emit(bounty, "BrokerKicked")
-            await expect(voter.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
-                .to.not.emit(bounty, "BrokerKicked")
+            await expect(flagger2.voteOnFlag(bounty.address, target1.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
+            await expect(flagger1.voteOnFlag(bounty.address, target2.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
+            await expect(voter.voteOnFlag(bounty.address, target1.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
+            await expect(voter.voteOnFlag(bounty.address, target2.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
+
             await expect(target2.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
                 .to.emit(bounty, "BrokerKicked").withArgs(target1.address, parseEther("100"))
             await expect(target1.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
@@ -179,10 +177,10 @@ describe("VoteKickPolicy", (): void => {
 
             // all 4 brokers that are not in the same bounty get picked; additionally 1 more from same bounty randomly
             await expect (pool1.flag(bounty.address, flaggedPool.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(p4.address, bounty.address, flaggedPool.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(p5.address, bounty.address, flaggedPool.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(p6.address, bounty.address, flaggedPool.address)
-                .to.emit(bounty, "ReviewRequest").withArgs(p7.address, bounty.address, flaggedPool.address)
+                .to.emit(p4, "ReviewRequest").withArgs(bounty.address, flaggedPool.address)
+                .to.emit(p5, "ReviewRequest").withArgs(bounty.address, flaggedPool.address)
+                .to.emit(p6, "ReviewRequest").withArgs(bounty.address, flaggedPool.address)
+                .to.emit(p7, "ReviewRequest").withArgs(bounty.address, flaggedPool.address)
         })
 
         it("can NOT flag if not enough stake", async function(): Promise<void> {
@@ -336,7 +334,7 @@ describe("VoteKickPolicy", (): void => {
         it("NO voting before the voting starts", async function(): Promise<void> {
             const { bounty, pools: [ flagger, target, voter ] } = await setup(2, 1)
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
             await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_KICK))
                 .to.be.revertedWith("error_votingNotStarted")
         })
@@ -352,7 +350,7 @@ describe("VoteKickPolicy", (): void => {
             await (await target.reduceStakeTo(bounty.address, parseEther("900"))).wait() // get a nicer rounder number... 10/9 of 90 is 100
 
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             const minimumStake = await bounty.minimumStakeOf(target.address)
             expect(minimumStake).to.equal(parseEther("100"))
@@ -368,7 +366,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             await advanceToTimestamp(start + VOTE_START + 10, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(bounty. address, target.address, VOTE_NO_KICK))
@@ -384,7 +382,7 @@ describe("VoteKickPolicy", (): void => {
             const { bounty, pools: [ flagger, target, voter] } = await setup(2, 1, this.currentTest?.title)
 
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal("11111111111111111111") // 10/9 of 100
@@ -400,7 +398,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(bounty.address, target.address))
-                .to.emit(bounty, "ReviewRequest").withArgs(voter.address, bounty.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
 
             await advanceToTimestamp(start + VOTE_START + 10, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_NO_KICK))
