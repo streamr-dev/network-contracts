@@ -106,7 +106,6 @@ let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
 let streamRegistryFromOwner
 let linkToken
-let dataToken
 
 async function getProducts() {
     // return await (await fetch(`${streamrUrl}/api/v1/products?publicAccess=true`)).json()
@@ -326,20 +325,16 @@ async function deployStreamRegistries() {
 }
 
 async function deployBountyFactory() {
-    // const adminWallet = await ethersWallet(sidechainURL, privKeyStreamRegistry)
+    const adminWalletEthers4 = await ethersWallet(sidechainURL, privKeyStreamRegistry)
     const adminWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
-
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", adminWallet)
+    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", { signer: adminWallet })
     const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
     const streamrConstants = await streamrConstantsFactoryTx.deployed()
     const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), adminWallet.address)
     log(`hasrole adminwallet ${hasroleEthSigner}`)
     log(`streamrConstants address ${streamrConstants.address}`)
-    const etherssigner = (await ethers.getSigners())[0]
-    const hasroleEthersSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), etherssigner.address)
-    log(`hasrole etherssingers ${hasroleEthersSigner}`)
 
-    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy", adminWallet)).deploy()
+    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy")).deploy()
     await minStakeJoinPolicy.deployed()
     log(`minStakeJoinPolicy address ${minStakeJoinPolicy.address}`)
 
@@ -363,7 +358,7 @@ async function deployBountyFactory() {
     await bountyTemplate.deployed()
     log(`bountyTemplate address ${bountyTemplate.address}`)
 
-    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", adminWallet)
+    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
         [ bountyTemplate.address, linkToken.address, streamrConstants.address ], { kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed()
@@ -373,9 +368,9 @@ async function deployBountyFactory() {
     await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
     log(`bountyFactory address ${bountyFactory.address}`)
 
-    const transfertx = await linkToken.transfer(adminWallet.address, bigNumberify('10000000000000000000000')) // 1000 link
-    await transfertx.wait()
-    log(`transferred 1000 link to ${adminWallet.address}`)
+    // const transfertx = await linkToken.transfer(adminWallet.address, bigNumberify('10000000000000000000000')) // 1000 link
+    // await transfertx.wait()
+    // log(`transferred 1000 link to ${adminWallet.address}`)
     // await (await linkToken.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
     // log(`minted 1000000 datatokens to ${adminWallet.address}`)
     // await (await linkToken.mint(dataTokenOwner.address, ethers.utils.parseEther("1000000"))).wait()
@@ -384,7 +379,7 @@ async function deployBountyFactory() {
     // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${brokerWallet.address}`)
-    const agreementtx = await bountyFactory.connect(adminWallet).deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+    const agreementtx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
         [
             allocationPolicy.address,
             ethers.constants.AddressZero,
@@ -400,18 +395,17 @@ async function deployBountyFactory() {
     log("new bounty address: " + newBountyAddress)
 
     // bounty = await ethers.getContractAt("Bounty", newBountyAddress, adminWallet)
-    const bountyEthersFactory = await ethers.getContractFactory("Bounty", adminWallet)
+    const bountyEthersFactory = await ethers.getContractFactory("Bounty", { signer: adminWallet })
     const bounty = await bountyEthersFactory.attach(newBountyAddress)
     const hasrole = await bounty.hasRole(await bounty.DEFAULT_ADMIN_ROLE(), adminWallet.address)
-    log(`hasrole ${hasrole}`)
+    log(`hasrole bounty adminwallet ${hasrole}`)
     log(`adminwallet ${adminWallet.address}`)
-    log(`broker of bounty ${await bounty.broker()}`)
     // bounty = await bountyEFContrac.connect(adminWallet)
     // sponsor with token approval
     // const ownerbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
     const adminWalletBalance = await linkToken.balanceOf(adminWallet.address)
     log("adminWalletBalance: " + adminWalletBalance.toString())
-    await (await linkToken.approve(newBountyAddress, ethers.utils.parseEther("20"))).wait()
+    await (await linkToken.connect(adminWalletEthers4).approve(newBountyAddress, ethers.utils.parseEther("20"))).wait()
     const allowance = await linkToken.allowance(adminWallet.address, newBountyAddress)
     log("allowance: " + allowance.toString())
     // const tokenOwnerBalance = await dataToken.balanceOf(dataTokenOwner.address)
@@ -423,10 +417,67 @@ async function deployBountyFactory() {
     await sponsorTx.wait()
     log("sponsored through token approval")
 
-    const tx = await dataToken.transferAndCall(newBountyAddress, ethers.utils.parseEther("1"),
-        userWallet.address)
-    await tx.wait()
-    log("staked in bounty with transfer and call")
+    // const tx = await linkToken.connect(adminWalletEthers4).transferAndCall(newBountyAddress, ethers.utils.parseEther("1"),
+    //     adminWallet.address)
+    // await tx.wait()
+    // log("staked in bounty with transfer and call")
+
+    const poolTemplate = await (await ethers.getContractFactory("BrokerPool")).deploy()
+    await poolTemplate.deployed()
+    log("Deployed pool template", poolTemplate.address)
+    const defaultPoolJoinPolicy = await (await ethers.getContractFactory("DefaultPoolJoinPolicy",
+        { signer: adminWallet })).deploy()
+    await defaultPoolJoinPolicy.deployed()
+    log("Deployed default pool join policy", defaultPoolJoinPolicy.address)
+    const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy",
+        { signer: adminWallet })).deploy()
+    await defaultPoolYieldPolicy.deployed()
+    log("Deployed default pool yield policy", defaultPoolYieldPolicy.address)
+    const defaultPoolExitPolicy = await (await ethers.getContractFactory("DefaultPoolExitPolicy",
+        { signer: adminWallet })).deploy()
+    await defaultPoolExitPolicy.deployed()
+    log("Deployed default pool exit policy", defaultPoolExitPolicy.address)
+
+    const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory",
+        { signer: adminWallet })
+    const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
+        poolTemplate.address,
+        linkToken.address,
+        streamrConstants.address
+    ])
+    // eslint-disable-next-line require-atomic-updates
+    // localConfig.poolFactory = poolFactory.address
+    await poolFactory.deployed()
+    log("Deployed pool factory", poolFactory.address)
+    // eslint-disable-next-line require-atomic-updates
+    await (await poolFactory.addTrustedPolicies([
+        defaultPoolJoinPolicy.address,
+        defaultPoolYieldPolicy.address,
+        defaultPoolExitPolicy.address,
+    ])).wait()
+    log("Added trusted policies")
+
+    await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
+    log("Set broker pool factory in StreamrConstants")
+
+    const pooltx = await poolFactory.connect(adminWallet).deployBrokerPool(
+        0, // min initial investment
+        `Pool-${Date.now()}`,
+        [defaultPoolJoinPolicy.address, 
+            defaultPoolYieldPolicy.address,
+            defaultPoolExitPolicy.address],
+        [0, 0, 0, 0, 0, 10, 10, 0]
+    )
+    const poolReceipt = await pooltx.wait()
+    const poolAddress = poolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
+    // eslint-disable-next-line require-atomic-updates
+    log("Pool deployed at: ", poolAddress)
+    const poolFactory2 = await ethers.getContractFactory("BrokerPool", { signer: adminWallet })
+    const pool = await poolFactory2.attach(poolAddress)
+    const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(pool.address, ethers.utils.parseEther("1000"),
+        adminWallet.address)
+    await investTx.wait()
+    log("Invested to pool ", pool.address)
 }
 
 async function smartContractInitialization() {
@@ -445,6 +496,7 @@ async function smartContractInitialization() {
     const linkTokenFactoryTx = await linkTokenFactory.deploy()
     linkToken = await linkTokenFactoryTx.deployed()
     log(`Link Token deployed at ${linkToken.address}`)
+    await (await linkToken.transfer(sidechainWalletStreamReg.address, ethers.utils.parseEther("1000000"))).wait()
     await deployBountyFactory()
 
     // log(`Deploying Marketplace1 contract from ${wallet.address}`)
