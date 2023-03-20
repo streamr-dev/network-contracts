@@ -454,7 +454,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(flagger.flag(bounty.address, target2.address)).to.be.rejectedWith("error_notEnoughStake")
         })
 
-        it.only("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
+        it("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
             const { bounty, staked: [ flagger, target, voter ]} = await setup(3, 0, "flagger-after-flag", {
                 stakeAmountWei: parseEther("20"),
                 bountySettings: {
