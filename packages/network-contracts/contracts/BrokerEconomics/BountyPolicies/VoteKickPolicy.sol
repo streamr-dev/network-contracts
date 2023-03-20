@@ -93,11 +93,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // the limit for flagging is 9/10s of the stake so that there's still room to get flagged for the remaining 1/10
-        // uint flagStakeWei = globalData().streamrConstants.flagStakeWei(); // TODO?
         globalData().committedStakeWei[flagger] += FLAG_STAKE_WEI;
         require(globalData().committedStakeWei[flagger] <= globalData().stakedWei[flagger] * 9/10, "error_notEnoughStake");
         flaggerAddress[target] = flagger;
-
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
 
         // only secondarily select peers that are in the same bounty as the flagging target
@@ -108,9 +106,8 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         uint brokerPoolCount = factory.deployedBrokerPoolsLength();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         bytes32 randomBytes = keccak256(abi.encode(target, brokerPoolCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
+        assert(REVIEWER_COUNT <= 32); // to raise maxReviewersSearch, tweak >>= below, keccak gives 256 bits of "randomness"
         uint maxReviewersSearch = 20;
-        assert(REVIEWER_COUNT <= 20); // to raise maxReviewersSearch, tweak >>= below, address gives 160 bits of "randomness"
-        // assert(reviewerCount <= 32); // tweak >>= below, prevrandao gives 256 bits of randomness
 
         // primary selection: live peers that are not in the same bounty
         for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
@@ -164,7 +161,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     function onVote(address target, bytes32 voteData) external {
         // console.log("onVote", msg.sender, target);
         require(flagTimestamp[target] > 0, "error_notFlagged");
-        require(block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS, "error_votingNotStarted");
+        require(block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS, "error_votingNotStarted"); // solhint-disable-line not-rely-on-time
         if (block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS) { // solhint-disable-line not-rely-on-time
             // console.log("Vote timeout", target, block.timestamp, flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS);
             _endVote(target);
