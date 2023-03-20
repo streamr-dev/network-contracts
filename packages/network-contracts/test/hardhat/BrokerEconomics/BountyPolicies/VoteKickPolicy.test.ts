@@ -48,7 +48,13 @@ describe("VoteKickPolicy", (): void => {
     /**
      * Sets up a Bounty and given number of brokers, each with BrokerPool that stakes 1000 tokens into the Bounty
      */
-    async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, saltSeed: string, bountySettings: any = {}) {
+    async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, saltSeed: string, {
+        bountySettings = {},
+        stakeAmountWei = parseEther("1000"),
+    }: {
+        bountySettings?: any
+        stakeAmountWei?: BigNumber
+    } = {}) {
         // Hardhat provides 20 pre-funded signers
         const [admin, ...hardhatSigners] = await ethers.getSigners() as unknown as Wallet[]
         const signers = hardhatSigners.slice(0, stakedBrokerCount + nonStakedBrokerCount)
@@ -76,7 +82,7 @@ describe("VoteKickPolicy", (): void => {
         // console.log("signers: %s", signers.map(addr).join(", "))
         // console.log("pools: %s", pools.map(addr).join(", "))
 
-        await Promise.all(signers.map(((signer, i) => token.connect(signer).transferAndCall(pools[i].address, parseEther("1000"), "0x"))))
+        await Promise.all(signers.map(((signer, i) => token.connect(signer).transferAndCall(pools[i].address, stakeAmountWei, "0x"))))
 
         const rewardsBeneficiaries = pools.map((pool, i) => getAddress(pool.address.toLowerCase().slice(0, -8) + ("0000000" + i).slice(-8)))
         await Promise.all(pools.map((p, i) => p.setReviewRewardsBeneficiary(rewardsBeneficiaries[i])))
@@ -89,7 +95,7 @@ describe("VoteKickPolicy", (): void => {
         })
         await bounty.sponsor(parseEther("10000"))
 
-        await Promise.all(staked.map((p) => p.stake(bounty.address, parseEther("1000"))))
+        await Promise.all(staked.map((p) => p.stake(bounty.address, stakeAmountWei)))
 
         return {
             token,
@@ -441,7 +447,33 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
-            // TODO
+            const { bounty, staked: [ flagger, target, target2 ]} = await setup(3, 0, "flagger-after-flag", {
+                stakeAmountWei: parseEther("20"), // enough for 2 flag-stakes
+            })
+            await expect(flagger.flag(bounty.address, target.address)).to.emit(target2, "ReviewRequest")
+            await expect(flagger.flag(bounty.address, target2.address)).to.be.rejectedWith("error_notEnoughStake")
+        })
+
+        it.only("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
+            const { bounty, staked: [ flagger, target, voter ]} = await setup(3, 0, "flagger-after-flag", {
+                stakeAmountWei: parseEther("20"),
+                bountySettings: {
+                    minimumStakeWei: parseEther("19.5"),
+                }
+            })
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(bounty.address, target.address)).to.emit(voter, "ReviewRequest")
+
+            await advanceToTimestamp(start + VOTE_START + 10, `${addr(voter)} votes`)
+            await (await voter.voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
+            expect(await bounty.getFlag(target.address)).to.equal("0") // flag is resolved
+
+            expect(await bounty.getStake(flagger.address)).to.equal(parseEther("19"))
+
+            await advanceToTimestamp(start + VOTE_START + 1000, `${addr(flagger)} tries to flag ${addr(voter)}`)
+            await expect(flagger.flag(bounty.address, voter.address)).to.be.rejectedWith("error_notEnoughStake")
         })
 
         it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
