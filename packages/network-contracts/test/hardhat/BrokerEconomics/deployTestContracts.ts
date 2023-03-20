@@ -25,12 +25,15 @@ export type TestContracts = {
     deployer: Wallet;
 }
 
-export async function deployPoolFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<BrokerPoolFactory> {
+export async function deployPoolFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
+    poolFactory: BrokerPoolFactory,
+    poolTemplate: BrokerPool
+}> {
     const {
         token, streamrConstants,
-        poolTemplate,
         defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     } = contracts
+    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
     const poolFactory = await (await getContractFactory("BrokerPoolFactory", { signer })).deploy()
     await poolFactory.deployed()
     await (await poolFactory.initialize(
@@ -46,7 +49,7 @@ export async function deployPoolFactory(contracts: Partial<TestContracts>, signe
 
     await (await streamrConstants!.setBrokerPoolFactory(poolFactory.address)).wait()
 
-    return poolFactory
+    return { poolFactory, poolTemplate }
 }
 
 /**
@@ -94,14 +97,12 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await (await streamrConstants!.setBountyFactory(bountyFactory.address)).wait()
 
     // broker pool and policies
-    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
     const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", { signer })).deploy()
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
     const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", { signer })).deploy()
 
-    const poolFactory = await deployPoolFactory({
+    const { poolFactory, poolTemplate } = await deployPoolFactory({
         token, streamrConstants,
-        poolTemplate,
         defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }, signer)
 

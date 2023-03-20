@@ -50,21 +50,22 @@ describe("VoteKickPolicy", (): void => {
      */
     async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, saltSeed: string, bountySettings: any = {}) {
         // Hardhat provides 20 pre-funded signers
-        const [admin, ...allSigners] = await ethers.getSigners() as unknown as Wallet[]
-        const signers = allSigners.slice(0, stakedBrokerCount + nonStakedBrokerCount)
+        const [admin, ...hardhatSigners] = await ethers.getSigners() as unknown as Wallet[]
+        const signers = hardhatSigners.slice(0, stakedBrokerCount + nonStakedBrokerCount)
 
         // clean deployer wallet starts from nothing => needs ether to deploy BrokerPool etc.
         const deployer = new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
         await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
-        console.log("deployer: %s", addr(deployer))
+        // console.log("deployer: %s", addr(deployer))
 
-        // we only want to re-deploy the BrokerPoolFactory (not all the policies or BountyFactory)
+        // we just want to re-deploy the BrokerPoolFactory (not all the policies or BountyFactory)
         // to generate deterministic BrokerPool addresses => deterministic reviewer selection
         const newContracts = {
             ...contracts,
-            poolFactory: await deployPoolFactory(contracts, deployer)
+            ...await deployPoolFactory(contracts, deployer)
         }
-        console.log("poolFactory: %s", addr(newContracts.poolFactory))
+        // console.log("poolFactory: %s", addr(newContracts.poolFactory))
+        // console.log("poolTemplate: %s", addr(newContracts.poolTemplate))
         const { token } = contracts
 
         // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
@@ -72,7 +73,8 @@ describe("VoteKickPolicy", (): void => {
         const pools = await Promise.all(signers.map((signer) => deployBrokerPool(newContracts, signer, {}, saltSeed)))
         const staked = pools.slice(0, stakedBrokerCount)
         const nonStaked = pools.slice(stakedBrokerCount, stakedBrokerCount + nonStakedBrokerCount)
-        console.log("pools: %s", pools.map(addr).join(", "))
+        // console.log("signers: %s", signers.map(addr).join(", "))
+        // console.log("pools: %s", pools.map(addr).join(", "))
 
         await Promise.all(signers.map(((signer, i) => token.connect(signer).transferAndCall(pools[i].address, parseEther("1000"), "0x"))))
 
@@ -247,7 +249,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target ],
                 nonStaked: voters
-            } = await setup(2, 5, "already-kicked-flagger")
+            } = await setup(2, 5, "flagger-had-been-kicked")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -286,7 +288,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target ],
                 nonStaked: voters
-            } = await setup(2, 5, "flagger-forceUnstake")
+            } = await setup(2, 5, "forceUnstaked-flagger")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)

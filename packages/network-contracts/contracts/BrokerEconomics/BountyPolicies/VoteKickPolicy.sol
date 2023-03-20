@@ -118,7 +118,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool peer = factory.deployedBrokerPools(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", peer);
+                // console.log(index, "skipping", address(peer));
                 continue;
             }
             // TODO: check is broker live
@@ -127,10 +127,10 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                     sameBountyPeers[sameBountyPeerCount++] = peer;
                     reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same bounty", peerAddress);
+                // console.log(index, "in same bounty", address(peer));
                 continue;
             }
-            // console.log(index, "selecting", peer);
+            // console.log(index, "selecting", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -140,15 +140,15 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < sameBountyPeerCount; i++) {
             BrokerPool peer = sameBountyPeers[i];
             if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
-                // console.log("already selected", peer);
+                // console.log("already selected", address(peer));
                 continue;
             }
             if (reviewers[target].length >= REVIEWER_COUNT) {
                 reviewerState[target][peer] = Reviewer.NOT_SELECTED;
-                // console.log("not selecting", peer);
+                // console.log("not selecting", address(peer));
                 continue;
             }
-            // console.log("selecting from same bounty", peer);
+            // console.log("selecting from same bounty", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -162,9 +162,11 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
     function onVote(address target, bytes32 voteData) external {
+        // console.log("onVote", msg.sender, target);
         require(flagTimestamp[target] > 0, "error_notFlagged");
         require(block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS, "error_votingNotStarted");
         if (block.timestamp > flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS) { // solhint-disable-line not-rely-on-time
+            // console.log("Vote timeout", target, block.timestamp, flagTimestamp[target] + REVIEW_PERIOD_SECONDS + VOTING_PERIOD_SECONDS);
             _endVote(target);
             return;
         }
@@ -185,6 +187,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
+            // console.log("Everyone voted", target);
             _endVote(target);
         }
     }
@@ -192,6 +195,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-disable reentrancy */ // TODO: figure out what solhint means with this exactly
 
     function _endVote(address target) internal {
+        // console.log("endVote", target);
         address flagger = flaggerAddress[target];
         bool flaggerIsGone = globalData().stakedWei[flagger] == 0;
         bool targetIsGone = globalData().stakedWei[target] == 0;
