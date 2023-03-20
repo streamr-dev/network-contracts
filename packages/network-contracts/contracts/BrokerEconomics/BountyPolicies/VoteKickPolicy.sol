@@ -18,6 +18,23 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     uint public constant REVIEWER_REWARD_WEI = 1 ether;
     uint public constant FLAGGER_REWARD_WEI = 1 ether;
 
+    // probability of FAILING to find REVIEWER_COUNT peers (from peerCount > REVIEWER_COUNT + 1) for the review is:
+    // "try REVIEWER_SELECTION_ITERATIONS times, always hit inside the set of first REVIEWER_COUNT-1 selected peers OR flagger/target"
+    // = ((REVIEWER_COUNT - 1 + 2) / peerCount) ^ REVIEWER_SELECTION_ITERATIONS
+    // = (REVIEWER_COUNT + 1) / peerCount) ^ REVIEWER_SELECTION_ITERATIONS
+    // example values:
+    //  - worst case: select 5 out of 7 (only one correct solution, everyone who can be selected must be selected!)
+    //      10 iterations => failure rate (6/7)**10 ~= 20%
+    //      20 iterations => failure rate (6/7)**20 ~= 5%
+    //      30 iterations => failure rate (6/7)**30 ~= 1%
+    //  - better case: select 10 out of 20
+    //      10 iterations => failure rate (11/20)**10 ~= 0.25%
+    //      20 iterations => failure rate (11/20)**20 < 1 / 100 000
+    //  - worst case: select 32 out of 34
+    //      20 iterations => failure rate (33/34)**20 ~= 55%
+    //      100 iterations => failure rate (33/34)**100 ~= 5%
+    uint public constant REVIEWER_SELECTION_ITERATIONS = 20;
+
     /**
      * FLAG_STAKE_WEI must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed 10% of the total stake).
      * If the broker decides to reduceStake, committed stake is the limit how much stake must be left into Bounty.
@@ -107,10 +124,9 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         bytes32 randomBytes = keccak256(abi.encode(target, brokerPoolCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
         assert(REVIEWER_COUNT <= 32); // to raise maxReviewersSearch, tweak >>= below, keccak gives 256 bits of "randomness"
-        uint maxReviewersSearch = 20;
 
         // primary selection: live peers that are not in the same bounty
-        for (uint i = 0; i < maxReviewersSearch && reviewers[target].length < REVIEWER_COUNT; i++) {
+        for (uint i = 0; i < REVIEWER_SELECTION_ITERATIONS && reviewers[target].length < REVIEWER_COUNT; i++) {
             randomBytes >>= 8; // if REVIEWER_COUNT > 20, replace this with keccak256(randomBytes) or smth
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool peer = factory.deployedBrokerPools(index);
