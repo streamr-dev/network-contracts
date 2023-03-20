@@ -1,4 +1,4 @@
-import { ethers, network } from "hardhat"
+import { ethers } from "hardhat"
 import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
