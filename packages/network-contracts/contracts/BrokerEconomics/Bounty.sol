@@ -142,7 +142,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     ) public initializer {
         require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
         require(initialMinimumStakeWei > 0, "error_minimumStakeZero");
-        // __AccessControl_init();
+        __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
         _setupRole(ADMIN_ROLE, newOwner);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too

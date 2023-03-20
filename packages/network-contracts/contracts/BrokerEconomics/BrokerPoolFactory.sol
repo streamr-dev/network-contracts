@@ -123,13 +123,13 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
+        bytes32 salt = keccak256(abi.encode(bytes(poolName), poolOwner));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
             streamrConstants,
-            _msgSender(),
+            poolOwner,
             poolName,
             initialMinimumDelegationWei
         );
@@ -142,9 +142,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         if (policies[2] != address(0)) {
             pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
         }
-        pool.grantRole(pool.ADMIN_ROLE(), poolOwner);
         pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
-        pool.renounceRole(pool.ADMIN_ROLE(), address(this));
         emit NewBrokerPool(poolAddress);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[poolAddress] = block.timestamp;

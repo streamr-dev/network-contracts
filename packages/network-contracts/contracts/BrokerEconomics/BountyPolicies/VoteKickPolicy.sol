@@ -225,7 +225,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(reviewer.broker(), REVIEWER_REWARD_WEI);
+                    token.transfer(reviewer.reviewRewardsBeneficiary(), REVIEWER_REWARD_WEI);
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
@@ -238,7 +238,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(reviewer.broker(), REVIEWER_REWARD_WEI);
+                    token.transfer(reviewer.reviewRewardsBeneficiary(), REVIEWER_REWARD_WEI);
                     rewardsWei += REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
