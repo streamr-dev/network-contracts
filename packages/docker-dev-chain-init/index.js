@@ -475,9 +475,12 @@ async function deployBountyFactory() {
     const poolFactory2 = await ethers.getContractFactory("BrokerPool", { signer: adminWallet })
     const pool = await poolFactory2.attach(poolAddress)
     const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(pool.address, ethers.utils.parseEther("1000"),
-        adminWallet.address)
+        adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
     log("Invested to pool ", pool.address)
+    const stakeTx = await pool.connect(adminWallet).stake(bounty.address, ethers.utils.parseEther("1000"))
+    await stakeTx.wait()
+    log("Staked into bounty ", bounty.address)
 }
 
 async function smartContractInitialization() {
@@ -490,14 +493,20 @@ async function smartContractInitialization() {
     // const token = await tokenDeployTx.deployed()
     // log(`New DATAv2 ERC20 deployed at ${token.address}`)
 
-    const sidechainWalletStreamReg = await ethersWallet(sidechainURL, privKeyStreamRegistry)
-    log('Deploying Streamregistry and chainlink contracts to sidechain:')
-    const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
-    const linkTokenFactoryTx = await linkTokenFactory.deploy()
-    linkToken = await linkTokenFactoryTx.deployed()
-    log(`Link Token deployed at ${linkToken.address}`)
-    await (await linkToken.transfer(sidechainWalletStreamReg.address, ethers.utils.parseEther("1000000"))).wait()
-    await deployBountyFactory()
+    log(`Deploying test DATAv2 from ${wallet.address}`)
+    const tokenDeployer = await new ContractFactory(DATAv2.abi, DATAv2.bytecode, wallet)
+    const tokenDeployTx = await tokenDeployer.deploy()
+    const token = await tokenDeployTx.deployed()
+    log(`New DATAv2 ERC20 deployed at ${token.address}`)
+    
+    // const sidechainWalletStreamReg = await ethersWallet(sidechainURL, privKeyStreamRegistry)
+    // log('Deploying Streamregistry and chainlink contracts to sidechain:')
+    // const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
+    // const linkTokenFactoryTx = await linkTokenFactory.deploy()
+    // linkToken = await linkTokenFactoryTx.deployed()
+    // log(`Link Token deployed at ${linkToken.address}`)
+    // await (await linkToken.transfer(sidechainWalletStreamReg.address, ethers.utils.parseEther("1000000"))).wait()
+    // await deployBountyFactory()
 
     // log(`Deploying Marketplace1 contract from ${wallet.address}`)
     const marketDeployer1 = new ContractFactory(MarketplaceJson.abi, MarketplaceJson.bytecode, wallet)
