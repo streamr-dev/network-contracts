@@ -360,7 +360,7 @@ async function deployBountyFactory() {
 
     const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ bountyTemplate.address, linkToken.address, streamrConstants.address ], { kind: "uups" })
+        [ bountyTemplate.address, linkToken.address, streamrConstants.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed()
     await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
@@ -444,7 +444,7 @@ async function deployBountyFactory() {
         poolTemplate.address,
         linkToken.address,
         streamrConstants.address
-    ])
+    ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     // eslint-disable-next-line require-atomic-updates
     // localConfig.poolFactory = poolFactory.address
     await poolFactory.deployed()
