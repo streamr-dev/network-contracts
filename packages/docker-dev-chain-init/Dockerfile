@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:17-bullseye-slim
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	curl \
@@ -25,7 +25,7 @@ RUN node --version
 RUN npm --version
 COPY ./ ./
 RUN npm run clean
-RUN npm i
+RUN npm ci
 ENV DEBUG=*
 RUN npm run build -w=@streamr-contracts/docker-dev-chain-init
 CMD npm run preload -w=@streamr-contracts/docker-dev-chain-init && \
