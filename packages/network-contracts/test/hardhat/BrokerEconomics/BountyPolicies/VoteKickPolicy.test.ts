@@ -461,7 +461,7 @@ describe("VoteKickPolicy", (): void => {
             const { bounty, staked: [ flagger, target, voter ]} = await setup(3, 0, "flagger-after-flag", {
                 stakeAmountWei: parseEther("20"),
                 bountySettings: {
-                    minimumStakeWei: parseEther("19.5"),
+                    minimumStakeWei: parseEther("20"),
                 }
             })
             const start = await getBlockTimestamp()
@@ -473,7 +473,7 @@ describe("VoteKickPolicy", (): void => {
             await (await voter.voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
             expect(await bounty.getFlag(target.address)).to.equal("0") // flag is resolved
 
-            expect(await bounty.getStake(flagger.address)).to.equal(parseEther("19"))
+            expect(await bounty.getStake(flagger.address)).to.equal(parseEther("19")) // paid one reviewer's fee
 
             await advanceToTimestamp(start + VOTE_START + 1000, `${addr(flagger)} tries to flag ${addr(voter)}`)
             await expect(flagger.flag(bounty.address, voter.address)).to.be.rejectedWith("error_notEnoughStake")

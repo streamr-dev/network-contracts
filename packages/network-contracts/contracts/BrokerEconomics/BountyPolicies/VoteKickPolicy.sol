@@ -102,7 +102,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         GlobalStorage storage s = globalData();
         address flagger = _msgSender();
         require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(s.stakedWei[flagger] > s.minimumStakeWei, "error_notEnoughStake");
+        require(s.stakedWei[flagger] >= s.minimumStakeWei, "error_notEnoughStake");
         require(s.stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // the flag target risks to lose 10% if the flag resolves to KICK
