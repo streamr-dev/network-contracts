@@ -184,7 +184,8 @@ describe("Bounty", (): void => {
         })
 
         it("error setting param on joinpolicy no revert reason", async function(): Promise<void> {
-            await expect(deployBountyWithoutFactory(contracts, {}, [testJoinPolicy], ["2"])) // 2 => TestJoinPolicy:setParam will revert without reason
+            // 2 => TestJoinPolicy:setParam will revert without reason
+            await expect(deployBountyWithoutFactory(contracts, {}, [testJoinPolicy], ["2"]))
                 .to.be.revertedWith("error_addJoinPolicyFailed")
         })
 
