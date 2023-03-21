@@ -4,7 +4,7 @@ import { utils, Wallet, BigNumberish } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
-import { deployBountyContract } from "../deployBounty"
+import { deployBountyWithoutFactory } from "../deployBounty"
 
 const { parseEther } = utils
 
@@ -34,13 +34,13 @@ describe("DefaultLeavePolicy", (): void => {
     }
 
     it("FAILS to deploy if penaltyPeriodSeconds is higher than the global max", async function(): Promise<void> {
-        await expect(deployBountyContract(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 2678000 }))
+        await expect(deployBountyWithoutFactory(contracts, { minBrokerCount: 2, penaltyPeriodSeconds: 2678000 }))
             .to.be.revertedWith("error_penaltyPeriodTooLong")
     })
 
     it("deducts penalty from a broker that leaves too early", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, {
+        const bounty = await deployBountyWithoutFactory(contracts, {
             minHorizonSeconds: 1000,
             penaltyPeriodSeconds: 1000,
             allocationWeiPerSecond: parseEther("0")
@@ -73,7 +73,7 @@ describe("DefaultLeavePolicy", (): void => {
         // earnings b1: 0       0     100
         // earnings b2:         0     100       0
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, {
+        const bounty = await deployBountyWithoutFactory(contracts, {
             minBrokerCount: 2,
             penaltyPeriodSeconds: 1000
         })
@@ -124,7 +124,7 @@ describe("DefaultLeavePolicy", (): void => {
         // broker1:       400  +  300               =  700
         // broker2:               300  +  700       = 1000
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { penaltyPeriodSeconds: 1000 })
+        const bounty = await deployBountyWithoutFactory(contracts, { penaltyPeriodSeconds: 1000 })
         await setTokenBalance(contracts, broker, parseEther("1000"))
         await setTokenBalance(contracts, broker2, parseEther("1000"))
         const timeAtStart = await getBlockTimestamp()

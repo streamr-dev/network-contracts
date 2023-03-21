@@ -5,7 +5,7 @@ import { utils, Wallet } from "ethers"
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
-import { deployBountyContract } from "../deployBounty"
+import { deployBountyWithoutFactory } from "../deployBounty"
 
 const { parseEther, formatEther } = utils
 
@@ -31,7 +31,7 @@ describe("AdminKickPolicy", (): void => {
         const { token } = contracts
         await (await token.mint(broker.address, parseEther("1000"))).wait()
         await (await token.mint(broker2.address, parseEther("1000"))).wait()
-        const bounty = await deployBountyContract(contracts, {
+        const bounty = await deployBountyWithoutFactory(contracts, {
             penaltyPeriodSeconds: 1000,
             adminKickInsteadOfVoteKick: true
         })
@@ -65,7 +65,7 @@ describe("AdminKickPolicy", (): void => {
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { adminKickInsteadOfVoteKick: true })
+        const bounty = await deployBountyWithoutFactory(contracts, { adminKickInsteadOfVoteKick: true })
         await (await token.mint(broker.address, parseEther("1000"))).wait()
         await (await token.connect(broker).transferAndCall(bounty.address, parseEther("1000"), await broker.getAddress())).wait()
 

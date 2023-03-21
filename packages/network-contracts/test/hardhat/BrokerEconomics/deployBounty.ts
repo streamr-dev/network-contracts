@@ -90,7 +90,7 @@ export async function deployBounty(
  * Deploy the Bounty contract directly, skipping the factory
  * This is useful for tests that don't want e.g. the mandatory VoteKickPolicy policy
  */
-export async function deployBountyContract(
+export async function deployBountyWithoutFactory(
     contracts: TestContracts, {
         minimumStakeWei = BigNumber.from(1),
         minHorizonSeconds = 0,
