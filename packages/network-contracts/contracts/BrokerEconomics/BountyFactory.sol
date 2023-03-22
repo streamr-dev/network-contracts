@@ -65,18 +65,16 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         (
             uint32 initialMinHorizonSeconds,
             uint32 initialMinBrokerCount,
-            string memory bountyName,
             string memory streamId,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint32,uint32,string,string,address[],uint[])
+            (uint32,uint32,string,address[],uint[])
         );
         address bountyAddress = _deployBountyAgreement(
             sender,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
-            bountyName,
             streamId,
             policies,
             initParams
@@ -95,7 +93,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     function deployBountyAgreement(
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
-        string memory bountyName,
         string memory streamId,
         address[] memory policies,
         uint[] memory initParams
@@ -104,7 +101,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             _msgSender(),
             initialMinHorizonSeconds,
             initialMinBrokerCount,
-            bountyName,
             streamId,
             policies,
             initParams
@@ -115,7 +111,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address bountyOwner,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
-        string memory bountyName,
         string memory streamId,
         address[] memory policies,
         uint[] memory initParams
@@ -126,8 +121,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(bytes(bountyName), _msgSender()));
-        address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
+        address bountyAddress = ClonesUpgradeable.clone(bountyContractTemplate);
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
             streamId,
