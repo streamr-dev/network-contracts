@@ -120,7 +120,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         // TODO: after taking at least minimumStake, all 9/10s here are probably overthinking; it's enough that FLAG_STAKE_WEI is 10/9 of the total reviewer reward
         // the limit for flagging is 9/10s of the stake so that there's still room to get flagged and lose the remaining 10% of minimumStake
         globalData().committedStakeWei[flagger] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[flagger] * 10 <= 9 * globalData().stakedWei[target], "error_notEnoughStake");
+        require(globalData().committedStakeWei[flagger] * 10 <= 9 * globalData().stakedWei[flagger], "error_notEnoughStake");
         flaggerAddress[target] = flagger;
 
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
