@@ -23,7 +23,7 @@ dataSources:
         - name: BountyFactory
           file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BountyFactory.sol/BountyFactory.json
       eventHandlers:
-        - event: NewBounty(address)
+        - event: NewBounty(address,string)
           handler: handleBountyCreated
   - kind: ethereum/contract
     name: BrokerPoolFactory

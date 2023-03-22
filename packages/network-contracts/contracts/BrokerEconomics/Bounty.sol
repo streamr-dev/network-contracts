@@ -59,6 +59,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     IAllocationPolicy public allocationPolicy;
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
+    string public streamId;
 
     // storage variables available to all modules
     struct GlobalStorage {
@@ -111,6 +112,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     function initialize(
+        string calldata streamId_,
         StreamrConstants streamrConstants,
         address newOwner,
         address tokenAddress,
@@ -125,6 +127,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _setupRole(ADMIN_ROLE, newOwner);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
+        streamId = streamId_;
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
         globalData().streamrConstants = StreamrConstants(streamrConstants);

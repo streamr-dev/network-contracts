@@ -19,7 +19,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    event NewBounty(address bountyContract);
+    event NewBounty(address bountyContract, string streamId);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -66,16 +66,18 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             uint32 initialMinHorizonSeconds,
             uint32 initialMinBrokerCount,
             string memory bountyName,
+            string memory streamId,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint32,uint32,string,address[],uint[])
+            (uint32,uint32,string,string,address[],uint[])
         );
         address bountyAddress = _deployBountyAgreement(
             sender,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             bountyName,
+            streamId,
             policies,
             initParams
         );
@@ -94,6 +96,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory bountyName,
+        string memory streamId,
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
@@ -102,6 +105,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             bountyName,
+            streamId,
             policies,
             initParams
         );
@@ -112,6 +116,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory bountyName,
+        string memory streamId,
         address[] memory policies,
         uint[] memory initParams
     ) private returns (address) {
@@ -125,6 +130,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         address bountyAddress = ClonesUpgradeable.cloneDeterministic(bountyContractTemplate, salt);
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
+            streamId,
             streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
@@ -148,7 +154,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
-        emit NewBounty(bountyAddress);
+        emit NewBounty(bountyAddress, streamId);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[bountyAddress] = block.timestamp;
         return bountyAddress;

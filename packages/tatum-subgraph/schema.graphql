@@ -1,5 +1,6 @@
 type Bounty @entity {
   id: ID! # bounty address
+  streamId: String!
   isRunning: Boolean!
   stakes: [Stake!]! @derivedFrom(field: "bounty")
   brokerCount: Int!
@@ -15,8 +16,8 @@ type Stake @entity {
   amount: BigInt!
   allocatedWei: BigInt!
   date: BigInt
-  bounty: Bounty
-  pool: BrokerPool
+  bounty: Bounty!
+  pool: BrokerPool!
 }
 
 type Flag @entity {
