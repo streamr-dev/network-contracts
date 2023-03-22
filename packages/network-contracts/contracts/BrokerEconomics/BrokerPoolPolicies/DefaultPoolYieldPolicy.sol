@@ -84,7 +84,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokersShareDataWei", brokersShareDataWei);
         // if brokers share of stake is less than maintenance margin, diect brokerShareMaxDivertPercent of his share to his stake
         uint256 brokersShareOfStakePercent = balanceOf(broker) * 100 / totalSupply(); // 50 * 100 / 1000 = 5
-        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStake", brokersShareOfStake);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStake", brokersShareOfStakePercent);
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(broker));
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.localData().maintenanceMarginPercent", localData().maintenanceMarginPercent);
@@ -119,9 +119,8 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, BrokerPool {
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare transferred data to broker", brokersShareDataWei);
         // return (brokersShareDataWei, poolTokenToMint);
 
-        // uint256 brokersShareOfStakeAFTER = balanceOf(broker) * 100 / totalSupply();
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare brokerbalancePT", balanceOf(broker));
         // consolelog("DefaultPoolYieldPolicy.deductBrokersShare totalSupplyPT", totalSupply());
-        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", brokersShareOfStakeAFTER);
+        // consolelog("DefaultPoolYieldPolicy.deductBrokersShare.brokersShareOfStakeAFTER", balanceOf(broker) * 100 / totalSupply());
     }
 }

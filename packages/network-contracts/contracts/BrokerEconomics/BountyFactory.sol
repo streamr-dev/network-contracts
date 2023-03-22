@@ -122,6 +122,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
         require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
+        require(initialMinimumStakeWei >= streamrConstants.MINIMUM_STAKE_WEI(), "error_minimumStakeTooLow");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");

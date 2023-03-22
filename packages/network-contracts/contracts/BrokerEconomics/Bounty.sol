@@ -61,6 +61,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
 
+    // TODO: remove GlobalStorage, also remove the below getters functions
     // storage variables available to all modules
     struct GlobalStorage {
         StreamrConstants streamrConstants;
@@ -83,6 +84,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function getUnallocatedWei() public view returns(uint) {
         return globalData().unallocatedFunds;
+    }
+
+    function totalStakedWei() public view returns(uint) {
+        return globalData().totalStakedWei;
     }
 
     function getBrokerCount() public view returns(uint) {
@@ -340,6 +345,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         emit BrokerLeft(broker, paidOutStakeWei);
     }
 
+    // TODO: why not let withdraw for others?
     /** Get allocations out, leave stake in */
     function withdraw() external {
         address broker = _msgSender();

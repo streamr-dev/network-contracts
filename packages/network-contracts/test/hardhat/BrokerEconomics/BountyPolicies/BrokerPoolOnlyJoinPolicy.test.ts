@@ -30,19 +30,19 @@ describe("BrokerPoolOnlyJoinPolicy", (): void => {
         const { streamrConstants, token } = contracts
         const bounty = await deployBounty(contracts, { brokerPoolOnly: true })
 
-        await (await token.approve(bounty.address, parseEther("1"))).wait()
-        await expect(bounty.stake(broker.address, parseEther("1")))
+        await (await token.approve(bounty.address, parseEther("100"))).wait()
+        await expect(bounty.stake(broker.address, parseEther("100")))
             .to.be.revertedWith("error_onlyBrokerPools")
 
         const badPool = await (await (await getContractFactory("BrokerPool", broker)).deploy()).deployed()
         await (await badPool.initialize(token.address, streamrConstants.address, broker.address, "testpool", "1")).wait()
-        await (await token.transferAndCall(badPool.address, parseEther("1"), "0x")).wait()
-        await expect(badPool.stake(bounty.address, parseEther("1")))
+        await (await token.transferAndCall(badPool.address, parseEther("100"), "0x")).wait()
+        await expect(badPool.stake(bounty.address, parseEther("100")))
             .to.be.revertedWith("error_onlyBrokerPools")
 
         const pool = await deployBrokerPool(contracts, broker)
-        await (await token.transferAndCall(pool.address, parseEther("1"), "0x")).wait()
-        await expect(pool.stake(bounty.address, parseEther("1")))
+        await (await token.transferAndCall(pool.address, parseEther("100"), "0x")).wait()
+        await expect(pool.stake(bounty.address, parseEther("100")))
             .to.emit(bounty, "BrokerJoined").withArgs(pool.address)
             .to.emit(pool, "Staked")
     })

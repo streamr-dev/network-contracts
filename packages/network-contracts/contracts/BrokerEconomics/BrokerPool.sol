@@ -161,13 +161,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("onTokenTransfer amount", amount);
         require(_msgSender() == address(globalData().token), "error_onlyDATAToken");
 
-        // check if sender is a bounty: unstaking from bounties will call this method
-        // ignore returned tokens, handle them in unstake() instead
-        Bounty bounty = Bounty(sender);
-        if (indexOfBounties[bounty] > 0) {
-            return;
-        }
-
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -181,6 +174,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
             _delegate(delegator, amount);
         } else {
+            // check if sender is a bounty: unstaking/withdrawing from bounties will call this method
+            // ignore returned tokens, handle them in unstake() instead
+            Bounty bounty = Bounty(sender);
+            if (indexOfBounties[bounty] > 0) {
+                return;
+            }
+
             _delegate(sender, amount);
         }
     }

@@ -16,7 +16,7 @@ export let bountyCounter = 0
  */
 export async function deployBounty(
     contracts: TestContracts, {
-        minimumStakeWei = BigNumber.from(1),
+        minimumStakeWei = parseEther("60"),
         minHorizonSeconds = 0,
         minBrokerCount = 1,
         penaltyPeriodSeconds = -1,

@@ -16,23 +16,29 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     // TODO: move to StreamrConstants?
     uint public constant REVIEWER_COUNT = 5;
     uint public constant REVIEWER_REWARD_WEI = 1 ether;
+
+    // minimum stake in bounties must be at least FLAGGER_REWARD_WEI + REVIEWER_COUNT * REVIEWER_REWARD_WEI
+    // and this actually means the REAL minimum stake, after arbitrary slashing, so probably a safety margin of FLAG_STAKE_WEI is needed too
     uint public constant FLAGGER_REWARD_WEI = 1 ether;
 
-    // probability of FAILING to find REVIEWER_COUNT peers (from peerCount > REVIEWER_COUNT + 1) for the review is:
-    // "try REVIEWER_SELECTION_ITERATIONS times, always hit inside the set of first REVIEWER_COUNT-1 selected peers OR flagger/target"
-    // = ((REVIEWER_COUNT - 1 + 2) / peerCount) ^ REVIEWER_SELECTION_ITERATIONS
-    // = (REVIEWER_COUNT + 1) / peerCount) ^ REVIEWER_SELECTION_ITERATIONS
-    // example values:
+    // probability of finding REVIEWER_COUNT peers for the review is: 1 - sum_{N = 0...REVIEWER_COUNT-1} p(pick exactly N),
+    //   and a non-worst-case first-order approximation is  1 - (REVIEWER_COUNT / peerCount) ^ (REVIEWER_SELECTION_ITERATIONS - REVIEWER_COUNT)
+    // for exact simulation, take a look at scripts/calculateFullReviewProbability.ts; some example values:
     //  - worst case: select 5 out of 7 (only one correct solution, everyone who can be selected must be selected!)
-    //      10 iterations => failure rate (6/7)**10 ~= 20%
-    //      20 iterations => failure rate (6/7)**20 ~= 5%
-    //      30 iterations => failure rate (6/7)**30 ~= 1%
-    //  - better case: select 10 out of 20
-    //      10 iterations => failure rate (11/20)**10 ~= 0.25%
-    //      20 iterations => failure rate (11/20)**20 < 1 / 100 000
-    //  - worst case: select 32 out of 34
-    //      20 iterations => failure rate (33/34)**20 ~= 55%
-    //      100 iterations => failure rate (33/34)**100 ~= 5%
+    //    => Probability of success after i iterations:  [ 0, 0, 0, 0, 0.0071, 0.0275, 0.0632, 0.1127, 0.1727, 0.2393,
+    //                                 0.3087, 0.3781, 0.4451, 0.5083, 0.5668, 0.6201, 0.6682, 0.7111, 0.7492, 0.7827,
+    //                                  0.812, 0.8377,   0.86, 0.8794, 0.8962, 0.9107, 0.9232,  0.934, 0.9433, 0.9513 ]
+    //  - better case: select 5 out of 20
+    //    => Success rate is 32% with the minimum of 5 iterations, 64% with 6 iterations, >99% after 10 iterations,
+    //    => After 18 iterations, failure rate is less than 1 / 1 000 000
+    //  - super duper worst case: select 32 out of 34
+    //    => Success rate 16.5% after 100 iterations
+    //    => Most likely number of reviewers after i iterations: [ 1,  2,  3,  4,  5,  5,  6,  7,  8,  8,
+    //                     9, 10, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19,
+    //                    19, 20, 20, 20, 21, 21, 21, 22, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25,
+    //                    25, 25, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28,
+    //                    28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30,
+    //                    30, 30, 30, 30, 30, 30, 31, 31, 31, 31 ], i.e. up to half (16), it picks every 1...2nd time, as you would expect
     uint public constant REVIEWER_SELECTION_ITERATIONS = 20;
 
     /**
@@ -106,13 +112,17 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         require(s.stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // the flag target risks to lose 10% if the flag resolves to KICK
-        targetStakeAtRiskWei[target] = globalData().stakedWei[target] / 10;
+        // take at least 10% of minimumStake to ensure everyone can get paid!
+        uint slashBasisWei = max(globalData().stakedWei[target], globalData().minimumStakeWei);
+        targetStakeAtRiskWei[target] = slashBasisWei / 10;
         globalData().committedStakeWei[target] += targetStakeAtRiskWei[target];
 
-        // the limit for flagging is 9/10s of the stake so that there's still room to get flagged for the remaining 1/10
+        // TODO: after taking at least minimumStake, all 9/10s here are probably overthinking; it's enough that FLAG_STAKE_WEI is 10/9 of the total reviewer reward
+        // the limit for flagging is 9/10s of the stake so that there's still room to get flagged and lose the remaining 10% of minimumStake
         globalData().committedStakeWei[flagger] += FLAG_STAKE_WEI;
-        require(globalData().committedStakeWei[flagger] <= globalData().stakedWei[flagger] * 9/10, "error_notEnoughStake");
+        require(globalData().committedStakeWei[flagger] * 10 <= 9 * globalData().stakedWei[target], "error_notEnoughStake");
         flaggerAddress[target] = flagger;
+
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
 
         // only secondarily select peers that are in the same bounty as the flagging target
@@ -236,7 +246,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
             if (!flaggerIsGone) {
-                token.transfer(flagger, FLAGGER_REWARD_WEI);
+                token.transfer(BrokerPool(flagger).reviewRewardsBeneficiary(), FLAGGER_REWARD_WEI);
                 slashingWei -= FLAGGER_REWARD_WEI;
             }
             for (uint i = 0; i < reviewerCount; i++) {
