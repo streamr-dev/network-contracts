@@ -21,7 +21,7 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
         }
 
         uint stake = globalData().stakedWei[broker];
-        // console.log("getLeavePenaltyWei, stake =", stake);
+        // console.log("getLeavePenaltyWei, stake =", stake, isRunning() ? "[running]" : "[NOT running]", isFunded() ? "[funded]" : "[NOT funded]");
         if (isRunning() && isFunded()) {
             // console.log("Leaving a running bounty too early, lose 10% of stake");
             return stake / 10;

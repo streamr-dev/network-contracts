@@ -10,7 +10,7 @@ contract AdminKickPolicy is IKickPolicy, Bounty {
     // }
 
     // function localData() internal view returns(LocalStorage storage data) {
-    //     bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.AdminKickPolicy", address(this)));
+    //     bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.AdminKickPolicy", address(this)));
     //     assembly {data.slot := storagePosition}
     // }
 

@@ -8,7 +8,7 @@ import {
 } from "../hardhat/BrokerEconomics/deployTestContracts"
 import { deployBrokerPool } from "../hardhat/BrokerEconomics/deployBrokerPool"
 
-import { deployBountyContract } from "../hardhat/BrokerEconomics/deployBountyContract"
+import { deployBounty } from "../hardhat/BrokerEconomics/deployBounty"
 
 const { parseEther } = utils
 const { getSigners } = hardhatEthers
@@ -33,7 +33,7 @@ describe("BrokerPool", (): void => {
         await (await token.mint(admin.address, parseEther("100000"))).wait()
         await (await token.mint(sponsor.address, parseEther("100000"))).wait()
 
-        const bounty = await deployBountyContract(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+        const bounty = await deployBounty(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const pool = await deployBrokerPool(sharedContracts, broker)
         const balanceBefore = await token.balanceOf(delegator.address)
         await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
@@ -69,19 +69,19 @@ describe("BrokerPool", (): void => {
         const { token } = sharedContracts
         const pool = await deployBrokerPool(sharedContracts, broker)
         await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.mint(sponsor.address, parseEther("1000"))).wait()
-        await (await token.mint(delegator.address, parseEther("1000"))).wait()
+        await (await token.mint(sponsor.address, parseEther("100000"))).wait()
+        await (await token.mint(delegator.address, parseEther("100000"))).wait()
 
         const numberOfBounties = 1000
         for (let i = 0; i < numberOfBounties; i++) {
-            const bounty = await deployBountyContract(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+            const bounty = await deployBounty(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
             // const receipt =
-            await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1"), "0x")).wait()
-            await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("1"), "0x")).wait()
-            await (await pool.stake(bounty.address, parseEther("1"))).wait()
+            await (await token.connect(delegator).transferAndCall(pool.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(bounty.address, parseEther("100"), "0x")).wait()
+            await (await pool.stake(bounty.address, parseEther("100"))).wait()
             // console.log(`Staked ${i} bounties, gas used: ${receipt.gasUsed}`)
         }
-        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther(numberOfBounties.toString()))
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther((numberOfBounties * 100).toString()))
 
         // TODO: unstake
     })

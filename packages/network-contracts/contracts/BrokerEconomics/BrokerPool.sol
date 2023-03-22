@@ -54,8 +54,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     IPoolYieldPolicy public yieldPolicy;
     IPoolExitPolicy public exitPolicy;
 
+    address public reviewRewardsBeneficiary;
+    address public broker;
     struct GlobalStorage {
-        address broker;
         IERC677 token;
         uint totalValueInBountiesWei; // DATA value of all stake + earnings in bounties - broker's share of those earnings
         StreamrConstants streamrConstants;
@@ -81,7 +82,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
 
     modifier onlyBroker() {
-        require(msg.sender == globalData().broker, "error_onlyBroker");
+        require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyBroker");
         _;
     }
 
@@ -96,17 +97,21 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // _setupRole(ADMIN_ROLE, newOwner);
-        // _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
+        _setupRole(ADMIN_ROLE, brokerAddress);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
+        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
         globalData().token = IERC677(tokenAddress);
-        globalData().broker = brokerAddress;
+        broker = brokerAddress;
+        reviewRewardsBeneficiary = brokerAddress;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
 
         // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
         maxQueueSeconds = globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS();
+
+        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -124,11 +129,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function getApproximatePoolValue() public view returns (uint) {
         return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
-    }
-
-    // TODO: rename to owner
-    function broker() external view returns (address) {
-        return globalData().broker;
     }
 
     function getMyBalanceInData() public view returns (uint256 amountDataWei) {
@@ -161,13 +161,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("onTokenTransfer amount", amount);
         require(_msgSender() == address(globalData().token), "error_onlyDATAToken");
 
-        // check if sender is a bounty: unstaking from bounties will call this method
-        // ignore returned tokens, handle them in unstake() instead
-        Bounty bounty = Bounty(sender);
-        if (indexOfBounties[bounty] > 0) {
-            return;
-        }
-
         if (data.length == 20) {
             // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -181,6 +174,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
             _delegate(delegator, amount);
         } else {
+            // check if sender is a bounty: unstaking/withdrawing from bounties will call this method
+            // ignore returned tokens, handle them in unstake() instead
+            Bounty bounty = Bounty(sender);
+            if (indexOfBounties[bounty] > 0) {
+                return;
+            }
+
             _delegate(sender, amount);
         }
     }
@@ -213,7 +213,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
-            bounty.stake(address(this), amountWei); // may fail if amountWei < MinimumStakeJoinPolicy.minimumStake
+            bounty.stake(address(this), amountWei); // may fail if amountWei < minimumStake
             bounties.push(bounty);
             indexOfBounties[bounty] = bounties.length; // real array index + 1
             approxPoolValueOfBounty[bounty] += amountWei;
@@ -244,7 +244,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external {
         // onlyBroker check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
-            require(msg.sender == globalData().broker, "error_onlyBroker");
+            require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyBroker");
         }
 
         uint amountStakedBeforeWei = bounty.getMyStake();
@@ -337,6 +337,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
         bounty.voteOnFlag(targetBroker, voteData);
+    }
+
+    function setReviewRewardsBeneficiary(address newBeneficiary) external onlyBroker {
+        reviewRewardsBeneficiary = newBeneficiary;
     }
 
     ////////////////////////////////////////
@@ -615,8 +619,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
         uint allowedDifference = getApproximatePoolValue() * globalData().streamrConstants.PERCENT_DIFF_APPROX_POOL_VALUE() / 100;
         if (sumActual > sumApprox + allowedDifference) {
-            _transfer(globalData().broker, _msgSender(),
-                balanceOf(globalData().broker) * globalData().streamrConstants.PUNISH_BROKERS_PT_THOUSANDTH() / 1000);
+            _transfer(broker, _msgSender(),
+                balanceOf(broker) * globalData().streamrConstants.PUNISH_BROKERS_PT_THOUSANDTH() / 1000);
         }
     }
 }

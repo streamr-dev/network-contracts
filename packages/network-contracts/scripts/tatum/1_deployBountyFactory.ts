@@ -37,11 +37,6 @@ async function deployBountyFactory() {
     localConfig.token = token.address
     log(`token address ${token.address}`)
 
-    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy", { signer: adminWallet })).deploy() as IJoinPolicy
-    await minStakeJoinPolicy.deployed()
-    localConfig.minStakeJoinPolicy = minStakeJoinPolicy.address
-    log(`minStakeJoinPolicy address ${minStakeJoinPolicy.address}`)
-
     const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy",
         { signer: adminWallet })).deploy() as IJoinPolicy
     await maxBrokersJoinPolicy.deployed()
@@ -75,7 +70,7 @@ async function deployBountyFactory() {
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
         [ bountyTemplate.address, token.address, streamrConstants.address ], { kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
-    await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+    await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
     await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
