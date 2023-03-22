@@ -10,7 +10,7 @@ import {
     TestContracts,
 } from "../deployTestContracts"
 
-import { deployBountyContract } from "../deployBountyContract"
+import { deployBountyWithoutFactory } from "../deployBounty"
 
 describe("MaxAmountBrokersJoinPolicy", (): void => {
     let admin: Wallet
@@ -29,7 +29,7 @@ describe("MaxAmountBrokersJoinPolicy", (): void => {
 
     it("will NOT let too many brokers join", async function(): Promise<void> {
         const { token } = contracts
-        const bounty = await deployBountyContract(contracts, { maxBrokerCount: 1, skipBountyFactory: true })
+        const bounty = await deployBountyWithoutFactory(contracts, { maxBrokerCount: 1 })
         await expect(token.transferAndCall(bounty.address, parseEther("1"), broker.address))
             .to.emit(bounty, "BrokerJoined")
         await expect(token.transferAndCall(bounty.address, parseEther("1"), broker2.address))

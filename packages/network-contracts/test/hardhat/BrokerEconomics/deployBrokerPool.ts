@@ -13,13 +13,14 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
     maxBrokerDivertPercent = 0,
     minBrokerStakePercent = 0,
     brokerSharePercent = 0,
-} = {}, create2Salt?: string): Promise<BrokerPool> {
+} = {}, salt?: string): Promise<BrokerPool> {
     const {
         poolFactory, poolTemplate,
         defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy
     } = contracts
     // TODO: figure out if initialMargin is needed twice...
     const initialMargin = "0"
+    const create2Salt = salt ?? `Pool-${Date.now()}-${poolindex++}`
 
     /** TODO: update after cleaning up the BrokerPoolFactory
      * Policies array corresponds to the initParams array as follows:
@@ -29,7 +30,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
      */
     const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
         0,
-        create2Salt ?? `Pool-${Date.now()}-${poolindex++}`,
+        create2Salt,
         [
             defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,

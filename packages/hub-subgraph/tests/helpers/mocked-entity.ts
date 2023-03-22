@@ -9,7 +9,6 @@ export function createProjectEntity(projectId: string): Project {
     project.minimumSubscriptionSeconds = BigInt.fromI32(1)
     project.metadata = "metadata-" + projectId
     project.isDataUnion = false
-    project.version = BigInt.fromI32(1)
     project.subscriptions = []
     project.streams = []
     project.permissions = []
@@ -35,6 +34,14 @@ export function createPermissionEntity(
     permission.canEdit = canEdit
     permission.canGrant = canGrant
     permission.save()
+
+    // manually link the permission to the project
+    const project = Project.load(projectId) as Project
+    const permissions = project.permissions
+    permissions.push(permissionId)
+    project.permissions = permissions
+    project.save()
+
     return permission
 }
 
@@ -50,6 +57,14 @@ export function createSubscriptionEntity(
     subscription.userAddress = Bytes.fromHexString(userAddress)
     subscription.endTimestamp = BigInt.fromI32(endTimestamp as i32)
     subscription.save()
+
+    // manually link the subscription to the project
+    const project = Project.load(projectId) as Project
+    const subscriptions = project.subscriptions
+    subscriptions.push(subscriptionId)
+    project.subscriptions = subscriptions
+    project.save()
+
     return subscription
 }
 
@@ -67,6 +82,14 @@ export function createPaymentDetailsByChainEntity(
     payment.pricingTokenAddress = Bytes.fromHexString(pricingTokenAddress)
     payment.pricePerSecond = BigInt.fromI32(pricePerSecond as i32)
     payment.save()
+
+    // manually link the paymentDetails to the project
+    const project = Project.load(projectId) as Project
+    const paymentDetails = project.paymentDetails
+    paymentDetails.push(paymentId)
+    project.paymentDetails = paymentDetails
+    project.save()
+
     return payment
 }
 

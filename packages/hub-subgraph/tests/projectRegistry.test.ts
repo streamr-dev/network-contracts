@@ -7,7 +7,7 @@ import {
     handleProjectCreation,
     handleProjectDeletion,
     handleProjectUpdate,
-    handleStreamAdition,
+    handleStreamAddition,
     handleStreamRemoval,
     handleSubscriptionUpdate,
 } from "../src/projectRegistry"
@@ -34,7 +34,7 @@ export {
     handleProjectUpdate,
     handleProjectDeletion,
     handlePaymentDetailsByChainUpdate,
-    handleStreamAdition,
+    handleStreamAddition,
     handleStreamRemoval,
     handlePermissionUpdate,
     handleSubscriptionUpdate,
@@ -44,6 +44,7 @@ const PROJECT_ENTITY_TYPE = "Project"
 const PERMISSION_ENTITY_TYPE = "Permission"
 const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
 const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
+const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
 
 describe("Entity store", () => {
     const projectId = "projectId0"
@@ -61,7 +62,7 @@ describe("Entity store", () => {
 
     test("Can use entity.load() to retrieve entity from store", () => {
         const retrievedProject = Project.load(projectId)
-        
+
         assert.stringEquals(projectId, retrievedProject!.get("id")!.toString())
     })
 
@@ -76,7 +77,7 @@ describe("Entity store", () => {
 
         project.set("metadata", Value.fromString("metadata-updated"))
         project.save()
-        
+
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "metadata", "metadata-updated")
     })
 })
@@ -92,7 +93,7 @@ describe("Mocked Project Events: create/update/delete", () => {
     const streamId2 = "0x12345/streams/2"
     const minimumSubscriptionSeconds = 1
     const metadata = '{"description": "metadata-0x1234", "isDataUnion": false}'
-    
+
     test("handleProjectCreation", () => {
         const projectCreatedEvent = createProjectCreatedEvent(
             Bytes.fromHexString(projectId),
@@ -166,7 +167,7 @@ describe("Mocked Project Events: create/update/delete", () => {
             minimumSubscriptionSecondsNew,
             metadataNew,
         )
-    
+
         handleProjectUpdate(projectUpdatedEvent)
 
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "domainIds", `[${domainIdUpdated}]`)
@@ -193,7 +194,7 @@ describe("Mocked Project Events: create/update/delete", () => {
         let event5 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata5)
         let event6 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata6)
 
-        
+
         handleProjectCreation(event0)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")
 
@@ -218,9 +219,26 @@ describe("Mocked Project Events: create/update/delete", () => {
 
     test("handleProjectDeletion - positivetest", () => {
         const projectDeletedEvent = createProjectDeletedEvent(Bytes.fromHexString(projectId))
+        const project = Project.load(projectId) as Project
+        const permissions = project.permissions
+        const subscriptions = project.subscriptions
+        const paymentDetails = project.paymentDetails
+        const purchases = project.purchases
 
         handleProjectDeletion(projectDeletedEvent)
 
+        permissions.forEach((permission) => {
+            assert.notInStore(PERMISSION_ENTITY_TYPE, permission)
+        })
+        subscriptions.forEach((subscription) => {
+            assert.notInStore(SUBSCRIPTION_ENTITY_TYPE, subscription)
+        })
+        paymentDetails.forEach((payment) => {
+            assert.notInStore(PAYMENT_DETAILS_ENTITY_TYPE, payment)
+        })
+        purchases.forEach((purchase) => {
+            assert.notInStore(PROJECT_PURCHASE_ENTITY_TYPE, purchase)
+        })
         assert.notInStore(PROJECT_ENTITY_TYPE, projectId)
     })
 })
@@ -242,15 +260,15 @@ describe("Mocked Stream Events: add/remove", () => {
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "id", projectId)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", "[]")
     })
-    
-    test("handleStreamAdition", () => {
+
+    test("handleStreamAddition", () => {
         const streamAddedEvent1 = createStreamAddedEvent(Bytes.fromHexString(projectId), streamId1)
         const streamAddedEvent2 = createStreamAddedEvent(Bytes.fromHexString(projectId), streamId2)
         const streamAddedEvent3 = createStreamAddedEvent(Bytes.fromHexString(projectId), streamId3)
-        
-        handleStreamAdition(streamAddedEvent1)
-        handleStreamAdition(streamAddedEvent2)
-        handleStreamAdition(streamAddedEvent3)
+
+        handleStreamAddition(streamAddedEvent1)
+        handleStreamAddition(streamAddedEvent2)
+        handleStreamAddition(streamAddedEvent3)
 
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "streams", `[${streamId1}, ${streamId2}, ${streamId3}]`)
     })
@@ -268,7 +286,7 @@ describe("Mocked Permission Events", () => {
     const projectId = "0x1234"
     const userAddress = "0xdc353aa3d81fc3d67eb49f443df258029b01d8ab"
     const permissionId = "0x1234-0xdc353aa3d81fc3d67eb49f443df258029b01d8ab" // projectId + '-' + userAddress
-    
+
     beforeAll(() => {
         clearStore()
     })
@@ -286,7 +304,7 @@ describe("Mocked Permission Events", () => {
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "id", permissionId)
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "userAddress", userAddress)
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "project", projectId)
-        // subscription linked to Project
+        // permissions linked to Project
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "permissions", `[${permissionId}]`)
         // permissions are initially disabled
         assert.fieldEquals(PERMISSION_ENTITY_TYPE, permissionId, "canBuy", "false")

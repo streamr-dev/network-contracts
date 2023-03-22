@@ -13,7 +13,7 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
     }
 
     function localData() internal view returns(LocalStorage storage data) {
-        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.MaxAmountBrokersJoinPolicy", address(this)));
+        bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.MaxAmountBrokersJoinPolicy", address(this)));
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 

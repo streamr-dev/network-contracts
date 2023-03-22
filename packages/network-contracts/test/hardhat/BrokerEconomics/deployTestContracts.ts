@@ -1,15 +1,14 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { Wallet } from "ethers"
+import { Wallet, utils} from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../typechain"
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConstants } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
     streamrConstants: StreamrConstants;
-    minStakeJoinPolicy: IJoinPolicy;
     maxBrokersJoinPolicy: IJoinPolicy;
     brokerPoolOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
@@ -26,6 +25,33 @@ export type TestContracts = {
     deployer: Wallet;
 }
 
+export async function deployPoolFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
+    poolFactory: BrokerPoolFactory,
+    poolTemplate: BrokerPool
+}> {
+    const {
+        token, streamrConstants,
+        defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+    } = contracts
+    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
+    const poolFactory = await (await getContractFactory("BrokerPoolFactory", { signer })).deploy()
+    await poolFactory.deployed()
+    await (await poolFactory.initialize(
+        poolTemplate!.address,
+        token!.address,
+        streamrConstants!.address
+    )).wait()
+    await (await poolFactory.addTrustedPolicies([
+        defaultPoolJoinPolicy!.address,
+        defaultPoolYieldPolicy!.address,
+        defaultPoolExitPolicy!.address,
+    ])).wait()
+
+    await (await streamrConstants!.setBrokerPoolFactory(poolFactory.address)).wait()
+
+    return { poolFactory, poolTemplate }
+}
+
 /**
  * Deploy all contracts needed by tests. This should be called in "before/beforeAll".
  *     see @openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
@@ -34,12 +60,13 @@ export type TestContracts = {
  */
 export async function deployTestContracts(signer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
+    await (await token.mint(signer.address, utils.parseEther("1000000"))).wait()
+
     const streamrConstants = await (await getContractFactory("StreamrConstants", { signer })).deploy()
     await streamrConstants.deployed()
     await(await streamrConstants.initialize()).wait()
 
     // bounty and policies
-    const minStakeJoinPolicy = await (await getContractFactory("MinimumStakeJoinPolicy", { signer })).deploy()
     const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", { signer })).deploy()
     const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", { signer })).deploy()
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", { signer })).deploy()
@@ -62,37 +89,26 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         leavePolicy.address,
         adminKickPolicy.address,
         voteKickPolicy.address,
-        minStakeJoinPolicy.address,
         maxBrokersJoinPolicy.address,
         brokerPoolOnlyJoinPolicy.address,
     ])).wait()
 
+    await (await streamrConstants!.setPoolOnlyJoinPolicy(brokerPoolOnlyJoinPolicy.address)).wait()
+    await (await streamrConstants!.setBountyFactory(bountyFactory.address)).wait()
+
     // broker pool and policies
-    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
     const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", { signer })).deploy()
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
     const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", { signer })).deploy()
 
-    const poolFactory = await (await getContractFactory("BrokerPoolFactory", { signer })).deploy()
-    await poolFactory.deployed()
-    await (await poolFactory.initialize(
-        poolTemplate.address,
-        token.address,
-        streamrConstants.address
-    )).wait()
-    await (await poolFactory.addTrustedPolicies([
-        defaultPoolJoinPolicy.address,
-        defaultPoolYieldPolicy.address,
-        defaultPoolExitPolicy.address,
-    ])).wait()
-
-    await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
-    await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
-    await (await streamrConstants.setPoolOnlyJoinPolicy(brokerPoolOnlyJoinPolicy.address)).wait()
+    const { poolFactory, poolTemplate } = await deployPoolFactory({
+        token, streamrConstants,
+        defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+    }, signer)
 
     return {
         token, streamrConstants,
-        bountyTemplate, bountyFactory, minStakeJoinPolicy, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
+        bountyTemplate, bountyFactory, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
         deployer: signer
     }
