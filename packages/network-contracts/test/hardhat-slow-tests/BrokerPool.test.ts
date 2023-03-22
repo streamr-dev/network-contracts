@@ -81,7 +81,7 @@ describe("BrokerPool", (): void => {
             await (await pool.stake(bounty.address, parseEther("100"))).wait()
             // console.log(`Staked ${i} bounties, gas used: ${receipt.gasUsed}`)
         }
-        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther(numberOfBounties.toString()))
+        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther((numberOfBounties * 100).toString()))
 
         // TODO: unstake
     })
