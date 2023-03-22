@@ -91,7 +91,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
      * @param projectId The project to unstake tokens for. Must be a valid projectId (e.g. existing in the project registry).
      * @param amount The amount of tokens to unstake. Transferred from this contract to the caller and subtracted from the staked balance.
      */
-    function unstake(bytes32 projectId, uint256 amount) external projectExists(projectId) {
+    function unstake(bytes32 projectId, uint256 amount) external {
         uint256 stakedAmount = stakedTokens[msg.sender][projectId];
         require(stakedAmount >= amount, "error_notEnoughTokensStaked");
         _unstake(projectId, amount, msg.sender);
@@ -102,7 +102,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
      * @param projectId The project to get the total staked amount for.
      * @return projectStake The total amount of tokens staked for the project.
      */
-    function getProjectStake(bytes32 projectId) external view projectExists(projectId) returns (uint256 projectStake) {
+    function getProjectStake(bytes32 projectId) external view returns (uint256 projectStake) {
         return stakedTokensByProject[projectId];
     }
 
