@@ -1,4 +1,4 @@
-# Subgraph definitions for the stream permission registry
+# Subgraph definitions for streamr network
 
 ## Setup
 Everything is already included in the streamr-docker-dev environment
@@ -84,3 +84,109 @@ example queries:
   }
 }
 ```
+
+Project example queries:
+```
+{
+  projects {
+    paymentDetails
+    minimumSubscriptionSeconds
+    subscriptions {
+      endTimestamp
+    }
+    metadata
+    version
+    streams
+    permissions {
+      canGrant
+      canBuy
+      canDelete
+      canEdit
+    }
+    score
+  }
+}
+```
+```
+{
+  projectPermissions {
+    canBuy
+    canDelete
+    canEdit
+    canGrant
+    userAddress
+  }
+}
+```
+```
+{
+  paymentDetailsByChain {
+    domainId: BigInt
+    beneficiary: Bytes!
+    pricePerSecond: BigInt!
+    pricingTokenAddress: Bytes!
+  }
+}
+```
+```
+{
+  timeBasedSubscriptions {
+    endTimestamp
+    userAddress
+  }
+}
+```
+```
+{
+  stakings {
+    user
+    amount
+    stakedAt
+  }
+}
+```
+```
+{
+  unstakings {
+    user
+    amount
+    unstakedAt
+  }
+}
+```
+Full-text search:
+```
+query {
+  projectSearch(text: "metadata keyword") {
+    id
+    domainIds
+    paymentDetails {
+      domainId
+      beneficiary
+      pricePerSecond
+      pricingTokenAddress
+    }
+    minimumSubscriptionSeconds
+    subscriptions {
+      endTimestamp
+    }
+    metadata
+    version
+    streams
+    projectPermissions {
+      canGrant
+      canBuy
+      canDelete
+      canEdit
+    }
+  }
+}
+```
+
+## Unit testing with [matchstick-as](https://thegraph.com/docs/en/developing/unit-testing-framework/#getting-started)
+
+- build image:
+`docker build -t matchstick -f Dockerfile.matchstick .`
+- start container:
+`docker run -it --rm --mount type=bind,source=<absolute-path-to-subgraph-folder>,target=/matchstick matchstick`
+- run tests (using docker): `graph test -d`

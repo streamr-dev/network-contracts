@@ -41,7 +41,7 @@ export {
 } from "../src/projectRegistry"
 
 const PROJECT_ENTITY_TYPE = "Project"
-const PERMISSION_ENTITY_TYPE = "Permission"
+const PERMISSION_ENTITY_TYPE = "ProjectPermission"
 const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
 const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
 const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
@@ -282,7 +282,7 @@ describe("Mocked Stream Events: add/remove", () => {
     })
 })
 
-describe("Mocked Permission Events", () => {
+describe("Mocked ProjectPermission Events", () => {
     const projectId = "0x1234"
     const userAddress = "0xdc353aa3d81fc3d67eb49f443df258029b01d8ab"
     const permissionId = "0x1234-0xdc353aa3d81fc3d67eb49f443df258029b01d8ab" // projectId + '-' + userAddress
@@ -297,7 +297,7 @@ describe("Mocked Permission Events", () => {
         assert.entityCount(PROJECT_ENTITY_TYPE, 1)
     })
 
-    test("Permission entity created", () => {
+    test("ProjectPermission entity created", () => {
         createPermissionEntity(projectId, permissionId, userAddress, false, false, false, false)
 
         assert.entityCount(PERMISSION_ENTITY_TYPE, 1)

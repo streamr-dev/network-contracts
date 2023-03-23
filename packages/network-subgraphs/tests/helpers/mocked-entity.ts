@@ -1,5 +1,5 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { PaymentDetailsByChain, Permission, Project, ProjectPurchase, Staking, TimeBasedSubscription, Unstaking } from "../../generated/schema"
+import { PaymentDetailsByChain, ProjectPermission, Project, ProjectPurchase, Staking, TimeBasedSubscription, Unstaking } from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
     const project = new Project(projectId)
@@ -24,8 +24,8 @@ export function createPermissionEntity(
     permissionId: string,
     userAddress: string,
     canBuy: boolean, canDelete: boolean, canEdit: boolean, canGrant: boolean
-): Permission {
-    const permission = new Permission(permissionId)
+): ProjectPermission {
+    const permission = new ProjectPermission(permissionId)
     permission.id = permissionId
     permission.userAddress = Bytes.fromHexString(userAddress)
     permission.project = projectId

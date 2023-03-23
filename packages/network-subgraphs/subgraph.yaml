@@ -6,6 +6,8 @@ description: Subgraph definitions for the stream permission registry
 repository:
 schema:
   file: ./schema.graphql
+features:
+  - fullTextSearch
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
@@ -82,3 +84,80 @@ dataSources:
         - event: Removed(string,indexed address)
           handler: handleStorageNodeRemovedFromStream
       file: ./src/streamStorageRegistry.ts
+  - kind: ethereum/contract
+    name: ProjectRegistryV1
+    network: xDai # xDai means dev1
+    source:
+      address: "0x3C841B9Aa08166e9B864972930703e878d25804B"
+      abi: ProjectRegistryV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Project
+      abis:
+        - name: ProjectRegistryV1
+          file: ./abis/ProjectRegistryV1.json
+      eventHandlers:
+        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectCreation
+        - event: ProjectDeleted(indexed bytes32)
+          handler: handleProjectDeletion
+        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectUpdate
+        - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
+          handler: handlePaymentDetailsByChainUpdate
+        - event: StreamAdded(bytes32,string)
+          handler: handleStreamAddition
+        - event: StreamRemoved(bytes32,string)
+          handler: handleStreamRemoval
+        - event: PermissionUpdated(bytes32,address,bool,bool,bool,bool)
+          handler: handlePermissionUpdate
+        - event: Subscribed(indexed bytes32,indexed address,uint256)
+          handler: handleSubscriptionUpdate
+      file: ./src/projectRegistry.ts
+  - kind: ethereum/contract
+    name: MarketplaceV4
+    network: xDai
+    source:
+      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
+      abi: MarketplaceV4
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ProjectPurchase
+      abis:
+        - name: MarketplaceV4
+          file: ./abis/MarketplaceV4.json
+      eventHandlers:
+        - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
+          handler: handleProjectPurchase
+      file: ./src/marketplaceV4.ts
+  - kind: ethereum/contract
+    name: ProjectStakingV1
+    network: xDai
+    source:
+      address: "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF"
+      abi: ProjectStakingV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stake
+        - Unstake
+      abis:
+        - name: ProjectStakingV1
+          file: ./abis/ProjectStakingV1.json
+      eventHandlers:
+        - event: Stake(indexed bytes32,indexed address,uint256)
+          handler: handleStake
+        - event: Unstake(indexed bytes32,indexed address,uint256)
+          handler: handleUnstake
+      file: ./src/projectStaking.ts

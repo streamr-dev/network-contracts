@@ -1,5 +1,5 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
-import { PaymentDetailsByChain, Permission, TimeBasedSubscription } from '../generated/schema'
+import { PaymentDetailsByChain, ProjectPermission, TimeBasedSubscription } from '../generated/schema'
 import {
     ProjectCreated,
     ProjectDeleted,
@@ -76,7 +76,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
         [user, projectId, event.block.number.toString()])
 
     let permissionId = projectId + '-' + user
-    let permission = new Permission(permissionId)
+    let permission = new ProjectPermission(permissionId)
     permission.userAddress = event.params.user
     permission.project = projectId
     permission.canBuy = event.params.canBuy

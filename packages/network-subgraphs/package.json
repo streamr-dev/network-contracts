@@ -9,16 +9,22 @@
     "graphbuild": "graph build",
     "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
     "lint": "eslint ./src/*.ts",
+    "docker:build": "npm run codegen && npm run graphbuild && docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev",
+    "docker:publish": "docker image push streamr/graph-deploy-streamregistry-subgraph:dev",
     "create-docker-dev": "graph create streamr-dev/network-contracts --node http://streamr-dev-thegraph-node:8020",
     "deploy-docker-dev": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
     "create-local": "graph create streamr-dev/network-contracts --node http://localhost:8020",
     "deploy-local": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://localhost:5001 --node http://localhost:8020",
+    "redeploy-local": "npm run clean && npm run build && npm run create-local && npm run deploy-local",
     "create-production": "graph create streamr-dev/streams --node https://api.thegraph.com/deploy/",
     "deploy-production": "graph deploy streamr-dev/streams --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "test": "cd ../../ && graph test -d",
+    "coverage": "cd ../../ && graph test -d -- -c",
     "doAll": "npm run build && npm run create-local && npm run deploy-local",
     "doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
   },
   "devDependencies": {
+    "matchstick-as": "0.5.0",
     "@graphprotocol/graph-cli": "0.35.0"
   },
   "dependencies": {
