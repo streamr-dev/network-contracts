@@ -375,7 +375,7 @@ async function deployBountyFactory() {
     // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${brokerWallet.address}`)
-    const agreementtx = await bountyFactory.deployBounty(0, 1, "Bounty-" + Date.now(),
+    const agreementtx = await bountyFactory.deployBounty(ethers.utils.parseEther("100"), 0, 1, "Bounty-" + Date.now(),
         [
             allocationPolicy.address,
             ethers.constants.AddressZero,
