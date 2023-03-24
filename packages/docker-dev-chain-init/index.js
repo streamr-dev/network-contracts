@@ -334,10 +334,6 @@ async function deployBountyFactory() {
     log(`hasrole adminwallet ${hasroleEthSigner}`)
     log(`streamrConstants address ${streamrConstants.address}`)
 
-    const minStakeJoinPolicy = await (await ethers.getContractFactory("MinimumStakeJoinPolicy")).deploy()
-    await minStakeJoinPolicy.deployed()
-    log(`minStakeJoinPolicy address ${minStakeJoinPolicy.address}`)
-
     const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy")).deploy()
     await maxBrokersJoinPolicy.deployed()
     log(`maxBrokersJoinPolicy address ${maxBrokersJoinPolicy.address}`)
@@ -362,7 +358,7 @@ async function deployBountyFactory() {
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
         [ bountyTemplate.address, linkToken.address, streamrConstants.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed()
-    await (await bountyFactory.addTrustedPolicies([minStakeJoinPolicy.address, maxBrokersJoinPolicy.address,
+    await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
     await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
@@ -379,7 +375,7 @@ async function deployBountyFactory() {
     // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${brokerWallet.address}`)
-    const agreementtx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+    const agreementtx = await bountyFactory.deployBounty(0, 1, "Bounty-" + Date.now(),
         [
             allocationPolicy.address,
             ethers.constants.AddressZero,
