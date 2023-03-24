@@ -787,7 +787,7 @@ describe("BrokerPool", (): void => {
     })
 
     describe("Node addresses", function(): void {
-        it.only("can be updated only by the broker", async function(): Promise<void> {
+        it("can be updated only by the broker", async function(): Promise<void> {
             const pool = await deployBrokerPool(sharedContracts, broker)
             await expect(pool.connect(admin).setNodeAddresses([admin.address, delegator.address]))
                 .to.be.revertedWith("error_onlyBroker")
