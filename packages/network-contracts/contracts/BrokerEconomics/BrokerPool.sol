@@ -36,6 +36,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
     event QueuedDataPayout(address user, uint amountPoolTokenWei);
     event QueueUpdated(address user, uint amountPoolTokenWei);
+    event NodesSet(address[] nodes);
 
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
 
@@ -74,6 +75,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public totalQueuedPerDelegatorWei; // answers 'how much does delegator X have queued in total to be paid out'
     uint public queueLength;
     uint public queuePayoutIndex;
+
+    address[] nodes;
+    mapping(address => uint) public nodeIndex; // index in nodes array, no +1 needed. Zero means it's not in the array.
+    function nodeCount() public view returns(uint) {
+        return nodes.length - 1; // index zero is empty, to avoid +1 in index
+    }
 
     // triple bookkeeping
     // 1. real actual poolvalue = local free funds + stake in bounties + allocation in bounties; loops over bounties
@@ -127,6 +134,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
+    /** Pool value (DATA) = staked in bounties + free funds */
     function getApproximatePoolValue() public view returns (uint) {
         return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
     }
@@ -300,6 +308,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         payOutQueueWithFreeFunds(0);
     }
 
+    // TODO: internal or inline. There are other method(s) to partially service the queue.
+    // TODO: I don't think this is an issue. Either:
+    //   1) there ARE free funds, so you can call payOutQueueWithFreeFunds(iterations)
+    //   2) there are not enough free funds to pay even the first in queue, so you call reduceStakeTo with just enough
+    //         to pay so many in the queue as the gas limit etc. permits. Not sure if there should be a helper function for this:
     function _reduceStakeWithoutQueue(Bounty bounty, uint targetStakeWei) public onlyBroker {
         if (targetStakeWei == 0) {
             unstake(bounty, 10000);
@@ -341,6 +354,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function setReviewRewardsBeneficiary(address newBeneficiary) external onlyBroker {
         reviewRewardsBeneficiary = newBeneficiary;
+    }
+
+    function setNodeAddresses(address[] calldata newNodes) external onlyBroker {
+        nodes = newNodes;
+        emit NodesSet(newNodes);
+    }
+
+    function getNodeAddresses() external view returns (address[] memory) {
+        return nodes;
     }
 
     ////////////////////////////////////////
@@ -416,7 +438,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return totalQueuedPerDelegatorWei[_msgSender()];
     }
 
-    // TODO: exit(uint amountPoolTokenWei) public
+    // TODO: undelegate(uint amountPoolTokenWei) public
     function queueDataPayout(uint amountPoolTokenWei) public {
         // console.log("## queueDataPayout");
         queueDataPayoutWithoutQueue(amountPoolTokenWei);

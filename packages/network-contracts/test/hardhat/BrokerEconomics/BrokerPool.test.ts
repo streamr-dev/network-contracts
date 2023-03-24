@@ -785,4 +785,15 @@ describe("BrokerPool", (): void => {
         await expect(token.transferAndCall(pool.address, parseEther("100"), "0x"))
             .to.emit(pool, "Delegated").withArgs(admin.address, parseEther("100"))
     })
+
+    describe("Node addresses", function(): void {
+        it.only("can be updated only by the broker", async function(): Promise<void> {
+            const pool = await deployBrokerPool(sharedContracts, broker)
+            await expect(pool.connect(admin).setNodeAddresses([admin.address, delegator.address]))
+                .to.be.revertedWith("error_onlyBroker")
+            await expect(pool.setNodeAddresses([admin.address, delegator.address]))
+                .to.emit(pool, "NodesSet").withArgs([admin.address, delegator.address])
+            await expect(pool.getNodeAddresses()).to.eventually.deep.equal([admin.address, delegator.address])
+        })
+    })
 })
