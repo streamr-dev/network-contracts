@@ -9,7 +9,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x21965d7f736Fac3B634F68DDa5b5f0612baf2e6C'
+      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -30,7 +30,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x908d035020EED80035487146fB320eF0f11a3180'
+      address: '0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9'
       abi: BrokerPoolFactory
       startBlock: 0
     mapping:
