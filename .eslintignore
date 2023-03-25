@@ -1,0 +1,6 @@
+packages/tatum-subgraph/generated/*
+packages/network-subgraphs/generated/*
+packages/hub-subgraph/generated/*
+**/typechain
+**/build
+**/dist
