@@ -18,7 +18,7 @@
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",
     "build": "npm run build --workspaces",
-    "lint": "npm run lint --workspaces",
+    "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
     "test:subgraph": "graph test -d",
     "graph1_build": "npm run deployLocalWithExport -w=network-contracts",
