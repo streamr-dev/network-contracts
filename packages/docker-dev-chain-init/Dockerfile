@@ -25,7 +25,7 @@ RUN node --version
 RUN npm --version
 COPY ./ ./
 RUN npm run clean
-RUN npm i
+RUN npm ci
 ENV DEBUG=*
 RUN npm run build -w=@streamr-contracts/docker-dev-chain-init
 CMD npm run preload -w=@streamr-contracts/docker-dev-chain-init && \
