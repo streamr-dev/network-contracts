@@ -1,5 +1,5 @@
 import { log } from '@graphprotocol/graph-ts'
-import { Staking, Unstaking } from '../generated/schema'
+import { ProjectStaking, ProjectUnstaking } from '../generated/schema'
 import {
     Stake,
     Unstake,
@@ -19,7 +19,7 @@ export function handleStake(event: Stake): void {
     const stakeId = projectId + '-' + user + '-' + newCounter.toString()
     log.info('handleStake: stakeId={}', [stakeId])
 
-    const staking = new Staking(stakeId)
+    const staking = new ProjectStaking(stakeId)
     staking.project = projectId
     staking.user = event.params.user
     staking.amount = event.params.amount
@@ -43,7 +43,7 @@ export function handleUnstake(event: Unstake): void {
     const unstakeId = projectId + '-' + user + '-' + newCounter.toString()
     log.info('handleUnstake: unstakeId={}', [unstakeId])
 
-    const unstaking = new Unstaking(unstakeId)
+    const unstaking = new ProjectUnstaking(unstakeId)
     unstaking.project = projectId
     unstaking.user = event.params.user
     unstaking.amount = event.params.amount

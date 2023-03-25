@@ -120,7 +120,7 @@ Project example queries:
 ```
 ```
 {
-  paymentDetailsByChain {
+  projectPaymentDetails {
     domainId: BigInt
     beneficiary: Bytes!
     pricePerSecond: BigInt!

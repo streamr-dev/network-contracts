@@ -1,5 +1,5 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
-import { PaymentDetailsByChain, ProjectPermission, TimeBasedSubscription } from '../generated/schema'
+import { ProjectPaymentDetails, ProjectPermission, ProjectSubscription } from '../generated/schema'
 import {
     ProjectCreated,
     ProjectDeleted,
@@ -38,13 +38,13 @@ export function handleProjectDeletion(event: ProjectDeleted): void {
 
     let project = loadOrCreateProject(event.params.id)
     project.permissions.forEach((permissionId) => {
-        store.remove('Permission', permissionId)
+        store.remove('ProjectPermission', permissionId)
     })
     project.subscriptions.forEach((subscriptionId) => {
-        store.remove('TimeBasedSubscription', subscriptionId)
+        store.remove('ProjectSubscription', subscriptionId)
     })
     project.paymentDetails.forEach((paymentId) => {
-        store.remove('PaymentDetailsByChain', paymentId)
+        store.remove('ProjectPaymentDetails', paymentId)
     })
     project.purchases.forEach((purchaseId) => {
         store.remove('ProjectPurchase', purchaseId)
@@ -102,7 +102,7 @@ export function handleSubscriptionUpdate(event: Subscribed): void {
         [projectId, subscriber, event.block.number.toString()])
 
     let subscriptionId = projectId + '-' + subscriber
-    let subscription = new TimeBasedSubscription(subscriptionId)
+    let subscription = new ProjectSubscription(subscriptionId)
     subscription.project = projectId
     subscription.userAddress = event.params.subscriber
     subscription.endTimestamp = event.params.endTimestamp
@@ -128,7 +128,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
         [projectId, domainId, beneficiary, pricingTokenAddress, pricePerSecond, event.block.number.toString()])
     
     let paymentDetailsId = projectId + '-' + domainId
-    let paymentDetails = new PaymentDetailsByChain(paymentDetailsId)
+    let paymentDetails = new ProjectPaymentDetails(paymentDetailsId)
     paymentDetails.project = projectId
     paymentDetails.domainId = event.params.domainId
     paymentDetails.beneficiary = event.params.beneficiary

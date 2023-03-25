@@ -218,7 +218,7 @@ templates:
       file: ./src/bounty.ts
       entities:
         - Bounty
-        - Stake
+        - BountyStake
         - BrokerPool
         - Flag
       abis:

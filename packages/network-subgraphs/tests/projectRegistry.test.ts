@@ -22,7 +22,7 @@ import {
     createSubscribedEvent,
 } from "./helpers/mocked-event"
 import {
-    createPaymentDetailsByChainEntity,
+    createProjectPaymentDetailsEntity,
     createPermissionEntity,
     createProjectEntity,
     createSubscriptionEntity
@@ -42,8 +42,8 @@ export {
 
 const PROJECT_ENTITY_TYPE = "Project"
 const PERMISSION_ENTITY_TYPE = "ProjectPermission"
-const SUBSCRIPTION_ENTITY_TYPE = "TimeBasedSubscription"
-const PAYMENT_DETAILS_ENTITY_TYPE = "PaymentDetailsByChain"
+const SUBSCRIPTION_ENTITY_TYPE = "ProjectSubscription"
+const PAYMENT_DETAILS_ENTITY_TYPE = "ProjectPaymentDetails"
 const PROJECT_PURCHASE_ENTITY_TYPE = "ProjectPurchase"
 
 describe("Entity store", () => {
@@ -394,8 +394,8 @@ describe("Mocked PaymentDetailsByChain Events", () => {
         assert.entityCount(PROJECT_ENTITY_TYPE, 1)
     })
 
-    test("PaymentDetailsByChain Entity created", () => {
-        createPaymentDetailsByChainEntity(projectId, paymentId, beneficiary, pricingTokenAddress, pricePerSecond)
+    test("ProjectPaymentDetails Entity created", () => {
+        createProjectPaymentDetailsEntity(projectId, paymentId, beneficiary, pricingTokenAddress, pricePerSecond)
 
         assert.entityCount(PAYMENT_DETAILS_ENTITY_TYPE, 1)
         assert.fieldEquals(PAYMENT_DETAILS_ENTITY_TYPE, paymentId, "id", paymentId)

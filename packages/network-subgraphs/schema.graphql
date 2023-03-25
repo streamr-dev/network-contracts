@@ -9,7 +9,7 @@ type _Schema_
     include: [{ entity: "Project", fields: [{ name: "metadata" }] }]
   )
 
-type Permission @entity {
+type StreamPermission @entity {
   id: ID!
   "Ethereum address, owner of this permission"
   userAddress: Bytes!
@@ -33,7 +33,7 @@ type Stream @entity {
   "Stream metadata JSON"
   metadata: String!
   "Permissions that each Ethereum address owns to this stream"
-  permissions: [Permission!] @derivedFrom(field: "stream")
+  permissions: [StreamPermission!] @derivedFrom(field: "stream")
   "Nodes the have been registered as storage nodes to this stream in the StreamStorageRegistry"
   storageNodes: [Node!] @derivedFrom(field: "storedStreams")
   "date created. This is a timestamp in seconds"
@@ -84,7 +84,7 @@ type ProjectPermission @entity {
   canGrant: Boolean
 }
 
-type PaymentDetailsByChain @entity {
+type ProjectPaymentDetails @entity {
   "payment details id = projectId + '-' + domainId"
   id: ID!
   "Target project this payment details applies to"
@@ -99,7 +99,7 @@ type PaymentDetailsByChain @entity {
   pricePerSecond: BigInt
 }
 
-type TimeBasedSubscription @entity {
+type ProjectSubscription @entity {
   "subscription id = projectId + '-' + subscriberAddress"
   id: ID!
   "Target project this permission applies to"
@@ -116,11 +116,11 @@ type Project @entity {
   "List of domain ids for the chains from which this project can be purchased"
   domainIds: [BigInt!]!
   "Payment details for the chains where the project can be purchased: mapping (uint32 => PaymentDetailsByChain)"
-  paymentDetails: [PaymentDetailsByChain!]!
+  paymentDetails: [ProjectPaymentDetails!]!
   "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
   minimumSubscriptionSeconds: BigInt!
   "Subscriptions mapping (address => TimeBasedSubscription)"
-  subscriptions: [TimeBasedSubscription!]!
+  subscriptions: [ProjectSubscription!]!
   "Project metadata JSON"
   metadata: String!
   "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
@@ -168,7 +168,7 @@ type ProjectPurchase @entity {
 
 # ProjectStakingV1
 
-type Staking @entity {
+type ProjectStaking @entity {
   "stake id = projectId + '-' + userAddress + '-' + counter"
   id: ID!
 
@@ -185,7 +185,7 @@ type Staking @entity {
   stakedAt: BigInt
 }
 
-type Unstaking @entity {
+type ProjectUnstaking @entity {
   "unstake id = projectId + '-' + userAddress + '-' + counter"
   id: ID!
 
@@ -207,7 +207,7 @@ type Unstaking @entity {
 type Bounty @entity {
   id: ID! # bounty address
   isRunning: Boolean!
-  stakes: [Stake!]! @derivedFrom(field: "bounty")
+  stakes: [BountyStake!]! @derivedFrom(field: "bounty")
   brokerCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
@@ -215,7 +215,7 @@ type Bounty @entity {
   flags: [Flag!]! @derivedFrom(field: "bounty")
 }
 
-type Stake @entity {
+type BountyStake @entity {
   id: ID! # 0xbountyAddress-0xbrokerAddress
   broker: String!
   amount: BigInt!
@@ -238,7 +238,7 @@ type Flag @entity {
 
 type BrokerPool @entity {
   id: ID! # pool address
-  stakes: [Stake!]! @derivedFrom(field: "pool")
+  stakes: [BountyStake!]! @derivedFrom(field: "pool")
   delegators: [PoolDelegation!]! @derivedFrom(field: "pool")
   delegatorCount: Int
   approximatePoolValue: BigInt!
