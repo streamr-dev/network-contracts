@@ -6,7 +6,6 @@
     "clean": "rm -rf build generated artifacts cache",
     "build": "graph codegen subgraph.development.yaml && graph build subgraph.development.yaml",
     "build-production": "graph codegen $npm_config_config && graph build $npm_config_config",
-    "lint": "eslint ./src/*.ts",
     "docker:build": "npm run build && docker build . -t streamr/graph-deploy-subgraph:dev",
     "docker:publish": "docker image push streamr/graph-deploy-tatum-subgraph:dev",
     "create-docker-dev": "graph create streamr-dev/tatum --node http://streamr-dev-thegraph-node:8020 subgraph.development.yaml",

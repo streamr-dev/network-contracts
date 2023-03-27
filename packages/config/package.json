@@ -15,8 +15,7 @@
     "scripts": {
         "build": "tsc --project tsconfig.json",
         "pretest": "tsc --project tsconfig-test.json",
-        "test": "mocha --config mocharc.json",
-        "lint": "eslint --ext .ts src test"
+        "test": "mocha --config mocharc.json"
     },
     "repository": {
         "type": "git",

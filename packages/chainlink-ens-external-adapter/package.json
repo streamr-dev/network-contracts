@@ -9,7 +9,6 @@
     "clean": "",
     "build": "",
     "test": "mocha --timeout 0",
-    "lint": "eslint ./*.js test/*.js",
     "start": "node -r dotenv/config app.js"
   },
   "dependencies": {

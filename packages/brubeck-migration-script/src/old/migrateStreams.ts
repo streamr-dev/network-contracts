@@ -1,4 +1,5 @@
-/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable no-console */
+/* eslint-disable max-len */
 // first register ens domain on mainnet
 // scripts/deploy.js
 
@@ -15,8 +16,6 @@ import { MaxInt256 } from '@ethersproject/constants'
 
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { StreamRegistry } from '../../typechain/StreamRegistry'
-import { TimerOptions } from 'timers'
-import ts from 'typescript'
 
 const { ethers } = hhat
 
@@ -42,10 +41,10 @@ export type StreamData = {
     permissions: Permission
 }
 
-let adminWallet : Wallet
-let migratorWallet : Wallet
-let registryFromAdmin : StreamRegistry
-let registryFromMigrator : StreamRegistry
+let adminWallet: Wallet
+let migratorWallet: Wallet
+let registryFromAdmin: StreamRegistry
+let registryFromMigrator: StreamRegistry
 let streamsToMigrate: StreamData[] = []
 let nonceManager: NonceManager
 let nonce: number
@@ -53,7 +52,7 @@ let transactionData: Array<{
     streamdata: StreamData[],
     nonce: number
 }> = []
-let sucessfulLineNumber: number = -1
+let sucessfulLineNumber = -1
 
 // one transaction with 30 streams, one permission each costs about 2mio gas
 // polygon has 20 mio blockgaslimit, 5 transactions should fit in one block (depending on how many
@@ -128,6 +127,7 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
             // const newGasPrice = 200
             if (tx2.gasPrice) { tx.gasPrice = BigNumber.from(Math.ceil(newGasPrice)) }
             const txResend = await migratorWallet.sendTransaction(tx)
+            // eslint-disable-next-line no-underscore-dangle
             console.log(`resent tx with nonce: ${txResend.nonce}, gas: ${parseInt(txResend.gasLimit._hex, 16)}, gasPrice: ${txResend.gasPrice?.toNumber()}`)
             await txResend.wait()
             console.log('mined resent tx with nonce ' + txResend.nonce)
@@ -142,7 +142,7 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
     }
 }
 
-const addAndSendStreamPermission = async (streamID: string, user:string, permissionStrings:string[], lineNr: number) => {
+const addAndSendStreamPermission = async (streamID: string, user: string, permissionStrings: string[], lineNr: number) => {
     if (lineNr <= sucessfulLineNumber) {
         return Promise.resolve()
     }

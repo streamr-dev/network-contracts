@@ -8,7 +8,6 @@
     "codegen": "graph codegen",
     "graphbuild": "graph build",
     "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
-    "lint": "eslint ./src/*.ts",
     "create-docker-dev": "graph create streamr-dev/network-contracts --node http://streamr-dev-thegraph-node:8020",
     "deploy-docker-dev": "graph deploy streamr-dev/network-contracts --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
     "create-local": "graph create streamr-dev/network-contracts --node http://localhost:8020",
