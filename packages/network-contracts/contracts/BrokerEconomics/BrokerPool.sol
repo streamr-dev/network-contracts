@@ -54,7 +54,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     IPoolYieldPolicy public yieldPolicy;
     IPoolExitPolicy public exitPolicy;
 
-    address public reviewRewardsBeneficiary;
     address public broker;
     struct GlobalStorage {
         IERC677 token;
@@ -109,7 +108,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
         globalData().token = IERC677(tokenAddress);
         broker = brokerAddress;
-        reviewRewardsBeneficiary = brokerAddress;
         globalData().streamrConstants = StreamrConstants(streamrConstants);
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
@@ -355,11 +353,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyNodes {
         bounty.voteOnFlag(targetBroker, voteData);
-    }
-
-    // TODO delete in ETH-480
-    function setReviewRewardsBeneficiary(address newBeneficiary) external onlyBroker {
-        reviewRewardsBeneficiary = newBeneficiary;
     }
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses

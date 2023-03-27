@@ -246,13 +246,13 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
             if (!flaggerIsGone) {
-                token.transfer(BrokerPool(flagger).reviewRewardsBeneficiary(), FLAGGER_REWARD_WEI);
+                token.transferAndCall(flagger, FLAGGER_REWARD_WEI, abi.encode(BrokerPool(flagger).broker()));
                 slashingWei -= FLAGGER_REWARD_WEI;
             }
             for (uint i = 0; i < reviewerCount; i++) {
                 BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transfer(reviewer.reviewRewardsBeneficiary(), REVIEWER_REWARD_WEI);
+                    token.transferAndCall(address(reviewer), REVIEWER_REWARD_WEI, abi.encode(reviewer.broker()));
                     slashingWei -= REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
@@ -265,7 +265,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             for (uint i = 0; i < reviewerCount; i++) {
                 BrokerPool reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transfer(reviewer.reviewRewardsBeneficiary(), REVIEWER_REWARD_WEI);
+                    token.transferAndCall(address(reviewer), REVIEWER_REWARD_WEI, abi.encode(reviewer.broker()));
                     rewardsWei += REVIEWER_REWARD_WEI;
                 }
                 delete reviewerState[target][reviewer]; // clean up
