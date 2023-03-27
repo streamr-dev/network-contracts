@@ -116,27 +116,27 @@ describe("Mocked Project Events: create/update/delete", () => {
     })
 
     test("handleProjectCreation - isDataUnion edge cases", () => {
-        let projectId0 = "0x1000"
-        let projectId1 = "0x1001"
-        let projectId2 = "0x1002"
-        let projectId3 = "0x1003"
-        let projectId4 = "0x1004"
-        let projectId5 = "0x1005"
-        let projectId6 = "0x1006"
-        let metadata0 = ''                                                                      // false
-        let metadata1 = 'string, not json'                                                      // false
-        let metadata2 = '{}'                                                                    // false
-        let metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
-        let metadata4 = '{"isDataUnion": false}'                                                // false
-        let metadata5 = '{"isDataUnion": true}'                                                 // true
-        let metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
-        let event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
-        let event1 = createProjectCreatedEvent(Bytes.fromHexString(projectId1), [], [], [], 0, metadata1)
-        let event2 = createProjectCreatedEvent(Bytes.fromHexString(projectId2), [], [], [], 0, metadata2)
-        let event3 = createProjectCreatedEvent(Bytes.fromHexString(projectId3), [], [], [], 0, metadata3)
-        let event4 = createProjectCreatedEvent(Bytes.fromHexString(projectId4), [], [], [], 0, metadata4)
-        let event5 = createProjectCreatedEvent(Bytes.fromHexString(projectId5), [], [], [], 0, metadata5)
-        let event6 = createProjectCreatedEvent(Bytes.fromHexString(projectId6), [], [], [], 0, metadata6)
+        const projectId0 = "0x1000"
+        const projectId1 = "0x1001"
+        const projectId2 = "0x1002"
+        const projectId3 = "0x1003"
+        const projectId4 = "0x1004"
+        const projectId5 = "0x1005"
+        const projectId6 = "0x1006"
+        const metadata0 = ''                                                                      // false
+        const metadata1 = 'string, not json'                                                      // false
+        const metadata2 = '{}'                                                                    // false
+        const metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
+        const metadata4 = '{"isDataUnion": false}'                                                // false
+        const metadata5 = '{"isDataUnion": true}'                                                 // true
+        const metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
+        const event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
+        const event1 = createProjectCreatedEvent(Bytes.fromHexString(projectId1), [], [], [], 0, metadata1)
+        const event2 = createProjectCreatedEvent(Bytes.fromHexString(projectId2), [], [], [], 0, metadata2)
+        const event3 = createProjectCreatedEvent(Bytes.fromHexString(projectId3), [], [], [], 0, metadata3)
+        const event4 = createProjectCreatedEvent(Bytes.fromHexString(projectId4), [], [], [], 0, metadata4)
+        const event5 = createProjectCreatedEvent(Bytes.fromHexString(projectId5), [], [], [], 0, metadata5)
+        const event6 = createProjectCreatedEvent(Bytes.fromHexString(projectId6), [], [], [], 0, metadata6)
 
         handleProjectCreation(event0)
         handleProjectCreation(event1)
@@ -178,22 +178,21 @@ describe("Mocked Project Events: create/update/delete", () => {
     })
 
     test("handleProjectUpdate - isDataUnion edge cases", () => {
-        let projectId0 = "0x2000"
-        let metadata0 = ''                                                                      // false
-        let metadata1 = 'string, not json'                                                      // false
-        let metadata2 = '{}'                                                                    // false
-        let metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
-        let metadata4 = '{"isDataUnion": false}'                                                // false
-        let metadata5 = '{"isDataUnion": true}'                                                 // true
-        let metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
-        let event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
-        let event1 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata1)
-        let event2 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata2)
-        let event3 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata3)
-        let event4 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata4)
-        let event5 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata5)
-        let event6 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata6)
-
+        const projectId0 = "0x2000"
+        const metadata0 = ''                                                                      // false
+        const metadata1 = 'string, not json'                                                      // false
+        const metadata2 = '{}'                                                                    // false
+        const metadata3 = '{"isDataUnion": true, otherField: "invalid json, missing key quotes"}' // false
+        const metadata4 = '{"isDataUnion": false}'                                                // false
+        const metadata5 = '{"isDataUnion": true}'                                                 // true
+        const metadata6 = '{"isDataUnion": true, "description": "metadata-0x1006"}'               // true
+        const event0 = createProjectCreatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata0)
+        const event1 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata1)
+        const event2 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata2)
+        const event3 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata3)
+        const event4 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata4)
+        const event5 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata5)
+        const event6 = createProjectUpdatedEvent(Bytes.fromHexString(projectId0), [], [], [], 0, metadata6)
 
         handleProjectCreation(event0)
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId0, "isDataUnion", "false")

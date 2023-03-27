@@ -1,4 +1,4 @@
-/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable no-console */
 // first register ens domain on mainnet
 // scripts/deploy.js
 
@@ -15,8 +15,8 @@ import { MaxInt256 } from '@ethersproject/constants'
 
 // import { mnemonicToSeed } from '@ethersproject/hdnode'
 import { StreamRegistry } from '../../typechain/StreamRegistry'
-import { TimerOptions } from 'timers'
-import ts from 'typescript'
+// import { TimerOptions } from 'timers'
+// import ts from 'typescript'
 
 const { ethers } = hhat
 
@@ -42,10 +42,10 @@ export type StreamData = {
     permissions: Permission
 }
 
-let adminWallet : Wallet
-let migratorWallet : Wallet
-let registryFromAdmin : StreamRegistry
-let registryFromMigrator : StreamRegistry
+let adminWallet: Wallet
+let migratorWallet: Wallet
+let registryFromAdmin: StreamRegistry
+let registryFromMigrator: StreamRegistry
 let streamsToMigrate: StreamData[] = []
 let nonceManager: NonceManager
 let nonce: number
@@ -53,8 +53,8 @@ let transactionData: Array<{
     streamdata: StreamData[],
     nonce: number
 }> = []
-let sucessfulLineNumber: number = -1
-let timer
+let sucessfulLineNumber = -1
+// let timer
 
 // one transaction with 30 streams, one permission each costs about 2mio gas
 // polygon has 20 mio blockgaslimit, 5 transactions should fit in one block (depending on how many
@@ -139,7 +139,7 @@ const sendStreamsToChain = async (streams: StreamData[], nonceParam: number) => 
     }
 }
 
-const addAndSendStreamPermission = async (streamID: string, user:string, permissionStrings:string[], lineNr: number) => {
+const addAndSendStreamPermission = async (streamID: string, user: string, permissionStrings: string[], lineNr: number) => {
     if (lineNr <= sucessfulLineNumber) {
         return Promise.resolve()
     }
@@ -158,11 +158,11 @@ const addAndSendStreamPermission = async (streamID: string, user:string, permiss
         })
         nonce += 1
         if (transactionData.length >= 5) {
-            const promises = transactionData.map(
+            // const promises = 
+            transactionData.map(
                 (data) => sendStreamsToChain(data.streamdata, data.nonce)
             )
             // await Promise.all(promises)
-
 
             // eslint-disable-next-line require-atomic-updates
             transactionData = []

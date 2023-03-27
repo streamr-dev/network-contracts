@@ -4,7 +4,7 @@ const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism
 /**
  * Maps the chain name to a unique hyperlane domain id
  */
-export function chainToDomainId(name: string) {
+export function chainToDomainId(name: string): number {
     switch (name) {
         case 'alfajores':
             return 44787
@@ -34,7 +34,7 @@ export function chainToDomainId(name: string) {
 /**
  * Maps the chain name to the hyperlane mailbox address. The same for all EVM chains
  */
-export function chainToMailboxAddress(name: string) {
+export function chainToMailboxAddress(name: string): string {
     switch (true) {
         case testnet.includes(name):
             return '0xCC737a94FecaeC165AbCf12dED095BB13F037685'
@@ -48,7 +48,7 @@ export function chainToMailboxAddress(name: string) {
 /**
  * Maps the chain name to the hyperlane interchain default paymaster address. The same for all EVM chains
  */
-export function chainToDefaultPaymasterAddress(name: string) {
+export function chainToDefaultPaymasterAddress(name: string): string {
     switch (true) {
         case testnet.includes(name):
             return '0xF90cB82a76492614D07B82a7658917f3aC811Ac1'
@@ -62,7 +62,7 @@ export function chainToDefaultPaymasterAddress(name: string) {
 /**
  * Maps the chain name to the hyperlane interchain paymaster address. The same for all EVM chains
  */
-export function chainToPaymasterAddress(name: string) {
+export function chainToPaymasterAddress(name: string): string {
     switch (true) {
         case testnet.includes(name):
             return '0x8f9C3888bFC8a5B25AED115A82eCbb788b196d2a'
@@ -76,7 +76,7 @@ export function chainToPaymasterAddress(name: string) {
 /**
  * Maps the chain name to the hyperlane interchain query router address. The same for all EVM chains
  */
-export function chainToQueryRouterAddress(name: string) {
+export function chainToQueryRouterAddress(name: string): string {
     switch (true) {
         case testnet.includes(name):
             return '0xF782C6C4A02f2c71BB8a1Db0166FAB40ea956818'
@@ -90,7 +90,7 @@ export function chainToQueryRouterAddress(name: string) {
 /**
  * Maps the chain name to the ethereum RPC URL. It appends the ethereum provider (e.g. infura) to the public rpc.
  */
-export function chainToEthereumRpcUrl(name: string) {
+export function chainToEthereumRpcUrl(name: string): string {
     switch (name) {
         case 'mumbai':
             return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_KEY}`
@@ -111,7 +111,7 @@ export function chainToEthereumRpcUrl(name: string) {
 /**
  * Maps the chain name to a public block explorer.
  */
-export function chainToBlockExplorer(name: string) {
+export function chainToBlockExplorer(name: string): string {
     switch (name) {
         case 'polygon':
             return 'https://polygonscan.com'

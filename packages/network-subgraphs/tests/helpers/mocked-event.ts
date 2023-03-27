@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { Address, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
 import { ProjectPaymentDetails } from "../../generated/schema"
@@ -15,7 +16,7 @@ import {
 import { 
     Stake,
     Unstake,
- } from "../../generated/ProjectStakingV1/ProjectStakingV1"
+} from "../../generated/ProjectStakingV1/ProjectStakingV1"
 import { getIsDataUnionValue } from "../../src/helpers"
 
 //////////////////////// ProjectRegistry ////////////////////////
@@ -30,7 +31,7 @@ export function createProjectCreatedEvent(
 ): ProjectCreated {
     log.info('mock createProjectCreatedEvent => paymentDetailsLength length={}, streamsLength length={}', [paymentDetails.length.toString(), streams.length.toString()])
     const projectCreatedEvent = changetype<ProjectCreated>(newMockEvent())
-    projectCreatedEvent.parameters = new Array()
+    projectCreatedEvent.parameters = []
 
     const idParam = new ethereum.EventParam("id", ethereum.Value.fromBytes(id))
     projectCreatedEvent.parameters.push(idParam)
@@ -64,7 +65,7 @@ export function createProjectUpdatedEvent(
 ): ProjectUpdated {
     log.info('mock createProjectUpdatedEvent => paymentDetails length length={}', [paymentDetails.length.toString()])
     const projectUpdatedEvent = changetype<ProjectUpdated>(newMockEvent())
-    projectUpdatedEvent.parameters = new Array()
+    projectUpdatedEvent.parameters = []
 
     const idParam = new ethereum.EventParam("id", ethereum.Value.fromBytes(id))
     projectUpdatedEvent.parameters.push(idParam)
@@ -92,7 +93,7 @@ export function createProjectUpdatedEvent(
 
 export function createStreamAddedEvent(projectId: Bytes, streamId: string): StreamAdded {
     const streamAddedEvent = changetype<StreamAdded>(newMockEvent())
-    streamAddedEvent.parameters = new Array()
+    streamAddedEvent.parameters = []
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     streamAddedEvent.parameters.push(projectIdParam)
     const streamIdParam = new ethereum.EventParam("streamId", ethereum.Value.fromString(streamId))
@@ -102,7 +103,7 @@ export function createStreamAddedEvent(projectId: Bytes, streamId: string): Stre
 
 export function createStreamedRemovedEvent(projectId: Bytes, streamId: string): StreamRemoved {
     const streamRemovedEvent = changetype<StreamRemoved>(newMockEvent())
-    streamRemovedEvent.parameters = new Array()
+    streamRemovedEvent.parameters = []
     const projectIdPAram = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     streamRemovedEvent.parameters.push(projectIdPAram)
     const streamIdParam = new ethereum.EventParam("streamId", ethereum.Value.fromString(streamId))
@@ -119,7 +120,7 @@ export function createPermissionUpdatedEvent(
     canGrant: boolean
 ): PermissionUpdated {
     const permissionUpdatedEvent = changetype<PermissionUpdated>(newMockEvent())
-    permissionUpdatedEvent.parameters = new Array()
+    permissionUpdatedEvent.parameters = []
 
     const projectParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     permissionUpdatedEvent.parameters.push(projectParam)
@@ -139,7 +140,7 @@ export function createPermissionUpdatedEvent(
 
 export function createSubscribedEvent(projectId: Bytes, subscriber: string, endTimestamp: number): Subscribed {
     const subscribedEvent = changetype<Subscribed>(newMockEvent())
-    subscribedEvent.parameters = new Array()
+    subscribedEvent.parameters = []
 
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     subscribedEvent.parameters.push(projectIdParam)
@@ -153,7 +154,7 @@ export function createSubscribedEvent(projectId: Bytes, subscriber: string, endT
 
 export function createPaymentDetailsByChainUpdatedEvent(projectId: Bytes, domainId: number, beneficiary: string, pricingTokenAddress: string, pricePerSecond: number): PaymentDetailsByChainUpdated {
     const paymentEvent = changetype<PaymentDetailsByChainUpdated>(newMockEvent())
-    paymentEvent.parameters = new Array()
+    paymentEvent.parameters = []
 
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     paymentEvent.parameters.push(projectIdParam)
@@ -173,7 +174,7 @@ export function createProjectDeletedEvent(
     id: Bytes,
 ): ProjectDeleted {
     const projectDeletedEvent = changetype<ProjectDeleted>(newMockEvent())
-    projectDeletedEvent.parameters = new Array()
+    projectDeletedEvent.parameters = []
 
     const idParam = new ethereum.EventParam("id", ethereum.Value.fromBytes(id))
     projectDeletedEvent.parameters.push(idParam)
@@ -190,7 +191,7 @@ export function createProjectPurchasedEvent(
     price: number, fee: number,
 ): ProjectPurchased {
     const projectPurchasedEvent = changetype<ProjectPurchased>(newMockEvent())
-    projectPurchasedEvent.parameters = new Array()
+    projectPurchasedEvent.parameters = []
 
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     projectPurchasedEvent.parameters.push(projectIdParam)
@@ -210,7 +211,7 @@ export function createProjectPurchasedEvent(
 
 export function createStakeEvent(projectId: Bytes, user: string, amount: number): Stake {
     const stakeEvent = changetype<Stake>(newMockEvent())
-    stakeEvent.parameters = new Array()
+    stakeEvent.parameters = []
 
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     stakeEvent.parameters.push(projectIdParam)
@@ -224,7 +225,7 @@ export function createStakeEvent(projectId: Bytes, user: string, amount: number)
 
 export function createUnstakeEvent(projectId: Bytes, user: string, amount: number): Unstake {
     const unstakeEvent = changetype<Unstake>(newMockEvent())
-    unstakeEvent.parameters = new Array()
+    unstakeEvent.parameters = []
 
     const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
     unstakeEvent.parameters.push(projectIdParam)

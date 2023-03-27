@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+/* solhint-disable no-console */
 
 pragma solidity ^0.8.9;
 
@@ -18,7 +19,7 @@ interface IMessageRecipient {
 contract GasReporter {
     address public recipient;
     uint32 public chainId;
-    
+
     constructor(address _recipient, uint32 _chainId) {
         recipient = _recipient;
         chainId = _chainId;
@@ -40,7 +41,7 @@ contract GasReporter {
             _addressToBytes32(address(this)),
             message
         );
-        
+
         uint gasAfter = gasleft();
         console.log("Gas used for handle function is %s wei", gasBefore - gasAfter);
     }
@@ -56,7 +57,7 @@ contract GasReporter {
     ) external view {
         uint gasBefore = gasleft();
 
-        // (address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, , uint256 streamsCount) = 
+        // (address beneficiary, address pricingTokenAddress, uint256 price, uint256 fee, , uint256 streamsCount) =
             IMarketplaceV4(recipient).getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId);
 
         uint gasAfter = gasleft();
@@ -70,7 +71,7 @@ contract GasReporter {
     ) external view {
         uint gasBefore = gasleft();
 
-        // (bool isValid, uint256 subEndTimestamp, ) = 
+        // (bool isValid, uint256 subEndTimestamp, ) =
             IMarketplaceV4(recipient).getSubscriptionInfo(projectId, subscriber, purchaseId);
 
         uint gasAfter = gasleft();
