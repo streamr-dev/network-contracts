@@ -44,12 +44,11 @@ npm run deploy-local
 
 (attention: create and deploy without '-local' will publish to the official The Graph API. And you can't ever delete a subgraph; )
 
-then you can paste graphQL queries at http://127.0.0.1:8000/subgraphs/name/<githubname>/<subgraphname>/graphql
-or send queries to http://localhost:8000/subgraphs/name/<githubname>/<subgraphname>
-for example with a gui like https://github.com/graphql/graphql-playground 
-or from a webapplication
+You can test and build GraphQL queries at http://127.0.0.1:8000/subgraphs/name/streamr-dev/network-subgraphs/graphql
 
-example queries:
+It's generally best to build the queries using the browser UI.
+
+Example queries:
 ```
 {
    streams {
