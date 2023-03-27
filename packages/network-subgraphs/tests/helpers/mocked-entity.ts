@@ -1,5 +1,5 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { PaymentDetailsByChain, Permission, Project, ProjectPurchase, Staking, TimeBasedSubscription, Unstaking } from "../../generated/schema"
+import { ProjectPaymentDetails, ProjectPermission, Project, ProjectPurchase, ProjectStaking, ProjectSubscription, ProjectUnstaking } from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
     const project = new Project(projectId)
@@ -24,8 +24,8 @@ export function createPermissionEntity(
     permissionId: string,
     userAddress: string,
     canBuy: boolean, canDelete: boolean, canEdit: boolean, canGrant: boolean
-): Permission {
-    const permission = new Permission(permissionId)
+): ProjectPermission {
+    const permission = new ProjectPermission(permissionId)
     permission.id = permissionId
     permission.userAddress = Bytes.fromHexString(userAddress)
     permission.project = projectId
@@ -50,8 +50,8 @@ export function createSubscriptionEntity(
     subscriptionId: string,
     userAddress: string,
     endTimestamp: number
-): TimeBasedSubscription {
-    const subscription = new TimeBasedSubscription(subscriptionId)
+): ProjectSubscription {
+    const subscription = new ProjectSubscription(subscriptionId)
     subscription.id = subscriptionId
     subscription.project = projectId
     subscription.userAddress = Bytes.fromHexString(userAddress)
@@ -68,14 +68,14 @@ export function createSubscriptionEntity(
     return subscription
 }
 
-export function createPaymentDetailsByChainEntity(
+export function createProjectPaymentDetailsEntity(
     projectId: string,
     paymentId: string,
     beneficiary: string,
     pricingTokenAddress: string,
     pricePerSecond: number
-): PaymentDetailsByChain {
-    const payment = new PaymentDetailsByChain(paymentId)
+): ProjectPaymentDetails {
+    const payment = new ProjectPaymentDetails(paymentId)
     payment.id = paymentId
     payment.project = projectId
     payment.beneficiary = Bytes.fromHexString(beneficiary)
@@ -114,14 +114,14 @@ export function createProjectPurchaseEntity(
     return projectPurchase
 }
 
-export function createStakingEntity(
+export function createProjectStakingEntity(
     stakingId: string,
     projectId: string,
     user: string,
     amount: number,
     stakedAt: number
-): Staking {
-    const staking = new Staking(stakingId)
+): ProjectStaking {
+    const staking = new ProjectStaking(stakingId)
     staking.id = stakingId
     staking.project = projectId
     staking.user = Bytes.fromHexString(user)
@@ -131,14 +131,14 @@ export function createStakingEntity(
     return staking
 }
 
-export function createUnstakingEntity(
+export function createProjectUnstakingEntity(
     unstakingId: string,
     projectId: string,
     user: string,
     amount: number,
     unstakedAt: number
-): Unstaking {
-    const unstaking = new Unstaking(unstakingId)
+): ProjectUnstaking {
+    const unstaking = new ProjectUnstaking(unstakingId)
     unstaking.id = unstakingId
     unstaking.project = projectId
     unstaking.user = Bytes.fromHexString(user)

@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import { Address, Bytes, ethereum, log } from "@graphprotocol/graph-ts"
 import { newMockEvent } from "matchstick-as"
-import { PaymentDetailsByChain } from "../../generated/schema"
+import { ProjectPaymentDetails } from "../../generated/schema"
 import { ProjectPurchased } from "../../generated/MarketplaceV4/MarketplaceV4"
 import {
     PaymentDetailsByChainUpdated,
@@ -24,7 +24,7 @@ import { getIsDataUnionValue } from "../../src/helpers"
 export function createProjectCreatedEvent(
     id: Bytes,
     domainIds: number[],
-    paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
+    paymentDetails: ProjectPaymentDetails[], // TODO: use this to construct paymentDetailsParam
     streams: string[],
     minimumSubscriptionSeconds: number,
     metadata: string
@@ -58,7 +58,7 @@ export function createProjectCreatedEvent(
 export function createProjectUpdatedEvent(
     id: Bytes,
     domainIds: number[],
-    paymentDetails: PaymentDetailsByChain[], // TODO: use this to construct paymentDetailsParam
+    paymentDetails: ProjectPaymentDetails[], // TODO: use this to construct paymentDetailsParam
     streams: string[],
     minimumSubscriptionSeconds: number,
     metadata: string

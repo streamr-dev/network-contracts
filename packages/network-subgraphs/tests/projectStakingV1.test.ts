@@ -1,6 +1,6 @@
 import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
-import { Staking, Unstaking } from "../generated/schema"
+import { ProjectStaking, ProjectUnstaking } from "../generated/schema"
 import {
     handleStake, handleUnstake
 } from "../src/projectStaking"
@@ -9,8 +9,8 @@ import {
 } from "./helpers/mocked-event"
 import {
     createProjectEntity,
-    createStakingEntity,
-    createUnstakingEntity,
+    createProjectStakingEntity,
+    createProjectUnstakingEntity,
 } from "./helpers/mocked-entity"
 
 // handlers need to be exported from the test file when running test coverage
@@ -20,8 +20,8 @@ export {
 } from "../src/projectStaking"
 
 const PROJECT_ENTITY_TYPE = "Project"
-const STAKING_ENTITY_TYPE = "Staking"
-const UNSTAKING_ENTITY_TYPE = "Unstaking"
+const STAKING_ENTITY_TYPE = "ProjectStaking"
+const UNSTAKING_ENTITY_TYPE = "ProjectUnstaking"
 
 describe("Entity stores", () => {
     const projectId = "0x1234"
@@ -37,47 +37,47 @@ describe("Entity stores", () => {
         clearStore()
     })
 
-    test("Staking - entity created", () => {
-        createStakingEntity(stakingId, projectId, user, amount, stakedAt)
+    test("ProjectStaking - entity created", () => {
+        createProjectStakingEntity(stakingId, projectId, user, amount, stakedAt)
         assert.entityCount(STAKING_ENTITY_TYPE, 1)
         assert.fieldEquals(STAKING_ENTITY_TYPE, stakingId, "id", stakingId)
     })
 
-    test("Staking - entity retreived from the store using entity.load()", () => {
-        const retrievedStaking = Staking.load(stakingId)
+    test("ProjectStaking - entity retreived from the store using entity.load()", () => {
+        const retrievedStaking = ProjectStaking.load(stakingId)
         assert.stringEquals(stakingId, retrievedStaking!.get("id")!.toString())
     })
 
-    test("Staking - entity can be updated using entity.save()", () => {
-        const staking = Staking.load(stakingId) as Staking
+    test("ProjectStaking - entity can be updated using entity.save()", () => {
+        const staking = ProjectStaking.load(stakingId) as ProjectStaking
         staking.set("user", Value.fromString(newUser))
         staking.save()
         assert.fieldEquals(STAKING_ENTITY_TYPE, stakingId, "user", newUser)
     })
 
-    test("Staking - returns null when calling entity.load() if entity doesn't exist", () => {
-        const retrievedStaking = Staking.load("IDoNotExist")
+    test("ProjectStaking - returns null when calling entity.load() if entity doesn't exist", () => {
+        const retrievedStaking = ProjectStaking.load("IDoNotExist")
         assert.assertNull(retrievedStaking)
     })
 
     test("Unstaking - entity created", () => {
-        createUnstakingEntity(unstakingId, projectId, user, amount, unstakedAt)
+        createProjectUnstakingEntity(unstakingId, projectId, user, amount, unstakedAt)
         assert.entityCount(UNSTAKING_ENTITY_TYPE, 1)
         assert.fieldEquals(UNSTAKING_ENTITY_TYPE, unstakingId, "id", unstakingId)
     })
 
     test("Unstaking - entity retreived from the store using entity.load()", () => {
-        const retrievedUnstaking = Unstaking.load(unstakingId)
+        const retrievedUnstaking = ProjectUnstaking.load(unstakingId)
         assert.stringEquals(unstakingId, retrievedUnstaking!.get("id")!.toString())
     })
 
     test("Unstaking - returns null when calling entity.load() if entity doesn't exist", () => {
-        const retrievedUnstaking = Unstaking.load("IDoNotExist")
+        const retrievedUnstaking = ProjectUnstaking.load("IDoNotExist")
         assert.assertNull(retrievedUnstaking)
     })
 
     test("Unstaking - entity can be updated using entity.save()", () => {
-        const unstaking = Unstaking.load(unstakingId) as Unstaking
+        const unstaking = ProjectUnstaking.load(unstakingId) as ProjectUnstaking
         unstaking.set("user", Value.fromString(newUser))
         unstaking.save()
         assert.fieldEquals(UNSTAKING_ENTITY_TYPE, unstakingId, "user", newUser)

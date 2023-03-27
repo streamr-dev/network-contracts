@@ -1,6 +1,6 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { Bounty, BrokerPool, Stake, Flag } from '../generated/schema'
+import { Bounty, BrokerPool, BountyStake, Flag } from '../generated/schema'
 import { StakeUpdate, BountyUpdate, FlagUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
@@ -10,9 +10,9 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     let brokerAddress = event.params.broker
 
     let stakeID = bountyAddress.toHexString() + "-" + brokerAddress.toHexString()
-    let stake = Stake.load(stakeID)
+    let stake = BountyStake.load(stakeID)
     if (stake === null) {
-        stake = new Stake(stakeID)
+        stake = new BountyStake(stakeID)
         stake.bounty = bountyAddress.toHexString()
         stake.id = stakeID
         stake.broker = brokerAddress.toHexString()
