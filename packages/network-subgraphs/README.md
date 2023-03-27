@@ -5,14 +5,14 @@ Everything is already included in the streamr-docker-dev environment
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile.
-To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev", and then push the image
-with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
+To do so, run "docker build . -t streamr/deploy-network-subgraphs:dev", and then push the image
+with "docker push streamr/deploy-network-subgraphs:dev"
 
-## Prod deployment to the centralised theGraph
+## Prod deployment to the hosted service
 First rename subgraph_prod.yaml to rename subgraph.yaml then follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
 Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
 ```
-cd packages/streamregistry-thegraph-subgraph
+cd packages/network-subgraphs
 npm i
 npm run build
 npx graph auth --product hosted-service <TOKEN>
@@ -48,136 +48,58 @@ You can test and build GraphQL queries at http://127.0.0.1:8000/subgraphs/name/s
 
 It's generally best to build the queries using the browser UI.
 
-Example queries:
+Streams example query:
 ```
 {
-   streams {
-    id,
-    metadata,
+  streams {
+    id
+    metadata
+    createdAt
+    updatedAt
     permissions {
-      id,
-  		user,
-  		edit,
-      canDelete,
-      publish,
-      subscribed,
-      share,
+      id
     }
-  }
-}
-```
-
-```
-
-{
-  permissions {
-      id,
-  		user,
-  		isadmin,
-  		publishRights
-  		viewRights
-  		expirationTime
-    stream {
+    storageNodes {
       id
     }
   }
 }
 ```
 
-Project example queries:
+Projects example query:
 ```
 {
   projects {
-    paymentDetails
-    minimumSubscriptionSeconds
-    subscriptions {
-      endTimestamp
-    }
-    metadata
-    version
-    streams
-    permissions {
-      canGrant
-      canBuy
-      canDelete
-      canEdit
-    }
-    score
-  }
-}
-```
-```
-{
-  projectPermissions {
-    canBuy
-    canDelete
-    canEdit
-    canGrant
-    userAddress
-  }
-}
-```
-```
-{
-  projectPaymentDetails {
-    domainId: BigInt
-    beneficiary: Bytes!
-    pricePerSecond: BigInt!
-    pricingTokenAddress: Bytes!
-  }
-}
-```
-```
-{
-  timeBasedSubscriptions {
-    endTimestamp
-    userAddress
-  }
-}
-```
-```
-{
-  stakings {
-    user
-    amount
-    stakedAt
-  }
-}
-```
-```
-{
-  unstakings {
-    user
-    amount
-    unstakedAt
-  }
-}
-```
-Full-text search:
-```
-query {
-  projectSearch(text: "metadata keyword") {
     id
     domainIds
-    paymentDetails {
-      domainId
-      beneficiary
-      pricePerSecond
-      pricingTokenAddress
-    }
     minimumSubscriptionSeconds
-    subscriptions {
-      endTimestamp
-    }
     metadata
-    version
+    isDataUnion
     streams
-    projectPermissions {
-      canGrant
-      canBuy
-      canDelete
-      canEdit
+    createdAt
+    updatedAt
+    score
+    permissions {
+      id
     }
+    subscriptions {
+      id
+    }
+    paymentDetails {
+      id
+    }
+    purchases {
+      id
+    }
+  }
+}
+```
+
+Projects metadata full-text search:
+```
+{
+  projectSearch(text: "metadata keyword") {
+    id
   }
 }
 ```
