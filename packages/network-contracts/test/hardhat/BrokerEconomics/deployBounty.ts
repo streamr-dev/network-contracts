@@ -112,6 +112,7 @@ export async function deployBountyWithoutFactory(
     const bounty = await (await getContractFactory("Bounty", { signer: deployer })).deploy()
     await bounty.deployed()
     await bounty.initialize(
+        "streamID",
         contracts.streamrConstants.address,
         deployer.address,
         token.address,
