@@ -13,6 +13,7 @@ USER node
 COPY --chown=node:node ./../. .
 
 RUN npm i
-WORKDIR /home/node/app/packages/tatum-thegraph-subgraph/
+RUN npm run build -w=@streamr-contracts/network-contracts
+WORKDIR /home/node/app/packages/tatum-subgraph/
 RUN chmod +x start.sh
 ENTRYPOINT [ "sh", "./start.sh" ]

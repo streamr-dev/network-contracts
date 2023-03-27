@@ -6,17 +6,14 @@
     "configurations": [
 
         {
-            "name": "Launch index.js",
-            "program": "${workspaceFolder}/packages/docker-dev-chain-init/index.js",
+            "name": "run index.js",
+            "command": "npx hardhat run --network localsidechain index.js",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "pwa-node",
+            "type": "node-terminal",
             "env": {
-                "DEBUG": "*"
+                "DEBUG": "*,-mocha:*"
             },
-            "cwd": "${workspaceFolder}/packages/docker-dev-chain-init/",
+            "cwd": "${workspaceFolder}/packages/docker-dev-chain-init"
         },
         {
             "command": "npm run preload -w=docker-dev-chain-init",

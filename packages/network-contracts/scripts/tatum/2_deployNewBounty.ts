@@ -38,7 +38,7 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const agreementtx = await bountyFactory.deployBountyAgreement(0, 1, "Bounty-" + Date.now(),
+    const bountytx = await bountyFactory.deployBounty(ethers.utils.parseEther("60"), 0, 1, "Bounty-" + Date.now(),
         [
             localConfig.allocationPolicy,
             ethers.constants.AddressZero,
@@ -49,12 +49,12 @@ const deployNewBounty = async () => {
             "0"
         ]
     )
-    const agreementReceipt = await agreementtx.wait()
-    const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
+    const bountyReceipt = await bountytx.wait()
+    const newBountyAddress = bountyReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
     log("new bounty address: " + newBountyAddress)
     bountyAddress = newBountyAddress
 }
-    
+
 const sponsorNewBounty = async () => {
     bounty = await ethers.getContractAt("Bounty", bountyAddress, deploymentOwner) as Bounty
     // sponsor with token approval
@@ -67,7 +67,7 @@ const sponsorNewBounty = async () => {
 }
 
 const stakeOnBounty = async () => {
-    const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("1"),
+    const tx = await tokenFromOwner.transferAndCall(bountyAddress, ethers.utils.parseEther("100"),
         userWallet.address)
     await tx.wait()
     log("staked in bounty with transfer and call")

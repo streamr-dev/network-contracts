@@ -46,7 +46,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
     }
 
     function localData() internal view returns(LocalStorage storage data) {
-        bytes32 storagePosition = keccak256(abi.encodePacked("agreement.storage.StakeWeightedAllocationPolicy", address(this)));
+        bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.StakeWeightedAllocationPolicy", address(this)));
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
@@ -71,6 +71,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         GlobalStorage storage globalVars = globalData();
         if (localVars.lastUpdateWasRunning) {
             uint deltaTime = block.timestamp - localVars.lastUpdateTimestamp;
+            // console.log("    lastUpdateTimestamp", localVars.lastUpdateTimestamp, "block.timestamp", block.timestamp);
             // was solvent in the start => calculate the past update period until insolvency if any
             if (localVars.defaultedWei == 0) {
                 uint allocationWei = localVars.incomePerSecond * deltaTime;
@@ -95,6 +96,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
                 // move funds from unallocated to allocated
                 globalVars.unallocatedFunds -= allocationWei;
                 localVars.cumulativeWeiPerStake += allocationWeiPerStake;
+                // console.log("    allocationWei", allocationWei, "allocationWeiPerStake", allocationWeiPerStake);
             } else {
                 localVars.defaultedWeiPerStake += localVars.incomePerSecondPerStake * deltaTime;
                 localVars.defaultedWei += localVars.incomePerSecond * deltaTime;

@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable max-len */
 // without metrics Read 3220084 lines, 23955 streams, 1017490 valid ids, 953081 stream+user combos,0 without metrics.
 // with metrics Read 3220084 lines, 435427 streams, 3075190 valid ids, 1365005 stream+user combos,0 without metrics.
 
@@ -17,8 +19,8 @@ const OUT_FILE = ('./streamData_cleaned.tsv')
 let currententStream: string
 let currentUser: string
 let currentPermissions: string[]
-let streamUserCombos: number = 0
-let streams: number = 0
+let streamUserCombos = 0
+let streams = 0
 
 const writeLine = async (stream: string, user: string, permissions: string[]) => {
     const line = stream + '\t' + user + '\t' + JSON.stringify(permissions) + '\n'

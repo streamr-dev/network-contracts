@@ -1,4 +1,4 @@
-FROM node:17-bullseye-slim
+FROM node:18-slim
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	curl \

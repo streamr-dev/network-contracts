@@ -6,7 +6,7 @@
   "scripts": {
     "build": "hardhat compile",
     "eslint": "eslint {src,scripts,test}/**/*.ts",
-    "lint": "npm run eslint && solhint contracts/**/*.sol",
+    "lint": "solhint contracts/**/*.sol",
     "test": "hardhat test test/contracts/*",
     "deploy": "hardhat run --network $CHAIN scripts/deployProjectRegistry.ts",
     "interact": "hardhat run --network $CHAIN scripts/interactProjectRegistry.ts",

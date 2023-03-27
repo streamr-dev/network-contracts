@@ -63,16 +63,18 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
 
     function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
         (
+            uint initialMinimumStakeWei,
             uint32 initialMinHorizonSeconds,
             uint32 initialMinBrokerCount,
             string memory streamId,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint32,uint32,string,address[],uint[])
+            (uint,uint32,uint32,string,address[],uint[])
         );
-        address bountyAddress = _deployBountyAgreement(
+        address bountyAddress = _deployBounty(
             sender,
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             streamId,
@@ -90,15 +92,17 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
      *   3+: join policies (leave out if none)
      * @param policies smart contract addresses found in the trustedPolicies
      */
-    function deployBountyAgreement(
+    function deployBounty(
+        uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory streamId,
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
-        return _deployBountyAgreement(
+        return _deployBounty(
             _msgSender(),
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             streamId,
@@ -107,8 +111,9 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         );
     }
 
-    function _deployBountyAgreement(
+    function _deployBounty(
         address bountyOwner,
+        uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory streamId,
@@ -117,6 +122,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
         require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
+        require(initialMinimumStakeWei >= streamrConstants.MINIMUM_STAKE_WEI(), "error_minimumStakeTooLow");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
@@ -128,6 +134,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
+            initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             IAllocationPolicy(policies[0]),

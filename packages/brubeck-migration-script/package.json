@@ -6,7 +6,6 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"No tests in migration script.\"",
-    "lint": "eslint ./src/*.ts",
     "migration": "hardhat run --network polygonMainnet src/index.ts",
     "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin",
     "build": "hardhat compile"

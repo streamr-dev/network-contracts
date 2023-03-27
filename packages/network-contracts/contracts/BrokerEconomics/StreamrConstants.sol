@@ -9,6 +9,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 
     /**
+     * 10% of MINIMUM_STAKE_WEI must be enough to pay reviewers+flagger
+     * That is: MINIMUM_STAKE_WEI >= 10 * (FLAGGER_REWARD_WEI + REVIEWER_COUNT * REVIEWER_REWARD_WEI)
+     */
+    uint public MINIMUM_STAKE_WEI;
+
+    /**
      * MAX_PENALTY_PERIOD_SECONDS is the global maximum time a bounty can slash a broker for leaving any Bounty early.
      *
      * For a given Bounty b, b. is the minimum time a broker has to be in a bounty without being slashed.
@@ -53,6 +59,7 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
         MAX_PENALTY_PERIOD_SECONDS = 30 days;
         PERCENT_DIFF_APPROX_POOL_VALUE = 10;
         PUNISH_BROKERS_PT_THOUSANDTH = 5;
+        MINIMUM_STAKE_WEI = 60 ether;
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
@@ -67,6 +74,10 @@ contract StreamrConstants is Initializable, UUPSUpgradeable, AccessControlUpgrad
 
     function setPoolOnlyJoinPolicy(address poolOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         poolOnlyJoinPolicy = poolOnlyJoinPolicyAddress;
+    }
+
+    function setMinimumStakeWei(uint newMinimumStakeWei) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        MINIMUM_STAKE_WEI = newMinimumStakeWei;
     }
 
     // TODO: what would this be used for?
