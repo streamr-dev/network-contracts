@@ -37,6 +37,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event QueuedDataPayout(address user, uint amountPoolTokenWei);
     event QueueUpdated(address user, uint amountPoolTokenWei);
     event NodesSet(address[] nodes);
+    event Heartbeat(address indexed nodeAddress, string jsonData);
 
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
 
@@ -355,6 +356,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyNodes {
         bounty.voteOnFlag(targetBroker, voteData);
+    }
+
+    /** Nodes announce their ID and other connectivity metadata */
+    function heartbeat(string calldata jsonData) external onlyNodes {
+        emit Heartbeat(_msgSender(), jsonData);
     }
 
     // TODO delete in ETH-480
