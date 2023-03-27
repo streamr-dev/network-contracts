@@ -15,7 +15,7 @@
         "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
         "test": "hardhat test",
         "coverage": "hardhat coverage",
-        "lint": "eslint scripts/* test/* && solhint contracts/**/*.sol",
+        "lint": "solhint contracts/**/*.sol",
         "deployDelegatedAccessRegistry": "hardhat run --network localsidechain scripts/1_deployDelegatedAccessRegistry.ts",
         "deployDelegatedAccessRegistryProd": "hardhat run --network polygon scripts/1_deployDelegatedAccessRegistry.ts",
         "deployJoinPolicyRegistry": "hardhat run --network dev1 scripts/2_deployJoinPolicyRegistry.ts",

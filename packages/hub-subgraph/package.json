@@ -7,7 +7,6 @@
     "codegen": "graph codegen",
     "graphbuild": "graph build",
     "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
-    "lint": "eslint ./src/*.ts",
     "docker:build": "npm run build && docker build . -t streamr/deploy-hub-subgraph:dev",
     "docker:publish": "docker image push streamr/deploy-hub-subgraph:dev",
     "create-docker-dev": "graph create streamr-dev/hub-subgraph --node http://streamr-dev-thegraph-node:8020",

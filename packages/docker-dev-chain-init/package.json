@@ -5,7 +5,6 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "lint": "eslint ./*.js",
     "preload": "hardhat run --network localsidechain index.js",
     "deploy-marketplace-v3": "hardhat run --network localmainchain deployMarketplaceMainnet.js",
     "deploy-du3": "hardhat run --network localmainchain deploy_du3_factories.js",
