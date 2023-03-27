@@ -1,5 +1,13 @@
 import { BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { ProjectPaymentDetails, ProjectPermission, Project, ProjectPurchase, ProjectStaking, ProjectSubscription, ProjectUnstaking } from "../../generated/schema"
+import {
+    ProjectPaymentDetails,
+    ProjectPermission,
+    Project,
+    ProjectPurchase,
+    ProjectStaking,
+    ProjectSubscription,
+    ProjectUnstaking
+} from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
     const project = new Project(projectId)
