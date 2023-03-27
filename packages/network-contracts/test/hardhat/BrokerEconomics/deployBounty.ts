@@ -32,7 +32,6 @@ export async function deployBounty(
     overrideKickPolicy?: IKickPolicy,
 ): Promise<Bounty> {
     const {
-        token,
         maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
         allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
         bountyTemplate, bountyFactory
@@ -81,9 +80,7 @@ export async function deployBounty(
     const bountyDeployReceipt = await bountyDeployTx.wait() as ContractReceipt
     const newBountyEvent = bountyDeployReceipt.events?.find((e) => e.event === "NewBounty")
     const newBountyAddress = newBountyEvent?.args?.bountyContract
-    const bounty = bountyTemplate.attach(newBountyAddress)
-    await (await token.approve(bounty.address, parseEther("100000"))).wait()
-    return bounty
+    return bountyTemplate.attach(newBountyAddress)
 }
 
 /**

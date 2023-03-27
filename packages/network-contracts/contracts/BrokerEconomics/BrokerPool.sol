@@ -36,11 +36,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
     event QueuedDataPayout(address user, uint amountPoolTokenWei);
     event QueueUpdated(address user, uint amountPoolTokenWei);
+    event NodesSet(address[] nodes);
 
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant NODE_ROLE = keccak256("NODE_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     uint public minimumDelegationWei;
@@ -63,7 +63,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     Bounty[] public bounties;
-    mapping(Bounty => uint) public indexOfBounties; // real array index PLUS ONE! use 0 as "is it already in the array?" check
+    mapping(Bounty => uint) public indexOfBounties; // bounties array index PLUS ONE! use 0 as "is it already in the array?" check
 
     struct UndelegationQueueEntry {
         address user;
@@ -75,6 +75,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queueLength;
     uint public queuePayoutIndex;
 
+    address[] public nodes;
+    mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
+
     // triple bookkeeping
     // 1. real actual poolvalue = local free funds + stake in bounties + allocation in bounties; loops over bounties
     // 2. val = Sum over local mapping approxPoolValueOfBounty + free funds
@@ -82,7 +85,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
 
     modifier onlyBroker() {
-        require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyBroker");
+        require(_msgSender() == broker, "error_onlyBroker");
+        _;
+    }
+
+    modifier onlyNodes() {
+        require(nodeIndex[_msgSender()] > 0, "error_onlyNodes");
         _;
     }
 
@@ -98,7 +106,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     ) public initializer {
         __AccessControl_init();
         _setupRole(ADMIN_ROLE, brokerAddress);
-        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
         globalData().token = IERC677(tokenAddress);
         broker = brokerAddress;
@@ -127,6 +134,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
     }
 
+    /** Pool value (DATA) = staked in bounties + free funds */
     function getApproximatePoolValue() public view returns (uint) {
         return globalData().totalValueInBountiesWei + globalData().token.balanceOf(address(this));
     }
@@ -300,6 +308,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         payOutQueueWithFreeFunds(0);
     }
 
+    // TODO: internal or inline. There are other method(s) to partially service the queue.
+    // TODO: I don't think this is an issue. Either:
+    //   1) there ARE free funds, so you can call payOutQueueWithFreeFunds(iterations)
+    //   2) there are not enough free funds to pay even the first in queue, so you call reduceStakeTo with just enough
+    //         to pay so many in the queue as the gas limit etc. permits. Not sure if there should be a helper function for this:
     function _reduceStakeWithoutQueue(Bounty bounty, uint targetStakeWei) public onlyBroker {
         if (targetStakeWei == 0) {
             unstake(bounty, 10000);
@@ -331,16 +344,84 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         updateApproximatePoolvalueOfBounty(bounty);
     }
 
-    function flag(Bounty bounty, address targetBroker) external onlyBroker {
+    ////////////////////////////////////////
+    // NODE FUNCTIONALITY
+    // NODE MANAGEMENT
+    ////////////////////////////////////////
+
+    function flag(Bounty bounty, address targetBroker) external onlyNodes {
         bounty.flag(targetBroker);
     }
 
-    function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyBroker {
+    function voteOnFlag(Bounty bounty, address targetBroker, bytes32 voteData) external onlyNodes {
         bounty.voteOnFlag(targetBroker, voteData);
     }
 
+    // TODO delete in ETH-480
     function setReviewRewardsBeneficiary(address newBeneficiary) external onlyBroker {
         reviewRewardsBeneficiary = newBeneficiary;
+    }
+
+    mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
+    function setNodeAddresses(address[] calldata newNodes) external onlyBroker {
+        // add new nodes on top
+        for (uint i = 0; i < newNodes.length; i++) {
+            address node = newNodes[i];
+            if (nodeIndex[node] == 0) {
+                _addNode(node);
+            }
+            isInNewNodes[node] = true;
+        }
+        // remove from old nodes
+        for (uint i = 0; i < nodes.length;) {
+            address node = nodes[i];
+            if (!isInNewNodes[node]) {
+                _removeNode(node);
+            } else {
+                i++;
+            }
+        }
+        // reset lookup (TODO: replace with transient storage once https://eips.ethereum.org/EIPS/eip-1153 is available)
+        for (uint i = 0; i < newNodes.length; i++) {
+            address node = newNodes[i];
+            delete isInNewNodes[node];
+        }
+        emit NodesSet(nodes);
+    }
+
+    /** First add then remove addresses (if in both lists, ends up removed!) */
+    function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyBroker {
+        for (uint i = 0; i < addNodes.length; i++) {
+            address node = addNodes[i];
+            if (nodeIndex[node] == 0) {
+                _addNode(node);
+            }
+        }
+        for (uint i = 0; i < removeNodes.length; i++) {
+            address node = removeNodes[i];
+            if (nodeIndex[node] > 0) {
+                _removeNode(node);
+            }
+        }
+        emit NodesSet(nodes);
+    }
+
+    function _addNode(address node) internal {
+        nodes.push(node);
+        nodeIndex[node] = nodes.length; // will be +1
+    }
+
+    function _removeNode(address node) internal {
+        uint index = nodeIndex[node] - 1;
+        address lastNode = nodes[nodes.length - 1];
+        nodes[index] = lastNode;
+        nodes.pop();
+        nodeIndex[lastNode] = index + 1;
+        delete nodeIndex[node];
+    }
+
+    function getNodeAddresses() external view returns (address[] memory) {
+        return nodes;
     }
 
     ////////////////////////////////////////
@@ -416,7 +497,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return totalQueuedPerDelegatorWei[_msgSender()];
     }
 
-    // TODO: exit(uint amountPoolTokenWei) public
+    // TODO: undelegate(uint amountPoolTokenWei) public
     function queueDataPayout(uint amountPoolTokenWei) public {
         // console.log("## queueDataPayout");
         queueDataPayoutWithoutQueue(amountPoolTokenWei);

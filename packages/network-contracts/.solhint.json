@@ -10,10 +10,6 @@
             "warn",
             70
         ],
-        "max-states-count": [
-            "error",
-            15
-        ],
         "no-empty-blocks": "off",
         "no-unused-vars": "error",
         "payable-fallback": "warn",
