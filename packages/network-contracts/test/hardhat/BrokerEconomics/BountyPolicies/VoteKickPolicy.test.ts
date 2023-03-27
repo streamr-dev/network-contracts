@@ -2,17 +2,11 @@ import { ethers } from "hardhat"
 import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
-import { deployPoolFactory, deployTestContracts, TestContracts } from "../deployTestContracts"
-import { deployBounty } from "../deployBounty"
-import { deployBrokerPool } from "../deployBrokerPool"
-import { advanceToTimestamp, getBlockTimestamp } from "../utils"
+import { deployTestContracts, TestContracts } from "../deployTestContracts"
+import { setupBounty, BountyTestSetup } from "../setupBounty"
+import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END } from "../utils"
 
-const { parseEther, id, getAddress, hexZeroPad } = utils
-
-const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
-const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
-const VOTE_START = 24 * 60 * 60 + 10 // 1 day
-const VOTE_END = VOTE_START + 60 * 60 // +1 hour
+const { parseEther, getAddress, hexZeroPad } = utils
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseFlag(flagData: BigNumber) {
@@ -36,7 +30,7 @@ describe("VoteKickPolicy", (): void => {
 
     // default setup for test cases that don't need a clean set of contracts
     // clean setup is needed when review selection has to be controlled (so that BrokerPools from old tests don't interfere)
-    let defaultSetup: Awaited<ReturnType<typeof setup>>
+    let defaultBountySetup: BountyTestSetup
     let contracts: TestContracts
     before(async (): Promise<void> => {
         const signers = await ethers.getSigners() as unknown as Wallet[]
@@ -44,83 +38,15 @@ describe("VoteKickPolicy", (): void => {
         for (const { address } of signers) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
         }
-        defaultSetup = await setup(3, 2, "default-setup")
+        defaultBountySetup = await setupBounty(contracts, 3, 2, "default-setup")
     })
-
-    /**
-     * Sets up a Bounty and given number of brokers, each with BrokerPool that stakes 1000 tokens into the Bounty
-     */
-    async function setup(stakedBrokerCount = 3, nonStakedBrokerCount = 0, saltSeed: string, {
-        bountySettings = {},
-        stakeAmountWei = parseEther("1000"),
-        bountyIsRunning = true,
-    }: {
-        bountySettings?: any
-        stakeAmountWei?: BigNumber
-        bountyIsRunning?: boolean
-    } = {}) {
-        // Hardhat provides 20 pre-funded signers
-        const [admin, ...hardhatSigners] = await ethers.getSigners() as unknown as Wallet[]
-        const signers = hardhatSigners.slice(0, stakedBrokerCount + nonStakedBrokerCount)
-
-        // clean deployer wallet starts from nothing => needs ether to deploy BrokerPool etc.
-        const deployer = new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
-        await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
-        // console.log("deployer: %s", addr(deployer))
-
-        // we just want to re-deploy the BrokerPoolFactory (not all the policies or BountyFactory)
-        // to generate deterministic BrokerPool addresses => deterministic reviewer selection
-        const newContracts = {
-            ...contracts,
-            ...await deployPoolFactory(contracts, deployer)
-        }
-        // console.log("poolFactory: %s", addr(newContracts.poolFactory))
-        // console.log("poolTemplate: %s", addr(newContracts.poolTemplate))
-        const { token } = contracts
-
-        // no risk of nonce collisions in Promise.all since each broker has their own separate nonce
-        // see BrokerPoolFactory:_deployBrokerPool for how saltSeed is used in CREATE2
-        const pools = await Promise.all(signers.map((signer) => deployBrokerPool(newContracts, signer, {}, saltSeed)))
-        const staked = pools.slice(0, stakedBrokerCount)
-        const nonStaked = pools.slice(stakedBrokerCount, stakedBrokerCount + nonStakedBrokerCount)
-        // console.log("signers: %s", signers.map(addr).join(", "))
-        // console.log("pools: %s", pools.map(addr).join(", "))
-
-        // ERC677 1-step (self-)delegation
-        await Promise.all(signers.map((async (signer, i) =>
-            (await token.connect(signer).transferAndCall(pools[i].address, stakeAmountWei, "0x")).wait()
-        )))
-
-        const rewardsBeneficiaries = pools.map((pool, i) => getAddress(pool.address.toLowerCase().slice(0, -8) + ("0000000" + i).slice(-8)))
-        await Promise.all(pools.map(async (p, i) => (await p.setReviewRewardsBeneficiary(rewardsBeneficiaries[i])).wait()))
-
-        const bounty = await deployBounty(contracts, {
-            allocationWeiPerSecond: BigNumber.from(0),
-            penaltyPeriodSeconds: 0,
-            brokerPoolOnly: true,
-            ...bountySettings
-        })
-        if (bountyIsRunning) {
-            await bounty.sponsor(parseEther("10000"))
-        }
-
-        await Promise.all(staked.map((p) => p.stake(bounty.address, stakeAmountWei)))
-
-        return {
-            token,
-            bounty,
-            staked,
-            nonStaked,
-            rewardsBeneficiaries,
-        }
-    }
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and one voter", async function(): Promise<void> {
             const {
                 token, bounty,
                 staked: [ flagger, target, voter ]
-            } = await setup(3, 0, this.test!.title)
+            } = await setupBounty(contracts, 3, 0, this.test!.title)
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -138,7 +64,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target, voter1, voter2, voter3 ]
-            } = await setup(5, 0, "3-voters-test")
+            } = await setupBounty(contracts, 5, 0, "3-voters-test")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -165,7 +91,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger1, flagger2, target1, target2 ],
                 nonStaked: [ voter ],
-            } = await setup(4, 1, "2-active-flags")
+            } = await setupBounty(contracts, 4, 1, "2-active-flags")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(target1)} and ${addr(target2)} are flagged`)
@@ -208,7 +134,7 @@ describe("VoteKickPolicy", (): void => {
                 bounty,
                 staked: [ flagger, target ],
                 nonStaked: [ p4, p5, p6, p7 ]
-            } = await setup(5, 4, "pick-first-nonstaked-brokers")
+            } = await setupBounty(contracts, 5, 4, "pick-first-nonstaked-brokers")
 
             // all 4 brokers that are not in the same bounty get picked; additionally 1 more from same bounty randomly (but not more!)
             await expect (flagger.flag(bounty.address, target.address))
@@ -227,7 +153,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow to flag a broker that is not in the bounty", async function(): Promise<void> {
-            const { bounty, staked: [ flagger ], nonStaked: [ notStakedPool ] } = await defaultSetup
+            const { bounty, staked: [ flagger ], nonStaked: [ notStakedPool ] } = await defaultBountySetup
             await expect(flagger.flag(bounty.address, notStakedPool.address))
                 .to.be.revertedWith("error_flagTargetNotStaked")
         })
@@ -239,7 +165,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("results in NO_KICK if no one voted", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target ] } = defaultSetup
+            const { bounty, staked: [ flagger, target ] } = defaultBountySetup
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -268,7 +194,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target ],
                 nonStaked: voters
-            } = await setup(2, 5, "flagger-had-been-kicked")
+            } = await setupBounty(contracts, 2, 5, "flagger-had-been-kicked")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -307,7 +233,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target ],
                 nonStaked: voters
-            } = await setup(2, 5, "forceUnstaked-flagger")
+            } = await setupBounty(contracts, 2, 5, "forceUnstaked-flagger")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -344,7 +270,7 @@ describe("VoteKickPolicy", (): void => {
                 token, bounty, rewardsBeneficiaries,
                 staked: [ flagger, target ],
                 nonStaked: voters
-            } = await setup(2, 5, "target-forceUnstake")
+            } = await setupBounty(contracts, 2, 5, "target-forceUnstake")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -383,7 +309,7 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Voting timeline", function(): void {
         it("NO voting before the voting starts", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setup(2, 1, "voting-timeline")
+            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setupBounty(contracts, 2, 1, "voting-timeline")
             await expect(flagger.flag(bounty.address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
             await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_KICK))
@@ -396,7 +322,7 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Committed stake", (): void => {
         it("allows the target to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setup(2, 1, "target-reducestake")
+            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setupBounty(contracts, 2, 1, "target-reducestake")
 
             await expect(flagger.flag(bounty.address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(bounty.address, target.address)
@@ -410,7 +336,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the target to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setup(2, 1, "target-after-flag")
+            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setupBounty(contracts, 2, 1, "target-after-flag")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -428,7 +354,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the flagger to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, ...targets ], nonStaked: [ voter ] } = await setup(8, 1, "flagger-reducestake")
+            const { bounty, staked: [ flagger, ...targets ], nonStaked: [ voter ] } = await setupBounty(contracts, 8, 1, "flagger-reducestake")
 
             await expect(flagger.flag(bounty.address, targets[0].address)).to.emit(voter, "ReviewRequest")
             await expect(flagger.flag(bounty.address, targets[1].address)).to.emit(voter, "ReviewRequest")
@@ -447,7 +373,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the flagger to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setup(2, 1, "flagger-after-flag")
+            const { bounty, staked: [ flagger, target ], nonStaked: [ voter ] } = await setupBounty(contracts, 2, 1, "flagger-after-flag")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -465,7 +391,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, ...targets ], nonStaked: [ voter ]} = await setup(8, 1, "super-flagger", {
+            const { bounty, staked: [ flagger, ...targets ], nonStaked: [ voter ]} = await setupBounty(contracts, 8, 1, "super-flagger", {
                 stakeAmountWei: parseEther("68"), // flag-stake is 10 tokens
             })
             await expect(flagger.flag(bounty.address, targets[0].address)).to.emit(voter, "ReviewRequest")
@@ -478,7 +404,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
-            const { bounty, staked: [ flagger, target, voter ]} = await setup(3, 0, "flagger-slashed-below-minimum", {
+            const { bounty, staked: [ flagger, target, voter ]} = await setupBounty(contracts, 3, 0, "flagger-slashed-below-minimum", {
                 stakeAmountWei: parseEther("70"),
                 bountySettings: {
                     minimumStakeWei: parseEther("70"),
@@ -520,8 +446,11 @@ describe("VoteKickPolicy", (): void => {
                 staked: [ flagger, target ],
                 nonStaked: voters,
                 rewardsBeneficiaries: [ , targetRewards, ...voterRewards ],
-            // } = await setup(2, MAX_REVIEWERS, "sufficient-flag-stake")
-            } = await setup(2, MAX_REVIEWERS, "sufficient-flag-stake", { bountySettings: { minimumStakeWei }, bountyIsRunning: false })
+            // } = await setupBounty(contracts, 2, MAX_REVIEWERS, "sufficient-flag-stake")
+            } = await setupBounty(contracts, 2, MAX_REVIEWERS, "sufficient-flag-stake", {
+                bountySettings: { minimumStakeWei },
+                bountyIsRunning: false
+            })
             const start = await getBlockTimestamp()
             const start2 = start + VOTE_START + 1000
 
@@ -565,7 +494,7 @@ describe("VoteKickPolicy", (): void => {
         it("ensures enough tokens to pay reviewers if flagger gets maximally slashed then kicked", async function(): Promise<void> {
             // important that FLAG_STAKE_WEI is at least 10/9 of possible total reviewer rewards
             // because (FLAG_STAKE_WEI - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
-            const { bounty, staked: [ flagger, ...targets ] } = await setup(7, 0, "extreme-flagger", {
+            const { bounty, staked: [ flagger, ...targets ] } = await setupBounty(contracts, 7, 0, "extreme-flagger", {
                 stakeAmountWei: parseEther("67"), // flag-stake is 10 tokens
             })
             const start = await getBlockTimestamp()
