@@ -40,6 +40,7 @@ import "./StreamrConstants.sol";
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
     event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei);
+    event MetadataUpdate(string metadata);
     event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning);
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
@@ -61,6 +62,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     ILeavePolicy public leavePolicy;
     IKickPolicy public kickPolicy;
     string public streamId;
+    string public metadata;
 
     // TODO: remove GlobalStorage, also remove the below getters functions
     // storage variables available to all modules
@@ -138,16 +140,18 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function initialize(
         string calldata streamId_,
+        string calldata metadata_,
         StreamrConstants streamrConstants,
         address newOwner,
         address tokenAddress,
-        uint initialMinimumStakeWei,
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
-        IAllocationPolicy initialAllocationPolicy,
-        uint allocationPolicyParam
+        uint[] initParams, // [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, allocationPolicyParam]
+        // uint initialMinimumStakeWei,
+        // uint32 initialMinHorizonSeconds,
+        // uint32 initialMinBrokerCount,
+        IAllocationPolicy initialAllocationPolicy
+        // uint allocationPolicyParam
     ) public initializer {
-        require(initialMinBrokerCount > 0, "error_minBrokerCountZero");
+        require(initParams[0] > 0, "error_minBrokerCountZero");
         require(initialMinimumStakeWei > 0, "error_minimumStakeZero");
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
@@ -155,6 +159,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
         streamId = streamId_;
+        metadata = metadata_;
         globalData().minimumStakeWei = initialMinimumStakeWei;
         globalData().minHorizonSeconds = initialMinHorizonSeconds;
         globalData().minBrokerCount = initialMinBrokerCount;
@@ -488,6 +493,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function setMetadata(string memory _metadata) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        metadata = _metadata;
     }
 
     /*

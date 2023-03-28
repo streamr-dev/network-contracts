@@ -67,10 +67,11 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             uint32 initialMinHorizonSeconds,
             uint32 initialMinBrokerCount,
             string memory streamId,
+            string memory metadata,
             address[] memory policies,
             uint[] memory initParams
         ) = abi.decode(param,
-            (uint,uint32,uint32,string,address[],uint[])
+            (uint,uint32,uint32,string,string,address[],uint[])
         );
         address bountyAddress = _deployBounty(
             sender,
@@ -78,6 +79,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             streamId,
+            metadata,
             policies,
             initParams
         );
@@ -97,6 +99,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory streamId,
+        string memory metadata,
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
@@ -106,6 +109,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             initialMinHorizonSeconds,
             initialMinBrokerCount,
             streamId,
+            metadata,
             policies,
             initParams
         );
@@ -117,6 +121,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint32 initialMinHorizonSeconds,
         uint32 initialMinBrokerCount,
         string memory streamId,
+        string memory metadata,
         address[] memory policies,
         uint[] memory initParams
     ) private returns (address) {
@@ -131,6 +136,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         Bounty bounty = Bounty(bountyAddress);
         bounty.initialize(
             streamId,
+            metadata,
             streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
