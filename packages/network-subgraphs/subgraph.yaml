@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x21965d7f736Fac3B634F68DDa5b5f0612baf2e6C'
+      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -178,7 +178,7 @@ dataSources:
         - Bounty
       abis:
         - name: BountyFactory
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BountyFactory.sol/BountyFactory.json
+          file: ./abis/BountyFactory.json
       eventHandlers:
         - event: NewBounty(address, string)
           handler: handleBountyCreated
@@ -200,7 +200,7 @@ dataSources:
         - PoolDelegation
       abis:
         - name: BrokerPoolFactory
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPoolFactory.sol/BrokerPoolFactory.json
+          file: ./abis/BrokerPoolFactory.json
       eventHandlers:
         - event: NewBrokerPool(address)
           handler: handlePoolCreated
@@ -223,7 +223,7 @@ templates:
         - Flag
       abis:
         - name: Bounty
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/Bounty.sol/Bounty.json
+          file: ./abis/Bounty.json
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
@@ -255,7 +255,7 @@ templates:
         - PoolDelegation
       abis:
         - name: BrokerPool
-          file: ../../packages/network-contracts/artifacts/contracts/BrokerEconomics/BrokerPool.sol/BrokerPool.json
+          file: ./abis/BrokerPool.json
       eventHandlers:
           - event: Delegated(indexed address,uint256)
             handler: handleDelegationReceived
