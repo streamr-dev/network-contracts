@@ -42,7 +42,7 @@ async function deployPoolFactory() {
         poolTemplate.address,
         localConfig.token,
         localConfig.streamrConstants
-    ]) as BrokerPoolFactory
+    ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as BrokerPoolFactory
     // eslint-disable-next-line require-atomic-updates
     // localConfig.poolFactory = poolFactory.address
     await poolFactory.deployed()

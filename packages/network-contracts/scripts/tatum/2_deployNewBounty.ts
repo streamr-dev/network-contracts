@@ -38,7 +38,7 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const bountytx = await bountyFactory.deployBounty(ethers.utils.parseEther("60"), 0, 1, "Bounty-" + Date.now(),
+    const bountytx = await bountyFactory.deployBounty(ethers.utils.parseEther("60"), 0, 1, "Bounty-" + Date.now(), "metadata",
         [
             localConfig.allocationPolicy,
             ethers.constants.AddressZero,
