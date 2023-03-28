@@ -495,8 +495,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return super._msgData();
     }
 
-    function setMetadata(string memory _metadata) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMetadata(string memory _metadata) public onlyRole(ADMIN_ROLE) {
         metadata = _metadata;
+        emit MetadataUpdate(_metadata);
     }
 
     /*

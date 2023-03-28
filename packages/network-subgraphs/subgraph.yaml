@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
+      address: '0x67D2B9022Ea80A133B8C0E81192f0C402d56180a'
       abi: BountyFactory
       startBlock: 0
     mapping:
@@ -180,14 +180,14 @@ dataSources:
         - name: BountyFactory
           file: ./abis/BountyFactory.json
       eventHandlers:
-        - event: NewBounty(address, string, string)
+        - event: NewBounty(address,string,string)
           handler: handleBountyCreated
   - kind: ethereum/contract
     name: BrokerPoolFactory
     network: xDai
     source:
       # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x908d035020EED80035487146fB320eF0f11a3180'
+      address: '0x981A0c5Ebcb259BAC1413A1D297675Ed8EE7A564'
       abi: BrokerPoolFactory
       startBlock: 0
     mapping:
@@ -231,6 +231,8 @@ templates:
             handler: handleBountyUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256)
             handler: handleFlagUpdate
+          - event: MetadataUpdate(string)
+            handler: handleMetadataUpdate
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded

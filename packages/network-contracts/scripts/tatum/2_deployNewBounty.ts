@@ -73,11 +73,18 @@ const stakeOnBounty = async () => {
     log("staked in bounty with transfer and call")
 }
 
+const updateMetadata = async () => {
+    const tx = await bounty.setMetadata("new metadata")
+    await tx.wait()
+    log("updated metadata")
+}
+
 async function main() {
     await connectToAllContracts()
     await deployNewBounty()
     await sponsorNewBounty()
     await stakeOnBounty()
+    await updateMetadata()
     localConfig.bounty = bountyAddress
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
