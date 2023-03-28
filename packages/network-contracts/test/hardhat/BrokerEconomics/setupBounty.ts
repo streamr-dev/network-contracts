@@ -7,14 +7,13 @@ import { deployBrokerPool } from "./deployBrokerPool"
 
 import type { Bounty, BrokerPool, TestToken } from "../../../typechain"
 
-const { parseEther, id, getAddress } = utils
+const { parseEther, id } = utils
 
 export interface BountyTestSetup {
     token: TestToken
     bounty: Bounty
     staked: BrokerPool[]
     nonStaked: BrokerPool[]
-    rewardsBeneficiaries: string[]
 }
 
 export interface BountyTestSetupOptions {
@@ -67,9 +66,6 @@ export async function setupBounty(contracts: TestContracts, stakedBrokerCount = 
         (await token.connect(signer).transferAndCall(pools[i].address, stakeAmountWei, "0x")).wait()
     )))
 
-    const rewardsBeneficiaries = pools.map((pool, i) => getAddress(pool.address.toLowerCase().slice(0, -8) + ("0000000" + i).slice(-8)))
-    await Promise.all(pools.map(async (pool, i) => (await pool.setReviewRewardsBeneficiary(rewardsBeneficiaries[i])).wait()))
-
     const bounty = await deployBounty(contracts, {
         allocationWeiPerSecond: BigNumber.from(0),
         penaltyPeriodSeconds: 0,
@@ -87,7 +83,6 @@ export async function setupBounty(contracts: TestContracts, stakedBrokerCount = 
         token,
         bounty,
         staked,
-        nonStaked,
-        rewardsBeneficiaries,
+        nonStaked
     }
 }
