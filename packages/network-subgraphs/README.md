@@ -1,18 +1,21 @@
-# Subgraph definitions for the stream permission registry
+# Subgraph definitions for streamr network
 
-## Setup
+## Start containers
 Everything is already included in the streamr-docker-dev environment
+Run `streamr-docker-dev start deploy-network-subgraphs`
+
+## Build & publish the image
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
-can be recreated with the Dockerfile.
-To do so, run "docker build . -t streamr/graph-deploy-streamregistry-subgraph:dev", and then push the image
-with "docker push streamr/graph-deploy-streamregistry-subgraph:dev"
+can be recreated with the Dockerfile. To do so:
+- build image: `npm run docker:build` OR `docker build . -t streamr/deploy-network-subgraphs:dev`
+- publish image: `npm run docker:publish` OR `docker push streamr/deploy-network-subgraphs:dev`
 
-## Prod deployment to the centralised theGraph
-First rename subgraph_prod.yaml to rename subgraph.yaml then follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
+## Prod deployment to the hosted service
+Follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
 Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
 ```
-cd packages/streamregistry-thegraph-subgraph
+cd packages/network-subgraphs
 npm i
 npm run build
 npx graph auth --product hosted-service <TOKEN>
@@ -30,12 +33,6 @@ ONLY FOR LINUX: ./setup.sh
 docker-compose up
 ```
 
-then run the prepareTheGraph.js script in the scripts folder of the monorepo
-when using the openzeppelin proxy contracts: take the abi of the logic contract (not the proxy) and the address of the proxy
-also edit the githubname and subgraphname in the package.json taks
-
-then run (in the folder of this file)
-
 npm ci
 npm run codegen
 npm run build
@@ -44,43 +41,70 @@ npm run deploy-local
 
 (attention: create and deploy without '-local' will publish to the official The Graph API. And you can't ever delete a subgraph; )
 
-then you can paste graphQL queries at http://127.0.0.1:8000/subgraphs/name/<githubname>/<subgraphname>/graphql
-or send queries to http://localhost:8000/subgraphs/name/<githubname>/<subgraphname>
-for example with a gui like https://github.com/graphql/graphql-playground 
-or from a webapplication
+You can test and build GraphQL queries at http://127.0.0.1:8000/subgraphs/name/streamr-dev/network-subgraphs/graphql
 
-example queries:
+It's generally best to build the queries using the browser UI.
+
+Streams example query:
 ```
 {
-   streams {
-    id,
-    metadata,
+  streams {
+    id
+    metadata
+    createdAt
+    updatedAt
     permissions {
-      id,
-  		user,
-  		edit,
-      canDelete,
-      publish,
-      subscribed,
-      share,
+      id
     }
-  }
-}
-```
-
-```
-
-{
-  permissions {
-      id,
-  		user,
-  		isadmin,
-  		publishRights
-  		viewRights
-  		expirationTime
-    stream {
+    storageNodes {
       id
     }
   }
 }
 ```
+
+Projects example query:
+```
+{
+  projects {
+    id
+    domainIds
+    minimumSubscriptionSeconds
+    metadata
+    isDataUnion
+    streams
+    createdAt
+    updatedAt
+    score
+    permissions {
+      id
+    }
+    subscriptions {
+      id
+    }
+    paymentDetails {
+      id
+    }
+    purchases {
+      id
+    }
+  }
+}
+```
+
+Projects metadata full-text search:
+```
+{
+  projectSearch(text: "metadata keyword") {
+    id
+  }
+}
+```
+
+## Unit testing with [matchstick-as](https://thegraph.com/docs/en/developing/unit-testing-framework/#getting-started)
+
+- build image:
+`docker build -t matchstick -f Dockerfile.matchstick .`
+- start container:
+`docker run -it --rm --mount type=bind,source=<absolute-path-to-subgraph-folder>,target=/matchstick matchstick`
+- run tests (using docker): `graph test -d`
