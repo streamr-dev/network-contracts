@@ -118,8 +118,8 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     function _deployBounty(
         address bountyOwner,
         uint initialMinimumStakeWei,
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
+        uint initialMinHorizonSeconds,
+        uint initialMinBrokerCount,
         string memory streamId,
         string memory metadata,
         address[] memory policies,
@@ -134,17 +134,15 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         }
         address bountyAddress = ClonesUpgradeable.clone(bountyContractTemplate);
         Bounty bounty = Bounty(bountyAddress);
+        uint[4] memory bountyParams = [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, initParams[0]];
         bounty.initialize(
             streamId,
             metadata,
             streamrConstants,
             address(this), // this is needed in order to set the policies
             tokenAddress,
-            initialMinimumStakeWei,
-            initialMinHorizonSeconds,
-            initialMinBrokerCount,
-            IAllocationPolicy(policies[0]),
-            initParams[0]
+            bountyParams,
+            IAllocationPolicy(policies[0])
         );
         if (policies.length > 1 && policies[1] != address(0)) { // TODO: add tests for short policies arrays
             bounty.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);

@@ -74,6 +74,7 @@ export async function deployBounty(
         minHorizonSeconds.toString(),
         minBrokerCount.toString(),
         `Bounty-${bountyCounter++}-${Date.now()}`,
+        "metadata",
         policyAdresses,
         policyParams
     )
@@ -113,14 +114,15 @@ export async function deployBountyWithoutFactory(
     await bounty.deployed()
     await bounty.initialize(
         "streamID",
+        "metadata",
         contracts.streamrConstants.address,
         deployer.address,
         token.address,
-        minimumStakeWei.toString(),
-        minHorizonSeconds.toString(),
-        minBrokerCount.toString(),
+        [minimumStakeWei.toString(),
+            minHorizonSeconds.toString(),
+            minBrokerCount.toString(),
+            overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()],
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
-        overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
     )
 
     await bounty.setKickPolicy(adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address, "0")

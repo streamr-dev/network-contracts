@@ -144,15 +144,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         StreamrConstants streamrConstants,
         address newOwner,
         address tokenAddress,
-        uint[] initParams, // [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, allocationPolicyParam]
         // uint initialMinimumStakeWei,
+        uint[4] calldata initParams, // [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, allocationPolicyParam]
         // uint32 initialMinHorizonSeconds,
         // uint32 initialMinBrokerCount,
         IAllocationPolicy initialAllocationPolicy
         // uint allocationPolicyParam
     ) public initializer {
-        require(initParams[0] > 0, "error_minBrokerCountZero");
-        require(initialMinimumStakeWei > 0, "error_minimumStakeZero");
+        require(initParams[2] > 0, "error_minBrokerCountZero");
+        require(initParams[0] > 0, "error_minimumStakeZero");
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
         _setupRole(ADMIN_ROLE, newOwner);
@@ -160,11 +160,11 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
-        globalData().minimumStakeWei = initialMinimumStakeWei;
-        globalData().minHorizonSeconds = initialMinHorizonSeconds;
-        globalData().minBrokerCount = initialMinBrokerCount;
+        globalData().minimumStakeWei = initParams[0];
+        globalData().minHorizonSeconds = uint32(initParams[1]);
+        globalData().minBrokerCount = uint32(initParams[2]);
         globalData().streamrConstants = StreamrConstants(streamrConstants);
-        setAllocationPolicy(initialAllocationPolicy, allocationPolicyParam);
+        setAllocationPolicy(initialAllocationPolicy, initParams[3]);
     }
 
     /**
