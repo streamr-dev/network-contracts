@@ -1,15 +1,18 @@
 # Subgraph definitions for streamr network
 
-## Setup
+## Start containers
 Everything is already included in the streamr-docker-dev environment
+Run `streamr-docker-dev start deploy-network-subgraphs`
+
+## Build & publish the image
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
-can be recreated with the Dockerfile.
-To do so, run "docker build . -t streamr/deploy-network-subgraphs:dev", and then push the image
-with "docker push streamr/deploy-network-subgraphs:dev"
+can be recreated with the Dockerfile. To do so:
+- build image: `npm run docker:build` OR `docker build . -t streamr/deploy-network-subgraphs:dev`
+- publish image: `npm run docker:publish` OR `docker push streamr/deploy-network-subgraphs:dev`
 
 ## Prod deployment to the hosted service
-First rename subgraph_prod.yaml to rename subgraph.yaml then follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
+Follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
 Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
 ```
 cd packages/network-subgraphs
@@ -29,12 +32,6 @@ cd graph-node/docker
 ONLY FOR LINUX: ./setup.sh
 docker-compose up
 ```
-
-then run the prepareTheGraph.js script in the scripts folder of the monorepo
-when using the openzeppelin proxy contracts: take the abi of the logic contract (not the proxy) and the address of the proxy
-also edit the githubname and subgraphname in the package.json taks
-
-then run (in the folder of this file)
 
 npm ci
 npm run codegen

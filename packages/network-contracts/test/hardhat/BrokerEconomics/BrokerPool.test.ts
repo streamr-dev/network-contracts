@@ -893,5 +893,12 @@ describe("BrokerPool", (): void => {
             await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_KICK))
                 .to.emit(target, "Unstaked").withArgs(bounty.address, "0", "0")
         })
+
+        it("can call heartbeat", async function(): Promise<void> {
+            const pool = await deployBrokerPool(sharedContracts, broker)
+            await expect(pool.heartbeat("{}")).to.be.rejectedWith("error_onlyNodes")
+            await (await pool.setNodeAddresses([delegator2.address])).wait()
+            await expect(pool.connect(delegator2).heartbeat("{}")).to.emit(pool, "Heartbeat").withArgs(delegator2.address, "{}")
+        })
     })
 })

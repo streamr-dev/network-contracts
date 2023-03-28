@@ -206,7 +206,8 @@ type ProjectUnstaking @entity {
 
 type Bounty @entity {
   id: ID! # bounty address
-  streamId: String!
+  streamId: String
+  metadata: String
   isRunning: Boolean!
   stakes: [BountyStake!]! @derivedFrom(field: "bounty")
   brokerCount: Int!

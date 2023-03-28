@@ -180,7 +180,7 @@ dataSources:
         - name: BountyFactory
           file: ./abis/BountyFactory.json
       eventHandlers:
-        - event: NewBounty(address, string)
+        - event: NewBounty(address, string, string)
           handler: handleBountyCreated
   - kind: ethereum/contract
     name: BrokerPoolFactory
