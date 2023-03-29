@@ -154,7 +154,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         require(initParams[2] > 0, "error_minBrokerCountZero");
         require(initParams[0] > 0, "error_minimumStakeZero");
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner); // TODO: remove, only factory should have DEFAULT_ADMIN_ROLE
         _setupRole(ADMIN_ROLE, newOwner);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
@@ -495,7 +495,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return super._msgData();
     }
 
-    function setMetadata(string memory _metadata) public onlyRole(ADMIN_ROLE) {
+    function setMetadata(string calldata _metadata) external onlyRole(ADMIN_ROLE) {
         metadata = _metadata;
         emit MetadataUpdate(_metadata);
     }
