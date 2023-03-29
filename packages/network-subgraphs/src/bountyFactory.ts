@@ -13,6 +13,8 @@ export function handleBountyCreated(event: NewBounty): void {
     bounty.projectedInsolvency = BigInt.fromI32(0)
     bounty.brokerCount = 0
     bounty.isRunning = false
+    bounty.streamId = event.params.streamId
+    bounty.metadata = event.params.metadata
     bounty.save()
     
     // Instantiate template

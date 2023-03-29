@@ -68,7 +68,7 @@ async function deployBountyFactory() {
 
     const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ bountyTemplate.address, token.address, streamrConstants.address ], { kind: "uups" })
+        [ bountyTemplate.address, token.address, streamrConstants.address ], { kind: "uups", unsafeAllow: ["delegatecall"]})
     const bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()

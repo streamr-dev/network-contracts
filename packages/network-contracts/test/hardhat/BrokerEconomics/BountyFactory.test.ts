@@ -43,8 +43,8 @@ describe("BountyFactory", () => {
         // string memory bountyName,
         // address[] memory policies,
         // uint[] memory initParams
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, [
+        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
+            [parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -62,8 +62,8 @@ describe("BountyFactory", () => {
 
     it("will NOT create a Bounty with zero minBrokerCount", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, bountyFactory, token } = contracts
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 0, "Bounty-" + bountyCounter++, [
+        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
+            [parseEther("100"), 0, 0, "Bounty-" + bountyCounter++, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -79,8 +79,8 @@ describe("BountyFactory", () => {
 
     it("will NOT create a Bounty with zero minimumStake", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, bountyFactory, token } = contracts
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "address[]", "uint[]"],
-            [0, 0, 1, "Bounty-" + bountyCounter++, [
+        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
+            [0, 0, 1, "Bounty-" + bountyCounter++, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -97,8 +97,8 @@ describe("BountyFactory", () => {
     it("will NOT create a Bounty with a minimumStake < MINIMUM_STAKE_WEI", async function(): Promise<void> {
         const minimumStakeWei = await contracts.streamrConstants.MINIMUM_STAKE_WEI()
         const { allocationPolicy, leavePolicy, bountyFactory, token } = contracts
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "address[]", "uint[]"],
-            [minimumStakeWei.sub(1), 0, 1, "Bounty-" + bountyCounter++, [
+        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
+            [minimumStakeWei.sub(1), 0, 1, "Bounty-" + bountyCounter++, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -111,8 +111,8 @@ describe("BountyFactory", () => {
         await expect(token.transferAndCall(bountyFactory.address, parseEther("100"), data))
             .to.be.revertedWith("error_minimumStakeTooLow")
 
-        const data2 = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "address[]", "uint[]"],
-            [minimumStakeWei, 0, 1, "Bounty-" + bountyCounter++, [
+        const data2 = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
+            [minimumStakeWei, 0, 1, "Bounty-" + bountyCounter++, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -138,19 +138,19 @@ describe("BountyFactory", () => {
         const untrustedAddress = "0x1234567890123456789012345678901234567890"
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
-        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata",
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
-        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata",
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // kickpolicy
-        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata",
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxBrokersJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // joinpolicy
-        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
     })
@@ -158,7 +158,7 @@ describe("BountyFactory", () => {
     it("will NOT create a Bounty with mismatching number of policies and params", async function(): Promise<void> {
         const { bountyFactory, allocationPolicy, leavePolicy } = contracts
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
-        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++,
+        await expect(bountyFactory.deployBounty(parseEther("100"), 0, 1, "Bounty-" + bountyCounter++, "metadata",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })
