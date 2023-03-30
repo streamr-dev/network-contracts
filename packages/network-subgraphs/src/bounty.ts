@@ -1,7 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
 
 import { Bounty, BrokerPool, BountyStake, Flag } from '../generated/schema'
-import { StakeUpdate, BountyUpdate, FlagUpdate } from '../generated/templates/Bounty/Bounty'
+import { StakeUpdate, BountyUpdate, FlagUpdate, MetadataUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: broker={} totalStake={} allocation={}', [event.params.broker.toHexString(),
@@ -70,3 +70,12 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.result = event.params.result
     flag.save()
 }
+
+export function handleMetadataUpdate(event: MetadataUpdate): void {
+    log.info('handleMetadataUpdate: metadata={}', [event.params.metadata])
+    let bountyAddress = event.address
+    let bounty = Bounty.load(bountyAddress.toHexString())
+    bounty!.metadata = event.params.metadata
+    bounty!.save()
+}
+    

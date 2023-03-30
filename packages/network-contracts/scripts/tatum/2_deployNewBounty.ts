@@ -38,7 +38,7 @@ const connectToAllContracts = async () => {
 }
 
 const deployNewBounty = async () => {
-    const bountytx = await bountyFactory.deployBounty(ethers.utils.parseEther("60"), 0, 1, "Bounty-" + Date.now(),
+    const bountytx = await bountyFactory.deployBounty(ethers.utils.parseEther("60"), 0, 1, "Bounty-" + Date.now(), "metadata",
         [
             localConfig.allocationPolicy,
             ethers.constants.AddressZero,
@@ -73,11 +73,18 @@ const stakeOnBounty = async () => {
     log("staked in bounty with transfer and call")
 }
 
+const updateMetadata = async () => {
+    const tx = await bounty.setMetadata("new metadata")
+    await tx.wait()
+    log("updated metadata")
+}
+
 async function main() {
     await connectToAllContracts()
     await deployNewBounty()
     await sponsorNewBounty()
     await stakeOnBounty()
+    await updateMetadata()
     localConfig.bounty = bountyAddress
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
