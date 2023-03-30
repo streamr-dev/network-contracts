@@ -46,6 +46,7 @@ const ChainlinkOracle = require('./ethereumContractJSONs/Oracle.json')
 // const StreamStorageRegistry = require('./ethereumContractJSONs/StreamStorageRegistry.json')
 
 const products = require('./products.json')
+const projectsData = require('./projectsData.json')
 
 const chainURL = process.env.CHAIN_URL || "http://10.200.10.1:8545"
 const sidechainURL = process.env.SIDECHAIN_URL || "http://10.200.10.1:8546"
@@ -793,6 +794,20 @@ async function smartContractInitialization() {
             log(`delete ${p.id}`)
             await (await market.deleteProduct(`0x${p.id}`)).wait()
         }
+    }
+
+    log(`Adding ${projectsData.length} projects to ProjectRegistryV1`)
+    for (const p of projectsData) {
+        const tx = await projectRegistryV1.createProject(
+            p.id,
+            p.chainIds,
+            p.paymentDetails,
+            p.streams,
+            p.minimumSubscriptionSeconds,
+            p.isPublicPurchable,
+            p.metadata
+        )
+        await tx.wait()
     }
 }
 
