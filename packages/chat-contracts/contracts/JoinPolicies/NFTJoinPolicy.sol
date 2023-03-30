@@ -67,6 +67,15 @@ abstract contract NFTJoinPolicy is BaseJoinPolicy {
         revoke(msg.sender, delegatedWallet);
     }
 
+    function requestDelegatedLeaveWithMultipleIds(uint256[] memory tokenIds)
+        public
+        isUserAuthorized()
+    {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            requestDelegatedLeave(tokenIds[i]);
+        }
+    }
+
     function _depositStake(uint256 tokenId, uint256 amount)
     virtual 
     internal;

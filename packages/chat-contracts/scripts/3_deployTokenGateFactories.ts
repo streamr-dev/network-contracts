@@ -1,8 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { BigNumber, Wallet } from 'ethers'
+import { Wallet } from 'ethers'
 import hhat from 'hardhat'
 const { ethers } = hhat
-import axios from 'axios'
 
 // localsidechain
 const chainURL = 'http://10.200.10.1:8546'
@@ -21,6 +20,7 @@ const JoinPolicyRegistryAddress = '0x8b3D38Ad6568eb4146A93b2a0da40174B3841213'
 const StreamRegistryAddress = '0x0D483E10612F327FC11965Fc82E90dC19b141641'
 const DelegatedAccessRegistryAddress = '0x7D7272C07705a5729b5D229c15192455Fa2b1eb4'
 */
+
 let wallet: Wallet
 
 enum TokenStandard {
@@ -30,25 +30,6 @@ enum TokenStandard {
     ERC1155 = 'ERC1155',
 }
 
-async function getGasStationPrices(): Promise<{
-    maxFeePerGas: BigNumber
-    maxPriorityFeePerGas: BigNumber
-}> {
-    const { data } = await axios({
-        method: 'get',
-        url: 'https://gasstation-mainnet.matic.network/v2',
-    })
-
-    console.log(data.fast)
-    const maxFeePerGas = ethers.utils.parseUnits(Math.ceil(data.fast.maxFee) + '', 'gwei')
-    const maxPriorityFeePerGas = ethers.utils.parseUnits(
-        Math.ceil(data.fast.maxPriorityFee) + '',
-        'gwei'
-    )
-
-    return { maxFeePerGas, maxPriorityFeePerGas }
-}
-
 async function deployPolicyFactory(standard: TokenStandard) {
     const policyDeployer = await ethers.getContractFactory(`${standard}PolicyFactory`, wallet)
 
@@ -56,10 +37,6 @@ async function deployPolicyFactory(standard: TokenStandard) {
         JoinPolicyRegistryAddress,
         StreamRegistryAddress,
         DelegatedAccessRegistryAddress
-        /*{
-            maxFeePerGas, maxPriorityFeePerGas
-            ,  gasLimit: 5000
-        }*/
     )
 
     const instance = await tx.deployed()
