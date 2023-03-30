@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@ensdomains/ens": "0.6.2",
+    "@ensdomains/ens-contracts":"0.0.20",
     "@ensdomains/resolver": "0.2.4",
     "@metamask/eth-sig-util": "4.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
