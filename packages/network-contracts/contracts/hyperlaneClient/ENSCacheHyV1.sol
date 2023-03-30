@@ -42,7 +42,7 @@ interface IENS {
     function owner(bytes32 nameHash) external view returns (address);
 }
 
-contract ENSCacheV1 is OwnableUpgradeable, UUPSUpgradeable {
+contract ENSCacheHyV1 is OwnableUpgradeable, UUPSUpgradeable {
     mapping(string => address) public owners;
 
     mapping(address => string[]) public tempENSnames;
@@ -75,6 +75,10 @@ contract ENSCacheV1 is OwnableUpgradeable, UUPSUpgradeable {
         IInterchainGasPaymaster _interchainGasPaymaster) public onlyOwner {
         interchainQueryRouter = _interchainQueryRouter;
         interchainGasPaymaster = _interchainGasPaymaster;
+    }
+    
+    function setStreamRegistry(address streamRegistryAddress) public onlyOwner {
+        streamRegistry = IStreamRegistry(streamRegistryAddress);
     }
 
     function invalidateENSCache(string calldata ensName) public {

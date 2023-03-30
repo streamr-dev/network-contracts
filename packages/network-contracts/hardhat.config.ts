@@ -82,10 +82,20 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
             "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
             "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
+            "contracts/hyperlaneClient/ENSCacheHyV1.sol"
         ],
     },
     solidity: {
         compilers: [
+            {
+                version: "0.8.17",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 100,
+                    },
+                },
+            },
             {
                 version: "0.8.13",
                 settings: {
