@@ -2,8 +2,13 @@
  * Deployed on 2021-01-11 to 0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A
  */
 
+// "working" mumbai test
+// Streamr:eth-init Streamregistry deployed at 0x405D4d33F6Eb9364fF3C52C482758aB718Ad5cE1 +18s
+// Streamr:eth-init Hyperlane ENSCache deployed at 0x1cCe39B87B49B06f5E199aee6027a13D14F71CA9 +18s
+// https://explorer.hyperlane.xyz/message/0x4b0445803474979df1b30bf9ccd1fc900599d68311b097c01ff6262e2cd53589
+
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 // import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -52,7 +57,7 @@ contract ENSCacheHyV1 is OwnableUpgradeable, UUPSUpgradeable {
     IStreamRegistry private streamRegistry;
     IInterchainQueryRouter public interchainQueryRouter;
     IInterchainGasPaymaster public interchainGasPaymaster;
-    uint32 public constant DESTINATION_CHAIN_ID = 1;
+    uint32 public constant DESTINATION_CHAIN_ID = 5;
     address public constant ENS_REGISTRY = 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
 
     modifier onlyCallback() {
@@ -138,4 +143,6 @@ contract ENSCacheHyV1 is OwnableUpgradeable, UUPSUpgradeable {
         uint256 quotedPayment = interchainGasPaymaster.quoteGasPayment(DESTINATION_CHAIN_ID, gasAmount);
         interchainGasPaymaster.payForGas{value: quotedPayment}(messageId, DESTINATION_CHAIN_ID, gasAmount, refundAddress);
     }
+
+    receive() external payable { }
 }
