@@ -211,6 +211,17 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         emit Delegated(delegator, amountWei);
     }
 
+    /** Add the request to undelegate into the undelegation queue */
+    function undelegate(uint amountPoolTokenWei) public {
+        // console.log("## undelegate");
+        require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
+        totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
+        undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        queueLength++;
+        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
+        payOutQueueWithFreeFunds(0);
+    }
+
     /////////////////////////////////////////
     // BROKER FUNCTIONS
     /////////////////////////////////////////
@@ -492,33 +503,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     /* solhint-enable reentrancy */
 
-    function getMyQueuedPayoutPoolTokens() public view returns (uint256 amountDataWei) {
-        return totalQueuedPerDelegatorWei[_msgSender()];
-    }
-
-    // TODO: undelegate(uint amountPoolTokenWei) public
-    function queueDataPayout(uint amountPoolTokenWei) public {
-        // console.log("## queueDataPayout");
-        queueDataPayoutWithoutQueue(amountPoolTokenWei);
-        payOutQueueWithFreeFunds(0);
-    }
-
-    // function queue(uint amountPoolTokenWei), should be internal? We don't maybe want to allow just spamming the queue...
-    function queueDataPayoutWithoutQueue(uint amountPoolTokenWei) public {
-        // console.log("## queueDataPayoutWithoutQueue");
-        require(amountPoolTokenWei > 0, "error_payout_amount_zero");
-        // require(balanceOf(_msgSender()) >= amountPoolTokenWei, "error_noEnoughPoolTokens");
-        // console.log("queueDataPayout amountPoolTokenWei", amountPoolTokenWei);
-        // _transfer(_msgSender(), address(this), amountPoolTokenWei);
-        // uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-        //     amountPoolTokenWei), "error_yieldPolicy_pooltokenToData_Failed");
-        // _burn(_msgSender(), amountPoolTokenWei);
-        totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
-        undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        queueLength++;
-        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
-    }
-
     /////////////////////////////////////////
     // BOUNTY CALLBACKS
     /////////////////////////////////////////
@@ -636,6 +620,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         globalData().totalValueInBountiesWei = globalData().totalValueInBountiesWei + actual - approx;
     }
 
+    /**
+     * The accurate "accounting value" of a bounty = stake + allocation - broker's share of the allocation
+     * This value will be used to calculate the total pool value, and therefore also the pool token exchange rate
+     **/
     function getPoolValueFromBounty(Bounty bounty) public view returns (uint256 poolValue) {
         uint alloc = bounty.getAllocation(address(this));
         uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");

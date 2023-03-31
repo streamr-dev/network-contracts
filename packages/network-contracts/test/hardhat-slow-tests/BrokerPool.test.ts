@@ -46,9 +46,9 @@ describe("BrokerPool", (): void => {
         // queue payout
         const numberOfQueueSlots = 1000
         for (let i = 0; i < numberOfQueueSlots; i++) {
-            await pool.connect(delegator).queueDataPayout(parseEther("1"))
+            await pool.connect(delegator).undelegate(parseEther("1"))
         }
-        const queuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+        const queuedPayout = await pool.totalQueuedPerDelegatorWei(delegator.address)
         expect(queuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
 
         // await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")

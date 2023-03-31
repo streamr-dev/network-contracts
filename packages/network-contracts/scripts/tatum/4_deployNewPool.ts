@@ -84,7 +84,7 @@ const stakeIntoBounty = async () => {
 }
 
 // const divestFromPool = async () => {
-//     const tx = await pool.connect(investor).queueDataPayout(ethers.utils.parseEther("1"))
+//     const tx = await pool.connect(investor).undelegate(ethers.utils.parseEther("1"))
 //     await tx.wait()
 //     log("Queued data payout")
 // }

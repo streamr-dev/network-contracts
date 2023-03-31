@@ -52,7 +52,7 @@ describe("BrokerPool", (): void => {
             .to.emit(pool, "Delegated").withArgs(delegator.address, parseEther("1000"))
         const freeFundsAfterdelegate = await token.balanceOf(pool.address)
 
-        await expect(pool.connect(delegator).queueDataPayout(parseEther("1000")))
+        await expect(pool.connect(delegator).undelegate(parseEther("1000")))
             .to.emit(pool, "Undelegated").withArgs(delegator.address, parseEther("1000"))
         const freeFundsAfterUndelegate = await token.balanceOf(pool.address)
 
@@ -71,7 +71,7 @@ describe("BrokerPool", (): void => {
 
         await (await pool.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
 
-        await expect(pool.connect(delegator2).queueDataPayout(parseEther("1000")))
+        await expect(pool.connect(delegator2).undelegate(parseEther("1000")))
             .to.emit(pool, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
         const freeFundsAfterUndelegate = await token.balanceOf(pool.address)
 
@@ -299,7 +299,7 @@ describe("BrokerPool", (): void => {
         // This values each pool token as being worth 5 data.
         // Because there is 20 in terms of funds that is available currently, that is the amount of DATA which will be paid out.
         // 20 DATA / 5 Exchange Rate = 4 Pool Tokens are paid out, 1 pool token payout is put into the queue.
-        await expect(pool.connect(delegator).queueDataPayout(parseEther("500")))
+        await expect(pool.connect(delegator).undelegate(parseEther("500")))
             .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"))
             .to.emit(pool, "Undelegated").withArgs(delegator.address, parseEther("2000"))
             .to.emit(pool, "QueueUpdated").withArgs(delegator.address, parseEther("100"))
@@ -308,7 +308,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("100"))
         expect(await pool.calculatePoolValueInData()).to.equal(parseEther("500"))
         expect(await dataToken.balanceOf(pool.address)).to.equal(parseEther("0"))
-        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("100"))
+        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("100"))
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("100"))
 
         // 6: Pay out the queue by unstaking
@@ -320,7 +320,7 @@ describe("BrokerPool", (): void => {
         expect(await pool.calculatePoolValueInData()).to.equal(parseEther("0"))
         expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("3000")) // +5
         expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("0"))
-        expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("0"))
+        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("0"))
         expect(await pool.queueIsEmpty()).to.equal(true)
 
         // 7: skip, too similar to cases 4+5
@@ -371,9 +371,9 @@ describe("BrokerPool", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
             await expect(pool.stake(bounty.address, parseEther("1000")))
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-            await expect(pool.connect(delegator).queueDataPayout(parseEther("100")))
+            await expect(pool.connect(delegator).undelegate(parseEther("100")))
                 .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("100"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("100"))
 
             // winnings are 1 token/second * 1000 seconds = 1000, minus 200 broker fee = 800 DATA
             // poolvalue is 1000 stake + 800 winnings = 1800 DATA
@@ -405,9 +405,9 @@ describe("BrokerPool", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
             await expect(pool.stake(bounty.address, parseEther("1000")))
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-            await expect(pool.connect(delegator).queueDataPayout(parseEther("1000")))
+            await expect(pool.connect(delegator).undelegate(parseEther("1000")))
                 .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("1000"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("1000"))
 
             // winnings are 2000, minus 500 broker fee = 1500 DATA
             // 1500 DATA will be paid out
@@ -421,7 +421,7 @@ describe("BrokerPool", (): void => {
             //    .to.emit(pool, "WinningsWithdrawn").withArgs(bounty.address, parseEther("1000"))
                 .to.emit(pool, "Undelegated").withArgs(delegator.address, parseEther("1500"))
             //    .to.emit(pool, "BrokerSharePaid").withArgs(bounty.address, parseEther("200"))
-            expect(formatEther(await pool.connect(delegator).getMyQueuedPayoutPoolTokens())).to.equal("400.0")
+            expect(formatEther(await pool.totalQueuedPerDelegatorWei(delegator.address))).to.equal("400.0")
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1500.0")
             expect(formatEther(await token.balanceOf(pool.address))).to.equal("0.0")
         })
@@ -444,22 +444,22 @@ describe("BrokerPool", (): void => {
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
 
             // queue payout
-            await pool.connect(delegator).queueDataPayout(parseEther("500"))
-            await pool.connect(delegator).queueDataPayout(parseEther("400"))
-            const delegatorQueuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+            await pool.connect(delegator).undelegate(parseEther("500"))
+            await pool.connect(delegator).undelegate(parseEther("400"))
+            const delegatorQueuedPayout = await pool.totalQueuedPerDelegatorWei(delegator.address)
             expect(delegatorQueuedPayout).to.equal(parseEther("900"))
 
             await advanceToTimestamp(timeAtStart + 1000, "withdraw winnings from bounty")
             await pool.withdrawWinningsFromBounty(bounty.address)
             // TODO: enable next line
-            await pool.connect(delegator).queueDataPayout(parseEther("100"))
+            await pool.connect(delegator).undelegate(parseEther("100"))
             // now queue should have been paid out from winnings
             // should equal balance before - 1000 (stake still staked) + 800 (yield)
             const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther("800"))
             const balanceAfter = await token.balanceOf(delegator.address)
             expect(balanceAfter).to.equal(expectedBalance)
 
-            const delegatorQueuedPayoutAfter = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+            const delegatorQueuedPayoutAfter = await pool.totalQueuedPerDelegatorWei(delegator.address)
             expect(delegatorQueuedPayoutAfter.toString()).to.equal("555555555555555555556")
         })
 
@@ -477,13 +477,13 @@ describe("BrokerPool", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
             await expect(pool.stake(bounty.address, parseEther("1000")))
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-            await expect(pool.connect(delegator).queueDataPayout(parseEther("600")))
+            await expect(pool.connect(delegator).undelegate(parseEther("600")))
                 .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("600"))
 
             // move pool tokens away, leave only 100 to the delegator; that will be the whole amount of the exit, not 600
             await pool.connect(delegator).transfer(sponsor.address, parseEther("900"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("600"))
             expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("100"))
 
             await advanceToTimestamp(timeAtStart + 1000, "Withdraw winnings from bounty")
@@ -515,13 +515,13 @@ describe("BrokerPool", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to bounty + queue the payout") // no free funds in the pool => no payout
             await expect(pool.stake(bounty.address, parseEther("1000")))
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
-            await expect(pool.connect(delegator).queueDataPayout(parseEther("600")))
+            await expect(pool.connect(delegator).undelegate(parseEther("600")))
                 .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("600"))
 
             // move pool tokens away, nothing can be exited, although nominally there's still 600 in the queue
             await pool.connect(delegator).transfer(sponsor.address, parseEther("1000"))
-            expect(await pool.connect(delegator).getMyQueuedPayoutPoolTokens()).to.equal(parseEther("600"))
+            expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("600"))
             expect(await pool.balanceOf(delegator.address)).to.equal(parseEther("0"))
 
             await advanceToTimestamp(timeAtStart + 1000, "Withdraw winnings from bounty")
@@ -554,8 +554,8 @@ describe("BrokerPool", (): void => {
                 .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
 
             await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
-            await pool.connect(delegator).queueDataPayout(parseEther("100"))
-            const delegatorQueuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+            await pool.connect(delegator).undelegate(parseEther("100"))
+            const delegatorQueuedPayout = await pool.totalQueuedPerDelegatorWei(delegator.address)
             expect(delegatorQueuedPayout).to.equal(parseEther("100"))
 
             await advanceToTimestamp(timeAtStart + gracePeriod, "Force unstaking attempt")
@@ -605,10 +605,10 @@ describe("BrokerPool", (): void => {
         expect(await pool.queueIsEmpty()).to.equal(true)
 
         await advanceToTimestamp(timeAtStart + 0*days, "Delegator 1 enters the exit queue")
-        await pool.connect(delegator).queueDataPayout(parseEther("100"))
+        await pool.connect(delegator).undelegate(parseEther("100"))
 
         await advanceToTimestamp(timeAtStart + 5*days, "Delegator 2 enters the exit queue")
-        await pool.connect(delegator2).queueDataPayout(parseEther("100"))
+        await pool.connect(delegator2).undelegate(parseEther("100"))
 
         await advanceToTimestamp(timeAtStart + 29*days, "Delegator 1 wants to force-unstake too early")
         await expect(pool.connect(delegator).forceUnstake(bounty1.address, 100)).to.be.revertedWith("error_onlyBroker")
@@ -654,9 +654,9 @@ describe("BrokerPool", (): void => {
         // queue payout
         const numberOfQueueSlots = 2
         for (let i = 0; i < numberOfQueueSlots; i++) {
-            await pool.connect(delegator).queueDataPayout(parseEther("1"))
+            await pool.connect(delegator).undelegate(parseEther("1"))
         }
-        const delegatorQueuedPayout = await pool.connect(delegator).getMyQueuedPayoutPoolTokens()
+        const delegatorQueuedPayout = await pool.totalQueuedPerDelegatorWei(delegator.address)
         expect(delegatorQueuedPayout).to.equal(parseEther(numberOfQueueSlots.toString()))
 
         await pool.unstake(bounty.address, 10, { gasLimit: 0xF42400 })
@@ -788,7 +788,7 @@ describe("BrokerPool", (): void => {
         await expect(pool.stake(bounty.address, parseEther("1000")))
             .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
 
-        await expect(pool.connect(delegator).queueDataPayout(parseEther("100")))
+        await expect(pool.connect(delegator).undelegate(parseEther("100")))
             .to.emit(pool, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
 
         expect(await pool.queueIsEmpty()).to.be.false
