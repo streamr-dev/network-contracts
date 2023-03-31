@@ -115,7 +115,7 @@ export async function deployBountyWithoutFactory(
     await bounty.initialize(
         "streamID",
         "metadata",
-        contracts.streamrConstants.address,
+        contracts.streamrConfig.address,
         deployer.address,
         token.address,
         [minimumStakeWei.toString(),

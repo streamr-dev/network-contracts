@@ -16,7 +16,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public brokerPoolTemplate;
-    address public streamrConstants;
+    address public streamrConfig;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
@@ -35,7 +35,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        streamrConstants = constants;
+        streamrConfig = constants;
         tokenAddress = _tokenAddress;
         brokerPoolTemplate = templateAddress;
     }
@@ -128,7 +128,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
-            streamrConstants,
+            streamrConfig,
             poolOwner,
             poolName,
             initialMinimumDelegationWei

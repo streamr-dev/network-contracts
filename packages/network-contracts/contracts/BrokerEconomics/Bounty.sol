@@ -14,7 +14,7 @@ import "./BountyPolicies/IJoinPolicy.sol";
 import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
-import "./StreamrConstants.sol";
+import "./StreamrConfig.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
@@ -67,7 +67,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     // TODO: remove GlobalStorage, also remove the below getters functions
     // storage variables available to all modules
     struct GlobalStorage {
-        StreamrConstants streamrConstants;
+        StreamrConfig streamrConfig;
         mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
         mapping(address => uint) joinTimeOfBroker;
         mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
@@ -141,7 +141,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function initialize(
         string calldata streamId_,
         string calldata metadata_,
-        StreamrConstants streamrConstants,
+        StreamrConfig streamrConfig,
         address newOwner,
         address tokenAddress,
         // uint initialMinimumStakeWei,
@@ -163,7 +163,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         globalData().minimumStakeWei = initParams[0];
         globalData().minHorizonSeconds = uint32(initParams[1]);
         globalData().minBrokerCount = uint32(initParams[2]);
-        globalData().streamrConstants = StreamrConstants(streamrConstants);
+        globalData().streamrConfig = StreamrConfig(streamrConfig);
         setAllocationPolicy(initialAllocationPolicy, initParams[3]);
     }
 

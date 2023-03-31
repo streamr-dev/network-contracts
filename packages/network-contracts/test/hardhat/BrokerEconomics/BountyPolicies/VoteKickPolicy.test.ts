@@ -418,19 +418,19 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
-            // important that 10% of MINIMUM_STAKE_WEI is enough to pay reviewers
-            // I.e. MINIMUM_STAKE_WEI >= 10 * (FLAGGER_REWARD_WEI + REVIEWER_COUNT * REVIEWER_REWARD_WEI)
+            // important that 10% of minimumStakeWei is enough to pay reviewers
+            // I.e. minimumStakeWei >= 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei)
 
-            // TODO: get from streamrConstants
+            // TODO: get from streamrConfig
             const MAX_REVIEWERS = 5
 
-            const minimumStakeWei = await contracts.streamrConstants.MINIMUM_STAKE_WEI()
+            const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
 
-            const FLAG_STAKE_WEI = parseEther("10")
-            // const REVIEWER_REWARD_WEI = parseEther("1")
-            // const FLAGGER_REWARD_WEI = parseEther("1")
-            // const totalRewardsWei =  REVIEWER_REWARD_WEI.mul(MAX_REVIEWERS).add(FLAGGER_REWARD_WEI)
-            // const leftoverWei = FLAG_STAKE_WEI.sub(totalRewardsWei)
+            const flagStakeWei = parseEther("10")
+            // const flagReviewerRewardWei = parseEther("1")
+            // const flaggerRewardWei = parseEther("1")
+            // const totalRewardsWei =  flagReviewerRewardWei.mul(MAX_REVIEWERS).add(flaggerRewardWei)
+            // const leftoverWei = flagStakeWei.sub(totalRewardsWei)
 
             const {
                 token,
@@ -446,7 +446,7 @@ describe("VoteKickPolicy", (): void => {
 
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
-            const flaggerStakeWei = max(minimumStake, FLAG_STAKE_WEI.mul(10).div(9).add(1)) // can't flag unless stake is 10/9 of FLAG_STAKE_WEI
+            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(10).div(9).add(1)) // can't flag unless stake is 10/9 of flagStakeWei
             await expect(flagger.reduceStakeTo(bounty.address, flaggerStakeWei))
                 .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
@@ -482,8 +482,8 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger gets maximally slashed then kicked", async function(): Promise<void> {
-            // important that FLAG_STAKE_WEI is at least 10/9 of possible total reviewer rewards
-            // because (FLAG_STAKE_WEI - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
+            // important that flagStakeWei is at least 10/9 of possible total reviewer rewards
+            // because (flagStakeWei - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
             const { bounty, staked: [ flagger, ...targets ] } = await setupBounty(contracts, 7, 0, "extreme-flagger", {
                 stakeAmountWei: parseEther("67"), // flag-stake is 10 tokens
             })

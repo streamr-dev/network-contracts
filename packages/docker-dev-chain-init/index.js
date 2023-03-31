@@ -327,12 +327,12 @@ async function deployStreamRegistries() {
 async function deployBountyFactory() {
     const adminWalletEthers4 = await ethersWallet(sidechainURL, privKeyStreamRegistry)
     const adminWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", { signer: adminWallet })
+    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: adminWallet })
     const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
-    const streamrConstants = await streamrConstantsFactoryTx.deployed()
-    const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), adminWallet.address)
+    const streamrConfig = await streamrConstantsFactoryTx.deployed()
+    const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.DEFAULT_ADMIN_ROLE(), adminWallet.address)
     log(`hasrole adminwallet ${hasroleEthSigner}`)
-    log(`streamrConstants address ${streamrConstants.address}`)
+    log(`streamrConfig address ${streamrConfig.address}`)
 
     const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy")).deploy()
     await maxBrokersJoinPolicy.deployed()
@@ -356,12 +356,12 @@ async function deployBountyFactory() {
 
     const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ bountyTemplate.address, linkToken.address, streamrConstants.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
+        [ bountyTemplate.address, linkToken.address, streamrConfig.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     const bountyFactory = await bountyFactoryFactoryTx.deployed()
     await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
-    await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
+    await (await streamrConfig.setBountyFactory(bountyFactory.address)).wait()
     log(`bountyFactory address ${bountyFactory.address}`)
 
     // const transfertx = await linkToken.transfer(adminWallet.address, bigNumberify('10000000000000000000000')) // 1000 link
@@ -440,7 +440,7 @@ async function deployBountyFactory() {
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
         poolTemplate.address,
         linkToken.address,
-        streamrConstants.address
+        streamrConfig.address
     ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     // eslint-disable-next-line require-atomic-updates
     // localConfig.poolFactory = poolFactory.address
@@ -454,13 +454,13 @@ async function deployBountyFactory() {
     ])).wait()
     log("Added trusted policies")
 
-    await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
-    log("Set broker pool factory in StreamrConstants")
+    await (await streamrConfig.setBrokerPoolFactory(poolFactory.address)).wait()
+    log("Set broker pool factory in StreamrConfig")
 
     const pooltx = await poolFactory.connect(adminWallet).deployBrokerPool(
         0, // min initial investment
         `Pool-${Date.now()}`,
-        [defaultPoolJoinPolicy.address, 
+        [defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultPoolExitPolicy.address],
         [0, 0, 0, 0, 0, 10, 10, 0]
@@ -495,7 +495,7 @@ async function smartContractInitialization() {
     const tokenDeployTx = await tokenDeployer.deploy()
     const token = await tokenDeployTx.deployed()
     log(`New DATAv2 ERC20 deployed at ${token.address}`)
-    
+
     // const sidechainWalletStreamReg = await ethersWallet(sidechainURL, privKeyStreamRegistry)
     // log('Deploying Streamregistry and chainlink contracts to sidechain:')
     // const linkTokenFactory = new ContractFactory(LinkToken.abi, LinkToken.bytecode, sidechainWalletStreamReg)
@@ -753,7 +753,7 @@ async function smartContractInitialization() {
     await deployMarketplaceV3(sidechainWallet)
 
     const chainId = 8997 // dev1
-    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistryV1.address, chainId)    
+    const marketplaceV4 = await deployMarketplaceV4(sidechainWallet, projectRegistryV1.address, chainId)
     log(`Granting role ${role} to MarketplaceV4 at ${marketplaceV4.address}. ` +
         "Needed for granting permissions to streams using the trusted functions.")
     await(await projectRegistryV1.grantRole(id("TRUSTED_ROLE"), marketplaceV4.address)).wait()

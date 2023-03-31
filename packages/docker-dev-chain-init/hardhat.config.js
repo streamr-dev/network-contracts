@@ -70,7 +70,7 @@ module.exports = {
             '@streamr-contracts/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
             '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol',
             '@streamr-contracts/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol',
-            '@streamr-contracts/network-contracts/contracts/BrokerEconomics/StreamrConstants.sol',
+            '@streamr-contracts/network-contracts/contracts/BrokerEconomics/StreamrConfig.sol',
             '@streamr-contracts/network-contracts/contracts/BrokerEconomics/BountyPolicies/MaxAmountBrokersJoinPolicy.sol',
             '@streamr-contracts/network-contracts/contracts/BrokerEconomics/BountyPolicies/StakeWeightedAllocationPolicy.sol',
             '@streamr-contracts/network-contracts/contracts/BrokerEconomics/BountyPolicies/DefaultLeavePolicy.sol',

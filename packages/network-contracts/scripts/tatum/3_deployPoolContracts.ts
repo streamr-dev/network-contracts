@@ -5,7 +5,7 @@ import { ethers, upgrades } from "hardhat"
 import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 
-import { BrokerPool, BrokerPoolFactory, IPoolExitPolicy, IPoolJoinPolicy, IPoolYieldPolicy, StreamrConstants } from "../../typechain"
+import { BrokerPool, BrokerPoolFactory, IPoolExitPolicy, IPoolJoinPolicy, IPoolYieldPolicy, StreamrConfig } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
@@ -41,7 +41,7 @@ async function deployPoolFactory() {
     const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
         poolTemplate.address,
         localConfig.token,
-        localConfig.streamrConstants
+        localConfig.streamrConfig
     ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as BrokerPoolFactory
     // eslint-disable-next-line require-atomic-updates
     // localConfig.poolFactory = poolFactory.address
@@ -56,10 +56,10 @@ async function deployPoolFactory() {
     ])).wait()
     log("Added trusted policies")
 
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", { signer: deploymentOwner })
-    const streamrConstants = await streamrConstantsFactory.attach(localConfig.streamrConstants) as StreamrConstants
-    await (await streamrConstants.setBrokerPoolFactory(poolFactory.address)).wait()
-    log("Set broker pool factory in StreamrConstants")
+    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: deploymentOwner })
+    const streamrConfig = await streamrConstantsFactory.attach(localConfig.streamrConfig) as StreamrConfig
+    await (await streamrConfig.setBrokerPoolFactory(poolFactory.address)).wait()
+    log("Set broker pool factory in StreamrConfig")
 }
 
 async function main() {

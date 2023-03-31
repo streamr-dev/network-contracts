@@ -27,7 +27,7 @@ describe("BrokerPoolOnlyJoinPolicy", (): void => {
     })
 
     it("only allows BrokerPools to stake", async function(): Promise<void> {
-        const { streamrConstants, token } = contracts
+        const { streamrConfig, token } = contracts
         const bounty = await deployBounty(contracts, { brokerPoolOnly: true })
 
         await (await token.approve(bounty.address, parseEther("100"))).wait()
@@ -35,7 +35,7 @@ describe("BrokerPoolOnlyJoinPolicy", (): void => {
             .to.be.revertedWith("error_onlyBrokerPools")
 
         const badPool = await (await (await getContractFactory("BrokerPool", broker)).deploy()).deployed()
-        await (await badPool.initialize(token.address, streamrConstants.address, broker.address, "testpool", "1")).wait()
+        await (await badPool.initialize(token.address, streamrConfig.address, broker.address, "testpool", "1")).wait()
         await (await token.transferAndCall(badPool.address, parseEther("100"), "0x")).wait()
         await expect(badPool.stake(bounty.address, parseEther("100")))
             .to.be.revertedWith("error_onlyBrokerPools")

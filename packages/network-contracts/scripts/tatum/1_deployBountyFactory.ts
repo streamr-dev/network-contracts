@@ -2,7 +2,7 @@ import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 import hhat from "hardhat"
-import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConstants, TestToken } from "../../typechain"
+import { Bounty, BountyFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConfig, TestToken } from "../../typechain"
 import * as fs from "fs"
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
@@ -24,13 +24,13 @@ const localConfig: any = {}
 
 async function deployBountyFactory() {
     log((await ethers.getSigners())[0].address)
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConstants", { signer: adminWallet })
+    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: adminWallet })
     const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
-    const streamrConstants = await streamrConstantsFactoryTx.deployed() as StreamrConstants
-    const hasroleEthSigner = await streamrConstants.hasRole(await streamrConstants.DEFAULT_ADMIN_ROLE(), adminWallet.address)
+    const streamrConfig = await streamrConstantsFactoryTx.deployed() as StreamrConfig
+    const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.DEFAULT_ADMIN_ROLE(), adminWallet.address)
     log(`hasrole ${hasroleEthSigner}`)
-    localConfig.streamrConstants = streamrConstants.address
-    log(`streamrConstants address ${streamrConstants.address}`)
+    localConfig.streamrConfig = streamrConfig.address
+    log(`streamrConfig address ${streamrConfig.address}`)
 
     const token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
     await token.deployed()
@@ -68,12 +68,12 @@ async function deployBountyFactory() {
 
     const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
     const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ bountyTemplate.address, token.address, streamrConstants.address ], { kind: "uups", unsafeAllow: ["delegatecall"]})
+        [ bountyTemplate.address, token.address, streamrConfig.address ], { kind: "uups", unsafeAllow: ["delegatecall"]})
     const bountyFactory = await bountyFactoryFactoryTx.deployed() as BountyFactory
     await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
-    await (await streamrConstants.setBountyFactory(bountyFactory.address)).wait()
+    await (await streamrConfig.setBountyFactory(bountyFactory.address)).wait()
     localConfig.bountyFactory = bountyFactory.address
     log(`bountyFactory address ${bountyFactory.address}`)
 

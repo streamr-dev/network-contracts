@@ -1,12 +1,12 @@
 const {
-    REVIEWER_COUNT = "",
+    flagReviewerCount = "",
     PEER_COUNT = "",
-    REVIEWER_SELECTION_ITERATIONS = ""
+    flagReviewerSelectionIterations = ""
 } = process.env
 
-const reviewerCount = +REVIEWER_COUNT || 5
+const reviewerCount = +flagReviewerCount || 5
 const peerCount = +PEER_COUNT || 7
-const iterations = +REVIEWER_SELECTION_ITERATIONS || 20
+const iterations = +flagReviewerSelectionIterations || 20
 
 // probability that i reviewers have been picked
 let reviewersProbability = Array(reviewerCount + 1).fill(0)
