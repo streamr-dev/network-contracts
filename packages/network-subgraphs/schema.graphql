@@ -170,7 +170,7 @@ type ProjectPurchase @entity {
 
 # ProjectStakingV1
 
-type ProjectStake @entity { # TODO: rename to ProjectStakeByUser ?!
+type ProjectStake @entity {
   "stake id = projectId + '-' + userAddress"
   id: ID!
 
@@ -199,6 +199,12 @@ type ProjectStakingDayBucket @entity {
 
   "The amount of tokens staked/unstaked on this day"
   stakeChange: BigInt!
+
+  "The amount of tokens staked on this day"
+  stakingsWei: BigInt!
+
+  "The amount of tokens unstaked on this day"
+  unstakingsWei: BigInt!
 }
 
 # Tatum

@@ -38,6 +38,8 @@ export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: B
         bucket.date = bucketStartDate
         bucket.stakeAtStart = BigInt.fromI32(0)
         bucket.stakeChange = BigInt.fromI32(0)
+        bucket.stakingsWei = BigInt.fromI32(0)
+        bucket.unstakingsWei = BigInt.fromI32(0)
     }
     return bucket
 }

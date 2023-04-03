@@ -20,6 +20,7 @@ export function handleStake(event: Stake): void {
     
     const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp)
     bucket.stakeChange = bucket.stakeChange.plus(event.params.amount)
+    bucket.stakingsWei  = bucket.stakingsWei.plus(event.params.amount)
     bucket.save()
 
     project.score = project.score.plus(event.params.amount)
@@ -42,6 +43,7 @@ export function handleUnstake(event: Unstake): void {
     const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp)
     log.info('handleUnstake: bucketId={}', [bucket.id])
     bucket.stakeChange = bucket.stakeChange.minus(event.params.amount)
+    bucket.unstakingsWei  = bucket.unstakingsWei.plus(event.params.amount)
     bucket.save()
 
     project.score = project.score.minus(event.params.amount)
