@@ -1,5 +1,4 @@
 import { log } from '@graphprotocol/graph-ts'
-import { ProjectStake } from '../generated/schema'
 import {
     Stake,
     Unstake,

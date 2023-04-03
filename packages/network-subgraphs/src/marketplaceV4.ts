@@ -12,7 +12,7 @@ export function handleProjectPurchase(event: ProjectPurchased): void {
     log.info('handleProjectPurchase: projectId={} subscriber={} subscriptionSeconds={} price={} fee={} blockNumber={}',
         [projectId, subscriber, subscriptionSeconds, price, fee, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.projectId, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.projectId)
 
     const newCounter = project.counter + 1
     const projectPurchaseId = projectId + '-' + subscriber + '-' + newCounter.toString()
