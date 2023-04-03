@@ -354,15 +354,15 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     // TODO: why not let withdraw for others?
-    /** Get allocations out, leave stake in */
-    function withdraw() external {
+    /** Get earnings out, leave stake in */
+    function withdraw() external returns (uint payoutWei) {
         address broker = _msgSender();
         uint stakedWei = globalData().stakedWei[broker];
         require(stakedWei > 0, "error_brokerNotStaked");
 
-        uint payoutWei = _withdraw(broker);
+        payoutWei = _withdraw(broker);
         if (payoutWei > 0) {
-            emit StakeUpdate(broker, globalData().stakedWei[broker], 0); // allocation will be zero after withdraw (see test)
+            emit StakeUpdate(broker, globalData().stakedWei[broker], 0); // earnings will be zero after withdraw (see test)
             emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
         }
     }

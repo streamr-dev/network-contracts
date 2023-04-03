@@ -322,8 +322,8 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await bounty.minimumStakeOf(target.address)
             expect(minimumStake).to.equal(parseEther("100"))
             await expect(flagger.unstake(bounty.address, "0")).to.be.rejectedWith("error_activeFlag")
-            await expect(target.reduceStakeTo(bounty.address, parseEther("99"))).to.be.revertedWith("error_minimumStake")
-            await expect(target.reduceStakeTo(bounty.address, parseEther("100")))
+            await expect(target.reduceStakeTo(bounty.address, parseEther("99"), "0")).to.be.revertedWith("error_minimumStake")
+            await expect(target.reduceStakeTo(bounty.address, parseEther("100"), "0"))
                 .to.emit(bounty, "StakeUpdate").withArgs(target.address, parseEther("100"), parseEther("0"))
         })
 
@@ -359,8 +359,8 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(parseEther("70"))
             await expect(flagger.unstake(bounty.address, "0")).to.be.rejectedWith("error_activeFlag")
-            await expect(flagger.reduceStakeTo(bounty.address, parseEther("69"))).to.be.revertedWith("error_minimumStake")
-            await expect(flagger.reduceStakeTo(bounty.address, parseEther("70")))
+            await expect(flagger.reduceStakeTo(bounty.address, parseEther("69"), "0")).to.be.revertedWith("error_minimumStake")
+            await expect(flagger.reduceStakeTo(bounty.address, parseEther("70"), "0"))
                 .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, parseEther("70"), parseEther("0"))
         })
 
@@ -447,7 +447,7 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await bounty.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
             const flaggerStakeWei = max(minimumStake, FLAG_STAKE_WEI.mul(10).div(9).add(1)) // can't flag unless stake is 10/9 of FLAG_STAKE_WEI
-            await expect(flagger.reduceStakeTo(bounty.address, flaggerStakeWei))
+            await expect(flagger.reduceStakeTo(bounty.address, flaggerStakeWei, "0"))
                 .to.emit(bounty, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
