@@ -7,7 +7,7 @@ const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
  * @dev toHexString() will automatically lowercase the projectId
  */
-export function loadOrCreateProject(projectId: Bytes, totalStake: bigint = 0 as unknown as bigint): Project {
+export function loadOrCreateProject(projectId: Bytes, totalStake: BigInt): Project {
     let project = Project.load(projectId.toHexString())
     if (project == null) {
         project = new Project(projectId.toHexString())
@@ -24,13 +24,12 @@ export function loadOrCreateProject(projectId: Bytes, totalStake: bigint = 0 as 
         project.score = BigInt.fromI32(0)
         project.isDataUnion = false
     }
-    project.totalStake = BigInt.fromI64(totalStake)
+    project.totalStake = totalStake
     return project
 }
 
-export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: bigint): ProjectStakingDayBucket {
-    const timestampBigInt = BigInt.fromI64(timestamp)
-    const bucketStartDate = timestampBigInt.minus(timestampBigInt.mod(BUCKET_SECONDS))
+export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: BigInt): ProjectStakingDayBucket {
+    const bucketStartDate = timestamp.minus(timestamp.mod(BUCKET_SECONDS))
     const bucketId = projectId + '-' + bucketStartDate.toString()
     let bucket = ProjectStakingDayBucket.load(bucketId)
     if (bucket === null) {
