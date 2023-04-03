@@ -18,7 +18,7 @@ export function handleProjectCreation(event: ProjectCreated): void {
     log.info('handleProjectCreated: id={} metadata={} blockNumber={}',
         [id, metadata, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.id, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.id)
 
     project.domainIds = event.params.domainIds
     project.minimumSubscriptionSeconds = event.params.minimumSubscriptionSeconds
@@ -36,7 +36,7 @@ export function handleProjectDeletion(event: ProjectDeleted): void {
     const id = event.params.id.toHexString()
     log.info('handleProjectDeletion: id={} blockNumber={}', [id, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.id, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.id)
     project.permissions.forEach((permissionId) => {
         store.remove('ProjectPermission', permissionId)
     })
@@ -58,7 +58,7 @@ export function handleProjectUpdate(event: ProjectUpdated): void {
     log.info('handleProjectUpdated: id={} metadata={} blockNumber={}',
         [id, event.params.metadata, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.id, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.id)
 
     project.domainIds = event.params.domainIds
     project.streams = event.params.streams
@@ -85,7 +85,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     permission.canGrant = event.params.canGrant
     permission.save()
 
-    let project = loadOrCreateProject(event.params.projectId, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.projectId)
     let i = project.permissions.indexOf(permissionId)
     if (i < 0) {
         let permissionsArray = project.permissions
@@ -108,7 +108,7 @@ export function handleSubscriptionUpdate(event: Subscribed): void {
     subscription.endTimestamp = event.params.endTimestamp
     subscription.save()
 
-    let project = loadOrCreateProject(event.params.projectId, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.projectId)
     let i = project.subscriptions.indexOf(subscriptionId)
     if (i < 0) {
         let subscriptionsArray = project.subscriptions
@@ -136,7 +136,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     paymentDetails.pricePerSecond = event.params.pricePerSecond
     paymentDetails.save()
     
-    let project = loadOrCreateProject(event.params.id, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.id)
     let i = project.paymentDetails.indexOf(paymentDetailsId)
     if (i < 0) {
         let paymentDetailsArray = project.paymentDetails
@@ -152,7 +152,7 @@ export function handleStreamAddition(event: StreamAdded): void {
     log.info('handleStreamAddition: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.projectId, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.projectId)
 
     const streams = project.streams
     streams.push(streamId)
@@ -166,7 +166,7 @@ export function handleStreamRemoval(event: StreamRemoved): void {
     log.info('handleStreamRemoval: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
 
-    let project = loadOrCreateProject(event.params.projectId, BigInt.fromI32(0))
+    let project = loadOrCreateProject(event.params.projectId)
 
     let streams = project.streams
     const streamIndex  = streams.indexOf(streamId)

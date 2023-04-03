@@ -7,7 +7,7 @@ const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
  * @dev toHexString() will automatically lowercase the projectId
  */
-export function loadOrCreateProject(projectId: Bytes, totalStake: BigInt): Project {
+export function loadOrCreateProject(projectId: Bytes, totalStake: BigInt = BigInt.fromI32(0)): Project {
     let project = Project.load(projectId.toHexString())
     if (project == null) {
         project = new Project(projectId.toHexString())
