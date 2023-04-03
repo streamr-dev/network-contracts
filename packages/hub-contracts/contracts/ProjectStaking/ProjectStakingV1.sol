@@ -128,7 +128,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
         stakedTokensByProject[projectId] += amount;
         stakedTokensByUser[staker] += amount;
         totalStakedTokens += amount;
-        emit Stake(projectId, staker, amount);
+        emit Stake(projectId, staker, amount, totalStakedTokens);
     }
 
     function _unstake(bytes32 projectId, uint256 amount, address staker) internal {
@@ -137,6 +137,6 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
         stakedTokensByUser[staker] -= amount;
         totalStakedTokens -= amount;
         IERC20(stakingTokenAddress).transfer(staker, amount);
-        emit Unstake(projectId, staker, amount);
+        emit Unstake(projectId, staker, amount, totalStakedTokens);
     }
 }
