@@ -327,6 +327,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function withdrawWinningsFromBounty(Bounty bounty, uint maxQueuePayoutIterations) external onlyBroker {
+        updateApproximatePoolvalueOfBounty(bounty); // TODO: why is it necessary to do update before withdraw?
         uint payoutWei = bounty.withdraw();
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
         updateApproximatePoolvalueOfBounty(bounty);
