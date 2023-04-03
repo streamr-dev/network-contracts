@@ -12,13 +12,13 @@ export function handleStake(event: Stake): void {
     log.info('handleStake: projectId={} user={} amount={} blockNumber={}',
         [projectId, user, amount, event.block.number.toString()])
         
-    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake)
+    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake as unknown as bigint)
 
     const projectStake = loadOrCreateProjectStake(projectId, event.params.user)
     projectStake.userStake = projectStake.userStake.plus(event.params.amount)
     projectStake.save()
     
-    const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp)
+    const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp as unknown as bigint)
     bucket.stakeChange = bucket.stakeChange.plus(event.params.amount)
     bucket.save()
 
@@ -33,13 +33,13 @@ export function handleUnstake(event: Unstake): void {
     log.info('handleUnstake: projectId={} user={} amount={} blockNumber={}',
         [projectId, user, amount, event.block.number.toString()])
         
-    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake)
+    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake as unknown as bigint)
 
     const projectStake = loadOrCreateProjectStake(projectId, event.params.user)
     projectStake.userStake = projectStake.userStake.minus(event.params.amount)
     projectStake.save()
     
-    const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp)
+    const bucket =  loadOrCreateProjectStakingBucket(projectId, event.block.timestamp as unknown as bigint)
     log.info('handleUnstake: bucketId={}', [bucket.id])
     bucket.stakeChange = bucket.stakeChange.minus(event.params.amount)
     bucket.save()

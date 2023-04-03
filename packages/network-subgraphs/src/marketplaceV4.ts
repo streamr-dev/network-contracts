@@ -1,4 +1,4 @@
-import { BigInt, log } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 import { ProjectPurchase } from '../generated/schema'
 import { ProjectPurchased } from '../generated/MarketplaceV4/MarketplaceV4'
 import { loadOrCreateProject } from './helpers'
