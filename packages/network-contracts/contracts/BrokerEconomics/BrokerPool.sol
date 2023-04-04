@@ -72,8 +72,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
     mapping(uint => UndelegationQueueEntry) public undelegationQueue;
     mapping(address => uint) public totalQueuedPerDelegatorWei; // answers 'how much does delegator X have queued in total to be paid out'
-    uint public queueLength;
-    uint public queuePayoutIndex;
+    mapping(address => uint) public queueIndexOf; // answers 'how many queue positions must be paid out before I get (all) my queued tokens?'
+    uint public queueLastIndex;
+    uint public queueCurrentIndex;
 
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
@@ -219,8 +220,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
         totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
-        undelegationQueue[queueLength] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        queueLength++;
+        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        queueIndexOf[_msgSender()] = queueLastIndex;
+        queueLastIndex++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
     }
@@ -229,6 +231,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // BROKER FUNCTIONS
     /////////////////////////////////////////
 
+    /**
+     * Stake DATA tokens from free funds into Bounties.
+     * Can only happen if all the delegators who want to undelegate have been paid out first.
+     * This means the broker must clear the queue as part of normal operation before they can change staking allocations.
+     **/
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
         require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
@@ -244,27 +251,66 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /**
+     * Take out some of the stake from a bounty without completely unstaking
+     * Except if you call this with targetStakeWei == 0, then it will actually call unstake
+     **/
+    function reduceStakeTo(Bounty bounty, uint targetStakeWei) external onlyBroker {
+        // console.log("## reduceStake amountWei", amountWei);
+        reduceStakeWithoutQueue(bounty, targetStakeWei);
+        payOutQueueWithFreeFunds(0);
+    }
+
+    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Bounties to pay out the queue in parts */
+    function reduceStakeWithoutQueue(Bounty bounty, uint targetStakeWei) public onlyBroker {
+        if (targetStakeWei == 0) {
+            unstakeWithoutQueue(bounty);
+            return;
+        }
+        bounty.reduceStakeTo(targetStakeWei);
+        updateApproximatePoolvalueOfBounty(bounty);
+    }
+
+    function withdrawWinningsFromBounty(Bounty bounty) external onlyBroker {
+        updateApproximatePoolvalueOfBounty(bounty); // TODO: why is update needed before withdraw?
+        withdrawWinningsFromBountyWithoutQueue(bounty);
+        payOutQueueWithFreeFunds(0);
+    }
+
+    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Bounties to pay out the queue in parts */
+    function withdrawWinningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
+        uint payoutWei = bounty.withdraw();
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
+        updateApproximatePoolvalueOfBounty(bounty);
+    }
+
+    /**
      * Unstake from a bounty
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
      **/
-    function unstake(Bounty bounty, uint maxQueuePayoutIterations) public onlyBroker {
+    function unstake(Bounty bounty) public onlyBroker {
+        unstakeWithoutQueue(bounty);
+        payOutQueueWithFreeFunds(0);
+    }
+
+    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Bounties to pay out the queue in parts */
+    function unstakeWithoutQueue(Bounty bounty) public onlyBroker {
         uint amountStakedBeforeWei = bounty.getMyStake();
         uint balanceBeforeWei = globalData().token.balanceOf(address(this));
         bounty.unstake();
         _postUnstake(bounty, amountStakedBeforeWei, balanceBeforeWei);
-        payOutQueueWithFreeFunds(maxQueuePayoutIterations);
     }
 
     /**
-     * If broker calls this, stake committed to flagging in a bounty will be forteited.
-     * If broker hasn't been doing its job, and undelegationQueue hasn't been paid out,
-     *   anyone can come along and forceUnstake from bounty to get pay-outs rolling
+     * Self-service undelegation queue handling.
+     * If the broker hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     *   anyone can come along and forceUnstake from a bounty to get the payouts rolling
+     * Broker can also call this, if they want to forfeit the stake committed to flagging in a bounty (normal unstake would revert for safety)
      * @param bounty the funds (unstake) to pay out the queue
-     * @param maxQueuePayoutIterations how many queue items to pay out
+     * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
     function forceUnstake(Bounty bounty, uint maxQueuePayoutIterations) external {
         // onlyBroker check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queuePayoutIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
             require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyBroker");
         }
 
@@ -309,29 +355,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         bounties.pop();
         indexOfBounties[lastBounty] = index + 1; // indexOfBounties is the real array index + 1
         delete indexOfBounties[bounty];
-    }
-
-    /**
-     * Take out some of the stake from a bounty without completely unstaking
-     * Except if you call this with targetStakeWei == 0, then it will actually call unstake
-     **/
-    function reduceStakeTo(Bounty bounty, uint targetStakeWei, uint maxQueuePayoutIterations) external onlyBroker {
-        // console.log("## reduceStakeTo targetStakeWei", targetStakeWei);
-        if (targetStakeWei == 0) {
-            unstake(bounty, 10000);
-            return;
-        }
-        bounty.reduceStakeTo(targetStakeWei);
-        updateApproximatePoolvalueOfBounty(bounty);
-        payOutQueueWithFreeFunds(maxQueuePayoutIterations);
-    }
-
-    function withdrawWinningsFromBounty(Bounty bounty, uint maxQueuePayoutIterations) external onlyBroker {
-        updateApproximatePoolvalueOfBounty(bounty); // TODO: why is it necessary to do update before withdraw?
-        uint payoutWei = bounty.withdraw();
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
-        updateApproximatePoolvalueOfBounty(bounty);
-        payOutQueueWithFreeFunds(maxQueuePayoutIterations);
     }
 
     ////////////////////////////////////////
@@ -419,7 +442,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     ////////////////////////////////////////
 
     function queueIsEmpty() public view returns (bool) {
-        return queuePayoutIndex == queueLength;
+        return queueCurrentIndex == queueLastIndex;
+    }
+
+    function getMyQueuePosition() public view returns (uint) {
+        uint i = queueIndexOf[_msgSender()];
+        if (i < queueCurrentIndex) {
+            return queueLastIndex - queueCurrentIndex;
+        }
+        return i - queueCurrentIndex;
     }
 
     /* solhint-disable reentrancy */ // TODO: remove when solhint stops being silly
@@ -447,15 +478,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
 
         // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
-        address user = undelegationQueue[queuePayoutIndex].user;
-        uint amountPoolTokens = undelegationQueue[queuePayoutIndex].amountPoolTokenWei;
+        address user = undelegationQueue[queueCurrentIndex].user;
+        uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
         if (balanceOf(user) < amountPoolTokens) {
             amountPoolTokens = balanceOf(user);
         }
         if (amountPoolTokens == 0) {
             // nothing to pay => pop the item
-            delete undelegationQueue[queuePayoutIndex];
-            queuePayoutIndex++;
+            delete undelegationQueue[queueCurrentIndex];
+            queueCurrentIndex++;
             return false;
         }
 
@@ -464,8 +495,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
         if (balanceDataWei >= amountDataWei) {
             // whole amountDataWei is paid out => pop the item and swap tokens
-            delete undelegationQueue[queuePayoutIndex];
-            queuePayoutIndex++;
+            delete undelegationQueue[queueCurrentIndex];
+            queueCurrentIndex++;
             totalQueuedPerDelegatorWei[user] -= amountPoolTokens;
             _burn(user, amountPoolTokens);
             globalData().token.transfer(user, amountDataWei);
@@ -478,9 +509,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 balanceDataWei, 0), "error_dataToPooltokenFailed"
             );
             totalQueuedPerDelegatorWei[user] -= partialAmountPoolTokens;
-            UndelegationQueueEntry memory oldEntry = undelegationQueue[queuePayoutIndex];
+            UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
-            undelegationQueue[queuePayoutIndex] = UndelegationQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
+            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(user, partialAmountPoolTokens);
             globalData().token.transfer(user, balanceDataWei);
             emit Undelegated(user, balanceDataWei);
