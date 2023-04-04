@@ -20,6 +20,7 @@ export {
 
 const PROJECT_ENTITY_TYPE = "Project"
 const PROJECT_STAKE_ENTITY_TYPE = "ProjectStake"
+const PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE = "ProjectStakingDayBucket"
 
 describe("Entity stores", () => {
     const projectId = "0x1234"
@@ -62,6 +63,8 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
     const stakingAmount = 200
     const unstakingAmount = 50
     const totalStake = 1000 // all tokens staked in contract
+    const bucketDate = "0"
+    const bucketId = "0x123456-0" // projectId-bucketDate
     
     beforeAll(() => {
         clearStore()
@@ -84,6 +87,16 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "userStake", `${stakingAmount}`)
         // totalStake is given by the Stake event, it's not caluclated by the handler
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "totalStake", `${totalStake}`)
+
+        assert.entityCount(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, 1)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "id", bucketId)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "project", projectId)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "date", `${bucketDate}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakeAtStart", `${0}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakeChange", `${stakingAmount}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakingsWei", `${stakingAmount}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "unstakingsWei", `${0}`)
+
     })
 
     test("handleUnstake", () => {
@@ -97,5 +110,14 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "userStake", `${stakingAmount - unstakingAmount}`)
         // totalStake is given by the Unstake event, it's not caluclated by the handler
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "totalStake", `${totalStake}`)
+
+        assert.entityCount(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, 1)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "id", bucketId)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "project", projectId)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "date", `${bucketDate}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakeAtStart", `${0}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakeChange", `${stakingAmount - unstakingAmount}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "stakingsWei", `${stakingAmount}`)
+        assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "unstakingsWei", `${unstakingAmount}`)
     })
 })
