@@ -58,7 +58,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
 
     function setParam(uint256) external {
         LocalStorage storage local = localData();
-        require(local.openFlagsCount == 0, "error_cannotUpdateParamsWhileFlagsOpen");
+        require(local.openFlagsCount == 0, "error_openFlags");
 
         StreamrConfig config = globalData().streamrConfig;
         local.reviewPeriodSeconds = config.reviewPeriodSeconds();
