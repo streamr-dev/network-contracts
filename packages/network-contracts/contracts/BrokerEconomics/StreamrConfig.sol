@@ -173,7 +173,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     /**
      * @dev For higher flagReviewerCount, VoteKickPolicy.onFlag needs more random bytes; keccak gives 256 bits of "randomness".
-     * @dev It's also possible to tweak the >>= in the primary selection to something less than 8
+     * @dev It's also possible to tweak the >>= in the primary selection to something less than 8 (spend the randomness more slowly)
+     * @dev   or even replace >>= with randomness source (though that's of course more expensive)
      */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(flagReviewerCount >= 1, "error_tooLow");
