@@ -72,7 +72,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
     mapping(uint => UndelegationQueueEntry) public undelegationQueue;
     mapping(address => uint) public totalQueuedPerDelegatorWei; // answers 'how much does delegator X have queued in total to be paid out'
-    mapping(address => uint) public queueIndexOf; // answers 'how many queue positions must be paid out before I get (all) my queued tokens?'
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
@@ -221,7 +220,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
         totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        queueIndexOf[_msgSender()] = queueLastIndex;
         queueLastIndex++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
@@ -445,12 +443,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return queueCurrentIndex == queueLastIndex;
     }
 
-    function getMyQueuePosition() public view returns (uint) {
-        uint i = queueIndexOf[_msgSender()];
-        if (i < queueCurrentIndex) {
-            return queueLastIndex - queueCurrentIndex;
+    /**
+     * Answers 'how many queue positions must be paid out before I get (all) my queued tokens?'
+     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
+     * If you're not in the queue, returns just the length of the queue + 1 (i.e. the position you'd get if you undelegate now)
+     */
+    function queuePositionOf(address delegator) external view returns (uint) {
+        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
+            if (undelegationQueue[i].user == delegator) {
+                return i - queueCurrentIndex + 1;
+            }
         }
-        return i - queueCurrentIndex;
+        return queueLastIndex - queueCurrentIndex + 1;
     }
 
     /* solhint-disable reentrancy */ // TODO: remove when solhint stops being silly
