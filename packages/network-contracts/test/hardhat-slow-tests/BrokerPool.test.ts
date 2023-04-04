@@ -52,7 +52,7 @@ describe("BrokerPool", (): void => {
         for (let i = 0; i < 1000; i++) {
             await pool.connect(delegator).undelegate(parseEther("1"))
         }
-        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther(numberOfQueueSlots.toString()))
+        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("1000"))
 
         // doing it in one go with 1000 slots in the queue will fail...
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from bounty")
