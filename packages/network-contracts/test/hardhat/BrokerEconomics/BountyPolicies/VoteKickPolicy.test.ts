@@ -421,12 +421,9 @@ describe("VoteKickPolicy", (): void => {
             // important that 10% of minimumStakeWei is enough to pay reviewers
             // I.e. minimumStakeWei >= 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei)
 
-            // TODO: get from streamrConfig
-            const MAX_REVIEWERS = 5
-
+            const reviewerCount = +await contracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
-
-            const flagStakeWei = parseEther("10")
+            const flagStakeWei = await contracts.streamrConfig.flagStakeWei()
             // const flagReviewerRewardWei = parseEther("1")
             // const flaggerRewardWei = parseEther("1")
             // const totalRewardsWei =  flagReviewerRewardWei.mul(MAX_REVIEWERS).add(flaggerRewardWei)
@@ -437,7 +434,7 @@ describe("VoteKickPolicy", (): void => {
                 bounty,
                 staked: [ flagger, target ],
                 nonStaked: voters,
-            } = await setupBounty(contracts, 2, MAX_REVIEWERS, "sufficient-flag-stake", {
+            } = await setupBounty(contracts, 2, reviewerCount, "sufficient-flag-stake", {
                 bountySettings: { minimumStakeWei },
                 bountyIsRunning: false
             })
