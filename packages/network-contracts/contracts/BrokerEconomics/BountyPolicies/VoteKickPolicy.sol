@@ -88,24 +88,24 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
      * Start flagging process
      */
     function onFlag(address target) external {
-        GlobalStorage storage global = globalData();
+        GlobalStorage storage globals = globalData();
         LocalStorage storage local = localData();
         address flagger = _msgSender();
         require(flagTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(global.stakedWei[flagger] >= global.minimumStakeWei, "error_notEnoughStake");
-        require(global.stakedWei[target] > 0, "error_flagTargetNotStaked");
+        require(globals.stakedWei[flagger] >= globals.minimumStakeWei, "error_notEnoughStake");
+        require(globals.stakedWei[target] > 0, "error_flagTargetNotStaked");
         local.openFlagsCount += 1;
 
         // the flag target risks to lose 10% if the flag resolves to KICK
         // take at least 10% of minimumStake to ensure everyone can get paid!
-        targetStakeAtRiskWei[target] = max(global.stakedWei[target], global.minimumStakeWei) / 10;
-        global.committedStakeWei[target] += targetStakeAtRiskWei[target];
+        targetStakeAtRiskWei[target] = max(globals.stakedWei[target], globals.minimumStakeWei) / 10;
+        globals.committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // TODO: after taking at least minimumStake, all 9/10s here are probably overthinking; it's enough that flagStakeWei is 10/9 of the total reviewer reward
         //       the limit for flagging is 9/10s of the stake so that there's still room to get flagged and lose the remaining 10% of minimumStake
         // TODO: try to find the "extreme case" by writing more tests and see if the 10/9 can safely be removed
-        global.committedStakeWei[flagger] += local.flagStakeWei;
-        require(global.committedStakeWei[flagger] * 10 <= 9 * global.stakedWei[flagger], "error_notEnoughStake");
+        globals.committedStakeWei[flagger] += local.flagStakeWei;
+        require(globals.committedStakeWei[flagger] * 10 <= 9 * globals.stakedWei[flagger], "error_notEnoughStake");
         flaggerAddress[target] = flagger;
 
         flagTimestamp[target] = block.timestamp; // solhint-disable-line not-rely-on-time
@@ -114,7 +114,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         BrokerPool[MAX_REVIEWER_COUNT] memory sameBountyPeers;
         uint sameBountyPeerCount = 0;
 
-        BrokerPoolFactory factory = BrokerPoolFactory(global.streamrConfig.brokerPoolFactory());
+        BrokerPoolFactory factory = BrokerPoolFactory(globals.streamrConfig.brokerPoolFactory());
         uint brokerPoolCount = factory.deployedBrokerPoolsLength();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         bytes32 randomBytes = keccak256(abi.encode(target, brokerPoolCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
@@ -129,7 +129,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
                 continue;
             }
             // TODO: check is broker live
-            if (global.stakedWei[address(peer)] > 0) {
+            if (globals.stakedWei[address(peer)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < local.reviewerCount) {
                     sameBountyPeers[sameBountyPeerCount++] = peer;
                     reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
@@ -203,25 +203,25 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
     /* solhint-disable reentrancy */ // TODO: figure out what solhint means with this exactly
 
     function _endVote(address target) internal {
-        GlobalStorage storage global = globalData();
+        GlobalStorage storage globals = globalData();
         LocalStorage storage local = localData();
         // console.log("endVote", target);
         address flagger = flaggerAddress[target];
-        bool flaggerIsGone = global.stakedWei[flagger] == 0;
-        bool targetIsGone = global.stakedWei[target] == 0;
+        bool flaggerIsGone = globals.stakedWei[flagger] == 0;
+        bool targetIsGone = globals.stakedWei[target] == 0;
         uint reviewerCount = reviewers[target].length;
 
         // release stake commitments before vote resolution so that slashings and kickings during resolution aren't affected
         // if either the flagger or the target has forceUnstaked or been kicked, the committed stake was moved to committedFundsWei
         if (flaggerIsGone) {
-            global.committedFundsWei -= local.flagStakeWei;
+            globals.committedFundsWei -= local.flagStakeWei;
         } else {
-            global.committedStakeWei[flagger] -= local.flagStakeWei;
+            globals.committedStakeWei[flagger] -= local.flagStakeWei;
         }
         if (targetIsGone) {
-            global.committedFundsWei -= targetStakeAtRiskWei[target];
+            globals.committedFundsWei -= targetStakeAtRiskWei[target];
         } else {
-            global.committedStakeWei[target] -= targetStakeAtRiskWei[target];
+            globals.committedStakeWei[target] -= targetStakeAtRiskWei[target];
         }
 
         if (votesForKick[target] > votesAgainstKick[target]) {
@@ -247,7 +247,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
-            protectionEndTimestamp[target] = block.timestamp + global.streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
+            protectionEndTimestamp[target] = block.timestamp + globals.streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
             uint rewardsWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
                 BrokerPool reviewer = reviewers[target][i];
