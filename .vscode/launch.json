@@ -4,7 +4,24 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        {
+            "name": "ensscript",
+            "program": "${workspaceFolder}/app.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "runtimeArgs": [
+                "--experimental-specifier-resolution=node",
+                "--loader",
+                "ts-node/esm",
+                "./src/index.ts",
+            ],
+            "cwd": "${workspaceFolder}/packages/ens-sync-script",
+        },
 
+        
         {
             "name": "run index.js",
             "command": "npx hardhat run --network localsidechain index.js",

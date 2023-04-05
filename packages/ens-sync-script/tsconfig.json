@@ -1,0 +1,20 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "display": "Node 18",
+    "compilerOptions": {
+        "lib": ["ESNext", "es2019", "es2020.promise", "es2020.bigint", "es2020.string"],
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "target": "ES2022",
+        "preserveSymlinks": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "noImplicitAny": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "outDir": "dist",
+        "strictPropertyInitialization": false
+    },
+    "include": ["../packages/network-contracts/typechain", "./src", "../packages/network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/"]
+}

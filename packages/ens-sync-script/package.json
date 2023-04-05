@@ -1,0 +1,24 @@
+{
+  "name": "ens-sync-script",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "looks up owner of ensname on stream creation and creates stream",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@ethersproject/wallet": "^5.7.0",
+    "@streamr/config": "^2.5.10"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
+    "@typescript-eslint/parser": "^5.57.1",
+    "eslint-config-streamr-nodejs": "^2.0.1",
+    "typescript": "^5.0.3"
+  }
+}
