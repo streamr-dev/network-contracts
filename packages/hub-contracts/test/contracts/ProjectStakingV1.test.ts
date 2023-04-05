@@ -125,12 +125,12 @@ describe('ProjectStakingV1', (): void => {
             await createProject({ projectId: projectId2})
             await token.connect(admin).mint(staker2.address, stakingAmount2)
             await token.connect(staker2).approve(projectStaking.address, stakingAmount2)
-            const totalStakeBefore = await projectStaking.getTotalStake()
+            const projectStakeBefore = await projectStaking.getProjectStake(projectId2)
 
             const balanceBeforeStaking = await token.balanceOf(staker2.address)
             await expect(projectStaking.connect(staker2).stake(projectId2, stakingAmount2))
                 .to.emit(projectStaking, "Stake")
-                .withArgs(projectId2, staker2.address, stakingAmount2, totalStakeBefore.add(stakingAmount2))
+                .withArgs(projectId2, staker2.address, stakingAmount2, projectStakeBefore.add(stakingAmount2))
             const balanceAfterStaking = await token.balanceOf(staker2.address)
             const userStake = await projectStaking.getUserStake(staker2.address)
 
@@ -200,7 +200,7 @@ describe('ProjectStakingV1', (): void => {
             const totalStakeBefore = await projectStaking.getTotalStake()
             await expect(projectStaking.connect(staker1).unstake(projectId1, unstakingAmount))
                 .to.emit(projectStaking, "Unstake")
-                .withArgs(projectId1, staker1.address, unstakingAmount, totalStakeBefore.sub(unstakingAmount))
+                .withArgs(projectId1, staker1.address, unstakingAmount, projectStakeBefore.sub(unstakingAmount))
             const userStakeAfter = await projectStaking.getUserStake(staker1.address)
             const projectStakeAfter = await projectStaking.getProjectStake(projectId1)
             const totalStakeAfter = await projectStaking.getTotalStake()
@@ -220,13 +220,12 @@ describe('ProjectStakingV1', (): void => {
             // staking token is ERC677
             const transferAmount = parseEther('1000')
             await token.connect(admin).mint(staker1.address, transferAmount)
-            const totalStakeBefore = await projectStaking.getTotalStake()
             
             const userStakeBefore = await projectStaking.getUserStake(staker1.address)
             const projectStakeBefore = await projectStaking.getProjectStake(projectId1)
             await expect(token.connect(staker1).transferAndCall(projectStaking.address, transferAmount, projectId1))
                 .to.emit(projectStaking, "Stake")
-                .withArgs(projectId1, staker1.address, transferAmount, totalStakeBefore.add(transferAmount))
+                .withArgs(projectId1, staker1.address, transferAmount, projectStakeBefore.add(transferAmount))
             const userStakeAfter = await projectStaking.getUserStake(staker1.address)
             const projectStakeAfter = await projectStaking.getProjectStake(projectId1)
 
