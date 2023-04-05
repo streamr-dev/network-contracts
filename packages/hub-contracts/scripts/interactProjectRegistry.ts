@@ -208,52 +208,52 @@ async function main() {
     connectWallets()
     await connectContracts()
     
-    updatePaymentDetails(8997, adminWallet.address, linkToken.address, 2) // dev1
-
+    // updatePaymentDetails(8997, adminWallet.address, linkToken.address, 2) // dev1
     const streamId1 = await createStream()
-    const projectId = await createProject({streams: [streamId1]})
-    await updateProject({ id: projectId, streams: [], minimumSubscriptionSeconds: 2 })
 
-    await setPermission({ projectId }) // defaults to a random address
-    await grantSubscription({ projectId }) // defaults to a random address
+    // const projectId = await createProject({streams: [streamId1]})
+    // await updateProject({ id: projectId, streams: [], minimumSubscriptionSeconds: 2 })
 
-    const streamId2 = await createStream()
-    await addStream(projectId, streamId2)
-    await removeStream(projectId, streamId2)
+    // await setPermission({ projectId }) // defaults to a random address
+    // await grantSubscription({ projectId }) // defaults to a random address
 
-    await deleteProject(projectId)
+    // const streamId2 = await createStream()
+    // await addStream(projectId, streamId2)
+    // await removeStream(projectId, streamId2)
 
-    // const projectId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-    // console.log(`Subscription admin: ${await projectRegistry.getSubscription(projectId, adminWallet.address)}`)
-    // console.log(`Subscription deployer: ${await projectRegistry.getSubscription(projectId,deployerWallet.address)}`)
-    // console.log(`Subscription buyer: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
+    // await deleteProject(projectId)
 
-    // MarketplaceV4
-    // await(await marketplace.addMailbox(chainToMailboxAddress(CHAIN))).wait()
-    // await(await marketplace.addRemoteMarketplace(chainToDomainId(REMOTE_CHAIN), REMOTE_MARKETPLACE_ADDRESS)).wait()
-    // log('Marketplace state variables:')
-    // log('   - chainId', await marketplace.chainId())
-    // log('   - mailbox', await marketplace.mailbox())
-    // log(`   - remoteMarketplaces(${REMOTE_CHAIN})`, await marketplace.remoteMarketplaces(chainToDomainId(REMOTE_CHAIN)))
-    // const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, 8997, 1) // projectId, subscriptionSeconds, chainId, purchaseId
-    // log(`Purchase info: ${purchaseInfo}`)
-    log(`Buyer can buy project: ${await projectRegistry.canBuyProject(projectId, buyerWallet.address)}`)
-    await(await linkToken.connect(buyerWallet).approve(marketplace.address, 200)).wait()
-    log(`Buyer subscription before buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
-    await buyProject(projectId, 100, buyerWallet)
-    log(`Buyer subscription after buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
+    // // const projectId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+    // // console.log(`Subscription admin: ${await projectRegistry.getSubscription(projectId, adminWallet.address)}`)
+    // // console.log(`Subscription deployer: ${await projectRegistry.getSubscription(projectId,deployerWallet.address)}`)
+    // // console.log(`Subscription buyer: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
 
-    // ProjectStakingV1
-    await(await linkToken.connect(buyerWallet).approve(projectStaking.address, 200)).wait()
-    log(`Stake before staking: ${await projectStaking.getTotalStake()}`)
-    await(await projectStaking.connect(buyerWallet).stake(projectId, 200)).wait()
-    log(`Stake after staking: ${await projectStaking.getTotalStake()}`)
+    // // MarketplaceV4
+    // // await(await marketplace.addMailbox(chainToMailboxAddress(CHAIN))).wait()
+    // // await(await marketplace.addRemoteMarketplace(chainToDomainId(REMOTE_CHAIN), REMOTE_MARKETPLACE_ADDRESS)).wait()
+    // // log('Marketplace state variables:')
+    // // log('   - chainId', await marketplace.chainId())
+    // // log('   - mailbox', await marketplace.mailbox())
+    // // log(`   - remoteMarketplaces(${REMOTE_CHAIN})`, await marketplace.remoteMarketplaces(chainToDomainId(REMOTE_CHAIN)))
+    // // const purchaseInfo = await marketplace.getPurchaseInfo(projectId, 100, 8997, 1) // projectId, subscriptionSeconds, chainId, purchaseId
+    // // log(`Purchase info: ${purchaseInfo}`)
+    // log(`Buyer can buy project: ${await projectRegistry.canBuyProject(projectId, buyerWallet.address)}`)
+    // await(await linkToken.connect(buyerWallet).approve(marketplace.address, 200)).wait()
+    // log(`Buyer subscription before buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
+    // await buyProject(projectId, 100, buyerWallet)
+    // log(`Buyer subscription after buy: ${await projectRegistry.getSubscription(projectId, buyerWallet.address)}`)
 
-    log(`Stake before unstaking: ${await projectStaking.getTotalStake()}`)
-    log(`Project stake before unstaking: ${await projectStaking.getProjectStake(projectId)}`)
-    log(`User stake before unstaking: ${await projectStaking.getUserStake(buyerWallet.address)}`)
-    await(await projectStaking.connect(buyerWallet).unstake(projectId, 200)).wait()
-    log(`Stake after unstaking: ${await projectStaking.getTotalStake()}`)
+    // // ProjectStakingV1
+    // await(await linkToken.connect(buyerWallet).approve(projectStaking.address, 200)).wait()
+    // log(`Stake before staking: ${await projectStaking.getTotalStake()}`)
+    // await(await projectStaking.connect(buyerWallet).stake(projectId, 200)).wait()
+    // log(`Stake after staking: ${await projectStaking.getTotalStake()}`)
+
+    // log(`Stake before unstaking: ${await projectStaking.getTotalStake()}`)
+    // log(`Project stake before unstaking: ${await projectStaking.getProjectStake(projectId)}`)
+    // log(`User stake before unstaking: ${await projectStaking.getUserStake(buyerWallet.address)}`)
+    // await(await projectStaking.connect(buyerWallet).unstake(projectId, 200)).wait()
+    // log(`Stake after unstaking: ${await projectStaking.getTotalStake()}`)
 }
 
 main().catch((error) => {

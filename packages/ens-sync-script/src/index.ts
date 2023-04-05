@@ -1,10 +1,12 @@
 /* eslint-disable no-console */
-import { ethers, providers } from 'ethers'
+import { Contract } from "@ethersproject/contracts"
+import { JsonRpcProvider } from "@ethersproject/providers"
 import { Chains } from "@streamr/config"
 // import * as ABIenscache from "../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
 import { createRequire } from "module"
 const require = createRequire(import.meta.url)
-const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
+// const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
+const ABIenscache = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
 
 async function main(){
     const config = Chains.load()["dev1"]
@@ -13,14 +15,15 @@ async function main(){
     //     `wss://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
     // );
 
-    const provider = new providers.JsonRpcProvider(
+    const provider = new JsonRpcProvider(
         // `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`
         config.rpcEndpoints[0].url
     )
+    console.log(await provider.getNetwork())
 
-    const contract = new ethers.Contract(config.contracts.StreamRegistry, ABIenscache.abi, provider)
+    const contract = new Contract(config.contracts.StreamRegistry, ABIenscache.abi, provider)
     console.log("test1")
-    contract.on("RequestENSOwnerAndCreateStream", (from, to, value, event)=>{
+    contract.on("StreamCreated", (event, a)=>{
         // let transferEvent ={
         //     from: from,
         //     to: to,
@@ -28,6 +31,7 @@ async function main(){
         //     eventData: event,
         // }
         console.log("### event cought: " + JSON.stringify(event))
+        console.log("### a: " + JSON.stringify(a))
     })
 }
 
