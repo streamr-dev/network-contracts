@@ -1,6 +1,8 @@
 /**
  * Deployed on polygon on 2023-01-30
  * https://polygonscan.com/tx/0x9ac1675b54bc91ea199a682eb0b0a7e8e15a098b4fb1a66d2eec59072253380f
+ * Upgraded on polygon on 2023-04-02
+ * https://polygonscan.com/tx/0xfb5e20c0daf89b2fd026755d374d59b4e802ccdca6f6e3721691c0483ea9fdcd
  */
  
 // SPDX-License-Identifier: MIT
@@ -91,7 +93,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
      * @param projectId The project to unstake tokens for. Must be a valid projectId (e.g. existing in the project registry).
      * @param amount The amount of tokens to unstake. Transferred from this contract to the caller and subtracted from the staked balance.
      */
-    function unstake(bytes32 projectId, uint256 amount) external projectExists(projectId) {
+    function unstake(bytes32 projectId, uint256 amount) external {
         uint256 stakedAmount = stakedTokens[msg.sender][projectId];
         require(stakedAmount >= amount, "error_notEnoughTokensStaked");
         _unstake(projectId, amount, msg.sender);
@@ -102,7 +104,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
      * @param projectId The project to get the total staked amount for.
      * @return projectStake The total amount of tokens staked for the project.
      */
-    function getProjectStake(bytes32 projectId) external view projectExists(projectId) returns (uint256 projectStake) {
+    function getProjectStake(bytes32 projectId) external view returns (uint256 projectStake) {
         return stakedTokensByProject[projectId];
     }
 
