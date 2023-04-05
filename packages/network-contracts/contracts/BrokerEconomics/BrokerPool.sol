@@ -34,8 +34,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Staked(Bounty indexed bounty, uint amountWei);
     event Losses(Bounty indexed bounty, uint amountWei);
     event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
-    event QueuedDataPayout(address user, uint amountPoolTokenWei);
-    event QueueUpdated(address user, uint amountPoolTokenWei);
+    event QueuedDataPayout(address user, uint amountPoolTokenWei); // TODO: user -> delegator
+    event QueueUpdated(address user, uint amountPoolTokenWei); // TODO: user -> delegator
     event NodesSet(address[] nodes);
     event Heartbeat(address indexed nodeAddress, string jsonData);
 
@@ -48,31 +48,26 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     IPoolYieldPolicy public yieldPolicy;
     IPoolExitPolicy public exitPolicy;
 
-    StreamrConfig streamrConfig;
+    StreamrConfig public streamrConfig;
 
-    /**
-     * The time the broker is given for paying out the exit queue.
-     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
-     */
-    uint public maxQueueSeconds;
-
-    uint public minimumDelegationWei;
     address public broker;
-    IERC677 token;
-
-    // Pool value = DATA value of all stake + earnings in bounties - broker's share of those earnings
-    // It can be queried and calculated in three ways:
-    // 1. accurate but expensive: calculatePoolValueInData() (loops over bounties)
-    // 2. approximate but always available: totalValueInBountiesWei (updated in staking/unstaking and updateApproximatePoolvalueOfBounty/Bounties)
-    // 3. val = totalValueInBountiesWei + free funds
-    uint totalValueInBountiesWei;
-    mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
+    IERC677 public token;
 
     Bounty[] public bounties;
     mapping(Bounty => uint) public indexOfBounties; // bounties array index PLUS ONE! use 0 as "is it already in the array?" check
 
+    uint public minimumDelegationWei;
+
+    // Pool value = DATA value of all stake + earnings in bounties - broker's share of those earnings
+    // It can be queried / calculated in different ways:
+    // 1. accurate but expensive: calculatePoolValueInData() (loops over bounties)
+    // 2. approximate but always available: totalValueInBountiesWei (updated in staking/unstaking and updateApproximatePoolvalueOfBounty/Bounties)
+    uint public totalValueInBountiesWei;
+
+    mapping(Bounty => uint) public approxPoolValueOfBounty; // in Data wei
+
     struct UndelegationQueueEntry {
-        address user;
+        address delegator;
         uint amountPoolTokenWei;
         uint timestamp;
     }
@@ -80,6 +75,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public totalQueuedPerDelegatorWei; // answers 'how much does delegator X have queued in total to be paid out'
     uint public queueLastIndex;
     uint public queueCurrentIndex;
+
+    /**
+     * The time the broker is given for paying out the exit queue.
+     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
+     */
+    uint public maxQueueSeconds;
 
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
@@ -446,7 +447,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function queuePositionOf(address delegator) external view returns (uint) {
         for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].user == delegator) {
+            if (undelegationQueue[i].delegator == delegator) {
                 return i - queueCurrentIndex + 1;
             }
         }
@@ -478,10 +479,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
 
         // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
-        address user = undelegationQueue[queueCurrentIndex].user;
+        address delegator = undelegationQueue[queueCurrentIndex].delegator;
         uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
-        if (balanceOf(user) < amountPoolTokens) {
-            amountPoolTokens = balanceOf(user);
+        if (balanceOf(delegator) < amountPoolTokens) {
+            amountPoolTokens = balanceOf(delegator);
         }
         if (amountPoolTokens == 0) {
             // nothing to pay => pop the item
@@ -497,10 +498,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             // whole amountDataWei is paid out => pop the item and swap tokens
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
-            totalQueuedPerDelegatorWei[user] -= amountPoolTokens;
-            _burn(user, amountPoolTokens);
-            token.transfer(user, amountDataWei);
-            emit Undelegated(user, amountDataWei);
+            totalQueuedPerDelegatorWei[delegator] -= amountPoolTokens;
+            _burn(delegator, amountPoolTokens);
+            token.transfer(delegator, amountDataWei);
+            emit Undelegated(delegator, amountDataWei);
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -508,14 +509,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                 balanceDataWei, 0), "error_dataToPooltokenFailed"
             );
-            totalQueuedPerDelegatorWei[user] -= partialAmountPoolTokens;
+            totalQueuedPerDelegatorWei[delegator] -= partialAmountPoolTokens;
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
-            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.user, poolTokensLeftInQueue, oldEntry.timestamp);
-            _burn(user, partialAmountPoolTokens);
-            token.transfer(user, balanceDataWei);
-            emit Undelegated(user, balanceDataWei);
-            emit QueueUpdated(user, poolTokensLeftInQueue);
+            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
+            _burn(delegator, partialAmountPoolTokens);
+            token.transfer(delegator, balanceDataWei);
+            emit Undelegated(delegator, balanceDataWei);
+            emit QueueUpdated(delegator, poolTokensLeftInQueue);
             return false;
         }
     }
