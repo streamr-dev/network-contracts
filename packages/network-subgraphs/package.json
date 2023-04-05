@@ -8,7 +8,7 @@
     "codegen": "graph codegen",
     "graphbuild": "graph build",
     "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
-    "docker:build": "npm run build && docker build . -t streamr/deploy-network-subgraphs:dev",
+    "docker:build": "npm run build && docker buildx build --platform linux/AMD64 . -t streamr/deploy-network-subgraphs:dev",
     "docker:publish": "docker image push streamr/deploy-network-subgraphs:dev",
     "create-docker-dev": "graph create streamr-dev/network-subgraphs --node http://streamr-dev-thegraph-node:8020",
     "deploy-docker-dev": "graph deploy streamr-dev/network-subgraphs --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node:8020",
