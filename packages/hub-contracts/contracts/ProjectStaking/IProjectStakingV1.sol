@@ -4,8 +4,8 @@ pragma solidity ^0.8.9;
 
 interface IProjectStakingV1 {
     // project staking events
-    event Stake(bytes32 indexed projectId, address indexed user, uint256 amount, uint256 totalStake);
-    event Unstake(bytes32 indexed projectId, address indexed user, uint256 amount, uint256 totalStake);
+    event Stake(bytes32 indexed projectId, address indexed user, uint256 amount, uint256 projectStake);
+    event Unstake(bytes32 indexed projectId, address indexed user, uint256 amount, uint256 projectStake);
 
     // project staking functions
 

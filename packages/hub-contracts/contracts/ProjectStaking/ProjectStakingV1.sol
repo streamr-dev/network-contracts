@@ -117,7 +117,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
 
     /**
      * @notice Get the total amount of tokens staked across all users and projects.
-     * @return totalStake The total amount of tokens staked for all user accross all project.
+     * @return totalStake The total amount of tokens staked for all user accross all projects.
      */
     function getTotalStake() external view returns (uint256 totalStake) {
         return totalStakedTokens;
@@ -128,7 +128,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
         stakedTokensByProject[projectId] += amount;
         stakedTokensByUser[staker] += amount;
         totalStakedTokens += amount;
-        emit Stake(projectId, staker, amount, totalStakedTokens);
+        emit Stake(projectId, staker, amount, stakedTokensByProject[projectId]);
     }
 
     function _unstake(bytes32 projectId, uint256 amount, address staker) internal {
@@ -137,6 +137,6 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
         stakedTokensByUser[staker] -= amount;
         totalStakedTokens -= amount;
         IERC20(stakingTokenAddress).transfer(staker, amount);
-        emit Unstake(projectId, staker, amount, totalStakedTokens);
+        emit Unstake(projectId, staker, amount, stakedTokensByProject[projectId]);
     }
 }
