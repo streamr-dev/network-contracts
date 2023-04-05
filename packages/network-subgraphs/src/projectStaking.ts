@@ -12,7 +12,7 @@ export function handleStake(event: Stake): void {
     log.info('handleStake: projectId={} user={} amount={} blockNumber={}',
         [projectId, user, amount, event.block.number.toString()])
         
-    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake)
+    const project = loadOrCreateProject(event.params.projectId)
 
     const projectStake = loadOrCreateProjectStake(projectId, event.params.user)
     projectStake.userStake = projectStake.userStake.plus(event.params.amount)
@@ -24,6 +24,7 @@ export function handleStake(event: Stake): void {
     bucket.save()
 
     project.score = project.score.plus(event.params.amount)
+    project.stakedWei = event.params.projectStake
     project.save()
 }
 
@@ -34,7 +35,7 @@ export function handleUnstake(event: Unstake): void {
     log.info('handleUnstake: projectId={} user={} amount={} blockNumber={}',
         [projectId, user, amount, event.block.number.toString()])
         
-    const project = loadOrCreateProject(event.params.projectId, event.params.totalStake)
+    const project = loadOrCreateProject(event.params.projectId)
 
     const projectStake = loadOrCreateProjectStake(projectId, event.params.user)
     projectStake.userStake = projectStake.userStake.minus(event.params.amount)
@@ -47,5 +48,6 @@ export function handleUnstake(event: Unstake): void {
     bucket.save()
 
     project.score = project.score.minus(event.params.amount)
+    project.stakedWei = event.params.projectStake
     project.save()
 }

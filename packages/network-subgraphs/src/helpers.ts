@@ -1,5 +1,5 @@
 import { BigInt, Bytes, json, JSONValue, JSONValueKind, Result } from "@graphprotocol/graph-ts"
-import { Project, ProjectStake, ProjectStakingDayBucket } from '../generated/schema'
+import { Project, ProjectStakeByUser, ProjectStakingDayBucket } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 
@@ -7,7 +7,7 @@ const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
  * @dev toHexString() will automatically lowercase the projectId
  */
-export function loadOrCreateProject(projectId: Bytes, totalStake: BigInt = BigInt.fromI32(0)): Project {
+export function loadOrCreateProject(projectId: Bytes): Project {
     let project = Project.load(projectId.toHexString())
     if (project == null) {
         project = new Project(projectId.toHexString())
@@ -23,8 +23,8 @@ export function loadOrCreateProject(projectId: Bytes, totalStake: BigInt = BigIn
         project.counter = 0
         project.score = BigInt.fromI32(0)
         project.isDataUnion = false
+        project.stakedWei = BigInt.fromI32(0)
     }
-    project.totalStake = totalStake
     return project
 }
 
@@ -36,7 +36,12 @@ export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: B
         bucket = new ProjectStakingDayBucket(bucketId)
         bucket.project = projectId
         bucket.date = bucketStartDate
-        bucket.stakeAtStart = BigInt.fromI32(0)
+        let bucketStakeAtStart = BigInt.fromI32(0)
+        let project = Project.load(projectId)
+        if (project !== null) {
+            bucketStakeAtStart = project.stakedWei
+        }
+        bucket.stakeAtStart = bucketStakeAtStart
         bucket.stakeChange = BigInt.fromI32(0)
         bucket.stakingsWei = BigInt.fromI32(0)
         bucket.unstakingsWei = BigInt.fromI32(0)
@@ -44,11 +49,11 @@ export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: B
     return bucket
 }
 
-export function loadOrCreateProjectStake(projectId: string, user: Bytes): ProjectStake {
+export function loadOrCreateProjectStake(projectId: string, user: Bytes): ProjectStakeByUser {
     const projectStakeId = projectId + '-' + user.toHexString()
-    let projectStake = ProjectStake.load(projectStakeId)
+    let projectStake = ProjectStakeByUser.load(projectStakeId)
     if (projectStake === null) {
-        projectStake = new ProjectStake(projectStakeId)
+        projectStake = new ProjectStakeByUser(projectStakeId)
         projectStake.project = projectId
         projectStake.user = user
         projectStake.userStake = BigInt.fromI32(0)

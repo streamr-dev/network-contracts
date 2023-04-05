@@ -4,7 +4,7 @@ import {
     ProjectPermission,
     Project,
     ProjectPurchase,
-    ProjectStake,
+    ProjectStakeByUser,
     ProjectSubscription,
 } from "../../generated/schema"
 
@@ -22,7 +22,7 @@ export function createProjectEntity(projectId: string): Project {
     project.purchases = []
     project.counter = 0
     project.score = BigInt.fromI32(0)
-    project.totalStake = BigInt.fromI32(0)
+    project.stakedWei = BigInt.fromI32(0)
     project.save()
     return project
 }
@@ -126,8 +126,8 @@ export function createProjectStakeEntity(
     stakingId: string,
     projectId: string,
     user: string,
-): ProjectStake {
-    const staking = new ProjectStake(stakingId)
+): ProjectStakeByUser {
+    const staking = new ProjectStakeByUser(stakingId)
     staking.id = stakingId
     staking.project = projectId
     staking.user = Bytes.fromHexString(user)

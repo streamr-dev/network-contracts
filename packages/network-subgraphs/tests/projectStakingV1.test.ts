@@ -1,6 +1,6 @@
 import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
-import { ProjectStake } from "../generated/schema"
+import { ProjectStakeByUser } from "../generated/schema"
 import {
     handleStake, handleUnstake
 } from "../src/projectStaking"
@@ -19,7 +19,7 @@ export {
 } from "../src/projectStaking"
 
 const PROJECT_ENTITY_TYPE = "Project"
-const PROJECT_STAKE_ENTITY_TYPE = "ProjectStake"
+const PROJECT_STAKE_ENTITY_TYPE = "ProjectStakeByUser"
 const PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE = "ProjectStakingDayBucket"
 
 describe("Entity stores", () => {
@@ -32,26 +32,26 @@ describe("Entity stores", () => {
         clearStore()
     })
 
-    test("ProjectStake - entity created", () => {
+    test("ProjectStakeByUser - entity created", () => {
         createProjectStakeEntity(stakingId, projectId, user)
         assert.entityCount(PROJECT_STAKE_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "id", stakingId)
     })
 
-    test("ProjectStake - entity retreived from the store using entity.load()", () => {
-        const retrievedStaking = ProjectStake.load(stakingId)
+    test("ProjectStakeByUser - entity retreived from the store using entity.load()", () => {
+        const retrievedStaking = ProjectStakeByUser.load(stakingId)
         assert.stringEquals(stakingId, retrievedStaking!.get("id")!.toString())
     })
 
-    test("ProjectStake - entity can be updated using entity.save()", () => {
-        const staking = ProjectStake.load(stakingId) as ProjectStake
+    test("ProjectStakeByUser - entity can be updated using entity.save()", () => {
+        const staking = ProjectStakeByUser.load(stakingId) as ProjectStakeByUser
         staking.set("user", Value.fromString(newUser))
         staking.save()
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "user", newUser)
     })
 
-    test("ProjectStake - returns null when calling entity.load() if entity doesn't exist", () => {
-        const retrievedProjectStake = ProjectStake.load("IDoNotExist")
+    test("ProjectStakeByUser - returns null when calling entity.load() if entity doesn't exist", () => {
+        const retrievedProjectStake = ProjectStakeByUser.load("IDoNotExist")
         assert.assertNull(retrievedProjectStake)
     })
 })
@@ -62,7 +62,7 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
     const stakingId = "0x123456-0x7986b71c27b6eaab3120a984f26511b2dcfe3fb4" // projectId-userAddress
     const stakingAmount = 200
     const unstakingAmount = 50
-    const totalStake = 1000 // all tokens staked in contract
+    const projectStake = 1000 // all tokens staked for projectId
     const bucketDate = "0"
     const bucketId = "0x123456-0" // projectId-bucketDate
     
@@ -77,7 +77,7 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
     })
 
     test("handleStake", () => {
-        const event = createStakeEvent(Bytes.fromHexString(projectId), user, stakingAmount, totalStake)
+        const event = createStakeEvent(Bytes.fromHexString(projectId), user, stakingAmount, projectStake)
 
         handleStake(event)
 
@@ -85,8 +85,8 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "id", stakingId)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "user", user)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "userStake", `${stakingAmount}`)
-        // totalStake is given by the Stake event, it's not caluclated by the handler
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "totalStake", `${totalStake}`)
+        // projectStake is given by the Stake event, it's not caluclated by the handler
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "stakedWei", `${projectStake}`)
 
         assert.entityCount(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "id", bucketId)
@@ -100,7 +100,7 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
     })
 
     test("handleUnstake", () => {
-        const event = createUnstakeEvent(Bytes.fromHexString(projectId), user, unstakingAmount, totalStake)
+        const event = createUnstakeEvent(Bytes.fromHexString(projectId), user, unstakingAmount, projectStake)
 
         handleUnstake(event)
 
@@ -108,8 +108,8 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "id", stakingId)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "user", user)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "userStake", `${stakingAmount - unstakingAmount}`)
-        // totalStake is given by the Unstake event, it's not caluclated by the handler
-        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "totalStake", `${totalStake}`)
+        // projectStake is given by the Unstake event, it's not caluclated by the handler
+        assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "stakedWei", `${projectStake}`)
 
         assert.entityCount(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_STAKING_DAY_BUCKET_ENTITY_TYPE, bucketId, "id", bucketId)
