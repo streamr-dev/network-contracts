@@ -10,6 +10,10 @@ import "./Bounty.sol";
 import "./IERC677.sol";
 import "./StreamrConfig.sol";
 
+/**
+ * BountyFactory creates Bounties that respect Streamr Network rules and StreamrConfig.
+ * Only Bounties from this BountyFactory can be used in Streamr Network, and staked into by BrokerPools.
+ */
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     StreamrConfig public streamrConfig;
@@ -24,12 +28,12 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        tokenAddress = _tokenAddress;
+        tokenAddress = dataTokenAddress;
         bountyContractTemplate = templateAddress;
-        streamrConfig = StreamrConfig(constants);
+        streamrConfig = StreamrConfig(streamrConfigAddress);
     }
 
     function _authorizeUpgrade(address) internal override {}

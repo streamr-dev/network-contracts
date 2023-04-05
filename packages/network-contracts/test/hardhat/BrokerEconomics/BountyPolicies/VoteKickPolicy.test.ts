@@ -174,7 +174,7 @@ describe("VoteKickPolicy", (): void => {
             expect(await bounty.getFlag(target.address)).to.equal("0") // closed
 
             // target is not kicked
-            expect(await bounty.getStake(target.address)).to.not.equal("0")
+            expect(await bounty.stakedWei(target.address)).to.not.equal("0")
         })
 
         it("rewards the flagger", async function(): Promise<void> {
@@ -206,7 +206,7 @@ describe("VoteKickPolicy", (): void => {
             await (await voters[3].voteOnFlag(bounty.address, flagger.address, VOTE_KICK)).wait()
             await (await voters[4].voteOnFlag(bounty.address, flagger.address, VOTE_KICK)).wait()
 
-            expect(await bounty.getStake(flagger.address)).to.equal("0") // flagger is kicked
+            expect(await bounty.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
 
             await advanceToTimestamp(start + VOTE_START + 50, `Voting to not kick ${addr(target)}`)
             await (await voters[0].voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
@@ -411,7 +411,7 @@ describe("VoteKickPolicy", (): void => {
             await (await voter.voteOnFlag(bounty.address, target.address, VOTE_NO_KICK)).wait()
             expect(await bounty.getFlag(target.address)).to.equal("0") // flag is resolved
 
-            expect(await bounty.getStake(flagger.address)).to.equal(parseEther("69")) // paid one reviewer's fee
+            expect(await bounty.stakedWei(flagger.address)).to.equal(parseEther("69")) // paid one reviewer's fee
 
             await advanceToTimestamp(start + VOTE_START + 1000, `${addr(flagger)} tries to flag ${addr(voter)}`)
             await expect(flagger.flag(bounty.address, voter.address)).to.be.rejectedWith("error_notEnoughStake")
@@ -463,7 +463,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(voters.map(async (voter) => (await voter.voteOnFlag(bounty.address, flagger.address, VOTE_KICK)).wait()))
 
-            expect(await bounty.getStake(flagger.address)).to.equal("0") // flagger is kicked
+            expect(await bounty.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
 
             await advanceToTimestamp(start2 + VOTE_START + 1000, "Everyone unstakes")
             await expect(target.unstake(bounty.address))
@@ -505,7 +505,7 @@ describe("VoteKickPolicy", (): void => {
             }
 
             // 67(original) - 6(flags) * 5(reviewers) + 1 (where we didn't manage to pick a full reviewer set)
-            expect(await bounty.getStake(flagger.address)).to.equal(parseEther("38"))
+            expect(await bounty.stakedWei(flagger.address)).to.equal(parseEther("38"))
 
             await advanceToTimestamp(start2, `${addr(targets[0])} flags ${addr(flagger)}`)
             await expect(targets[0].flag(bounty.address, flagger.address))
@@ -514,7 +514,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(targets.slice(1).map(async (voter) => voter.voteOnFlag(bounty.address, flagger.address, VOTE_KICK)))
 
-            expect(await bounty.getStake(flagger.address)).to.equal("0") // flagger is kicked
+            expect(await bounty.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
         })
     })
 })
