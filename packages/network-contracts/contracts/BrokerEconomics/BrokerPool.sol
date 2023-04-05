@@ -15,7 +15,7 @@ import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
 import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
 
-import "./StreamrConstants.sol";
+import "./StreamrConfig.sol";
 import "./Bounty.sol";
 import "./BountyFactory.sol";
 
@@ -59,7 +59,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     struct GlobalStorage {
         IERC677 token;
         uint totalValueInBountiesWei; // DATA value of all stake + earnings in bounties - broker's share of those earnings
-        StreamrConstants streamrConstants;
+        StreamrConfig streamrConfig;
     }
 
     Bounty[] public bounties;
@@ -99,7 +99,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     function initialize(
         address tokenAddress,
-        address streamrConstants,
+        address streamrConfig,
         address brokerAddress,
         string calldata poolName,
         uint initialMinimumDelegationWei
@@ -109,12 +109,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
         globalData().token = IERC677(tokenAddress);
         broker = brokerAddress;
-        globalData().streamrConstants = StreamrConstants(streamrConstants);
+        globalData().streamrConfig = StreamrConfig(streamrConfig);
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(poolName, poolName);
 
         // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
-        maxQueueSeconds = globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS();
+        maxQueueSeconds = globalData().streamrConfig.maxPenaltyPeriodSeconds();
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -216,7 +216,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /////////////////////////////////////////
 
     function stake(Bounty bounty, uint amountWei) external onlyBroker {
-        require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
+        require(BountyFactory(globalData().streamrConfig.bountyFactory()).deploymentTimestamp(address(bounty)) > 0, "error_badBounty");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         globalData().token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
@@ -538,7 +538,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function onReviewRequest(address targetBroker) external {
-        require(BountyFactory(globalData().streamrConstants.bountyFactory()).deploymentTimestamp(msg.sender) > 0, "error_onlyBounty");
+        require(BountyFactory(globalData().streamrConfig.bountyFactory()).deploymentTimestamp(msg.sender) > 0, "error_onlyBounty");
         Bounty bounty = Bounty(msg.sender);
         emit ReviewRequest(bounty, targetBroker);
     }
@@ -678,8 +678,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     /**
      * If the difference between calculatePoolValueInData() and getApproximatePoolValue() becomes too large,
-     *   then anyone can call this method and point out a set of bounties that together sum up to PERCENT_DIFF_APPROX_POOL_VALUE
-     * Caller gets rewarded PUNISH_BROKERS_PT_THOUSANDTH of the broker's pool tokens
+     *   then anyone can call this method and point out a set of bounties that together sum up to poolValueDriftLimitFraction
+     * Caller gets rewarded poolValueDriftPenaltyFraction of the broker's pool tokens
      */
     function updateApproximatePoolvalueOfBounties(Bounty[] memory bountyAddresses) public {
         uint sumActual = 0;
@@ -695,12 +695,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         globalData().totalValueInBountiesWei = globalData().totalValueInBountiesWei + sumActual - sumApprox;
 
-        // if total difference is more than allowed, then slash the broker a bit
+        // if total difference is more than allowed, then slash the broker a bit: move some of their pool tokens to reward the caller
         // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
-        uint allowedDifference = getApproximatePoolValue() * globalData().streamrConstants.PERCENT_DIFF_APPROX_POOL_VALUE() / 100;
+        uint allowedDifference = getApproximatePoolValue() * globalData().streamrConfig.poolValueDriftLimitFraction() / 1 ether;
         if (sumActual > sumApprox + allowedDifference) {
-            _transfer(broker, _msgSender(),
-                balanceOf(broker) * globalData().streamrConstants.PUNISH_BROKERS_PT_THOUSANDTH() / 1000);
+            _transfer(broker, _msgSender(), balanceOf(broker) * globalData().streamrConfig.poolValueDriftPenaltyFraction() / 1 ether);
         }
     }
 }

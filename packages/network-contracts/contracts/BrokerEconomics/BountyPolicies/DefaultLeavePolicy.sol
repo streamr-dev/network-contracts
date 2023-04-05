@@ -31,7 +31,7 @@ contract DefaultLeavePolicy is ILeavePolicy, Bounty {
     }
 
     function setParam(uint256 penaltyPeriod) external {
-        require (penaltyPeriod <= globalData().streamrConstants.MAX_PENALTY_PERIOD_SECONDS(), "error_penaltyPeriodTooLong");
+        require (penaltyPeriod <= globalData().streamrConfig.maxPenaltyPeriodSeconds(), "error_penaltyPeriodTooLong");
         penaltyPeriodSeconds = penaltyPeriod;
     }
 }

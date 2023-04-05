@@ -16,6 +16,6 @@ contract BrokerPoolOnlyJoinPolicy is IJoinPolicy, Bounty {
     // only BrokerPool contracts that were deployed using our own BrokerPoolFactory are allowed to join
     // solc-ignore-next-line func-mutability
     function onJoin(address broker, uint256) external {
-        require(IFactory(globalData().streamrConstants.brokerPoolFactory()).deploymentTimestamp(broker) > 0, "error_onlyBrokerPools");
+        require(IFactory(globalData().streamrConfig.brokerPoolFactory()).deploymentTimestamp(broker) > 0, "error_onlyBrokerPools");
     }
 }
