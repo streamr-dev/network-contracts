@@ -34,10 +34,8 @@ async function main(){
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
     }
     
-    let ensCacheAddress = sidechainConfig.contracts.ENSCache
     let ensAddress = mainnetConfig.contracts.ENS
 
-    // let ensCacheContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIenscache.abi, sidechainProvider) // TODO: fix this
     let streamRegistryContract = new Contract("0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222", ABIstreamRegistry.abi, sidechainProvider)
     const trustedRole = await streamRegistryContract.TRUSTED_ROLE()
     log("trusted role: ", trustedRole)
@@ -46,25 +44,23 @@ async function main(){
     let ensCacheContract = new Contract("0x0667584E38057Fb1AFc4A483254CD5c5bad519Dd", ABIenscache.abi, sidechainProvider) // TODO
     const ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
     log("test1")
-    // event RequestENSOwnerAndCreateStream(string ensName, string streamIdPath, string metadataJsonString, address requestorAddress);
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
         log("Got ENS lookup name event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
         const ensHashedName = namehash.hash(ensName)
         let owner = await ensContract.owner(ensHashedName)
         log("ENS owner: ", owner)
-        // const domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
+        const domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
         
-        // ensCacheContract = ensCacheContract.connect(domainOwnerSidechain)
-        // if (requestorAddress == owner) {
-        //     log("Requestor is owner, calling createStreamFromENS")
-        //     const tx = await ensCacheContract.fulfillENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, requestorAddress)
-        //     await tx.wait()
-        //     log("createStreamFromENS tx: ", tx)
-        // }
+        ensCacheContract = ensCacheContract.connect(domainOwnerSidechain)
+        if (requestorAddress == owner) {
+            log("Requestor is owner, calling createStreamFromENS")
+        const tx = await ensCacheContract.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
+            await tx.wait()
+            log("createStreamFromENS tx: ", tx)
+        }
     })
 
     log("test2")
-    // emit StreamCreated(streamId, metadataJsonString);
     streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
         log("Got StreamCreated event params: ", streamId, metadataJsonString)
     })

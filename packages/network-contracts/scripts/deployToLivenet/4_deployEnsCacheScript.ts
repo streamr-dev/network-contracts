@@ -29,7 +29,7 @@ let registryFromUser: StreamRegistry
 let ensFromAdmin: Contract
 let fifsFromAdmin: Contract
 // let resolverFromAdmin : Contract
-let randomENSName: string = "testdomain1.eth"
+let randomENSName: string
 let randomENSNameWithSubdomain: string
 const metadata1 = "metadata1"
 let ensCacheScript
@@ -190,9 +190,9 @@ async function main() {
     await connectToAllContracts()
     // await deployEnsCacheScript()
 
-    // await registerENSNameOnMainnet()
+    await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
-    // await triggerChainlinkSyncOfENSSubdomainToSidechain()
+    await triggerChainlinkSyncOfENSSubdomainToSidechain()
 }
 
 main()
