@@ -16,11 +16,11 @@ describe("ENSCache", async (): Promise<void> => {
     let minimalForwarderFromAdmin: MinimalForwarder
     // let minimalForwarderFromUser0: MinimalForwarder
     let registryFromAdmin: StreamRegistry
-    let adminAdress: string
+    let adminAddress: string
 
     before(async (): Promise<void> => {
         wallets = await ethers.getSigners()
-        adminAdress = wallets[0].address
+        adminAddress = wallets[0].address
         // Deploy contracs
         const minimalForwarderFromAdminFactory = await ethers.getContractFactory(
             ForwarderJson.abi,
@@ -43,13 +43,13 @@ describe("ENSCache", async (): Promise<void> => {
         )
         oracleFromAdmin = (await oracleFromAdminFactory.deploy(linkTokenFromAdmin.address)) as Oracle
         await oracleFromAdmin.deployed()
-        await oracleFromAdmin.setFulfillmentPermission(adminAdress, true)
+        await oracleFromAdmin.setFulfillmentPermission(adminAddress, true)
         const ensCacheFromAdminFactory = await ethers.getContractFactory(
             ENSCacheJson.abi,
             ENSCacheJson.bytecode,
             wallets[0]
         )
-        ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAdress, "jobid")) as ENSCache
+        ensCacheFromAdmin = (await ensCacheFromAdminFactory.deploy(adminAddress, "jobid")) as ENSCache
         await ensCacheFromAdmin.deployed()
 
         await ensCacheFromAdmin.setChainlinkTokenAddress(linkTokenFromAdmin.address)
@@ -71,16 +71,16 @@ describe("ENSCache", async (): Promise<void> => {
         const tx = await ensCacheFromAdmin.requestENSOwner("ensdomain1")
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
-        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32)))
+        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAddress, 32)))
             .to.emit(ensCacheFromAdmin, "ChainlinkFulfilled")
             .and.to.not.emit(registryFromAdmin, "StreamCreated")
     })
 
     it("updates the cache entry and creates a stream: requestENSOwnerAndCreateStream", async () => {
-        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream("ensdomain1", "/path", "metadata", adminAdress)
+        const tx = await ensCacheFromAdmin.requestENSOwnerAndCreateStream("ensdomain1", "/path", "metadata", adminAddress)
         const tr = await tx.wait()
         const requestId = tr.logs[0].topics[1]
-        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAdress, 32))).to.emit(registryFromAdmin, "StreamCreated")
+        await expect(ensCacheFromAdmin.fulfillENSOwner(requestId, utils.hexZeroPad(adminAddress, 32))).to.emit(registryFromAdmin, "StreamCreated")
     })
 
     // TODO: ENSCache is not meta-transaction ready right now
@@ -93,11 +93,11 @@ describe("ENSCache", async (): Promise<void> => {
     //     const data = await ensCacheFromAdmin.interface.encodeFunctionData('requestENSOwner', ['ensdomain1'])
 
     //     const req = {
-    //         from: adminAdress,
+    //         from: adminAddress,
     //         to: ensCacheFromAdmin.address,
     //         value: '0',
     //         gas: '100000',
-    //         nonce: (await minimalForwarderFromAdmin.getNonce(adminAdress)).toString(),
+    //         nonce: (await minimalForwarderFromAdmin.getNonce(adminAddress)).toString(),
     //         data
     //     }
     //     const sign = ethSigUtil.signTypedMessage(utils.arrayify(wallets[0].privateKey),

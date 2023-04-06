@@ -24,6 +24,6 @@ contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Bounty {
     /** Check if there's room for one more */
     // solc-ignore-next-line func-mutability
     function onJoin(address, uint256) external {
-        require(globalData().brokerCount < localData().maxBrokers, "error_tooManyBrokers");
+        require(brokerCount < localData().maxBrokers, "error_tooManyBrokers");
     }
 }

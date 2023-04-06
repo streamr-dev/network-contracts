@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
- * @title Chain-specific constants and addresses for the Streamr Network tokenomics (Bounty, BrokerPool)
+ * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Bounty, BrokerPool)
  */
 contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 

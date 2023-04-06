@@ -56,8 +56,8 @@ async function deployPoolFactory() {
     ])).wait()
     log("Added trusted policies")
 
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: deploymentOwner })
-    const streamrConfig = await streamrConstantsFactory.attach(localConfig.streamrConfig) as StreamrConfig
+    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", { signer: deploymentOwner })
+    const streamrConfig = await streamrConfigFactory.attach(localConfig.streamrConfig) as StreamrConfig
     await (await streamrConfig.setBrokerPoolFactory(poolFactory.address)).wait()
     log("Set broker pool factory in StreamrConfig")
 }
