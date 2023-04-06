@@ -215,6 +215,74 @@ describe('ProjectStakingV1', (): void => {
                 .to.be.revertedWith("error_notEnoughTokensStaked")
         })
 
+        it(`unstake() - positivetest - can unstake amount after project is deleted`, async () => {
+            const projectId = await createProject()
+            await token.connect(admin).mint(staker1.address, stakingAmount1.add(stakingAmount2))
+            await token.connect(staker1).approve(projectStaking.address, stakingAmount1.add(stakingAmount2))
+            await projectStaking.connect(staker1).stake(projectId, stakingAmount1.add(stakingAmount2))
+            const userStake = await projectStaking.getUserStake(staker1.address)
+            const totalStake = await projectStaking.getTotalStake()
+
+            await projectRegistry.connect(admin).deleteProject(projectId)
+            await expect(projectStaking.connect(staker1).unstake(projectId, stakingAmount2))
+                .to.emit(projectStaking, "Unstake")
+                .withArgs(projectId, staker1.address, stakingAmount2)
+
+            expect (await projectStaking.getProjectStake(projectId))
+                .to.equal(stakingAmount1)
+            expect (await projectStaking.getUserStake(staker1.address))
+                .to.equal(userStake.sub(stakingAmount2))
+            expect (await projectStaking.getTotalStake())
+                .to.equal(totalStake.sub(stakingAmount2))
+        })
+
+        it(`unstake() - positivetest - unstaking amount=0, for yourself, does not change the staked amounts`, async () => {
+            const projectId = await createProject()
+            await token.connect(admin).mint(staker1.address, stakingAmount1)
+            await token.connect(staker1).approve(projectStaking.address, stakingAmount1)
+            // user1 stakes amount=stakingAmount1
+            await projectStaking.connect(staker1).stake(projectId, stakingAmount1)
+            const userStake = await projectStaking.getUserStake(staker1.address)
+            const totalStake = await projectStaking.getTotalStake()
+
+            // user1 unstakes amount=0
+            await expect(projectStaking.connect(staker1).unstake(projectId, 0))
+                .to.emit(projectStaking, "Unstake")
+                .withArgs(projectId, staker1.address, 0)
+
+            expect( await projectStaking.getProjectStake(projectId))
+                .to.equal(stakingAmount1)
+            expect (await projectStaking.getUserStake(staker1.address))
+                .to.equal(userStake)
+            expect (await projectStaking.getTotalStake())
+                .to.equal(totalStake)
+        })
+
+        it(`unstake() - positivetest - unstaking amount=0, for someone else, does not change the staked amounts`, async () => {
+            const projectId = await createProject()
+            await token.connect(admin).mint(staker1.address, stakingAmount1)
+            await token.connect(staker1).approve(projectStaking.address, stakingAmount1)
+            // user1 stakes amount=stakingAmount1
+            await projectStaking.connect(staker1).stake(projectId, stakingAmount1)
+            const user1Stake = await projectStaking.getUserStake(staker1.address)
+            const user2Stake = await projectStaking.getUserStake(staker2.address)
+            const totalStake = await projectStaking.getTotalStake()
+
+            // user2 unstakes amount=0
+            await expect(projectStaking.connect(staker2).unstake(projectId, 0))
+                .to.emit(projectStaking, "Unstake")
+                .withArgs(projectId, staker2.address, 0)
+
+            expect( await projectStaking.getProjectStake(projectId))
+                .to.equal(stakingAmount1)
+            expect (await projectStaking.getUserStake(staker1.address))
+                .to.equal(user1Stake)
+            expect (await projectStaking.getUserStake(staker2.address))
+                .to.equal(user2Stake)
+            expect (await projectStaking.getTotalStake())
+                .to.equal(totalStake)
+        })
+
         it(`onTokenTransfer() - positivetest`, async () => {
             // staking token is ERC677
             const transferAmount = parseEther('1000')
