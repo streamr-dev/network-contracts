@@ -21,7 +21,7 @@ contract ENSCacheV2Streamr is Ownable {
     IStreamRegistry private streamRegistry;
 
     modifier onlyStreamr() {
-        require(msg.sender == address(streamRegistry), "Only Streamr can call this function");
+        require(msg.sender == address(streamrScript), "Only Streamr Script can call this function");
         _;
     }
 

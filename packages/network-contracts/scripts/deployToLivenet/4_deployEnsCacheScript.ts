@@ -29,7 +29,7 @@ let registryFromUser: StreamRegistry
 let ensFromAdmin: Contract
 let fifsFromAdmin: Contract
 // let resolverFromAdmin : Contract
-let randomENSName: string = "testdomain1"
+let randomENSName: string = "testdomain1.eth"
 let randomENSNameWithSubdomain: string
 const metadata1 = "metadata1"
 let ensCacheScript
@@ -53,6 +53,7 @@ const connectToAllContracts = async () => {
 
 const deployEnsCacheScript = async () => {
     const ensCacheScriptFactory = await ethers.getContractFactory("ENSCacheV2Streamr", domainOwnerSidechain)
+    log("domainOwner.address:", domainOwner.address)
     const ensCacheScript = await ensCacheScriptFactory.deploy(
         domainOwner.address,
         STREAMREGISTRYADDRESS,
@@ -60,12 +61,24 @@ const deployEnsCacheScript = async () => {
     await ensCacheScript.deployed()
     log("ensCacheScript deployed at:", ensCacheScript.address)
 
-    log(`setting Streamregistry address in ensCacheScript`)
-    const setStreamRegTx = await ensCacheScript.setStreamRegistry(registryFromUser.address)
-    await setStreamRegTx.wait()
-    log(`setting ensCacheScript address as trusted role in streamregistry`)
-
+    // log(`setting Streamregistry address in ensCacheScript`)
+    // const setStreamRegTx = await ensCacheScript.setStreamRegistry(registryFromUser.address)
+    // await setStreamRegTx.wait()
+    // log(`setting ensCacheScript address as trusted role in streamregistry`)
+    log("domainOwnerSidechain.address:", domainOwnerSidechain.address)
+    // 0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB
     const role = await registryFromUser.TRUSTED_ROLE()
+    log("has role:", await registryFromUser.hasRole(role, domainOwnerSidechain.address))
+    const roleDefault = await registryFromUser.DEFAULT_ADMIN_ROLE()
+    log("has role default:", await registryFromUser.hasRole(roleDefault, domainOwnerSidechain.address))
+    await(await registryFromUser.grantRole(role, domainOwnerSidechain.address)).wait()
+
+
+    log(`setting ENSCache address in StreamRegistry`)
+    const setENSCacheTx = await registryFromUser.setEnsCache(ensCacheScript.address)
+    await setENSCacheTx.wait()
+    log(`setting Streamregistry address in ensCacheScript`)
+
     log(`granting role ${role} ensaddress ${ensCacheScript.address}`)
     const grantRoleTx = await registryFromUser.grantRole(role, ensCacheScript.address)
     await grantRoleTx.wait()
@@ -132,9 +145,9 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 
     const randomPath = getRandomPath()
     log("creating stream with ensname: " + randomENSName + randomPath)
-    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1)
+    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
-    await tx.wait()
+    const tr = await tx.wait()
     log("call done")
     let streamMetaDataCreatedByChainlink = ""
     while (streamMetaDataCreatedByChainlink !== metadata1) {

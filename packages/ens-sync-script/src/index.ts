@@ -3,11 +3,10 @@ import { Contract } from "@ethersproject/contracts"
 import { InfuraProvider, JsonRpcProvider, Provider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
 import { Chains } from "@streamr/config"
-// import * as ABIenscache from "../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
 import { createRequire } from "module"
 const require = createRequire(import.meta.url)
-// const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
-const ABIenscache = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
+const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
+const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
 const namehash = require('eth-ens-namehash')
 const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 
@@ -38,7 +37,13 @@ async function main(){
     let ensCacheAddress = sidechainConfig.contracts.ENSCache
     let ensAddress = mainnetConfig.contracts.ENS
 
-    let ensCacheContract = new Contract(sidechainConfig.contracts.ENSCacheV2Streamr, ABIenscache.abi, sidechainProvider)
+    // let ensCacheContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIenscache.abi, sidechainProvider) // TODO: fix this
+    let streamRegistryContract = new Contract("0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222", ABIstreamRegistry.abi, sidechainProvider)
+    const trustedRole = await streamRegistryContract.TRUSTED_ROLE()
+    log("trusted role: ", trustedRole)
+    log("ens cache has granted role on stream regsitry: ", await streamRegistryContract.hasRole(trustedRole, "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794"))
+
+    let ensCacheContract = new Contract("0x0667584E38057Fb1AFc4A483254CD5c5bad519Dd", ABIenscache.abi, sidechainProvider) // TODO
     const ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
     log("test1")
     // event RequestENSOwnerAndCreateStream(string ensName, string streamIdPath, string metadataJsonString, address requestorAddress);
@@ -56,6 +61,12 @@ async function main(){
         //     await tx.wait()
         //     log("createStreamFromENS tx: ", tx)
         // }
+    })
+
+    log("test2")
+    // emit StreamCreated(streamId, metadataJsonString);
+    streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
+        log("Got StreamCreated event params: ", streamId, metadataJsonString)
     })
 }
 

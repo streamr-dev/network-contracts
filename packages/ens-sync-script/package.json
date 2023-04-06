@@ -5,7 +5,7 @@
   "description": "looks up owner of ensname on stream creation and creates stream",
   "main": "index.ts",
   "scripts": {
-    "start": "node --experimental-specifier-resolution=node --loader ts-node/esm ./src/index.ts"
+    "start": "npx tsx ./src/index.ts"
   },
   "author": "",
   "license": "ISC",
