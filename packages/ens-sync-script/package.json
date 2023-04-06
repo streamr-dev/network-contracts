@@ -5,15 +5,18 @@
   "description": "looks up owner of ensname on stream creation and creates stream",
   "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node --experimental-specifier-resolution=node --loader ts-node/esm ./src/index.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ensdomains/ens": "^0.6.2",
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@ethersproject/wallet": "^5.7.0",
-    "@streamr/config": "^2.5.10"
+    "@streamr/config": "^2.5.10",
+    "debug": "^4.3.4",
+    "eth-ens-namehash": "^2.0.8"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.57.1",
