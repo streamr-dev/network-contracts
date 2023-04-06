@@ -28,11 +28,9 @@ const subdomainOwner = Wallet.createRandom().connect(sideChainProvider)
 let registryFromUser: StreamRegistry
 let ensFromAdmin: Contract
 let fifsFromAdmin: Contract
-// let resolverFromAdmin : Contract
 let randomENSName: string
 let randomENSNameWithSubdomain: string
 const metadata1 = "metadata1"
-let ensCacheScript
 
 const connectToAllContracts = async () => {
     // send some eth to the subdomain owner
@@ -66,23 +64,21 @@ const deployEnsCacheScript = async () => {
     // await setStreamRegTx.wait()
     // log(`setting ensCacheScript address as trusted role in streamregistry`)
     log("domainOwnerSidechain.address:", domainOwnerSidechain.address)
-    // 0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB
     const role = await registryFromUser.TRUSTED_ROLE()
     log("has role:", await registryFromUser.hasRole(role, domainOwnerSidechain.address))
     const roleDefault = await registryFromUser.DEFAULT_ADMIN_ROLE()
     log("has role default:", await registryFromUser.hasRole(roleDefault, domainOwnerSidechain.address))
     await(await registryFromUser.grantRole(role, domainOwnerSidechain.address)).wait()
 
-
-    log(`setting ENSCache address in StreamRegistry`)
+    log("setting ENSCache address in StreamRegistry")
     const setENSCacheTx = await registryFromUser.setEnsCache(ensCacheScript.address)
     await setENSCacheTx.wait()
-    log(`setting Streamregistry address in ensCacheScript`)
+    log("setting Streamregistry address in ensCacheScript")
 
     log(`granting role ${role} ensaddress ${ensCacheScript.address}`)
     const grantRoleTx = await registryFromUser.grantRole(role, ensCacheScript.address)
     await grantRoleTx.wait()
-    log(`ensCacheScript address set as trusted role in streamregistry`)
+    log("ensCacheScript address set as trusted role in streamregistry")
 
     return ensCacheScript
 }
@@ -99,14 +95,6 @@ const registerENSNameOnMainnet = async () => {
     const nameHashedENSName = utils.namehash(randomENSName)
     let tx = await fifsFromAdmin.register(hashedDomain, domainOwner.address)
     await tx.wait()
-
-    // log('setting owner for ens (should already be the registrar)')
-    // tx = await ensFromAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    // await tx.wait()
-
-    // log('setting resolver for ens')
-    // tx = await ensFromAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    // await tx.wait(2)
 
     log("setting owner (" + domainOwner.address + "), resolver and ttl for ens")
     tx = await ensFromAdmin.setRecord(nameHashedENSName, domainOwner.address, RESOLVERADDRESS, 1000000)
@@ -147,7 +135,7 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     log("creating stream with ensname: " + randomENSName + randomPath)
     const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
-    const tr = await tx.wait()
+    await tx.wait()
     log("call done")
     let streamMetaDataCreatedByChainlink = ""
     while (streamMetaDataCreatedByChainlink !== metadata1) {
