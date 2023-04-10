@@ -6,11 +6,7 @@
 pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IStreamRegistry {
-    // solhint-disable-next-line func-name-mixedcase
-    function ENScreateStreamCallback(address requestorAddress, string memory ensName, string calldata streamIdPath, string calldata metadataJsonString) external;
-}
+import "./ENSCacheV1.sol";
 
 contract ENSCacheV2Streamr is Ownable {
     
@@ -19,19 +15,25 @@ contract ENSCacheV2Streamr is Ownable {
     mapping(string => address) public owners;
     address private streamrScript;
     IStreamRegistry private streamRegistry;
+    ENSCacheV1 private ensCacheV1;
 
     modifier onlyStreamr() {
         require(msg.sender == address(streamrScript), "Only Streamr Script can call this function");
         _;
     }
 
-    constructor(address _streamrScript, IStreamRegistry _streamRegistry) {
+    constructor(address _streamrScript, IStreamRegistry _streamRegistry, ENSCacheV1 _ensCacheV1) {
         streamrScript = _streamrScript;
         streamRegistry = _streamRegistry;
+        ensCacheV1 = _ensCacheV1;
     }
 
     function setStreamRegistry(address streamRegistryAddress) public onlyOwner {
         streamRegistry = IStreamRegistry(streamRegistryAddress);
+    }
+
+    function setENSCacheV1(address ensCacheV1Address) public onlyOwner {
+        ensCacheV1 = ENSCacheV1(ensCacheV1Address);
     }
     
     function setStreamrScript(address _streamrScript) public onlyOwner {
@@ -41,7 +43,13 @@ contract ENSCacheV2Streamr is Ownable {
     /** Update cache and create a stream */
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, 
         string calldata metadataJsonString, address requestorAddress) public {
-        emit RequestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, requestorAddress);
+        address ownerAddress = ensCacheV1.owners(ensName);
+        if (ownerAddress!= address(0)) {
+            owners[ensName] = ownerAddress;
+            streamRegistry.ENScreateStreamCallback(ownerAddress, ensName, streamIdPath, metadataJsonString);
+        } else {
+            emit RequestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, requestorAddress);
+        }
     }
 
     function fulfillENSOwner(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString, address ownerAddress) public onlyStreamr() {

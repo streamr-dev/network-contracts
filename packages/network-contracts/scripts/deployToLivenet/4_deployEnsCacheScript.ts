@@ -2,25 +2,31 @@ import { ethers } from "hardhat"
 import { Contract, providers, Wallet, utils } from "ethers"
 import Debug from "debug"
 const log = Debug("streamr:test:chainlink-ens")
+import { Chains } from "@streamr/config"
 
 import { StreamRegistry } from "../../typechain"
 
 import ensAbi from "@ensdomains/ens/build/contracts/ENS.json"
 import fifsAbi from "@ensdomains/ens/build/contracts/FIFSRegistrar.json"
 
-const DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
-const MAINNETURL = "http://localhost:8545"
-const SIDECHAINURL = "http://localhost:8546"
+const mainnetConfig = Chains.load()["dev0"]
+const sidechainConfig = Chains.load()["dev1"]
+const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
+const sideChainProvider = new providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 
-const STREAMREGISTRYADDRESS = "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222"
+const DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
+// const MAINNETURL = "http://localhost:8545"
+// const SIDECHAINURL = "http://localhost:8546"
+
+// const STREAMREGISTRYADDRESS = "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222"
 
 // ens on mainnet
 const ENSADDRESS = "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03"
 const FIFSADDRESS = "0x57B81a9442805f88c4617B506206531e72d96290"
 const RESOLVERADDRESS = "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c"
 
-const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
-const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
+const ENSCacheV1 = "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3"
+
 const domainOwner = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
 const domainOwnerSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
 const subdomainOwner = Wallet.createRandom().connect(sideChainProvider)
@@ -38,7 +44,7 @@ const connectToAllContracts = async () => {
     await (await domainOwnerSidechain.sendTransaction({ to: subdomainOwner.address, value: ethers.utils.parseEther("1") })).wait()
 
     const streamregistryFactory = await ethers.getContractFactory("StreamRegistry", domainOwnerSidechain)
-    const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
+    const registry = await streamregistryFactory.attach(sidechainConfig.contracts.StreamRegistry)
     const registryContract = await registry.deployed()
     registryFromUser = await registryContract.connect(domainOwnerSidechain) as StreamRegistry
 
@@ -54,7 +60,8 @@ const deployEnsCacheScript = async () => {
     log("domainOwner.address:", domainOwner.address)
     const ensCacheScript = await ensCacheScriptFactory.deploy(
         domainOwner.address,
-        STREAMREGISTRYADDRESS,
+        sidechainConfig.contracts.StreamRegistry,
+        ENSCacheV1
     )
     await ensCacheScript.deployed()
     log("ensCacheScript deployed at:", ensCacheScript.address)
@@ -73,7 +80,6 @@ const deployEnsCacheScript = async () => {
     log("setting ENSCache address in StreamRegistry")
     const setENSCacheTx = await registryFromUser.setEnsCache(ensCacheScript.address)
     await setENSCacheTx.wait()
-    log("setting Streamregistry address in ensCacheScript")
 
     log(`granting role ${role} ensaddress ${ensCacheScript.address}`)
     const grantRoleTx = await registryFromUser.grantRole(role, ensCacheScript.address)
@@ -133,7 +139,8 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 
     const randomPath = getRandomPath()
     log("creating stream with ensname: " + randomENSName + randomPath)
-    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
+    // const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
+    const tx = await registryFromUser.createStreamWithENS("zzhgq.eth", randomPath, metadata1) // fires the ens event
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
     await tx.wait()
     log("call done")
@@ -178,9 +185,9 @@ async function main() {
     await connectToAllContracts()
     // await deployEnsCacheScript()
 
-    await registerENSNameOnMainnet()
+    // await registerENSNameOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
-    await triggerChainlinkSyncOfENSSubdomainToSidechain()
+    // await triggerChainlinkSyncOfENSSubdomainToSidechain()
 }
 
 main()

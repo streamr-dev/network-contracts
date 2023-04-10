@@ -9,6 +9,7 @@ const ABIenscache = require("../../network-contracts/artifacts/contracts/chainli
 const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
 const namehash = require('eth-ens-namehash')
 const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
+const ENSCacheAddress = "0xD13D34d37e2c94cb35EA8D5DE7498Cb7830d26e0"
 
 const log = require("debug")("streamr:ens-sync-script")
 
@@ -35,9 +36,9 @@ async function main(){
     
     const ensAddress = mainnetConfig.contracts.ENS
 
-    const streamRegistryContract = new Contract("0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222", ABIstreamRegistry.abi, sidechainProvider)
+    const streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
 
-    let ensCacheContract = new Contract("0x0667584E38057Fb1AFc4A483254CD5c5bad519Dd", ABIenscache.abi, sidechainProvider) // TODO
+    let ensCacheContract = new Contract(ENSCacheAddress, ABIenscache.abi, sidechainProvider) // TODO
     const ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
     log("test1")
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
