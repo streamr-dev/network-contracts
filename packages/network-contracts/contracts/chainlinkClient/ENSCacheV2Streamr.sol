@@ -44,7 +44,7 @@ contract ENSCacheV2Streamr is Ownable {
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, 
         string calldata metadataJsonString, address requestorAddress) public {
         address ownerAddress = ensCacheV1.owners(ensName);
-        if (ownerAddress!= address(0)) {
+        if (ownerAddress == requestorAddress) {
             owners[ensName] = ownerAddress;
             streamRegistry.ENScreateStreamCallback(ownerAddress, ensName, streamIdPath, metadataJsonString);
         } else {

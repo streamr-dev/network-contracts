@@ -5,7 +5,7 @@
   "description": "looks up owner of ensname on stream creation and creates stream",
   "main": "index.ts",
   "scripts": {
-    "start": "npx tsx ./src/index.ts"
+    "start": "tsx ./src/index.ts"
   },
   "author": "",
   "license": "ISC",
@@ -16,7 +16,8 @@
     "@ethersproject/wallet": "^5.7.0",
     "@streamr/config": "^2.5.10",
     "debug": "^4.3.4",
-    "eth-ens-namehash": "^2.0.8"
+    "eth-ens-namehash": "^2.0.8",
+    "tsx": "^3.12.6"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.57.1",

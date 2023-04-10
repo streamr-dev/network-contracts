@@ -14,7 +14,10 @@ const sidechainConfig = Chains.load()["dev1"]
 const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
 const sideChainProvider = new providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 
-const DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
+// const DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0" // deploymentowner of streamregistry
+// const DEFAULTPRIVATEKEY = "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb" // owner of testdomain1.eth
+const DEFAULTPRIVATEKEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae" // owner of testdomain2.eth
+
 // const MAINNETURL = "http://localhost:8545"
 // const SIDECHAINURL = "http://localhost:8546"
 
@@ -135,12 +138,23 @@ const registerENSNameOnMainnet = async () => {
     log("queried owner of", randomENSNameWithSubdomain, ": ", subdomainOwnerQueried)
 }
 
+const changeENSOwnerOnMainnet = async () => {
+    randomENSName = "testdomain2.eth"
+    const newOwner = "0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB"
+    log("changing owner of ens name on mainnet:", randomENSName, " owner: " + newOwner)
+    const nameHashedENSName = utils.namehash(randomENSName)
+    const tx = await ensFromAdmin.setOwner(nameHashedENSName, newOwner)
+    await tx.wait()
+    log("set owner of ens name on mainnet:", randomENSName, " owner: " + newOwner)
+}
+
 const triggerChainlinkSyncOfENSNameToSidechain = async () => {
 
     const randomPath = getRandomPath()
+    randomENSName = "testdomain2.eth"
     log("creating stream with ensname: " + randomENSName + randomPath)
-    // const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
-    const tx = await registryFromUser.createStreamWithENS("zzhgq.eth", randomPath, metadata1) // fires the ens event
+    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
+    // const tx = await registryFromUser.createStreamWithENS("zzhgq.eth", randomPath, metadata1) // fires the ens event
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
     await tx.wait()
     log("call done")
@@ -186,6 +200,7 @@ async function main() {
     // await deployEnsCacheScript()
 
     // await registerENSNameOnMainnet()
+    // await changeENSOwnerOnMainnet()
     await triggerChainlinkSyncOfENSNameToSidechain()
     // await triggerChainlinkSyncOfENSSubdomainToSidechain()
 }
