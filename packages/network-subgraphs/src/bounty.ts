@@ -1,6 +1,6 @@
-import { log } from '@graphprotocol/graph-ts'
+import { BigInt, log } from '@graphprotocol/graph-ts'
 
-import { Bounty, BrokerPool, BountyStake, Flag } from '../generated/schema'
+import { Bounty, BrokerPool, BountyStake, Flag, BountyDailyStats } from '../generated/schema'
 import { StakeUpdate, BountyUpdate, FlagUpdate, MetadataUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
@@ -48,6 +48,38 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     bounty!.brokerCount = event.params.brokerCount.toI32()
     bounty!.isRunning = event.params.isRunning
     bounty!.save()
+
+    // update BountyDailyStats
+    let date = new Date(event.block.timestamp.toI32() * 1000)
+    // let dayDate = new Date()
+    // dayDate.setUTCFullYear(date.getUTCFullYear())
+    // dayDate.setUTCMonth(date.getUTCMonth())
+    // dayDate.setUTCDate(date.getUTCDate())
+    date.setUTCHours(0)
+    date.setUTCMinutes(0)
+    date.setUTCSeconds(0)
+    date.setUTCMilliseconds(0)
+    //datestring in yyyy-mm-dd format
+    let dateString = date.toISOString().split('T')[0]
+    let statId = bountyAddress.toHexString() + "-" + dateString
+    let stat = BountyDailyStats.load(statId)
+    if (stat === null) {
+        stat = new BountyDailyStats(statId)
+        stat.id = statId
+        stat.bounty = bountyAddress.toHexString()
+        stat.date = new BigInt(i32(date.getTime()))
+        stat.totalStakedWei = event.params.totalStakeWei
+        stat.unallocatedWei = event.params.unallocatedWei
+        stat.spotAPY = new BigInt(0)
+        stat.totalPayoutsCumulative = new BigInt(0)
+    } else {
+        stat.totalStakedWei = stat.totalStakedWei.plus(event.params.totalStakeWei)
+        stat.unallocatedWei = stat.unallocatedWei.plus(event.params.unallocatedWei)
+        // stat.totalPayoutsCumulative = stat.totalPayoutsCumulative.plus(event.params.totalPayoutsCumulative)
+    }
+    stat.brokerCount = event.params.brokerCount.toI32()
+    stat.projectedInsolvency = event.params.projectedInsolvencyTime
+    stat.brokerCount = event.params.brokerCount.toI32()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
@@ -78,4 +110,3 @@ export function handleMetadataUpdate(event: MetadataUpdate): void {
     bounty!.metadata = event.params.metadata
     bounty!.save()
 }
-    
