@@ -23,13 +23,13 @@ export async function deployBounty(
         maxBrokerCount = -1,
         allocationWeiPerSecond = parseEther("1"),
         brokerPoolOnly = false,
-        adminKickInsteadOfVoteKick = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
     overrideAllocationPolicy?: IAllocationPolicy,
     overrideAllocationPolicyParam?: string,
     overrideKickPolicy?: IKickPolicy,
+    overrideKickPolicyParam?: string,
 ): Promise<Bounty> {
     const {
         maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
@@ -49,8 +49,8 @@ export async function deployBounty(
     const allocationPolicyParam = overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
     const leavePolicyAddress = penaltyPeriodSeconds > -1 ? leavePolicy.address : "0x0000000000000000000000000000000000000000"
     const leavePolicyParam = penaltyPeriodSeconds > -1 ? penaltyPeriodSeconds.toString() : "0"
-    const kickPolicyAddress = overrideKickPolicy?.address ?? (adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address)
-    const kickPolicyParam = "0"
+    const kickPolicyAddress = overrideKickPolicy?.address ?? voteKickPolicy.address
+    const kickPolicyParam = overrideKickPolicyParam ?? "0"
     const policyAddresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
     const policyParams = [allocationPolicyParam, leavePolicyParam, kickPolicyParam]
     if (maxBrokerCount > -1) {
@@ -116,7 +116,6 @@ export async function deployBountyWithoutFactory(
         "streamID",
         "metadata",
         contracts.streamrConfig.address,
-        deployer.address,
         token.address,
         [minimumStakeWei.toString(),
             minHorizonSeconds.toString(),
@@ -125,7 +124,7 @@ export async function deployBountyWithoutFactory(
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
     )
 
-    await bounty.setKickPolicy(adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address, "0")
+    await bounty.setKickPolicy(adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address, deployer.address)
     if (penaltyPeriodSeconds > -1) {
         await bounty.setLeavePolicy(leavePolicy.address, penaltyPeriodSeconds.toString())
     }

@@ -6,19 +6,21 @@ import "./IKickPolicy.sol";
 import "../Bounty.sol";
 
 contract AdminKickPolicy is IKickPolicy, Bounty {
-    // struct LocalStorage {
-    // }
+    struct LocalStorage {
+        address admin;
+    }
 
-    // function localData() internal view returns(LocalStorage storage data) {
-    //     bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.AdminKickPolicy", address(this)));
-    //     assembly {data.slot := storagePosition}
-    // }
+    function localData() internal view returns(LocalStorage storage data) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("bounty.storage.AdminKickPolicy", address(this)));
+        assembly {data.slot := storagePosition}
+    }
 
-    function setParam(uint256) external {
+    function setParam(uint256 adminAdress) external {
+        localData().admin = address(uint160(adminAdress));
     }
 
     function onFlag(address broker) external {
-        require(isAdmin(_msgSender()), "error_onlyAdmin");
+        require(localData().admin == _msgSender(), "error_onlyAdmin");
         _kick(broker, 0);
     }
 
