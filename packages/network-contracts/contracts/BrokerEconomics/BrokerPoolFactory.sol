@@ -111,15 +111,16 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address[3] calldata policies,
         uint[8] calldata initParams,
         string calldata metadataJsonString
-    ) public returns (address) {
-        return _deployBrokerPool(
+    ) public returns (address brokerPoolAddress) {
+        brokerPoolAddress = _deployBrokerPool(
             _msgSender(),
             initialMinimumDelegationWei,
             poolName,
             policies,
-            initParams,
-            metadataJsonString
+            initParams
         );
+
+        BrokerPool(brokerPoolAddress).setMetadata(metadataJsonString);
     }
 
     function _deployBrokerPool(
@@ -127,8 +128,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         uint32 initialMinimumDelegationWei,
         string calldata poolName,
         address[3] calldata policies,
-        uint[8] calldata initParams,
-        string calldata metadataJsonString
+        uint[8] calldata initParams
     ) private returns (address) {
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
@@ -143,8 +143,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             poolOwner,
             poolName,
             initialMinimumDelegationWei,
-            streamRegistry,
-            metadataJsonString
+            streamRegistry
         );
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);

@@ -119,8 +119,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address brokerAddress,
         string calldata poolName,
         uint initialMinimumDelegationWei,
-        address streamRegistryAddress,
-        string memory metadataJsonString
+        address streamRegistryAddress
     ) public initializer {
         __AccessControl_init();
         _setupRole(ADMIN_ROLE, brokerAddress);
@@ -141,10 +140,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination
         streamId = string.concat(streamRegistry.addressToString(brokerAddress), "/broker/coordination");
-        streamRegistry.createStream(streamId, metadataJsonString);
-
-        metadata = metadataJsonString;
-        emit MetadataUpdated(metadataJsonString, brokerAddress);
+        streamRegistry.createStream(streamId, "");
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -176,7 +172,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function setMedadata(string calldata metadataJsonString) external onlyBroker {
+    function setMetadata(string calldata metadataJsonString) external onlyBroker {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, broker);
     }
