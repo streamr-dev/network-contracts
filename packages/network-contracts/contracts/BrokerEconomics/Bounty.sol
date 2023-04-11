@@ -164,19 +164,30 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /**
-     * Sponsor a stream by first calling DATA.approve(bounty.address, amountWei) then this function (2-step ERC20)
-     *   or alternatively call DATA.transferAndCall(bounty.address, amountWei, "0x") (1-step ERC677)
+     * Sponsor a stream in one of three ways:
+     * 1. 1-step ERC677: `DATA.transferAndCall(bounty.address, amountWei, "0x")` (preferred method!)
+     * 2. 2-step ERC20: first `DATA.approve(bounty.address, amountWei)` then `bounty.sponsor(amountWei)` (ERC20 compatibility)
+     * 3. 2-step ERC20: first `DATA.transfer(bounty.address, amountWei)` then `bounty.sponsor(0)` (fix if tokens were accidentally sent using ERC20.transfer)
+     * Method 3 will not attribute the tokens to the sponsor, so it should be avoided and only considered as a fix.
+     * The problem with ERC20.transfer is that it doesn't allow the recipient to know who sent the tokens, so the contract can't attribute them to the sender.
      */
     function sponsor(uint amountWei) external {
-        token.transferFrom(_msgSender(), address(this), amountWei);
+        if (amountWei > 0) {
+            token.transferFrom(_msgSender(), address(this), amountWei);
+        }
         _addSponsorship(_msgSender(), amountWei);
     }
 
+    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using ERC20.transfer */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        // TODO: sweep also unaccounted tokens into unallocated funds?
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
-        unallocatedWei += amountWei;
+        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei;
+        uint unknownTokensWei = newTokensWei - amountWei; // newTokens > amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
+        unallocatedWei += newTokensWei;
         emit SponsorshipReceived(sponsorAddress, amountWei);
+        if (unknownTokensWei > 0) {
+            emit SponsorshipReceived(address(0), unknownTokensWei);
+        }
         emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
     }
 
