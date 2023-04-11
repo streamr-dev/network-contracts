@@ -19,6 +19,15 @@ import "./StreamrConfig.sol";
 import "./Bounty.sol";
 import "./BountyFactory.sol";
 
+interface IStreamRegistry {
+    enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
+
+    function createStream(string calldata streamIdPath, string calldata metadataJsonString) external;
+    function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function revokePermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function addressToString(address _address) external pure returns(string memory);
+}
+
 // import "hardhat/console.sol";
 
 /**
@@ -40,6 +49,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event Heartbeat(address indexed nodeAddress, string jsonData);
 
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
+
+    event MetadataUpdated(string metadataJsonString, address brokerPoolAddress);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -85,6 +96,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
+    IStreamRegistry streamRegistry;
+    string public streamId;
+    string public metadata;
+
     modifier onlyBroker() {
         require(_msgSender() == broker, "error_onlyBroker");
         _;
@@ -103,7 +118,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address streamrConfigAddress,
         address brokerAddress,
         string calldata poolName,
-        uint initialMinimumDelegationWei
+        uint initialMinimumDelegationWei,
+        address streamRegistryAddress,
+        string memory metadataJsonString
     ) public initializer {
         __AccessControl_init();
         _setupRole(ADMIN_ROLE, brokerAddress);
@@ -119,6 +136,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        streamRegistry = IStreamRegistry(streamRegistryAddress);
+
+        // each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination
+        streamId = string.concat(streamRegistry.addressToString(brokerAddress), "/broker/coordination");
+        streamRegistry.createStream(streamId, metadataJsonString);
+
+        metadata = metadataJsonString;
+        emit MetadataUpdated(metadataJsonString, brokerAddress);
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -148,6 +174,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    function setMedadata(string calldata metadataJsonString) external onlyBroker {
+        metadata = metadataJsonString;
+        emit MetadataUpdated(metadataJsonString, broker);
     }
 
     /////////////////////////////////////////
@@ -416,6 +447,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function _addNode(address node) internal {
         nodes.push(node);
         nodeIndex[node] = nodes.length; // will be +1
+
+        streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+        streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function _removeNode(address node) internal {
@@ -425,6 +459,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         nodes.pop();
         nodeIndex[lastNode] = index + 1;
         delete nodeIndex[node];
+
+        streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+        streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function getNodeAddresses() external view returns (address[] memory) {

@@ -31,17 +31,21 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         return deployedBrokerPools.length;
     }
 
+    address public streamRegistry;
+
     event NewBrokerPool(address poolAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress, address streamRegistryAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         brokerPoolTemplate = templateAddress;
+
+        streamRegistry = streamRegistryAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -105,14 +109,16 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         uint32 initialMinimumDelegationWei,
         string calldata poolName,
         address[3] calldata policies,
-        uint[8] calldata initParams
+        uint[8] calldata initParams,
+        string calldata metadataJsonString
     ) public returns (address) {
         return _deployBrokerPool(
             _msgSender(),
             initialMinimumDelegationWei,
             poolName,
             policies,
-            initParams
+            initParams,
+            metadataJsonString
         );
     }
 
@@ -121,7 +127,8 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         uint32 initialMinimumDelegationWei,
         string calldata poolName,
         address[3] calldata policies,
-        uint[8] calldata initParams
+        uint[8] calldata initParams,
+        string calldata metadataJsonString
     ) private returns (address) {
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
@@ -135,7 +142,9 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             configAddress,
             poolOwner,
             poolName,
-            initialMinimumDelegationWei
+            initialMinimumDelegationWei,
+            streamRegistry,
+            metadataJsonString
         );
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);
