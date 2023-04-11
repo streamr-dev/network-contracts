@@ -33,7 +33,7 @@ export async function deployBounty(
 ): Promise<Bounty> {
     const {
         maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
-        allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
+        allocationPolicy, leavePolicy, voteKickPolicy,
         bountyTemplate, bountyFactory
     } = contracts
 
@@ -117,10 +117,12 @@ export async function deployBountyWithoutFactory(
         "metadata",
         contracts.streamrConfig.address,
         token.address,
-        [minimumStakeWei.toString(),
+        [
+            minimumStakeWei.toString(),
             minHorizonSeconds.toString(),
             minBrokerCount.toString(),
-            overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()],
+            overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
+        ],
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
     )
 
