@@ -11,12 +11,16 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./BrokerPool.sol";
 import "./IERC677.sol";
 
+/**
+ * BrokerPoolFactory creates "smart contract interfaces" for brokers to the Streamr Network.
+ * Only BrokerPools from this BrokerPoolFactory can stake to Streamr Network Bounties.
+ */
 contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public brokerPoolTemplate;
-    address public streamrConfig;
+    address public configAddress;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
@@ -32,11 +36,11 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        streamrConfig = constants;
-        tokenAddress = _tokenAddress;
+        configAddress = streamrConfigAddress;
+        tokenAddress = dataTokenAddress;
         brokerPoolTemplate = templateAddress;
     }
 
@@ -128,7 +132,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
-            streamrConfig,
+            configAddress,
             poolOwner,
             poolName,
             initialMinimumDelegationWei

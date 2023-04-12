@@ -57,18 +57,55 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         update(0); // TODO: not needed if setParam can't be called again
     }
 
+    function getEarningsWei(address broker) public view returns (uint earningsWei) {
+        if (stakedWei[broker] == 0) { return 0; }
+        return _calculateAllocation(broker, stakedWei[broker]);
+    }
+
+    /**
+     * Calculate the broker's allocation from the cumulative earnings per unit (full token stake) right now
+     * It's important that stakedWei hasn't changed since update() was last called
+     * TODO: see if there's some way to DRY out common parts with update(), they both do solvency and allocation calculations
+     */
+    function _calculateAllocation(address broker, uint stakeWei) internal view returns (uint allocation) {
+        // console.log("Calculate allocation for", broker);
+        LocalStorage storage local = localData();
+
+        // in the state of insolvency or not running: use the old cumulativeWeiPerStake, don't allocate new earnings
+        uint cumulativeWeiPerStake = local.cumulativeWeiPerStake;
+
+        // if it WAS working normally during last update: try to allocate what is owed
+        if (local.lastUpdateWasRunning && unallocatedWei > 0) {
+            uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
+            uint owedWeiPerStake = local.incomePerSecondPerStake * deltaTime;
+            uint owedWei = owedWeiPerStake * local.lastUpdateTotalStake / 1e18;
+            uint remainingWeiPerStake = unallocatedWei * 1e18 / local.lastUpdateTotalStake;
+
+            // if it went insolvent after the last update: allocate all remaining funds, otherwise allocate what is owed
+            cumulativeWeiPerStake += owedWei > unallocatedWei ? remainingWeiPerStake : owedWeiPerStake;
+        }
+        // console.log("  cumulative ", cumulativeWeiPerStake);
+        // console.log("  reference  ", localData().cumulativeReference[broker]);
+        uint weiPerStake = cumulativeWeiPerStake - localData().cumulativeReference[broker];
+        // console.log("  alloc / full token", weiPerStake);
+        uint allocationSinceReferenceResetWei = stakeWei * weiPerStake / 1e18; // full token = 1e18 wei
+        // console.log("  onReferenceResetWei  ", localData().onReferenceResetWei[broker]);
+        // console.log("  since reference reset", allocationSinceReferenceResetWei);
+        return localData().onReferenceResetWei[broker] + allocationSinceReferenceResetWei;
+    }
+
     /**
      * Update the localData so that all subsequent calculations can use localData().cumulativeWeiPerStake
      * New funds that may have entered in the meanwhile are only counted after
      * This should be called BEFORE changes that affect incomePerSecondPerStake, such as total staked, incomePerSecond
      * insolvencyStartTimeOverride is needed when stake was increased before update, because insolvency must be calculated with the stake
-     * TODO: split update into updateAllocations and updateIncomes / prepareUpdate
+     * TODO: maybe split update into updateAllocations and updateIncomes / prepareUpdate
      *       that might also get rid of lastUpdateTotalStake and lastUpdateWasRunning
      *         after changing the order of change and listener in Bounty->onJoin, like was done for onSponsor
+     * TODO: try to DRY out common parts with _calculateAllocation()
      */
     function update(uint newFundsWei) private {
         LocalStorage storage localVars = localData();
-        GlobalStorage storage globalVars = globalData();
         if (localVars.lastUpdateWasRunning) {
             uint deltaTime = block.timestamp - localVars.lastUpdateTimestamp;
             // console.log("    lastUpdateTimestamp", localVars.lastUpdateTimestamp, "block.timestamp", block.timestamp);
@@ -77,24 +114,24 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
                 uint allocationWei = localVars.incomePerSecond * deltaTime;
                 uint allocationWeiPerStake = localVars.incomePerSecondPerStake * deltaTime;
                 // in case of insolvency: allocate all remaining funds (according to weights) up to the start of insolvency
-                if (globalVars.unallocatedFunds < allocationWei) {
+                if (unallocatedWei < allocationWei) {
                     uint insolvencyStartTime = getInsolvencyTimestamp();
                     uint insolvencySeconds = block.timestamp - insolvencyStartTime;
                     assert(insolvencySeconds <= deltaTime); // equality means insolvency started exactly during the last update
                     localVars.defaultedWeiPerStake = insolvencySeconds * localVars.incomePerSecondPerStake;
-                    localVars.defaultedWei = allocationWei - globalVars.unallocatedFunds; // allocation should be >, otherwise insolvencyStartTime was wrong
+                    localVars.defaultedWei = allocationWei - unallocatedWei; // allocation should be >, otherwise insolvencyStartTime was wrong
 
-                    allocationWei = globalVars.unallocatedFunds;
-                    allocationWeiPerStake = globalVars.unallocatedFunds * 1e18 / localVars.lastUpdateTotalStake;
+                    allocationWei = unallocatedWei;
+                    allocationWeiPerStake = unallocatedWei * 1e18 / localVars.lastUpdateTotalStake;
 
-                    // InsolvencyStarted is not emitted if unallocatedFunds goes to exactly zero even if newBalanceWei also ends up zero.
+                    // InsolvencyStarted is not emitted if unallocatedWei goes to exactly zero even if newBalanceWei also ends up zero.
                     // This is to give a "benefit of doubt" to the bounty: perhaps in the same block, a top-up still arrives,
                     //   and then emitting insolvency events would be spurious.
-                    // The insolvency will be signalled only once update is called when there's non-zero allocations that aren't covered.
+                    // The insolvency will be signalled only once update is called when there's non-zero earnings that aren't covered.
                     emit InsolvencyStarted(insolvencyStartTime);
                 }
                 // move funds from unallocated to allocated
-                globalVars.unallocatedFunds -= allocationWei;
+                unallocatedWei -= allocationWei;
                 localVars.cumulativeWeiPerStake += allocationWeiPerStake;
                 // console.log("    allocationWei", allocationWei, "allocationWeiPerStake", allocationWeiPerStake);
             } else {
@@ -110,7 +147,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
             }
         }
         // save values for next update: adjust income velocity for a possibly changed number of brokers
-        uint totalStakedWei = globalVars.totalStakedWei;
+        uint totalStakedWei = totalStakedWei;
         if (totalStakedWei > 0) {
             localVars.incomePerSecondPerStake = localVars.incomePerSecond * 1e18 / totalStakedWei;
         } // else { local.incomePerSecondPerStake = 0; } // never used currently
@@ -121,12 +158,12 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
     function getInsolvencyTimestamp() public override(IAllocationPolicy) view returns (uint256 insolvencyTimestamp) {
-        // uint unallocatedFunds = globalData().unallocatedFunds;
-        // if (unallocatedFunds == 0) { return 0; }
+        // uint unallocatedWei = unallocatedWei;
+        // if (unallocatedWei == 0) { return 0; }
         uint incomePerSecond = localData().incomePerSecond;
         if (incomePerSecond == 0) { return 2**255; } // indefinitely solvent
 
-        return localData().lastUpdateTimestamp + globalData().unallocatedFunds / incomePerSecond;
+        return localData().lastUpdateTimestamp + unallocatedWei / incomePerSecond;
     }
 
     /** When broker joins, the current reference point is reset, and later the broker's allocation can be measured from the accumulated difference */
@@ -150,12 +187,12 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
      */
     function onStakeChange(address broker, int stakeChangeWei) external {
         LocalStorage storage local = localData();
-        // console.log("onStakeChange", broker, globalData().stakedWei[broker]);
+        // console.log("onStakeChange", broker, stakedWei[broker]);
         // console.logInt(stakeChangeWei);
         update(0);
 
         // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
-        uint oldStakeWei = uint(int(globalData().stakedWei[broker]) - stakeChangeWei);
+        uint oldStakeWei = uint(int(stakedWei[broker]) - stakeChangeWei);
 
         // reset reference point
         local.onReferenceResetWei[broker] = _calculateAllocation(broker, oldStakeWei);
@@ -171,65 +208,21 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         update(0);
 
         // calculate payout FIRST, before zeroing the allocation onReferenceReset
-        payoutWei = calculateAllocation(broker);
+        payoutWei = getEarningsWei(broker);
 
-        // reset reference point, also zero the "unpaid allocations" because they will be paid out
+        // reset reference point, also zero the "unpaid earnings" because they will be paid out
         LocalStorage storage local = localData();
         local.cumulativeReference[broker] = local.cumulativeWeiPerStake;
         local.onReferenceResetWei[broker] = 0;
     }
 
     function onSponsor(address, uint amount) external {
-        // console.log("onSponsor: had before", globalData().unallocatedFunds);
+        // console.log("onSponsor: had before", unallocatedWei);
         // console.log("           got more  ", amount);
 
         // in case the bounty had gone insolvent, now it got a top-up => return from insolvency
         if (getInsolvencyTimestamp() < block.timestamp) {
             update(amount);
         }
-    }
-
-    // TODO: DRY out this function by using it both in update and calculateAllocation
-    function getCumulativeWeiPerStake() internal view returns(uint256) {
-        LocalStorage storage local = localData();
-
-        // in the state of insolvency or not running: don't allocate new earnings
-        uint remainingWei = globalData().unallocatedFunds;
-        if (remainingWei == 0 || !local.lastUpdateWasRunning) {
-            return local.cumulativeWeiPerStake;
-        }
-
-        // working as normal: allocate what is owed
-        uint deltaTime = block.timestamp - local.lastUpdateTimestamp;
-        uint owedWeiPerStake = local.incomePerSecondPerStake * deltaTime;
-        uint owedWei = owedWeiPerStake * local.lastUpdateTotalStake / 1e18;
-        if (owedWei <= remainingWei) {
-            return local.cumulativeWeiPerStake + owedWeiPerStake;
-        }
-
-        // gone insolvent since last update: allocate all remaining funds
-        uint remainingWeiPerStake = remainingWei * 1e18 / local.lastUpdateTotalStake;
-        return local.cumulativeWeiPerStake + remainingWeiPerStake;
-    }
-
-    /**
-     * Calculate the cumulative earnings per unit (full token stake) right now
-     * It's important that stakedWei hasn't changed since update() was last called
-     */
-    function calculateAllocation(address broker) public view returns (uint allocation) {
-        if (globalData().stakedWei[broker] == 0) { return 0; }
-        return _calculateAllocation(broker, globalData().stakedWei[broker]);
-    }
-
-    function _calculateAllocation(address broker, uint stakeWei) internal view returns (uint allocation) {
-        // console.log("Calculate allocation for", broker);
-        // console.log("  cumulative ", getCumulativeWeiPerStake());
-        // console.log("  reference  ", localData().cumulativeReference[broker]);
-        uint weiPerStake = getCumulativeWeiPerStake() - localData().cumulativeReference[broker];
-        // console.log("  alloc / full token", weiPerStake);
-        uint allocationSinceReferenceResetWei = stakeWei * weiPerStake / 1e18; // full token = 1e18 wei
-        // console.log("  onReferenceResetWei  ", localData().onReferenceResetWei[broker]);
-        // console.log("  since reference reset", allocationSinceReferenceResetWei);
-        return localData().onReferenceResetWei[broker] + allocationSinceReferenceResetWei;
     }
 }

@@ -24,9 +24,9 @@ const localConfig: any = {}
 
 async function deployBountyFactory() {
     log((await ethers.getSigners())[0].address)
-    const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: adminWallet })
-    const streamrConstantsFactoryTx = await upgrades.deployProxy(streamrConstantsFactory, [], { kind: "uups" })
-    const streamrConfig = await streamrConstantsFactoryTx.deployed() as StreamrConfig
+    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", { signer: adminWallet })
+    const streamrConfigFactoryTx = await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })
+    const streamrConfig = await streamrConfigFactoryTx.deployed() as StreamrConfig
     const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.DEFAULT_ADMIN_ROLE(), adminWallet.address)
     log(`hasrole ${hasroleEthSigner}`)
     localConfig.streamrConfig = streamrConfig.address
