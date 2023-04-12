@@ -10,17 +10,27 @@ const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/S
 const namehash = require('eth-ens-namehash')
 const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 
-const ENSCacheV2Address = "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C"
+const ENSCacheV2Address = "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166"
 
 const log = require("debug")("streamr:ens-sync-script")
+let streamRegistryContract: Contract
+let privateKey: string
+let ensCacheContract: Contract
+let ensContract: Contract
+let timeout: NodeJS.Timeout
+let delay: number
+let mainnetProvider: Provider
+let sidechainProvider: Provider
+let mutex = Promise.resolve(true)
 
 async function main(){
-    
-    let mainnetProvider: Provider
-    let sidechainProvider: Provider
+    delay = process.argv[2] ? parseInt(process.argv[2]) * 1000 : 0
+    if (delay) {
+        log(`starting with answer delay ${delay} milliseconds`)
+    }
+
     let mainnetConfig
     let sidechainConfig
-    let privateKey: string
     if (process.env.ENVIRONMENT === 'prod') {
         mainnetConfig = Chains.load()["ethereum"]
         sidechainConfig = Chains.load()["polygon"]
@@ -37,45 +47,101 @@ async function main(){
     
     const ensAddress = mainnetConfig.contracts.ENS
 
-    const streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
+    streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
 
-    let ensCacheContract = new Contract(ENSCacheV2Address, ABIenscache.abi, sidechainProvider) // TODO
-    const ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
-    log("test1")
+    ensCacheContract = new Contract(ENSCacheV2Address, ABIenscache.abi, sidechainProvider) // TODO
+    ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
+    log("starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
-        log("Got ENS lookup name event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
-        const ensHashedName = namehash.hash(ensName)
-        const owner = await ensContract.owner(ensHashedName)
-        log("ENS owner: ", owner)
-        const domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
-        
-        ensCacheContract = ensCacheContract.connect(domainOwnerSidechain)
-        if (requestorAddress == owner) {
-            log("Requestor is owner, trying to call fulfillENSOwner")
-            try {
-                const tx = await ensCacheContract.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
-                await tx.wait()
-                log("createStreamFromENS tx: ", tx)
-            } catch (e) {
-                log("createStreamFromENS error: ", e)
-            }
-        } else {
-            log(`Requestor ${requestorAddress} is not owner ${owner}`)
-        }
+        log("Got RequestENSOwnerAndCreateStream event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
+        const oldMutex = mutex
+        mutex = new Promise(async (resolve) => {
+            await oldMutex
+            await handleEvent(ensName, streamIdPath, metadataJsonString, requestorAddress)
+            resolve(true)
+        })
     })
 
-    log("test2")
+    log("starting listening for createstream events on StreamRegistry contract: ", streamRegistryContract.address)
     streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
         log("Got StreamCreated event params: ", streamId, metadataJsonString)
     })
 }
 
+async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
+    log("handling event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
+    const ensHashedName = namehash.hash(ensName)
+    const owner = await ensContract.owner(ensHashedName)
+    log("ENS owner queried from mainnet: ", owner)
+    const domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
+        
+    ensCacheContract = ensCacheContract.connect(domainOwnerSidechain)
+    if (requestorAddress == owner) {
+        log("Requestor is owner, trying to call fulfillENSOwner")
+        if (delay > 0) {
+            log(`delaying ${delay} seconds`)
+            await Promise.race([
+                new Promise((resolve) => {
+                    timeout = setTimeout(async () => {
+                        await createStream(ensName, streamIdPath, metadataJsonString, requestorAddress, true)
+                        log(`delayed stream creation done`)
+                        resolve(true)
+                    }, delay)
+                }),
+                await checkIfOtherInstaceCreatedStream(ensName + streamIdPath)
+            ])
+        } else {
+            log(`not delaying stream creation`)
+            await createStream(ensName, streamIdPath, metadataJsonString, requestorAddress, true)
+        }
+
+    } else {
+        log(`Requestor ${requestorAddress} is not owner ${owner}, ignoring request`)
+    }
+}
+
+async function createStream(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string,
+    retry = false) {
+    log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
+    try {
+        const tx = await ensCacheContract.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
+        await tx.wait()
+        log("createStreamFromENS tx: ", tx.hash)
+    } catch (e) {
+        log("creating stream failed, createStreamFromENS error: ", e)
+        if (retry) {
+            log("retrying")
+            await createStream(ensName, streamIdPath, metadataJsonString, requestorAddress, false)
+        }
+    }
+}
+
+async function checkIfOtherInstaceCreatedStream(streamIdToCheck: string) {
+    return new Promise((resolve) => {
+        log("checking if other instance created stream")
+        const listener = async (streamId: string, metadataJsonString: string) => {
+            log("Got StreamCreated event params: ", streamId, metadataJsonString)
+            if (streamId == streamIdToCheck) {
+                log("cancelling creation, other script instance created stream StreamCreated event params: ", streamId, metadataJsonString)
+                clearTimeout(timeout)
+                streamRegistryContract.off("StreamCreated", listener)
+                resolve(true)
+            }
+            setTimeout(async () => {
+                log(`5 minutes passed, cancelling watching, other script instance did not create stream`)
+                streamRegistryContract.off("StreamCreated", listener)
+                resolve(true)
+            }, 1000*60*5)
+        }
+        streamRegistryContract.on("StreamCreated", listener)
+    })
+}
+
 main().then(() => {
     // debug('done')
-    console.log("done")
+    log("listening for events")
     return void 0
 }).catch((err: any) => {
-    console.log("error: " + err)
-    // connection.end()
-    // debug('err: ' + err)
+    log("error: ", err)
+    process.exit(1)
 })
