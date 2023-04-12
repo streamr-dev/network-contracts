@@ -222,12 +222,13 @@ describe('ProjectStakingV1', (): void => {
             await token.connect(staker1).approve(projectStaking.address, stakingAmount1.add(stakingAmount2))
             await projectStaking.connect(staker1).stake(projectId, stakingAmount1.add(stakingAmount2))
             const userStake = await projectStaking.getUserStake(staker1.address)
+            const projectStake = await projectStaking.getProjectStake(projectId)
             const totalStake = await projectStaking.getTotalStake()
 
             await projectRegistry.connect(admin).deleteProject(projectId)
             await expect(projectStaking.connect(staker1).unstake(projectId, stakingAmount2))
                 .to.emit(projectStaking, "Unstake")
-                .withArgs(projectId, staker1.address, stakingAmount2)
+                .withArgs(projectId, staker1.address, stakingAmount2, projectStake.sub(stakingAmount2))
 
             expect (await projectStaking.getProjectStake(projectId))
                 .to.equal(stakingAmount1)
@@ -244,12 +245,13 @@ describe('ProjectStakingV1', (): void => {
             // user1 stakes amount=stakingAmount1
             await projectStaking.connect(staker1).stake(projectId, stakingAmount1)
             const userStake = await projectStaking.getUserStake(staker1.address)
+            const projectStake = await projectStaking.getProjectStake(projectId)
             const totalStake = await projectStaking.getTotalStake()
 
             // user1 unstakes amount=0
             await expect(projectStaking.connect(staker1).unstake(projectId, 0))
                 .to.emit(projectStaking, "Unstake")
-                .withArgs(projectId, staker1.address, 0)
+                .withArgs(projectId, staker1.address, 0, projectStake)
 
             expect( await projectStaking.getProjectStake(projectId))
                 .to.equal(stakingAmount1)
@@ -267,12 +269,13 @@ describe('ProjectStakingV1', (): void => {
             await projectStaking.connect(staker1).stake(projectId, stakingAmount1)
             const user1Stake = await projectStaking.getUserStake(staker1.address)
             const user2Stake = await projectStaking.getUserStake(staker2.address)
+            const projectStake = await projectStaking.getProjectStake(projectId)
             const totalStake = await projectStaking.getTotalStake()
 
             // user2 unstakes amount=0
             await expect(projectStaking.connect(staker2).unstake(projectId, 0))
                 .to.emit(projectStaking, "Unstake")
-                .withArgs(projectId, staker2.address, 0)
+                .withArgs(projectId, staker2.address, 0, projectStake)
 
             expect( await projectStaking.getProjectStake(projectId))
                 .to.equal(stakingAmount1)
