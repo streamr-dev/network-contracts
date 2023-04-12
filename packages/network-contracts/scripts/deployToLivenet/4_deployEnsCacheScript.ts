@@ -1,4 +1,5 @@
-import { ethers } from "hardhat"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { ethers, upgrades } from "hardhat"
 import { Contract, providers, Wallet, utils } from "ethers"
 import Debug from "debug"
 const log = Debug("streamr:test:chainlink-ens")
@@ -65,13 +66,12 @@ const connectToAllContracts = async () => {
 
 const deployEnsCacheScript = async () => {
     const ensCacheScriptFactory = await ethers.getContractFactory("ENSCacheV2Streamr", domainOwnerSidechain)
-    log("domainOwner.address:", domainOwner.address)
-    const ensCacheScript = await ensCacheScriptFactory.deploy(
-        domainOwner.address,
-        sidechainConfig.contracts.StreamRegistry,
-        ENSCacheV1
-    )
+    const ensCacheScript = await upgrades.deployProxy(ensCacheScriptFactory, 
+        [domainOwner.address,
+            sidechainConfig.contracts.StreamRegistry,
+            ENSCacheV1], { kind: "uups" })
     await ensCacheScript.deployed()
+
     log("ensCacheScript deployed at:", ensCacheScript.address)
 
     // log(`setting Streamregistry address in ensCacheScript`)

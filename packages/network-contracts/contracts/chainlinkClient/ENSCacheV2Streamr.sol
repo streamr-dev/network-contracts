@@ -5,10 +5,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ENSCacheV1.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract ENSCacheV2Streamr is Ownable {
+contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     
     event RequestENSOwnerAndCreateStream(string ensName, string streamIdPath, string metadataJsonString, address requestorAddress);
     
@@ -18,15 +20,21 @@ contract ENSCacheV2Streamr is Ownable {
     ENSCacheV1 private ensCacheV1;
 
     modifier onlyStreamr() {
-        require(msg.sender == address(streamrScript), "Only Streamr Script can call this function");
+        require(msg.sender == address(streamrScript), "onlyStreamrScript");
         _;
     }
 
-    constructor(address _streamrScript, IStreamRegistry _streamRegistry, ENSCacheV1 _ensCacheV1) {
+    constructor() {
+    }
+
+    function initialize(address _streamrScript, IStreamRegistry _streamRegistry, ENSCacheV1 _ensCacheV1) public initializer {
+        __Ownable_init();
         streamrScript = _streamrScript;
         streamRegistry = _streamRegistry;
         ensCacheV1 = _ensCacheV1;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function setStreamRegistry(address streamRegistryAddress) public onlyOwner {
         streamRegistry = IStreamRegistry(streamRegistryAddress);
