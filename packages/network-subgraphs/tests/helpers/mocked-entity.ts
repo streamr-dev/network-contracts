@@ -135,6 +135,3 @@ export function createProjectStakeEntity(
     staking.save()
     return staking
 }
-// nu-i necesar fara simptome
-
-// artemisie + ambrozie iau tratament pe final de iulie (20-25 iulie)
