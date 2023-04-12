@@ -14,7 +14,7 @@ import "./BountyPolicies/IJoinPolicy.sol";
 import "./BountyPolicies/ILeavePolicy.sol";
 import "./BountyPolicies/IKickPolicy.sol";
 import "./BountyPolicies/IAllocationPolicy.sol";
-import "./StreamrConstants.sol";
+import "./StreamrConfig.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
@@ -29,19 +29,19 @@ import "./StreamrConstants.sol";
  * The tokens held by `Bounty` are tracked in several accounts:
  * - totalStakedWei: total amount of tokens staked by all brokers
  *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
- * - unallocatedFunds: part of the sponsorship that hasn't been paid out yet
+ * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntil` timestamp: more unallocated funds left means the `Bounty` is solvent for a longer time
  * - committedFundsWei: forfeited stakes that were committed to a flag by a past broker who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
- *  either via _stake/_slash (to/from stake) or _addSponsorship (to unallocatedFunds)
+ *  either via _stake/_slash (to/from stake) or _addSponsorship (to unallocatedWei)
  */
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei);
+    event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
     event MetadataUpdate(string metadata);
-    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning);
+    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
@@ -56,6 +56,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
+    StreamrConfig public streamrConfig;
     IERC677 public token;
     IJoinPolicy[] public joinPolicies;
     IAllocationPolicy public allocationPolicy;
@@ -64,49 +65,23 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     string public streamId;
     string public metadata;
 
-    // TODO: remove GlobalStorage, also remove the below getters functions
-    // storage variables available to all modules
-    struct GlobalStorage {
-        StreamrConstants streamrConstants;
-        mapping(address => uint) stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
-        mapping(address => uint) joinTimeOfBroker;
-        mapping(address => uint) committedStakeWei; // how much can not be unstaked (during e.g. flagging)
-        uint committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
-        uint32 brokerCount;
-        uint32 minBrokerCount;
-        uint32 minHorizonSeconds;
-        uint totalStakedWei;
-        uint unallocatedFunds;
-        uint minimumStakeWei;
-    }
-
-    function globalData() internal pure returns(GlobalStorage storage data) {
-        bytes32 storagePosition = keccak256("bounty.storage.GlobalStorage");
-        assembly { data.slot := storagePosition } // solhint-disable-line no-inline-assembly
-    }
-
-    function getUnallocatedWei() public view returns(uint) {
-        return globalData().unallocatedFunds;
-    }
-
-    function totalStakedWei() public view returns(uint) {
-        return globalData().totalStakedWei;
-    }
-
-    function getBrokerCount() public view returns(uint) {
-        return globalData().brokerCount;
-    }
+    mapping(address => uint) public stakedWei; // how much each broker has staked, if 0 broker is considered not part of bounty
+    mapping(address => uint) public joinTimeOfBroker;
+    mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
+    uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    uint public brokerCount;
+    uint public minBrokerCount;
+    uint public minHorizonSeconds;
+    uint public totalStakedWei;
+    uint public unallocatedWei;
+    uint public minimumStakeWei;
 
     function isAdmin(address a) public view returns(bool) {
         return hasRole(ADMIN_ROLE, a);
     }
 
-    function getStake(address broker) external view returns (uint) {
-        return globalData().stakedWei[broker];
-    }
-
     function getMyStake() public view returns (uint) {
-        return globalData().stakedWei[_msgSender()];
+        return stakedWei[_msgSender()];
     }
 
     /**
@@ -114,9 +89,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      *   hence there is an individual limit for reduceStakeTo.
      * When joining, committed stake is zero, so the it's the same minimumStakeWei for everyone.
      */
-    function minimumStakeOf(address broker) public view returns (uint minimumStakeWei) {
-        GlobalStorage storage s = globalData();
-        return max(s.committedStakeWei[broker], s.minimumStakeWei);
+    function minimumStakeOf(address broker) public view returns (uint) {
+        return max(committedStakeWei[broker], minimumStakeWei);
     }
 
     /**
@@ -125,7 +99,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * See https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
      */
     function isRunning() public view returns (bool) {
-        return globalData().brokerCount >= globalData().minBrokerCount;
+        return brokerCount >= minBrokerCount;
     }
 
     /**
@@ -133,23 +107,22 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * DefaultLeavePolicy states brokers are free to leave an underfunded bounty
      */
     function isFunded() public view returns (bool) {
-        return solventUntil() > block.timestamp + globalData().minHorizonSeconds; // solhint-disable-line not-rely-on-time
+        return solventUntil() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
     }
 
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
+    /**
+     * @param initParams array of: [0] initialMinimumStakeWei, [1] initialMinHorizonSeconds, [2] initialMinBrokerCount, [3] weiPerSecond
+     */
     function initialize(
         string calldata streamId_,
         string calldata metadata_,
-        StreamrConstants streamrConstants,
+        StreamrConfig globalStreamrConfig,
         address newOwner,
         address tokenAddress,
-        // uint initialMinimumStakeWei,
-        uint[4] calldata initParams, // [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, allocationPolicyParam]
-        // uint32 initialMinHorizonSeconds,
-        // uint32 initialMinBrokerCount,
+        uint[4] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
-        // uint allocationPolicyParam
     ) public initializer {
         require(initParams[2] > 0, "error_minBrokerCountZero");
         require(initParams[0] > 0, "error_minimumStakeZero");
@@ -160,10 +133,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
-        globalData().minimumStakeWei = initParams[0];
-        globalData().minHorizonSeconds = uint32(initParams[1]);
-        globalData().minBrokerCount = uint32(initParams[2]);
-        globalData().streamrConstants = StreamrConstants(streamrConstants);
+        minimumStakeWei = initParams[0];
+        minHorizonSeconds = uint32(initParams[1]);
+        minBrokerCount = uint32(initParams[2]);
+        streamrConfig = globalStreamrConfig;
         setAllocationPolicy(initialAllocationPolicy, initParams[3]);
     }
 
@@ -174,14 +147,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(_msgSender() == address(token), "error_onlyDATAToken");
         if (data.length == 20) {
-            // shift 20 bytes (= 160 bits) to end of uint256 to make it an address => shift by 256 - 160 = 96
+            // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
             address stakeBeneficiary;
             assembly { stakeBeneficiary := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
             _stake(stakeBeneficiary, amount);
         } else if (data.length == 32) {
-            // assume the address was encoded by converting address -> uint -> bytes32 -> bytes (already in the least significant bytes)
-            // (this is what abi.encode would produce)
+            // assume the address was encoded by converting address -> uint -> bytes32 -> bytes
+            // (already in the least significant bytes, no shifting needed; this is what abi.encode would produce)
             address stakeBeneficiary;
             assembly { stakeBeneficiary := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
             _stake(stakeBeneficiary, amount);
@@ -202,9 +175,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
         // TODO: sweep also unaccounted tokens into unallocated funds?
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
-        globalData().unallocatedFunds += amountWei;
+        unallocatedWei += amountWei;
         emit SponsorshipReceived(sponsorAddress, amountWei);
-        emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
     }
 
     /**
@@ -218,28 +191,27 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _stake(address broker, uint amountWei) internal {
         // console.log("join/stake at ", block.timestamp, broker, amountWei);
-        GlobalStorage storage s = globalData();
-        require(amountWei >= s.minimumStakeWei, "error_minimumStake");
-        if (s.stakedWei[broker] == 0) {
+        require(amountWei >= minimumStakeWei, "error_minimumStake");
+        if (stakedWei[broker] == 0) {
            // console.log("Broker joins and stakes", broker, amountWei);
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amountWei), "error_joinPolicyOnJoin");
             }
-            s.stakedWei[broker] += amountWei;
-            s.brokerCount += 1;
-            s.totalStakedWei += amountWei;
-            s.joinTimeOfBroker[broker] = block.timestamp; // solhint-disable-line not-rely-on-time
+            stakedWei[broker] += amountWei;
+            brokerCount += 1;
+            totalStakedWei += amountWei;
+            joinTimeOfBroker[broker] = block.timestamp; // solhint-disable-line not-rely-on-time
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
             emit BrokerJoined(broker);
         } else {
            // console.log("Broker already joined, increasing stake", broker, amountWei);
-            s.stakedWei[broker] += amountWei;
-            s.totalStakedWei += amountWei;
+            stakedWei[broker] += amountWei;
+            totalStakedWei += amountWei;
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amountWei)), "error_stakeIncreaseFailed");
         }
-        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
-        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
+        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
+        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
     }
 
     /**
@@ -250,7 +222,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         address broker = _msgSender();
         uint penaltyWei = getLeavePenalty(broker);
         require(penaltyWei == 0, "error_leavePenalty");
-        require(globalData().committedStakeWei[broker] == 0, "error_activeFlag");
+        require(committedStakeWei[broker] == 0, "error_activeFlag");
         _removeBroker(broker);
     }
 
@@ -268,21 +240,20 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     /** Reduce your stake in the bounty without leaving */
     function reduceStakeTo(uint targetStakeWei) external {
         address broker = _msgSender();
-        GlobalStorage storage s = globalData();
-        require(targetStakeWei < s.stakedWei[broker], "error_cannotIncreaseStake");
+        require(targetStakeWei < stakedWei[broker], "error_cannotIncreaseStake");
         require(targetStakeWei >= minimumStakeOf(broker), "error_minimumStake");
 
-        uint cashoutWei = s.stakedWei[broker] - targetStakeWei;
+        uint cashoutWei = stakedWei[broker] - targetStakeWei;
         _reduceStakeBy(broker, cashoutWei);
         token.transfer(broker, cashoutWei);
 
-        emit StakeUpdate(broker, s.stakedWei[broker], getAllocation(broker));
-        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
+        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
+        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
     }
 
     /**
-     * Slashing moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     * Slashing moves tokens from a broker's stake to "free funds" (that are not in unallocatedWei!)
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      **/
     function _slash(address broker, uint amountWei) internal {
@@ -291,12 +262,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (broker.code.length > 0) {
             try IBroker(broker).onSlash() {} catch {}
         }
-        emit StakeUpdate(broker, globalData().stakedWei[broker], getAllocation(broker));
+        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
     }
 
     /**
      * Kicking does what slashing does, plus removes the broker
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      */
     function _kick(address broker, uint slashingWei) internal {
@@ -309,15 +280,14 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /**
-     * Moves tokens from a broker's stake to "free funds" (that are not in unallocatedFunds!)
+     * Moves tokens from a broker's stake to "free funds" (that are not in unallocatedWei!)
      * Does not actually send out tokens!
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedFunds, via _addSponsorship
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      **/
     function _reduceStakeBy(address broker, uint amountWei) private {
-        GlobalStorage storage s = globalData();
-        assert(amountWei <= s.stakedWei[broker]); // should never happen! _slashing must be designed to not slash more than the whole stake
-        s.stakedWei[broker] -= amountWei;
-        s.totalStakedWei -= amountWei;
+        assert(amountWei <= stakedWei[broker]); // should never happen! _slashing must be designed to not slash more than the whole stake
+        stakedWei[broker] -= amountWei;
+        totalStakedWei -= amountWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, -int(amountWei)), "error_stakeChangeHandlerFailed");
     }
 
@@ -327,43 +297,41 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * If broker had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
      */
     function _removeBroker(address broker) internal {
-        GlobalStorage storage s = globalData();
-        require(s.stakedWei[broker] > 0, "error_brokerNotStaked");
+        require(stakedWei[broker] > 0, "error_brokerNotStaked");
         // console.log("_removeBroker", broker);
 
-        if (globalData().committedStakeWei[broker] > 0) {
-            _slash(broker, globalData().committedStakeWei[broker]);
-            globalData().committedFundsWei += globalData().committedStakeWei[broker];
-            globalData().committedStakeWei[broker] = 0;
+        if (committedStakeWei[broker] > 0) {
+            _slash(broker, committedStakeWei[broker]);
+            committedFundsWei += committedStakeWei[broker];
+            committedStakeWei[broker] = 0;
         }
 
         // send out both allocations and stake
         _withdraw(broker);
-        uint paidOutStakeWei = s.stakedWei[broker];
+        uint paidOutStakeWei = stakedWei[broker];
         require(token.transferAndCall(broker, paidOutStakeWei, "stake"), "error_transfer");
 
-        s.brokerCount -= 1;
-        s.totalStakedWei -= paidOutStakeWei;
-        delete s.stakedWei[broker];
-        delete s.joinTimeOfBroker[broker];
+        brokerCount -= 1;
+        totalStakedWei -= paidOutStakeWei;
+        delete stakedWei[broker];
+        delete joinTimeOfBroker[broker];
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_leaveHandlerFailed");
         emit StakeUpdate(broker, 0, 0); // stake and allocation must be zero when the broker is gone
-        emit BountyUpdate(s.totalStakedWei, s.unallocatedFunds, solventUntil(), s.brokerCount, isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
         emit BrokerLeft(broker, paidOutStakeWei);
     }
 
     // TODO: why not let withdraw for others?
-    /** Get allocations out, leave stake in */
-    function withdraw() external {
+    /** Get earnings out, leave stake in */
+    function withdraw() external returns (uint payoutWei) {
         address broker = _msgSender();
-        uint stakedWei = globalData().stakedWei[broker];
-        require(stakedWei > 0, "error_brokerNotStaked");
+        require(stakedWei[broker] > 0, "error_brokerNotStaked");
 
-        uint payoutWei = _withdraw(broker);
+        payoutWei = _withdraw(broker);
         if (payoutWei > 0) {
-            emit StakeUpdate(broker, globalData().stakedWei[broker], 0); // allocation will be zero after withdraw (see test)
-            emit BountyUpdate(globalData().totalStakedWei, globalData().unallocatedFunds, solventUntil(), globalData().brokerCount, isRunning());
+            emit StakeUpdate(broker, stakedWei[broker], 0); // earnings will be zero after withdraw (see test)
+            emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
         }
     }
 
@@ -478,8 +446,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
-    function getAllocation(address broker) public view returns(uint256 allocation) {
-        return moduleGet(abi.encodeWithSelector(allocationPolicy.calculateAllocation.selector, broker, address(allocationPolicy)), "error_getAllocationFailed");
+    function getEarnings(address broker) public view returns(uint256 allocation) {
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, broker, address(allocationPolicy)), "error_getEarningsFailed");
     }
 
     function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {

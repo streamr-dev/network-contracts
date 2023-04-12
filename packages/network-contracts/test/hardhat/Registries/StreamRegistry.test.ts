@@ -65,7 +65,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     let MAX_INT: BigNumber
     let blocktime: number
     // let registryFromUser1: StreamRegistry
-    let adminAdress: string 
+    let adminAddress: string
     let user0Address: string
     let user1Address: string
     let trustedAddress: string
@@ -80,13 +80,13 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     before(async (): Promise<void> => {
         wallets = await ethers.getSigners()
-        adminAdress = wallets[0].address
+        adminAddress = wallets[0].address
         user0Address = wallets[1].address
         user1Address = wallets[2].address
         trustedAddress = wallets[3].address
-        streamId0 = adminAdress.toLowerCase() + streamPath0
-        streamId1 = adminAdress.toLowerCase() + streamPath1
-        streamId2 = adminAdress.toLowerCase() + streamPath2
+        streamId0 = adminAddress.toLowerCase() + streamPath0
+        streamId1 = adminAddress.toLowerCase() + streamPath1
+        streamId2 = adminAddress.toLowerCase() + streamPath2
         const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", wallets[0])
@@ -121,7 +121,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             .to.emit(registryFromAdmin, "StreamCreated")
             .withArgs(streamId0, metadata0)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(streamId0, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .withArgs(streamId0, adminAddress, true, true, MAX_INT, MAX_INT, true)
         expect(await registryFromAdmin.streamIdToMetadata(streamId0)).to.equal(metadata0)
     })
 
@@ -182,7 +182,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     it("positivetest createStreamWithPermissions", async (): Promise<void> => {
         const newStreamPath = "/" + Wallet.createRandom().address
-        const newStreamId = adminAdress.toLowerCase() + newStreamPath
+        const newStreamId = adminAddress.toLowerCase() + newStreamPath
         const permissionA = {
             canEdit: true,
             canDelete: false,
@@ -198,24 +198,24 @@ describe("StreamRegistry", async (): Promise<void> => {
             canGrant: false
         }
         await expect(await registryFromAdmin.createStreamWithPermissions(newStreamPath, metadata1,
-            [adminAdress, trustedAddress], [permissionA, permissionB]))
+            [adminAddress, trustedAddress], [permissionA, permissionB]))
             // [trustedAddress], [permissionB]))
             .to.emit(registryFromAdmin, "StreamCreated")
             .withArgs(newStreamId, metadata1)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId, adminAddress, true, true, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId, adminAddress, true, false, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
             .withArgs(newStreamId, trustedAddress, false, false, 7, 7, false)
         expect(await registryFromAdmin.getStreamMetadata(newStreamId)).to.equal(metadata1)
     })
 
     it("positivetest createMultipleStreamsWithPermissions", async (): Promise<void> => {
-        const newStreamPath1 = "/" + Wallet.createRandom().address 
+        const newStreamPath1 = "/" + Wallet.createRandom().address
         const newStreamPath2 = "/" + Wallet.createRandom().address
-        const newStreamId1 = adminAdress.toLowerCase() + newStreamPath1
-        const newStreamId2 = adminAdress.toLowerCase() + newStreamPath2
+        const newStreamId1 = adminAddress.toLowerCase() + newStreamPath1
+        const newStreamId2 = adminAddress.toLowerCase() + newStreamPath2
         const permissionA = {
             canEdit: true,
             canDelete: false,
@@ -231,20 +231,20 @@ describe("StreamRegistry", async (): Promise<void> => {
             canGrant: false
         }
         await expect(await registryFromAdmin.createMultipleStreamsWithPermissions(
-            [newStreamPath1, newStreamPath2], [metadata1, metadata1], [[adminAdress, trustedAddress],
-                [adminAdress, trustedAddress]], [[permissionA, permissionB], [permissionA, permissionB]]))
+            [newStreamPath1, newStreamPath2], [metadata1, metadata1], [[adminAddress, trustedAddress],
+                [adminAddress, trustedAddress]], [[permissionA, permissionB], [permissionA, permissionB]]))
             .to.emit(registryFromAdmin, "StreamCreated")
             .withArgs(newStreamId1, metadata1)
             .to.emit(registryFromAdmin, "StreamCreated")
             .withArgs(newStreamId2, metadata1)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId1, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId1, adminAddress, true, true, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId2, adminAdress, true, true, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId2, adminAddress, true, true, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId1, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId1, adminAddress, true, false, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
-            .withArgs(newStreamId2, adminAdress, true, false, MAX_INT, MAX_INT, true)
+            .withArgs(newStreamId2, adminAddress, true, false, MAX_INT, MAX_INT, true)
             .to.emit(registryFromAdmin, "PermissionUpdated")
             .withArgs(newStreamId1, trustedAddress, false, false, 7, 7, false)
             .to.emit(registryFromAdmin, "PermissionUpdated")
@@ -278,20 +278,20 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     it("positivetest getDirectPermissionForUser", async (): Promise<void> => {
-        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, adminAdress))
+        expect(await registryFromAdmin.getDirectPermissionsForUser(streamId0, adminAddress))
             .to.deep.equal([true, true, MAX_INT, MAX_INT, true])
     })
 
     it("positivetest getPermissionForUser", async (): Promise<void> => {
-        expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+        expect(await registryFromAdmin.getPermissionsForUser(streamId0, adminAddress))
             .to.deep.equal([true, true, MAX_INT, MAX_INT, true])
     })
 
     it("negativetest getPermissionForUser, stream not exist, userentry not exist", async (): Promise<void> => {
-        await expect(registryFromAdmin.getPermissionsForUser(streamId1, adminAdress))
+        await expect(registryFromAdmin.getPermissionsForUser(streamId1, adminAddress))
             .to.be.revertedWith("error_streamDoesNotExist")
         const res = await registryFromAdmin.getPermissionsForUser(streamId0, user0Address)
-        expect(res.toString()).to.equal([false, false, BigNumber.from(0), BigNumber.from(0), 
+        expect(res.toString()).to.equal([false, false, BigNumber.from(0), BigNumber.from(0),
             false].toString())
     })
 
@@ -326,7 +326,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     it("negativetest setPermissionForUser, stream doesnt exist, error_noSharePermission", async (): Promise<void> => {
-        await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAdress))
+        await expect(registryFromAdmin.getPermissionsForUser(streamId0, adminAddress))
             .to.be.revertedWith("error_streamDoesNotExist")
         await registryFromAdmin.createStream(streamPath0, metadata0)
         await expect(registryFromUser0.setPermissionsForUser(streamId0, user0Address, true, true, 0, 0, true))
@@ -661,12 +661,12 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     it("positivetest transferAllPermissionsToUser", async (): Promise<void> => {
-        expect((await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress)).toString())
+        expect((await registryFromAdmin.getPermissionsForUser(streamId0, adminAddress)).toString())
             .to.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true].toString())
         expect((await registryFromAdmin.getPermissionsForUser(streamId0, user1Address)).toString())
             .to.equal([false, false, BigNumber.from(0), BigNumber.from(0), false].toString())
         await registryFromAdmin.transferAllPermissionsToUser(streamId0, user1Address)
-        expect((await registryFromAdmin.getPermissionsForUser(streamId0, adminAdress)).toString())
+        expect((await registryFromAdmin.getPermissionsForUser(streamId0, adminAddress)).toString())
             .to.equal([false, false, BigNumber.from(0), BigNumber.from(0), false].toString())
         expect((await registryFromAdmin.getPermissionsForUser(streamId0, user1Address)).toString())
             .to.equal([true, true, BigNumber.from(MAX_INT), BigNumber.from(MAX_INT), true].toString())
@@ -800,7 +800,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         const tx2 = await tx.wait()
         expect(tx2.logs.length).to.equal(2)
         //internal call will have failed
-        const id = adminAdress.toLowerCase() + path
+        const id = adminAddress.toLowerCase() + path
         await expect(registryFromAdmin.getStreamMetadata(id)).to.be.revertedWith("error_streamDoesNotExist")
     })
 
@@ -822,7 +822,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         const tx = await minimalForwarderFromUser0.execute(req, sign)
         const tx2 = await tx.wait()
         expect(tx2.logs.length).to.equal(0)
-        const id = adminAdress.toLowerCase() + path
+        const id = adminAddress.toLowerCase() + path
         await expect(registryFromAdmin.getStreamMetadata(id))
             .to.be.revertedWith("error_streamDoesNotExist")
     })
@@ -885,11 +885,11 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     it("positivetest grantRole, revokerole", async (): Promise<void> => {
-        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress)
-        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress))
+        await registryFromAdmin.grantRole(await registryFromAdmin.TRUSTED_ROLE(), adminAddress)
+        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAddress))
             .to.equal(true)
-        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress)
-        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAdress))
+        await registryFromAdmin.revokeRole(await registryFromAdmin.TRUSTED_ROLE(), adminAddress)
+        expect(await registryFromAdmin.hasRole(await registryFromAdmin.TRUSTED_ROLE(), adminAddress))
             .to.equal(false)
     })
 

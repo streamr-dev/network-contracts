@@ -108,9 +108,9 @@ describe("Bounty", (): void => {
         await (await token.transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
 
         await advanceToTimestamp(start + 101, "Withdraw from bounty")
-        const allocationBeforeWithdraw = await bounty.getAllocation(broker.address)
+        const allocationBeforeWithdraw = await bounty.getEarnings(broker.address)
         await (await bounty.connect(broker).withdraw()).wait()
-        const allocationAfterWithdraw = await bounty.getAllocation(broker.address)
+        const allocationAfterWithdraw = await bounty.getEarnings(broker.address)
 
         expect(allocationBeforeWithdraw).to.equal(parseEther("100"))
         expect(allocationAfterWithdraw).to.equal(0)
@@ -126,10 +126,10 @@ describe("Bounty", (): void => {
         await (await token.transferAndCall(bounty.address, parseEther("10"), broker.address)).wait()
 
         await advanceToTimestamp(start + 101, "Withdraw from bounty") // queries will see start + 100 (off by one, NEXT tx will be start + 101)
-        const allocationBeforeUnstake = await bounty.getAllocation(broker.address)
+        const allocationBeforeUnstake = await bounty.getEarnings(broker.address)
         const stakeBeforeUnstake = await bounty.connect(broker).getMyStake()
         await (await bounty.connect(broker).unstake()).wait()
-        const allocationAfterUnstake = await bounty.getAllocation(broker.address)
+        const allocationAfterUnstake = await bounty.getEarnings(broker.address)
         const stakeAfterUnstake = await bounty.connect(broker).getMyStake()
 
         expect(allocationBeforeUnstake).to.equal(parseEther("100"))

@@ -51,21 +51,21 @@ export async function deployBounty(
     const leavePolicyParam = penaltyPeriodSeconds > -1 ? penaltyPeriodSeconds.toString() : "0"
     const kickPolicyAddress = overrideKickPolicy?.address ?? (adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address)
     const kickPolicyParam = "0"
-    const policyAdresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
+    const policyAddresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
     const policyParams = [allocationPolicyParam, leavePolicyParam, kickPolicyParam]
     if (maxBrokerCount > -1) {
-        policyAdresses.push(maxBrokersJoinPolicy.address)
+        policyAddresses.push(maxBrokersJoinPolicy.address)
         policyParams.push(maxBrokerCount.toString())
     }
     if (brokerPoolOnly) {
-        policyAdresses.push(brokerPoolOnlyJoinPolicy.address)
+        policyAddresses.push(brokerPoolOnlyJoinPolicy.address)
         policyParams.push("0")
     }
     if (extraJoinPolicies) {
         assert(extraJoinPolicyParams, "must give extraJoinPolicyParams if giving extraJoinPolicies")
         assert(extraJoinPolicies.length === extraJoinPolicyParams.length, "extraJoinPolicies and extraJoinPolicyParams must be same length")
         for (let i = 0; i < extraJoinPolicies.length; i++) {
-            policyAdresses.push(extraJoinPolicies[i].address)
+            policyAddresses.push(extraJoinPolicies[i].address)
             policyParams.push(extraJoinPolicyParams[i])
         }
     }
@@ -75,7 +75,7 @@ export async function deployBounty(
         minBrokerCount.toString(),
         `Bounty-${bountyCounter++}-${Date.now()}`,
         "metadata",
-        policyAdresses,
+        policyAddresses,
         policyParams
     )
     const bountyDeployReceipt = await bountyDeployTx.wait() as ContractReceipt
@@ -115,7 +115,7 @@ export async function deployBountyWithoutFactory(
     await bounty.initialize(
         "streamID",
         "metadata",
-        contracts.streamrConstants.address,
+        contracts.streamrConfig.address,
         deployer.address,
         token.address,
         [minimumStakeWei.toString(),

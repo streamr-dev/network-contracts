@@ -94,8 +94,8 @@ describe("BountyFactory", () => {
             .to.be.revertedWith("error_minimumStakeTooLow")
     })
 
-    it("will NOT create a Bounty with a minimumStake < MINIMUM_STAKE_WEI", async function(): Promise<void> {
-        const minimumStakeWei = await contracts.streamrConstants.MINIMUM_STAKE_WEI()
+    it("will NOT create a Bounty with a minimumStake < minimumStakeWei", async function(): Promise<void> {
+        const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
         const { allocationPolicy, leavePolicy, bountyFactory, token } = contracts
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
             [minimumStakeWei.sub(1), 0, 1, "Bounty-" + bountyCounter++, "metadata", [

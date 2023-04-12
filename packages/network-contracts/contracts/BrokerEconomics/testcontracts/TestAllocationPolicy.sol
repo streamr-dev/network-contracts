@@ -85,7 +85,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Bounty {
     function onSponsor(address, uint) external {
     }
 
-    function calculateAllocation(address) public view returns (uint allocation) {
+    function getEarningsWei(address) public view returns (uint earningsWei) {
     }
 
     function calculatePenaltyOnStake(address) external view returns (uint256 stake) {

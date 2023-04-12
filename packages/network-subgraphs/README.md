@@ -8,7 +8,7 @@ Run `streamr-docker-dev start deploy-network-subgraphs`
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile. To do so:
-- build image: `npm run docker:build` OR `docker build . -t streamr/deploy-network-subgraphs:dev`
+- build image: `npm run docker:build` OR `docker buildx build --platform linux/AMD64 . -t streamr/deploy-network-subgraphs:dev`
 - publish image: `npm run docker:publish` OR `docker push streamr/deploy-network-subgraphs:dev`
 
 ## Prod deployment to the hosted service

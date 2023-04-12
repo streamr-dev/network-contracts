@@ -8,11 +8,15 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Bounty.sol";
 import "./IERC677.sol";
-import "./StreamrConstants.sol";
+import "./StreamrConfig.sol";
 
+/**
+ * BountyFactory creates Bounties that respect Streamr Network rules and StreamrConfig.
+ * Only Bounties from this BountyFactory can be used in Streamr Network, and staked into by BrokerPools.
+ */
 contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
-    StreamrConstants public streamrConstants;
+    StreamrConfig public streamrConfig;
     address public bountyContractTemplate;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
@@ -24,12 +28,12 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address _tokenAddress, address constants) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        tokenAddress = _tokenAddress;
+        tokenAddress = dataTokenAddress;
         bountyContractTemplate = templateAddress;
-        streamrConstants = StreamrConstants(constants);
+        streamrConfig = StreamrConfig(streamrConfigAddress);
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -127,7 +131,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
         require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
-        require(initialMinimumStakeWei >= streamrConstants.MINIMUM_STAKE_WEI(), "error_minimumStakeTooLow");
+        require(initialMinimumStakeWei >= streamrConfig.minimumStakeWei(), "error_minimumStakeTooLow");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
@@ -138,7 +142,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         bounty.initialize(
             streamId,
             metadata,
-            streamrConstants,
+            streamrConfig,
             address(this), // this is needed in order to set the policies
             tokenAddress,
             bountyParams,
@@ -155,7 +159,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
                 bounty.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
-        bounty.addJoinPolicy(IJoinPolicy(streamrConstants.poolOnlyJoinPolicy()), 0);
+        bounty.addJoinPolicy(IJoinPolicy(streamrConfig.poolOnlyJoinPolicy()), 0);
         bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
         bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
