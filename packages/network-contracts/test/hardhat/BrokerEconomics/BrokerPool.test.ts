@@ -8,7 +8,7 @@ import { deployBrokerPool } from "./deployBrokerPool"
 
 import { deployBounty } from "./deployBounty"
 import { IKickPolicy } from "../../../typechain"
-import { setupBounty } from "./setupBounty"
+import { setupBounties } from "./setupBounty"
 
 const { parseEther, formatEther, hexZeroPad } = utils
 const { getSigners, getContractFactory } = hardhatEthers
@@ -871,9 +871,9 @@ describe("BrokerPool", (): void => {
             await setTokens(broker, "1000")
             await setTokens(delegator, "1000")
             const {
-                bounty,
-                staked: [ flagger, target, voter ]
-            } = await setupBounty(sharedContracts, 3, 0, this.test!.title, { bountyIsRunning: false })
+                bounties: [ bounty ],
+                pools: [ flagger, target, voter ]
+            } = await setupBounties(sharedContracts, [3], this.test!.title, { sponsor: false })
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, "Flag starts")

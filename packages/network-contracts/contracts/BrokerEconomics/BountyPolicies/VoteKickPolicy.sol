@@ -94,7 +94,7 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         uint sameBountyPeerCount = 0;
 
         BrokerPoolFactory factory = BrokerPoolFactory(streamrConfig.brokerPoolFactory());
-        uint brokerPoolCount = factory.deployedBrokerPoolsLength();
+        uint brokerPoolCount = factory.liveBrokerPoolCount();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
         bytes32 randomBytes = keccak256(abi.encode(target, brokerPoolCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
 
@@ -104,12 +104,11 @@ contract VoteKickPolicy is IKickPolicy, Bounty {
         for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
             randomBytes >>= 8; // if flagReviewerCount > 20, replace this with keccak256(randomBytes) or smth
             uint index = uint(randomBytes) % brokerPoolCount;
-            BrokerPool peer = factory.deployedBrokerPools(index);
+            BrokerPool peer = factory.liveBrokerPools(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 // console.log(index, "skipping", address(peer));
                 continue;
             }
-            // TODO: check is broker live
             if (stakedWei[address(peer)] > 0) {
                 if (sameBountyPeerCount + reviewers[target].length < maxReviewerCount) {
                     sameBountyPeers[sameBountyPeerCount++] = peer;
