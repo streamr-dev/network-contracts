@@ -146,8 +146,10 @@ describe("VoteKickPolicy", (): void => {
 
         // live = staked to any Bounty
         it("will only pick live reviewers", async () => {
-            const { bounties, pools: [ flagger, target, voter, nonStaked ], poolFactory } = await setupBounties(contracts, [2, 2], "pick-only-live-reviewers")
-            console.log("factory", contracts.poolFactory.address)
+            const { poolFactory, bounties, pools: [
+                flagger, target, voter, nonStaked
+            ] } = await setupBounties(contracts, [2, 2], "pick-only-live-reviewers")
+
             await expect(nonStaked.unstake(bounties[1].address))
                 .to.emit(poolFactory, "BrokerPoolLivenessChanged").withArgs(nonStaked.address, false)
             await expect(flagger.flag(bounties[0].address, target.address))
@@ -360,7 +362,10 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the flagger to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { bounties: [ bounty ], poolsPerBounty: [ [flagger, ...targets], [voter] ] } = await setupBounties(contracts, [8, 1], "flagger-reducestake")
+            const {
+                bounties: [ bounty ],
+                poolsPerBounty: [ [flagger, ...targets], [voter] ]
+            } = await setupBounties(contracts, [8, 1], "flagger-reducestake")
 
             await expect(flagger.flag(bounty.address, targets[0].address)).to.emit(voter, "ReviewRequest")
             await expect(flagger.flag(bounty.address, targets[1].address)).to.emit(voter, "ReviewRequest")
@@ -397,7 +402,10 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
-            const { bounties: [ bounty ], poolsPerBounty: [ [flagger, ...targets], [voter] ] } = await setupBounties(contracts, [8, 1], "super-flagger", {
+            const {
+                bounties: [ bounty ],
+                poolsPerBounty: [ [flagger, ...targets], [voter] ]
+            } = await setupBounties(contracts, [8, 1], "super-flagger", {
                 stakeAmountWei: parseEther("68"), // flag-stake is 10 tokens
             })
             await expect(flagger.flag(bounty.address, targets[0].address)).to.emit(voter, "ReviewRequest")
@@ -410,7 +418,10 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
-            const { bounties: [ bounty ], pools: [ flagger, target, voter ] } = await setupBounties(contracts, [3, 0], "flagger-slashed-below-minimum", {
+            const {
+                bounties: [ bounty ],
+                pools: [ flagger, target, voter ]
+            } = await setupBounties(contracts, [3, 0], "flagger-slashed-below-minimum", {
                 stakeAmountWei: parseEther("70"),
                 bountySettings: {
                     minimumStakeWei: parseEther("70"),
