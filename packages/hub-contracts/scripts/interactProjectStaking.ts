@@ -79,7 +79,7 @@ const unstake = async (projectId: string, amountToUnstake: number) => {
     log(`Unstaking ${amountToUnstake} tokens from project ${projectId}:`)
 
     log(`Stake before unstaking: ${await projectStaking.getProjectStake(projectId)}`)
-    const tx = await projectStaking.connect(buyerWallet).unstake(projectId, amountToUnstakeWei, options)
+const tx = await projectStaking.connect(buyerWallet).unstake(projectId, amountToUnstakeWei, await options())
     log(`Unstake tx: `, tx.hash)
     await tx.wait()
     log(`Stake after unstaking: ${await projectStaking.getProjectStake(projectId)}`)
