@@ -75,9 +75,28 @@ describe("Bounty", (): void => {
             .to.be.revertedWith("error_onlyDATAToken")
     })
 
-    it("will FAIL if sponsor called with no allowance", async function(): Promise<void> {
-        expect(await token.allowance(broker.address, defaultBounty.address)).to.equal(0)
-        await expect(defaultBounty.connect(broker).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+    describe("Sponsoring", (): void => {
+        it("will FAIL if sponsor called with no allowance", async function(): Promise<void> {
+            expect(await token.allowance(broker.address, defaultBounty.address)).to.equal(0)
+            await expect(defaultBounty.connect(broker).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+        })
+
+        it("adds to unallocatedWei even with ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
+            const bounty = await deployBountyWithoutFactory(contracts)
+            await (await token.transfer(bounty.address, parseEther("1"))).wait()
+            expect(await bounty.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
+            await (await bounty.sponsor(parseEther("0"))).wait()
+            expect(await bounty.unallocatedWei()).to.equal(parseEther("1"))
+        })
+
+        it("adds to unallocatedWei even with ERC20.transfer, after a second sponsoring", async function(): Promise<void> {
+            const bounty = await deployBountyWithoutFactory(contracts)
+            await (await token.transfer(bounty.address, parseEther("1"))).wait()
+            expect(await bounty.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
+            await (await token.approve(bounty.address, parseEther("1"))).wait()
+            await (await bounty.sponsor(parseEther("1"))).wait()
+            expect(await bounty.unallocatedWei()).to.equal(parseEther("2"))
+        })
     })
 
     it("will NOT let stake zero", async function(): Promise<void> {
