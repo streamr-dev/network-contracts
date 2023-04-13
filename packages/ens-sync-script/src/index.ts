@@ -10,7 +10,7 @@ const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/S
 const namehash = require('eth-ens-namehash')
 const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 
-const ENSCacheV2Address = "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166"
+const ENSCacheV2Address = "0xe50Bc86A0CDf8205f65896F500273B8caf387d14"
 
 const log = require("debug")("streamr:ens-sync-script")
 let streamRegistryContract: Contract
