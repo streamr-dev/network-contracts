@@ -26,7 +26,7 @@ import "./StreamrConfig.sol";
  * Brokers can also `unstake` and stop earning, signalling to stop servicing the stream.
  *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
  *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
- * The tokens held by `Bounty` are tracked in several accounts:
+ * The tokens held by `Bounty` are tracked in three accounts:
  * - totalStakedWei: total amount of tokens staked by all brokers
  *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
@@ -41,7 +41,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
     event MetadataUpdate(string metadata);
-    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint
+    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
@@ -69,10 +69,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     mapping(address => uint) public joinTimeOfBroker;
     mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
     uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    uint public totalStakedWei;
     uint public brokerCount;
     uint public minBrokerCount;
     uint public minHorizonSeconds;
-    uint public totalStakedWei;
     uint public unallocatedWei;
     uint public minimumStakeWei;
 
@@ -180,7 +180,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using ERC20.transfer */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei;
+        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
         uint unknownTokensWei = newTokensWei - amountWei; // newTokens > amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
         unallocatedWei += newTokensWei;
