@@ -51,7 +51,7 @@ contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /** Update cache and create a stream */
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, 
         string calldata metadataJsonString, address requestorAddress) public {
-        address ownerAddress = ensCacheV1.owners(ensName);
+        address ownerAddress = address(ensCacheV1) != address(0) ? ensCacheV1.owners(ensName) : address(0);
         if (ownerAddress == requestorAddress) {
             owners[ensName] = ownerAddress;
             streamRegistry.ENScreateStreamCallback(ownerAddress, ensName, streamIdPath, metadataJsonString);
