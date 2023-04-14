@@ -14,13 +14,11 @@ contract TestKickPolicy is IKickPolicy, Bounty {
 
     function onFlag(address broker) external {
         // console.log("onflag");
-        require(isAdmin(_msgSender()), "error_onlyAdmin");
         _slash(broker, 10 ether);
     }
 
     function onVote(address broker, bytes32 voteData) external {
         // console.log("onvote");
-        require(isAdmin(_msgSender()), "error_onlyAdmin");
         _kick(broker, uint(voteData));
     }
 

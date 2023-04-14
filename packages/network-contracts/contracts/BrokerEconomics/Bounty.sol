@@ -26,7 +26,7 @@ import "./StreamrConfig.sol";
  * Brokers can also `unstake` and stop earning, signalling to stop servicing the stream.
  *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
  *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
- * The tokens held by `Bounty` are tracked in several accounts:
+ * The tokens held by `Bounty` are tracked in three accounts:
  * - totalStakedWei: total amount of tokens staked by all brokers
  *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
@@ -40,8 +40,8 @@ import "./StreamrConfig.sol";
 contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
     event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
-    event MetadataUpdate(string metadata);
-    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint
+    event MetadataUpdate(string metadata); // TODO: delete
+    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
@@ -53,7 +53,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     StreamrConfig public streamrConfig;
@@ -69,16 +68,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     mapping(address => uint) public joinTimeOfBroker;
     mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
     uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    uint public totalStakedWei;
     uint public brokerCount;
     uint public minBrokerCount;
     uint public minHorizonSeconds;
-    uint public totalStakedWei;
     uint public unallocatedWei;
     uint public minimumStakeWei;
-
-    function isAdmin(address a) public view returns(bool) {
-        return hasRole(ADMIN_ROLE, a);
-    }
 
     function getMyStake() public view returns (uint) {
         return stakedWei[_msgSender()];
@@ -119,17 +114,12 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         string calldata streamId_,
         string calldata metadata_,
         StreamrConfig globalStreamrConfig,
-        address newOwner,
         address tokenAddress,
         uint[4] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
     ) public initializer {
         require(initParams[2] > 0, "error_minBrokerCountZero");
         require(initParams[0] > 0, "error_minimumStakeZero");
-        __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, newOwner); // TODO: remove, only factory should have DEFAULT_ADMIN_ROLE
-        _setupRole(ADMIN_ROLE, newOwner);
-        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE); // admins can make others admin, too
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
@@ -137,6 +127,8 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         minHorizonSeconds = uint32(initParams[1]);
         minBrokerCount = uint32(initParams[2]);
         streamrConfig = globalStreamrConfig;
+        __AccessControl_init();
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
         setAllocationPolicy(initialAllocationPolicy, initParams[3]);
     }
 
@@ -164,19 +156,30 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
     }
 
     /**
-     * Sponsor a stream by first calling DATA.approve(bounty.address, amountWei) then this function (2-step ERC20)
-     *   or alternatively call DATA.transferAndCall(bounty.address, amountWei, "0x") (1-step ERC677)
+     * Sponsor a stream in one of three ways:
+     * 1. 1-step ERC677: `DATA.transferAndCall(bounty.address, amountWei, "0x")` (preferred method!)
+     * 2. 2-step ERC20: first `DATA.approve(bounty.address, amountWei)` then `bounty.sponsor(amountWei)` (ERC20 compatibility)
+     * 3. 2-step ERC20: first `DATA.transfer(bounty.address, amountWei)` then `bounty.sponsor(0)` (fix if tokens were accidentally sent using ERC20.transfer)
+     * Method 3 will not attribute the tokens to the sponsor, so it should be avoided and only considered as a fix.
+     * The problem with ERC20.transfer is that it doesn't allow the recipient to know who sent the tokens, so the contract can't attribute them to the sender.
      */
     function sponsor(uint amountWei) external {
-        token.transferFrom(_msgSender(), address(this), amountWei);
+        if (amountWei > 0) {
+            token.transferFrom(_msgSender(), address(this), amountWei);
+        }
         _addSponsorship(_msgSender(), amountWei);
     }
 
+    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using ERC20.transfer */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        // TODO: sweep also unaccounted tokens into unallocated funds?
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, amountWei), "error_sponsorFailed");
-        unallocatedWei += amountWei;
+        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
+        uint unknownTokensWei = newTokensWei - amountWei; // newTokens > amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
+        unallocatedWei += newTokensWei;
         emit SponsorshipReceived(sponsorAddress, amountWei);
+        if (unknownTokensWei > 0) {
+            emit SponsorshipReceived(address(0), unknownTokensWei);
+        }
         emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
     }
 
@@ -461,11 +464,6 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
-    }
-
-    function setMetadata(string calldata _metadata) external onlyRole(ADMIN_ROLE) {
-        metadata = _metadata;
-        emit MetadataUpdate(_metadata);
     }
 
     /*

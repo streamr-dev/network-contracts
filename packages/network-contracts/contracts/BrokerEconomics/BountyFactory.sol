@@ -65,7 +65,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         return trustedPolicies[policyAddress];
     }
 
-    function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
+    function onTokenTransfer(address, uint amount, bytes calldata param) external {
         (
             uint initialMinimumStakeWei,
             uint32 initialMinHorizonSeconds,
@@ -78,7 +78,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             (uint,uint32,uint32,string,string,address[],uint[])
         );
         address bountyAddress = _deployBounty(
-            sender,
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
@@ -108,7 +107,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
         uint[] memory initParams
     ) public returns (address) {
         return _deployBounty(
-            _msgSender(),
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinBrokerCount,
@@ -120,7 +118,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
     }
 
     function _deployBounty(
-        address bountyOwner,
         uint initialMinimumStakeWei,
         uint initialMinHorizonSeconds,
         uint initialMinBrokerCount,
@@ -143,7 +140,6 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             streamId,
             metadata,
             streamrConfig,
-            address(this), // this is needed in order to set the policies
             tokenAddress,
             bountyParams,
             IAllocationPolicy(policies[0])
@@ -160,9 +156,7 @@ contract BountyFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradea
             }
         }
         bounty.addJoinPolicy(IJoinPolicy(streamrConfig.poolOnlyJoinPolicy()), 0);
-        bounty.grantRole(bounty.ADMIN_ROLE(), bountyOwner);
         bounty.renounceRole(bounty.DEFAULT_ADMIN_ROLE(), address(this));
-        bounty.renounceRole(bounty.ADMIN_ROLE(), address(this));
         emit NewBounty(bountyAddress, streamId, metadata);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[bountyAddress] = block.timestamp;

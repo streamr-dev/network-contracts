@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+import "./IBrokerPoolLivenessRegistry.sol";
 import "./BrokerPool.sol";
 import "./IERC677.sol";
 
@@ -15,7 +16,9 @@ import "./IERC677.sol";
  * BrokerPoolFactory creates "smart contract interfaces" for brokers to the Streamr Network.
  * Only BrokerPools from this BrokerPoolFactory can stake to Streamr Network Bounties.
  */
-contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IBrokerPoolLivenessRegistry {
+    event NewBrokerPool(address poolAddress);
+    event BrokerPoolLivenessChanged(address poolAddress, bool isLive);
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -26,12 +29,8 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     // array needed for peer broker selection for VoteKickPolicy peer review
-    BrokerPool[] public deployedBrokerPools;
-    function deployedBrokerPoolsLength() public view returns (uint) {
-        return deployedBrokerPools.length;
-    }
-
-    event NewBrokerPool(address poolAddress);
+    BrokerPool[] public liveBrokerPools;
+    mapping (BrokerPool => uint) public liveBrokerPoolsIndex; // real index +1, zero for BrokerPools not staked in a Bounty
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -150,16 +149,8 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
         }
         pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
+        deploymentTimestamp[poolAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewBrokerPool(poolAddress);
-        // solhint-disable-next-line not-rely-on-time
-        deploymentTimestamp[poolAddress] = block.timestamp;
-        deployedBrokerPools.push(pool);
-
-        // string memory streamId = string.concat(streamRegistry.addressToString(pool), "/broker/coordination");
-        // // transfer ownership of the stream to poolOwner
-        // // set streamId in the pool
-        // streamRegistry.createStream(streamId, "");
-        // pool.setMetadata(metadataJsonString);
         return poolAddress;
     }
 
@@ -174,5 +165,39 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    /** BrokerPools MUST call this function when they stake to their first Bounty */
+    function registerAsLive() public {
+        address poolAddress = _msgSender();
+        require(deploymentTimestamp[poolAddress] > 0, "error_onlyBrokerPools");
+        BrokerPool pool = BrokerPool(poolAddress);
+        require(liveBrokerPoolsIndex[pool] == 0, "error_alreadyLive");
+
+        liveBrokerPools.push(pool);
+        liveBrokerPoolsIndex[pool] = liveBrokerPools.length; // real index + 1
+
+        emit BrokerPoolLivenessChanged(poolAddress, true);
+    }
+
+    /** BrokerPools MUST call this function when they unstake from their last Bounty */
+    function registerAsNotLive() public {
+        address poolAddress = _msgSender();
+        require(deploymentTimestamp[poolAddress] > 0, "error_onlyBrokerPools");
+        BrokerPool pool = BrokerPool(poolAddress);
+        require(liveBrokerPoolsIndex[pool] > 0, "error_notLive");
+
+        uint index = liveBrokerPoolsIndex[pool] - 1; // real index = liveBrokerPoolsIndex - 1
+        BrokerPool lastPool = liveBrokerPools[liveBrokerPools.length - 1];
+        liveBrokerPools[index] = lastPool;
+        liveBrokerPools.pop();
+        liveBrokerPoolsIndex[lastPool] = index + 1; // real index + 1
+        delete liveBrokerPoolsIndex[pool];
+
+        emit BrokerPoolLivenessChanged(poolAddress, false);
+    }
+
+    function liveBrokerPoolCount() public view returns (uint) {
+        return liveBrokerPools.length;
     }
 }

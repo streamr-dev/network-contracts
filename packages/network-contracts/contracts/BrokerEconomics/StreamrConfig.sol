@@ -119,6 +119,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     address public bountyFactory;
     address public brokerPoolFactory;
+    address public brokerPoolLivenessRegistry; // same as BrokerPoolFactory, for now
 
     /**
      * A mandatory joinpolicy for Bounties from BountyFactory. Ensures only BrokerPools from BrokerPoolFactory can join.
@@ -155,6 +156,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setBrokerPoolFactory(address brokerPoolFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         brokerPoolFactory = brokerPoolFactoryAddress;
+        brokerPoolLivenessRegistry = brokerPoolFactoryAddress;
     }
 
     function setPoolOnlyJoinPolicy(address poolOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 import "./IBroker.sol";
+import "./IBrokerPoolLivenessRegistry.sol";
 import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
 import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
 import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
@@ -272,10 +273,14 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         token.approve(address(bounty), amountWei);
         if (indexOfBounties[bounty] == 0) {
             bounty.stake(address(this), amountWei); // may fail if amountWei < minimumStake
-            bounties.push(bounty);
-            indexOfBounties[bounty] = bounties.length; // real array index + 1
             approxPoolValueOfBounty[bounty] += amountWei;
             totalValueInBountiesWei += amountWei;
+
+            bounties.push(bounty);
+            indexOfBounties[bounty] = bounties.length; // real array index + 1
+            if (bounties.length == 1) {
+                try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsLive() {} catch {}
+            }
         }
         emit Staked(bounty, amountWei);
     }
@@ -385,6 +390,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         bounties.pop();
         indexOfBounties[lastBounty] = index + 1; // indexOfBounties is the real array index + 1
         delete indexOfBounties[bounty];
+        if (bounties.length == 0) {
+            try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsNotLive() {} catch {}
+        }
     }
 
     ////////////////////////////////////////
