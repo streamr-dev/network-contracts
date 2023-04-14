@@ -1,20 +1,10 @@
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { Wallet, utils} from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConfig } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
-import { Chains } from "@streamr/config"
-
-const {
-    CHAIN = "dev1",
-} = process.env
-const {
-    contracts: {
-        StreamRegistry: STREAM_REGISTRY_ADDRESS,
-    }
-} = Chains.load()[CHAIN]
 
 export type TestContracts = {
     token: TestToken;
@@ -58,7 +48,12 @@ export async function deployPoolFactory(contracts: Partial<TestContracts>, signe
     ])).wait()
 
     await (await streamrConfig!.setBrokerPoolFactory(poolFactory.address)).wait()
-    await (await streamrConfig!.setStreamRegistryAddress(STREAM_REGISTRY_ADDRESS)).wait()
+
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
+    const streamRegistry = await upgrades.deployProxy(streamRegistryFactory,
+        [hardhatEthers.constants.AddressZero, Wallet.createRandom().address], { kind: "uups" })
+
+    await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
     return { poolFactory, poolTemplate }
 }

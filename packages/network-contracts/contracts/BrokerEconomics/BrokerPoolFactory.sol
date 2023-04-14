@@ -106,22 +106,21 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         address[3] calldata policies,
         uint[8] calldata initParams,
         string calldata metadataJsonString
-    ) public returns (address brokerPoolAddress) {
-        brokerPoolAddress = _deployBrokerPool(
+    ) public returns (address) {
+        string[2] memory poolParams = [poolName, metadataJsonString];
+        return _deployBrokerPool(
             _msgSender(),
             initialMinimumDelegationWei,
-            poolName,
+            poolParams,
             policies,
             initParams
         );
-
-        BrokerPool(brokerPoolAddress).updatePoolMetadata(metadataJsonString);
     }
 
     function _deployBrokerPool(
         address poolOwner,
         uint32 initialMinimumDelegationWei,
-        string calldata poolName,
+        string[2] memory poolParams,
         address[3] calldata policies,
         uint[8] calldata initParams
     ) private returns (address) {
@@ -129,14 +128,14 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(bytes(poolName), poolOwner));
+        bytes32 salt = keccak256(abi.encode(bytes(poolParams[0]), poolOwner));
         address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
         BrokerPool pool = BrokerPool(poolAddress);
         pool.initialize(
             tokenAddress,
             configAddress,
             poolOwner,
-            poolName,
+            poolParams,
             initialMinimumDelegationWei
         );
         if (policies[0] != address(0)) {

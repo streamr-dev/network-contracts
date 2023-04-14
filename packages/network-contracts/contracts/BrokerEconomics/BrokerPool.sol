@@ -100,6 +100,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
     IStreamRegistry public streamRegistry;
+    string public constant streamPath = "/broker/coordination";
     string public streamId;
     string public metadata;
 
@@ -120,7 +121,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address tokenAddress,
         address streamrConfigAddress,
         address brokerAddress,
-        string calldata poolName,
+        string[2] memory poolParams,
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
@@ -130,7 +131,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         broker = brokerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
         minimumDelegationWei = initialMinimumDelegationWei;
-        ERC20Upgradeable.__ERC20_init(poolName, poolName);
+        ERC20Upgradeable.__ERC20_init(poolParams[0], poolParams[0]);
 
         // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
@@ -138,14 +139,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        _createPoolStream(brokerAddress);
+        metadata = poolParams[1];
+        
+        _createPoolStream();
     }
 
     /** Each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination */
-    function _createPoolStream(address brokerAddress) private {
+    function _createPoolStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
-        streamId = string.concat(streamRegistry.addressToString(brokerAddress), "/broker/coordination");
-        streamRegistry.createStream(streamId, "");
+        streamId = string.concat(streamRegistry.addressToString(address(this)), streamPath);
+        streamRegistry.createStream(streamPath, "metadata");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
     }
 
