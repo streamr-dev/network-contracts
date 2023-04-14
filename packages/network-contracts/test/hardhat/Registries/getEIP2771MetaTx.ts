@@ -1,10 +1,22 @@
-import { ethers } from "hardhat";
-import { utils, Wallet } from "ethers";
-import { signTypedData, SignTypedDataVersion, TypedMessage } from "@metamask/eth-sig-util";
-import { MinimalForwarder } from "../../../typechain";
+import { ethers } from "hardhat"
+import { utils, Wallet } from "ethers"
+import { signTypedData, SignTypedDataVersion, TypedMessage } from "@metamask/eth-sig-util"
+import { MinimalForwarder } from "../../../typechain"
+
+interface EIP2771MetaTx {
+    request: {
+        from: string
+        to: string
+        value: string
+        gas: string
+        nonce: string
+        data: string
+    }
+    signature: string
+}
 
 /** @dev see https://eips.ethereum.org/EIPS/eip-2771 */
-export async function getEIP2771MetaTx(to: string, data: string, forwarder: MinimalForwarder, signer: Wallet, gas?: string) {
+export async function getEIP2771MetaTx(to: string, data: string, forwarder: MinimalForwarder, signer: Wallet, gas?: string): Promise<EIP2771MetaTx> {
     const request = {
         from: signer.address,
         to,
@@ -12,7 +24,7 @@ export async function getEIP2771MetaTx(to: string, data: string, forwarder: Mini
         gas: gas ? gas : "1000000",
         nonce: (await forwarder.getNonce(signer.address)).toString(),
         data
-    };
+    }
     const d: TypedMessage<any> = {
         domain: {
             name: "MinimalForwarder",
@@ -38,12 +50,12 @@ export async function getEIP2771MetaTx(to: string, data: string, forwarder: Mini
                 { name: "data", type: "bytes" },
             ],
         },
-    };
+    }
     const options = {
         data: d,
         privateKey: utils.arrayify(signer.privateKey) as Buffer,
         version: SignTypedDataVersion.V4,
-    };
-    const signature = signTypedData(options); // user0
-    return { request, signature };
+    }
+    const signature = signTypedData(options)
+    return { request, signature }
 }
