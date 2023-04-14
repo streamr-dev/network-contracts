@@ -31,7 +31,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
      */
     const brokerPoolReceipt = await (await poolFactory.connect(deployer).deployBrokerPool(
         0,
-        create2Salt,
+        [create2Salt, poolMetadata],
         [
             defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,
@@ -40,8 +40,7 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
             initialMargin, minBrokerStakePercent,
             initialMargin, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent,
             0
-        ],
-        poolMetadata
+        ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newPoolAddress = brokerPoolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
     return poolTemplate.attach(newPoolAddress).connect(deployer)

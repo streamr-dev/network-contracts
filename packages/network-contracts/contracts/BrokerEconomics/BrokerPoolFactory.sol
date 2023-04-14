@@ -102,12 +102,10 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
      */
     function deployBrokerPool(
         uint32 initialMinimumDelegationWei,
-        string calldata poolName,
+        string[2] calldata poolParams,
         address[3] calldata policies,
-        uint[8] calldata initParams,
-        string calldata metadataJsonString
+        uint[8] calldata initParams
     ) public returns (address) {
-        string[2] memory poolParams = [poolName, metadataJsonString];
         return _deployBrokerPool(
             _msgSender(),
             initialMinimumDelegationWei,
@@ -120,7 +118,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     function _deployBrokerPool(
         address poolOwner,
         uint32 initialMinimumDelegationWei,
-        string[2] memory poolParams,
+        string[2] calldata poolParams,
         address[3] calldata policies,
         uint[8] calldata initParams
     ) private returns (address) {
