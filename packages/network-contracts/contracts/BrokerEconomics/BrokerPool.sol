@@ -23,6 +23,8 @@ interface IStreamRegistry {
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) external;
+    function updateStreamMetadata(string calldata streamId, string calldata metadata) external;
+    function grantPublicPermission(string calldata streamId, PermissionType permissionType) external;
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) external;
     function addressToString(address _address) external pure returns(string memory);
@@ -96,7 +98,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
-    IStreamRegistry streamRegistry;
+    IStreamRegistry public streamRegistry;
     string public streamId;
     string public metadata;
 
@@ -118,8 +120,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address streamrConfigAddress,
         address brokerAddress,
         string calldata poolName,
-        uint initialMinimumDelegationWei,
-        address streamRegistryAddress
+        uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
         _setupRole(ADMIN_ROLE, brokerAddress);
@@ -136,11 +137,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        streamRegistry = IStreamRegistry(streamRegistryAddress);
+        _createPoolStream(brokerAddress);
+    }
 
-        // each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination
+    /** Each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination */
+    function _createPoolStream(address brokerAddress) private {
+        streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
         streamId = string.concat(streamRegistry.addressToString(brokerAddress), "/broker/coordination");
         streamRegistry.createStream(streamId, "");
+        streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -172,9 +177,13 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function setMetadata(string calldata metadataJsonString) external onlyBroker {
+    function updatePoolMetadata(string calldata metadataJsonString) external onlyBroker {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, broker);
+    }
+
+    function updateStreamMetadata(string calldata metadataJsonString) external onlyBroker {
+        streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
 
     /////////////////////////////////////////
@@ -445,7 +454,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         nodeIndex[node] = nodes.length; // will be +1
 
         streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
-        streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function _removeNode(address node) internal {
@@ -457,7 +465,6 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         delete nodeIndex[node];
 
         streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
-        streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function getNodeAddresses() external view returns (address[] memory) {

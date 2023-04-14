@@ -31,21 +31,17 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         return deployedBrokerPools.length;
     }
 
-    address public streamRegistry;
-
     event NewBrokerPool(address poolAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress, address streamRegistryAddress) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         brokerPoolTemplate = templateAddress;
-
-        streamRegistry = streamRegistryAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -120,7 +116,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             initParams
         );
 
-        BrokerPool(brokerPoolAddress).setMetadata(metadataJsonString);
+        BrokerPool(brokerPoolAddress).updatePoolMetadata(metadataJsonString);
     }
 
     function _deployBrokerPool(
@@ -142,8 +138,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             configAddress,
             poolOwner,
             poolName,
-            initialMinimumDelegationWei,
-            streamRegistry
+            initialMinimumDelegationWei
         );
         if (policies[0] != address(0)) {
             pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);
@@ -159,6 +154,12 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[poolAddress] = block.timestamp;
         deployedBrokerPools.push(pool);
+
+        // string memory streamId = string.concat(streamRegistry.addressToString(pool), "/broker/coordination");
+        // // transfer ownership of the stream to poolOwner
+        // // set streamId in the pool
+        // streamRegistry.createStream(streamId, "");
+        // pool.setMetadata(metadataJsonString);
         return poolAddress;
     }
 

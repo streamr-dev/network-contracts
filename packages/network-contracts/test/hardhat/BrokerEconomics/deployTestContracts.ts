@@ -5,6 +5,16 @@ import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationP
     IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConfig } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
+import { Chains } from "@streamr/config"
+
+const {
+    CHAIN = "dev1",
+} = process.env
+const {
+    contracts: {
+        StreamRegistry: STREAM_REGISTRY_ADDRESS,
+    }
+} = Chains.load()[CHAIN]
 
 export type TestContracts = {
     token: TestToken;
@@ -48,6 +58,7 @@ export async function deployPoolFactory(contracts: Partial<TestContracts>, signe
     ])).wait()
 
     await (await streamrConfig!.setBrokerPoolFactory(poolFactory.address)).wait()
+    await (await streamrConfig!.setStreamRegistryAddress(STREAM_REGISTRY_ADDRESS)).wait()
 
     return { poolFactory, poolTemplate }
 }
