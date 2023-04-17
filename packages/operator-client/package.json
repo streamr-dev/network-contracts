@@ -1,0 +1,27 @@
+{
+  "name": "operator-client",
+  "version": "0.0.1",
+  "description": "Provides the necessary interface for Streamr Operator plugin subsystems to access the smart contracts",
+  "scripts": {
+    "test": "mocha --require ts-node/register test/*.ts",
+    "build": "tsc"
+  },
+  "author": "Streamr Network AG <contact@streamr.network>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@ethersproject/wallet": "^5.7.0",
+    "@streamr/config": "^2.5.10",
+    "debug": "^4.3.4",
+    "eventemitter3": "5.0.0"
+  },
+  "devDependencies": {
+    "@types/chai": "4.3.4",
+    "@types/mocha": "10.0.1",
+    "chai": "4.3.7",
+    "mocha": "10.2.0",
+    "ts-node": "10.9.1",
+    "typescript": "5.0.4"
+  }
+}
