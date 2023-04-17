@@ -10,10 +10,8 @@
     "./packages/network-contracts",
     "./packages/hub-contracts",
     "./packages/network-subgraphs",
-    "./packages/hub-subgraph",
     "./packages/docker-dev-chain-init",
-    "./packages/chat-contracts",
-    "./packages/tatum-subgraph"
+    "./packages/chat-contracts"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces --if-present",
