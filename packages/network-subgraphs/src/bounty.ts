@@ -1,6 +1,6 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 
-import { Bounty, BrokerPool, BountyStake, Flag, BountyDailyStats } from '../generated/schema'
+import { Bounty, BrokerPool, BountyStake, Flag, BountyDailyBucket } from '../generated/schema'
 import { StakeUpdate, BountyUpdate, FlagUpdate, MetadataUpdate } from '../generated/templates/Bounty/Bounty'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
@@ -49,12 +49,8 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     bounty!.isRunning = event.params.isRunning
     bounty!.save()
 
-    // update BountyDailyStats
+    // update BountyDailyBucket
     let date = new Date(event.block.timestamp.toI32() * 1000)
-    // let dayDate = new Date()
-    // dayDate.setUTCFullYear(date.getUTCFullYear())
-    // dayDate.setUTCMonth(date.getUTCMonth())
-    // dayDate.setUTCDate(date.getUTCDate())
     date.setUTCHours(0)
     date.setUTCMinutes(0)
     date.setUTCSeconds(0)
@@ -62,9 +58,10 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     //datestring in yyyy-mm-dd format
     let dateString = date.toISOString().split('T')[0]
     let statId = bountyAddress.toHexString() + "-" + dateString
-    let stat = BountyDailyStats.load(statId)
+    let stat = BountyDailyBucket.load(statId)
     if (stat === null) {
-        stat = new BountyDailyStats(statId)
+        log.info("handleBountyUpdated: creating new stat statId={}", [statId])
+        stat = new BountyDailyBucket(statId)
         stat.id = statId
         stat.bounty = bountyAddress.toHexString()
         stat.date = new BigInt(i32(date.getTime()))
@@ -80,6 +77,7 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     stat.brokerCount = event.params.brokerCount.toI32()
     stat.projectedInsolvency = event.params.projectedInsolvencyTime
     stat.brokerCount = event.params.brokerCount.toI32()
+    stat.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {

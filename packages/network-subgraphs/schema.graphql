@@ -218,7 +218,7 @@ type Bounty @entity {
   flags: [Flag!]! @derivedFrom(field: "bounty")
 }
 
-type BountyDailyStats @entity {
+type BountyDailyBucket @entity {
   id: ID! # bounty address + date
   bounty: Bounty!
   date: BigInt!
@@ -262,7 +262,7 @@ type BrokerPool @entity {
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
 }
 
-type BrokerPoolDailyStats @entity {
+type BrokerPoolDailyBucket @entity {
   id: ID! # pool address + date
   pool: BrokerPool!
   date: BigInt!
