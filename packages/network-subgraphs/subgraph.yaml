@@ -156,9 +156,9 @@ dataSources:
         - name: ProjectStakingV1
           file: ./abis/ProjectStakingV1.json
       eventHandlers:
-        - event: Stake(indexed bytes32,indexed address,uint256)
+        - event: Stake(indexed bytes32,indexed address,uint256,uint256)
           handler: handleStake
-        - event: Unstake(indexed bytes32,indexed address,uint256)
+        - event: Unstake(indexed bytes32,indexed address,uint256,uint256)
           handler: handleUnstake
       file: ./src/projectStaking.ts
   - kind: ethereum/contract

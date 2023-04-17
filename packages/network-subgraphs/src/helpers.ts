@@ -1,5 +1,7 @@
 import { BigInt, Bytes, json, JSONValue, JSONValueKind, Result } from "@graphprotocol/graph-ts"
-import { Project } from '../generated/schema'
+import { Project, ProjectStakeByUser, ProjectStakingDayBucket } from '../generated/schema'
+
+const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 
 /**
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
@@ -21,8 +23,42 @@ export function loadOrCreateProject(projectId: Bytes): Project {
         project.counter = 0
         project.score = BigInt.fromI32(0)
         project.isDataUnion = false
+        project.stakedWei = BigInt.fromI32(0)
     }
     return project
+}
+
+export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: BigInt): ProjectStakingDayBucket {
+    const bucketStartDate = timestamp.minus(timestamp.mod(BUCKET_SECONDS))
+    const bucketId = projectId + '-' + bucketStartDate.toString()
+    let bucket = ProjectStakingDayBucket.load(bucketId)
+    if (bucket === null) {
+        bucket = new ProjectStakingDayBucket(bucketId)
+        bucket.project = projectId
+        bucket.date = bucketStartDate
+        let bucketStakeAtStart = BigInt.fromI32(0)
+        let project = Project.load(projectId)
+        if (project !== null) {
+            bucketStakeAtStart = project.stakedWei
+        }
+        bucket.stakeAtStart = bucketStakeAtStart
+        bucket.stakeChange = BigInt.fromI32(0)
+        bucket.stakingsWei = BigInt.fromI32(0)
+        bucket.unstakingsWei = BigInt.fromI32(0)
+    }
+    return bucket
+}
+
+export function loadOrCreateProjectStake(projectId: string, user: Bytes): ProjectStakeByUser {
+    const projectStakeId = projectId + '-' + user.toHexString()
+    let projectStake = ProjectStakeByUser.load(projectStakeId)
+    if (projectStake === null) {
+        projectStake = new ProjectStakeByUser(projectStakeId)
+        projectStake.project = projectId
+        projectStake.user = user
+        projectStake.userStake = BigInt.fromI32(0)
+    }
+    return projectStake
 }
 
 /**

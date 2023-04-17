@@ -136,7 +136,9 @@ type Project @entity {
   "Marketplace purchases"
   purchases: [ProjectPurchase!]!
   "Incremented/decremented when Stake/Unstake events are fired. It may not always be 1:1 with the stake (with future implementations)"
-  score: BigInt
+  score: BigInt!
+  "Total tokens staked in the project by all stakers"
+  stakedWei: BigInt!
   "Increases when various actions are triggered (e.g. purchase, stake, unstake). Used to generate unique ids"
   counter: Int
 }
@@ -168,8 +170,9 @@ type ProjectPurchase @entity {
 
 # ProjectStakingV1
 
-type ProjectStaking @entity {
-  "stake id = projectId + '-' + userAddress + '-' + counter"
+
+type ProjectStakeByUser @entity {
+  "stake id = projectId + '-' + userAddress"
   id: ID!
 
   "Target project this stake is for"
@@ -178,28 +181,31 @@ type ProjectStaking @entity {
   "Ethereum address, the account initiating the stake"
   user: Bytes!
 
-  "The amount being staked"
-  amount: BigInt!
-
-  "stake date. This is a timestamp in seconds"
-  stakedAt: BigInt
+  "All tokens staked by a given user"
+  userStake: BigInt!
 }
 
-type ProjectUnstaking @entity {
-  "unstake id = projectId + '-' + userAddress + '-' + counter"
+type ProjectStakingDayBucket @entity {
+  "bucket id = projectId + '-' + date"
   id: ID!
 
-  "Target project this unstake is for"
+  "Target project this stake is for"
   project: Project!
 
-  "Ethereum address, the account initiating the unstake"
-  user: Bytes!
+  "The day of the bucket"
+  date: BigInt!
 
-  "The amount being unstaked"
-  amount: BigInt!
+  "The amount of tokens staked when the bucket starts"
+  stakeAtStart: BigInt!
 
-  "unstake date. This is a timestamp in seconds"
-  unstakedAt: BigInt
+  "The amount of tokens staked/unstaked on this day"
+  stakeChange: BigInt!
+
+  "The amount of tokens staked on this day"
+  stakingsWei: BigInt!
+
+  "The amount of tokens unstaked on this day"
+  unstakingsWei: BigInt!
 }
 
 # Tatum

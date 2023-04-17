@@ -4,9 +4,8 @@ import {
     ProjectPermission,
     Project,
     ProjectPurchase,
-    ProjectStaking,
+    ProjectStakeByUser,
     ProjectSubscription,
-    ProjectUnstaking
 } from "../../generated/schema"
 
 export function createProjectEntity(projectId: string): Project {
@@ -23,6 +22,7 @@ export function createProjectEntity(projectId: string): Project {
     project.purchases = []
     project.counter = 0
     project.score = BigInt.fromI32(0)
+    project.stakedWei = BigInt.fromI32(0)
     project.save()
     return project
 }
@@ -122,36 +122,16 @@ export function createProjectPurchaseEntity(
     return projectPurchase
 }
 
-export function createProjectStakingEntity(
+export function createProjectStakeEntity(
     stakingId: string,
     projectId: string,
     user: string,
-    amount: number,
-    stakedAt: number
-): ProjectStaking {
-    const staking = new ProjectStaking(stakingId)
+): ProjectStakeByUser {
+    const staking = new ProjectStakeByUser(stakingId)
     staking.id = stakingId
     staking.project = projectId
     staking.user = Bytes.fromHexString(user)
-    staking.amount = BigInt.fromI32(amount as i32)
-    staking.stakedAt = BigInt.fromI32(stakedAt as i32)
+    staking.userStake = BigInt.fromI32(0)
     staking.save()
     return staking
-}
-
-export function createProjectUnstakingEntity(
-    unstakingId: string,
-    projectId: string,
-    user: string,
-    amount: number,
-    unstakedAt: number
-): ProjectUnstaking {
-    const unstaking = new ProjectUnstaking(unstakingId)
-    unstaking.id = unstakingId
-    unstaking.project = projectId
-    unstaking.user = Bytes.fromHexString(user)
-    unstaking.amount = BigInt.fromI32(amount as i32)
-    unstaking.unstakedAt = BigInt.fromI32(unstakedAt as i32)
-    unstaking.save()
-    return unstaking
 }
