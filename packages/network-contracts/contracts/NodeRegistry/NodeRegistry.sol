@@ -8,9 +8,11 @@ import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol"
 
 /**
  * @title NodeRegistry
+ *
  * Streamr Network nodes register themselves here
- * @dev OwnableUpgradable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
+ *
+ * @dev OwnableUpgradable contract has an owner address, and provides basic authorization control functions.
+ * @dev   This simplifies the implementation of "user permissions".
  */
 contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
@@ -76,10 +78,12 @@ contract NodeRegistry is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //     return n.node.lastSeen != 0;
     // }
 
+    // TODO: rename to adminCreateOrUpdateNode
     function createOrUpdateNode(address node, string memory metadata_) public onlyOwner {
         _createOrUpdateNode(node, metadata_);
     }
 
+    // TODO: rename to createOrUpdateNode
     function createOrUpdateNodeSelf(string memory metadata_) public whitelistOK {
         _createOrUpdateNode(msg.sender, metadata_);
     }
