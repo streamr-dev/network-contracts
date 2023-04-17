@@ -15,7 +15,9 @@ import {
 } from "../../generated/ProjectRegistryV1/ProjectRegistryV1"
 import { 
     Stake,
+    Stake1,
     Unstake,
+    Unstake1,
 } from "../../generated/ProjectStakingV1/ProjectStakingV1"
 import { getIsDataUnionValue } from "../../src/helpers"
 
@@ -209,7 +211,7 @@ export function createProjectPurchasedEvent(
 
 //////////////////////// ProjectStakingV1 ////////////////////////
 
-export function createStakeEvent(projectId: Bytes, user: string, amount: number, totalStake: number): Stake {
+export function createStakeEvent(projectId: Bytes, user: string, amount: number): Stake {
     const stakeEvent = changetype<Stake>(newMockEvent())
     stakeEvent.parameters = []
 
@@ -219,13 +221,11 @@ export function createStakeEvent(projectId: Bytes, user: string, amount: number,
     stakeEvent.parameters.push(userParam)
     const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
     stakeEvent.parameters.push(amountParam)
-    const totalStakeParam = new ethereum.EventParam("totalStake", ethereum.Value.fromI32(totalStake as i32))
-    stakeEvent.parameters.push(totalStakeParam)
 
     return stakeEvent
 }
 
-export function createUnstakeEvent(projectId: Bytes, user: string, amount: number, totalStake: number): Unstake {
+export function createUnstakeEvent(projectId: Bytes, user: string, amount: number): Unstake {
     const unstakeEvent = changetype<Unstake>(newMockEvent())
     unstakeEvent.parameters = []
 
@@ -235,8 +235,38 @@ export function createUnstakeEvent(projectId: Bytes, user: string, amount: numbe
     unstakeEvent.parameters.push(userParam)
     const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
     unstakeEvent.parameters.push(amountParam)
-    const totalStakeParam = new ethereum.EventParam("totalStake", ethereum.Value.fromI32(totalStake as i32))
-    unstakeEvent.parameters.push(totalStakeParam)
+
+    return unstakeEvent
+}
+
+export function createStake1Event(projectId: Bytes, user: string, amount: number, projectStake: number): Stake1 {
+    const stakeEvent = changetype<Stake1>(newMockEvent())
+    stakeEvent.parameters = []
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    stakeEvent.parameters.push(projectIdParam)
+    const userParam = new ethereum.EventParam("user", ethereum.Value.fromAddress(Address.fromString(user)))
+    stakeEvent.parameters.push(userParam)
+    const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
+    stakeEvent.parameters.push(amountParam)
+    const projectStakeParam = new ethereum.EventParam("projectStake", ethereum.Value.fromI32(projectStake as i32))
+    stakeEvent.parameters.push(projectStakeParam)
+
+    return stakeEvent
+}
+
+export function createUnstake1Event(projectId: Bytes, user: string, amount: number, projectStake: number): Unstake1 {
+    const unstakeEvent = changetype<Unstake1>(newMockEvent())
+    unstakeEvent.parameters = []
+
+    const projectIdParam = new ethereum.EventParam("projectId", ethereum.Value.fromBytes(projectId))
+    unstakeEvent.parameters.push(projectIdParam)
+    const userParam = new ethereum.EventParam("user", ethereum.Value.fromAddress(Address.fromString(user)))
+    unstakeEvent.parameters.push(userParam)
+    const amountParam = new ethereum.EventParam("amount", ethereum.Value.fromI32(amount as i32))
+    unstakeEvent.parameters.push(amountParam)
+    const projectStakeParam = new ethereum.EventParam("projectStake", ethereum.Value.fromI32(projectStake as i32))
+    unstakeEvent.parameters.push(projectStakeParam)
 
     return unstakeEvent
 }
