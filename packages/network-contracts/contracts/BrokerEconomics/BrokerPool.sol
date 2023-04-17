@@ -246,7 +246,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
                 try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsLive() {} catch {}
             }
         }
-        emit Staked(bounty, amountWei);
+        emit Staked(bounty, amountWei); // TODO: add argument: current stake in the Bounty
     }
 
     /**
