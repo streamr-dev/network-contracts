@@ -2,7 +2,7 @@ import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
 import { ProjectStakeByUser } from "../generated/schema"
 import {
-    handleStake, handleStake1, handleUnstake, handleUnstake1
+    handleStake1, handleUnstake1
 } from "../src/projectStaking"
 import {
     createStake1Event, createUnstake1Event,
