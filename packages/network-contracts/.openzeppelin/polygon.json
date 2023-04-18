@@ -760,9 +760,9 @@
         }
       }
     },
-    "4520c509fec745f6c4de8bf9a236e0f3788b59b1f8672551682d074f19480397": {
-      "address": "0x43DC0D1911421e093777950414943703A292d79A",
-      "txHash": "0x589ae1608a55b76bc2e221217114cfe0863a5727c37a50d8a55595414e0cdbe0",
+    "d4db542646b11d24d6eb916bd37f55cf41377f4f0f7f7aa52461369a77c057ef": {
+      "address": "0xC3B27263B006F663837D3C7053381E000E671dC5",
+      "txHash": "0x156c43e2b67685bd89185461050a656f8a6ee5ecfb3fb6212f8de39de8d1a231",
       "layout": {
         "storage": [
           {
@@ -842,7 +842,7 @@
             "label": "streamRegistry",
             "offset": 0,
             "slot": "203",
-            "type": "t_contract(IStreamRegistry)11578",
+            "type": "t_contract(IStreamRegistry)17218",
             "contract": "ENSCacheV2Streamr",
             "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:19"
           },
@@ -850,7 +850,7 @@
             "label": "ensCacheV1",
             "offset": 0,
             "slot": "204",
-            "type": "t_contract(ENSCacheV1)11936",
+            "type": "t_contract(ENSCacheV1)17576",
             "contract": "ENSCacheV2Streamr",
             "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:20"
           }
@@ -872,11 +872,11 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(ENSCacheV1)11936": {
+          "t_contract(ENSCacheV1)17576": {
             "label": "contract ENSCacheV1",
             "numberOfBytes": "20"
           },
-          "t_contract(IStreamRegistry)11578": {
+          "t_contract(IStreamRegistry)17218": {
             "label": "contract IStreamRegistry",
             "numberOfBytes": "20"
           },
