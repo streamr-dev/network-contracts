@@ -7,7 +7,7 @@ export function handleDelegationReceived (event: Delegated): void {
     log.info('handleDelegationReceived: pooladdress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     let pool = BrokerPool.load(event.address.toHexString())
     pool!.delegatorCount = pool!.delegatorCount + 1
-    
+
     pool!.save()
 
     let delegation = PoolDelegation.load(event.params.delegator.toHexString())
@@ -23,14 +23,14 @@ export function handleDelegationReceived (event: Delegated): void {
 
 // export function handleStakeUpdated (event: Staked): void {
 //     log.info('handleStakeUpdated: sidechainaddress={} allocation={}', [event.address.toHexString(),  event.params.amountWei.toString()])
-//     let bountyAddress = event.params.bounty
+//     let sponsorshipAddress = event.params.sponsorship
 //     let brokerAddress = event.address
 
-//     let stakeID = brokerAddress.toHexString() + "-" + bountyAddress.toHexString()
+//     let stakeID = brokerAddress.toHexString() + "-" + sponsorshipAddress.toHexString()
 //     let stake = Stake.load(stakeID)
 //     if (stake === null) {
 //         stake = new Stake(stakeID)
-//         stake.bounty = bountyAddress.toHexString()
+//         stake.sponsorship = sponsorshipAddress.toHexString()
 //         stake.id = stakeID
 //         stake.broker = brokerAddress.toHexString()
 //     }

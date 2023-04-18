@@ -75,11 +75,11 @@ const investToPool = async () => {
     }
 }
 
-const stakeIntoBounty = async () => {
+const stakeIntoSponsorship = async () => {
     for (const pool of pools) {
-        const tx = await pool.connect(deploymentOwner).stake(localConfig.bounty, ethers.utils.parseEther("1000"))
+        const tx = await pool.connect(deploymentOwner).stake(localConfig.sponsorship, ethers.utils.parseEther("1000"))
         await tx.wait()
-        log("Staked into bounty from pool ", pool.address)
+        log("Staked into sponsorship from pool ", pool.address)
     }
 }
 
@@ -89,14 +89,14 @@ const stakeIntoBounty = async () => {
 //     log("Queued data payout")
 // }
 
-// const brokerUnstakesFromBounty = async () => {
-//     const tx = await pool.connect(deploymentOwner).unstake(localConfig.bounty)
+// const brokerUnstakesFromSponsorship = async () => {
+//     const tx = await pool.connect(deploymentOwner).unstake(localConfig.sponsorship)
 //     await tx.wait()
-//     log("Broker unstaked from bounty")
+//     log("Broker unstaked from sponsorship")
 // }
 
 const flag = async () => {
-    await (await pools[0].connect(deploymentOwner).flag(localConfig.bounty, pools[1].address)).wait()
+    await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
     // console.log(res)
     log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
 }
@@ -105,10 +105,10 @@ async function main() {
     await connectToAllContracts()
     await deployNewPools(3)
     await investToPool()
-    await stakeIntoBounty()
+    await stakeIntoSponsorship()
     await flag()
     // await divestFromPool()
-    // await brokerUnstakesFromBounty()
+    // await brokerUnstakesFromSponsorship()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
 

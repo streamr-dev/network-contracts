@@ -57,7 +57,7 @@
             "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
             "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
             "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
-            "BountyFactory": "0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e", 
+            "SponsorshipFactory": "0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e",
             "PoolFactory": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9"
         }
     },

@@ -40,7 +40,7 @@ type Stream @entity {
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
-  bounties: [Bounty!] @derivedFrom(field: "stream")
+  sponsorships: [Sponsorship!] @derivedFrom(field: "stream")
 }
 
 type Node @entity {
@@ -211,22 +211,22 @@ type ProjectStakingDayBucket @entity {
 
 # Tatum
 
-type Bounty @entity {
-  id: ID! # bounty address
-  stream: Stream 
+type Sponsorship @entity {
+  id: ID! # sponsorship address
+  stream: Stream
   metadata: String
   isRunning: Boolean!
-  stakes: [BountyStake!]! @derivedFrom(field: "bounty")
+  stakes: [SponsorshipStake!]! @derivedFrom(field: "sponsorship")
   brokerCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
-  flags: [Flag!]! @derivedFrom(field: "bounty")
+  flags: [Flag!]! @derivedFrom(field: "sponsorship")
 }
 
-type BountyDailyBucket @entity {
-  id: ID! # bounty address + date
-  bounty: Bounty!
+type SponsorshipDailyBucket @entity {
+  id: ID! # sponsorship address + date
+  sponsorship: Sponsorship!
   date: BigInt!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
@@ -236,30 +236,30 @@ type BountyDailyBucket @entity {
   brokerCount: Int!
 }
 
-type BountyStake @entity {
-  id: ID! # 0xbountyAddress-0xbrokerAddress
+type SponsorshipStake @entity {
+  id: ID! # 0xsponsorshipAddress-0xbrokerAddress
   broker: String!
   amount: BigInt!
   allocatedWei: BigInt!
   date: BigInt
-  bounty: Bounty
+  sponsorship: Sponsorship
   pool: BrokerPool
 }
 
 type Flag @entity {
-  id: ID! # 0xbountyAddress-0xbrokerAddress
+  id: ID! # 0xsponsorshipAddress-0xbrokerAddress
   flagger: BrokerPool!
   target: BrokerPool!
   # flagStake: BigInt! always fixed?
   date: BigInt
-  bounty: Bounty
+  sponsorship: Sponsorship
   result: BigInt! # 0: pending, 1: target kicked, 2: flag failed
   targetSlashAmount: BigInt
 }
 
 type BrokerPool @entity {
   id: ID! # pool address
-  stakes: [BountyStake!]! @derivedFrom(field: "pool")
+  stakes: [SponsorshipStake!]! @derivedFrom(field: "pool")
   delegators: [PoolDelegation!]! @derivedFrom(field: "pool")
   delegatorCount: Int
   approximatePoolValue: BigInt!

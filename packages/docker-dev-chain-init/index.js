@@ -325,7 +325,7 @@ async function deployStreamRegistries() {
 
 }
 
-async function deployBountyFactory() {
+async function deploySponsorshipFactory() {
     const adminWalletEthers4 = await ethersWallet(sidechainURL, privKeyStreamRegistry)
     const adminWallet = new ethers.Wallet(privKeyStreamRegistry, new ethers.providers.JsonRpcProvider(sidechainURL))
     const streamrConstantsFactory = await ethers.getContractFactory("StreamrConfig", { signer: adminWallet })
@@ -351,19 +351,19 @@ async function deployBountyFactory() {
     await voteKickPolicy.deployed()
     log(`voteKickPolicy address ${voteKickPolicy.address}`)
 
-    const bountyTemplate = await (await ethers.getContractFactory("Bounty")).deploy()
-    await bountyTemplate.deployed()
-    log(`bountyTemplate address ${bountyTemplate.address}`)
+    const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship")).deploy()
+    await sponsorshipTemplate.deployed()
+    log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
-    const bountyFactoryFactory = await ethers.getContractFactory("BountyFactory", { signer: adminWallet })
-    const bountyFactoryFactoryTx = await upgrades.deployProxy(bountyFactoryFactory,
-        [ bountyTemplate.address, linkToken.address, streamrConfig.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
-    const bountyFactory = await bountyFactoryFactoryTx.deployed()
-    await (await bountyFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
+    const sponsorshipFactoryFactory = await ethers.getContractFactory("SponsorshipFactory", { signer: adminWallet })
+    const sponsorshipFactoryFactoryTx = await upgrades.deployProxy(sponsorshipFactoryFactory,
+        [ sponsorshipTemplate.address, linkToken.address, streamrConfig.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
+    const sponsorshipFactory = await sponsorshipFactoryFactoryTx.deployed()
+    await (await sponsorshipFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
-    await (await streamrConfig.setBountyFactory(bountyFactory.address)).wait()
-    log(`bountyFactory address ${bountyFactory.address}`)
+    await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
+    log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
 
     // const transfertx = await linkToken.transfer(adminWallet.address, bigNumberify('10000000000000000000000')) // 1000 link
     // await transfertx.wait()
@@ -376,7 +376,7 @@ async function deployBountyFactory() {
     // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${brokerWallet.address}`)
-    const agreementtx = await bountyFactory.deployBounty(ethers.utils.parseEther("100"), 0, 1, "Bounty-" + Date.now(),
+    const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, "Sponsorship-" + Date.now(),
         '{ "metadata": "test"}',
         [
             allocationPolicy.address,
@@ -389,36 +389,36 @@ async function deployBountyFactory() {
         ]
     )
     const agreementReceipt = await agreementtx.wait()
-    const newBountyAddress = agreementReceipt.events?.filter((e) => e.event === "NewBounty")[0]?.args?.bountyContract
-    log("new bounty address: " + newBountyAddress)
+    const newSponsorshipAddress = agreementReceipt.events?.filter((e) => e.event === "NewSponsorship")[0]?.args?.sponsorshipContract
+    log("new sponsorship address: " + newSponsorshipAddress)
 
-    // bounty = await ethers.getContractAt("Bounty", newBountyAddress, adminWallet)
-    const bountyEthersFactory = await ethers.getContractFactory("Bounty", { signer: adminWallet })
-    const bounty = await bountyEthersFactory.attach(newBountyAddress)
-    const hasrole = await bounty.hasRole(await bounty.DEFAULT_ADMIN_ROLE(), adminWallet.address)
-    log(`hasrole bounty adminwallet ${hasrole}`)
+    // sponsorship = await ethers.getContractAt("Sponsorship", newSponsorshipAddress, adminWallet)
+    const sponsorshipEthersFactory = await ethers.getContractFactory("Sponsorship", { signer: adminWallet })
+    const sponsorship = await sponsorshipEthersFactory.attach(newSponsorshipAddress)
+    const hasrole = await sponsorship.hasRole(await sponsorship.DEFAULT_ADMIN_ROLE(), adminWallet.address)
+    log(`hasrole sponsorship adminwallet ${hasrole}`)
     log(`adminwallet ${adminWallet.address}`)
-    // bounty = await bountyEFContrac.connect(adminWallet)
+    // sponsorship = await sponsorshipEFContrac.connect(adminWallet)
     // sponsor with token approval
     // const ownerbalance = await tokenFromOwner.balanceOf(deploymentOwner.address)
     const adminWalletBalance = await linkToken.balanceOf(adminWallet.address)
     log("adminWalletBalance: " + adminWalletBalance.toString())
-    await (await linkToken.connect(adminWalletEthers4).approve(newBountyAddress, ethers.utils.parseEther("20"))).wait()
-    const allowance = await linkToken.allowance(adminWallet.address, newBountyAddress)
+    await (await linkToken.connect(adminWalletEthers4).approve(newSponsorshipAddress, ethers.utils.parseEther("20"))).wait()
+    const allowance = await linkToken.allowance(adminWallet.address, newSponsorshipAddress)
     log("allowance: " + allowance.toString())
     // const tokenOwnerBalance = await dataToken.balanceOf(dataTokenOwner.address)
     // log("tokenOwnerBalance: " + tokenOwnerBalance.toString())
-    // await (await dataToken.approve(newBountyAddress, ethers.utils.parseEther("7"))).wait()
-    // const allowance2 = await dataToken.allowance(dataTokenOwner.address, newBountyAddress)
+    // await (await dataToken.approve(newSponsorshipAddress, ethers.utils.parseEther("7"))).wait()
+    // const allowance2 = await dataToken.allowance(dataTokenOwner.address, newSponsorshipAddress)
     // log("allowance2: " + allowance2.toString())
-    const sponsorTx = await bounty.sponsor(ethers.utils.parseEther("20"))
+    const sponsorTx = await sponsorship.sponsor(ethers.utils.parseEther("20"))
     await sponsorTx.wait()
     log("sponsored through token approval")
 
-    // const tx = await linkToken.connect(adminWalletEthers4).transferAndCall(newBountyAddress, ethers.utils.parseEther("1"),
+    // const tx = await linkToken.connect(adminWalletEthers4).transferAndCall(newSponsorshipAddress, ethers.utils.parseEther("1"),
     //     adminWallet.address)
     // await tx.wait()
-    // log("staked in bounty with transfer and call")
+    // log("staked in sponsorship with transfer and call")
 
     const poolTemplate = await (await ethers.getContractFactory("BrokerPool")).deploy()
     await poolTemplate.deployed()
@@ -476,9 +476,9 @@ async function deployBountyFactory() {
         adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
     log("Invested to pool ", pool.address)
-    const stakeTx = await pool.connect(adminWallet).stake(bounty.address, ethers.utils.parseEther("1000"))
+    const stakeTx = await pool.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
     await stakeTx.wait()
-    log("Staked into bounty ", bounty.address)
+    log("Staked into sponsorship ", sponsorship.address)
 }
 
 async function smartContractInitialization() {
@@ -504,7 +504,7 @@ async function smartContractInitialization() {
     // linkToken = await linkTokenFactoryTx.deployed()
     // log(`Link Token deployed at ${linkToken.address}`)
     // await (await linkToken.transfer(sidechainWalletStreamReg.address, ethers.utils.parseEther("1000000"))).wait()
-    // await deployBountyFactory()
+    // await deploySponsorshipFactory()
 
     // log(`Deploying Marketplace1 contract from ${wallet.address}`)
     const marketDeployer1 = new ContractFactory(MarketplaceJson.abi, MarketplaceJson.bytecode, wallet)
@@ -767,7 +767,7 @@ async function smartContractInitialization() {
     const grantRoleProjectRegistryV1Tx = await streamRegistryFromOwner.grantRole(role, projectRegistryV1.address)
     await grantRoleProjectRegistryV1Tx.wait()
 
-    await deployBountyFactory()
+    await deploySponsorshipFactory()
 
     //put additions here
 

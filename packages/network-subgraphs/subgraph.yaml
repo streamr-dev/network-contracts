@@ -162,31 +162,31 @@ dataSources:
           handler: handleUnstake
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
-    name: BountyFactory
+    name: SponsorshipFactory
     network: xDai
     source:
-      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
-      abi: BountyFactory
+      abi: SponsorshipFactory
       startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/bountyFactory.ts
+      file: ./src/sponsorshipFactory.ts
       entities:
-        - Bounty
+        - Sponsorship
       abis:
-        - name: BountyFactory
-          file: ./abis/BountyFactory.json
+        - name: SponsorshipFactory
+          file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewBounty(address,string,string)
-          handler: handleBountyCreated
+        - event: NewSponsorship(address,string,string)
+          handler: handleSponsorshipCreated
   - kind: ethereum/contract
     name: BrokerPoolFactory
     network: xDai
     source:
-      # make sure this is same as config.contracts.BountyFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9'
       abi: BrokerPoolFactory
       startBlock: 0
@@ -206,29 +206,29 @@ dataSources:
           handler: handlePoolCreated
 
 templates:
-  - name: Bounty
+  - name: Sponsorship
     kind: ethereum/contract
     network: xDai
     source:
-      abi: Bounty
+      abi: Sponsorship
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/bounty.ts
+      file: ./src/sponsorship.ts
       entities:
-        - Bounty
-        - BountyStake
+        - Sponsorship
+        - SponsorshipStake
         - BrokerPool
         - Flag
       abis:
-        - name: Bounty
-          file: ./abis/Bounty.json
+        - name: Sponsorship
+          file: ./abis/Sponsorship.json
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
-          - event: BountyUpdate(uint256,uint256,uint32,bool)
-            handler: handleBountyUpdated
+          - event: SponsorshipUpdate(uint256,uint256,uint32,bool)
+            handler: handleSponsorshipUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256)
             handler: handleFlagUpdate
           - event: MetadataUpdate(string)
