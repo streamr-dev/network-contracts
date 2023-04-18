@@ -40,6 +40,7 @@ type Stream @entity {
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
+  bounties: [Bounty!] @derivedFrom(field: "stream")
 }
 
 type Node @entity {
@@ -212,7 +213,7 @@ type ProjectStakingDayBucket @entity {
 
 type Bounty @entity {
   id: ID! # bounty address
-  streamId: String
+  stream: Stream 
   metadata: String
   isRunning: Boolean!
   stakes: [BountyStake!]! @derivedFrom(field: "bounty")
@@ -221,6 +222,18 @@ type Bounty @entity {
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "bounty")
+}
+
+type BountyDailyBucket @entity {
+  id: ID! # bounty address + date
+  bounty: Bounty!
+  date: BigInt!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
+  spotAPY: BigInt!
+  totalPayoutsCumulative: BigInt!
+  brokerCount: Int!
 }
 
 type BountyStake @entity {
@@ -253,6 +266,19 @@ type BrokerPool @entity {
   unallocatedWei: BigInt!
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+}
+
+type BrokerPoolDailyBucket @entity {
+  id: ID! # pool address + date
+  pool: BrokerPool!
+  date: BigInt!
+  approximatePoolValue: BigInt!
+  unallocatedWei: BigInt!
+  spotAPY: BigInt!
+  totalPayoutsCumulative: BigInt!
+  delegatorCount: Int!
+  totalDelegatedWei: BigInt!
+  totalStakedWei: BigInt!
 }
 
 type PoolDelegation @entity {
