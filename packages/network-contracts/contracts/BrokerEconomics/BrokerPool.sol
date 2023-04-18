@@ -100,7 +100,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
     IStreamRegistry public streamRegistry;
-    string public streamPath = "/broker/coordination";
+    string public streamPath;
     string public streamId;
     string public metadata;
 
@@ -140,6 +140,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         metadata = poolParams[1];
+        streamPath = "/broker/coordination";
         
         _createPoolStream();
     }

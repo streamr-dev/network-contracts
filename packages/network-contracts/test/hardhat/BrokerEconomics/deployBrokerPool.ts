@@ -36,7 +36,8 @@ export async function deployBrokerPool(contracts: TestContracts, deployer: Walle
             defaultPoolJoinPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultPoolExitPolicy.address
-        ], [
+        ],
+        [
             initialMargin, minBrokerStakePercent,
             initialMargin, maintenanceMarginPercent, minBrokerStakePercent, brokerSharePercent, maxBrokerDivertPercent,
             0
