@@ -224,5 +224,6 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Bounty {
         if (getInsolvencyTimestamp() < block.timestamp) {
             update(amount);
         }
+        emit ProjectedInsolvencyUpdate(getInsolvencyTimestamp());
     }
 }

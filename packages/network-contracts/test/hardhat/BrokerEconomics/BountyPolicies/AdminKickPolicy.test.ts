@@ -46,12 +46,10 @@ describe("AdminKickPolicy", (): void => {
         await advanceToTimestamp(timeAtStart + 100, "broker 2 joins")
         await (await token.connect(broker2).transferAndCall(bounty.address, parseEther("1000"), broker2.address)).wait()
 
-        // event BrokerKicked(address indexed broker, uint slashedWei);
         const brokerCountBeforeKick = await bounty.brokerCount()
         await advanceToTimestamp(timeAtStart + 200, "broker 1 is kicked out")
         expect (await bounty.connect(admin).flag(await broker.getAddress()))
-            .to.emit(bounty, "BrokerKicked")
-            .withArgs(await broker.getAddress(), "0")
+            .to.emit(bounty, "BrokerKicked").withArgs(await broker.getAddress())
         const brokerCountAfterKick = await bounty.brokerCount()
 
         await advanceToTimestamp(timeAtStart + 300, "broker 2 leaves and gets slashed")
@@ -71,8 +69,7 @@ describe("AdminKickPolicy", (): void => {
 
         const brokerCountBeforeReport = await bounty.brokerCount()
         expect(bounty.connect(broker2).flag(await broker.getAddress()))
-            .to.emit(bounty, "BrokerKicked")
-            .withArgs(await broker.getAddress(), "0")
+            .to.emit(bounty, "BrokerKicked").withArgs(await broker.getAddress())
         const brokerCountAfterReport = await bounty.brokerCount()
 
         expect(brokerCountBeforeReport.toString()).to.equal("1")

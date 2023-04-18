@@ -56,7 +56,8 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
             await expect(voter.voteOnFlag(bounty.address, target.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(target.address, parseEther("100"))
+                .to.emit(bounty, "BrokerKicked").withArgs(target.address)
+                .to.emit(bounty, "BrokerSlashed").withArgs(target.address, parseEther("100"))
 
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900")) // slash 10%
         })
@@ -80,7 +81,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(voter2.voteOnFlag(bounty.address, target.address, VOTE_NO_KICK))
                 .to.not.emit(bounty, "BrokerKicked")
             await expect(voter3.voteOnFlag(bounty.address, target.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(target.address, parseEther("100"))
+                .to.emit(bounty, "BrokerKicked").withArgs(target.address)
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(voter1.address)).to.equal(parseEther("1"))
@@ -111,11 +112,8 @@ describe("VoteKickPolicy", (): void => {
             await expect(flagger1.voteOnFlag(bounty.address, target2.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
             await expect(voter.voteOnFlag(bounty.address, target1.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
             await expect(voter.voteOnFlag(bounty.address, target2.address, VOTE_KICK)).to.not.emit(bounty, "BrokerKicked")
-
-            await expect(target2.voteOnFlag(bounty.address, target1.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(target1.address, parseEther("100"))
-            await expect(target1.voteOnFlag(bounty.address, target2.address, VOTE_KICK))
-                .to.emit(bounty, "BrokerKicked").withArgs(target2.address, parseEther("100"))
+            await expect(target2.voteOnFlag(bounty.address, target1.address, VOTE_KICK)).to.emit(bounty, "BrokerKicked").withArgs(target1.address)
+            await expect(target1.voteOnFlag(bounty.address, target2.address, VOTE_KICK)).to.emit(bounty, "BrokerKicked").withArgs(target2.address)
 
             // 100 tokens slashing happens to target1,2 pools
             expect(await token.balanceOf(target1.address)).to.equal(parseEther("901")) // (target +) voter + remaining stake

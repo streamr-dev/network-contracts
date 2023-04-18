@@ -30,7 +30,7 @@ import "./StreamrConfig.sol";
  * - totalStakedWei: total amount of tokens staked by all brokers
  *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
- *  -> decides the `solventUntil` timestamp: more unallocated funds left means the `Bounty` is solvent for a longer time
+ *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Bounty` is solvent for a longer time
  * - committedFundsWei: forfeited stakes that were committed to a flag by a past broker who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
@@ -41,15 +41,16 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
     event MetadataUpdate(string metadata); // TODO: delete
-    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint projectedInsolvencyTime, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
+    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
     event BrokerJoined(address indexed broker);
     event BrokerLeft(address indexed broker, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
-    event BrokerKicked(address indexed broker, uint slashedWei);
+    event BrokerKicked(address indexed broker);
     event BrokerSlashed(address indexed broker, uint amountWei);
 
     // Emitted from the allocation policy
+    event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
@@ -102,7 +103,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * DefaultLeavePolicy states brokers are free to leave an underfunded bounty
      */
     function isFunded() public view returns (bool) {
-        return solventUntil() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
+        return solventUntilTimestamp() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
     }
 
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -180,7 +181,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
         }
-        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
     }
 
     /**
@@ -214,7 +215,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amountWei)), "error_stakeIncreaseFailed");
         }
         emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
-        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
     }
 
     /**
@@ -251,7 +252,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         token.transfer(broker, cashoutWei);
 
         emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
-        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
     }
 
     /**
@@ -275,8 +276,9 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      */
     function _kick(address broker, uint slashingWei) internal {
         _reduceStakeBy(broker, slashingWei);
+        emit BrokerSlashed(broker, slashingWei);
         _removeBroker(broker);
-        emit BrokerKicked(broker, slashingWei);
+        emit BrokerKicked(broker);
         if (broker.code.length > 0) {
             try IBroker(broker).onKick() {} catch {}
         }
@@ -321,7 +323,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_leaveHandlerFailed");
         emit StakeUpdate(broker, 0, 0); // stake and allocation must be zero when the broker is gone
-        emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
+        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
         emit BrokerLeft(broker, paidOutStakeWei);
     }
 
@@ -334,7 +336,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
         payoutWei = _withdraw(broker);
         if (payoutWei > 0) {
             emit StakeUpdate(broker, stakedWei[broker], 0); // earnings will be zero after withdraw (see test)
-            emit BountyUpdate(totalStakedWei, unallocatedWei, solventUntil(), uint32(brokerCount), isRunning());
+            emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
         }
     }
 
@@ -445,7 +447,7 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
 
     /* solhint-enable */
 
-    function solventUntil() public view returns(uint256 horizon) {
+    function solventUntilTimestamp() public view returns(uint256 horizon) {
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
