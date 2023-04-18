@@ -7,7 +7,7 @@ import "../Sponsorship.sol";
 import "../BrokerPoolFactory.sol";
 import "../BrokerPool.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * @dev Only BrokerPools can be selected as reviewers, so BrokerPoolOnlyJoinPolicy is expected on the Sponsorship!
@@ -106,7 +106,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             uint index = uint(randomBytes) % brokerPoolCount;
             BrokerPool peer = factory.liveBrokerPools(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                console.log(index, "skipping", address(peer));
+                // console.log(index, "skipping", address(peer));
                 continue;
             }
             if (stakedWei[address(peer)] > 0) {
@@ -114,10 +114,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                     sameSponsorshipPeers[sameSponsorshipPeerCount++] = peer;
                     reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                console.log(index, "in same sponsorship", address(peer));
+                // console.log(index, "in same sponsorship", address(peer));
                 continue;
             }
-            console.log(index, "selecting", address(peer));
+            // console.log(index, "selecting", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -127,15 +127,15 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i = 0; i < sameSponsorshipPeerCount; i++) {
             BrokerPool peer = sameSponsorshipPeers[i];
             if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
-                console.log("already selected", address(peer));
+                // console.log("already selected", address(peer));
                 continue;
             }
             if (reviewers[target].length >= maxReviewerCount) {
                 reviewerState[target][peer] = Reviewer.NOT_SELECTED;
-                console.log("not selecting", address(peer));
+                // console.log("not selecting", address(peer));
                 continue;
             }
-            console.log("selecting from same sponsorship", address(peer));
+            // console.log("selecting from same sponsorship", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
