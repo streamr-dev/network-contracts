@@ -34,7 +34,7 @@ contract StreamStorageRegistry is Initializable, UUPSUpgradeable, ERC2771Context
     }
 
     modifier isTrusted() {
-        require(streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender()), "error_notTrustedRole");
+        require(streamRegistry.hasRole(streamRegistry.getTrustedRole(), _msgSender()), "error_mustBeTrustedRole");
         _;
     }
 

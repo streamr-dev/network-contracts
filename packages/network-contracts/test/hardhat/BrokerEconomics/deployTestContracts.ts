@@ -39,14 +39,14 @@ export async function deployPoolFactory(contracts: Partial<TestContracts>, signe
     await (await poolFactory.initialize(
         poolTemplate!.address,
         token!.address,
-        streamrConfig!.address
+        streamrConfig!.address,
+        { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
     )).wait()
     await (await poolFactory.addTrustedPolicies([
         defaultPoolJoinPolicy!.address,
         defaultPoolYieldPolicy!.address,
-        defaultPoolExitPolicy!.address,
-    ])).wait()
-
+        defaultPoolExitPolicy!.address
+    ], { gasLimit: 500000 })).wait()
     await (await streamrConfig!.setBrokerPoolFactory(poolFactory.address)).wait()
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })

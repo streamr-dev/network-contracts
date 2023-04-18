@@ -16,5 +16,9 @@
         "outDir": "dist",
         "strictPropertyInitialization": false
     },
-    "include": ["../packages/network-contracts/typechain", "./src", "../packages/network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/"]
+    "include": [
+        "../packages/network-contracts/typechain",
+        "../packages/network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/",
+        "./src"
+    ]
 }

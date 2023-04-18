@@ -7,8 +7,8 @@
   "scripts": {
     "start": "tsx ./src/index.ts 7"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Streamr Network AG <contact@streamr.network>",
+  "license": "Apache-2.0",
   "dependencies": {
     "@ensdomains/ens": "^0.6.2",
     "@ethersproject/contracts": "^5.7.0",
