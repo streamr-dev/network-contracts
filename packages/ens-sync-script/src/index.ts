@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { Contract } from "@ethersproject/contracts"
-import { InfuraProvider, JsonRpcProvider, Provider } from "@ethersproject/providers"
+import { JsonRpcProvider, Provider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
 import { Chains } from "@streamr/config"
 import { createRequire } from "module"
@@ -13,8 +13,7 @@ const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
 const {
     DELAY = "",
     ENVIRONMENT = "",
-    NETWORK = "",
-    INFURA_API_KEY = "",
+    RPC_URL = "",
     PRIVATE_KEY = "",
 } = process.env
 let {
@@ -29,6 +28,7 @@ let ensContract: Contract
 let mainnetProvider: Provider
 let sidechainProvider: Provider
 let mutex = Promise.resolve(true)
+let domainOwnerSidechain: Wallet
 
 async function main(){
     
@@ -41,8 +41,8 @@ async function main(){
     if (ENVIRONMENT === 'prod') {
         mainnetConfig = Chains.load()["ethereum"]
         sidechainConfig = Chains.load()["polygon"]
-        mainnetProvider = new InfuraProvider(NETWORK, INFURA_API_KEY)
-        sidechainProvider = new InfuraProvider(NETWORK, INFURA_API_KEY)
+        mainnetProvider = new JsonRpcProvider(RPC_URL)
+        sidechainProvider = new JsonRpcProvider(RPC_URL)
         privateKey = PRIVATE_KEY
     } else {
         mainnetConfig = Chains.load()["dev0"]
@@ -56,7 +56,7 @@ async function main(){
     const ensAddress = mainnetConfig.contracts.ENS
 
     streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
-    const domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
+    domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
     ensCacheContract = new Contract(ENSCacheV2Address, ABIenscache.abi, domainOwnerSidechain) // TODO
     ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
     log("starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
@@ -108,9 +108,13 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
 
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
-        const tx = await ensCacheContract.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
-        await tx.wait()
-        log("createStreamFromENS tx: ", tx.hash)
+        const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
+        if (tx.gasPrice) { 
+            log("increasing gas price by 20%, was: ", tx.gasPrice.toString(), "now: ", tx.gasPrice.mul(1.2).toString())
+            tx.gasPrice = tx.gasPrice.mul(1.2)
+        }
+        const tr = await domainOwnerSidechain.sendTransaction(tx)
+        log("createStreamFromENS tx: ", tr.hash)
     } catch (e) {
         log("creating stream failed, createStreamFromENS error: ", e)
         if (retry) {
