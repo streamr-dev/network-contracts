@@ -24,6 +24,11 @@ contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable
         _;
     }
 
+    modifier onlyStreamRegistry() {
+        require(msg.sender == address(streamRegistry), "onlyStreamRegistry");
+        _;
+    }
+
     constructor() {
     }
 
@@ -50,7 +55,7 @@ contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /** Update cache and create a stream */
     function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, 
-        string calldata metadataJsonString, address requestorAddress) public {
+        string calldata metadataJsonString, address requestorAddress) public onlyStreamRegistry() {
         address ownerAddress = address(ensCacheV1) != address(0) ? ensCacheV1.owners(ensName) : address(0);
         if (ownerAddress == requestorAddress) {
             owners[ensName] = ownerAddress;
@@ -63,17 +68,5 @@ contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function fulfillENSOwner(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString, address ownerAddress) public onlyStreamr() {
         owners[ensName] = ownerAddress;
         streamRegistry.ENScreateStreamCallback(ownerAddress, ensName, streamIdPath, metadataJsonString);
-    }
-
-
-    function stringToBytes32(string memory source) private pure returns (bytes32 result) {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
-        }
-
-        assembly { // solhint-disable-line no-inline-assembly
-            result := mload(add(source, 32))
-        }
     }
 }
