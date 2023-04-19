@@ -2,10 +2,10 @@ import { Bytes, Value } from "@graphprotocol/graph-ts"
 import { assert, clearStore, describe, test, beforeAll } from "matchstick-as/assembly/index"
 import { ProjectStakeByUser } from "../generated/schema"
 import {
-    handleStake, handleUnstake
+    handleStake1, handleUnstake1
 } from "../src/projectStaking"
 import {
-    createStakeEvent, createUnstakeEvent,
+    createStake1Event, createUnstake1Event,
 } from "./helpers/mocked-event"
 import {
     createProjectEntity,
@@ -76,10 +76,10 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
         assert.fieldEquals(PROJECT_ENTITY_TYPE, projectId, "id", projectId)
     })
 
-    test("handleStake", () => {
-        const event = createStakeEvent(Bytes.fromHexString(projectId), user, stakingAmount, projectStake)
+    test("handleStake1", () => {
+        const event = createStake1Event(Bytes.fromHexString(projectId), user, stakingAmount, projectStake)
 
-        handleStake(event)
+        handleStake1(event)
 
         assert.entityCount(PROJECT_STAKE_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "id", stakingId)
@@ -99,10 +99,10 @@ describe("Mocked ProjectStakingV1 Events: Stake & Unstake", () => {
 
     })
 
-    test("handleUnstake", () => {
-        const event = createUnstakeEvent(Bytes.fromHexString(projectId), user, unstakingAmount, projectStake)
+    test("handleUnstake1", () => {
+        const event = createUnstake1Event(Bytes.fromHexString(projectId), user, unstakingAmount, projectStake)
 
-        handleUnstake(event)
+        handleUnstake1(event)
 
         assert.entityCount(PROJECT_STAKE_ENTITY_TYPE, 1)
         assert.fieldEquals(PROJECT_STAKE_ENTITY_TYPE, stakingId, "id", stakingId)

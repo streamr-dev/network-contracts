@@ -1,0 +1,145 @@
+type _Schema_
+  @fulltext(
+    name: "projectSearch"
+    language: en
+    algorithm: rank
+    include: [{ entity: "Project", fields: [{ name: "metadata" }] }]
+  )
+
+# Project Registry
+
+type Permission @entity {
+  "permission id = projectId + '-' + userAddress"
+  id: ID!
+  "Ethereum address, owner of this permission"
+  userAddress: Bytes!
+  "Target project this permission applies to"
+  project: Project!
+  "canBuy permission enables a user to buy the project"
+  canBuy: Boolean
+  "canDelete permission allows deleting the project from the ProjectRegistry"
+  canDelete: Boolean
+  "canEdit permission enables changing the project's fields"
+  canEdit: Boolean
+  "canGrant permission allows granting and revoking permissions to this project"
+  canGrant: Boolean
+}
+
+type PaymentDetailsByChain @entity {
+  "payment details id = projectId + '-' + domainId"
+  id: ID!
+  "Target project this payment details applies to"
+  project: Project!
+  "The domainId of the chain where the project can be purchased. It's a unique id assigned by hyperlane to each chain"
+  domainId: BigInt
+  "Ethereum address, account where the payment is directed to for project purchases"
+  beneficiary: Bytes!
+  "Ethereum address, the token in which the payment goes to project beneficiary"
+  pricingTokenAddress: Bytes!
+  "Project price per second. This is a DATA-wei denominated amount (10^18th of DATA token)."
+  pricePerSecond: BigInt
+}
+
+type TimeBasedSubscription @entity {
+  "subscription id = projectId + '-' + subscriberAddress"
+  id: ID!
+  "Target project this permission applies to"
+  project: Project!
+  "Ethereum address, owner of this subscription"
+  userAddress: Bytes!
+  "Subscription expiration time. This is a timestamp in seconds"
+  endTimestamp: BigInt
+}
+
+type Project @entity {
+  "project id = bytes32"
+  id: ID!
+  "List of domain ids for the chains from which this project can be purchased"
+  domainIds: [BigInt!]!
+  "Payment details for the chains where the project can be purchased: mapping (uint32 => PaymentDetailsByChain)"
+  paymentDetails: [PaymentDetailsByChain!]!
+  "The minimum amount of seconds for which a subscription can be extended. This is a normal int value (not wei)"
+  minimumSubscriptionSeconds: BigInt!
+  "Subscriptions mapping (address => TimeBasedSubscription)"
+  subscriptions: [TimeBasedSubscription!]!
+  "Project metadata JSON"
+  metadata: String!
+  "Flags a project as being a data union, true iff 'isDataUnion' field is set to 'true' in the metadata JSON"
+  isDataUnion: Boolean
+  "Streams added to the project"
+  streams: [String!]!
+  "Permissions mapping (bytes32 => Permission)"
+  permissions: [Permission!]!
+  "date created. This is a timestamp in seconds"
+  createdAt: BigInt
+  "date updated. This is a timestamp in seconds"
+  updatedAt: BigInt
+  "Marketplace purchases"
+  purchases: [ProjectPurchase!]!
+  "Incremented/decremented when Stake/Unstake events are fired. It may not always be 1:1 with the stake (with future implementations)"
+  score: BigInt
+  "Increases when various actions are triggered (e.g. purchase, stake, unstake). Used to generate unique ids"
+  counter: Int
+}
+
+
+# MarketplaceV4
+
+type ProjectPurchase @entity {
+  "project purchase id = projectId + '-' + subscriberAddress + '-' + counter"
+  id: ID!
+
+  "Target project this purchase is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the project purchase"
+  subscriber: Bytes!
+
+  "The amount of seconds by which the subscription is extended"
+  subscriptionSeconds: BigInt!
+
+  "The amount of tokens paid to beneficiary for project subscription"
+  price: BigInt!
+
+  "The amount of tokens paid to marketplace for project subscription"
+  fee: BigInt!
+
+  "purchase date. This is a timestamp in seconds"
+  purchasedAt: BigInt
+}
+
+# ProjectStakingV1
+
+type Staking @entity {
+  "stake id = projectId + '-' + userAddress + '-' + counter"
+  id: ID!
+
+  "Target project this stake is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the stake"
+  user: Bytes!
+
+  "The amount being staked"
+  amount: BigInt!
+
+  "stake date. This is a timestamp in seconds"
+  stakedAt: BigInt
+}
+
+type Unstaking @entity {
+  "unstake id = projectId + '-' + userAddress + '-' + counter"
+  id: ID!
+
+  "Target project this unstake is for"
+  project: Project!
+
+  "Ethereum address, the account initiating the unstake"
+  user: Bytes!
+
+  "The amount being unstaked"
+  amount: BigInt!
+
+  "unstake date. This is a timestamp in seconds"
+  unstakedAt: BigInt
+}

@@ -112,7 +112,7 @@ describe('ProjectStakingV1', (): void => {
 
             const balanceBeforeStaking = await token.balanceOf(staker1.address)
             await expect(projectStaking.connect(staker1).stake(projectId1, stakingAmount1))
-                .to.emit(projectStaking, "Stake")
+                .to.emit(projectStaking, "Stake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId1, staker1.address, stakingAmount1, stakingAmount1)
             const balanceAfterStaking = await token.balanceOf(staker1.address)
             const userStake = await projectStaking.getUserStake(staker1.address)
@@ -129,7 +129,7 @@ describe('ProjectStakingV1', (): void => {
 
             const balanceBeforeStaking = await token.balanceOf(staker2.address)
             await expect(projectStaking.connect(staker2).stake(projectId2, stakingAmount2))
-                .to.emit(projectStaking, "Stake")
+                .to.emit(projectStaking, "Stake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId2, staker2.address, stakingAmount2, projectStakeBefore.add(stakingAmount2))
             const balanceAfterStaking = await token.balanceOf(staker2.address)
             const userStake = await projectStaking.getUserStake(staker2.address)
@@ -199,7 +199,7 @@ describe('ProjectStakingV1', (): void => {
             const projectStakeBefore = await projectStaking.getProjectStake(projectId1)
             const totalStakeBefore = await projectStaking.getTotalStake()
             await expect(projectStaking.connect(staker1).unstake(projectId1, unstakingAmount))
-                .to.emit(projectStaking, "Unstake")
+                .to.emit(projectStaking, "Unstake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId1, staker1.address, unstakingAmount, projectStakeBefore.sub(unstakingAmount))
             const userStakeAfter = await projectStaking.getUserStake(staker1.address)
             const projectStakeAfter = await projectStaking.getProjectStake(projectId1)
@@ -227,7 +227,7 @@ describe('ProjectStakingV1', (): void => {
 
             await projectRegistry.connect(admin).deleteProject(projectId)
             await expect(projectStaking.connect(staker1).unstake(projectId, stakingAmount2))
-                .to.emit(projectStaking, "Unstake")
+                .to.emit(projectStaking, "Unstake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId, staker1.address, stakingAmount2, projectStake.sub(stakingAmount2))
 
             expect (await projectStaking.getProjectStake(projectId))
@@ -250,7 +250,7 @@ describe('ProjectStakingV1', (): void => {
 
             // user1 unstakes amount=0
             await expect(projectStaking.connect(staker1).unstake(projectId, 0))
-                .to.emit(projectStaking, "Unstake")
+                .to.emit(projectStaking, "Unstake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId, staker1.address, 0, projectStake)
 
             expect( await projectStaking.getProjectStake(projectId))
@@ -274,7 +274,7 @@ describe('ProjectStakingV1', (): void => {
 
             // user2 unstakes amount=0
             await expect(projectStaking.connect(staker2).unstake(projectId, 0))
-                .to.emit(projectStaking, "Unstake")
+                .to.emit(projectStaking, "Unstake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId, staker2.address, 0, projectStake)
 
             expect( await projectStaking.getProjectStake(projectId))
@@ -295,7 +295,7 @@ describe('ProjectStakingV1', (): void => {
             const userStakeBefore = await projectStaking.getUserStake(staker1.address)
             const projectStakeBefore = await projectStaking.getProjectStake(projectId1)
             await expect(token.connect(staker1).transferAndCall(projectStaking.address, transferAmount, projectId1))
-                .to.emit(projectStaking, "Stake")
+                .to.emit(projectStaking, "Stake(bytes32,address,uint256,uint256)")
                 .withArgs(projectId1, staker1.address, transferAmount, projectStakeBefore.add(transferAmount))
             const userStakeAfter = await projectStaking.getUserStake(staker1.address)
             const projectStakeAfter = await projectStaking.getProjectStake(projectId1)
