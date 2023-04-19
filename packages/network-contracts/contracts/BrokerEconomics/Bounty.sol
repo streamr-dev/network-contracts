@@ -275,8 +275,10 @@ contract Bounty is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, Ac
      * @dev do not slash more than the whole stake!
      */
     function _kick(address broker, uint slashingWei) internal {
-        _reduceStakeBy(broker, slashingWei);
-        emit BrokerSlashed(broker, slashingWei);
+        if (slashingWei > 0) {
+            _reduceStakeBy(broker, slashingWei);
+            emit BrokerSlashed(broker, slashingWei);
+        }
         _removeBroker(broker);
         emit BrokerKicked(broker);
         if (broker.code.length > 0) {
