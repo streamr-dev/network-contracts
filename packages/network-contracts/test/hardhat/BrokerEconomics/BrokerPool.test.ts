@@ -721,7 +721,8 @@ describe("BrokerPool", (): void => {
 
         // TestKickPolicy actually kicks and slashes given amount
         await expect(bounty.connect(admin).voteOnFlag(pool.address, hexZeroPad(parseEther("10").toHexString(), 32)))
-            .to.emit(bounty, "BrokerKicked").withArgs(pool.address, parseEther("10"))
+            .to.emit(bounty, "BrokerKicked").withArgs(pool.address)
+            .to.emit(bounty, "BrokerSlashed").withArgs(pool.address, parseEther("10"))
         expect(await pool.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 

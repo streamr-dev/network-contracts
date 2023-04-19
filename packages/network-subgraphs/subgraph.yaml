@@ -227,7 +227,7 @@ templates:
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
-          - event: BountyUpdate(uint256,uint256,uint256,uint32,bool)
+          - event: BountyUpdate(uint256,uint256,uint32,bool)
             handler: handleBountyUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256)
             handler: handleFlagUpdate
