@@ -30,16 +30,22 @@ import "./BountyFactory.sol";
  */
 contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IBroker { //}, ERC2771Context {
 
+    // delegator events
     event Delegated(address indexed delegator, uint amountWei);
     event Undelegated(address indexed delegator, uint amountWei);
-    event Staked(Bounty indexed bounty, uint amountWei);
-    event Losses(Bounty indexed bounty, uint amountWei);
-    event Unstaked(Bounty indexed bounty, uint stakeWei, uint gainsWei);
-    event QueuedDataPayout(address user, uint amountPoolTokenWei); // TODO: user -> delegator
-    event QueueUpdated(address user, uint amountPoolTokenWei); // TODO: user -> delegator
+    event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
+    event QueueUpdated(address delegator, uint amountPoolTokenWei);
+
+    // sponsorship events
+    event Staked(Bounty indexed bounty);
+    event Unstaked(Bounty indexed bounty);
+    event StakeUpdate(Bounty indexed bounty, uint amountWei);
+    event Profit(Bounty indexed bounty, uint poolIncreaseWei, uint brokersShareWei);
+    event Loss(Bounty indexed bounty, uint poolDecreaseWei);
+
+    // node events
     event NodesSet(address[] nodes);
     event Heartbeat(address indexed nodeAddress, string jsonData);
-
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -245,8 +251,9 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             if (bounties.length == 1) {
                 try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsLive() {} catch {}
             }
+            emit Staked(bounty);
         }
-        emit Staked(bounty, amountWei);
+        emit StakeUpdate(bounty, bounty.stakedWei(address(this)));
     }
 
     /**
@@ -267,6 +274,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         bounty.reduceStakeTo(targetStakeWei);
         updateApproximatePoolvalueOfBounty(bounty);
+        emit StakeUpdate(bounty, bounty.stakedWei(address(this)));
     }
 
     function withdrawEarningsFromBounty(Bounty bounty) external onlyBroker {
@@ -278,8 +286,10 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Bounties to pay out the queue in parts */
     function withdrawEarningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
         uint payoutWei = bounty.withdraw();
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
+        uint brokersShareWei = moduleCall(address(yieldPolicy),
+            abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
         updateApproximatePoolvalueOfBounty(bounty);
+        emit Profit(bounty, payoutWei - brokersShareWei, brokersShareWei);
     }
 
     /**
@@ -333,21 +343,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         if (receivedWei < amountStakedBeforeWei) {
             // TODO: slash handling
             uint lossesWei = amountStakedBeforeWei - receivedWei;
-            emit Unstaked(bounty, receivedWei, 0);
-            emit Losses(bounty, lossesWei);
+            emit Loss(bounty, lossesWei);
         } else {
             // TODO: gains handling
-            uint gainsWei = receivedWei - amountStakedBeforeWei;
-            moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, gainsWei),
-                "error_yieldPolicy_deductBrokersPart_Failed");
-            emit Unstaked(bounty, amountStakedBeforeWei, gainsWei);
+            uint profitWei = receivedWei - amountStakedBeforeWei;
+            uint brokersShareDataWei = moduleCall(address(yieldPolicy),
+                abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, profitWei), "error_deductBrokersShareFailed");
+            emit Profit(bounty, profitWei - brokersShareDataWei, brokersShareDataWei);
         }
-
-        _removeBountyFromArray(bounty);
+        _removeBounty(bounty);
     }
 
     // remove from array: replace with the last element
-    function _removeBountyFromArray(Bounty bounty) internal {
+    function _removeBounty(Bounty bounty) internal {
         uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
         Bounty lastBounty = bounties[bounties.length - 1];
         bounties[index] = lastBounty;
@@ -357,6 +365,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         if (bounties.length == 0) {
             try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsNotLive() {} catch {}
         }
+        emit Unstaked(bounty);
+        emit StakeUpdate(bounty, 0);
     }
 
     ////////////////////////////////////////
@@ -544,9 +554,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function onKick() external {
         Bounty bounty = Bounty(msg.sender);
         require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
-        _removeBountyFromArray(bounty);
+        _removeBounty(bounty);
         updateApproximatePoolvalueOfBounty(bounty);
-        emit Unstaked(bounty, 0, 0);
     }
 
     function onReviewRequest(address targetBroker) external {
