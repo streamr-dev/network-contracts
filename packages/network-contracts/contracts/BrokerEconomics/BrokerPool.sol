@@ -53,7 +53,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
 
-    event MetadataUpdated(string metadataJsonString, address brokerPoolAddress);
+    event MetadataUpdated(string metadataJsonString, address operatorAddress);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -121,7 +121,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address tokenAddress,
         address streamrConfigAddress,
         address brokerAddress,
-        string[2] memory poolParams,
+        string[2] memory operatorParams,
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
@@ -131,7 +131,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         broker = brokerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
         minimumDelegationWei = initialMinimumDelegationWei;
-        ERC20Upgradeable.__ERC20_init(poolParams[0], poolParams[0]);
+        ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
 
         // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
@@ -139,17 +139,18 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        metadata = poolParams[1];
         streamPath = "/broker/coordination";
+        metadata = operatorParams[1];
+        emit MetadataUpdated(operatorParams[1], address(this));
         
-        _createPoolStream();
+        _createOperatorStream();
     }
 
-    /** Each broker pool creates a stream upon creation with the following id format: <brokerPoolAddress>/broker/coordination */
-    function _createPoolStream() private {
+    /** Each operator pool creates a stream upon creation with the following id format: <operatorPoolAddress>/operator/coordination */
+    function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
         streamId = string.concat(streamRegistry.addressToString(address(this)), streamPath);
-        streamRegistry.createStream(streamPath, "metadata");
+        streamRegistry.createStream(streamPath, "{}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
     }
 
@@ -182,7 +183,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function updatePoolMetadata(string calldata metadataJsonString) external onlyBroker {
+    function updateMetadata(string calldata metadataJsonString) external onlyBroker {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, broker);
     }

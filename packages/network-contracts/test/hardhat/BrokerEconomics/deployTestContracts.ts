@@ -2,7 +2,8 @@ import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { Wallet, utils} from "ethers"
 
 import type { Bounty, BountyFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConfig } from "../../../typechain"
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConfig,
+    StreamRegistryV4 } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -23,6 +24,7 @@ export type TestContracts = {
     defaultPoolYieldPolicy: IPoolYieldPolicy;
     defaultPoolExitPolicy: IPoolExitPolicy;
     deployer: Wallet;
+    streamRegistry: StreamRegistryV4;
 }
 
 export async function deployPoolFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
@@ -48,12 +50,6 @@ export async function deployPoolFactory(contracts: Partial<TestContracts>, signe
         defaultPoolExitPolicy!.address
     ], { gasLimit: 500000 })).wait()
     await (await streamrConfig!.setBrokerPoolFactory(poolFactory.address)).wait()
-
-    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
-    const streamRegistry = await upgrades.deployProxy(streamRegistryFactory,
-        [hardhatEthers.constants.AddressZero, Wallet.createRandom().address], { kind: "uups" })
-
-    await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
     return { poolFactory, poolTemplate }
 }
@@ -112,10 +108,17 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
     }, signer)
 
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
+    const streamRegistry = await upgrades.deployProxy(streamRegistryFactory,
+        [hardhatEthers.constants.AddressZero, Wallet.createRandom().address], { kind: "uups" }) as StreamRegistryV4
+
+    await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
+
     return {
         token, streamrConfig,
         bountyTemplate, bountyFactory, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
-        deployer: signer
+        deployer: signer,
+        streamRegistry
     }
 }
