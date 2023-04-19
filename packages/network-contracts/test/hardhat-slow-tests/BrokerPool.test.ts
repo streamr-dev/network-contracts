@@ -47,7 +47,7 @@ describe("BrokerPool", (): void => {
 
         await advanceToTimestamp(timeAtStart, "Stake to bounty and queue payouts")
         await expect(pool.stake(bounty.address, parseEther("1000")))
-            .to.emit(pool, "Staked").withArgs(bounty.address, parseEther("1000"))
+            .to.emit(pool, "Staked").withArgs(bounty.address)
 
         for (let i = 0; i < 1000; i++) {
             await pool.connect(delegator).undelegate(parseEther("1"))
