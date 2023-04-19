@@ -33,10 +33,9 @@ export function handleStakeUpdated(event: StakeUpdate): void {
 
 export function handleBountyUpdated(event: BountyUpdate): void {
     // log.info('handleBountyUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleBountyUpdated: totalStakeWei={} unallocatedWei={} projectedInsolvencyTime={} brokerCount={} isRunning={}', [
+    log.info('handleBountyUpdated: totalStakeWei={} unallocatedWei={} brokerCount={} isRunning={}', [
         event.params.totalStakeWei.toString(),
         event.params.unallocatedWei.toString(),
-        event.params.projectedInsolvencyTime.toString(),
         event.params.brokerCount.toString(),
         event.params.isRunning.toString()
     ])
@@ -44,7 +43,6 @@ export function handleBountyUpdated(event: BountyUpdate): void {
     let bounty = Bounty.load(bountyAddress.toHexString())
     bounty!.totalStakedWei = event.params.totalStakeWei
     bounty!.unallocatedWei = event.params.unallocatedWei
-    bounty!.projectedInsolvency = event.params.projectedInsolvencyTime
     bounty!.brokerCount = event.params.brokerCount.toI32()
     bounty!.isRunning = event.params.isRunning
     bounty!.save()
@@ -74,8 +72,6 @@ export function handleBountyUpdated(event: BountyUpdate): void {
         stat.unallocatedWei = stat.unallocatedWei.plus(event.params.unallocatedWei)
         // stat.totalPayoutsCumulative = stat.totalPayoutsCumulative.plus(event.params.totalPayoutsCumulative)
     }
-    stat.brokerCount = event.params.brokerCount.toI32()
-    stat.projectedInsolvency = event.params.projectedInsolvencyTime
     stat.brokerCount = event.params.brokerCount.toI32()
     stat.save()
 }
