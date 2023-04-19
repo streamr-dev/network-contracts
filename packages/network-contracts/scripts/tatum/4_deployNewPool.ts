@@ -5,7 +5,7 @@ import { ethers } from "hardhat"
 import { Wallet } from "ethers"
 import { Chains } from "@streamr/config"
 
-import { BrokerPool, BrokerPoolFactory, LinkToken } from "../../typechain"
+import { Operator, OperatorFactory, LinkToken } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
@@ -17,10 +17,10 @@ const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
 localConfig.pools = []
 let deploymentOwner: Wallet
 let investor: Wallet
-let poolFactory: BrokerPoolFactory
-let pool: BrokerPool
+let operatorFactory: OperatorFactory
+let operator: Operator
 let token: LinkToken
-const pools: BrokerPool[] = []
+const pools: Operator[] = []
 
 const connectToAllContracts = async () => {
     investor = Wallet.createRandom().connect(chainProvider)
@@ -30,9 +30,9 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
-    const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory", {signer: deploymentOwner })
-    const poolFactoryContact = await poolFactoryFactory.attach(localConfig.poolFactory) as BrokerPoolFactory
-    poolFactory = await poolFactoryContact.connect(deploymentOwner) as BrokerPoolFactory
+    const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory", {signer: deploymentOwner })
+    const operatorFactoryContact = await operatorFactoryFactory.attach(localConfig.operatorFactory) as OperatorFactory
+    operatorFactory = await operatorFactoryContact.connect(deploymentOwner) as OperatorFactory
 
     const linkTokenFactory = await ethers.getContractFactory("LinkToken", {signer: deploymentOwner })
     const linkTokenFactoryTx = await linkTokenFactory.attach(localConfig.token)
@@ -43,26 +43,26 @@ const connectToAllContracts = async () => {
     await (await token.transfer(investor.address, ethers.utils.parseEther("10000"))).wait()
 
     if (localConfig.pool) {
-        pool = await ethers.getContractAt("BrokerPool", localConfig.pool, deploymentOwner) as BrokerPool
+        operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
     }
 }
 
 const deployNewPools = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
-        const pooltx = await poolFactory.connect(deploymentOwner).deployBrokerPool(
+        const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
             0, // min initial investment
             `Pool-${Date.now()}`,
-            [localConfig.defaultPoolJoinPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultPoolExitPolicy],
+            [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
             [0, 0, 0, 0, 0, 10, 10, 0]
         )
         const poolReceipt = await pooltx.wait()
-        const poolAddress = poolReceipt.events?.find((e: any) => e.event === "NewBrokerPool")?.args?.poolAddress
+        const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
         // eslint-disable-next-line require-atomic-updates
-        localConfig.pool = poolAddress
-        log("Pool deployed at: ", poolAddress)
-        pool = await ethers.getContractAt("BrokerPool", poolAddress, investor) as BrokerPool
-        localConfig.pools.push(poolAddress)
-        pools.push(pool)
+        localConfig.pool = operatorAddress
+        log("Pool deployed at: ", operatorAddress)
+        operator = await ethers.getContractAt("Operator", operatorAddress, investor) as Operator
+        localConfig.pools.push(operatorAddress)
+        pools.push(operator)
     }
 }
 
@@ -89,10 +89,10 @@ const stakeIntoSponsorship = async () => {
 //     log("Queued data payout")
 // }
 
-// const brokerUnstakesFromSponsorship = async () => {
+// const operatorUnstakesFromSponsorship = async () => {
 //     const tx = await pool.connect(deploymentOwner).unstake(localConfig.sponsorship)
 //     await tx.wait()
-//     log("Broker unstaked from sponsorship")
+//     log("Operator unstaked from sponsorship")
 // }
 
 const flag = async () => {
@@ -108,7 +108,7 @@ async function main() {
     await stakeIntoSponsorship()
     await flag()
     // await divestFromPool()
-    // await brokerUnstakesFromSponsorship()
+    // await operatorUnstakesFromSponsorship()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
 

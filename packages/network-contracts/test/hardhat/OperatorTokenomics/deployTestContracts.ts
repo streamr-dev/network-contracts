@@ -1,56 +1,55 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { Wallet, utils} from "ethers"
 
-import type { Sponsorship, SponsorshipFactory, BrokerPool, BrokerPoolFactory, IAllocationPolicy, TestToken,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IPoolJoinPolicy, IPoolYieldPolicy, IPoolExitPolicy, StreamrConfig } from "../../../typechain"
+import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, StreamrConfig } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
     streamrConfig: StreamrConfig;
-    maxBrokersJoinPolicy: IJoinPolicy;
-    brokerPoolOnlyJoinPolicy: IJoinPolicy
+    maxOperatorsJoinPolicy: IJoinPolicy;
+    operatorContractOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
     leavePolicy: ILeavePolicy;
     adminKickPolicy: IKickPolicy;
     voteKickPolicy: IKickPolicy;
     sponsorshipFactory: SponsorshipFactory;
     sponsorshipTemplate: Sponsorship;
-    poolFactory: BrokerPoolFactory;
-    poolTemplate: BrokerPool;
-    defaultPoolJoinPolicy: IPoolJoinPolicy;
+    operatorFactory: OperatorFactory;
+    poolTemplate: Operator;
+    defaultDelegationPolicy: IDelegationPolicy;
     defaultPoolYieldPolicy: IPoolYieldPolicy;
-    defaultPoolExitPolicy: IPoolExitPolicy;
+    defaultUndelegationPolicy: IUndelegationPolicy;
     deployer: Wallet;
     streamRegistry: StreamRegistryV4;
 }
 
-export async function deployPoolFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
-    poolFactory: BrokerPoolFactory,
-    poolTemplate: BrokerPool
+export async function deployOperatorFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
+    operatorFactory: OperatorFactory,
+    poolTemplate: Operator
 }> {
     const {
         token, streamrConfig,
-        defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
     } = contracts
-    const poolTemplate = await (await getContractFactory("BrokerPool", { signer })).deploy()
-    const poolFactory = await (await getContractFactory("BrokerPoolFactory", { signer })).deploy()
-    await poolFactory.deployed()
-    await (await poolFactory.initialize(
+    const poolTemplate = await (await getContractFactory("Operator", { signer })).deploy()
+    const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy()
+    await operatorFactory.deployed()
+    await (await operatorFactory.initialize(
         poolTemplate!.address,
         token!.address,
         streamrConfig!.address,
         { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
     )).wait()
-    await (await poolFactory.addTrustedPolicies([
-        defaultPoolJoinPolicy!.address,
+    await (await operatorFactory.addTrustedPolicies([
+        defaultDelegationPolicy!.address,
         defaultPoolYieldPolicy!.address,
-        defaultPoolExitPolicy!.address
+        defaultUndelegationPolicy!.address
     ], { gasLimit: 500000 })).wait()
-    await (await streamrConfig!.setBrokerPoolFactory(poolFactory.address)).wait()
-
-    return { poolFactory, poolTemplate }
+    await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
+    return { operatorFactory, poolTemplate }
 }
 
 /**
@@ -68,8 +67,8 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await(await streamrConfig.initialize()).wait()
 
     // sponsorship and policies
-    const maxBrokersJoinPolicy = await (await getContractFactory("MaxAmountBrokersJoinPolicy", { signer })).deploy()
-    const brokerPoolOnlyJoinPolicy = await (await getContractFactory("BrokerPoolOnlyJoinPolicy", { signer })).deploy()
+    const maxOperatorsJoinPolicy = await (await getContractFactory("MaxOperatorsJoinPolicy", { signer })).deploy()
+    const operatorContractOnlyJoinPolicy = await (await getContractFactory("OperatorContractOnlyJoinPolicy", { signer })).deploy()
     const allocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", { signer })).deploy()
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", { signer })).deploy()
     const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", { signer })).deploy()
@@ -90,21 +89,21 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         leavePolicy.address,
         adminKickPolicy.address,
         voteKickPolicy.address,
-        maxBrokersJoinPolicy.address,
-        brokerPoolOnlyJoinPolicy.address,
+        maxOperatorsJoinPolicy.address,
+        operatorContractOnlyJoinPolicy.address,
     ])).wait()
 
-    await (await streamrConfig!.setPoolOnlyJoinPolicy(brokerPoolOnlyJoinPolicy.address)).wait()
+    await (await streamrConfig!.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
     await (await streamrConfig!.setSponsorshipFactory(sponsorshipFactory.address)).wait()
 
-    // broker pool and policies
-    const defaultPoolJoinPolicy = await (await getContractFactory("DefaultPoolJoinPolicy", { signer })).deploy()
+    // operator contract and policies
+    const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
-    const defaultPoolExitPolicy = await (await getContractFactory("DefaultPoolExitPolicy", { signer })).deploy()
+    const defaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
 
-    const { poolFactory, poolTemplate } = await deployPoolFactory({
+    const { operatorFactory, poolTemplate } = await deployOperatorFactory({
         token, streamrConfig,
-        defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
+        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
     }, signer)
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
@@ -114,10 +113,10 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
     return {
-        token, streamrConfig,
-        sponsorshipTemplate, sponsorshipFactory, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy,
-        leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, poolFactory, defaultPoolJoinPolicy, defaultPoolYieldPolicy, defaultPoolExitPolicy,
-        deployer: signer,
-        streamRegistry
+        token, streamrConfig, streamRegistry,
+        sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
+        leavePolicy, adminKickPolicy, voteKickPolicy, poolTemplate, operatorFactory,
+        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
+        deployer: signer
     }
 }

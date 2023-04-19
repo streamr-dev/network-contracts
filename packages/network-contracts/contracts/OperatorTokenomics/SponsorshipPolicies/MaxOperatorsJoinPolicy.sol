@@ -7,23 +7,23 @@ import "../Sponsorship.sol";
 
 // import "hardhat/console.sol";
 
-contract MaxAmountBrokersJoinPolicy is IJoinPolicy, Sponsorship {
+contract MaxOperatorsJoinPolicy is IJoinPolicy, Sponsorship {
     struct LocalStorage {
-        uint256 maxBrokers;
+        uint256 maxOperators;
     }
 
     function localData() internal view returns(LocalStorage storage data) {
-        bytes32 storagePosition = keccak256(abi.encodePacked("sponsorship.storage.MaxAmountBrokersJoinPolicy", address(this)));
+        bytes32 storagePosition = keccak256(abi.encodePacked("sponsorship.storage.MaxOperatorsJoinPolicy", address(this)));
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
-    function setParam(uint256 maxBrokers) external {
-        localData().maxBrokers = maxBrokers;
+    function setParam(uint256 maxOperators) external {
+        localData().maxOperators = maxOperators;
     }
 
     /** Check if there's room for one more */
     // solc-ignore-next-line func-mutability
     function onJoin(address, uint256) external {
-        require(brokerCount < localData().maxBrokers, "error_tooManyBrokers");
+        require(operatorCount < localData().maxOperators, "error_tooManyOperators");
     }
 }

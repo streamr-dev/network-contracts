@@ -18,7 +18,7 @@ const privKeyStreamRegistry = "0x4059de411f15511a85ce332e7a428f36492ab4e87c78300
 const log = require("debug")("streamr:deploy-tatum")
 
 let adminWallet: Wallet
-let brokerWallet: Wallet
+let operatorWallet: Wallet
 
 const localConfig: any = {}
 
@@ -37,11 +37,11 @@ async function deploySponsorshipFactory() {
     localConfig.token = token.address
     log(`token address ${token.address}`)
 
-    const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy",
+    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy",
         { signer: adminWallet })).deploy() as IJoinPolicy
-    await maxBrokersJoinPolicy.deployed()
-    localConfig.maxBrokersJoinPolicy = maxBrokersJoinPolicy.address
-    log(`maxBrokersJoinPolicy address ${maxBrokersJoinPolicy.address}`)
+    await maxOperatorsJoinPolicy.deployed()
+    localConfig.maxOperatorsJoinPolicy = maxOperatorsJoinPolicy.address
+    log(`maxOperatorsJoinPolicy address ${maxOperatorsJoinPolicy.address}`)
 
     const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy",
         { signer: adminWallet })).deploy() as IAllocationPolicy
@@ -70,7 +70,7 @@ async function deploySponsorshipFactory() {
     const sponsorshipFactoryFactoryTx = await upgrades.deployProxy(sponsorshipFactoryFactory,
         [ sponsorshipTemplate.address, token.address, streamrConfig.address ], { kind: "uups", unsafeAllow: ["delegatecall"]})
     const sponsorshipFactory = await sponsorshipFactoryFactoryTx.deployed() as SponsorshipFactory
-    await (await sponsorshipFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
+    await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
     await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
@@ -79,16 +79,16 @@ async function deploySponsorshipFactory() {
 
     await (await token.mint(adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
     log(`minted 1000000 tokens to ${adminWallet.address}`)
-    await (await token.mint(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
-    log(`transferred 100000 tokens to ${brokerWallet.address}`)
-    await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
-    log(`transferred 1 ETH to ${brokerWallet.address}`)
+    await (await token.mint(operatorWallet.address, ethers.utils.parseEther("100000"))).wait()
+    log(`transferred 100000 tokens to ${operatorWallet.address}`)
+    await (await adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
+    log(`transferred 1 ETH to ${operatorWallet.address}`)
 }
 
 async function main() {
     adminWallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
 
-    brokerWallet = ethers.Wallet.createRandom().connect(new JsonRpcProvider(chainURL))
+    operatorWallet = ethers.Wallet.createRandom().connect(new JsonRpcProvider(chainURL))
     log(`wallet address ${adminWallet.address}`)
 
     await deploySponsorshipFactory()

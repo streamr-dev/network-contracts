@@ -4,18 +4,18 @@ import { BigNumber, utils, Wallet } from "ethers"
 
 import { advanceToTimestamp, getBlockTimestamp } from "../hardhat/OperatorTokenomics/utils"
 import { deployTestContracts, TestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
-import { deployBrokerPool } from "../hardhat/OperatorTokenomics/deployBrokerPool"
+import { deployOperator } from "../hardhat/OperatorTokenomics/deployOperatorContract"
 
-import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorship"
+import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorshipContract"
 
 const { parseEther } = utils
 const { getSigners } = hardhatEthers
 
-describe("BrokerPool", (): void => {
+describe("Operator", (): void => {
     let admin: Wallet
-    let broker: Wallet     // creates pool
-    let delegator: Wallet   // delegates money to pool
-    let sponsor: Wallet     // sponsors stream sponsorship
+    let operatorWallet: Wallet    // creates Operator contract
+    let delegator: Wallet   // delegates DATA to Operator
+    let sponsor: Wallet     // send DATA to a stream's Sponsorship contract
 
     let sharedContracts: TestContracts
 
@@ -30,7 +30,7 @@ describe("BrokerPool", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, broker, delegator, sponsor] = await getSigners() as unknown as Wallet[]
+        [admin, operatorWallet, delegator, sponsor] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
     })
 
@@ -41,28 +41,28 @@ describe("BrokerPool", (): void => {
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-        const pool = await deployBrokerPool(sharedContracts, broker)
-        await (await token.connect(delegator).transferAndCall(pool.address, parseEther("1000"), "0x")).wait()
+        const operator = await deployOperator(sharedContracts, operatorWallet)
+        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorship and queue payouts")
-        await expect(pool.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(pool, "Staked").withArgs(sponsorship.address)
+        await expect(operator.stake(sponsorship.address, parseEther("1000")))
+            .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
         for (let i = 0; i < 1000; i++) {
-            await pool.connect(delegator).undelegate(parseEther("1"))
+            await operator.connect(delegator).undelegate(parseEther("1"))
         }
-        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("1000"))
+        expect(await operator.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("1000"))
 
         // doing it in one go with 1000 slots in the queue will fail...
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
         const gasLimit = 0xF42400 // "reasonable gas limit"
-        await expect(pool.connect(broker).unstake(sponsorship.address, { gasLimit })).to.be.reverted
+        await expect(operator.unstake(sponsorship.address, { gasLimit })).to.be.reverted
 
         // ...so do it in pieces
-        await (await pool.connect(broker).unstakeWithoutQueue(sponsorship.address, { gasLimit })).wait()
+        await (await operator.unstakeWithoutQueue(sponsorship.address, { gasLimit })).wait()
         for (let i = 0; i < 1000; i += 10) {
-            await (await pool.connect(broker).payOutQueueWithFreeFunds(10, { gasLimit })).wait()
+            await (await operator.payOutQueueWithFreeFunds(10, { gasLimit })).wait()
         }
 
         // got everything back
@@ -73,7 +73,7 @@ describe("BrokerPool", (): void => {
         const { token } = sharedContracts
         await setTokens(delegator, "100000")
         await setTokens(sponsor, "100000")
-        const pool = await deployBrokerPool(sharedContracts, broker)
+        const operator = await deployOperator(sharedContracts, operatorWallet)
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorships and queue the payout")
@@ -82,18 +82,18 @@ describe("BrokerPool", (): void => {
         const sponsorships = []
         for (let i = 0; i < numberOfSponsorships; i++) {
             const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-            await (await token.connect(delegator).transferAndCall(pool.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
-            await (await pool.stake(sponsorship.address, parseEther("100"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("100"))).wait()
             sponsorships.push(sponsorship)
         }
-        await pool.connect(delegator).undelegate(totalStaked)
-        expect(await pool.totalQueuedPerDelegatorWei(delegator.address)).to.equal(totalStaked)
-        expect(await pool.balanceOf(delegator.address)).to.equal(parseEther((numberOfSponsorships * 100).toString()))
+        await operator.connect(delegator).undelegate(totalStaked)
+        expect(await operator.totalQueuedPerDelegatorWei(delegator.address)).to.equal(totalStaked)
+        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther((numberOfSponsorships * 100).toString()))
 
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
         for (const sponsorship of sponsorships) {
-            await (await pool.connect(broker).unstake(sponsorship.address)).wait()
+            await (await operator.unstake(sponsorship.address)).wait()
         }
 
         // got everything back

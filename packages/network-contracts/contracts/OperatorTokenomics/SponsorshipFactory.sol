@@ -12,7 +12,7 @@ import "./StreamrConfig.sol";
 
 /**
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
- * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by BrokerPools.
+ * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
  */
 contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
@@ -69,7 +69,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         (
             uint initialMinimumStakeWei,
             uint32 initialMinHorizonSeconds,
-            uint32 initialMinBrokerCount,
+            uint32 initialMinOperatorCount,
             string memory streamId,
             string memory metadata,
             address[] memory policies,
@@ -80,7 +80,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         address sponsorshipAddress = _deploySponsorship(
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
-            initialMinBrokerCount,
+            initialMinOperatorCount,
             streamId,
             metadata,
             policies,
@@ -100,7 +100,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     function deploySponsorship(
         uint initialMinimumStakeWei,
         uint32 initialMinHorizonSeconds,
-        uint32 initialMinBrokerCount,
+        uint32 initialMinOperatorCount,
         string memory streamId,
         string memory metadata,
         address[] memory policies,
@@ -109,7 +109,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         return _deploySponsorship(
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
-            initialMinBrokerCount,
+            initialMinOperatorCount,
             streamId,
             metadata,
             policies,
@@ -120,7 +120,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     function _deploySponsorship(
         uint initialMinimumStakeWei,
         uint initialMinHorizonSeconds,
-        uint initialMinBrokerCount,
+        uint initialMinOperatorCount,
         string memory streamId,
         string memory metadata,
         address[] memory policies,
@@ -135,7 +135,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         }
         address sponsorshipAddress = ClonesUpgradeable.clone(sponsorshipContractTemplate);
         Sponsorship sponsorship = Sponsorship(sponsorshipAddress);
-        uint[4] memory sponsorshipParams = [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinBrokerCount, initParams[0]];
+        uint[4] memory sponsorshipParams = [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinOperatorCount, initParams[0]];
         sponsorship.initialize(
             streamId,
             metadata,
@@ -155,7 +155,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
                 sponsorship.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
             }
         }
-        sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.poolOnlyJoinPolicy()), 0);
+        sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.operatorContractOnlyJoinPolicy()), 0);
         sponsorship.renounceRole(sponsorship.DEFAULT_ADMIN_ROLE(), address(this));
         emit NewSponsorship(sponsorshipAddress, streamId, metadata);
         // solhint-disable-next-line not-rely-on-time

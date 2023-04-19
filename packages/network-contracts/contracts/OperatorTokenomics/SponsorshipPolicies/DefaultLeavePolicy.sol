@@ -13,14 +13,14 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
      * After penaltyPeriod, leaving is always okay
      * During penaltyPeriod, leaving is only okay if sponsorship is not running
      */
-    function getLeavePenaltyWei(address broker) public override view returns (uint leavePenaltyWei) {
-        uint joinTimestamp = joinTimeOfBroker[broker];
+    function getLeavePenaltyWei(address operator) public override view returns (uint leavePenaltyWei) {
+        uint joinTimestamp = joinTimeOfOperator[operator];
         if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) { // solhint-disable-line not-rely-on-time
             // console.log("Penalty period over, get stake back");
             return 0;
         }
 
-        uint stake = stakedWei[broker];
+        uint stake = stakedWei[operator];
         // console.log("getLeavePenaltyWei, stake =", stake, isRunning() ? "[running]" : "[NOT running]", isFunded() ? "[funded]" : "[NOT funded]");
         if (isRunning() && isFunded()) {
             // console.log("Leaving a running sponsorship too early, lose 10% of stake");

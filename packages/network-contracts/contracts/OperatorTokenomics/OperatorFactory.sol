@@ -8,29 +8,29 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./IBrokerPoolLivenessRegistry.sol";
-import "./BrokerPool.sol";
+import "./IOperatorLivenessRegistry.sol";
+import "./Operator.sol";
 import "./IERC677.sol";
 
 /**
- * BrokerPoolFactory creates "smart contract interfaces" for brokers to the Streamr Network.
- * Only BrokerPools from this BrokerPoolFactory can stake to Streamr Network Sponsorships.
+ * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
+ * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
-contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IBrokerPoolLivenessRegistry {
-    event NewBrokerPool(address poolAddress);
-    event BrokerPoolLivenessChanged(address poolAddress, bool isLive);
+contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
+    event NewOperator(address operatorContractAddress);
+    event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    address public brokerPoolTemplate;
+    address public operatorTemplate;
     address public configAddress;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
-    // array needed for peer broker selection for VoteKickPolicy peer review
-    BrokerPool[] public liveBrokerPools;
-    mapping (BrokerPool => uint) public liveBrokerPoolsIndex; // real index +1, zero for BrokerPools not staked in a Sponsorship
+    // array needed for peer operator selection for VoteKickPolicy peer review
+    Operator[] public liveOperators;
+    mapping (Operator => uint) public liveOperatorsIndex; // real index +1, zero for Operators not staked in a Sponsorship
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -40,7 +40,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
-        brokerPoolTemplate = templateAddress;
+        operatorTemplate = templateAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -75,7 +75,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     // function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
     //     (
     //         uint32 initialMinHorizonSeconds,
-    //         uint32 initialMinBrokerCount,
+    //         uint32 initialMinOperatorCount,
     //         string memory sponsorshipName,
     //         address[] memory policies,
     //         uint[] memory initParams
@@ -85,7 +85,7 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     //     address sponsorshipAddress = _deploySponsorship(
     //         sender,
     //         initialMinHorizonSeconds,
-    //         initialMinBrokerCount,
+    //         initialMinOperatorCount,
     //         sponsorshipName,
     //         policies,
     //         initParams
@@ -96,29 +96,29 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
     /**
      * Policies array corresponds to the initParams array as follows:
      *  [0]: join policy => [0] initialMargin, [1] minimumMarginPercent
-     *  [1]: yield policy => [2] initialMargin, [3] maintenanceMargin, [4] minimumMargin, [5] brokerShare, [6] brokerShareMaxDivert
+     *  [1]: yield policy => [2] initialMargin, [3] maintenanceMargin, [4] minimumMargin, [5] operatorShare, [6] operatorShareMaxDivert
      *  [2]: exit policy => [7]
      * @param policies smart contract addresses, must be in the trustedPolicies
      */
-    function deployBrokerPool(
+    function deployOperator(
         uint32 initialMinimumDelegationWei,
-        string[2] calldata poolParams,
+        string[2] calldata stringArgs, // [0] poolTokenName, [1] streamMetadata
         address[3] calldata policies,
         uint[8] calldata initParams
     ) public returns (address) {
-        return _deployBrokerPool(
+        return _deployOperator(
             _msgSender(),
             initialMinimumDelegationWei,
-            poolParams,
+            stringArgs,
             policies,
             initParams
         );
     }
 
-    function _deployBrokerPool(
-        address poolOwner,
+    function _deployOperator(
+        address operatorAddress,
         uint32 initialMinimumDelegationWei,
-        string[2] calldata poolParams,
+        string[2] calldata stringArgs,
         address[3] calldata policies,
         uint[8] calldata initParams
     ) private returns (address) {
@@ -126,34 +126,34 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(bytes(poolParams[0]), poolOwner));
-        address poolAddress = ClonesUpgradeable.cloneDeterministic(brokerPoolTemplate, salt);
-        BrokerPool pool = BrokerPool(poolAddress);
-        pool.initialize(
+        bytes32 salt = keccak256(abi.encode(bytes(stringArgs[0]), operatorAddress));
+        address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
+        Operator newOperatorContract = Operator(newContractAddress);
+        newOperatorContract.initialize(
             tokenAddress,
             configAddress,
-            poolOwner,
-            poolParams,
+            operatorAddress,
+            stringArgs,
             initialMinimumDelegationWei
         );
         if (policies[0] != address(0)) {
-            pool.setJoinPolicy(IPoolJoinPolicy(policies[0]), initParams[0], initParams[1]);
+            newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), initParams[0], initParams[1]);
         }
         if (policies[1] != address(0)) {
-            pool.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[2], initParams[3], initParams[4], initParams[5], initParams[6]);
+            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[2], initParams[3], initParams[4], initParams[5], initParams[6]);
         }
         if (policies[2] != address(0)) {
-            pool.setExitPolicy(IPoolExitPolicy(policies[2]), initParams[7]);
+            newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), initParams[7]);
         }
-        pool.renounceRole(pool.DEFAULT_ADMIN_ROLE(), address(this));
-        deploymentTimestamp[poolAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
-        emit NewBrokerPool(poolAddress);
-        return poolAddress;
+        newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
+        deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
+        emit NewOperator(newContractAddress);
+        return newContractAddress;
     }
 
-    function predictAddress(string calldata poolName) public view returns (address) {
-        bytes32 salt = keccak256(abi.encode(bytes(poolName), _msgSender()));
-        return ClonesUpgradeable.predictDeterministicAddress(brokerPoolTemplate, salt, address(this));
+    function predictAddress(string calldata poolTokenName) public view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(poolTokenName), _msgSender()));
+        return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
     /*
@@ -164,37 +164,37 @@ contract BrokerPoolFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgr
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    /** BrokerPools MUST call this function when they stake to their first Sponsorship */
+    /** Operators MUST call this function when they stake to their first Sponsorship */
     function registerAsLive() public {
-        address poolAddress = _msgSender();
-        require(deploymentTimestamp[poolAddress] > 0, "error_onlyBrokerPools");
-        BrokerPool pool = BrokerPool(poolAddress);
-        require(liveBrokerPoolsIndex[pool] == 0, "error_alreadyLive");
+        address operatorContractAddress = _msgSender();
+        require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
+        Operator operator = Operator(operatorContractAddress);
+        require(liveOperatorsIndex[operator] == 0, "error_alreadyLive");
 
-        liveBrokerPools.push(pool);
-        liveBrokerPoolsIndex[pool] = liveBrokerPools.length; // real index + 1
+        liveOperators.push(operator);
+        liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
 
-        emit BrokerPoolLivenessChanged(poolAddress, true);
+        emit OperatorLivenessChanged(operatorContractAddress, true);
     }
 
-    /** BrokerPools MUST call this function when they unstake from their last Sponsorship */
+    /** Operators MUST call this function when they unstake from their last Sponsorship */
     function registerAsNotLive() public {
-        address poolAddress = _msgSender();
-        require(deploymentTimestamp[poolAddress] > 0, "error_onlyBrokerPools");
-        BrokerPool pool = BrokerPool(poolAddress);
-        require(liveBrokerPoolsIndex[pool] > 0, "error_notLive");
+        address operatorContractAddress = _msgSender();
+        require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
+        Operator operator = Operator(operatorContractAddress);
+        require(liveOperatorsIndex[operator] > 0, "error_notLive");
 
-        uint index = liveBrokerPoolsIndex[pool] - 1; // real index = liveBrokerPoolsIndex - 1
-        BrokerPool lastPool = liveBrokerPools[liveBrokerPools.length - 1];
-        liveBrokerPools[index] = lastPool;
-        liveBrokerPools.pop();
-        liveBrokerPoolsIndex[lastPool] = index + 1; // real index + 1
-        delete liveBrokerPoolsIndex[pool];
+        uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
+        Operator lastOperator = liveOperators[liveOperators.length - 1];
+        liveOperators[index] = lastOperator;
+        liveOperators.pop();
+        liveOperatorsIndex[lastOperator] = index + 1; // real index + 1
+        delete liveOperatorsIndex[operator];
 
-        emit BrokerPoolLivenessChanged(poolAddress, false);
+        emit OperatorLivenessChanged(operatorContractAddress, false);
     }
 
-    function liveBrokerPoolCount() public view returns (uint) {
-        return liveBrokerPools.length;
+    function liveOperatorCount() public view returns (uint) {
+        return liveOperators.length;
     }
 }

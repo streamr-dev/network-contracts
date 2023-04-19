@@ -4,55 +4,55 @@ import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
-import { deploySponsorshipWithoutFactory } from "../deploySponsorship"
+import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
 const { parseEther, formatEther } = utils
 
 describe("StakeWeightedAllocationPolicy", (): void => {
     let admin: Wallet
-    let broker: Wallet
-    let broker2: Wallet
-    let broker3: Wallet
+    let operator: Wallet
+    let operator2: Wallet
+    let operator3: Wallet
 
     let contracts: TestContracts
     before(async (): Promise<void> => {
-        [admin, broker, broker2, broker3] = await ethers.getSigners() as unknown as Wallet[]
+        [admin, operator, operator2, operator3] = await ethers.getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
-        await (await token.transfer(broker.address, parseEther("100000"))).wait()
-        await (await token.transfer(broker2.address, parseEther("100000"))).wait()
-        await (await token.transfer(broker3.address, parseEther("100000"))).wait()
+        await (await token.transfer(operator.address, parseEther("100000"))).wait()
+        await (await token.transfer(operator2.address, parseEther("100000"))).wait()
+        await (await token.transfer(operator3.address, parseEther("100000"))).wait()
     })
 
-    it("allocates correctly for single broker (positive test)", async () => {
+    it("allocates correctly for single operator (positive test)", async () => {
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("10000"))).wait()
-        const balanceBefore = await token.balanceOf(broker.address)
+        const balanceBefore = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
         // join tx actually happens at timeAtStart + 1
-        await advanceToTimestamp(timeAtStart, "broker joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
-        const allocationAfterJoin = await sponsorship.getEarnings(broker.address)
-        const stakeAfterJoin = await sponsorship.stakedWei(broker.address)
+        await advanceToTimestamp(timeAtStart, "operator joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
+        const allocationAfterJoin = await sponsorship.getEarnings(operator.address)
+        const stakeAfterJoin = await sponsorship.stakedWei(operator.address)
 
-        await advanceToTimestamp(timeAtStart + 21, "broker leaves")
-        const allocationAfter20 = await sponsorship.getEarnings(broker.address)
+        await advanceToTimestamp(timeAtStart + 21, "operator leaves")
+        const allocationAfter20 = await sponsorship.getEarnings(operator.address)
 
-        await advanceToTimestamp(timeAtStart + 51, "broker leaves")
-        const allocationAfter50 = await sponsorship.getEarnings(broker.address)
+        await advanceToTimestamp(timeAtStart + 51, "operator leaves")
+        const allocationAfter50 = await sponsorship.getEarnings(operator.address)
 
-        await advanceToTimestamp(timeAtStart + 100, "broker leaves")
+        await advanceToTimestamp(timeAtStart + 100, "operator leaves")
         // this getter happens at timeAtStart + 100
-        // const allocationBeforeLeave = await sponsorship.getEarnings(broker.address)
+        // const allocationBeforeLeave = await sponsorship.getEarnings(operator.address)
         // but this tx happens at timeAtStart + 101...
-        await (await sponsorship.connect(broker).unstake()).wait()
-        const balanceChange = (await token.balanceOf(broker.address)).sub(balanceBefore)
+        await (await sponsorship.connect(operator).unstake()).wait()
+        const balanceChange = (await token.balanceOf(operator.address)).sub(balanceBefore)
 
-        // broker now has his stake back plus additional earnings
+        // operator now has his stake back plus additional earnings
         expect(formatEther(allocationAfterJoin)).to.equal("0.0")
         expect(formatEther(allocationAfter20)).to.equal("20.0")
         expect(formatEther(allocationAfter50)).to.equal("50.0")
@@ -61,303 +61,303 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(stakeAfterJoin)).to.equal("1000.0")
     })
 
-    it("allocates correctly for two brokers, same weight, different join, leave times (positive test)", async function(): Promise<void> {
-        //      t0       : broker1 joins
-        // t1 = t0 + 1000: broker2 joins
-        // t3 = t0 + 3000: broker2 leaves (stayed for half the time)
-        // t4 = t0 + 4000: broker1 leaves
+    it("allocates correctly for two operators, same weight, different join, leave times (positive test)", async function(): Promise<void> {
+        //      t0       : operator1 joins
+        // t1 = t0 + 1000: operator2 joins
+        // t3 = t0 + 3000: operator2 leaves (stayed for half the time)
+        // t4 = t0 + 4000: operator1 leaves
         // in the end 4000*(wei/sec) are earnings
-        // broker1 should have half + half-of-half = 75% of the earnings
-        // broker2 should have half-of-half = 25% of the earnings
+        // operator1 should have half + half-of-half = 75% of the earnings
+        // operator2 should have half-of-half = 25% of the earnings
         const sponsorshipWei = parseEther("10000")
         const totalTokensExpected = parseEther("4000")
 
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await token.transferAndCall(sponsorship.address, sponsorshipWei, "0x")).wait() // sponsor using ERC677
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const unallocatedWeiBefore = await sponsorship.unallocatedWei() as BigNumber
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "broker1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "operator1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "broker2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "operator2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 3000, "broker2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "operator2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 4000, "broker1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "operator1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
         const unallocatedWeiAfter = await sponsorship.unallocatedWei() as BigNumber
-        const tokensBroker1Expected = totalTokensExpected.div(4).mul(3)
-        const tokensBroker2Expected = totalTokensExpected.div(4)
+        const tokensOperator1Expected = totalTokensExpected.div(4).mul(3)
+        const tokensOperator2Expected = totalTokensExpected.div(4)
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
         expect(formatEther(unallocatedWeiBefore)).to.equal(formatEther(sponsorshipWei))
         expect(formatEther(unallocatedWeiAfter)).to.equal(formatEther(sponsorshipWei.sub(totalTokensExpected)))
     })
 
-    it("allocates correctly for two brokers, different weight, different join, leave times (positive test)", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1
-        // t1 = t0 + 1000: broker2 joins, stakes 4
-        // t3 = t0 + 3000: broker2 leaves (stayed for half the time)
-        // t4 = t0 + 4000: broker1 leaves
+    it("allocates correctly for two operators, different weight, different join, leave times (positive test)", async function(): Promise<void> {
+        //      t0       : operator1 joins, stakes 1
+        // t1 = t0 + 1000: operator2 joins, stakes 4
+        // t3 = t0 + 3000: operator2 leaves (stayed for half the time)
+        // t4 = t0 + 4000: operator1 leaves
         // in the end 4000*(wei/sec) are earnings
-        // broker1 should have half + 20% of half = 60% of the earnings
-        // broker2 should have 80% of half = 40% of the earnings
+        // operator1 should have half + 20% of half = 60% of the earnings
+        // operator2 should have 80% of half = 40% of the earnings
         const totalTokensExpected = parseEther("4000")
 
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("100000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("4"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("4"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = totalTokensExpected.div(100).mul(60)
-        const tokensBroker2Expected = totalTokensExpected.div(100).mul(40)
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator1Expected = totalTokensExpected.div(100).mul(60)
+        const tokensOperator2Expected = totalTokensExpected.div(100).mul(40)
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
     })
 
-    it("allocates correctly for two brokers, different weight, with adding additional stake", async function(): Promise<void> {
-        //     t0       : broker1 joins, stakes 1 (1 : 0)
-        // t = t0 + 2000: broker2 joins, stakes 1 (1 : 1)
-        // t = t0 + 4000: broker1 adds 3 stake => (4 : 1)
-        // t = t0 + 6000: broker2 adds 3 stake => (4 : 4)
-        // t = t0 + 8000: broker2 leaves       => (4 : 0)
-        // t = t0 +10000: broker1 leaves       => (0 : 0)
-        // broker1 should have 2000 + 1000 + 1600 + 1000 + 2000 = 7600
-        // broker2 should have        1000 +  400 + 1000        = 2400
+    it("allocates correctly for two operators, different weight, with adding additional stake", async function(): Promise<void> {
+        //     t0       : operator1 joins, stakes 1 (1 : 0)
+        // t = t0 + 2000: operator2 joins, stakes 1 (1 : 1)
+        // t = t0 + 4000: operator1 adds 3 stake => (4 : 1)
+        // t = t0 + 6000: operator2 adds 3 stake => (4 : 4)
+        // t = t0 + 8000: operator2 leaves       => (4 : 0)
+        // t = t0 +10000: operator1 leaves       => (0 : 0)
+        // operator1 should have 2000 + 1000 + 1600 + 1000 + 2000 = 7600
+        // operator2 should have        1000 +  400 + 1000        = 2400
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("10008"))).wait()
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 adds stake 1 -> 4")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("3"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 1 adds stake 1 -> 4")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("3"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 6000, "Broker 2 adds stake 1 -> 4")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("3"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 6000, "Operator 2 adds stake 1 -> 4")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("3"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 8000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 10000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 10000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = parseEther("7600")
-        const tokensBroker2Expected = parseEther("2400")
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator1Expected = parseEther("7600")
+        const tokensOperator2Expected = parseEther("2400")
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
     })
 
-    it("allocates correctly for one broker, adding stake", async function(): Promise<void> {
-        //     t0       : broker joins, stakes 4
-        // t = t0 + 1000: broker reduces 2 stake
-        // t = t0 + 2000: broker leaves
-        // broker should have 2000
+    it("allocates correctly for one operator, adding stake", async function(): Promise<void> {
+        //     t0       : operator joins, stakes 4
+        // t = t0 + 1000: operator reduces 2 stake
+        // t = t0 + 2000: operator leaves
+        // operator should have 2000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("10008"))).wait()
-        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("4"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("4"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 1 adds 1 stake 4 -> 5")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 1 adds 1 stake 4 -> 5")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker1Expected = parseEther("2000")
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator1Expected = parseEther("2000")
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
     })
 
-    it("allocates correctly for one broker, reducing stake", async function(): Promise<void> {
-        //     t0       : broker joins, stakes 4
-        // t = t0 + 1000: broker reduces 2 stake
-        // t = t0 + 2000: broker leaves
-        // broker should have 2000
+    it("allocates correctly for one operator, reducing stake", async function(): Promise<void> {
+        //     t0       : operator joins, stakes 4
+        // t = t0 + 1000: operator reduces 2 stake
+        // t = t0 + 2000: operator leaves
+        // operator should have 2000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("10008"))).wait()
-        const tokensBroker1Before = await token.balanceOf(broker.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("4"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("4"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 reduces 1 stake 4 -> 2")
-        await (await sponsorship.connect(broker).reduceStakeTo(parseEther("2"))).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 reduces 1 stake 4 -> 2")
+        await (await sponsorship.connect(operator).reduceStakeTo(parseEther("2"))).wait()
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker1Expected = parseEther("2000")
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator1Expected = parseEther("2000")
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
     })
 
-    it("allocates correctly for two brokers, different weight, reducing stake without slashing", async function(): Promise<void> {
-        //     t0       : broker1 joins, stakes 6 (6 : 0)
-        // t = t0 + 2000: broker2 joins, stakes 6 (6 : 6)
-        // t = t0 + 4000: broker2 reduces 2 stake => (6 : 4)
-        // t = t0 + 6000: broker1 reduces 2 stake => (4 : 4)
-        // t = t0 + 8000: broker2 leaves       => (4 : 0)
-        // t = t0 +10000: broker1 leaves       => (0 : 0)
-        // broker1 should have 2000 + 1000 + 1200 + 1000 + 2000 = 7200
-        // broker2 should have        1000 +  800 + 1000        = 2800
+    it("allocates correctly for two operators, different weight, reducing stake without slashing", async function(): Promise<void> {
+        //     t0       : operator1 joins, stakes 6 (6 : 0)
+        // t = t0 + 2000: operator2 joins, stakes 6 (6 : 6)
+        // t = t0 + 4000: operator2 reduces 2 stake => (6 : 4)
+        // t = t0 + 6000: operator1 reduces 2 stake => (4 : 4)
+        // t = t0 + 8000: operator2 leaves       => (4 : 0)
+        // t = t0 +10000: operator1 leaves       => (0 : 0)
+        // operator1 should have 2000 + 1000 + 1200 + 1000 + 2000 = 7200
+        // operator2 should have        1000 +  800 + 1000        = 2800
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("10008"))).wait()
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("3"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("3"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("3"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("3"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 reduces stake 3 -> 1")
-        await (await sponsorship.connect(broker2).reduceStakeTo(parseEther("1"))).wait()
-        // await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("3"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 2 reduces stake 3 -> 1")
+        await (await sponsorship.connect(operator2).reduceStakeTo(parseEther("1"))).wait()
+        // await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("3"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 6000, "Broker 1 reduces stake 2 -> 1")
-        await (await sponsorship.connect(broker).reduceStakeTo(parseEther("1"))).wait()
-        // await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("3"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 6000, "Operator 1 reduces stake 2 -> 1")
+        await (await sponsorship.connect(operator).reduceStakeTo(parseEther("1"))).wait()
+        // await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("3"), operator2.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 8000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 8000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 10000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 10000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = parseEther("7499.999999999999994")
-        const tokensBroker2Expected = parseEther("2499.999999999999996")
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator1Expected = parseEther("7499.999999999999994")
+        const tokensOperator2Expected = parseEther("2499.999999999999996")
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
     })
 
     it("allocates correctly if money runs out", async function(): Promise<void> {
-        //      t0       : broker1 joins, stakes 1
-        // t1 = t0 + 1000: broker2 joins, stakes 4
+        //      t0       : operator1 joins, stakes 1
+        // t1 = t0 + 1000: operator2 joins, stakes 4
         // t2 = t0 + 2000: money runs out
-        // t3 = t0 + 3000: broker2 leaves
-        // t4 = t0 + 4000: broker1 leaves
-        // in the end 4000*(wei/sec) are expected earnings i.e. owed to brokers
+        // t3 = t0 + 3000: operator2 leaves
+        // t4 = t0 + 4000: operator1 leaves
+        // in the end 4000*(wei/sec) are expected earnings i.e. owed to operators
         //            but only half actually allocated and paid out
-        // broker1 should have half * (half + 20% of half) = 30% of the expected earnings
-        // broker2 should have half * (80% of half) = 20% of the expected earnings
+        // operator1 should have half * (half + 20% of half) = 30% of the expected earnings
+        // operator2 should have half * (80% of half) = 20% of the expected earnings
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         const totalTokensExpected = parseEther("4000")
         await (await sponsorship.sponsor(totalTokensExpected.div(2))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(
             sponsorship.address,
             parseEther("1000"),
-            broker.address
+            operator.address
         )).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(
             sponsorship.address,
             parseEther("4000"),
-            broker2.address
+            operator2.address
         ) as ContractTransaction).wait()
 
         // timeAtStart + 2001: money runs out (+1 because joins happen at +1)
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker 2 leaves")
-        const leave2Tr = await (await sponsorship.connect(broker2).unstake() as ContractTransaction).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator 2 leaves")
+        const leave2Tr = await (await sponsorship.connect(operator2).unstake() as ContractTransaction).wait()
         const insolvencyEvent = leave2Tr.events?.find((e) => e.event == "InsolvencyStarted")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake() as ContractTransaction).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake() as ContractTransaction).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = totalTokensExpected.div(100).mul(30)
-        const tokensBroker2Expected = totalTokensExpected.div(100).mul(20)
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator1Expected = totalTokensExpected.div(100).mul(30)
+        const tokensOperator2Expected = totalTokensExpected.div(100).mul(20)
 
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
         expect(insolvencyEvent).to.not.be.undefined
     })
 
     it("allocates correctly if money runs out, and then money is added", async function(): Promise<void> {
-        //     t0       : broker1 joins, stakes 1000 tokens
-        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        //     t0       : operator1 joins, stakes 1000 tokens
+        // t = t0 + 1000: operator2 joins, stakes 1000 tokens
         // t = t0 + 2000: money runs out
         // t = t0 + 3000: money is added
-        // t = t0 + 4000: broker2 leaves
-        // t = t0 + 5000: broker1 leaves
+        // t = t0 + 4000: operator2 leaves
+        // t = t0 + 5000: operator1 leaves
         // in the end the expected earnings are 4000 tokens, because between 2000...3000 no allocations were paid
-        // broker1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
-        // broker2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
+        // operator1 should have 1000 + 500 + 0 + 500 + 1000 = 3000 tokens
+        // operator2 should have   0  + 500 + 0 + 500 +   0  = 1000 tokens
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("2000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1000"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
 
         // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
 
@@ -366,16 +366,16 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 5000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 5000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const tokensBroker1Actual = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2Actual = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
-        const tokensBroker1Expected = parseEther("3000")
-        const tokensBroker2Expected = parseEther("1000")
+        const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator1Expected = parseEther("3000")
+        const tokensOperator2Expected = parseEther("1000")
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -386,58 +386,58 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("1000").div("2000").toString(),     // 2000 full token total stake
             parseEther("1000").toString()
         ])
-        expect(formatEther(tokensBroker1Actual)).to.equal(formatEther(tokensBroker1Expected))
-        expect(formatEther(tokensBroker2Actual)).to.equal(formatEther(tokensBroker2Expected))
+        expect(formatEther(tokensOperator1Actual)).to.equal(formatEther(tokensOperator1Expected))
+        expect(formatEther(tokensOperator2Actual)).to.equal(formatEther(tokensOperator2Expected))
     })
 
-    it("allocates correctly if broker joins during insolvency", async function(): Promise<void> {
-        // t = t0       : broker1 joins, stakes 1000 tokens
+    it("allocates correctly if operator joins during insolvency", async function(): Promise<void> {
+        // t = t0       : operator1 joins, stakes 1000 tokens
         // t = t0 + 1000: money runs out
-        // t = t0 + 2000: broker2 joins, stakes 1000 tokens
+        // t = t0 + 2000: operator2 joins, stakes 1000 tokens
         // t = t0 + 3000: money is added
-        // t = t0 + 4000: broker1 leaves
-        // t = t0 + 5000: broker2 leaves
+        // t = t0 + 4000: operator1 leaves
+        // t = t0 + 5000: operator2 leaves
         // seconds between 0...1000...2000...3000...4000...5000  total
-        // broker1 gets     1000   + 0    + 0   + 500    + 0    = 1500
-        // broker2 gets        0   + 0    + 0   + 500 + 1000    = 1500
+        // operator1 gets     1000   + 0    + 0   + 500    + 0    = 1500
+        // operator2 gets        0   + 0    + 0   + 500 + 1000    = 1500
         // defaulted tokens          1000 + 1000                = 2000
         // defaulted per stake       1    + 0.5                 = 1.5
         // this means: if there wouldn't have been insolvency:
-        //   brokers would've gotten 2000 tokens more, i.e. 3000 + 2000 tokens
-        //   broker1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
+        //   operators would've gotten 2000 tokens more, i.e. 3000 + 2000 tokens
+        //   operator1 would've gotten 1.5 more per stake, i.e. 1500 + 1.5*1000 tokens (since it was joined all through the insolvency)
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("1000"))).wait()
-        await (await token.connect(broker2).approve(sponsorship.address, parseEther("100000"))).wait()
+        await (await token.connect(operator2).approve(sponsorship.address, parseEther("100000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 2 joins")
-        const tr = await (await sponsorship.connect(broker2).stake(broker2.address, parseEther("1000"))).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 2 joins")
+        const tr = await (await sponsorship.connect(operator2).stake(operator2.address, parseEther("1000"))).wait()
         const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr2 = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 5000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 5000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
 
-        expect(formatEther(tokensBroker1)).to.equal("1500.0")
-        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+        expect(formatEther(tokensOperator1)).to.equal("1500.0")
+        expect(formatEther(tokensOperator2)).to.equal("1500.0")
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -450,73 +450,73 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         ])
     })
 
-    it("allocates correctly if broker leaves during insolvency", async function(): Promise<void> {
-        //     t0       : broker joins
+    it("allocates correctly if operator leaves during insolvency", async function(): Promise<void> {
+        //     t0       : operator joins
         // t = t0 + 1000: money runs out
-        // t = t0 + 2000: broker leaves
+        // t = t0 + 2000: operator leaves
         // expecting to get 1000 tokens and defaulting 1000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("1000"))).wait()
 
-        const tokensBefore = await token.balanceOf(broker.address)
+        const tokensBefore = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
-        const leaveTr = await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator leaves")
+        const leaveTr = await (await sponsorship.connect(operator).unstake()).wait()
         const insolvencyEvent = leaveTr.events?.find((e) => e.event == "InsolvencyStarted")
 
-        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+        const newTokens = (await token.balanceOf(operator.address)).sub(tokensBefore)
 
         // event InsolvencyStarted(uint startTimeStamp);
         expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
         expect(formatEther(newTokens)).to.equal("1000.0")
     })
 
-    it("allocates correctly if the ONLY broker joins and leaves during insolvency", async function(): Promise<void> {
-        // t = t0       : broker joins
+    it("allocates correctly if the ONLY operator joins and leaves during insolvency", async function(): Promise<void> {
+        // t = t0       : operator joins
         // t = t0 + 1000: money runs out
-        // t = t0 + 2000: broker leaves
-        // t = t0 + 3000: broker joins
+        // t = t0 + 2000: operator leaves
+        // t = t0 + 3000: operator joins
         // t = t0 + 4000: money added
-        // t = t0 + 5000: broker leaves
+        // t = t0 + 5000: operator leaves
         // time between 0...1000...2000...3000...4000...5000  total
-        // broker gets   1000  + 0    + 0   +  0  + 1000    = 2000
+        // operator gets   1000  + 0    + 0   +  0  + 1000    = 2000
         // defaulted       0 + 1000   + 0  + 1000 +   0     = 2000
         // tokens should NOT be counted as defaulted when the sponsorship isn't running (between 2000...3000)
-        //   (although defaulted tokens can't be read from anywhere because broker didn't stay through insolvency!)
+        //   (although defaulted tokens can't be read from anywhere because operator didn't stay through insolvency!)
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("1000"))).wait()
 
-        const tokensBefore = await token.balanceOf(broker.address)
+        const tokensBefore = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
         // timeAtStart + 1001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 2000, "Broker leaves")
-        const tr1 = await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 2000, "Operator leaves")
+        const tr1 = await (await sponsorship.connect(operator).unstake()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker joins again")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator joins again")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 4000, "Money is added")
         const tr2 = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 5000, "Broker leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 5000, "Operator leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        const newTokens = (await token.balanceOf(broker.address)).sub(tokensBefore)
+        const newTokens = (await token.balanceOf(operator.address)).sub(tokensBefore)
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -530,58 +530,58 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         expect(formatEther(newTokens)).to.equal("2000.0")
     })
 
-    it("allocates correctly if a broker leaves then joins during insolvency", async function(): Promise<void> {
-        // t = t0       : broker1 joins, stakes 1000 tokens
-        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+    it("allocates correctly if an operator leaves then joins during insolvency", async function(): Promise<void> {
+        // t = t0       : operator1 joins, stakes 1000 tokens
+        // t = t0 + 1000: operator2 joins, stakes 1000 tokens
         // t = t0 + 2000: money runs out
-        // t = t0 + 3000: broker1 leaves
-        // t = t0 + 4000: broker1 joins, stakes 1000 tokens
+        // t = t0 + 3000: operator1 leaves
+        // t = t0 + 4000: operator1 joins, stakes 1000 tokens
         // t = t0 + 5000: money is added
-        // t = t0 + 6000: broker1 leaves
-        // t = t0 + 7000: broker2 leaves
+        // t = t0 + 6000: operator1 leaves
+        // t = t0 + 7000: operator2 leaves
         // seconds between 0...1000...2000...3000...4000...5000...6000...7000  total
-        // broker1 gets     1000 + 500 +   0  +   0  +   0  +  500 +    0     = 2000
-        // broker2 gets        0 + 500 +   0  +   0  +   0  +  500 + 1000     = 2000
+        // operator1 gets     1000 + 500 +   0  +   0  +   0  +  500 +    0     = 2000
+        // operator2 gets        0 + 500 +   0  +   0  +   0  +  500 + 1000     = 2000
         // defaulted tokens             1000 + 1000  + 1000                   = 3000
         // defaulted per stake           0.5 +  1.0  + 0.5                    = 2.0
         // this means: if there wouldn't have been insolvency:
-        //   brokers would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
-        //   broker2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
+        //   operators would've gotten 3000 tokens more, i.e. 4000 + 3000 tokens
+        //   operator2 would've gotten 2.0 more per stake, i.e. 2000 + 2.0*1000 tokens (since it was joined all through the insolvency)
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("2000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1000"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
 
         // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        const tr1 = await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator 1 leaves")
+        const tr1 = await (await sponsorship.connect(operator).unstake()).wait()
         const insolvencyStartEvent = tr1.events?.find((e) => e.event == "InsolvencyStarted")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 1 joins again")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 1 joins again")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 5000, "Money is added")
         const tr2 = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyEndEvent = tr2.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 6000, "Broker 1 leaves again")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 6000, "Operator 1 leaves again")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 7000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 7000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -591,46 +591,46 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("2.0").toString(),
             parseEther("3000").toString()
         ])
-        expect(formatEther(tokensBroker1)).to.equal("2000.0")
-        expect(formatEther(tokensBroker2)).to.equal("2000.0")
+        expect(formatEther(tokensOperator1)).to.equal("2000.0")
+        expect(formatEther(tokensOperator2)).to.equal("2000.0")
     })
 
     it("allocates correctly if money runs out exactly during join", async function(): Promise<void> {
-        // t = t0       : broker1 joins, stakes 1000 tokens
-        // t = t0 + 1000: broker2 joins while money runs out
+        // t = t0       : operator1 joins, stakes 1000 tokens
+        // t = t0 + 1000: operator2 joins while money runs out
         // t = t0 + 2000: money is added
-        // t = t0 + 3000: broker1 leaves
-        // t = t0 + 4000: broker2 leaves
-        // broker1 should get 1000 +  500 tokens
-        // broker2 should get    0 + 1500 tokens
+        // t = t0 + 3000: operator1 leaves
+        // t = t0 + 4000: operator2 leaves
+        // operator1 should get 1000 +  500 tokens
+        // operator2 should get    0 + 1500 tokens
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("1000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
-        // timeAtStart + 1001: money runs out AND broker2 joins
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1000"), broker2.address)).wait()
+        // timeAtStart + 1001: money runs out AND operator2 joins
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
 
         await advanceToTimestamp(timeAtStart + 2000, "Money is added")
         const tr = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -640,46 +640,46 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("0.5").toString(),
             parseEther("1000").toString()
         ])
-        expect(formatEther(tokensBroker1)).to.equal("1500.0")
-        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+        expect(formatEther(tokensOperator1)).to.equal("1500.0")
+        expect(formatEther(tokensOperator2)).to.equal("1500.0")
     })
 
     it("allocates correctly if money runs out exactly during leave", async function(): Promise<void> {
-        //     t0       : broker1 joins, stakes 1000 tokens
-        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
-        // t = t0 + 2000: money runs out AND broker1 leaves
+        //     t0       : operator1 joins, stakes 1000 tokens
+        // t = t0 + 1000: operator2 joins, stakes 1000 tokens
+        // t = t0 + 2000: money runs out AND operator1 leaves
         // t = t0 + 3000: money is added
-        // t = t0 + 4000: broker2 leaves
-        // broker1 should have 1000 + 500 tokens
-        // broker2 should have 500 + 1000 tokens
+        // t = t0 + 4000: operator2 leaves
+        // operator1 should have 1000 + 500 tokens
+        // operator2 should have 500 + 1000 tokens
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("2000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1000"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
 
-        // timeAtStart + 2001: money runs out AND broker leaves
-        await advanceToTimestamp(timeAtStart + 2000, "Broker 1 leaves")
-        await (await sponsorship.connect(broker).unstake()).wait()
+        // timeAtStart + 2001: money runs out AND operator leaves
+        await advanceToTimestamp(timeAtStart + 2000, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
 
         await advanceToTimestamp(timeAtStart + 3000, "Money is added")
         const tr = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
@@ -689,60 +689,60 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             parseEther("1.0").toString(),
             parseEther("1000").toString()
         ])
-        expect(formatEther(tokensBroker1)).to.equal("1500.0")
-        expect(formatEther(tokensBroker2)).to.equal("1500.0")
+        expect(formatEther(tokensOperator1)).to.equal("1500.0")
+        expect(formatEther(tokensOperator2)).to.equal("1500.0")
     })
 
     it("allocates correctly if money runs out exactly during top-up (and emits no insolvency event)", async function(): Promise<void> {
-        //     t0       : broker1 joins, stakes 1000 tokens
-        // t = t0 + 1000: broker2 joins, stakes 1000 tokens
+        //     t0       : operator1 joins, stakes 1000 tokens
+        // t = t0 + 1000: operator2 joins, stakes 1000 tokens
         // t = t0 + 2000: money runs out AND money is added
-        // t = t0 + 3000: broker1 leaves
-        // t = t0 + 4000: broker2 leaves
-        // broker1 should have 1000 + 500 + 500 +    0 = 2000 tokens
-        // broker2 should have    0 + 500 + 500 + 1000 = 2000 tokens
+        // t = t0 + 3000: operator1 leaves
+        // t = t0 + 4000: operator2 leaves
+        // operator1 should have 1000 + 500 + 500 +    0 = 2000 tokens
+        // operator2 should have    0 + 500 + 500 + 1000 = 2000 tokens
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await sponsorship.sponsor(parseEther("2000"))).wait()
 
-        const tokensBroker1Before = await token.balanceOf(broker.address)
-        const tokensBroker2Before = await token.balanceOf(broker2.address)
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Broker 1 joins")
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("1000"), broker.address)).wait()
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Broker 2 joins")
-        await (await token.connect(broker2).transferAndCall(sponsorship.address, parseEther("1000"), broker2.address)).wait()
+        await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
 
         // timeAtStart + 2001: money runs out (+1 because all tx happen one second "late" in test env)
         await advanceToTimestamp(timeAtStart + 2000, "Money is added")
         const tr = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyEvent = tr.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
 
-        await advanceToTimestamp(timeAtStart + 3000, "Broker 1 leaves")
-        const tr2 = await (await sponsorship.connect(broker).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 3000, "Operator 1 leaves")
+        const tr2 = await (await sponsorship.connect(operator).unstake()).wait()
         const insolvencyEvent2 = tr2.events?.find((e) => e.event == "InsolvencyEnded" || e.event == "InsolvencyStarted")
 
-        await advanceToTimestamp(timeAtStart + 4000, "Broker 2 leaves")
-        await (await sponsorship.connect(broker2).unstake()).wait()
+        await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
 
-        const tokensBroker1 = (await token.balanceOf(broker.address)).sub(tokensBroker1Before)
-        const tokensBroker2 = (await token.balanceOf(broker2.address)).sub(tokensBroker2Before)
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
 
         expect(insolvencyEvent).to.be.undefined
         expect(insolvencyEvent2).to.be.undefined
-        expect(formatEther(tokensBroker1)).to.equal("2000.0")
-        expect(formatEther(tokensBroker2)).to.equal("2000.0")
+        expect(formatEther(tokensOperator1)).to.equal("2000.0")
+        expect(formatEther(tokensOperator2)).to.equal("2000.0")
     })
 
-    it("allocates correctly when number of brokers is below minBrokerCount at times", async function(): Promise<void> {
+    it("allocates correctly when number of operators is below minOperatorCount at times", async function(): Promise<void> {
         // TODO
     })
 
-    it("gets allocation 0 from unjoined broker", async function(): Promise<void> {
+    it("gets allocation 0 from unjoined operator", async function(): Promise<void> {
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-        const allocation = await sponsorship.getEarnings(broker.address)
+        const allocation = await sponsorship.getEarnings(operator.address)
         expect(allocation.toString()).to.equal("0")
     })
 })

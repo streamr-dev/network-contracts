@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
- * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, BrokerPool)
+ * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, Operator)
  */
 contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 
@@ -19,14 +19,14 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     /**
-     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash a broker for leaving any Sponsorship early.
+     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
      *
-     * For a given Sponsorship b, b. is the minimum time a broker has to be in a sponsorship without being slashed.
-     * This value can vary from sponsorship to sponsorship, and it can be 0, then the broker can leave immediately
+     * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
+     * This value can vary from sponsorship to sponsorship, and it can be 0, then the operator can leave immediately
      * without being slashed.
      *
      * maxPenaltyPeriodSeconds is the global maximum value that MIN_JOIN_TIME can have across all sponsorships.
-     * This garuantees that a broker (and thus a pool) can get the money back from any and all sponsorships
+     * This garuantees that every operator can get the money back from any and all sponsorships
      * without being slashed (provided it does the work) in a fixed maximum time.
      *
      * TODO: is this actually used/needed? It's only used when setting penaltyperiod, but what's the other constraint where it should be used?
@@ -37,15 +37,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
      * If the difference between the actual "pool-value sum" and the updated pool-value sum is more than poolValueDriftLimitFraction,
-     *   the broker is slashed a little when updateApproximatePoolvalueOfSponsorships is called.
-     * This means broker should call updateApproximatePoolvalueOfSponsorships often enough to not get slashed.
+     *   the operator is slashed a little when updateApproximatePoolvalueOfSponsorships is called.
+     * This means operator should call updateApproximatePoolvalueOfSponsorships often enough to not get slashed.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public poolValueDriftLimitFraction;
 
     /**
      * In case "pool-value sum" of updateApproximatePoolvalueOfSponsorships is above poolValueDriftLimitFraction,
-     *   this is the fraction of the broker's stake that is slashed.
+     *   this is the fraction of the operator's stake that is slashed.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public poolValueDriftPenaltyFraction;
@@ -86,9 +86,9 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public flagReviewerSelectionIterations;
 
     /**
-     * How much the flagger must stake to flag another BrokerPool in a Sponsorship.
+     * How much the flagger must stake to flag another Operator in a Sponsorship.
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed 10% of the total stake).
-     *      If the broker decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
+     *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
      *      The total committed stake must be enough to pay the reviewers of all flags.
      *        flag stakes >= reviewer fees + 10% of stake that's left into the sponsorship (= committed)
      *      After n flags: n * flagStakeWei >= n * reviewer fees + 10% of total committed stake
@@ -118,13 +118,13 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public flagProtectionSeconds;
 
     address public sponsorshipFactory;
-    address public brokerPoolFactory;
-    address public brokerPoolLivenessRegistry; // same as BrokerPoolFactory, for now
+    address public operatorFactory;
+    address public operatorLivenessRegistry; // same as OperatorFactory, for now
 
     /**
-     * A mandatory joinpolicy for Sponsorships from SponsorshipFactory. Ensures only BrokerPools from BrokerPoolFactory can join.
+     * A mandatory joinpolicy for Sponsorships from SponsorshipFactory. Ensures only contracts deployed by this.operatorFactory() can join.
      */
-    address public poolOnlyJoinPolicy;
+    address public operatorContractOnlyJoinPolicy;
 
     address public streamRegistryAddress;
 
@@ -154,13 +154,13 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         sponsorshipFactory = sponsorshipFactoryAddress;
     }
 
-    function setBrokerPoolFactory(address brokerPoolFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        brokerPoolFactory = brokerPoolFactoryAddress;
-        brokerPoolLivenessRegistry = brokerPoolFactoryAddress;
+    function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorFactory = operatorFactoryAddress;
+        operatorLivenessRegistry = operatorFactoryAddress;
     }
 
-    function setPoolOnlyJoinPolicy(address poolOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        poolOnlyJoinPolicy = poolOnlyJoinPolicyAddress;
+    function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorContractOnlyJoinPolicy = operatorContractOnlyJoinPolicyAddress;
     }
 
     function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {

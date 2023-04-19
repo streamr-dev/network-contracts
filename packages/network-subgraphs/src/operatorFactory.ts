@@ -1,33 +1,33 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 
-import { NewBrokerPool } from '../generated/BrokerPoolFactory/BrokerPoolFactory'
-import { BrokerPool, BrokerPoolDailyBucket } from '../generated/schema'
-import { BrokerPool as PoolTemplate } from '../generated/templates'
+import { NewOperator } from '../generated/OperatorFactory/OperatorFactory'
+import { Operator, OperatorDailyBucket } from '../generated/schema'
+import { Operator as PoolTemplate } from '../generated/templates'
 
-export function handlePoolCreated(event: NewBrokerPool): void {
-    log.info('handlePoolCreated: pooladdress={} blockNumber={}', [event.params.poolAddress.toHexString(), event.block.number.toString()])
-    let poolAddress = event.params.poolAddress.toHexString()
-    let pool = new BrokerPool(poolAddress)
-    pool.id = event.params.poolAddress.toHexString()
+export function handlePoolCreated(event: NewOperator): void {
+    let contractAddress = event.params.operatorContractAddress.toHexString()
+    log.info('handlePoolCreated: operatoraddress={} blockNumber={}', [contractAddress, event.block.number.toString()])
+    let pool = new Operator(contractAddress)
+    pool.id = contractAddress
     pool.delegatorCount = 0
     pool.approximatePoolValue = BigInt.fromI32(0)
     pool.unallocatedWei = BigInt.fromI32(0)
     pool.save()
 
-    // update BrokerPoolDailyBucket
+    // update OperatorDailyBucket
     let date = new Date(event.block.timestamp.toI32() * 1000)
     date.setUTCHours(0)
     date.setUTCMinutes(0)
     date.setUTCSeconds(0)
     date.setUTCMilliseconds(0)
     let dayDate = date.toISOString().split('T')[0]
-    let statId = poolAddress + "-" + dayDate
+    let statId = contractAddress + "-" + dayDate
     log.info('handlePoolCreated: dayDate={}', [dayDate])
-    let stat = BrokerPoolDailyBucket.load(statId)
+    let stat = OperatorDailyBucket.load(statId)
     if (stat === null) {
-        stat = new BrokerPoolDailyBucket(dayDate)
+        stat = new OperatorDailyBucket(dayDate)
         stat.id = statId
-        stat.pool = poolAddress
+        stat.pool = contractAddress
         stat.date = new BigInt(i32(date.getTime()))
         stat.approximatePoolValue = BigInt.fromI32(0)
         stat.totalPayoutsCumulative = BigInt.fromI32(0)
@@ -40,6 +40,5 @@ export function handlePoolCreated(event: NewBrokerPool): void {
     stat.save()
 
     // Instantiate template
-    log.info('handlePoolCreated2 at {}', [event.params.poolAddress.toHexString()])
-    PoolTemplate.create(event.params.poolAddress)
+    PoolTemplate.create(contractAddress)
 }

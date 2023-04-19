@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.13;
 
-interface IPoolExitPolicy {
+interface IUndelegationPolicy {
     function setParam(uint256 param) external;
-    function onPoolExit(address delegator, uint256 amount) external;
+    function onUndelegate(address delegator, uint256 amount) external;
 }

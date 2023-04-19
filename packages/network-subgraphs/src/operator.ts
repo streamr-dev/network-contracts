@@ -1,11 +1,11 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { BrokerPool, PoolDelegation } from '../generated/schema'
-import { Delegated } from '../generated/templates/BrokerPool/BrokerPool'
+import { Operator, PoolDelegation } from '../generated/schema'
+import { Delegated } from '../generated/templates/Operator/Operator'
 
 export function handleDelegationReceived (event: Delegated): void {
-    log.info('handleDelegationReceived: pooladdress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    let pool = BrokerPool.load(event.address.toHexString())
+    log.info('handleDelegationReceived: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    let pool = Operator.load(event.address.toHexString())
     pool!.delegatorCount = pool!.delegatorCount + 1
 
     pool!.save()
@@ -24,15 +24,15 @@ export function handleDelegationReceived (event: Delegated): void {
 // export function handleStakeUpdated (event: Staked): void {
 //     log.info('handleStakeUpdated: sidechainaddress={} allocation={}', [event.address.toHexString(),  event.params.amountWei.toString()])
 //     let sponsorshipAddress = event.params.sponsorship
-//     let brokerAddress = event.address
+//     let operatorAddress = event.address
 
-//     let stakeID = brokerAddress.toHexString() + "-" + sponsorshipAddress.toHexString()
+//     let stakeID = operatorAddress.toHexString() + "-" + sponsorshipAddress.toHexString()
 //     let stake = Stake.load(stakeID)
 //     if (stake === null) {
 //         stake = new Stake(stakeID)
 //         stake.sponsorship = sponsorshipAddress.toHexString()
 //         stake.id = stakeID
-//         stake.broker = brokerAddress.toHexString()
+//         stake.operator = operatorAddress.toHexString()
 //     }
 //     stake.date = event.block.timestamp
 //     stake.amount = event.params.amountWei

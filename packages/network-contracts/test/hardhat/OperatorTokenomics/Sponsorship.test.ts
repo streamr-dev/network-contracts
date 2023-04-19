@@ -14,12 +14,12 @@ import {
     TestContracts,
 } from "./deployTestContracts"
 
-import { deploySponsorshipWithoutFactory } from "./deploySponsorship"
+import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
 describe("Sponsorship", (): void => {
     let admin: Wallet
-    let broker: Wallet
-    let broker2: Wallet
+    let operator: Wallet
+    let operator2: Wallet
 
     let token: TestToken
 
@@ -32,7 +32,7 @@ describe("Sponsorship", (): void => {
     let defaultSponsorship: Sponsorship
 
     before(async (): Promise<void> => {
-        [admin, broker, broker2] = await getSigners() as unknown as Wallet[]
+        [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         // TODO: fix type incompatibility, if at all possible
@@ -43,8 +43,8 @@ describe("Sponsorship", (): void => {
 
         token = contracts.token
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
-        await (await token.transfer(broker.address, parseEther("100000"))).wait()
-        await (await token.transfer(broker2.address, parseEther("100000"))).wait()
+        await (await token.transfer(operator.address, parseEther("100000"))).wait()
+        await (await token.transfer(operator2.address, parseEther("100000"))).wait()
 
         defaultSponsorship = await deploySponsorshipWithoutFactory(contracts, {
             minimumStakeWei: parseEther("1"),
@@ -53,15 +53,15 @@ describe("Sponsorship", (): void => {
 
     it("accepts 32 byte long address in transferAndCall data", async function(): Promise<void> {
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-        await (await token.transferAndCall(sponsorship.address, parseEther("1"), defaultAbiCoder.encode(["address"], [broker.address]))).wait()
-        expect(await sponsorship.connect(broker).getMyStake()).to.be.equal(parseEther("1"))
+        await (await token.transferAndCall(sponsorship.address, parseEther("1"), defaultAbiCoder.encode(["address"], [operator.address]))).wait()
+        expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("1"))
     })
 
     it("accepts 2-step staking: approve + stake", async function(): Promise<void> {
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         await (await token.approve(sponsorship.address, parseEther("1"))).wait()
-        await (await sponsorship.stake(broker.address, parseEther("1"))).wait()
-        expect(await sponsorship.connect(broker).getMyStake()).to.be.equal(parseEther("1"))
+        await (await sponsorship.stake(operator.address, parseEther("1"))).wait()
+        expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("1"))
     })
 
     it("will NOT let anyone call the fallback function", async function(): Promise<void> {
@@ -77,8 +77,8 @@ describe("Sponsorship", (): void => {
 
     describe("Sponsoring", (): void => {
         it("will FAIL if sponsor called with no allowance", async function(): Promise<void> {
-            expect(await token.allowance(broker.address, defaultSponsorship.address)).to.equal(0)
-            await expect(defaultSponsorship.connect(broker).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+            expect(await token.allowance(operator.address, defaultSponsorship.address)).to.equal(0)
+            await expect(defaultSponsorship.connect(operator).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
         })
 
         it("adds to unallocatedWei even with ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
@@ -100,20 +100,20 @@ describe("Sponsorship", (): void => {
     })
 
     it("will NOT let stake zero", async function(): Promise<void> {
-        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0"), broker.address))
+        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0"), operator.address))
             .to.be.revertedWith("error_minimumStake")
     })
 
     it("will NOT let stake below minimum", async function(): Promise<void> {
-        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0.5"), broker.address))
+        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0.5"), operator.address))
             .to.be.revertedWith("error_minimumStake")
     })
 
     it("won't let reduce stake below minimum", async function(): Promise<void> {
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, { minimumStakeWei: parseEther("10") })
         await (await sponsorship.sponsor(parseEther("10000"))).wait()
-        await (await token.connect(broker).transferAndCall(sponsorship.address, parseEther("20"), broker.address)).wait()
-        await expect(sponsorship.connect(broker).reduceStakeTo(parseEther("5")))
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("20"), operator.address)).wait()
+        await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("5")))
             .to.be.revertedWith("error_minimumStake")
     })
 
@@ -124,12 +124,12 @@ describe("Sponsorship", (): void => {
 
         // join tx actually happens at timeAtStart + 1
         await advanceToTimestamp(start, "Stake to sponsorship")
-        await (await token.transferAndCall(sponsorship.address, parseEther("10"), broker.address)).wait()
+        await (await token.transferAndCall(sponsorship.address, parseEther("10"), operator.address)).wait()
 
         await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
-        const allocationBeforeWithdraw = await sponsorship.getEarnings(broker.address)
-        await (await sponsorship.connect(broker).withdraw()).wait()
-        const allocationAfterWithdraw = await sponsorship.getEarnings(broker.address)
+        const allocationBeforeWithdraw = await sponsorship.getEarnings(operator.address)
+        await (await sponsorship.connect(operator).withdraw()).wait()
+        const allocationAfterWithdraw = await sponsorship.getEarnings(operator.address)
 
         expect(allocationBeforeWithdraw).to.equal(parseEther("100"))
         expect(allocationAfterWithdraw).to.equal(0)
@@ -142,14 +142,14 @@ describe("Sponsorship", (): void => {
 
         // join tx actually happens at timeAtStart + 1
         await advanceToTimestamp(start, "Stake to sponsorship")
-        await (await token.transferAndCall(sponsorship.address, parseEther("10"), broker.address)).wait()
+        await (await token.transferAndCall(sponsorship.address, parseEther("10"), operator.address)).wait()
 
         await advanceToTimestamp(start + 101, "Withdraw from sponsorship") // queries will see start + 100 (off by one, NEXT tx will be start + 101)
-        const allocationBeforeUnstake = await sponsorship.getEarnings(broker.address)
-        const stakeBeforeUnstake = await sponsorship.connect(broker).getMyStake()
-        await (await sponsorship.connect(broker).unstake()).wait()
-        const allocationAfterUnstake = await sponsorship.getEarnings(broker.address)
-        const stakeAfterUnstake = await sponsorship.connect(broker).getMyStake()
+        const allocationBeforeUnstake = await sponsorship.getEarnings(operator.address)
+        const stakeBeforeUnstake = await sponsorship.connect(operator).getMyStake()
+        await (await sponsorship.connect(operator).unstake()).wait()
+        const allocationAfterUnstake = await sponsorship.getEarnings(operator.address)
+        const stakeAfterUnstake = await sponsorship.connect(operator).getMyStake()
 
         expect(allocationBeforeUnstake).to.equal(parseEther("100"))
         expect(stakeBeforeUnstake).to.equal(parseEther("10"))
@@ -160,10 +160,10 @@ describe("Sponsorship", (): void => {
     describe("Adding policies", (): void => {
 
         it("will FAIL for non-admins", async function(): Promise<void> {
-            const { maxBrokersJoinPolicy } = contracts
+            const { maxOperatorsJoinPolicy } = contracts
             const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
-            await expect(defaultSponsorship.connect(broker).addJoinPolicy(maxBrokersJoinPolicy.address, "2000000000000000000"))
-                .to.be.revertedWith(`AccessControl: account ${broker.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+            await expect(defaultSponsorship.connect(operator).addJoinPolicy(maxOperatorsJoinPolicy.address, "2000000000000000000"))
+                .to.be.revertedWith(`AccessControl: account ${operator.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
         })
 
         // TODO: is this a feature or a bug?
@@ -177,7 +177,7 @@ describe("Sponsorship", (): void => {
         })
     })
 
-    describe("Non-staked (non-)broker", (): void => {
+    describe("Non-staked (non-)operator", (): void => {
         it("cannot unstake", async function(): Promise<void> {
             // TODO
         })
@@ -246,15 +246,15 @@ describe("Sponsorship", (): void => {
         it("error onleave on allocationPolicy", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
                 [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
-            await (await token.transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
-            await expect(sponsorship.connect(broker).unstake()).to.be.revertedWith("test_onLeave")
+            await (await token.transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).unstake()).to.be.revertedWith("test_onLeave")
         })
 
         it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
                 [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
-            await (await token.transferAndCall(sponsorship.address, parseEther("1"), broker.address)).wait()
-            await expect(sponsorship.connect(broker).unstake()).to.be.revertedWith("error_leaveHandlerFailed")
+            await (await token.transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).unstake()).to.be.revertedWith("error_leaveHandlerFailed")
         })
 
         it("error onStakeChange", async function(): Promise<void> {

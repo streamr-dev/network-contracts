@@ -4,13 +4,13 @@ pragma solidity ^0.8.13;
 
 import "./IKickPolicy.sol";
 import "../Sponsorship.sol";
-import "../BrokerPoolFactory.sol";
-import "../BrokerPool.sol";
+import "../OperatorFactory.sol";
+import "../Operator.sol";
 
 // import "hardhat/console.sol";
 
 /**
- * @dev Only BrokerPools can be selected as reviewers, so BrokerPoolOnlyJoinPolicy is expected on the Sponsorship!
+ * @dev Only Operators can be selected as reviewers, so OperatorContractOnlyJoinPolicy is expected on the Sponsorship!
  */
 contract VoteKickPolicy is IKickPolicy, Sponsorship {
     enum Reviewer {
@@ -30,8 +30,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     mapping (address => uint) public targetStakeAtRiskWei; // 10% of the target's stake that is in the risk of being slashed upon kick
 
     // voting
-    mapping (address => BrokerPool[]) public reviewers; // list of reviewers, for rewarding
-    mapping (address => mapping (BrokerPool => Reviewer)) public reviewerState; // votes
+    mapping (address => Operator[]) public reviewers; // list of reviewers, for rewarding
+    mapping (address => mapping (Operator => Reviewer)) public reviewerState; // votes
     mapping (address => uint) public votesForKick; // vote totals, for knowing when voting should end
     mapping (address => uint) public votesAgainstKick;
 
@@ -46,16 +46,16 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     function setParam(uint256) external {
     }
 
-    function getFlagData(address broker) override external view returns (uint flagData) {
-        if (voteStartTimestamp[broker] == 0) {
+    function getFlagData(address operator) override external view returns (uint flagData) {
+        if (voteStartTimestamp[operator] == 0) {
             return 0;
         }
         return uint(bytes32(abi.encodePacked(
-            uint160(flaggerAddress[broker]),
-            uint32(voteStartTimestamp[broker]),
-            uint16(reviewers[broker].length),
-            uint16(votesForKick[broker]),
-            uint16(votesAgainstKick[broker])
+            uint160(flaggerAddress[operator]),
+            uint32(voteStartTimestamp[operator]),
+            uint16(reviewers[operator].length),
+            uint16(votesForKick[operator]),
+            uint16(votesAgainstKick[operator])
             // uint16()
         )));
     }
@@ -90,21 +90,21 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         require(committedStakeWei[flagger] * 10 <= 9 * stakedWei[flagger], "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
-        BrokerPool[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
+        Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
         uint sameSponsorshipPeerCount = 0;
 
-        BrokerPoolFactory factory = BrokerPoolFactory(streamrConfig.brokerPoolFactory());
-        uint brokerPoolCount = factory.liveBrokerPoolCount();
+        OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
+        uint operatorCount = factory.liveOperatorCount();
         // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
-        bytes32 randomBytes = keccak256(abi.encode(target, brokerPoolCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
+        bytes32 randomBytes = keccak256(abi.encode(target, operatorCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
 
         // primary selection: live peers that are not in the same sponsorship
         uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
         for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
             randomBytes >>= 8; // if flagReviewerCount > 20, replace this with keccak256(randomBytes) or smth
-            uint index = uint(randomBytes) % brokerPoolCount;
-            BrokerPool peer = factory.liveBrokerPools(index);
+            uint index = uint(randomBytes) % operatorCount;
+            Operator peer = factory.liveOperators(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 // console.log(index, "skipping", address(peer));
                 continue;
@@ -125,7 +125,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         // secondary selection: peers from the same sponsorship
         for (uint i = 0; i < sameSponsorshipPeerCount; i++) {
-            BrokerPool peer = sameSponsorshipPeers[i];
+            Operator peer = sameSponsorshipPeers[i];
             if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
                 // console.log("already selected", address(peer));
                 continue;
@@ -156,7 +156,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             _endVote(target);
             return;
         }
-        BrokerPool voter = BrokerPool(_msgSender());
+        Operator voter = Operator(_msgSender());
         require(reviewerState[target][voter] != Reviewer.NOT_SELECTED, "error_reviewersOnly");
         require(reviewerState[target][voter] == Reviewer.IS_SELECTED, "error_alreadyVoted");
         bool votedKick = uint(voteData) & 0x1 == 1;
@@ -207,13 +207,13 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
             if (!flaggerIsGone) {
-                token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(BrokerPool(flagger).broker()));
+                token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
                 slashingWei -= flaggerRewardWei[target];
             }
             for (uint i = 0; i < reviewerCount; i++) {
-                BrokerPool reviewer = reviewers[target][i];
+                Operator reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
-                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.broker()));
+                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     slashingWei -= reviewerRewardWei[target];
                 }
                 delete reviewerState[target][reviewer]; // clean up
@@ -224,9 +224,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
             uint rewardsWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
-                BrokerPool reviewer = reviewers[target][i];
+                Operator reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
-                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.broker()));
+                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     rewardsWei += reviewerRewardWei[target];
                 }
                 delete reviewerState[target][reviewer]; // clean up here, to avoid another loop

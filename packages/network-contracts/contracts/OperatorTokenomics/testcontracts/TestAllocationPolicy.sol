@@ -50,7 +50,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     // solc-ignore-next-line func-mutability
-    function onLeave(address /*broker*/) external {
+    function onLeave(address /*operator*/) external {
         if (localData().failOnLeave) {
             require(false, "test_onLeave");
         } else if (localData().failEmptyOnLeave) {
@@ -64,7 +64,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     /**
-     * When stake changes, effectively do a leave + join, resetting the CE for this broker
+     * When stake changes, effectively do a leave + join, resetting the CE for this operator
      */
     function onStakeChange(address, int) external view {
         if (localData().failOnIncrease) {

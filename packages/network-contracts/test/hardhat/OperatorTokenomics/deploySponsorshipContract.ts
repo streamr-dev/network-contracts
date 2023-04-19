@@ -18,11 +18,11 @@ export async function deploySponsorship(
     contracts: TestContracts, {
         minimumStakeWei = parseEther("60"),
         minHorizonSeconds = 0,
-        minBrokerCount = 1,
+        minOperatorCount = 1,
         penaltyPeriodSeconds = -1,
-        maxBrokerCount = -1,
+        maxOperatorCount = -1,
         allocationWeiPerSecond = parseEther("1"),
-        brokerPoolOnly = false,
+        operatorOnly = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
@@ -32,7 +32,7 @@ export async function deploySponsorship(
     overrideKickPolicyParam?: string,
 ): Promise<Sponsorship> {
     const {
-        maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
+        maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy,
         allocationPolicy, leavePolicy, voteKickPolicy,
         sponsorshipTemplate, sponsorshipFactory
     } = contracts
@@ -53,12 +53,12 @@ export async function deploySponsorship(
     const kickPolicyParam = overrideKickPolicyParam ?? "0"
     const policyAddresses = [allocationPolicyAddress, leavePolicyAddress, kickPolicyAddress]
     const policyParams = [allocationPolicyParam, leavePolicyParam, kickPolicyParam]
-    if (maxBrokerCount > -1) {
-        policyAddresses.push(maxBrokersJoinPolicy.address)
-        policyParams.push(maxBrokerCount.toString())
+    if (maxOperatorCount > -1) {
+        policyAddresses.push(maxOperatorsJoinPolicy.address)
+        policyParams.push(maxOperatorCount.toString())
     }
-    if (brokerPoolOnly) {
-        policyAddresses.push(brokerPoolOnlyJoinPolicy.address)
+    if (operatorOnly) {
+        policyAddresses.push(operatorContractOnlyJoinPolicy.address)
         policyParams.push("0")
     }
     if (extraJoinPolicies) {
@@ -72,7 +72,7 @@ export async function deploySponsorship(
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),
         minHorizonSeconds.toString(),
-        minBrokerCount.toString(),
+        minOperatorCount.toString(),
         `Sponsorship-${sponsorshipCounter++}-${Date.now()}`,
         "metadata",
         policyAddresses,
@@ -92,11 +92,11 @@ export async function deploySponsorshipWithoutFactory(
     contracts: TestContracts, {
         minimumStakeWei = BigNumber.from(1),
         minHorizonSeconds = 0,
-        minBrokerCount = 1,
+        minOperatorCount = 1,
         penaltyPeriodSeconds = -1,
-        maxBrokerCount = -1,
+        maxOperatorCount = -1,
         allocationWeiPerSecond = parseEther("1"),
-        brokerPoolOnly = false,
+        operatorOnly = false,
         adminKickInsteadOfVoteKick = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
@@ -106,7 +106,7 @@ export async function deploySponsorshipWithoutFactory(
 ): Promise<Sponsorship> {
     const {
         token, deployer,
-        maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy,
+        maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy,
         allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
     } = contracts
 
@@ -120,7 +120,7 @@ export async function deploySponsorshipWithoutFactory(
         [
             minimumStakeWei.toString(),
             minHorizonSeconds.toString(),
-            minBrokerCount.toString(),
+            minOperatorCount.toString(),
             overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
         ],
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
@@ -130,11 +130,11 @@ export async function deploySponsorshipWithoutFactory(
     if (penaltyPeriodSeconds > -1) {
         await sponsorship.setLeavePolicy(leavePolicy.address, penaltyPeriodSeconds.toString())
     }
-    if (maxBrokerCount > -1) {
-        sponsorship.addJoinPolicy(maxBrokersJoinPolicy.address, maxBrokerCount.toString())
+    if (maxOperatorCount > -1) {
+        sponsorship.addJoinPolicy(maxOperatorsJoinPolicy.address, maxOperatorCount.toString())
     }
-    if (brokerPoolOnly) {
-        await sponsorship.addJoinPolicy(brokerPoolOnlyJoinPolicy.address, "0")
+    if (operatorOnly) {
+        await sponsorship.addJoinPolicy(operatorContractOnlyJoinPolicy.address, "0")
     }
     if (extraJoinPolicies) {
         assert(extraJoinPolicyParams, "must give extraJoinPolicyParams if giving extraJoinPolicies")

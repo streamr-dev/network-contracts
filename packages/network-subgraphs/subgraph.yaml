@@ -183,26 +183,26 @@ dataSources:
         - event: NewSponsorship(address,string,string)
           handler: handleSponsorshipCreated
   - kind: ethereum/contract
-    name: BrokerPoolFactory
+    name: OperatorFactory
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9'
-      abi: BrokerPoolFactory
+      abi: OperatorFactory
       startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/poolFactory.ts
+      file: ./src/operatorFactory.ts
       entities:
         - Pool
         - PoolDelegation
       abis:
-        - name: BrokerPoolFactory
-          file: ./abis/BrokerPoolFactory.json
+        - name: OperatorFactory
+          file: ./abis/OperatorFactory.json
       eventHandlers:
-        - event: NewBrokerPool(address)
+        - event: NewOperator(address)
           handler: handlePoolCreated
 
 templates:
@@ -218,8 +218,8 @@ templates:
       file: ./src/sponsorship.ts
       entities:
         - Sponsorship
-        - SponsorshipStake
-        - BrokerPool
+        - Stake
+        - Operator
         - Flag
       abis:
         - name: Sponsorship
@@ -238,26 +238,26 @@ templates:
         #   handler: handleStakeAdded
         # - event: SponsorshipReceived(indexed address,uint256)
         #   handler: handleSponsorshipReceived
-        # - event: BrokerJoined(indexed address)
-        #   handler: handleBrokerJoined
-        # - event: BrokerLeft(indexed address,uint256)
-        #   handler: handleBrokerLeft
-  - name: BrokerPool
+        # - event: OperatorJoined(indexed address)
+        #   handler: handleOperatorJoined
+        # - event: OperatorLeft(indexed address,uint256)
+        #   handler: handleOperatorLeft
+  - name: Operator
     kind: ethereum/contract
     network: xDai
     source:
-      abi: BrokerPool
+      abi: Operator
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/pool.ts
       entities:
-        - BrokerPool
+        - Operator
         - PoolDelegation
       abis:
-        - name: BrokerPool
-          file: ./abis/BrokerPool.json
+        - name: Operator
+          file: ./abis/Operator.json
       eventHandlers:
           - event: Delegated(indexed address,uint256)
             handler: handleDelegationReceived

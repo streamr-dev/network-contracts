@@ -87,7 +87,7 @@ const projects = [
     ["marketplace-contracts", 10],
     ["network-contracts", 10],
     ["data-union-contracts", 10],
-    ["broker", 10],
+    ["operator", 10],
     ["network", 100],
     ["core-api", 10],
     ["core-frontend", 10],
@@ -335,9 +335,9 @@ async function deploySponsorshipFactory() {
     log(`hasrole adminwallet ${hasroleEthSigner}`)
     log(`streamrConfig address ${streamrConfig.address}`)
 
-    const maxBrokersJoinPolicy = await (await ethers.getContractFactory("MaxAmountBrokersJoinPolicy")).deploy()
-    await maxBrokersJoinPolicy.deployed()
-    log(`maxBrokersJoinPolicy address ${maxBrokersJoinPolicy.address}`)
+    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy")).deploy()
+    await maxOperatorsJoinPolicy.deployed()
+    log(`maxOperatorsJoinPolicy address ${maxOperatorsJoinPolicy.address}`)
 
     const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy")).deploy()
     await allocationPolicy.deployed()
@@ -359,7 +359,7 @@ async function deploySponsorshipFactory() {
     const sponsorshipFactoryFactoryTx = await upgrades.deployProxy(sponsorshipFactoryFactory,
         [ sponsorshipTemplate.address, linkToken.address, streamrConfig.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     const sponsorshipFactory = await sponsorshipFactoryFactoryTx.deployed()
-    await (await sponsorshipFactory.addTrustedPolicies([maxBrokersJoinPolicy.address,
+    await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
         allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
     await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
@@ -372,10 +372,10 @@ async function deploySponsorshipFactory() {
     // log(`minted 1000000 datatokens to ${adminWallet.address}`)
     // await (await linkToken.mint(dataTokenOwner.address, ethers.utils.parseEther("1000000"))).wait()
     // log(`minted 1000000 datatokens to ${dataTokenOwner.address}`)
-    // await (await dataToken.connect(dataTokenOwner).mint(brokerWallet.address, ethers.utils.parseEther("100000"))).wait()
-    // log(`transferred 100000 datatokens to ${brokerWallet.address}`)
-    // await (await adminWallet.sendTransaction({ to: brokerWallet.address, value: ethers.utils.parseEther("1") })).wait()
-    // log(`transferred 1 ETH to ${brokerWallet.address}`)
+    // await (await dataToken.connect(dataTokenOwner).mint(operatorWallet.address, ethers.utils.parseEther("100000"))).wait()
+    // log(`transferred 100000 datatokens to ${operatorWallet.address}`)
+    // await (await adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
+    // log(`transferred 1 ETH to ${operatorWallet.address}`)
     const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, "Sponsorship-" + Date.now(),
         '{ "metadata": "test"}',
         [
@@ -420,63 +420,63 @@ async function deploySponsorshipFactory() {
     // await tx.wait()
     // log("staked in sponsorship with transfer and call")
 
-    const poolTemplate = await (await ethers.getContractFactory("BrokerPool")).deploy()
-    await poolTemplate.deployed()
-    log("Deployed pool template", poolTemplate.address)
-    const defaultPoolJoinPolicy = await (await ethers.getContractFactory("DefaultPoolJoinPolicy",
+    const operatorTemplate = await (await ethers.getContractFactory("Operator")).deploy()
+    await operatorTemplate.deployed()
+    log("Deployed operator template", operatorTemplate.address)
+    const defaultDelegationPolicy = await (await ethers.getContractFactory("DefaultDelegationPolicy",
         { signer: adminWallet })).deploy()
-    await defaultPoolJoinPolicy.deployed()
-    log("Deployed default pool join policy", defaultPoolJoinPolicy.address)
+    await defaultDelegationPolicy.deployed()
+    log("Deployed default operator join policy", defaultDelegationPolicy.address)
     const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy",
         { signer: adminWallet })).deploy()
     await defaultPoolYieldPolicy.deployed()
-    log("Deployed default pool yield policy", defaultPoolYieldPolicy.address)
-    const defaultPoolExitPolicy = await (await ethers.getContractFactory("DefaultPoolExitPolicy",
+    log("Deployed default operator yield policy", defaultPoolYieldPolicy.address)
+    const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
         { signer: adminWallet })).deploy()
-    await defaultPoolExitPolicy.deployed()
-    log("Deployed default pool exit policy", defaultPoolExitPolicy.address)
+    await defaultUndelegationPolicy.deployed()
+    log("Deployed default operator exit policy", defaultUndelegationPolicy.address)
 
-    const poolFactoryFactory = await ethers.getContractFactory("BrokerPoolFactory",
+    const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory",
         { signer: adminWallet })
-    const poolFactory = await upgrades.deployProxy(poolFactoryFactory, [
-        poolTemplate.address,
+    const operatorFactory = await upgrades.deployProxy(operatorFactoryFactory, [
+        operatorTemplate.address,
         linkToken.address,
         streamrConfig.address
     ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     // eslint-disable-next-line require-atomic-updates
-    // localConfig.poolFactory = poolFactory.address
-    await poolFactory.deployed()
-    log("Deployed pool factory", poolFactory.address)
+    // localConfig.operatorFactory = operatorFactory.address
+    await operatorFactory.deployed()
+    log("Deployed operator factory", operatorFactory.address)
     // eslint-disable-next-line require-atomic-updates
-    await (await poolFactory.addTrustedPolicies([
-        defaultPoolJoinPolicy.address,
+    await (await operatorFactory.addTrustedPolicies([
+        defaultDelegationPolicy.address,
         defaultPoolYieldPolicy.address,
-        defaultPoolExitPolicy.address,
+        defaultUndelegationPolicy.address,
     ])).wait()
     log("Added trusted policies")
 
-    await (await streamrConfig.setBrokerPoolFactory(poolFactory.address)).wait()
-    log("Set broker pool factory in StreamrConfig")
+    await (await streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
+    log("Set operator operator factory in StreamrConfig")
 
-    const pooltx = await poolFactory.connect(adminWallet).deployBrokerPool(
+    const operatortx = await operatorFactory.connect(adminWallet).deployOperator(
         0, // min initial investment
-        `Pool-${Date.now()}`,
-        [defaultPoolJoinPolicy.address,
+        `Operator-${Date.now()}`,
+        [defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
-            defaultPoolExitPolicy.address],
+            defaultUndelegationPolicy.address],
         [0, 0, 0, 0, 0, 10, 10, 0]
     )
-    const poolReceipt = await pooltx.wait()
-    const poolAddress = poolReceipt.events?.find((e) => e.event === "NewBrokerPool")?.args?.poolAddress
+    const operatorReceipt = await operatortx.wait()
+    const operatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
     // eslint-disable-next-line require-atomic-updates
-    log("Pool deployed at: ", poolAddress)
-    const poolFactory2 = await ethers.getContractFactory("BrokerPool", { signer: adminWallet })
-    const pool = await poolFactory2.attach(poolAddress)
-    const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(pool.address, ethers.utils.parseEther("1000"),
+    log("Operator deployed at: ", operatorAddress)
+    const operatorFactory2 = await ethers.getContractFactory("Operator", { signer: adminWallet })
+    const operator = await operatorFactory2.attach(operatorAddress)
+    const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(operator.address, ethers.utils.parseEther("1000"),
         adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
-    log("Invested to pool ", pool.address)
-    const stakeTx = await pool.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
+    log("Invested to operator ", operator.address)
+    const stakeTx = await operator.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
     await stakeTx.wait()
     log("Staked into sponsorship ", sponsorship.address)
 }

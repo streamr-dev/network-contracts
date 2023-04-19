@@ -9,13 +9,15 @@ interface IFactory {
     function deploymentTimestamp(address) external view returns (uint); // zero for contracts not deployed by this factory
 }
 
-contract BrokerPoolOnlyJoinPolicy is IJoinPolicy, Sponsorship {
+/**
+ * Only Operator contracts that were deployed using the official OperatorFactory are allowed to join
+ */
+contract OperatorContractOnlyJoinPolicy is IJoinPolicy, Sponsorship {
     function setParam(uint256) external {
     }
 
-    // only BrokerPool contracts that were deployed using our own BrokerPoolFactory are allowed to join
     // solc-ignore-next-line func-mutability
-    function onJoin(address broker, uint256) external {
-        require(IFactory(streamrConfig.brokerPoolFactory()).deploymentTimestamp(broker) > 0, "error_onlyBrokerPools");
+    function onJoin(address operator, uint256) external {
+        require(IFactory(streamrConfig.operatorFactory()).deploymentTimestamp(operator) > 0, "error_onlyOperators");
     }
 }

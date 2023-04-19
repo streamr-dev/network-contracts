@@ -23,13 +23,13 @@ import "../Sponsorship.sol";
  */
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     struct LocalStorage {
-        uint256 incomePerSecond; // wei, total income velocity, distributed to brokers
+        uint256 incomePerSecond; // wei, total income velocity, distributed to operators
         uint256 incomePerSecondPerStake; // wei, time-income per stake FULL TOKEN unit (wei x 1e18)
         uint256 cumulativeWeiPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
 
-        // the cumulative allocation (wei / full token stake) of each broker is calculated as
-        //   cumulativeWeiPerStake (common to all brokers) minus cumulativeReference (for this broker)
-        // the reference point is reset when stake changes because that's when the broker specific allocation velocity changes
+        // the cumulative allocation (wei / full token stake) of each operator is calculated as
+        //   cumulativeWeiPerStake (common to all operators) minus cumulativeReference (for this operator)
+        // the reference point is reset when stake changes because that's when the operator specific allocation velocity changes
         mapping(address => uint256) cumulativeReference;
         mapping(address => uint256) onReferenceResetWei; // allocations before the reference reset
 
@@ -57,18 +57,18 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         update(0); // TODO: not needed if setParam can't be called again
     }
 
-    function getEarningsWei(address broker) public view returns (uint earningsWei) {
-        if (stakedWei[broker] == 0) { return 0; }
-        return _calculateAllocation(broker, stakedWei[broker]);
+    function getEarningsWei(address operator) public view returns (uint earningsWei) {
+        if (stakedWei[operator] == 0) { return 0; }
+        return _calculateAllocation(operator, stakedWei[operator]);
     }
 
     /**
-     * Calculate the broker's allocation from the cumulative earnings per unit (full token stake) right now
+     * Calculate the operator's allocation from the cumulative earnings per unit (full token stake) right now
      * It's important that stakedWei hasn't changed since update() was last called
      * TODO: see if there's some way to DRY out common parts with update(), they both do solvency and allocation calculations
      */
-    function _calculateAllocation(address broker, uint stakeWei) internal view returns (uint allocation) {
-        // console.log("Calculate allocation for", broker);
+    function _calculateAllocation(address operator, uint stakeWei) internal view returns (uint allocation) {
+        // console.log("Calculate allocation for", operator);
         LocalStorage storage local = localData();
 
         // in the state of insolvency or not running: use the old cumulativeWeiPerStake, don't allocate new earnings
@@ -85,13 +85,13 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
             cumulativeWeiPerStake += owedWei > unallocatedWei ? remainingWeiPerStake : owedWeiPerStake;
         }
         // console.log("  cumulative ", cumulativeWeiPerStake);
-        // console.log("  reference  ", localData().cumulativeReference[broker]);
-        uint weiPerStake = cumulativeWeiPerStake - localData().cumulativeReference[broker];
+        // console.log("  reference  ", localData().cumulativeReference[operator]);
+        uint weiPerStake = cumulativeWeiPerStake - localData().cumulativeReference[operator];
         // console.log("  alloc / full token", weiPerStake);
         uint allocationSinceReferenceResetWei = stakeWei * weiPerStake / 1e18; // full token = 1e18 wei
-        // console.log("  onReferenceResetWei  ", localData().onReferenceResetWei[broker]);
+        // console.log("  onReferenceResetWei  ", localData().onReferenceResetWei[operator]);
         // console.log("  since reference reset", allocationSinceReferenceResetWei);
-        return localData().onReferenceResetWei[broker] + allocationSinceReferenceResetWei;
+        return localData().onReferenceResetWei[operator] + allocationSinceReferenceResetWei;
     }
 
     /**
@@ -146,7 +146,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
                 localVars.defaultedWei = 0;
             }
         }
-        // save values for next update: adjust income velocity for a possibly changed number of brokers
+        // save values for next update: adjust income velocity for a possibly changed number of operators
         uint totalStakedWei = totalStakedWei;
         if (totalStakedWei > 0) {
             localVars.incomePerSecondPerStake = localVars.incomePerSecond * 1e18 / totalStakedWei;
@@ -166,54 +166,54 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         return localData().lastUpdateTimestamp + unallocatedWei / incomePerSecond;
     }
 
-    /** When broker joins, the current reference point is reset, and later the broker's allocation can be measured from the accumulated difference */
-    function onJoin(address broker) external {
-        // console.log("onJoin update", broker);
+    /** When operator joins, the current reference point is reset, and later the operator's allocation can be measured from the accumulated difference */
+    function onJoin(address operator) external {
+        // console.log("onJoin update", operator);
         update(0);
-        localData().cumulativeReference[broker] = localData().cumulativeWeiPerStake;
-        // console.log("  cumulative reference <-", localData().cumulativeReference[broker]);
+        localData().cumulativeReference[operator] = localData().cumulativeWeiPerStake;
+        // console.log("  cumulative reference <-", localData().cumulativeReference[operator]);
     }
 
-    /** When broker leaves, its state is cleared as if it had never joined */
-    function onLeave(address broker) external {
-        // console.log("onLeave update", broker);
+    /** When operator leaves, its state is cleared as if it had never joined */
+    function onLeave(address operator) external {
+        // console.log("onLeave update", operator);
         update(0);
-        delete localData().onReferenceResetWei[broker];
-        delete localData().cumulativeReference[broker];
+        delete localData().onReferenceResetWei[operator];
+        delete localData().cumulativeReference[operator];
     }
 
     /**
      * When stake changes, reset the reference point
      */
-    function onStakeChange(address broker, int stakeChangeWei) external {
+    function onStakeChange(address operator, int stakeChangeWei) external {
         LocalStorage storage local = localData();
-        // console.log("onStakeChange", broker, stakedWei[broker]);
+        // console.log("onStakeChange", operator, stakedWei[operator]);
         // console.logInt(stakeChangeWei);
         update(0);
 
         // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
-        uint oldStakeWei = uint(int(stakedWei[broker]) - stakeChangeWei);
+        uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
         // reset reference point
-        local.onReferenceResetWei[broker] = _calculateAllocation(broker, oldStakeWei);
-        local.cumulativeReference[broker] = local.cumulativeWeiPerStake;
+        local.onReferenceResetWei[operator] = _calculateAllocation(operator, oldStakeWei);
+        local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
 
-        // console.log("  pre-reset allocation <-", local.onReferenceResetWei[broker]);
-        // console.log("  cumulative reference <-", local.cumulativeReference[broker]);
+        // console.log("  pre-reset allocation <-", local.onReferenceResetWei[operator]);
+        // console.log("  cumulative reference <-", local.cumulativeReference[operator]);
     }
 
     /** @return payoutWei how many tokens to send out from Sponsorship */
-    function onWithdraw(address broker) external returns (uint payoutWei) {
-        // console.log("onWithdraw", broker);
+    function onWithdraw(address operator) external returns (uint payoutWei) {
+        // console.log("onWithdraw", operator);
         update(0);
 
         // calculate payout FIRST, before zeroing the allocation onReferenceReset
-        payoutWei = getEarningsWei(broker);
+        payoutWei = getEarningsWei(operator);
 
         // reset reference point, also zero the "unpaid earnings" because they will be paid out
         LocalStorage storage local = localData();
-        local.cumulativeReference[broker] = local.cumulativeWeiPerStake;
-        local.onReferenceResetWei[broker] = 0;
+        local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
+        local.onReferenceResetWei[operator] = 0;
     }
 
     function onSponsor(address, uint amount) external {

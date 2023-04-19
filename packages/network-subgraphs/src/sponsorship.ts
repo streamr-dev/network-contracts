@@ -1,28 +1,28 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, BrokerPool, SponsorshipStake, Flag, SponsorshipDailyBucket } from '../generated/schema'
+import { Sponsorship, Operator, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
 import { StakeUpdate, SponsorshipUpdate, FlagUpdate, MetadataUpdate } from '../generated/templates/Sponsorship/Sponsorship'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
-    log.info('handleStakeUpdated: broker={} totalStake={} allocation={}', [event.params.broker.toHexString(),
+    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
         event.params.stakedWei.toString(), event.params.allocatedWei.toString()])
     let sponsorshipAddress = event.address
-    let brokerAddress = event.params.broker
+    let operatorAddress = event.params.operator
 
-    let stakeID = sponsorshipAddress.toHexString() + "-" + brokerAddress.toHexString()
-    let stake = SponsorshipStake.load(stakeID)
+    let stakeID = sponsorshipAddress.toHexString() + "-" + operatorAddress.toHexString()
+    let stake = Stake.load(stakeID)
     if (stake === null) {
-        stake = new SponsorshipStake(stakeID)
+        stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress.toHexString()
         stake.id = stakeID
-        stake.broker = brokerAddress.toHexString()
+        stake.operator = operatorAddress.toHexString()
     }
     stake.date = event.block.timestamp
     stake.amount = event.params.stakedWei
     stake.allocatedWei = event.params.allocatedWei
 
     // link to pool
-    let pool = BrokerPool.load(event.params.broker.toHexString())
+    let pool = Operator.load(event.params.operator.toHexString())
     if (pool !== null) {
         log.info('handleStakeUpdated: updating pool pool={} stake={}', [pool.id, stake.id])
         // pool.stakes.push(stakeID)
@@ -33,17 +33,17 @@ export function handleStakeUpdated(event: StakeUpdate): void {
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     // log.info('handleSponsorshipUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleSponsorshipUpdated: totalStakeWei={} unallocatedWei={} brokerCount={} isRunning={}', [
+    log.info('handleSponsorshipUpdated: totalStakeWei={} unallocatedWei={} operatorCount={} isRunning={}', [
         event.params.totalStakeWei.toString(),
         event.params.unallocatedWei.toString(),
-        event.params.brokerCount.toString(),
+        event.params.operatorCount.toString(),
         event.params.isRunning.toString()
     ])
     let sponsorshipAddress = event.address
     let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
     sponsorship!.totalStakedWei = event.params.totalStakeWei
     sponsorship!.unallocatedWei = event.params.unallocatedWei
-    sponsorship!.brokerCount = event.params.brokerCount.toI32()
+    sponsorship!.operatorCount = event.params.operatorCount.toI32()
     sponsorship!.isRunning = event.params.isRunning
     sponsorship!.save()
 
@@ -72,7 +72,7 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
         stat.unallocatedWei = stat.unallocatedWei.plus(event.params.unallocatedWei)
         // stat.totalPayoutsCumulative = stat.totalPayoutsCumulative.plus(event.params.totalPayoutsCumulative)
     }
-    stat.brokerCount = event.params.brokerCount.toI32()
+    stat.operatorCount = event.params.operatorCount.toI32()
     stat.save()
 }
 

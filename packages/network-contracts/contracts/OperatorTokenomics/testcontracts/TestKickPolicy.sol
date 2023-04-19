@@ -12,17 +12,17 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
     function setParam(uint256 _param) external {
     }
 
-    function onFlag(address broker) external {
+    function onFlag(address operator) external {
         // console.log("onflag");
-        _slash(broker, 10 ether);
+        _slash(operator, 10 ether);
     }
 
-    function onVote(address broker, bytes32 voteData) external {
+    function onVote(address operator, bytes32 voteData) external {
         // console.log("onvote");
-        _kick(broker, uint(voteData));
+        _kick(operator, uint(voteData));
     }
 
-    function getFlagData(address broker) override external view returns (uint flagData) {
-        return broker.balance;
+    function getFlagData(address operator) override external view returns (uint flagData) {
+        return operator.balance;
     }
 }

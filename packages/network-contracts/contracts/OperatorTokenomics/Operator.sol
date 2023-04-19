@@ -10,11 +10,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./IBroker.sol";
-import "./IBrokerPoolLivenessRegistry.sol";
-import "./BrokerPoolPolicies/IPoolJoinPolicy.sol";
-import "./BrokerPoolPolicies/IPoolYieldPolicy.sol";
-import "./BrokerPoolPolicies/IPoolExitPolicy.sol";
+import "./IOperator.sol";
+import "./IOperatorLivenessRegistry.sol";
+import "./OperatorPolicies/IDelegationPolicy.sol";
+import "./OperatorPolicies/IPoolYieldPolicy.sol";
+import "./OperatorPolicies/IUndelegationPolicy.sol";
 
 import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
@@ -34,12 +34,14 @@ interface IStreamRegistry {
 // import "hardhat/console.sol";
 
 /**
- * BrokerPool receives the delegators' tokens and stakes them to Sponsorships of the streams that the broker services
- * It also is an ERC20 token that each delegator receives and can swap back to DATA when they want to undelegate from the pool
+ * Operator contract receives and holds the delegators' tokens.
+ * The operator (owner()) stakes them to Sponsorships of the streams that the operator's nodes relay.
+ * Operator contract also is an ERC20 token that each delegator receives, and can swap back to DATA when they undelegate.
  *
- * The whole token balance of the pool IS THE SAME AS the "free funds", so there's no need to track the unallocated tokens separately
+ * @dev DATA token balance of the pool === the "free funds" available for staking,
+ * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from "unallocated tokens")
  */
-contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IBroker { //}, ERC2771Context {
+contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
     // delegator events
     event Delegated(address indexed delegator, uint amountWei);
@@ -48,29 +50,28 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
 
     // sponsorship events
-    event Staked(Bounty indexed bounty);
-    event Unstaked(Bounty indexed bounty);
-    event StakeUpdate(Bounty indexed bounty, uint amountWei);
-    event Profit(Bounty indexed bounty, uint poolIncreaseWei, uint brokersShareWei);
-    event Loss(Bounty indexed bounty, uint poolDecreaseWei);
+    event Staked(Sponsorship indexed sponsorship);
+    event Unstaked(Sponsorship indexed sponsorship);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei);
+    event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
+    event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
     // node events
     event NodesSet(address[] nodes);
     event Heartbeat(address indexed nodeAddress, string jsonData);
-    event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
-
-    event MetadataUpdated(string metadataJsonString, address operatorAddress);
+    event MetadataUpdated(string metadataJsonString, address operatorAddress); // = owner() of this contract
+    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    IPoolJoinPolicy public joinPolicy;
+    IDelegationPolicy public delegationPolicy;
     IPoolYieldPolicy public yieldPolicy;
-    IPoolExitPolicy public exitPolicy;
+    IUndelegationPolicy public undelegationPolicy;
 
     StreamrConfig public streamrConfig;
 
-    address public broker;
+    address public owner;
     IERC677 public token;
 
     Sponsorship[] public sponsorships;
@@ -78,7 +79,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     uint public minimumDelegationWei;
 
-    // Pool value = DATA value of all stake + earnings in sponsorships - broker's share of those earnings
+    // Pool value = DATA value of all stake + earnings in sponsorships - operator's share of those earnings
     // It can be queried / calculated in different ways:
     // 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
     // 2. approximate but always available: totalValueInSponsorshipsWei (updated in staking/unstaking and updateApproximatePoolvalueOfSponsorship/Sponsorships)
@@ -97,7 +98,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     uint public queueCurrentIndex;
 
     /**
-     * The time the broker is given for paying out the exit queue.
+     * The time the operator is given for paying out the undelegation queue.
      * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
      */
     uint public maxQueueSeconds;
@@ -106,12 +107,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
     IStreamRegistry public streamRegistry;
-    string public streamPath;
     string public streamId;
     string public metadata;
 
-    modifier onlyBroker() {
-        require(_msgSender() == broker, "error_onlyBroker");
+    modifier onlyOperator() {
+        require(_msgSender() == owner, "error_onlyOperator");
         _;
     }
 
@@ -126,37 +126,38 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function initialize(
         address tokenAddress,
         address streamrConfigAddress,
-        address brokerAddress,
-        string[2] memory operatorParams,
+        address ownerAddress,
+        string[2] memory operatorParams, // poolTokenName, streamPath
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
-        _setupRole(ADMIN_ROLE, brokerAddress);
+        _setupRole(ADMIN_ROLE, ownerAddress);
         _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
         token = IERC677(tokenAddress);
-        broker = brokerAddress;
+        owner = ownerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
 
-        // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
+        // A fixed queue emptying requirement is simplest for now.
+        // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        streamPath = "/broker/coordination";
         metadata = operatorParams[1];
-        emit MetadataUpdated(operatorParams[1], address(this));
+        emit MetadataUpdated(operatorParams[1], ownerAddress);
 
         _createOperatorStream();
     }
 
-    /** Each operator pool creates a stream upon creation with the following id format: <operatorPoolAddress>/operator/coordination */
+    /** Each operator pool creates a stream upon creation with the following id format: <owner>/operator/coordination */
     function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
-        streamId = string.concat(streamRegistry.addressToString(address(this)), streamPath);
-        streamRegistry.createStream(streamPath, "{}");
+        // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
+        streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
+        streamRegistry.createStream("/operator/coordination", "{}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
     }
 
@@ -189,12 +190,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
-    function updateMetadata(string calldata metadataJsonString) external onlyBroker {
+    function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
-        emit MetadataUpdated(metadataJsonString, broker);
+        emit MetadataUpdated(metadataJsonString, owner);
     }
 
-    function updateStreamMetadata(string calldata metadataJsonString) external onlyBroker {
+    function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
 
@@ -236,7 +237,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
     }
 
-    /** Delegate by first calling DATA.approve(brokerPool.address, amountWei) then this function */
+    /** Delegate by first calling DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) public payable {
         // console.log("## delegate");
         token.transferFrom(_msgSender(), address(this), amountWei);
@@ -244,8 +245,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function _delegate(address delegator, uint amountWei) internal {
-        if (address(joinPolicy) != address(0)) {
-            uint allowedToJoin = moduleGet(abi.encodeWithSelector(joinPolicy.canJoin.selector, delegator, address(joinPolicy)), "error_joinPolicyFailed");
+        if (address(delegationPolicy) != address(0)) {
+            uint allowedToJoin = moduleGet(abi.encodeWithSelector(delegationPolicy.canJoin.selector, delegator, address(delegationPolicy)), "error_joinPolicyFailed");
             require(allowedToJoin == 1, "error_joinPolicyFailed");
         }
         // remove amountWei from pool value to get the "Pool Tokens before transfer"
@@ -270,15 +271,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /////////////////////////////////////////
-    // BROKER FUNCTIONS
+    // OPERATOR FUNCTIONS
     /////////////////////////////////////////
 
     /**
      * Stake DATA tokens from free funds into Sponsorships.
      * Can only happen if all the delegators who want to undelegate have been paid out first.
-     * This means the broker must clear the queue as part of normal operation before they can change staking allocations.
+     * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
-    function stake(Sponsorship sponsorship, uint amountWei) external onlyBroker {
+    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "error_badSponsorship");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         token.approve(address(sponsorship), amountWei);
@@ -290,60 +291,60 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
             sponsorships.push(sponsorship);
             indexOfSponsorships[sponsorship] = sponsorships.length; // real array index + 1
             if (sponsorships.length == 1) {
-                try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsLive() {} catch {}
+                try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsLive() {} catch {}
             }
-            emit Staked(bounty);
+            emit Staked(sponsorship);
         }
-        emit StakeUpdate(bounty, bounty.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
     }
 
     /**
      * Take out some of the stake from a sponsorship without completely unstaking
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
-    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyBroker {
+    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
         // console.log("## reduceStake amountWei", amountWei);
         reduceStakeWithoutQueue(sponsorship, targetStakeWei);
         payOutQueueWithFreeFunds(0);
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Sponsorships to pay out the queue in parts */
-    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyBroker {
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         if (targetStakeWei == 0) {
             unstakeWithoutQueue(sponsorship);
             return;
         }
-        bounty.reduceStakeTo(targetStakeWei);
-        updateApproximatePoolvalueOfBounty(bounty);
-        emit StakeUpdate(bounty, bounty.stakedWei(address(this)));
+        sponsorship.reduceStakeTo(targetStakeWei);
+        updateApproximatePoolvalueOfSponsorship(sponsorship);
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
     }
 
-    function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyBroker {
+    function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
         updateApproximatePoolvalueOfSponsorship(sponsorship); // TODO: why is update needed before withdraw?
         withdrawEarningsFromSponsorshipWithoutQueue(sponsorship);
         payOutQueueWithFreeFunds(0);
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Bounties to pay out the queue in parts */
-    function withdrawEarningsFromBountyWithoutQueue(Bounty bounty) public onlyBroker {
-        uint payoutWei = bounty.withdraw();
-        uint brokersShareWei = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, payoutWei), "error_deductBrokersShareFailed");
-        updateApproximatePoolvalueOfBounty(bounty);
-        emit Profit(bounty, payoutWei - brokersShareWei, brokersShareWei);
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Bounties to pay out the queue in parts */
+    function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
+        uint payoutWei = sponsorship.withdraw();
+        uint operatorsShareWei = moduleCall(address(yieldPolicy),
+            abi.encodeWithSelector(yieldPolicy.deductOperatorsShare.selector, payoutWei), "error_deductOperatorsShareFailed");
+        updateApproximatePoolvalueOfSponsorship(sponsorship);
+        emit Profit(sponsorship, payoutWei - operatorsShareWei, operatorsShareWei);
     }
 
     /**
      * Unstake from a sponsorship
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
      **/
-    function unstake(Sponsorship sponsorship) public onlyBroker {
+    function unstake(Sponsorship sponsorship) public onlyOperator {
         unstakeWithoutQueue(sponsorship);
         payOutQueueWithFreeFunds(0);
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the broker an option to free funds from Sponsorships to pay out the queue in parts */
-    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyBroker {
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         uint amountStakedBeforeWei = sponsorship.getMyStake();
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
@@ -352,16 +353,16 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     /**
      * Self-service undelegation queue handling.
-     * If the broker hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
-     * Broker can also call this, if they want to forfeit the stake committed to flagging in a sponsorship (normal unstake would revert for safety)
+     * Operator can also call this, if they want to forfeit the stake committed to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
-        // onlyBroker check happens only if grace period hasn't passed yet
+        // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
-            require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyBroker");
+            require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyOperator");
         }
 
         uint amountStakedBeforeWei = sponsorship.getMyStake();
@@ -384,30 +385,30 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         if (receivedWei < amountStakedBeforeWei) {
             // TODO: slash handling
             uint lossesWei = amountStakedBeforeWei - receivedWei;
-            emit Loss(bounty, lossesWei);
+            emit Loss(sponsorship, lossesWei);
         } else {
             // TODO: gains handling
             uint profitWei = receivedWei - amountStakedBeforeWei;
-            uint brokersShareDataWei = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.deductBrokersShare.selector, profitWei), "error_deductBrokersShareFailed");
-            emit Profit(bounty, profitWei - brokersShareDataWei, brokersShareDataWei);
+            uint operatorsShareDataWei = moduleCall(address(yieldPolicy),
+                abi.encodeWithSelector(yieldPolicy.deductOperatorsShare.selector, profitWei), "error_deductOperatorsShareFailed");
+            emit Profit(sponsorship, profitWei - operatorsShareDataWei, operatorsShareDataWei);
         }
-        _removeBounty(bounty);
+        _removeSponsorship(sponsorship);
     }
 
     // remove from array: replace with the last element
-    function _removeBounty(Bounty bounty) internal {
-        uint index = indexOfBounties[bounty] - 1; // indexOfBounties is the real array index + 1
-        Bounty lastBounty = bounties[bounties.length - 1];
-        bounties[index] = lastBounty;
-        bounties.pop();
-        indexOfBounties[lastBounty] = index + 1; // indexOfBounties is the real array index + 1
-        delete indexOfBounties[bounty];
-        if (bounties.length == 0) {
-            try IBrokerPoolLivenessRegistry(streamrConfig.brokerPoolLivenessRegistry()).registerAsNotLive() {} catch {}
+    function _removeSponsorship(Sponsorship sponsorship) internal {
+        uint index = indexOfSponsorships[sponsorship] - 1; // indexOfSponsorships is the real array index + 1
+        Sponsorship lastSponsorship = sponsorships[sponsorships.length - 1];
+        sponsorships[index] = lastSponsorship;
+        sponsorships.pop();
+        indexOfSponsorships[lastSponsorship] = index + 1; // indexOfSponsorships is the real array index + 1
+        delete indexOfSponsorships[sponsorship];
+        if (sponsorships.length == 0) {
+            try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
         }
-        emit Unstaked(bounty);
-        emit StakeUpdate(bounty, 0);
+        emit Unstaked(sponsorship);
+        emit StakeUpdate(sponsorship, 0);
     }
 
     ////////////////////////////////////////
@@ -415,12 +416,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     // NODE MANAGEMENT
     ////////////////////////////////////////
 
-    function flag(Sponsorship sponsorship, address targetBroker) external onlyNodes {
-        sponsorship.flag(targetBroker);
+    function flag(Sponsorship sponsorship, address targetOperator) external onlyNodes {
+        sponsorship.flag(targetOperator);
     }
 
-    function voteOnFlag(Sponsorship sponsorship, address targetBroker, bytes32 voteData) external onlyNodes {
-        sponsorship.voteOnFlag(targetBroker, voteData);
+    function voteOnFlag(Sponsorship sponsorship, address targetOperator, bytes32 voteData) external onlyNodes {
+        sponsorship.voteOnFlag(targetOperator, voteData);
     }
 
     /** Nodes announce their ID and other connectivity metadata */
@@ -429,7 +430,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
-    function setNodeAddresses(address[] calldata newNodes) external onlyBroker {
+    function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
         // add new nodes on top
         for (uint i = 0; i < newNodes.length; i++) {
             address node = newNodes[i];
@@ -456,7 +457,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /** First add then remove addresses (if in both lists, ends up removed!) */
-    function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyBroker {
+    function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
         for (uint i = 0; i < addNodes.length; i++) {
             address node = addNodes[i];
             if (nodeIndex[node] == 0) {
@@ -597,42 +598,42 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     function onKick() external {
-        Bounty bounty = Bounty(msg.sender);
-        require(indexOfBounties[bounty] > 0, "error_notMyStakedBounty");
-        _removeBounty(bounty);
-        updateApproximatePoolvalueOfBounty(bounty);
+        Sponsorship sponsorship = Sponsorship(msg.sender);
+        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        _removeSponsorship(sponsorship);
+        updateApproximatePoolvalueOfSponsorship(sponsorship);
     }
 
-    function onReviewRequest(address targetBroker) external {
+    function onReviewRequest(address targetOperator) external {
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(msg.sender) > 0, "error_onlySponsorship");
         Sponsorship sponsorship = Sponsorship(msg.sender);
-        emit ReviewRequest(sponsorship, targetBroker);
+        emit ReviewRequest(sponsorship, targetOperator);
     }
 
     ////////////////////////////////////////
     // POLICY MODULES
     ////////////////////////////////////////
 
-    function setJoinPolicy(IPoolJoinPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        joinPolicy = policy;
-        moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setJoinPolicyFailed");
+    function setDelegationPolicy(IDelegationPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        delegationPolicy = policy;
+        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setDelegationPolicyFailed");
     }
 
     function setYieldPolicy(IPoolYieldPolicy policy,
         uint256 initialMargin,
         uint256 maintenanceMarginPercent,
         uint256 minimumMarginPercent,
-        uint256 brokerSharePercent,
-        uint256 brokerShareMaxDivertPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 operatorSharePercent,
+        uint256 operatorShareMaxDivertPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector,
-            initialMargin, maintenanceMarginPercent, minimumMarginPercent, brokerSharePercent,
-            brokerShareMaxDivertPercent), "error_setYieldPolicyFailed");
+            initialMargin, maintenanceMarginPercent, minimumMarginPercent, operatorSharePercent,
+            operatorShareMaxDivertPercent), "error_setYieldPolicyFailed");
     }
 
-    function setExitPolicy(IPoolExitPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        exitPolicy = policy;
-        moduleCall(address(exitPolicy), abi.encodeWithSelector(exitPolicy.setParam.selector, param), "error_setExitPolicyFailed");
+    function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        undelegationPolicy = policy;
+        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param), "error_setUndelegationPolicyFailed");
     }
 
     /* solhint-disable */
@@ -692,7 +693,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     ////////////////////////////////////////
 
     /**
-     * The broker is supposed to keep the approximate pool value up to date by calling updateApproximatePoolvalueOfSponsorship
+     * The operator is supposed to keep the approximate pool value up to date by calling updateApproximatePoolvalueOfSponsorship
      *   on the sponsorships that have generated most earnings = discrepancy between the approximate and the real pool value.
      */
     function updateApproximatePoolvalueOfSponsorship(Sponsorship sponsorship) public {
@@ -703,19 +704,19 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     }
 
     /**
-     * The accurate "accounting value" of a sponsorship = stake + earnings - broker's share of the earnings
+     * The accurate "accounting value" of a sponsorship = stake + earnings - operator's share of the earnings
      * This value will be used to calculate the total pool value, and therefore also the pool token exchange rate
      **/
     function getPoolValueFromSponsorship(Sponsorship sponsorship) public view returns (uint256 poolValue) {
         uint alloc = sponsorship.getEarnings(address(this));
-        uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateBrokersShare.selector, alloc, address(yieldPolicy)), "error_calculateBrokersShare_Failed");
+        uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateOperatorsShare.selector, alloc, address(yieldPolicy)), "error_calculateOperatorsShare_Failed");
         poolValue = sponsorship.getMyStake() + alloc - share;
     }
 
     /**
      * Convenience method to get all (approximate) sponsorship values
-     * The broker needs to keep an eye on the approximate values at all times, so that the approximation is not too far off.
-     * If someone else notices that the approximation is too far off, they can call updateApproximatePoolvalueOfSponsorships to get a small prize (paid from broker's pool tokens)
+     * The operator needs to keep an eye on the approximate values at all times, so that the approximation is not too far off.
+     * If someone else notices that the approximation is too far off, they can call updateApproximatePoolvalueOfSponsorships to get a small prize (paid from operator's pool tokens)
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
     function getApproximatePoolValuesPerSponsorship() external view returns (
@@ -735,7 +736,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
 
     /**
      * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
-     * If the difference is too large. call updateApproximatePoolvalueOfSponsorships to get a small prize (paid from broker's pool tokens)
+     * If the difference is too large. call updateApproximatePoolvalueOfSponsorships to get a small prize (paid from operator's pool tokens)
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      * TODO: is this function needed? getApproximatePoolValuesPerSponsorship gives same info, and more
      */
@@ -749,7 +750,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     /**
      * If the difference between calculatePoolValueInData() and getApproximatePoolValue() becomes too large,
      *   then anyone can call this method and point out a set of sponsorships that together sum up to poolValueDriftLimitFraction
-     * Caller gets rewarded poolValueDriftPenaltyFraction of the broker's pool tokens
+     * Caller gets rewarded poolValueDriftPenaltyFraction of the operator's pool tokens
      */
     function updateApproximatePoolvalueOfSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         uint sumActual = 0;
@@ -765,11 +766,12 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         }
         totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + sumActual - sumApprox;
 
-        // if total difference is more than allowed, then slash the broker a bit: move some of their pool tokens to reward the caller
+        // if total difference is more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
         // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
         uint allowedDifference = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
         if (sumActual > sumApprox + allowedDifference) {
-            _transfer(broker, _msgSender(), balanceOf(broker) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether);
+            uint penaltyWei = balanceOf(owner) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
+            _transfer(owner, _msgSender(), penaltyWei);
         }
     }
 }

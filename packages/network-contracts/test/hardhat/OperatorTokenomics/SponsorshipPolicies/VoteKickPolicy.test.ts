@@ -29,7 +29,7 @@ function max(a: BigNumber, b: BigNumber) { return a.gt(b) ? a : b }
 describe("VoteKickPolicy", (): void => {
 
     // default setup for test cases that don't need a clean set of contracts
-    // clean setup is needed when review selection has to be controlled (so that BrokerPools from old tests don't interfere)
+    // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
     let defaultSetup: SponsorshipTestSetup
     let contracts: TestContracts
     before(async (): Promise<void> => {
@@ -47,7 +47,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token,
                 sponsorships: [ sponsorship ],
-                pools: [ flagger, target, voter ]
+                operators: [ flagger, target, voter ]
             } = await setupSponsorships(contracts, [3], "one-of-each")
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -56,7 +56,8 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
-                .to.emit(sponsorship, "BrokerKicked").withArgs(target.address, parseEther("100"))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("100"))
 
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900")) // slash 10%
         })
@@ -66,7 +67,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token,
                 sponsorships: [ sponsorship ],
-                pools: [ flagger, target, voter1, voter2, voter3 ]
+                operators: [ flagger, target, voter1, voter2, voter3 ]
             } = await setupSponsorships(contracts, [5], "3-voters-test")
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -76,11 +77,12 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(voter3, "ReviewRequest").withArgs(sponsorship.address, target.address)
             await advanceToTimestamp(start + VOTE_START, `votes to kick ${addr(target)}`)
             await expect(voter1.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
-                .to.not.emit(sponsorship, "BrokerKicked")
+                .to.not.emit(sponsorship, "OperatorKicked")
             await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
-                .to.not.emit(sponsorship, "BrokerKicked")
+                .to.not.emit(sponsorship, "OperatorKicked")
             await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
-                .to.emit(sponsorship, "BrokerKicked").withArgs(target.address, parseEther("100"))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("100"))
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(voter1.address)).to.equal(parseEther("1"))
@@ -92,7 +94,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token,
                 sponsorships: [ sponsorship ],
-                pools: [ flagger1, flagger2, target1, target2, voter ],
+                operators: [ flagger1, flagger2, target1, target2, voter ],
             } = await setupSponsorships(contracts, [4, 1], "2-active-flags")
             const start = await getBlockTimestamp()
 
@@ -107,17 +109,19 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(flagger1, "ReviewRequest").withArgs(sponsorship.address, target2.address)
 
             await advanceToTimestamp(start + VOTE_START, `votes to kick ${addr(target1)} and ${addr(target2)}`)
-            await expect(flagger2.voteOnFlag(sponsorship.address, target1.address, VOTE_KICK)).to.not.emit(sponsorship, "BrokerKicked")
-            await expect(flagger1.voteOnFlag(sponsorship.address, target2.address, VOTE_KICK)).to.not.emit(sponsorship, "BrokerKicked")
-            await expect(voter.voteOnFlag(sponsorship.address, target1.address, VOTE_KICK)).to.not.emit(sponsorship, "BrokerKicked")
-            await expect(voter.voteOnFlag(sponsorship.address, target2.address, VOTE_KICK)).to.not.emit(sponsorship, "BrokerKicked")
+            await expect(flagger2.voteOnFlag(sponsorship.address, target1.address, VOTE_KICK)).to.not.emit(sponsorship, "OperatorKicked")
+            await expect(flagger1.voteOnFlag(sponsorship.address, target2.address, VOTE_KICK)).to.not.emit(sponsorship, "OperatorKicked")
+            await expect(voter.voteOnFlag(sponsorship.address, target1.address, VOTE_KICK)).to.not.emit(sponsorship, "OperatorKicked")
+            await expect(voter.voteOnFlag(sponsorship.address, target2.address, VOTE_KICK)).to.not.emit(sponsorship, "OperatorKicked")
 
             await expect(target2.voteOnFlag(sponsorship.address, target1.address, VOTE_KICK))
-                .to.emit(sponsorship, "BrokerKicked").withArgs(target1.address, parseEther("100"))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target1.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target1.address, parseEther("100"))
             await expect(target1.voteOnFlag(sponsorship.address, target2.address, VOTE_KICK))
-                .to.emit(sponsorship, "BrokerKicked").withArgs(target2.address, parseEther("100"))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target2.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target2.address, parseEther("100"))
 
-            // 100 tokens slashing happens to target1,2 pools
+            // 100 tokens slashing happens to target1 and target2
             expect(await token.balanceOf(target1.address)).to.equal(parseEther("901")) // (target +) voter + remaining stake
             expect(await token.balanceOf(target2.address)).to.equal(parseEther("901")) // voter (+ target) + remaining stake
             expect(await token.balanceOf(flagger1.address)).to.equal(parseEther("2"))  // flagger + voter
@@ -127,16 +131,16 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Reviewer selection", function(): void {
-        it("picks first brokers that are not in the same sponsorship", async () => {
+        it("picks first operators that are not in the same sponsorship", async () => {
             const {
                 sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [
+                operatorsPerSponsorship: [
                     [ flagger, target ],
                     [ p4, p5, p6, p7 ]
                 ]
-            } = await setupSponsorships(contracts, [5, 4], "pick-first-nonstaked-brokers")
+            } = await setupSponsorships(contracts, [5, 4], "pick-first-nonstaked-operators")
 
-            // all 4 brokers that are not in the same sponsorship get picked; additionally 1 more from same sponsorship randomly (but not more!)
+            // all 4 operators that are not in the same sponsorship get picked; additionally 1 more from same sponsorship randomly (but not more!)
             await expect(flagger.flag(sponsorship.address, target.address))
                 .to.emit(p4, "ReviewRequest").withArgs(sponsorship.address, target.address)
                 .to.emit(p5, "ReviewRequest").withArgs(sponsorship.address, target.address)
@@ -146,12 +150,12 @@ describe("VoteKickPolicy", (): void => {
 
         // live = staked to any Sponsorship
         it("will only pick live reviewers", async () => {
-            const { poolFactory, sponsorships, pools: [
+            const { operatorFactory, sponsorships, operators: [
                 flagger, target, voter, nonStaked
             ] } = await setupSponsorships(contracts, [2, 2], "pick-only-live-reviewers")
 
             await expect(nonStaked.unstake(sponsorships[1].address))
-                .to.emit(poolFactory, "BrokerPoolLivenessChanged").withArgs(nonStaked.address, false)
+                .to.emit(operatorFactory, "OperatorLivenessChanged").withArgs(nonStaked.address, false)
             await expect(flagger.flag(sponsorships[0].address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorships[0].address, target.address)
                 .to.not.emit(nonStaked, "ReviewRequest")
@@ -168,8 +172,8 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS for a target that is not in the sponsorship", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], poolsPerSponsorship: [ [flagger], [notStakedPool] ] } = await defaultSetup
-            await expect(flagger.flag(sponsorship.address, notStakedPool.address))
+            const { sponsorships: [ sponsorship ], operatorsPerSponsorship: [ [flagger], [notStaked] ] } = await defaultSetup
+            await expect(flagger.flag(sponsorship.address, notStaked.address))
                 .to.be.revertedWith("error_flagTargetNotStaked")
         })
     })
@@ -180,7 +184,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("results in NO_KICK if no one voted", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], pools: [ flagger, target ] } = defaultSetup
+            const { sponsorships: [ sponsorship ], operators: [ flagger, target ] } = defaultSetup
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -200,14 +204,14 @@ describe("VoteKickPolicy", (): void => {
             // TODO
         })
 
-        it("prevents immediately flagging the same broker again after NO_KICK result", async function(): Promise<void> {
+        it("prevents immediately flagging the same operator again after NO_KICK result", async function(): Promise<void> {
             // TODO: error_cannotFlagAgain
         })
 
         it("pays reviewers who correctly voted NO_KICK even if flagger already was kicked", async function(): Promise<void> {
             const {
                 token, sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [ [flagger, target], voters ]
+                operatorsPerSponsorship: [ [flagger, target], voters ]
             } = await setupSponsorships(contracts, [2, 5], "flagger-had-been-kicked")
             const start = await getBlockTimestamp()
 
@@ -245,7 +249,7 @@ describe("VoteKickPolicy", (): void => {
         it("pays reviewers who correctly voted NO_KICK even if flagger already forceUnstaked", async function(): Promise<void> {
             const {
                 token, sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [ [flagger, target], voters ]
+                operatorsPerSponsorship: [ [flagger, target], voters ]
             } = await setupSponsorships(contracts, [2, 5], "forceUnstaked-flagger")
             const start = await getBlockTimestamp()
 
@@ -281,7 +285,7 @@ describe("VoteKickPolicy", (): void => {
         it("pays reviewers who correctly voted KICK even if target already forceUnstaked", async function(): Promise<void> {
             const {
                 token, sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [ [flagger, target], voters ]
+                operatorsPerSponsorship: [ [flagger, target], voters ]
             } = await setupSponsorships(contracts, [2, 5], "target-forceUnstake")
             const start = await getBlockTimestamp()
 
@@ -300,7 +304,7 @@ describe("VoteKickPolicy", (): void => {
             await (await voters[2].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
             await (await voters[3].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
             await expect(voters[4].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
-                .to.emit(sponsorship, "SponsorshipReceived").withArgs(sponsorship.address, parseEther("96")) // 1 goes to flagger + 3 goes to reviewers
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs(sponsorship.address, parseEther("96")) // 1 to flagger + 3 to reviewers
 
             expect(await sponsorship.getFlag(target.address)).to.equal("0") // flag is resolved
 
@@ -317,7 +321,11 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Voting timeline", function(): void {
         it("NO voting before the voting starts", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], pools: [ flagger, target, voter ] } = await setupSponsorships(contracts, [2, 1], "voting-timeline")
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "voting-timeline")
+
             await expect(flagger.flag(sponsorship.address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
@@ -330,7 +338,10 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Committed stake", (): void => {
         it("allows the target to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], pools: [ flagger, target, voter ] } = await setupSponsorships(contracts, [2, 1], "target-reducestake")
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "target-reducestake")
 
             await expect(flagger.flag(sponsorship.address, target.address))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address)
@@ -344,8 +355,11 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the target to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], pools: [ flagger, target, voter ] } = await setupSponsorships(contracts, [2, 1], "target-after-flag")
             const start = await getBlockTimestamp()
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "target-after-flag")
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address))
@@ -353,18 +367,18 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship. address, target.address, VOTE_NO_KICK))
-                .to.not.emit(sponsorship, "BrokerKicked")
+                .to.not.emit(sponsorship, "OperatorKicked")
 
             expect(await sponsorship.getFlag(target.address)).to.equal("0") // flag is resolved
 
             await expect(target.unstake(sponsorship.address))
-                .to.emit(sponsorship, "BrokerLeft").withArgs(target.address, parseEther("1000"))
+                .to.emit(sponsorship, "OperatorLeft").withArgs(target.address, parseEther("1000"))
         })
 
         it("allows the flagger to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [ [flagger, ...targets], [voter] ]
+                operatorsPerSponsorship: [ [flagger, ...targets], [voter] ]
             } = await setupSponsorships(contracts, [8, 1], "flagger-reducestake")
 
             await expect(flagger.flag(sponsorship.address, targets[0].address)).to.emit(voter, "ReviewRequest")
@@ -384,7 +398,10 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the flagger to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], pools: [ flagger, target, voter ] } = await setupSponsorships(contracts, [2, 1], "flagger-after-flag")
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "flagger-after-flag")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -393,18 +410,18 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
-                .to.not.emit(sponsorship, "BrokerKicked")
+                .to.not.emit(sponsorship, "OperatorKicked")
 
             expect(await sponsorship.getFlag(target.address)).to.equal("0") // flag is resolved
 
             await expect(flagger.unstake(sponsorship.address))
-                .to.emit(sponsorship, "BrokerLeft").withArgs(flagger.address, parseEther("999"))
+                .to.emit(sponsorship, "OperatorLeft").withArgs(flagger.address, parseEther("999"))
         })
 
         it("does NOT allow the flagger to flag if he has not enough uncommitted stake", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
-                poolsPerSponsorship: [ [flagger, ...targets], [voter] ]
+                operatorsPerSponsorship: [ [flagger, ...targets], [voter] ]
             } = await setupSponsorships(contracts, [8, 1], "super-flagger", {
                 stakeAmountWei: parseEther("68"), // flag-stake is 10 tokens
             })
@@ -420,7 +437,7 @@ describe("VoteKickPolicy", (): void => {
         it("does NOT allow the flagger to flag if his stake has been slashed below minimum stake", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
-                pools: [ flagger, target, voter ]
+                operators: [ flagger, target, voter ]
             } = await setupSponsorships(contracts, [3, 0], "flagger-slashed-below-minimum", {
                 stakeAmountWei: parseEther("70"),
                 sponsorshipSettings: {
@@ -457,7 +474,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token,
                 sponsorships: [ sponsorship ],
-                pools: [ flagger, target, ...voters ],
+                operators: [ flagger, target, ...voters ],
             } = await setupSponsorships(contracts, [2, reviewerCount], "sufficient-flag-stake", {
                 sponsorshipSettings: { minimumStakeWei },
                 sponsor: false
@@ -505,7 +522,7 @@ describe("VoteKickPolicy", (): void => {
         it("ensures enough tokens to pay reviewers if flagger gets maximally slashed then kicked", async function(): Promise<void> {
             // important that flagStakeWei is at least 10/9 of possible total reviewer rewards
             // because (flagStakeWei - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
-            const { sponsorships: [ sponsorship ], pools: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagger", {
+            const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagger", {
                 stakeAmountWei: parseEther("67"), // flag-stake is 10 tokens
             })
             const start = await getBlockTimestamp()

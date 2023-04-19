@@ -11,7 +11,7 @@ export function handleSponsorshipCreated(event: NewSponsorship): void {
     sponsorship.totalStakedWei = BigInt.fromI32(0)
     sponsorship.unallocatedWei = BigInt.fromI32(0)
     sponsorship.projectedInsolvency = BigInt.fromI32(0)
-    sponsorship.brokerCount = 0
+    sponsorship.operatorCount = 0
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
     sponsorship.save()

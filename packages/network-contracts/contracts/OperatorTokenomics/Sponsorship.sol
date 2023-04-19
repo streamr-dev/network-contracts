@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./IBroker.sol";
+import "./IOperator.sol";
 import "./SponsorshipPolicies/IJoinPolicy.sol";
 import "./SponsorshipPolicies/ILeavePolicy.sol";
 import "./SponsorshipPolicies/IKickPolicy.sol";
@@ -20,18 +20,18 @@ import "./StreamrConfig.sol";
 // import "hardhat/console.sol";
 
 /**
- * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to brokers
+ * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
  * Those tokens are the *sponsorship* that the *sponsor* puts on servicing the stream
- * *Brokers* that have `stake`d on the Sponsorship and receive *earnings* specified by the `IAllocationPolicy`
- * Brokers can also `unstake` and stop earning, signalling to stop servicing the stream.
+ * *Operators* that have `stake`d on the Sponsorship and receive *earnings* specified by the `IAllocationPolicy`
+ * Operators can also `unstake` and stop earning, signalling to stop servicing the stream.
  *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
  *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
  * The tokens held by `Sponsorship` are tracked in three accounts:
- * - totalStakedWei: total amount of tokens staked by all brokers
- *  -> each broker has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
+ * - totalStakedWei: total amount of tokens staked by all operators
+ *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
- *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Bounty` is solvent for a longer time
- * - committedFundsWei: forfeited stakes that were committed to a flag by a past broker who `forceUnstake`d (or was kicked)
+ *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
+ * - committedFundsWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
@@ -39,15 +39,14 @@ import "./StreamrConfig.sol";
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeUpdate(address indexed broker, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
-    event MetadataUpdate(string metadata); // TODO: delete
-    event BountyUpdate(uint totalStakeWei, uint unallocatedWei, uint32 brokerCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
+    event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
+    event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
-    event BrokerJoined(address indexed broker);
-    event BrokerLeft(address indexed broker, uint returnedStakeWei);
+    event OperatorJoined(address indexed operator);
+    event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
-    event BrokerKicked(address indexed broker);
-    event BrokerSlashed(address indexed broker, uint amountWei);
+    event OperatorKicked(address indexed operator);
+    event OperatorSlashed(address indexed operator, uint amountWei);
 
     // Emitted from the allocation policy
     event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
@@ -65,13 +64,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     string public streamId;
     string public metadata;
 
-    mapping(address => uint) public stakedWei; // how much each broker has staked, if 0 broker is considered not part of sponsorship
-    mapping(address => uint) public joinTimeOfBroker;
+    mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
+    mapping(address => uint) public joinTimeOfOperator;
     mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
     uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
     uint public totalStakedWei;
-    uint public brokerCount;
-    uint public minBrokerCount;
+    uint public operatorCount;
+    uint public minOperatorCount;
     uint public minHorizonSeconds;
     uint public unallocatedWei;
     uint public minimumStakeWei;
@@ -85,22 +84,22 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      *   hence there is an individual limit for reduceStakeTo.
      * When joining, committed stake is zero, so the it's the same minimumStakeWei for everyone.
      */
-    function minimumStakeOf(address broker) public view returns (uint) {
-        return max(committedStakeWei[broker], minimumStakeWei);
+    function minimumStakeOf(address operator) public view returns (uint) {
+        return max(committedStakeWei[operator], minimumStakeWei);
     }
 
     /**
-     * Running means there's enough brokers signed up for the sponsorship,
-     *  and the sponsorship should pay tokens to the brokers from the remaining sponsorship
+     * Running means there's enough operators signed up for the sponsorship,
+     *  and the sponsorship should pay tokens to the operators from the remaining sponsorship
      * See https://hackmd.io/i8M8iFQLSIa9RbDn-d5Szg?view#Mechanisms
      */
     function isRunning() public view returns (bool) {
-        return brokerCount >= minBrokerCount;
+        return operatorCount >= minOperatorCount;
     }
 
     /**
-     * Funded means there's enough sponsorship to cover minHorizonSeconds of payments to brokers
-     * DefaultLeavePolicy states brokers are free to leave an underfunded sponsorship
+     * Funded means there's enough sponsorship to cover minHorizonSeconds of payments to operators
+     * DefaultLeavePolicy states operators are free to leave an underfunded sponsorship
      */
     function isFunded() public view returns (bool) {
         return solventUntilTimestamp() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
@@ -109,7 +108,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
-     * @param initParams array of: [0] initialMinimumStakeWei, [1] initialMinHorizonSeconds, [2] initialMinBrokerCount, [3] weiPerSecond
+     * @param initParams array of: [0] initialMinimumStakeWei, [1] initialMinHorizonSeconds, [2] initialMinOperatorCount, [3] weiPerSecond
      */
     function initialize(
         string calldata streamId_,
@@ -119,14 +118,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         uint[4] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
     ) public initializer {
-        require(initParams[2] > 0, "error_minBrokerCountZero");
+        require(initParams[2] > 0, "error_minOperatorCountZero");
         require(initParams[0] > 0, "error_minimumStakeZero");
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
         minimumStakeWei = initParams[0];
         minHorizonSeconds = uint32(initParams[1]);
-        minBrokerCount = uint32(initParams[2]);
+        minOperatorCount = uint32(initParams[2]);
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
@@ -135,7 +134,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * ERC677 token callback
-     * If the data bytes contains an address, the incoming tokens are staked for that broker
+     * If the data bytes contains an address, the incoming tokens are staked for that operator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         require(_msgSender() == address(token), "error_onlyDATAToken");
@@ -181,41 +180,41 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
         }
-        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
+        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
     }
 
     /**
      * Stake by first calling DATA.approve(sponsorship.address, amountWei) then this function (2-step ERC20)
-     *   or alternatively call DATA.transferAndCall(sponsorship.address, amountWei, brokerAddress) (1-step ERC677)
+     *   or alternatively call DATA.transferAndCall(sponsorship.address, amountWei, operatorAddress) (1-step ERC677)
      */
-    function stake(address broker, uint amountWei) external {
+    function stake(address operator, uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
-        _stake(broker, amountWei);
+        _stake(operator, amountWei);
     }
 
-    function _stake(address broker, uint amountWei) internal {
-        // console.log("join/stake at ", block.timestamp, broker, amountWei);
+    function _stake(address operator, uint amountWei) internal {
+        // console.log("join/stake at ", block.timestamp, operator, amountWei);
         require(amountWei >= minimumStakeWei, "error_minimumStake");
-        if (stakedWei[broker] == 0) {
-           // console.log("Broker joins and stakes", broker, amountWei);
+        if (stakedWei[operator] == 0) {
+           // console.log("Operator joins and stakes", operator, amountWei);
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
-                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, broker, amountWei), "error_joinPolicyOnJoin");
+                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, operator, amountWei), "error_joinPolicyOnJoin");
             }
-            stakedWei[broker] += amountWei;
-            brokerCount += 1;
+            stakedWei[operator] += amountWei;
+            operatorCount += 1;
             totalStakedWei += amountWei;
-            joinTimeOfBroker[broker] = block.timestamp; // solhint-disable-line not-rely-on-time
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, broker), "error_allocationPolicyOnJoin");
-            emit BrokerJoined(broker);
+            joinTimeOfOperator[operator] = block.timestamp; // solhint-disable-line not-rely-on-time
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, operator), "error_allocationPolicyOnJoin");
+            emit OperatorJoined(operator);
         } else {
-           // console.log("Broker already joined, increasing stake", broker, amountWei);
-            stakedWei[broker] += amountWei;
+           // console.log("Operator already joined, increasing stake", operator, amountWei);
+            stakedWei[operator] += amountWei;
             totalStakedWei += amountWei;
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, int(amountWei)), "error_stakeIncreaseFailed");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)), "error_stakeIncreaseFailed");
         }
-        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
-        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
     }
 
     /**
@@ -223,134 +222,134 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Throw if that's not possible due to open flags or leave penalty (e.g. leaving too early)
      */
     function unstake() public {
-        address broker = _msgSender();
-        uint penaltyWei = getLeavePenalty(broker);
+        address operator = _msgSender();
+        uint penaltyWei = getLeavePenalty(operator);
         require(penaltyWei == 0, "error_leavePenalty");
-        require(committedStakeWei[broker] == 0, "error_activeFlag");
-        _removeBroker(broker);
+        require(committedStakeWei[operator] == 0, "error_activeFlag");
+        _removeOperator(operator);
     }
 
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is committed to flags */
     function forceUnstake() public {
-        address broker = _msgSender();
-        uint penaltyWei = getLeavePenalty(broker);
+        address operator = _msgSender();
+        uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
-            _slash(broker, penaltyWei);
+            _slash(operator, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        _removeBroker(broker); // forfeits committed stake
+        _removeOperator(operator); // forfeits committed stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
     function reduceStakeTo(uint targetStakeWei) external {
-        address broker = _msgSender();
-        require(targetStakeWei < stakedWei[broker], "error_cannotIncreaseStake");
-        require(targetStakeWei >= minimumStakeOf(broker), "error_minimumStake");
+        address operator = _msgSender();
+        require(targetStakeWei < stakedWei[operator], "error_cannotIncreaseStake");
+        require(targetStakeWei >= minimumStakeOf(operator), "error_minimumStake");
 
-        uint cashoutWei = stakedWei[broker] - targetStakeWei;
-        _reduceStakeBy(broker, cashoutWei);
-        token.transfer(broker, cashoutWei);
+        uint cashoutWei = stakedWei[operator] - targetStakeWei;
+        _reduceStakeBy(operator, cashoutWei);
+        token.transfer(operator, cashoutWei);
 
-        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
-        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
     }
 
     /**
-     * Slashing moves tokens from a broker's stake to "free funds" (that are not in unallocatedWei!)
+     * Slashing moves tokens from an operator's stake to "free funds" (that are not in unallocatedWei!)
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      **/
-    function _slash(address broker, uint amountWei) internal {
-        _reduceStakeBy(broker, amountWei);
-        emit BrokerSlashed(broker, amountWei);
-        if (broker.code.length > 0) {
-            try IBroker(broker).onSlash() {} catch {}
+    function _slash(address operator, uint amountWei) internal {
+        _reduceStakeBy(operator, amountWei);
+        emit OperatorSlashed(operator, amountWei);
+        if (operator.code.length > 0) {
+            try IOperator(operator).onSlash() {} catch {}
         }
-        emit StakeUpdate(broker, stakedWei[broker], getEarnings(broker));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
     }
 
     /**
-     * Kicking does what slashing does, plus removes the broker
+     * Kicking does what slashing does, plus removes the operator
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      */
-    function _kick(address broker, uint slashingWei) internal {
+    function _kick(address operator, uint slashingWei) internal {
         if (slashingWei > 0) {
-            _reduceStakeBy(broker, slashingWei);
-            emit BrokerSlashed(broker, slashingWei);
+            _reduceStakeBy(operator, slashingWei);
+            emit OperatorSlashed(operator, slashingWei);
         }
-        _removeBroker(broker);
-        emit BrokerKicked(broker);
-        if (broker.code.length > 0) {
-            try IBroker(broker).onKick() {} catch {}
+        _removeOperator(operator);
+        emit OperatorKicked(operator);
+        if (operator.code.length > 0) {
+            try IOperator(operator).onKick() {} catch {}
         }
     }
 
     /**
-     * Moves tokens from a broker's stake to "free funds" (that are not in unallocatedWei!)
+     * Moves tokens from an operator's stake to "free funds" (that are not in unallocatedWei!)
      * Does not actually send out tokens!
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      **/
-    function _reduceStakeBy(address broker, uint amountWei) private {
-        assert(amountWei <= stakedWei[broker]); // should never happen! _slashing must be designed to not slash more than the whole stake
-        stakedWei[broker] -= amountWei;
+    function _reduceStakeBy(address operator, uint amountWei) private {
+        assert(amountWei <= stakedWei[operator]); // should never happen! _slashing must be designed to not slash more than the whole stake
+        stakedWei[operator] -= amountWei;
         totalStakedWei -= amountWei;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, broker, -int(amountWei)), "error_stakeChangeHandlerFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(amountWei)), "error_stakeChangeHandlerFailed");
     }
 
     /**
-     * Broker stops servicing the stream and withdraws their stake + earnings.
-     * If number of brokers falls below minBrokerCount, the sponsorship will no longer be "running" and the stream will be closed.
-     * If broker had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
+     * Operator stops servicing the stream and withdraws their stake + earnings.
+     * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
+     * If operator had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
      */
-    function _removeBroker(address broker) internal {
-        require(stakedWei[broker] > 0, "error_brokerNotStaked");
-        // console.log("_removeBroker", broker);
+    function _removeOperator(address operator) internal {
+        require(stakedWei[operator] > 0, "error_operatorNotStaked");
+        // console.log("_removeOperator", operator);
 
-        if (committedStakeWei[broker] > 0) {
-            _slash(broker, committedStakeWei[broker]);
-            committedFundsWei += committedStakeWei[broker];
-            committedStakeWei[broker] = 0;
+        if (committedStakeWei[operator] > 0) {
+            _slash(operator, committedStakeWei[operator]);
+            committedFundsWei += committedStakeWei[operator];
+            committedStakeWei[operator] = 0;
         }
 
         // send out both allocations and stake
-        _withdraw(broker);
-        uint paidOutStakeWei = stakedWei[broker];
-        require(token.transferAndCall(broker, paidOutStakeWei, "stake"), "error_transfer");
+        _withdraw(operator);
+        uint paidOutStakeWei = stakedWei[operator];
+        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
-        brokerCount -= 1;
+        operatorCount -= 1;
         totalStakedWei -= paidOutStakeWei;
-        delete stakedWei[broker];
-        delete joinTimeOfBroker[broker];
+        delete stakedWei[operator];
+        delete joinTimeOfOperator[operator];
 
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, broker), "error_leaveHandlerFailed");
-        emit StakeUpdate(broker, 0, 0); // stake and allocation must be zero when the broker is gone
-        emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
-        emit BrokerLeft(broker, paidOutStakeWei);
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator), "error_leaveHandlerFailed");
+        emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
+        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+        emit OperatorLeft(operator, paidOutStakeWei);
     }
 
     // TODO: why not let withdraw for others?
     /** Get earnings out, leave stake in */
     function withdraw() external returns (uint payoutWei) {
-        address broker = _msgSender();
-        require(stakedWei[broker] > 0, "error_brokerNotStaked");
+        address operator = _msgSender();
+        require(stakedWei[operator] > 0, "error_operatorNotStaked");
 
-        payoutWei = _withdraw(broker);
+        payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
-            emit StakeUpdate(broker, stakedWei[broker], 0); // earnings will be zero after withdraw (see test)
-            emit BountyUpdate(totalStakedWei, unallocatedWei, uint32(brokerCount), isRunning());
+            emit StakeUpdate(operator, stakedWei[operator], 0); // earnings will be zero after withdraw (see test)
+            emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
         }
     }
 
-    function _withdraw(address broker) internal returns (uint payoutWei) {
-        payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, broker), "error_withdrawFailed");
-        // console.log("withdraw ->", broker, payoutWei);
+    function _withdraw(address operator) internal returns (uint payoutWei) {
+        payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator), "error_withdrawFailed");
+        // console.log("withdraw ->", operator, payoutWei);
         if (payoutWei > 0) {
-            require(token.transferAndCall(broker, payoutWei, "allocation"), "error_transfer");
+            require(token.transferAndCall(operator, payoutWei, "allocation"), "error_transfer");
         }
     }
 
-    /** Start the flagging process to kick an abusive broker */
+    /** Start the flagging process to kick an abusive operator */
     function flag(address target) external {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
@@ -453,13 +452,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
-    function getEarnings(address broker) public view returns(uint256 allocation) {
-        return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, broker, address(allocationPolicy)), "error_getEarningsFailed");
+    function getEarnings(address operator) public view returns(uint256 allocation) {
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, operator, address(allocationPolicy)), "error_getEarningsFailed");
     }
 
-    function getLeavePenalty(address broker) public view returns(uint256 leavePenalty) {
+    function getLeavePenalty(address operator) public view returns(uint256 leavePenalty) {
         if (address(leavePolicy) == address(0)) { return 0; }
-        return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, broker, address(leavePolicy)), "error_getLeavePenaltyFailed");
+        return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {

@@ -6,8 +6,8 @@ const { defaultAbiCoder, parseEther } = ethersUtils
 const { getSigners } = hardhatEthers
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deploySponsorship } from "./deploySponsorship"
-import { deployBrokerPool } from "./deployBrokerPool"
+import { deploySponsorship } from "./deploySponsorshipContract"
+import { deployOperator } from "./deployOperatorContract"
 
 let sponsorshipCounter = 0
 
@@ -23,15 +23,15 @@ describe("SponsorshipFactory", () => {
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
     })
 
-    it("can deploy a Sponsorship; then BrokerPool can join, increase stake (happy path)", async function(): Promise<void> {
+    it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
-        const pool = await deployBrokerPool(contracts, admin)
+        const pool = await deployOperator(contracts, admin)
         await (await token.mint(pool.address, parseEther("200"))).wait()
         await expect(pool.stake(sponsorship.address, parseEther("200")))
-            .to.emit(sponsorship, "BrokerJoined").withArgs(pool.address)
+            .to.emit(sponsorship, "OperatorJoined").withArgs(pool.address)
         await expect(pool.stake(sponsorship.address, parseEther("200")))
-            .to.not.emit(sponsorship, "BrokerJoined")
+            .to.not.emit(sponsorship, "OperatorJoined")
     })
 
     it("can create a Sponsorship with transferAndCall (atomic fund and deploy sponsorship)", async function(): Promise<void> {
@@ -39,7 +39,7 @@ describe("SponsorshipFactory", () => {
 
         // uint initialMinimumStakeWei,
         // uint32 initialMinHorizonSeconds,
-        // uint32 initialMinBrokerCount,
+        // uint32 initialMinOperatorCount,
         // string memory sponsorshipName,
         // address[] memory policies,
         // uint[] memory initParams
@@ -60,7 +60,7 @@ describe("SponsorshipFactory", () => {
         expect(newSponsorshipAddress).to.be.not.undefined
     })
 
-    it("will NOT create a Sponsorship with zero minBrokerCount", async function(): Promise<void> {
+    it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, sponsorshipFactory, token } = contracts
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
             [parseEther("100"), 0, 0, "Sponsorship-" + sponsorshipCounter++, "metadata", [
@@ -74,7 +74,7 @@ describe("SponsorshipFactory", () => {
             ]]
         )
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
-            .to.be.revertedWith("error_minBrokerCountZero")
+            .to.be.revertedWith("error_minOperatorCountZero")
     })
 
     it("will NOT create a Sponsorship with zero minimumStake", async function(): Promise<void> {
@@ -127,7 +127,7 @@ describe("SponsorshipFactory", () => {
     })
 
     it("will NOT create a Sponsorship with untrusted policies", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, maxBrokersJoinPolicy } = contracts
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, maxOperatorsJoinPolicy } = contracts
         /**
          * Policies array is interpreted as follows:
          *   0: allocation policy (address(0) for none)
@@ -139,15 +139,15 @@ describe("SponsorshipFactory", () => {
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
         await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
-            [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxBrokersJoinPolicy.address],
+            [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
         await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
-            [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxBrokersJoinPolicy.address],
+            [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // kickpolicy
         await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
-            [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxBrokersJoinPolicy.address],
+            [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // joinpolicy
         await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
@@ -165,18 +165,18 @@ describe("SponsorshipFactory", () => {
 
     // must be last test, will remove all policies in the sponsorshipFactory
     it("positivetest remove trusted policies", async function(): Promise<void> {
-        const { sponsorshipFactory, maxBrokersJoinPolicy, brokerPoolOnlyJoinPolicy, allocationPolicy, leavePolicy } = contracts
-        expect(await sponsorshipFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.true
+        const { sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy, leavePolicy } = contracts
+        expect(await sponsorshipFactory.isTrustedPolicy(maxOperatorsJoinPolicy.address)).to.be.true
         expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.true
         expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.true
-        expect(await sponsorshipFactory.isTrustedPolicy(brokerPoolOnlyJoinPolicy.address)).to.be.true
-        await (await sponsorshipFactory.removeTrustedPolicy(maxBrokersJoinPolicy.address)).wait()
+        expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.true
+        await (await sponsorshipFactory.removeTrustedPolicy(maxOperatorsJoinPolicy.address)).wait()
         await (await sponsorshipFactory.removeTrustedPolicy(allocationPolicy.address)).wait()
         await (await sponsorshipFactory.removeTrustedPolicy(leavePolicy.address)).wait()
-        await (await sponsorshipFactory.removeTrustedPolicy(brokerPoolOnlyJoinPolicy.address)).wait()
-        expect(await sponsorshipFactory.isTrustedPolicy(maxBrokersJoinPolicy.address)).to.be.false
+        await (await sponsorshipFactory.removeTrustedPolicy(operatorContractOnlyJoinPolicy.address)).wait()
+        expect(await sponsorshipFactory.isTrustedPolicy(maxOperatorsJoinPolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
-        expect(await sponsorshipFactory.isTrustedPolicy(brokerPoolOnlyJoinPolicy.address)).to.be.false
+        expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.false
     })
 })
