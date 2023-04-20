@@ -16,7 +16,7 @@ export async function deployOperator(contracts: TestContracts, deployer: Wallet,
     operatorMetadata = "{}",
 } = {}, salt?: string): Promise<Operator> {
     const {
-        operatorFactory, poolTemplate,
+        operatorFactory, operatorTemplate,
         defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy
     } = contracts
     // TODO: figure out if initialMargin is needed twice...
@@ -43,5 +43,5 @@ export async function deployOperator(contracts: TestContracts, deployer: Wallet,
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-    return poolTemplate.attach(newOperatorAddress).connect(deployer)
+    return operatorTemplate.attach(newOperatorAddress).connect(deployer)
 }

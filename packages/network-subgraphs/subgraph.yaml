@@ -181,7 +181,7 @@ dataSources:
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
         - event: NewSponsorship(address,string,string)
-          handler: handleSponsorshipCreated
+          handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
     network: xDai
@@ -196,14 +196,14 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/operatorFactory.ts
       entities:
-        - Pool
-        - PoolDelegation
+        - Operator
+        - Delegation
       abis:
         - name: OperatorFactory
           file: ./abis/OperatorFactory.json
       eventHandlers:
         - event: NewOperator(address)
-          handler: handlePoolCreated
+          handler: handleNewOperator
 
 templates:
   - name: Sponsorship
@@ -231,8 +231,6 @@ templates:
             handler: handleSponsorshipUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256)
             handler: handleFlagUpdate
-          - event: MetadataUpdate(string)
-            handler: handleMetadataUpdate
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
@@ -251,13 +249,15 @@ templates:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/pool.ts
+      file: ./src/operator.ts
       entities:
         - Operator
-        - PoolDelegation
+        - Delegation
       abis:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
           - event: Delegated(indexed address,uint256)
             handler: handleDelegationReceived
+          - event: MetadataUpdated(string,indexed address)
+            handler: handleMetadataUpdated

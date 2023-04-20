@@ -47,11 +47,11 @@ const connectToAllContracts = async () => {
     }
 }
 
-const deployNewPools = async (amount: number) => {
+const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
             0, // min initial investment
-            `Pool-${Date.now()}`,
+            [`Pool-${Date.now()}`, "{}"],
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
             [0, 0, 0, 0, 0, 10, 10, 0]
         )
@@ -103,7 +103,7 @@ const flag = async () => {
 
 async function main() {
     await connectToAllContracts()
-    await deployNewPools(3)
+    await deployOperatorContracts(3)
     await investToPool()
     await stakeIntoSponsorship()
     await flag()

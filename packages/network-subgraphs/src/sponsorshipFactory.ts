@@ -4,8 +4,8 @@ import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFacto
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
 
-export function handleSponsorshipCreated(event: NewSponsorship): void {
-    log.info('handleSponsorshipCreated at {}', [event.params.sponsorshipContract.toHexString()])
+export function handleNewSponsorship(event: NewSponsorship): void {
+    log.info('handleNewSponsorship at {}', [event.params.sponsorshipContract.toHexString()])
 
     let sponsorship = new Sponsorship(event.params.sponsorshipContract.toHexString())
     sponsorship.totalStakedWei = BigInt.fromI32(0)

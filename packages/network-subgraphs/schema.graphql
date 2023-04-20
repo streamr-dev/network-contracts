@@ -223,11 +223,15 @@ type ProjectStakingDayBucket @entity {
 ############################################################
 
 type Operator @entity {
-  id: ID! # operator address
+  id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
   delegators: [Delegation!]! @derivedFrom(field: "operator")
   delegatorCount: Int
-  approximateOperatorValue: BigInt!
+  approximatePoolValue: BigInt!
+
+  # TODO: unpack metadata to fields
+  owner: String
+
   unallocatedWei: BigInt!
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -237,7 +241,7 @@ type OperatorDailyBucket @entity {
   id: ID! # operator address + date
   operator: Operator!
   date: BigInt!
-  approximateOperatorValue: BigInt!
+  approximatePoolValue: BigInt!
   unallocatedWei: BigInt!
   spotAPY: BigInt!
   totalPayoutsCumulative: BigInt!
@@ -283,12 +287,11 @@ type SponsorshipDailyBucket @entity {
 # Operators hold Stake in Sponsorships
 type Stake @entity {
   id: ID! # 0xsponsorshipAddress-0xoperatorAddress
-  operator: String!
+  operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!
   date: BigInt
   sponsorship: Sponsorship
-  operator: Operator
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work

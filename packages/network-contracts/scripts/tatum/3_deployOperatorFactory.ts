@@ -17,9 +17,9 @@ const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
 let deploymentOwner: Wallet
 
 async function deployOperatorFactory() {
-    const poolTemplate = await (await ethers.getContractFactory("Operator")).deploy() as Operator
-    await poolTemplate.deployed()
-    log("Deployed Operator contract template", poolTemplate.address)
+    const operatorTemplate = await (await ethers.getContractFactory("Operator")).deploy() as Operator
+    await operatorTemplate.deployed()
+    log("Deployed Operator contract template", operatorTemplate.address)
     const defaultDelegationPolicy = await (await ethers.getContractFactory("DefaultDelegationPolicy",
         { signer: deploymentOwner })).deploy() as IDelegationPolicy
     await defaultDelegationPolicy.deployed()
@@ -39,7 +39,7 @@ async function deployOperatorFactory() {
     const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory",
         { signer: deploymentOwner })
     const operatorFactory = await upgrades.deployProxy(operatorFactoryFactory, [
-        poolTemplate.address,
+        operatorTemplate.address,
         localConfig.token,
         localConfig.streamrConfig
     ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as OperatorFactory

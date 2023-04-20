@@ -1,24 +1,32 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { Operator, PoolDelegation } from '../generated/schema'
-import { Delegated } from '../generated/templates/Operator/Operator'
+import { Operator, Delegation } from '../generated/schema'
+import { Delegated, MetadataUpdated } from '../generated/templates/Operator/Operator'
 
 export function handleDelegationReceived (event: Delegated): void {
     log.info('handleDelegationReceived: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    let pool = Operator.load(event.address.toHexString())
-    pool!.delegatorCount = pool!.delegatorCount + 1
+    let operator = Operator.load(event.address.toHexString())
+    operator!.delegatorCount = operator!.delegatorCount + 1
 
-    pool!.save()
+    operator!.save()
 
-    let delegation = PoolDelegation.load(event.params.delegator.toHexString())
+    let delegation = Delegation.load(event.params.delegator.toHexString())
     if (delegation === null) {
-        delegation = new PoolDelegation(event.params.delegator.toHexString())
-        delegation.pool = event.address.toHexString()
-        delegation.id =  event.address.toHexString() + "-" + event.params.delegator.toHexString()
+        delegation = new Delegation(event.address.toHexString() + "-" + event.params.delegator.toHexString())
+        delegation.operator = event.address.toHexString()
         delegation.delegator = event.params.delegator.toHexString()
     }
     delegation.amount = event.params.amountWei
     delegation.save()
+}
+
+export function handleMetadataUpdate(event: MetadataUpdated): void {
+    log.info('handleMetadataUpdate: metadataJsonString={}', [event.params.metadataJsonString])
+    let operatorContractAddress = event.address
+    let operator = Operator.load(operatorContractAddress.toHexString())
+    // TODO: unpack event.params.metadataJsonString
+    operator!.owner = event.params.operatorAddress.toHexString()
+    operator!.save()
 }
 
 // export function handleStakeUpdated (event: Staked): void {

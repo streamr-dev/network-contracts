@@ -1,7 +1,7 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 
 import { Sponsorship, Operator, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
-import { StakeUpdate, SponsorshipUpdate, FlagUpdate, MetadataUpdate } from '../generated/templates/Sponsorship/Sponsorship'
+import { StakeUpdate, SponsorshipUpdate, FlagUpdate } from '../generated/templates/Sponsorship/Sponsorship'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
@@ -14,19 +14,17 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     if (stake === null) {
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress.toHexString()
-        stake.id = stakeID
         stake.operator = operatorAddress.toHexString()
     }
     stake.date = event.block.timestamp
     stake.amount = event.params.stakedWei
     stake.allocatedWei = event.params.allocatedWei
 
-    // link to pool
-    let pool = Operator.load(event.params.operator.toHexString())
-    if (pool !== null) {
-        log.info('handleStakeUpdated: updating pool pool={} stake={}', [pool.id, stake.id])
-        // pool.stakes.push(stakeID)
-        stake.pool = pool.id
+    // link to operator
+    let operator = Operator.load(event.params.operator.toHexString())
+    if (operator !== null) {
+        log.info('handleStakeUpdated: updating pool pool={} stake={}', [operator.id, stake.id])
+        stake.operator = operator.id
     }
     stake.save()
 }
@@ -55,25 +53,24 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     date.setUTCMilliseconds(0)
     //datestring in yyyy-mm-dd format
     let dateString = date.toISOString().split('T')[0]
-    let statId = sponsorshipAddress.toHexString() + "-" + dateString
-    let stat = SponsorshipDailyBucket.load(statId)
-    if (stat === null) {
-        log.info("handleSponsorshipUpdated: creating new stat statId={}", [statId])
-        stat = new SponsorshipDailyBucket(statId)
-        stat.id = statId
-        stat.sponsorship = sponsorshipAddress.toHexString()
-        stat.date = new BigInt(i32(date.getTime()))
-        stat.totalStakedWei = event.params.totalStakeWei
-        stat.unallocatedWei = event.params.unallocatedWei
-        stat.spotAPY = new BigInt(0)
-        stat.totalPayoutsCumulative = new BigInt(0)
+    let bucketId = sponsorshipAddress.toHexString() + "-" + dateString
+    let bucket = SponsorshipDailyBucket.load(bucketId)
+    if (bucket === null) {
+        log.info("handleSponsorshipUpdated: creating new stat statId={}", [bucketId])
+        bucket = new SponsorshipDailyBucket(bucketId)
+        bucket.sponsorship = sponsorshipAddress.toHexString()
+        bucket.date = new BigInt(i32(date.getTime()))
+        bucket.totalStakedWei = event.params.totalStakeWei
+        bucket.unallocatedWei = event.params.unallocatedWei
+        bucket.spotAPY = new BigInt(0)
+        bucket.totalPayoutsCumulative = new BigInt(0)
     } else {
-        stat.totalStakedWei = stat.totalStakedWei.plus(event.params.totalStakeWei)
-        stat.unallocatedWei = stat.unallocatedWei.plus(event.params.unallocatedWei)
+        bucket.totalStakedWei = bucket.totalStakedWei.plus(event.params.totalStakeWei)
+        bucket.unallocatedWei = bucket.unallocatedWei.plus(event.params.unallocatedWei)
         // stat.totalPayoutsCumulative = stat.totalPayoutsCumulative.plus(event.params.totalPayoutsCumulative)
     }
-    stat.operatorCount = event.params.operatorCount.toI32()
-    stat.save()
+    bucket.operatorCount = event.params.operatorCount.toI32()
+    bucket.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
@@ -87,7 +84,6 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let flag = Flag.load(flagID)
     if (flag === null) {
         flag = new Flag(flagID)
-        flag.id = flagID
         flag.sponsorship = sponsorshipAddress.toHexString()
         flag.target = event.params.target.toHexString()
     }
@@ -95,12 +91,4 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.targetSlashAmount = event.params.targetCommittedStake
     flag.result = event.params.result
     flag.save()
-}
-
-export function handleMetadataUpdate(event: MetadataUpdate): void {
-    log.info('handleMetadataUpdate: metadata={}', [event.params.metadata])
-    let sponsorshipAddress = event.address
-    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
-    sponsorship!.metadata = event.params.metadata
-    sponsorship!.save()
 }

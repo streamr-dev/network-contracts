@@ -57,10 +57,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
     // node events
-    event NodesSet(address[] nodes);
     event Heartbeat(address indexed nodeAddress, string jsonData);
-    event MetadataUpdated(string metadataJsonString, address operatorAddress); // = owner() of this contract
     event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator);
+
+    // operator admin events
+    event NodesSet(address[] nodes);
+    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress); // = owner() of this contract
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -152,7 +154,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _createOperatorStream();
     }
 
-    /** Each operator pool creates a stream upon creation with the following id format: <owner>/operator/coordination */
+    /** Each operator contract creates a fleet coordination stream upon creation, id = <owner>/operator/coordination */
     function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
@@ -255,8 +257,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             "error_dataToPooltokenFailed"
         );
         _mint(delegator, amountPoolToken);
-        // console.log("minting", amountPoolToken, "to", delegator);
-        emit Delegated(delegator, amountWei);
     }
 
     /** Add the request to undelegate into the undelegation queue */
