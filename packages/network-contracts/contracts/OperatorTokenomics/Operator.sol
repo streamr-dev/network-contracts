@@ -154,7 +154,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _createOperatorStream();
     }
 
-    /** Each operator contract creates a fleet coordination stream upon creation, id = <owner>/operator/coordination */
+    /** Each operator contract creates a fleet coordination stream upon creation, 
+      * id = <operatorContractAddress>/operator/coordination 
+      */
     function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
