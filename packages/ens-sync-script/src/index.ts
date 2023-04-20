@@ -21,6 +21,7 @@ let {
 } = process.env
 const delay = (parseInt(DELAY) || 0) * 1000
 const log = require("debug")("streamr:ens-sync-script")
+log.log = console.log.bind(console)
 let streamRegistryContract: Contract
 let privateKey: string
 let ensCacheContract: Contract
