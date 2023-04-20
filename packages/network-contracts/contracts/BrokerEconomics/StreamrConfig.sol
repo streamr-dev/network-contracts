@@ -126,6 +126,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      */
     address public poolOnlyJoinPolicy;
 
+    address public streamRegistryAddress;
+
     // TODO: initializer arguments?
     function initialize() public initializer {
         __AccessControl_init();
@@ -159,6 +161,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setPoolOnlyJoinPolicy(address poolOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         poolOnlyJoinPolicy = poolOnlyJoinPolicyAddress;
+    }
+
+    function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        streamRegistryAddress = streamRegistryAddress_;
     }
 
     function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {

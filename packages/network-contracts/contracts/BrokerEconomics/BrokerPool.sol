@@ -20,6 +20,17 @@ import "./StreamrConfig.sol";
 import "./Bounty.sol";
 import "./BountyFactory.sol";
 
+interface IStreamRegistry {
+    enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
+
+    function createStream(string calldata streamIdPath, string calldata metadataJsonString) external;
+    function updateStreamMetadata(string calldata streamId, string calldata metadata) external;
+    function grantPublicPermission(string calldata streamId, PermissionType permissionType) external;
+    function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function revokePermission(string calldata streamId, address user, PermissionType permissionType) external;
+    function addressToString(address _address) external pure returns(string memory);
+}
+
 // import "hardhat/console.sol";
 
 /**
@@ -47,6 +58,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     event NodesSet(address[] nodes);
     event Heartbeat(address indexed nodeAddress, string jsonData);
     event ReviewRequest(Bounty indexed bounty, address indexed targetBroker);
+
+    event MetadataUpdated(string metadataJsonString, address operatorAddress);
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -92,6 +105,11 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
+    IStreamRegistry public streamRegistry;
+    string public streamPath;
+    string public streamId;
+    string public metadata;
+
     modifier onlyBroker() {
         require(_msgSender() == broker, "error_onlyBroker");
         _;
@@ -109,7 +127,7 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         address tokenAddress,
         address streamrConfigAddress,
         address brokerAddress,
-        string calldata poolName,
+        string[2] memory operatorParams,
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
@@ -119,13 +137,27 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         broker = brokerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
         minimumDelegationWei = initialMinimumDelegationWei;
-        ERC20Upgradeable.__ERC20_init(poolName, poolName);
+        ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
 
         // fixed queue emptying requirement is simplest for now. This ensures a diligent broker can always pay out the exit queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        streamPath = "/broker/coordination";
+        metadata = operatorParams[1];
+        emit MetadataUpdated(operatorParams[1], address(this));
+        
+        _createOperatorStream();
+    }
+
+    /** Each operator pool creates a stream upon creation with the following id format: <operatorPoolAddress>/operator/coordination */
+    function _createOperatorStream() private {
+        streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
+        streamId = string.concat(streamRegistry.addressToString(address(this)), streamPath);
+        streamRegistry.createStream(streamPath, "{}");
+        streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -155,6 +187,15 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    }
+
+    function updateMetadata(string calldata metadataJsonString) external onlyBroker {
+        metadata = metadataJsonString;
+        emit MetadataUpdated(metadataJsonString, broker);
+    }
+
+    function updateStreamMetadata(string calldata metadataJsonString) external onlyBroker {
+        streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
 
     /////////////////////////////////////////
@@ -434,6 +475,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
     function _addNode(address node) internal {
         nodes.push(node);
         nodeIndex[node] = nodes.length; // will be +1
+
+        streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
     }
 
     function _removeNode(address node) internal {
@@ -443,6 +486,8 @@ contract BrokerPool is Initializable, ERC2771ContextUpgradeable, IERC677Receiver
         nodes.pop();
         nodeIndex[lastNode] = index + 1;
         delete nodeIndex[node];
+
+        streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
     }
 
     function getNodeAddresses() external view returns (address[] memory) {
