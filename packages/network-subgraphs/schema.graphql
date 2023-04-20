@@ -1,6 +1,10 @@
 # TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
 # scalar Date
 
+######################################################################
+##  NETWORK: streams, (storage) nodes
+######################################################################
+
 type _Schema_
   @fulltext(
     name: "projectSearch"
@@ -40,7 +44,7 @@ type Stream @entity {
   createdAt: BigInt
   "date updated. This is a timestamp in seconds"
   updatedAt: BigInt
-  bounties: [Bounty!] @derivedFrom(field: "stream")
+  sponsorships: [Sponsorship!] @derivedFrom(field: "stream")
 }
 
 type Node @entity {
@@ -66,7 +70,9 @@ type Node @entity {
 #   stream: Stream!
 # }
 
-# Project Registry
+############################################################
+##  THE HUB: projects, marketplace, project-staking
+############################################################
 
 type ProjectPermission @entity {
   "permission id = projectId + '-' + userAddress"
@@ -171,7 +177,6 @@ type ProjectPurchase @entity {
 
 # ProjectStakingV1
 
-
 type ProjectStakeByUser @entity {
   "stake id = projectId + '-' + userAddress"
   id: ID!
@@ -209,68 +214,32 @@ type ProjectStakingDayBucket @entity {
   unstakingsWei: BigInt!
 }
 
-# Tatum
+############################################################
+##  OPERATOR TOKENOMICS: sponsoring, staking, delegating
+##
+##  Operators run the nodes that keep the streams humming
+##  Sponsorships pay Operators for their work
+##  Delegators signal their trust by delegating tokens to Operators
+############################################################
 
-type Bounty @entity {
-  id: ID! # bounty address
-  stream: Stream 
-  metadata: String
-  isRunning: Boolean!
-  stakes: [BountyStake!]! @derivedFrom(field: "bounty")
-  brokerCount: Int!
-  totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
-  projectedInsolvency: BigInt!
-  flags: [Flag!]! @derivedFrom(field: "bounty")
-}
-
-type BountyDailyBucket @entity {
-  id: ID! # bounty address + date
-  bounty: Bounty!
-  date: BigInt!
-  totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
-  projectedInsolvency: BigInt!
-  spotAPY: BigInt!
-  totalPayoutsCumulative: BigInt!
-  brokerCount: Int!
-}
-
-type BountyStake @entity {
-  id: ID! # 0xbountyAddress-0xbrokerAddress
-  broker: String!
-  amount: BigInt!
-  allocatedWei: BigInt!
-  date: BigInt
-  bounty: Bounty
-  pool: BrokerPool
-}
-
-type Flag @entity {
-  id: ID! # 0xbountyAddress-0xbrokerAddress
-  flagger: BrokerPool!
-  target: BrokerPool!
-  # flagStake: BigInt! always fixed?
-  date: BigInt
-  bounty: Bounty
-  result: BigInt! # 0: pending, 1: target kicked, 2: flag failed
-  targetSlashAmount: BigInt
-}
-
-type BrokerPool @entity {
-  id: ID! # pool address
-  stakes: [BountyStake!]! @derivedFrom(field: "pool")
-  delegators: [PoolDelegation!]! @derivedFrom(field: "pool")
+type Operator @entity {
+  id: ID! # contract address
+  stakes: [Stake!]! @derivedFrom(field: "operator")
+  delegators: [Delegation!]! @derivedFrom(field: "operator")
   delegatorCount: Int
   approximatePoolValue: BigInt!
+
+  # TODO: unpack metadata to fields
+  owner: String
+
   unallocatedWei: BigInt!
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
 }
 
-type BrokerPoolDailyBucket @entity {
-  id: ID! # pool address + date
-  pool: BrokerPool!
+type OperatorDailyBucket @entity {
+  id: ID! # operator address + date
+  operator: Operator!
   date: BigInt!
   approximatePoolValue: BigInt!
   unallocatedWei: BigInt!
@@ -281,9 +250,57 @@ type BrokerPoolDailyBucket @entity {
   totalStakedWei: BigInt!
 }
 
-type PoolDelegation @entity {
-  id: ID! # 0xpoolAddress-0xbrokerAddress
+# Delegation in an Operator contract signals trust in the Operator
+type Delegation @entity {
+  id: ID! # 0xoperatorAddress-0xdelegatorAddress
+  operator: Operator
   delegator: String!
   amount: BigInt!
-  pool: BrokerPool
+}
+
+# Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
+type Sponsorship @entity {
+  id: ID! # sponsorship address
+  stream: Stream
+  metadata: String
+  isRunning: Boolean!
+  stakes: [Stake!]! @derivedFrom(field: "sponsorship")
+  operatorCount: Int!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
+  flags: [Flag!]! @derivedFrom(field: "sponsorship")
+}
+
+type SponsorshipDailyBucket @entity {
+  id: ID! # sponsorship address + date
+  sponsorship: Sponsorship!
+  date: BigInt!
+  totalStakedWei: BigInt!
+  unallocatedWei: BigInt!
+  projectedInsolvency: BigInt!
+  spotAPY: BigInt!
+  totalPayoutsCumulative: BigInt!
+  operatorCount: Int!
+}
+
+# Operators hold Stake in Sponsorships
+type Stake @entity {
+  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  operator: Operator!
+  amount: BigInt!
+  allocatedWei: BigInt!
+  date: BigInt
+  sponsorship: Sponsorship
+}
+
+# Operators may raise Flags on each other to kick out those who don't do work
+type Flag @entity {
+  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  flagger: Operator!
+  target: Operator!
+  date: BigInt
+  sponsorship: Sponsorship
+  result: BigInt! # 0: pending, 1: target kicked, 2: flag failed
+  targetSlashAmount: BigInt
 }
