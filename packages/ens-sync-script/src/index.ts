@@ -44,8 +44,8 @@ async function main(){
     if (ENVIRONMENT === 'prod') {
         mainnetConfig = Chains.load()["ethereum"]
         sidechainConfig = Chains.load()["polygon"]
-        mainnetProvider = new JsonRpcProvider(RPC_URL)
-        sidechainProvider = new JsonRpcProvider(RPC_URL_MAINNET)
+        mainnetProvider = new JsonRpcProvider(RPC_URL_MAINNET)
+        sidechainProvider = new JsonRpcProvider(RPC_URL)
         privateKey = PRIVATE_KEY
     } else {
         mainnetConfig = Chains.load()["dev0"]
