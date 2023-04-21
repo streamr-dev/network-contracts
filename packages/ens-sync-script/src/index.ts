@@ -14,6 +14,7 @@ const {
     DELAY = "",
     ENVIRONMENT = "",
     RPC_URL = "",
+    RPC_URL_MAINNET = "",
     PRIVATE_KEY = "",
 } = process.env
 let {
@@ -43,7 +44,7 @@ async function main(){
         mainnetConfig = Chains.load()["ethereum"]
         sidechainConfig = Chains.load()["polygon"]
         mainnetProvider = new JsonRpcProvider(RPC_URL)
-        sidechainProvider = new JsonRpcProvider(RPC_URL)
+        sidechainProvider = new JsonRpcProvider(RPC_URL_MAINNET)
         privateKey = PRIVATE_KEY
     } else {
         mainnetConfig = Chains.load()["dev0"]
@@ -75,10 +76,10 @@ async function main(){
         })
     })
 
-    log("starting listening for createstream events on StreamRegistry contract: ", streamRegistryContract.address)
-    streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
-        log("Got StreamCreated event params: ", streamId, metadataJsonString)
-    })
+    // log("starting listening for createstream events on StreamRegistry contract: ", streamRegistryContract.address)
+    // streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
+    //     log("Got StreamCreated event params: ", streamId, metadataJsonString)
+    // })
 }
 
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
