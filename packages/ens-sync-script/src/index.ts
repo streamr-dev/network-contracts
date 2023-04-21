@@ -21,8 +21,9 @@ let {
     ENSCacheV2Address = ""
 } = process.env
 const delay = (parseInt(DELAY) || 0) * 1000
-const log = require("debug")("streamr:ens-sync-script")
+const log = require("debug")("log:streamr:ens-sync-script")
 log.log = console.log.bind(console)
+log.error = console.error.bind(console)
 let streamRegistryContract: Contract
 let privateKey: string
 let ensCacheContract: Contract
@@ -131,6 +132,6 @@ main().then(() => {
     log("listening for events")
     return void 0
 }).catch((err: any) => {
-    log("error: ", err)
+    log.error("error: ", err)
     process.exit(1)
 })
