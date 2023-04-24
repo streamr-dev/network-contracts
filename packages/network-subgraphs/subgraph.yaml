@@ -202,7 +202,7 @@ dataSources:
         - name: OperatorFactory
           file: ./abis/OperatorFactory.json
       eventHandlers:
-        - event: NewOperator(address)
+        - event: NewOperator(address,address)
           handler: handleNewOperator
 
 templates:

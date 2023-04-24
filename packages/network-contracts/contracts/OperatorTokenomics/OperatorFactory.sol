@@ -17,7 +17,7 @@ import "./IERC677.sol";
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
 contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
-    event NewOperator(address operatorContractAddress);
+    event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
@@ -31,6 +31,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     // array needed for peer operator selection for VoteKickPolicy peer review
     Operator[] public liveOperators;
     mapping (Operator => uint) public liveOperatorsIndex; // real index +1, zero for Operators not staked in a Sponsorship
+
+    mapping (address => address) public operators;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -147,7 +149,10 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
-        emit NewOperator(newContractAddress);
+        emit NewOperator(operatorAddress, newContractAddress);
+
+        operators[operatorAddress] = newContractAddress;
+        
         return newContractAddress;
     }
 
