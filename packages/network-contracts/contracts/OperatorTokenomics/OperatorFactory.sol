@@ -151,6 +151,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewOperator(operatorAddress, newContractAddress);
 
+        require(operators[operatorAddress] == address(0), "error_operatorAlreadyDeployed");
         operators[operatorAddress] = newContractAddress;
         
         return newContractAddress;
