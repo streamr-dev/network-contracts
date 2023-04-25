@@ -13,11 +13,18 @@ const { getSigners } = hardhatEthers
 
 describe("Operator", (): void => {
     let admin: Wallet
-    let operatorWallet: Wallet    // creates Operator contract
     let delegator: Wallet   // delegates DATA to Operator
     let sponsor: Wallet     // send DATA to a stream's Sponsorship contract
 
     let sharedContracts: TestContracts
+
+    /// operatorWallet creates Operator contract
+    async function randomOperatorWallet(tokens = "0", gasFees = "0.1"): Promise<Wallet> {
+        const wallet =  hardhatEthers.Wallet.createRandom().connect(hardhatEthers.provider)
+        admin.sendTransaction({ to: wallet.address, value: parseEther(gasFees) })
+        await setTokens(wallet, tokens)
+        return wallet
+    }
 
     // burn all tokens then mint the corrent amount of new ones
     async function setTokens(account: Wallet, amount: string) {
@@ -30,7 +37,7 @@ describe("Operator", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, operatorWallet, delegator, sponsor] = await getSigners() as unknown as Wallet[]
+        [admin, delegator, sponsor] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
     })
 
@@ -41,6 +48,7 @@ describe("Operator", (): void => {
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -73,6 +81,7 @@ describe("Operator", (): void => {
         const { token } = sharedContracts
         await setTokens(delegator, "100000")
         await setTokens(sponsor, "100000")
+        const operatorWallet = await randomOperatorWallet("0", "10")
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const timeAtStart = await getBlockTimestamp()
 

@@ -35,6 +35,14 @@ describe("Operator", (): void => {
         }
     }
 
+    /// operatorWallet creates operator contract
+    async function randomOperatorWallet(tokens = "0", walletBalance = "0.1"): Promise<Wallet> {
+        const wallet =  hardhatEthers.Wallet.createRandom().connect(hardhatEthers.provider)
+        admin.sendTransaction({ to: wallet.address, value: parseEther(walletBalance) })
+        await setTokens(wallet, tokens)
+        return wallet
+    }
+
     before(async (): Promise<void> => {
         [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
@@ -46,6 +54,7 @@ describe("Operator", (): void => {
     it("allows delegate and undelegate", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(delegator, "1000")
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("1000")))
@@ -63,6 +72,7 @@ describe("Operator", (): void => {
     it("allows delegate, transfer of poolTokens, and undelegate by another delegator", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(delegator, "1000")
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("1000")))
@@ -84,6 +94,7 @@ describe("Operator", (): void => {
         await setTokens(delegator, "1000")
         await setTokens(sponsor, "1000")
         const sponsorship = await deploySponsorship(sharedContracts)
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -105,11 +116,11 @@ describe("Operator", (): void => {
 
     describe("DefaultDelegationPolicy", () => {
         before(async () => {
-            await setTokens(operatorWallet, "3000")
             await setTokens(delegator, "15000")
         })
         it("negativetest minoperatorstakepercent, cannot join when operators stake too small", async function(): Promise<void> {
             const { token } = sharedContracts
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
             // operator should have 111.2 operator tokens, but has nothing
             await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
@@ -118,6 +129,7 @@ describe("Operator", (): void => {
 
         it("negativetest minoperatorstakepercent, delegator can't join if the operator's stake would fall too low", async function(): Promise<void> {
             const { token } = sharedContracts
+            const operatorWallet = await randomOperatorWallet("1000")
             const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
@@ -127,6 +139,7 @@ describe("Operator", (): void => {
 
         it("positivetest minoperatorstakepercent, can join", async function(): Promise<void> {
             const { token } = sharedContracts
+            const operatorWallet = await randomOperatorWallet("113")
             const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("113"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -136,7 +149,7 @@ describe("Operator", (): void => {
     it("updates approximate operator value when updateApproximatePoolvalueOfSponsorship is called", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(sponsor, "1000")
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("1000")
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -175,7 +188,7 @@ describe("Operator", (): void => {
     it("tries to keep the maintenance margin, diverts all of operator's share", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(sponsor, "1000")
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("100")
         await setTokens(delegator, "1000")
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -214,7 +227,7 @@ describe("Operator", (): void => {
     it("keeps the maintenance margin, diverts enough of operator's share to reach maintenanceMarginPercent", async function(): Promise<void> {
         const { token: dataToken } = sharedContracts
         await setTokens(sponsor, "1000")
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("1000")
         await setTokens(delegator, "1000")
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await dataToken.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -250,7 +263,7 @@ describe("Operator", (): void => {
         // - There is one single delegator with funds of 1000 DATA and no delegations.
         await setTokens(delegator, "1000")
         await setTokens(sponsor, "2500")
-        await setTokens(operatorWallet, "0")
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 }) // policy needed in part 4
 
         // 1: Simple Join/Delegate
@@ -327,7 +340,7 @@ describe("Operator", (): void => {
     it.skip("revenue sharing scenarios 8..10: slashing", async function(): Promise<void> {
         const { token: dataToken } = sharedContracts
         await setTokens(delegator, "10")
-        await setTokens(operatorWallet, "10")
+        const operatorWallet = await randomOperatorWallet("10")
 
         // Setup:
         // - There is one sponsorship
@@ -361,6 +374,7 @@ describe("Operator", (): void => {
 
             const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const timeAtStart = await getBlockTimestamp()
@@ -396,6 +410,7 @@ describe("Operator", (): void => {
 
             const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("5000"), "0x")).wait()
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 25 })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const timeAtStart = await getBlockTimestamp()
@@ -430,6 +445,7 @@ describe("Operator", (): void => {
             await setTokens(sponsor, "1000")
 
             const sponsorship = await deploySponsorship(sharedContracts)
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
             const balanceBefore = await token.balanceOf(delegator.address)
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -468,6 +484,8 @@ describe("Operator", (): void => {
 
             const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const timeAtStart = await getBlockTimestamp()
@@ -506,6 +524,7 @@ describe("Operator", (): void => {
 
             const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const timeAtStart = await getBlockTimestamp()
@@ -540,6 +559,7 @@ describe("Operator", (): void => {
             await setTokens(sponsor, "1000")
 
             const sponsorship = await deploySponsorship(sharedContracts)
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -582,6 +602,7 @@ describe("Operator", (): void => {
         await (await token.mint(delegator3.address, parseEther("100"))).wait()
 
         const days = 24 * 60 * 60
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
         await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
@@ -640,6 +661,7 @@ describe("Operator", (): void => {
         await setTokens(sponsor, "1000")
 
         const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const balanceBefore = await token.balanceOf(delegator.address)
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -666,7 +688,7 @@ describe("Operator", (): void => {
 
     it("punishes operator on too much diff on approx poolvalue", async function(): Promise<void> {
         const { token } = sharedContracts
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("1000")
         await setTokens(delegator, "0")
         await setTokens(sponsor, "2000")
 
@@ -699,7 +721,7 @@ describe("Operator", (): void => {
 
     it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
         const { token } = sharedContracts
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("1000")
         await setTokens(sponsor, "1000")
 
         const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
@@ -724,7 +746,7 @@ describe("Operator", (): void => {
 
     it("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
         const { token } = sharedContracts
-        await setTokens(operatorWallet, "1000")
+        const operatorWallet = await randomOperatorWallet("1000")
         await setTokens(sponsor, "1000")
 
         const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
@@ -747,6 +769,7 @@ describe("Operator", (): void => {
     })
 
     it("will NOT let anyone else to stake except the operator of the Operator", async function(): Promise<void> {
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
@@ -757,12 +780,14 @@ describe("Operator", (): void => {
     })
 
     it("will NOT allow staking to non-Sponsorships", async function(): Promise<void> {
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
         await expect(operator.stake(sharedContracts.token.address, parseEther("1000"))).to.be.revertedWith("error_badSponsorship")
     })
 
     it("will NOT allow staking to Sponsorships that were not created using the correct SponsorshipFactory", async function(): Promise<void> {
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const sponsorship = await deploySponsorship(sharedContracts)
         const badSponsorship = sharedContracts.sponsorshipTemplate
@@ -780,6 +805,7 @@ describe("Operator", (): void => {
 
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("5000"), "0x")).wait()
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 25 })
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
 
@@ -806,6 +832,7 @@ describe("Operator", (): void => {
         const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
 
         await (await newToken.mint(admin.address, parseEther("1000"))).wait()
+        const operatorWallet = await randomOperatorWallet()
         const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 25 })
         await expect(newToken.transferAndCall(operator.address, parseEther("100"), "0x"))
             .to.be.revertedWith("error_onlyDATAToken")
@@ -821,6 +848,7 @@ describe("Operator", (): void => {
         }
 
         it("can ONLY be updated by the operator", async function(): Promise<void> {
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet)
             await expect(operator.connect(admin).setNodeAddresses([admin.address]))
                 .to.be.revertedWith("error_onlyOperator")
@@ -835,6 +863,7 @@ describe("Operator", (): void => {
         })
 
         it("can be set all at once (setNodeAddresses positive test)", async function(): Promise<void> {
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet)
             const addresses = dummyAddressArray(6)
             await (await operator.setNodeAddresses(addresses.slice(0, 4))).wait()
@@ -849,6 +878,7 @@ describe("Operator", (): void => {
         })
 
         it("can be set 'differentially' (updateNodeAddresses positive test)", async function(): Promise<void> {
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet)
             const addresses = dummyAddressArray(6)
             await (await operator.setNodeAddresses(addresses.slice(0, 4)))
@@ -893,6 +923,7 @@ describe("Operator", (): void => {
         })
 
         it("can call heartbeat", async function(): Promise<void> {
+            const operatorWallet = await randomOperatorWallet()
             const operator = await deployOperator(sharedContracts, operatorWallet)
             await expect(operator.heartbeat("{}")).to.be.rejectedWith("error_onlyNodes")
             await (await operator.setNodeAddresses([delegator2.address])).wait()
