@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
-import { advanceToTimestamp, getBlockTimestamp, randomOperatorWallet, randomOperatorWallett, setTokens } from "../hardhat/OperatorTokenomics/utils"
+import { advanceToTimestamp, getBlockTimestamp, randomOperatorWallet, setTokens } from "../hardhat/OperatorTokenomics/utils"
 import { deployTestContracts, TestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
 import { deployOperator } from "../hardhat/OperatorTokenomics/deployOperatorContract"
 
