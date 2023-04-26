@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
-import { advanceToTimestamp, getBlockTimestamp } from "../hardhat/OperatorTokenomics/utils"
+import { advanceToTimestamp, getBlockTimestamp, randomOperatorWallet, randomOperatorWallett, setTokens } from "../hardhat/OperatorTokenomics/utils"
 import { deployTestContracts, TestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
 import { deployOperator } from "../hardhat/OperatorTokenomics/deployOperatorContract"
 
@@ -18,24 +18,6 @@ describe("Operator", (): void => {
 
     let sharedContracts: TestContracts
 
-    /// operatorWallet creates Operator contract
-    async function randomOperatorWallet(tokens = "0", gasFees = "0.1"): Promise<Wallet> {
-        const wallet =  hardhatEthers.Wallet.createRandom().connect(hardhatEthers.provider)
-        admin.sendTransaction({ to: wallet.address, value: parseEther(gasFees) })
-        await setTokens(wallet, tokens)
-        return wallet
-    }
-
-    // burn all tokens then mint the corrent amount of new ones
-    async function setTokens(account: Wallet, amount: string) {
-        const { token } = sharedContracts
-        const oldBalance = await token.balanceOf(account.address)
-        await (await token.connect(account).transfer("0x1234000000000000000000000000000000000000", oldBalance)).wait()
-        if (amount !== "0") {
-            await (await token.mint(account.address, parseEther(amount))).wait()
-        }
-    }
-
     before(async (): Promise<void> => {
         [admin, delegator, sponsor] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
@@ -43,12 +25,12 @@ describe("Operator", (): void => {
 
     it("edge case many queue entries, one sponsorship, batched", async function(): Promise<void> {
         const { token } = sharedContracts
-        await setTokens(delegator, "1000")
-        await setTokens(sponsor, "1000")
+        await setTokens(delegator, "1000", token)
+        await setTokens(sponsor, "1000", token)
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-        const operatorWallet = await randomOperatorWallet()
+        const operatorWallet = await randomOperatorWallet(admin)
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -79,9 +61,9 @@ describe("Operator", (): void => {
 
     it("edge case one queue entry, many sponsorships", async function(): Promise<void> {
         const { token } = sharedContracts
-        await setTokens(delegator, "100000")
-        await setTokens(sponsor, "100000")
-        const operatorWallet = await randomOperatorWallet("0", "10")
+        await setTokens(delegator, "100000", token)
+        await setTokens(sponsor, "100000", token)
+        const operatorWallet = await randomOperatorWallet(admin, "10")
         const operator = await deployOperator(sharedContracts, operatorWallet)
         const timeAtStart = await getBlockTimestamp()
 
