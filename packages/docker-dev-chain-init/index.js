@@ -454,13 +454,13 @@ async function deploySponsorshipFactory() {
         defaultUndelegationPolicy.address,
     ])).wait()
     log("Added trusted policies")
-
+    await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
     await (await streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
     log("Set operator operator factory in StreamrConfig")
 
     const operatortx = await operatorFactory.connect(adminWallet).deployOperator(
         0, // min initial investment
-        `Operator-${Date.now()}`,
+        [`Operator-${Date.now()}`, "{}"],
         [defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultUndelegationPolicy.address],
