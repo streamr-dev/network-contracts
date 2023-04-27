@@ -1,9 +1,11 @@
 /* eslint-disable no-console */
 import { Contract } from "@ethersproject/contracts"
 import { JsonRpcProvider, Provider } from "@ethersproject/providers"
+import { parseUnits } from "@ethersproject/units"
 import { Wallet } from "@ethersproject/wallet"
 import { Chains } from "@streamr/config"
 import { createRequire } from "module"
+import fetch from "node-fetch"
 const require = createRequire(import.meta.url)
 const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
 const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
@@ -112,10 +114,15 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
         const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
-        if (tx.gasPrice) { 
-            log("increasing gas price by 20%, was: ", tx.gasPrice.toString(), "now: ", tx.gasPrice.mul(1.2).toString())
-            tx.gasPrice = tx.gasPrice.mul(1.2)
-        }
+        log("getting gasprice from polygonscan")
+        const pscanAnswer = await fetch('https://gasstation-mainnet.matic.network/v2')
+        const pscanJson: any = await pscanAnswer.json()
+
+        const maxFee = Math.floor(pscanJson.fast.maxFee)
+        const maxPriorityFee = Math.floor(pscanJson.fast.maxPriorityFee)
+        log("result: maxFee: ", maxFee, "maxPriorityFee: ", maxPriorityFee)
+        tx.maxFeePerGas = parseUnits(maxFee.toString(), "gwei").mul(2)
+        tx.maxPriorityFeePerGas = parseUnits(maxPriorityFee.toString(), "gwei")
         const tr = await domainOwnerSidechain.sendTransaction(tx)
         log("createStreamFromENS tx: ", tr.hash)
     } catch (e) {
