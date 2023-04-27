@@ -457,10 +457,12 @@ async function deploySponsorshipFactory() {
 
     await (await streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
     log("Set operator operator factory in StreamrConfig")
+    await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
+    log("Set stream registry address in StreamrConfig")
 
     const operatortx = await operatorFactory.connect(adminWallet).deployOperator(
         0, // min initial investment
-        `Operator-${Date.now()}`,
+        [`Operator-${Date.now()}`, "{}"],
         [defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultUndelegationPolicy.address],
