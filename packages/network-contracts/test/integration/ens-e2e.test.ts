@@ -1,26 +1,37 @@
-import { ethers } from "hardhat"
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { ethers, upgrades } from "hardhat"
 import { Contract, providers, Wallet, utils } from "ethers"
 import Debug from "debug"
 const log = Debug("streamr:test:chainlink-ens")
+import { Chains } from "@streamr/config"
 
 import { StreamRegistry } from "../../typechain"
 
 import ensAbi from "@ensdomains/ens/build/contracts/ENS.json"
 import fifsAbi from "@ensdomains/ens/build/contracts/FIFSRegistrar.json"
 
-const DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
-const MAINNETURL = "http://localhost:8545"
-const SIDECHAINURL = "http://localhost:8546"
+const mainnetConfig = Chains.load()["dev0"]
+const sidechainConfig = Chains.load()["dev1"]
+const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
+const sideChainProvider = new providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 
-const STREAMREGISTRYADDRESS = "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222"
+const keyidparam = process.env.KEYID || "0"
+let DEFAULTPRIVATEKEY = ""
+if (keyidparam == "0") {
+    DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0" // deploymentowner of streamregistry
+} else if (keyidparam == "1") {
+    DEFAULTPRIVATEKEY = "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb" // owner of testdomain1.eth
+} else if (keyidparam == "2") { 
+    DEFAULTPRIVATEKEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae" // owner of testdomain2.eth
+}
 
 // ens on mainnet
 const ENSADDRESS = "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03"
 const FIFSADDRESS = "0x57B81a9442805f88c4617B506206531e72d96290"
 const RESOLVERADDRESS = "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c"
 
-const mainnetProvider = new providers.JsonRpcProvider(MAINNETURL)
-const sideChainProvider = new providers.JsonRpcProvider(SIDECHAINURL)
+const ENSCacheV1 = "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3"
+
 const domainOwner = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
 const domainOwnerSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
 const subdomainOwner = Wallet.createRandom().connect(sideChainProvider)
@@ -28,7 +39,6 @@ const subdomainOwner = Wallet.createRandom().connect(sideChainProvider)
 let registryFromUser: StreamRegistry
 let ensFromAdmin: Contract
 let fifsFromAdmin: Contract
-// let resolverFromAdmin : Contract
 let randomENSName: string
 let randomENSNameWithSubdomain: string
 const metadata1 = "metadata1"
@@ -39,7 +49,7 @@ const connectToAllContracts = async () => {
     await (await domainOwnerSidechain.sendTransaction({ to: subdomainOwner.address, value: ethers.utils.parseEther("1") })).wait()
 
     const streamregistryFactory = await ethers.getContractFactory("StreamRegistry", domainOwnerSidechain)
-    const registry = await streamregistryFactory.attach(STREAMREGISTRYADDRESS)
+    const registry = await streamregistryFactory.attach(sidechainConfig.contracts.StreamRegistry)
     const registryContract = await registry.deployed()
     registryFromUser = await registryContract.connect(domainOwnerSidechain) as StreamRegistry
 
@@ -63,14 +73,6 @@ const registerENSNameOnMainnet = async () => {
     let tx = await fifsFromAdmin.register(hashedDomain, domainOwner.address)
     await tx.wait()
 
-    // log('setting owner for ens (should already be the registrar)')
-    // tx = await ensFromAdmin.setOwner(nameHashedENSName, walletMainnet.address)
-    // await tx.wait()
-
-    // log('setting resolver for ens')
-    // tx = await ensFromAdmin.setResolver(nameHashedENSName, RESOLVERADDRESS)
-    // await tx.wait(2)
-
     log("setting owner (" + domainOwner.address + "), resolver and ttl for ens")
     tx = await ensFromAdmin.setRecord(nameHashedENSName, domainOwner.address, RESOLVERADDRESS, 1000000)
     await tx.wait()
@@ -87,11 +89,11 @@ const registerENSNameOnMainnet = async () => {
     tx = await ensFromAdmin.setSubnodeRecord(nameHashedENSName, labelhash, subdomainOwner.address, RESOLVERADDRESS, 1000000)
     await tx.wait()
 
-    // log('setting subnode owner for subdomain')
-    // tx = await ensFromAdmin.setSubnodeOwner(nameHashedSubdomain, "subnodelabel1", walletMainnet.address, )
+    // log("setting subnode owner for subdomain")
+    // tx = await ensFromAdmin.setSubnodeOwner(nameHashedSubdomain, "subnodelabel1", subdomainOwner.address, )
     // await tx.wait()
 
-    // log('setting resolver for subdomain')
+    // log("setting resolver for subdomain")
     // tx = await ensFromAdmin.setResolver(nameHashedSubdomain, RESOLVERADDRESS)
     // await tx.wait()
 
@@ -104,11 +106,23 @@ const registerENSNameOnMainnet = async () => {
     log("queried owner of", randomENSNameWithSubdomain, ": ", subdomainOwnerQueried)
 }
 
-const triggerChainlinkSyncOfENSNameToSidechain = async () => {
+const changeENSOwnerOnMainnet = async () => {
+    // randomENSName = "testdomain2.eth"
+    const newOwner = "0xdC353aA3d81fC3d67Eb49F443df258029B01D8aB"
+    log("changing owner of ens name on mainnet:", randomENSName, " owner: " + newOwner)
+    const nameHashedENSName = utils.namehash(randomENSName)
+    const tx = await ensFromAdmin.setOwner(nameHashedENSName, newOwner)
+    await tx.wait()
+    log("set owner of ens name on mainnet:", randomENSName, " owner: " + newOwner)
+}
+
+const triggerSyncOfENSNameToSidechain = async () => {
 
     const randomPath = getRandomPath()
+    // randomENSName = "testdomain2.eth"
     log("creating stream with ensname: " + randomENSName + randomPath)
-    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1)
+    const tx = await registryFromUser.createStreamWithENS(randomENSName, randomPath, metadata1) // fires the ens event
+    // const tx = await registryFromUser.createStreamWithENS("zzhgq.eth", randomPath, metadata1) // fires the ens event
     // const tx = await ensCacheFromOwner.requestENSOwner(randomENSName)
     await tx.wait()
     log("call done")
@@ -127,7 +141,7 @@ const triggerChainlinkSyncOfENSNameToSidechain = async () => {
     log("SUCCESS, creating a stream with the ens from owner of domain worked")
 }
 
-const triggerChainlinkSyncOfENSSubdomainToSidechain = async () => {
+const triggerSyncOfENSSubdomainToSidechain = async () => {
     const randomPath = getRandomPath()
     log("creating stream with subdomain from subdomainowner: " + randomENSNameWithSubdomain + randomPath)
     const tx = await registryFromUser.connect(subdomainOwner).createStreamWithENS(randomENSNameWithSubdomain, randomPath, metadata1)
@@ -153,8 +167,9 @@ async function main() {
     await connectToAllContracts()
 
     await registerENSNameOnMainnet()
-    await triggerChainlinkSyncOfENSNameToSidechain()
-    await triggerChainlinkSyncOfENSSubdomainToSidechain()
+    // await changeENSOwnerOnMainnet()
+    await triggerSyncOfENSNameToSidechain()
+    await triggerSyncOfENSSubdomainToSidechain()
 }
 
 main()
