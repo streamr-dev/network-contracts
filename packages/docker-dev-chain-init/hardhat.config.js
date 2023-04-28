@@ -69,6 +69,7 @@ module.exports = {
             '@streamr-contracts/network-contracts/contracts/NodeRegistry/NodeRegistry.sol',
             '@streamr-contracts/network-contracts/contracts/NodeRegistry/TrackerRegistry.sol',
             '@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol',
+            '@streamr-contracts/network-contracts/contracts/chainlinkClient/ENSCacheV2Streamr.sol',
             '@streamr-contracts/network-contracts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol',
             '@streamr-contracts/network-contracts/contracts/OperatorTokenomics/StreamrConfig.sol',
             '@streamr-contracts/network-contracts/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy.sol',

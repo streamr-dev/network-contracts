@@ -105,6 +105,7 @@ const chainlinkNodeAddress = '0x7b5F1610920d5BAf00D684929272213BaF962eFe'
 const chainlinkJobId = 'c99333d032ed4cb8967b956c7f0329b5'
 let nodeRegistryAddress = ''
 let streamRegistryAddress = ''
+let ensCachV1Address = ''
 let streamRegistryFromOwner
 let linkToken
 
@@ -264,6 +265,7 @@ async function deployStreamRegistries() {
     const ensCacheFactory = await ethers.getContractFactory("ENSCache", sidechainWalletStreamReg)
     const ensCacheFactoryTx = await ensCacheFactory.deploy(oracle.address, chainlinkJobId)
     const ensCache = await ensCacheFactoryTx.deployed()
+    ensCachV1Address = ensCache.address
     log(`ENSCache deployed at ${ensCache.address}`)
     log(`ENSCache setting Link token address ${linkToken.address}`)
     const setPermissionTx = await ensCache.setChainlinkTokenAddress(linkToken.address)
@@ -479,6 +481,31 @@ async function deploySponsorshipFactory() {
     const stakeTx = await operator.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
     await stakeTx.wait()
     log("Staked into sponsorship ", sponsorship.address)
+}
+
+async function deployENSCacheV2() {
+    const sidechainWalletStreamReg = await ethersWallet(sidechainURL, defaultPrivateKey)
+
+    const ensCacheScriptFactory = await ethers.getContractFactory("ENSCacheV2Streamr", sidechainWalletStreamReg)
+    const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
+    const ensCacheScript = await upgrades.deployProxy(ensCacheScriptFactory, 
+        [scriptKeyAddress,
+            streamRegistryAddress,
+            ensCachV1Address], { kind: "uups" })
+    await ensCacheScript.deployed()
+
+    log("ENSCacheV2 (chainlinkless) deployed at:", ensCacheScript.address)
+
+    const role = await streamRegistryFromOwner.TRUSTED_ROLE()
+    log(`granting trusted role ${role} to self ${sidechainWalletStreamReg.address}`)
+    await (await streamRegistryFromOwner.grantRole(role, sidechainWalletStreamReg.address)).wait()
+
+    log("setting ENSCache address in StreamRegistry")
+    await (await streamRegistryFromOwner.setEnsCache(ensCacheScript.address)).wait()
+    
+    log(`granting trusted role ${role} ensaddress ${ensCacheScript.address}`)
+    await (await streamRegistryFromOwner.grantRole(role, ensCacheScript.address)).wait()
+    log("ensCacheScript address set as trusted role in streamregistry")
 }
 
 async function smartContractInitialization() {
@@ -768,6 +795,8 @@ async function smartContractInitialization() {
     await grantRoleProjectRegistryV1Tx.wait()
 
     await deploySponsorshipFactory()
+
+    await deployENSCacheV2()
 
     //put additions here
 
