@@ -29,7 +29,8 @@ describe("Operator", (): void => {
         }
     }
 
-    before(async (): Promise<void> => {
+    // beforeEach nesssesary because no operator can deploy an operator contract twice
+    beforeEach(async (): Promise<void> => {
         [admin, operatorWallet, delegator, sponsor] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
     })
