@@ -6,6 +6,7 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperator } from "./deployOperatorContract"
 
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
+import { randomOperatorWallet } from "./utils"
 
 const { parseEther, id } = utils
 
@@ -44,10 +45,16 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     const { token } = contracts
 
     // Hardhat provides 20 pre-funded signers
-    const [admin, ...hardhatSigners] = await hardhatEthers.getSigners() as unknown as Wallet[]
+    const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
-    const signers = hardhatSigners.slice(0, totalOperatorCount)
+    const signers: Wallet[] = []
+    for (let i = 0; i < totalOperatorCount; i++) {
+        const wallet = await randomOperatorWallet(admin)
+        const { address } = wallet
+        await (await token.mint(address, parseEther("1000000"))).wait()
+        signers.push(wallet)
+    }
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32

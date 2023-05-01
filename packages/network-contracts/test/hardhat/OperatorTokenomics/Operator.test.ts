@@ -16,7 +16,6 @@ const { getSigners, getContractFactory } = hardhatEthers
 describe("Operator", (): void => {
     let admin: Wallet       // creates the Sponsorship
     let sponsor: Wallet     // sponsors the Sponsorship
-    let operatorWallet: Wallet    // creates Operator contract
     let delegator: Wallet   // puts DATA into Operator contract
     let delegator2: Wallet
     let delegator3: Wallet
@@ -26,7 +25,7 @@ describe("Operator", (): void => {
     let testKickPolicy: IKickPolicy
 
     before(async (): Promise<void> => {
-        [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
+        [admin, sponsor, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
@@ -888,6 +887,7 @@ describe("Operator", (): void => {
         it("can call flagging functions", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(sponsor, "1000", token) // accounts 1, 2, 3
+            const operatorWallet = await randomOperatorWallet(admin)// TODO: use this
             await setTokens(operatorWallet, "1000", token)
             await setTokens(delegator, "1000", token)
             const {
