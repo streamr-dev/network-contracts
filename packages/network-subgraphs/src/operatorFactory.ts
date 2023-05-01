@@ -11,6 +11,7 @@ export function handleNewOperator(event: NewOperator): void {
     let operator = new Operator(contractAddressString)
     operator.delegatorCount = 0
     operator.approximatePoolValue = BigInt.fromI32(0)
+    operator.owner = event.params.operatorAddress.toHexString()
     operator.unallocatedWei = BigInt.fromI32(0)
     operator.save()
 
