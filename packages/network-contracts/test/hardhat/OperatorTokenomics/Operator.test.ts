@@ -35,7 +35,9 @@ describe("Operator", (): void => {
         }
     }
 
-    before(async (): Promise<void> => {
+    // beforeEACH nesssesary because no operator can deploy an operator contract twice,
+    // AND we need deterministic operator addresses for CREATE2 and voter selection
+    beforeEach(async (): Promise<void> => {
         [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
@@ -104,7 +106,7 @@ describe("Operator", (): void => {
     })
 
     describe("DefaultDelegationPolicy", () => {
-        before(async () => {
+        beforeEach(async () => {
             await setTokens(operatorWallet, "3000")
             await setTokens(delegator, "15000")
         })
@@ -898,5 +900,11 @@ describe("Operator", (): void => {
             await (await operator.setNodeAddresses([delegator2.address])).wait()
             await expect(operator.connect(delegator2).heartbeat("{}")).to.emit(operator, "Heartbeat").withArgs(delegator2.address, "{}")
         })
+    })
+
+    it("negativeTest: operator signer cannot deploy operator twice", async function(): Promise<void> {
+        await deployOperator(sharedContracts, operatorWallet)
+        await expect(deployOperator(sharedContracts, operatorWallet))
+            .to.be.revertedWith("error_operatorAlreadyDeployed")
     })
 })
