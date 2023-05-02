@@ -16,7 +16,7 @@
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
     "test": "npm run test:fast && npm run test:slow",
-    "test:ens-chainlink": "hardhat run --network dev1 test/integration/ens-chainlink.test.ts",
+    "test:ens-e2e": "hardhat run --network dev1 test/integration/ens-e2e.test.ts",
     "coverage": "hardhat coverage",
     "lint": "solhint `find contracts -name '*.sol'`",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",

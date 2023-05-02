@@ -55,13 +55,14 @@ async function main(){
         mainnetProvider = new JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
         sidechainProvider = new JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
-        ENSCacheV2Address = "0xe78c7E1Ee0fEFAed92758996008F5aB24aa85693"
+        ENSCacheV2Address = "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166"
     }
     
     const ensAddress = mainnetConfig.contracts.ENS
 
     streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
     domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
+    log("wallet address: ", domainOwnerSidechain.address)
     ensCacheContract = new Contract(ENSCacheV2Address, ABIenscache.abi, domainOwnerSidechain) // TODO
     ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
     log("starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
@@ -114,15 +115,17 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
         const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
-        log("getting gasprice from polygonscan")
-        const pscanAnswer = await fetch('https://gasstation-mainnet.matic.network/v2')
-        const pscanJson: any = await pscanAnswer.json()
+        if(ENVIRONMENT === 'prod') {
+            log("getting gasprice from polygonscan")
+            const pscanAnswer = await fetch('https://gasstation-mainnet.matic.network/v2')
+            const pscanJson: any = await pscanAnswer.json()
 
-        const maxFee = Math.floor(pscanJson.fast.maxFee)
-        const maxPriorityFee = Math.floor(pscanJson.fast.maxPriorityFee)
-        log("result: maxFee: ", maxFee, "maxPriorityFee: ", maxPriorityFee)
-        tx.maxFeePerGas = parseUnits(maxFee.toString(), "gwei").mul(2)
-        tx.maxPriorityFeePerGas = parseUnits(maxPriorityFee.toString(), "gwei")
+            const maxFee = Math.floor(pscanJson.fast.maxFee)
+            const maxPriorityFee = Math.floor(pscanJson.fast.maxPriorityFee)
+            log("result: maxFee: ", maxFee, "maxPriorityFee: ", maxPriorityFee)
+            tx.maxFeePerGas = parseUnits(maxFee.toString(), "gwei").mul(2)
+            tx.maxPriorityFeePerGas = parseUnits(maxPriorityFee.toString(), "gwei")
+        }
         const tr = await domainOwnerSidechain.sendTransaction(tx)
         log("createStreamFromENS tx: ", tr.hash)
     } catch (e) {

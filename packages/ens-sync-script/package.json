@@ -5,7 +5,8 @@
   "description": "looks up owner of ensname on stream creation and creates stream",
   "main": "index.ts",
   "scripts": {
-    "start": "tsx ./src/index.ts"
+    "start": "tsx ./src/index.ts",
+    "docker": "./buildDockerImage.sh"
   },
   "author": "Streamr Network AG <contact@streamr.network>",
   "license": "Apache-2.0",
