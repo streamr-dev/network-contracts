@@ -62,7 +62,7 @@ jobs:
           npm ci --no-audit
           npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build packages
-        run: npm run build -w packages/network-contracts
+        run: npm run build -w packages/network-contracts -w packages/config
       - name: Start Streamr Docker Stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
