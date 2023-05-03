@@ -30,6 +30,12 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
+    log("registering stream registry in streamr config")
+    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
+    const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
+    const streamrConfig = await streamrConfigFactoryTx.deployed()
+    await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
+
     const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory", {signer: deploymentOwner })
     const operatorFactoryContact = await operatorFactoryFactory.attach(localConfig.operatorFactory) as OperatorFactory
     operatorFactory = await operatorFactoryContact.connect(deploymentOwner) as OperatorFactory
@@ -103,7 +109,7 @@ const flag = async () => {
 
 async function main() {
     await connectToAllContracts()
-    await deployOperatorContracts(3)
+    await deployOperatorContracts(1)
     await investToPool()
     await stakeIntoSponsorship()
     await flag()

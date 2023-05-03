@@ -59,15 +59,15 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
         log.info("handleSponsorshipUpdated: creating new stat statId={}", [bucketId])
         bucket = new SponsorshipDailyBucket(bucketId)
         bucket.sponsorship = sponsorshipAddress.toHexString()
-        bucket.date = new BigInt(i32(date.getTime()))
+        bucket.date = BigInt.fromI32(i32(date.getTime() / 1000))
         bucket.totalStakedWei = event.params.totalStakeWei
         bucket.unallocatedWei = event.params.unallocatedWei
+        bucket.projectedInsolvency = new BigInt(0)
         bucket.spotAPY = new BigInt(0)
         bucket.totalPayoutsCumulative = new BigInt(0)
     } else {
         bucket.totalStakedWei = bucket.totalStakedWei.plus(event.params.totalStakeWei)
         bucket.unallocatedWei = bucket.unallocatedWei.plus(event.params.unallocatedWei)
-        // stat.totalPayoutsCumulative = stat.totalPayoutsCumulative.plus(event.params.totalPayoutsCumulative)
     }
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.save()

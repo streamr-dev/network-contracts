@@ -27,13 +27,13 @@ export function handleNewOperator(event: NewOperator): void {
     if (bucket === null) {
         bucket = new OperatorDailyBucket(bucketId)
         bucket.operator = contractAddressString
-        bucket.date = new BigInt(i32(date.getTime()))
+        bucket.date = BigInt.fromI32(i32(date.getTime() / 1000))
         bucket.approximatePoolValue = BigInt.fromI32(0)
+        bucket.unallocatedWei = BigInt.fromI32(0)
+        bucket.spotAPY = BigInt.fromI32(0)
         bucket.totalPayoutsCumulative = BigInt.fromI32(0)
         bucket.delegatorCount = 0
-        bucket.spotAPY = BigInt.fromI32(0)
         bucket.totalDelegatedWei = BigInt.fromI32(0)
-        bucket.unallocatedWei = BigInt.fromI32(0)
         bucket.totalStakedWei = BigInt.fromI32(0)
     }
     bucket.save()
