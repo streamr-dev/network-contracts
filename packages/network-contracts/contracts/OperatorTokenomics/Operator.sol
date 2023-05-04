@@ -20,6 +20,7 @@ import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
 import "./SponsorshipFactory.sol";
 
+// TODO: replace interface with import
 interface IStreamRegistry {
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
@@ -43,20 +44,20 @@ interface IStreamRegistry {
  */
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
-    // delegator events
+    // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountWei);
     event Undelegated(address indexed delegator, uint amountWei);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
 
-    // sponsorship events
+    // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei);
     event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
-    // node events
+    // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
     event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator);
 
@@ -64,7 +65,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event NodesSet(address[] nodes);
     event MetadataUpdated(string metadataJsonString, address indexed operatorAddress); // = owner() of this contract
 
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     IDelegationPolicy public delegationPolicy;
@@ -113,7 +115,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public metadata;
 
     modifier onlyOperator() {
-        require(_msgSender() == owner, "error_onlyOperator");
+        require(hasRole(CONTROLLER_ROLE, msg.sender), "error_onlyOperator");
         _;
     }
 
@@ -133,8 +135,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint initialMinimumDelegationWei
     ) public initializer {
         __AccessControl_init();
-        _setupRole(ADMIN_ROLE, ownerAddress);
-        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, ADMIN_ROLE); // admin can set the GSN trusted forwarder
+        _setupRole(OWNER_ROLE, ownerAddress);
+        _setupRole(CONTROLLER_ROLE, ownerAddress);
+        _setRoleAdmin(CONTROLLER_ROLE, OWNER_ROLE); // owner sets the controllers
+        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, CONTROLLER_ROLE); // controller can set the GSN trusted forwarder
         token = IERC677(tokenAddress);
         owner = ownerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
@@ -154,8 +158,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _createOperatorStream();
     }
 
-    /** Each operator contract creates a fleet coordination stream upon creation, 
-      * id = <operatorContractAddress>/operator/coordination 
+    /** Each operator contract creates a fleet coordination stream upon creation,
+      * id = <operatorContractAddress>/operator/coordination
       */
     function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
@@ -365,7 +369,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
-            require(hasRole(ADMIN_ROLE, msg.sender), "error_onlyOperator");
+            require(hasRole(CONTROLLER_ROLE, msg.sender), "error_onlyOperator");
         }
 
         uint amountStakedBeforeWei = sponsorship.getMyStake();
@@ -558,7 +562,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             return false;
         }
 
-        // console.log("payOutQueueWithFreeFunds amountPoolTokens", amountPoolTokens);
+        // console.log("payOutFirstInQueue amountPoolTokens", amountPoolTokens);
         uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
             amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
         if (balanceDataWei >= amountDataWei) {
