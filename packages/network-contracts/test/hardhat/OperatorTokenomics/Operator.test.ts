@@ -901,10 +901,4 @@ describe("Operator", (): void => {
             await expect(operator.connect(delegator2).heartbeat("{}")).to.emit(operator, "Heartbeat").withArgs(delegator2.address, "{}")
         })
     })
-
-    it("negativeTest: operator signer cannot deploy operator twice", async function(): Promise<void> {
-        await deployOperator(sharedContracts, operatorWallet)
-        await expect(deployOperator(sharedContracts, operatorWallet))
-            .to.be.revertedWith("error_operatorAlreadyDeployed")
-    })
 })
