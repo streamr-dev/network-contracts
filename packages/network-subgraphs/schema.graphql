@@ -264,6 +264,7 @@ type Sponsorship @entity {
   stream: Stream
   metadata: String
   isRunning: Boolean!
+  totalPayoutWeiPerSec: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
   operatorCount: Int!
   totalStakedWei: BigInt!

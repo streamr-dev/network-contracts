@@ -1,7 +1,8 @@
-import { BigInt, log } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Operator, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
-import { StakeUpdate, SponsorshipUpdate, FlagUpdate } from '../generated/templates/Sponsorship/Sponsorship'
+import { Sponsorship, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
+import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate } from '../generated/templates/Sponsorship/Sponsorship'
+import { updateOrCreateSponsorshipDailyBucket, getDateString } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
@@ -21,11 +22,11 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stake.allocatedWei = event.params.allocatedWei
 
     // link to operator
-    let operator = Operator.load(event.params.operator.toHexString())
-    if (operator !== null) {
-        log.info('handleStakeUpdated: updating pool pool={} stake={}', [operator.id, stake.id])
-        stake.operator = operator.id
-    }
+    // let operator = Operator.load(event.params.operator.toHexString())
+    // if (operator !== null) {
+    //     log.info('handleStakeUpdated: updating pool pool={} stake={}', [operator.id, stake.id])
+    //     stake.operator = operator.id
+    // }
     stake.save()
 }
 
@@ -46,31 +47,29 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     sponsorship!.save()
 
     // update SponsorshipDailyBucket
-    let date = new Date(event.block.timestamp.toI32() * 1000)
-    date.setUTCHours(0)
-    date.setUTCMinutes(0)
-    date.setUTCSeconds(0)
-    date.setUTCMilliseconds(0)
-    //datestring in yyyy-mm-dd format
-    let dateString = date.toISOString().split('T')[0]
-    let bucketId = sponsorshipAddress.toHexString() + "-" + dateString
-    let bucket = SponsorshipDailyBucket.load(bucketId)
-    if (bucket === null) {
-        log.info("handleSponsorshipUpdated: creating new stat statId={}", [bucketId])
-        bucket = new SponsorshipDailyBucket(bucketId)
-        bucket.sponsorship = sponsorshipAddress.toHexString()
-        bucket.date = BigInt.fromI32(i32(date.getTime() / 1000))
-        bucket.totalStakedWei = event.params.totalStakeWei
-        bucket.unallocatedWei = event.params.unallocatedWei
-        bucket.projectedInsolvency = new BigInt(0)
-        bucket.spotAPY = new BigInt(0)
-        bucket.totalPayoutsCumulative = new BigInt(0)
-    } else {
-        bucket.totalStakedWei = bucket.totalStakedWei.plus(event.params.totalStakeWei)
-        bucket.unallocatedWei = bucket.unallocatedWei.plus(event.params.unallocatedWei)
+    updateOrCreateSponsorshipDailyBucket(sponsorshipAddress.toHexString(),
+        event.block.timestamp.toI32(),
+        event.params.totalStakeWei,
+        event.params.unallocatedWei,
+        event.params.operatorCount.toI32(),
+        null,
+        null)
+}
+
+export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
+    log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
+        [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
+    let sponsorshipAddress = event.address
+    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
+    sponsorship!.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    sponsorship!.save()
+
+    // update SponsorshipDailyBucket
+    let sponsorshipDailyBucket = SponsorshipDailyBucket.load(getDateString(event.block.timestamp.toI32()))
+    if (sponsorshipDailyBucket !== null) {
+        sponsorshipDailyBucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+        sponsorshipDailyBucket.save()
     }
-    bucket.operatorCount = event.params.operatorCount.toI32()
-    bucket.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {

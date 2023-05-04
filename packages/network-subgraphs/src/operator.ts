@@ -1,13 +1,13 @@
 import { log } from '@graphprotocol/graph-ts'
 
 import { Operator, Delegation } from '../generated/schema'
-import { Delegated, MetadataUpdated } from '../generated/templates/Operator/Operator'
+import { Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
 
 export function handleDelegationReceived (event: Delegated): void {
     log.info('handleDelegationReceived: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     let operator = Operator.load(event.address.toHexString())
     operator!.delegatorCount = operator!.delegatorCount + 1
-
+    operator!.approximatePoolValue = event.params.approxPoolValue
     operator!.save()
 
     let delegation = Delegation.load(event.params.delegator.toHexString())
@@ -26,6 +26,27 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     let operator = Operator.load(operatorContractAddress.toHexString())
     // TODO: unpack event.params.metadataJsonString
     operator!.owner = event.params.operatorAddress.toHexString()
+    operator!.save()
+}
+
+export function handleDelegationRemoved (event: Undelegated): void {
+    log.info('handleDelegationRemoved: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    let operator = Operator.load(event.address.toHexString())
+    operator!.delegatorCount = operator!.delegatorCount - 1
+    operator!.approximatePoolValue = event.params.approxPoolValue
+    operator!.save()
+
+    let delegation = Delegation.load(event.address.toHexString() + "-" + event.params.delegator.toHexString())
+    if (delegation !== null) {
+        delegation.amount = event.params.amountWei
+        delegation.save()
+    }
+}
+
+export function handleStakeUpdated (event: StakeUpdate): void {
+    log.info('handleStakeUpdated: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    let operator = Operator.load(event.address.toHexString())
+    operator!.approximatePoolValue = event.params.approxPoolValue
     operator!.save()
 }
 

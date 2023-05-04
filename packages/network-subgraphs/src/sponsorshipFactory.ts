@@ -3,6 +3,7 @@ import { BigInt, log } from '@graphprotocol/graph-ts'
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
+import { updateOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
     log.info('handleNewSponsorship at {}', [event.params.sponsorshipContract.toHexString()])
@@ -14,6 +15,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
+    sponsorship.totalPayoutWeiPerSec = event.params.totalPayoutWeiPerSec
     sponsorship.save()
 
     // try to load stream entity
@@ -26,4 +28,11 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // Instantiate template
     SponsorshipTemplate.create(event.params.sponsorshipContract)
     // SponsorshipTemplate.create(event.params.sponsorshipContract)
+    updateOrCreateSponsorshipDailyBucket(event.params.sponsorshipContract.toHexString(),
+        event.block.timestamp.toI32(),
+        BigInt.fromI32(0),
+        BigInt.fromI32(0),
+        0,
+        null,
+        null)
 }

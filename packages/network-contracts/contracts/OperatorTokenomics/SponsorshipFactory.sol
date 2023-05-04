@@ -23,7 +23,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    event NewSponsorship(address sponsorshipContract, string streamId, string metadata);
+    event NewSponsorship(address sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -157,7 +157,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         }
         sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.operatorContractOnlyJoinPolicy()), 0);
         sponsorship.renounceRole(sponsorship.DEFAULT_ADMIN_ROLE(), address(this));
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata);
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0]);
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[sponsorshipAddress] = block.timestamp;
         return sponsorshipAddress;
