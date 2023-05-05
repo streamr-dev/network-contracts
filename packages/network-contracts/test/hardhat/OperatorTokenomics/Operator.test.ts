@@ -20,6 +20,7 @@ describe("Operator contract", (): void => {
     let delegator: Wallet       // puts DATA into Operator contract
     let delegator2: Wallet
     let delegator3: Wallet
+    let controller: Wallet      // acts on behalf of operatorWallet
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
@@ -47,7 +48,7 @@ describe("Operator contract", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
+        [admin, sponsor, operatorWallet, delegator, delegator2, delegator3, controller] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
@@ -910,4 +911,12 @@ describe("Operator contract", (): void => {
             await expect(operator.connect(delegator2).heartbeat("{}")).to.emit(operator, "Heartbeat").withArgs(delegator2.address, "{}")
         })
     })
+
+    it("allows controllers to act on behalf of the operator", async function(): Promise<void> {
+        const operator = await deployOperator(sharedContracts, operatorWallet)
+        await expect(operator.connect(controller).setNodeAddresses([controller.address])).to.be.revertedWith("error_onlyOperator")
+        await (await operator.grantRole(await operator.CONTROLLER_ROLE(), controller.address)).wait()
+        await operator.connect(controller).setNodeAddresses([controller.address])
+    })
+
 })
