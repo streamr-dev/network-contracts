@@ -9,7 +9,7 @@ import {
     deployTestContracts,
     TestContracts,
 } from "../deployTestContracts"
-import { deployOperator } from "../deployOperatorContract"
+import { deployOperatorContract } from "../deployOperatorContract"
 import { deploySponsorship } from "../deploySponsorshipContract"
 
 describe("OperatorContractOnlyJoinPolicy", (): void => {
@@ -40,7 +40,7 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         await expect(badOp.stake(sponsorship.address, parseEther("100")))
             .to.be.revertedWith("error_onlyOperators")
 
-        const goodOp = await deployOperator(contracts, operator)
+        const goodOp = await deployOperatorContract(contracts, operator)
         await (await token.transferAndCall(goodOp.address, parseEther("100"), "0x")).wait()
         await expect(goodOp.stake(sponsorship.address, parseEther("100")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(goodOp.address)

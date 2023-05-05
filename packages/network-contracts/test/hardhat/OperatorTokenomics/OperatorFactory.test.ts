@@ -2,7 +2,7 @@ import { expect } from "chai"
 import { ethers as hardhatEthers } from "hardhat"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deployOperator } from "./deployOperatorContract"
+import { deployOperatorContract } from "./deployOperatorContract"
 import { Wallet } from "ethers"
 
 const { getSigners } = hardhatEthers
@@ -20,8 +20,8 @@ describe("OperatorFactory", function(): void {
     })
 
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {
-        await deployOperator(sharedContracts, operatorWallet)
-        await expect(deployOperator(sharedContracts, operatorWallet))
+        await deployOperatorContract(sharedContracts, operatorWallet)
+        await expect(deployOperatorContract(sharedContracts, operatorWallet))
             .to.be.revertedWith("error_operatorAlreadyDeployed")
     })
 })

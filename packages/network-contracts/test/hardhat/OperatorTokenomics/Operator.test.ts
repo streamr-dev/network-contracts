@@ -2,9 +2,9 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
-import { deployTestContracts, TestContracts } from "./deployTestContracts"
+import { deployOperatorFactory, deployTestContracts, TestContracts } from "./deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./utils"
-import { deployOperator } from "./deployOperatorContract"
+import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { IKickPolicy } from "../../../typechain"
@@ -35,9 +35,18 @@ describe("Operator contract", (): void => {
         }
     }
 
-    // beforeEACH nesssesary because no operator can deploy an operator contract twice,
-    // AND we need deterministic operator addresses for CREATE2 and voter selection
-    beforeEach(async (): Promise<void> => {
+    async function deployOperator(contracts: TestContracts, deployer: Wallet, opts?: any) {
+        // we want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)
+        // so that same operatorWallet can create a clean contract (OperatorFactory prevents several contracts from same deployer)
+        const newContracts = {
+            ...contracts,
+            ...await deployOperatorFactory(contracts, deployer)
+        }
+
+        return deployOperatorContract(newContracts, deployer, opts)
+    }
+
+    before(async (): Promise<void> => {
         [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
