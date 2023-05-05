@@ -29,10 +29,9 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     SponsorshipTemplate.create(event.params.sponsorshipContract)
     // SponsorshipTemplate.create(event.params.sponsorshipContract)
     updateOrCreateSponsorshipDailyBucket(event.params.sponsorshipContract.toHexString(),
-        event.block.timestamp.toI32(),
+        event.block.timestamp,
         BigInt.fromI32(0),
         BigInt.fromI32(0),
         0,
-        null,
         null)
 }

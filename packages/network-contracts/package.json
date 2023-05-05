@@ -28,7 +28,8 @@
     "interactThroughGSN": "hardhat run --network polygon scripts/transactThroughGSN.ts",
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
-    "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon"
+    "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
+    "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts"
   },
   "author": "Streamr Network AG",
   "license": "ISC",

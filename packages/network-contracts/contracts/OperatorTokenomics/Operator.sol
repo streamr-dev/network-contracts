@@ -259,7 +259,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             "error_dataToPooltokenFailed"
         );
         _mint(delegator, amountPoolToken);
-        emit Delegated(delegator, amountWei, totalValueInSponsorshipsWei);
+        emit Delegated(delegator, amountWei, getApproximatePoolValue());
     }
 
     /** Add the request to undelegate into the undelegation queue */

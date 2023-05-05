@@ -1,5 +1,5 @@
 import { BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
-import { Project, ProjectStakeByUser, ProjectStakingDayBucket, SponsorshipDailyBucket } from '../generated/schema'
+import { OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 
@@ -29,7 +29,7 @@ export function loadOrCreateProject(projectId: Bytes): Project {
 }
 
 export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: BigInt): ProjectStakingDayBucket {
-    const bucketStartDate = timestamp.minus(timestamp.mod(BUCKET_SECONDS))
+    const bucketStartDate = getBucketStartDate(timestamp)
     const bucketId = projectId + '-' + bucketStartDate.toString()
     let bucket = ProjectStakingDayBucket.load(bucketId)
     if (bucket === null) {
@@ -79,21 +79,21 @@ export function getIsDataUnionValue(jsonString: string): boolean {
 
 export function updateOrCreateSponsorshipDailyBucket(
     sponsorshipAddress: string,
-    timestamp: i32,
+    timestamp: BigInt,
     totalStakedWei: BigInt,
     unallocatedWei: BigInt,
     operatorCount: i32,
-    projectedInsolvency: BigInt | null,
-    totalPayoutWeiPerSec: BigInt | null,
+    projectedInsolvency: BigInt | null
 ): void {
-    let dateString = getDateString(timestamp)
-    let bucketId = sponsorshipAddress + "-" + dateString
+    let date = getBucketStartDate(timestamp)
+    let bucketId = sponsorshipAddress + "-" + date.toString()
     let bucket = SponsorshipDailyBucket.load(bucketId)
+    let sponsorship = Sponsorship.load(sponsorshipAddress)
     if (bucket === null) {
         log.info("updateOrCreateSponsorshipDailyBucket: creating new stat statId={}", [bucketId])
         bucket = new SponsorshipDailyBucket(bucketId)
         bucket.sponsorship = sponsorshipAddress
-        bucket.date = BigInt.fromI32(i32((new Date(timestamp)).getTime() / 1000))
+        bucket.date = date
         bucket.totalStakedWei = totalStakedWei
         bucket.unallocatedWei = unallocatedWei
         bucket.projectedInsolvency = new BigInt(0)
@@ -105,24 +105,49 @@ export function updateOrCreateSponsorshipDailyBucket(
         if (projectedInsolvency !== null) {
             bucket.projectedInsolvency = projectedInsolvency
         }
-        if (totalPayoutWeiPerSec !== null) {
-            bucket.spotAPY = totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(bucket.totalStakedWei)
+        if (sponsorship && sponsorship.totalPayoutWeiPerSec && bucket.totalStakedWei.gt(BigInt.fromI32(0))) {
+            bucket.spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(bucket.totalStakedWei)
+            log.info("updateOrCreateSponsorshipDailyBucket debug1: spotAPY={} totalPayoutWeiPerSec={} totalPayoutWeiPerSec={}",
+                [bucket.spotAPY.toString(), sponsorship.totalPayoutWeiPerSec.toString(), bucket.totalStakedWei.toString()])
         }
     }
     bucket.operatorCount = operatorCount
     bucket.save()
 }
 
-export function updateOrCreateOperatorDailyBucket(): void {
-    // TODO
+export function updateOrCreateOperatorDailyBucket(
+    contractAddress: string,
+    timestamp: BigInt,
+    approximatePoolValue: BigInt,
+    unallocatedWei: BigInt,
+    delegatorCount: i32,
+    totalDelegatedWei: BigInt,
+    totalStakedWei: BigInt
+): void {
+    let date = getBucketStartDate(timestamp)
+    let bucketId = contractAddress + "-" + date.toString()
+    let bucket = OperatorDailyBucket.load(bucketId)
+    if (bucket === null) {
+        bucket = new OperatorDailyBucket(bucketId)
+        bucket.operator = contractAddress
+        bucket.date = date
+        bucket.approximatePoolValue = BigInt.fromI32(0)
+        bucket.unallocatedWei = BigInt.fromI32(0)
+        bucket.spotAPY = BigInt.fromI32(0)
+        bucket.totalPayoutsCumulative = BigInt.fromI32(0)
+        bucket.delegatorCount = 0
+        bucket.totalDelegatedWei = BigInt.fromI32(0)
+        bucket.totalStakedWei = BigInt.fromI32(0)
+    } else {
+        bucket.approximatePoolValue = approximatePoolValue
+        bucket.unallocatedWei = unallocatedWei
+        bucket.delegatorCount = delegatorCount
+        bucket.totalDelegatedWei = totalDelegatedWei
+        bucket.totalStakedWei = totalStakedWei
+    }
+    bucket.save()
 }
 
-export function getDateString(timestamp: i32): string {
-    let date = new Date(timestamp)
-    date.setUTCHours(0)
-    date.setUTCMinutes(0)
-    date.setUTCSeconds(0)
-    date.setUTCMilliseconds(0)
-    //datestring in yyyy-mm-dd format
-    return date.toISOString().split('T')[0]
+export function getBucketStartDate(timestamp: BigInt): BigInt {
+    return timestamp.minus(timestamp.mod(BUCKET_SECONDS))
 }

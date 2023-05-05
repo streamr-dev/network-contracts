@@ -2,7 +2,7 @@ import { log } from '@graphprotocol/graph-ts'
 
 import { Sponsorship, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
 import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate } from '../generated/templates/Sponsorship/Sponsorship'
-import { updateOrCreateSponsorshipDailyBucket, getDateString } from './helpers'
+import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
@@ -48,11 +48,10 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
 
     // update SponsorshipDailyBucket
     updateOrCreateSponsorshipDailyBucket(sponsorshipAddress.toHexString(),
-        event.block.timestamp.toI32(),
+        event.block.timestamp,
         event.params.totalStakeWei,
         event.params.unallocatedWei,
         event.params.operatorCount.toI32(),
-        null,
         null)
 }
 
@@ -65,7 +64,8 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
     sponsorship!.save()
 
     // update SponsorshipDailyBucket
-    let sponsorshipDailyBucket = SponsorshipDailyBucket.load(getDateString(event.block.timestamp.toI32()))
+    let sponsorshipId = event.address.toHexString() + "-" + getBucketStartDate(event.block.timestamp).toString()
+    let sponsorshipDailyBucket = SponsorshipDailyBucket.load(sponsorshipId)
     if (sponsorshipDailyBucket !== null) {
         sponsorshipDailyBucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
         sponsorshipDailyBucket.save()
