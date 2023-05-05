@@ -3,7 +3,7 @@ import { BigNumber, utils, Wallet } from "ethers"
 
 import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { deployOperator } from "./deployOperatorContract"
+import { deployOperatorContract } from "./deployOperatorContract"
 
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
 
@@ -63,7 +63,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
-    const operators = await Promise.all(signers.map((signer) => deployOperator(newContracts, signer, {}, saltSeed)))
+    const operators = await Promise.all(signers.map((signer) => deployOperatorContract(newContracts, signer, {}, saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
     // add operator also as the (only) node, so that flag/vote functions Just Work

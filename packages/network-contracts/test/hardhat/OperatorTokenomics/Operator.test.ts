@@ -2,9 +2,9 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
-import { deployTestContracts, TestContracts } from "./deployTestContracts"
+import { deployOperatorFactory, deployTestContracts, TestContracts } from "./deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./utils"
-import { deployOperator } from "./deployOperatorContract"
+import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { IKickPolicy } from "../../../typechain"
@@ -13,13 +13,14 @@ import { setupSponsorships } from "./setupSponsorships"
 const { parseEther, formatEther, hexZeroPad } = utils
 const { getSigners, getContractFactory } = hardhatEthers
 
-describe("Operator", (): void => {
-    let admin: Wallet       // creates the Sponsorship
-    let sponsor: Wallet     // sponsors the Sponsorship
-    let operatorWallet: Wallet    // creates Operator contract
-    let delegator: Wallet   // puts DATA into Operator contract
+describe("Operator contract", (): void => {
+    let admin: Wallet           // creates the Sponsorship
+    let sponsor: Wallet         // sponsors the Sponsorship
+    let operatorWallet: Wallet  // creates Operator contract
+    let delegator: Wallet       // puts DATA into Operator contract
     let delegator2: Wallet
     let delegator3: Wallet
+    let controller: Wallet      // acts on behalf of operatorWallet
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
@@ -35,10 +36,19 @@ describe("Operator", (): void => {
         }
     }
 
-    // beforeEACH nesssesary because no operator can deploy an operator contract twice,
-    // AND we need deterministic operator addresses for CREATE2 and voter selection
-    beforeEach(async (): Promise<void> => {
-        [admin, sponsor, operatorWallet, delegator, delegator2, delegator3] = await getSigners() as unknown as Wallet[]
+    async function deployOperator(contracts: TestContracts, deployer: Wallet, opts?: any) {
+        // we want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)
+        // so that same operatorWallet can create a clean contract (OperatorFactory prevents several contracts from same deployer)
+        const newContracts = {
+            ...contracts,
+            ...await deployOperatorFactory(contracts, deployer)
+        }
+
+        return deployOperatorContract(newContracts, deployer, opts)
+    }
+
+    before(async (): Promise<void> => {
+        [admin, sponsor, operatorWallet, delegator, delegator2, delegator3, controller] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
@@ -902,9 +912,11 @@ describe("Operator", (): void => {
         })
     })
 
-    it("negativeTest: operator signer cannot deploy operator twice", async function(): Promise<void> {
-        await deployOperator(sharedContracts, operatorWallet)
-        await expect(deployOperator(sharedContracts, operatorWallet))
-            .to.be.revertedWith("error_operatorAlreadyDeployed")
+    it("allows controllers to act on behalf of the operator", async function(): Promise<void> {
+        const operator = await deployOperator(sharedContracts, operatorWallet)
+        await expect(operator.connect(controller).setNodeAddresses([controller.address])).to.be.revertedWith("error_onlyOperator")
+        await (await operator.grantRole(await operator.CONTROLLER_ROLE(), controller.address)).wait()
+        await operator.connect(controller).setNodeAddresses([controller.address])
     })
+
 })

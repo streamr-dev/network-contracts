@@ -16,7 +16,7 @@ import {
 
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
-describe("Sponsorship", (): void => {
+describe("Sponsorship contract", (): void => {
     let admin: Wallet
     let operator: Wallet
     let operator2: Wallet
