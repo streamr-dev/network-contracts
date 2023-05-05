@@ -1,4 +1,3 @@
-import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "ethers"
 // import { Chains } from "@streamr/config"
 import hhat from "hardhat"
@@ -24,7 +23,7 @@ let sponsorshipAddress: string
 let sponsorship: Sponsorship
 let token: TestToken
 let operatorFactory: OperatorFactory
-let pools: Operator[] = []
+const pools: Operator[] = []
 
 const localConfig: any = {}
 
@@ -153,7 +152,7 @@ async function deployOperatorFactory() {
         operatorTemplate.address,
         localConfig.token,
         localConfig.streamrConfig
-    ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as OperatorFactory
+    ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as unknown as OperatorFactory
     // eslint-disable-next-line require-atomic-updates
     // localConfig.operatorFactory = operatorFactory.address
     await operatorFactory.deployed()
@@ -213,7 +212,6 @@ const stakeIntoSponsorship = async () => {
         log("Staked into sponsorship from pool ", pool.address)
     }
 }
-
 
 async function main() {
     adminWallet = (await ethers.getSigners())[0] as unknown as Wallet

@@ -1,7 +1,7 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 
 import { NewOperator } from '../generated/OperatorFactory/OperatorFactory'
-import { Operator, OperatorDailyBucket } from '../generated/schema'
+import { Operator } from '../generated/schema'
 import { Operator as OperatorTemplate } from '../generated/templates'
 import { updateOrCreateOperatorDailyBucket } from './helpers'
 
