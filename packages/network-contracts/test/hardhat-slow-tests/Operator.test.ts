@@ -3,10 +3,11 @@ import { expect } from "chai"
 import { BigNumber, utils, Wallet } from "ethers"
 
 import { advanceToTimestamp, getBlockTimestamp } from "../hardhat/OperatorTokenomics/utils"
-import { deployTestContracts, TestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
-import { deployOperator } from "../hardhat/OperatorTokenomics/deployOperatorContract"
+import { deployTestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
+import { deployOperatorContract } from "../hardhat/OperatorTokenomics/deployOperatorContract"
 
 import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorshipContract"
+import { TestToken } from "../../typechain"
 
 const { parseEther } = utils
 const { getSigners } = hardhatEthers
@@ -17,11 +18,8 @@ describe("Operator", (): void => {
     let delegator: Wallet   // delegates DATA to Operator
     let sponsor: Wallet     // send DATA to a stream's Sponsorship contract
 
-    let sharedContracts: TestContracts
-
     // burn all tokens then mint the corrent amount of new ones
-    async function setTokens(account: Wallet, amount: string) {
-        const { token } = sharedContracts
+    async function setTokens(token: TestToken, account: Wallet, amount: string) {
         const oldBalance = await token.balanceOf(account.address)
         await (await token.connect(account).transfer("0x1234000000000000000000000000000000000000", oldBalance)).wait()
         if (amount !== "0") {
@@ -29,20 +27,19 @@ describe("Operator", (): void => {
         }
     }
 
-    // beforeEach nesssesary because no operator can deploy an operator contract twice
-    beforeEach(async (): Promise<void> => {
+    before(async (): Promise<void> => {
         [admin, operatorWallet, delegator, sponsor] = await getSigners() as unknown as Wallet[]
-        sharedContracts = await deployTestContracts(admin)
     })
 
     it("edge case many queue entries, one sponsorship, batched", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "1000")
-        await setTokens(sponsor, "1000")
+        const contracts = await deployTestContracts(admin)
+        const { token } = contracts
+        await setTokens(token, delegator, "1000")
+        await setTokens(token, sponsor, "1000")
         const timeAtStart = await getBlockTimestamp()
 
-        const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-        const operator = await deployOperator(sharedContracts, operatorWallet)
+        const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+        const operator = await deployOperatorContract(contracts, operatorWallet)
         await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
@@ -71,10 +68,11 @@ describe("Operator", (): void => {
     })
 
     it("edge case one queue entry, many sponsorships", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "100000")
-        await setTokens(sponsor, "100000")
-        const operator = await deployOperator(sharedContracts, operatorWallet)
+        const contracts = await deployTestContracts(admin)
+        const { token } = contracts
+        await setTokens(token, delegator, "100000")
+        await setTokens(token, sponsor, "100000")
+        const operator = await deployOperatorContract(contracts, operatorWallet)
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorships and queue the payout")
@@ -82,7 +80,7 @@ describe("Operator", (): void => {
         const totalStaked = parseEther("100").mul(numberOfSponsorships)
         const sponsorships = []
         for (let i = 0; i < numberOfSponsorships; i++) {
-            const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+            const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             await (await operator.stake(sponsorship.address, parseEther("100"))).wait()

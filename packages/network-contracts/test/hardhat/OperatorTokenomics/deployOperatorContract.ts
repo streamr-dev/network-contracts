@@ -8,7 +8,7 @@ let poolindex = 0
  * @param deployer should be the operator's Wallet
  * @returns Operator
  */
-export async function deployOperator(contracts: TestContracts, deployer: Wallet, {
+export async function deployOperatorContract(contracts: TestContracts, deployer: Wallet, {
     maintenanceMarginPercent = 0,
     maxOperatorDivertPercent = 0,
     minOperatorStakePercent = 0,

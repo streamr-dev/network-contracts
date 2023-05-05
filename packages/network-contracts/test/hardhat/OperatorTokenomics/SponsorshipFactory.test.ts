@@ -7,7 +7,7 @@ const { getSigners } = hardhatEthers
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { deployOperator } from "./deployOperatorContract"
+import { deployOperatorContract } from "./deployOperatorContract"
 
 let sponsorshipCounter = 0
 
@@ -26,7 +26,7 @@ describe("SponsorshipFactory", () => {
     it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
-        const pool = await deployOperator(contracts, admin)
+        const pool = await deployOperatorContract(contracts, admin)
         await (await token.mint(pool.address, parseEther("200"))).wait()
         await expect(pool.stake(sponsorship.address, parseEther("200")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(pool.address)
