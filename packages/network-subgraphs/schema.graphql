@@ -290,7 +290,8 @@ type Stake @entity {
   id: ID! # 0xsponsorshipAddress-0xoperatorAddress
   operator: Operator!
   amount: BigInt!
-  allocatedWei: BigInt!
+  allocatedWei: BigInt! # TODO: rename to earningsWei
+  earningsWeiPerSecond: BigInt! # ETH-513 updated by Sponsorship StakeUpdate event handler
   date: BigInt
   sponsorship: Sponsorship
 }
