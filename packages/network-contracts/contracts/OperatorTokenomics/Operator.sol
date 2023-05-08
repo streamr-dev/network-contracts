@@ -44,7 +44,7 @@ interface IStreamRegistry {
  */
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
-    // delegator events
+    // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountWei, uint approxPoolValue);
     event Undelegated(address indexed delegator, uint amountWei, uint approxPoolValue);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
