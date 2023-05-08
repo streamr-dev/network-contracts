@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
+      address: '0x469f8D4929D3e4b121D202FC63eD0a6A9E7b950B'
       abi: SponsorshipFactory
       startBlock: 0
     mapping:
@@ -180,14 +180,14 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(address,string,string)
+        - event: NewSponsorship(address,string,string,uint256)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9'
+      address: '0x6a6f9F5A321A59409Cb90f965537655B257f5345'
       abi: OperatorFactory
       startBlock: 0
     mapping:
@@ -231,6 +231,8 @@ templates:
             handler: handleSponsorshipUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256)
             handler: handleFlagUpdate
+          - event: ProjectedInsolvencyUpdate(uint256)
+            handler: handleProjectedInsolvencyUpdate
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
@@ -257,7 +259,10 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: Delegated(indexed address,uint256)
+          - event: Delegated(indexed address,uint256,uint256)
             handler: handleDelegationReceived
-          - event: MetadataUpdated(string,indexed address)
-            handler: handleMetadataUpdated
+          - event: Undelegated(indexed address,uint256,uint256)
+            handler: handleDelegationRemoved
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+

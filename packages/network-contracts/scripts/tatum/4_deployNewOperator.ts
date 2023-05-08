@@ -30,6 +30,12 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
+    log("registering stream registry in streamr config")
+    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
+    const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
+    const streamrConfig = await streamrConfigFactoryTx.deployed()
+    await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
+
     const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory", {signer: deploymentOwner })
     const operatorFactoryContact = await operatorFactoryFactory.attach(localConfig.operatorFactory) as OperatorFactory
     operatorFactory = await operatorFactoryContact.connect(deploymentOwner) as OperatorFactory
@@ -40,7 +46,7 @@ const connectToAllContracts = async () => {
     token = await linkTokenContract.connect(deploymentOwner) as LinkToken
 
     //send some tokens to investor
-    await (await token.transfer(investor.address, ethers.utils.parseEther("10000"))).wait()
+    // await (await token.transfer(investor.address, ethers.utils.parseEther("10000"))).wait()
 
     if (localConfig.pool) {
         operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
@@ -49,6 +55,7 @@ const connectToAllContracts = async () => {
 
 const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
+        log("Deploying pool")
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
             0, // min initial investment
             [`Pool-${Date.now()}`, "{}"],
@@ -68,7 +75,7 @@ const deployOperatorContracts = async (amount: number) => {
 
 const investToPool = async () => {
     for (const pool of pools) {
-        const tx = await token.connect(investor).transferAndCall(pool.address, ethers.utils.parseEther("1000"),
+        const tx = await token.connect(deploymentOwner).transferAndCall(pool.address, ethers.utils.parseEther("60"),
             investor.address)
         await tx.wait()
         log("Invested to pool ", pool.address)
@@ -77,7 +84,7 @@ const investToPool = async () => {
 
 const stakeIntoSponsorship = async () => {
     for (const pool of pools) {
-        const tx = await pool.connect(deploymentOwner).stake(localConfig.sponsorship, ethers.utils.parseEther("1000"))
+        const tx = await pool.connect(deploymentOwner).stake(localConfig.sponsorship, ethers.utils.parseEther("60"))
         await tx.wait()
         log("Staked into sponsorship from pool ", pool.address)
     }
@@ -95,18 +102,17 @@ const stakeIntoSponsorship = async () => {
 //     log("Operator unstaked from sponsorship")
 // }
 
-const flag = async () => {
-    await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
-    // console.log(res)
-    log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
-}
+// const flag = async () => {
+//     await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
+//     // console.log(res)
+//     log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
+// }
 
 async function main() {
     await connectToAllContracts()
-    await deployOperatorContracts(3)
+    await deployOperatorContracts(1)
     await investToPool()
     await stakeIntoSponsorship()
-    await flag()
     // await divestFromPool()
     // await operatorUnstakesFromSponsorship()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))

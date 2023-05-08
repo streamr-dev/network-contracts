@@ -61,11 +61,11 @@ describe("Operator contract", (): void => {
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("1000")))
-            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"), parseEther("1000"))
         const freeFundsAfterdelegate = await token.balanceOf(operator.address)
 
         await expect(operator.connect(delegator).undelegate(parseEther("1000")))
-            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
+            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"), parseEther("0"))
         const freeFundsAfterUndelegate = await token.balanceOf(operator.address)
 
         expect(formatEther(freeFundsAfterdelegate)).to.equal("1000.0")
@@ -78,13 +78,13 @@ describe("Operator contract", (): void => {
         const operator = await deployOperator(sharedContracts, operatorWallet)
         await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("1000")))
-            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"), parseEther("1000"))
         const freeFundsAfterdelegate = await token.balanceOf(operator.address)
 
         await (await operator.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
 
         await expect(operator.connect(delegator2).undelegate(parseEther("1000")))
-            .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
+            .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"), parseEther("0"))
         const freeFundsAfterUndelegate = await token.balanceOf(operator.address)
 
         expect(formatEther(freeFundsAfterdelegate)).to.equal("1000.0")
@@ -312,7 +312,7 @@ describe("Operator contract", (): void => {
         // 20 DATA / 5 Exchange Rate = 4 Operator Tokens are paid out, 1 operator token payout is put into the queue.
         await expect(operator.connect(delegator).undelegate(parseEther("500")))
             .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"))
-            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("2000"))
+            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("2000"), parseEther("500"))
             .to.emit(operator, "QueueUpdated").withArgs(delegator.address, parseEther("100"))
 
         expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("2500")) // +20
@@ -325,7 +325,7 @@ describe("Operator contract", (): void => {
         // 6: Pay out the queue by unstaking
         await expect(operator.unstake(sponsorship.address))
             .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
-            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"))
+            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"), parseEther("0"))
 
         expect(await operator.calculatePoolValueInData()).to.equal(parseEther("0"))
         expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("3000")) // +5
@@ -394,7 +394,7 @@ describe("Operator contract", (): void => {
             await expect(operator.withdrawEarningsFromSponsorship(sponsorship.address))
             // TODO: add event to Operator
             //    .to.emit(operator, "EarningsWithdrawn").withArgs(sponsorship.address, parseEther("1000"))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("180"))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("180"), parseEther("1000"))
             //    .to.emit(operator, "OperatorSharePaid").withArgs(sponsorship.address, parseEther("200"))
 
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("180.0")
@@ -429,7 +429,7 @@ describe("Operator contract", (): void => {
             await expect(operator.withdrawEarningsFromSponsorship(sponsorship.address))
                 .to.emit(operator, "Transfer").withArgs(delegator.address, "0x0000000000000000000000000000000000000000", parseEther("600"))
             //    .to.emit(operator, "EarningsWithdrawn").withArgs(sponsorship.address, parseEther("1000"))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1500"))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1500"), parseEther("1000"))
             //    .to.emit(operator, "OperatorSharePaid").withArgs(sponsorship.address, parseEther("200"))
             expect(formatEther(await operator.totalQueuedPerDelegatorWei(delegator.address))).to.equal("400.0")
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1500.0")
@@ -500,7 +500,7 @@ describe("Operator contract", (): void => {
             await expect(operator.withdrawEarningsFromSponsorship(sponsorship.address))
             // TODO: add event to Operator
             //    .to.emit(operator, "EarningsWithdrawn").withArgs(sponsorship.address, parseEther("1000"))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("180"))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("180"), parseEther("1000"))
             //    .to.emit(operator, "OperatorSharePaid").withArgs(sponsorship.address, parseEther("200"))
 
             // earnings are 1000, minus 200 operator fee = 800 DATA
@@ -824,7 +824,7 @@ describe("Operator contract", (): void => {
 
         await (await token.mint(admin.address, parseEther("1000"))).wait()
         await expect(token.transferAndCall(operator.address, parseEther("100"), "0x"))
-            .to.emit(operator, "Delegated").withArgs(admin.address, parseEther("100"))
+            .to.emit(operator, "Delegated").withArgs(admin.address, parseEther("100"), parseEther("100"))
     })
 
     describe("Node addresses", function(): void {

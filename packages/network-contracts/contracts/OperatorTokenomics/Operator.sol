@@ -45,15 +45,15 @@ interface IStreamRegistry {
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
     // delegator events (initiated by anyone)
-    event Delegated(address indexed delegator, uint amountWei);
-    event Undelegated(address indexed delegator, uint amountWei);
+    event Delegated(address indexed delegator, uint amountWei, uint approxPoolValue);
+    event Undelegated(address indexed delegator, uint amountWei, uint approxPoolValue);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
-    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei, uint approxPoolValue);
     event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
@@ -263,7 +263,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             "error_dataToPooltokenFailed"
         );
         _mint(delegator, amountPoolToken);
-        emit Delegated(delegator, amountWei);
+        emit Delegated(delegator, amountWei, getApproximatePoolValue());
     }
 
     /** Add the request to undelegate into the undelegation queue */
@@ -302,7 +302,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
             emit Staked(sponsorship);
         }
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)), totalValueInSponsorshipsWei);
     }
 
     /**
@@ -323,7 +323,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         sponsorship.reduceStakeTo(targetStakeWei);
         updateApproximatePoolvalueOfSponsorship(sponsorship);
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)), totalValueInSponsorshipsWei);
     }
 
     function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
@@ -415,7 +415,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
         }
         emit Unstaked(sponsorship);
-        emit StakeUpdate(sponsorship, 0);
+        emit StakeUpdate(sponsorship, 0, totalValueInSponsorshipsWei);
     }
 
     ////////////////////////////////////////
@@ -572,7 +572,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             totalQueuedPerDelegatorWei[delegator] -= amountPoolTokens;
             _burn(delegator, amountPoolTokens);
             token.transfer(delegator, amountDataWei);
-            emit Undelegated(delegator, amountDataWei);
+            emit Undelegated(delegator, amountDataWei, totalValueInSponsorshipsWei);
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -586,7 +586,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(delegator, partialAmountPoolTokens);
             token.transfer(delegator, balanceDataWei);
-            emit Undelegated(delegator, balanceDataWei);
+            emit Undelegated(delegator, balanceDataWei, totalValueInSponsorshipsWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue);
             return false;
         }

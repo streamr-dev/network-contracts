@@ -73,18 +73,18 @@ const stakeOnSponsorship = async () => {
     log("staked in sponsorship with transfer and call")
 }
 
-const updateMetadata = async () => {
-    const tx = await sponsorship.setMetadata("new metadata")
-    await tx.wait()
-    log("updated metadata")
-}
+// const updateMetadata = async () => {
+//     const tx = await sponsorship.setMetadata("new metadata")
+//     await tx.wait()
+//     log("updated metadata")
+// }
 
 async function main() {
     await connectToAllContracts()
     await deployNewSponsorship()
     await sponsorNewSponsorship()
     await stakeOnSponsorship()
-    await updateMetadata()
+    // await updateMetadata()
     localConfig.sponsorship = sponsorshipAddress
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }

@@ -1,13 +1,15 @@
 import { log } from '@graphprotocol/graph-ts'
 
-import { Operator, Delegation } from '../generated/schema'
-import { Delegated, MetadataUpdated } from '../generated/templates/Operator/Operator'
+import { Operator, Delegation, OperatorDailyBucket } from '../generated/schema'
+import { Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
+import { getBucketStartDate } from './helpers'
 
 export function handleDelegationReceived (event: Delegated): void {
     log.info('handleDelegationReceived: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    log.info('handleDelegationReceived: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
     let operator = Operator.load(event.address.toHexString())
     operator!.delegatorCount = operator!.delegatorCount + 1
-
+    operator!.approximatePoolValue = event.params.approxPoolValue
     operator!.save()
 
     let delegation = Delegation.load(event.params.delegator.toHexString())
@@ -18,6 +20,20 @@ export function handleDelegationReceived (event: Delegated): void {
     }
     delegation.amount = event.params.amountWei
     delegation.save()
+
+    // update OperatorDailyBucket
+    let operatorAddress = event.address.toHexString()
+    let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
+    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
+    if (operatorDailyBucket !== null) {
+        operatorDailyBucket.delegatorCount = operatorDailyBucket.delegatorCount + 1
+        operatorDailyBucket.totalDelegatedWei = operatorDailyBucket.totalDelegatedWei.plus(event.params.amountWei)
+        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
+        operatorDailyBucket.save()
+    } else {
+        log.info('handleDelegationReceived: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+    }
+
 }
 
 export function handleMetadataUpdate(event: MetadataUpdated): void {
@@ -27,6 +43,55 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     // TODO: unpack event.params.metadataJsonString
     operator!.owner = event.params.operatorAddress.toHexString()
     operator!.save()
+}
+
+export function handleDelegationRemoved (event: Undelegated): void {
+    log.info('handleDelegationRemoved: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    log.info('handleDelegationRemoved: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
+    let operator = Operator.load(event.address.toHexString())
+    operator!.delegatorCount = operator!.delegatorCount - 1
+    operator!.approximatePoolValue = event.params.approxPoolValue
+    operator!.save()
+
+    let delegation = Delegation.load(event.address.toHexString() + "-" + event.params.delegator.toHexString())
+    if (delegation !== null) {
+        delegation.amount = event.params.amountWei
+        delegation.save()
+    }
+
+    // update OperatorDailyBucket
+    let operatorAddress = event.address.toHexString()
+    let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
+    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
+    if (operatorDailyBucket !== null) {
+        operatorDailyBucket.delegatorCount = operatorDailyBucket.delegatorCount - 1
+        operatorDailyBucket.totalDelegatedWei = operatorDailyBucket.totalDelegatedWei.minus(event.params.amountWei)
+        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
+        operatorDailyBucket.save()
+    } else {
+        log.info('handleDelegationRemoved: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+    }
+}
+
+export function handleStakeUpdated (event: StakeUpdate): void {
+    log.info('handleStakeUpdated: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    log.info('handleStakeUpdated: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
+    let operator = Operator.load(event.address.toHexString())
+    operator!.approximatePoolValue = event.params.approxPoolValue
+    operator!.save()
+
+    // stake is being updated from Spronsorship.sol event
+
+    // update OperatorDailyBucket
+    let operatorDailyBucketId = event.address.toHexString() + "-" + getBucketStartDate(event.block.timestamp).toString()
+    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
+    if (operatorDailyBucket !== null) {
+        operatorDailyBucket.totalStakedWei = operatorDailyBucket.totalStakedWei.plus(event.params.amountWei)
+        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
+        operatorDailyBucket.save()
+    } else {
+        log.info('handleStakeUpdated: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+    }
 }
 
 // export function handleStakeUpdated (event: Staked): void {
