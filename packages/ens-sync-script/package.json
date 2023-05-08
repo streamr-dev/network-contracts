@@ -5,18 +5,21 @@
   "description": "looks up owner of ensname on stream creation and creates stream",
   "main": "index.ts",
   "scripts": {
-    "start": "tsx ./src/index.ts 7"
+    "start": "tsx ./src/index.ts",
+    "docker": "./buildDockerImage.sh"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Streamr Network AG <contact@streamr.network>",
+  "license": "Apache-2.0",
   "dependencies": {
     "@ensdomains/ens": "^0.6.2",
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
+    "@ethersproject/units": "^5.7.0",
     "@ethersproject/wallet": "^5.7.0",
     "@streamr/config": "^2.5.10",
     "debug": "^4.3.4",
     "eth-ens-namehash": "^2.0.8",
+    "node-fetch": "^3.3.1",
     "tsx": "^3.12.6"
   },
   "devDependencies": {

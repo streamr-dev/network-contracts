@@ -12,7 +12,7 @@
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"isDataUnion\": true}, \"description\": \"payable with DATA\""
+        "metadata": "{\"isDataUnion\": true}, \"description\": \"payable with DATA\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000002",
@@ -27,7 +27,7 @@
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"isDataUnion\": false}, \"description\": \"payable with LINK\""
+        "metadata": "{\"isDataUnion\": false}, \"description\": \"payable with LINK\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000003",

@@ -57,8 +57,8 @@
             "StreamRegistry": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
             "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
             "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
-            "BountyFactory": "0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e", 
-            "PoolFactory": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9"
+            "SponsorshipFactory": "0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e",
+            "OperatorFactory": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9"
         }
     },
     "alfajores": {
@@ -172,7 +172,7 @@
             "DataUnionFeeOracle": "0x369Be397b3Cfe914728Bbd2329c0e5D1FE2E4202",
             "GSNPayMaster": "0x43E69adABC664617EB9C5E19413a335e9cd4A243",
             "GSNForwarder": "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d",
-            "ENSCache": "0x870528c1aDe8f5eB4676AA2d15FC0B034E276A1A",
+            "ENSCache": "0xEd9d3D29c25e197677DD84E3f7D81cCCD613B2bF",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
             "MarketplaceV4": "0xdF8b74D735197dCD5C94bE933db080E69A958de6",

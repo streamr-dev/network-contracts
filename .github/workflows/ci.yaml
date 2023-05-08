@@ -37,7 +37,7 @@ jobs:
         run: npm run build && npm run lint
       - name: Unit tests
         run: npm run test
-  ens-chainlink-test:
+  ens-e2e-test:
     needs:
       - lint-and-unit-test
     runs-on: ubuntu-20.04
@@ -62,13 +62,13 @@ jobs:
           npm ci --no-audit
           npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build packages
-        run: npm run build -w packages/network-contracts
+        run: npm run build -w packages/network-contracts -w packages/config
       - name: Start Streamr Docker Stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'chainlink'
+          services-to-start: 'ens-sync-script'
       - name: Integration Test (with dev-docker environment)
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
-        run: npm run -w packages/network-contracts test:ens-chainlink
+        run: npm run -w packages/network-contracts test:ens-e2e
