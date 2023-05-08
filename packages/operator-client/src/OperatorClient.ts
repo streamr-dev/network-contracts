@@ -1,5 +1,9 @@
 import { Contract } from "@ethersproject/contracts"
 import { Provider } from "@ethersproject/providers"
+import { abi as OperatorAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
+import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
+import type { Operator, Sponsorship } from "../../network-contracts/typechain"
+import { StakedEvent, UnstakedEvent } from "../../network-contracts/typechain/contracts/OperatorTokenomics/Operator.sol/Operator"
 import EventEmitter from "eventemitter3"
 
 /**
@@ -22,11 +26,6 @@ export interface OperatorClientEvents {
     removeStakedStream: (streamId: string, blockNumber: number) => void
 }
 
-import { abi as BrokerPoolAbi } from "../../network-contracts/artifacts/contracts/BrokerEconomics/BrokerPool.sol/BrokerPool.json"
-import { abi as BountyAbi } from "../../network-contracts/artifacts/contracts/BrokerEconomics/Bounty.sol/Bounty.json"
-import type { BrokerPool, Bounty } from "../../network-contracts/typechain"
-import type { StakedEvent, UnstakedEvent } from "../../network-contracts/typechain/contracts/BrokerEconomics/BrokerPool"
-
 interface OperatorClientOptions {
     provider?: Provider
     chain?: string
@@ -35,7 +34,7 @@ interface OperatorClientOptions {
 export class OperatorClient extends EventEmitter {
     provider: Provider
     address: string
-    contract: BrokerPool
+    contract: Operator
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
 
@@ -44,9 +43,9 @@ export class OperatorClient extends EventEmitter {
         super()
         this.address = operatorContractAddress
         this.provider = options.provider
-        this.contract = new Contract(operatorContractAddress, BrokerPoolAbi, this.provider) as unknown as BrokerPool
+        this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator
         this.provider.on(this.contract.filters.Staked(), async (_, event: StakedEvent) => {
-            const sponsorshipAddress = event.args.bounty
+            const sponsorshipAddress = event.args.sponsorship
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
                 console.error("Sponsorship already staked into, in my bookkeeping!")
@@ -61,7 +60,7 @@ export class OperatorClient extends EventEmitter {
             }
         })
         options.provider.on(this.contract.filters.Unstaked(), async (_, event: UnstakedEvent) => {
-            const sponsorshipAddress = event.args.bounty
+            const sponsorshipAddress = event.args.sponsorship
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
             if (!streamId) {
                 console.error("Sponsorship not found!")
@@ -78,7 +77,7 @@ export class OperatorClient extends EventEmitter {
     }
 
     async getStreamId(sponsorshipAddress: string): Promise<string> {
-        const bounty = new Contract(sponsorshipAddress, BountyAbi, this.contract.provider) as unknown as Bounty
+        const bounty = new Contract(sponsorshipAddress, SponsorshipAbi, this.contract.provider as Provider) as unknown as Sponsorship
         return bounty.streamId()
     }
 
