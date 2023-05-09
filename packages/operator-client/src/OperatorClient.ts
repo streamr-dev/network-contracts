@@ -4,7 +4,7 @@ import { abi as OperatorAbi } from "../../network-contracts/artifacts/contracts/
 import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 import type { Operator, Sponsorship } from "../../network-contracts/typechain"
 import { StakedEvent, UnstakedEvent } from "../../network-contracts/typechain/contracts/OperatorTokenomics/Operator.sol/Operator"
-import EventEmitter from "eventemitter3"
+import { EventEmitter } from "eventemitter3"
 
 /**
  * Events emitted by {@link OperatorClient}.
@@ -26,10 +26,10 @@ export interface OperatorClientEvents {
     removeStakedStream: (streamId: string, blockNumber: number) => void
 }
 
-interface OperatorClientOptions {
-    provider?: Provider
-    chain?: string
-}
+// interface OperatorClientOptions {
+//     provider?: Provider
+//     chain?: string
+// }
 
 export class OperatorClient extends EventEmitter {
     provider: Provider
@@ -38,11 +38,11 @@ export class OperatorClient extends EventEmitter {
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
 
-    constructor(operatorContractAddress: string, options: OperatorClientOptions) {
-        if (!options.provider) { throw new Error("must give options.provider!") }
+    constructor(operatorContractAddress: string, provider: Provider) {
+        // if (!options.provider) { throw new Error("must give options.provider!") }
         super()
         this.address = operatorContractAddress
-        this.provider = options.provider
+        this.provider = provider
         this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator
         this.provider.on(this.contract.filters.Staked(), async (_, event: StakedEvent) => {
             const sponsorshipAddress = event.args.sponsorship
@@ -59,7 +59,7 @@ export class OperatorClient extends EventEmitter {
                 this.emit("addStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        options.provider.on(this.contract.filters.Unstaked(), async (_, event: UnstakedEvent) => {
+        provider.on(this.contract.filters.Unstaked(), async (_, event: UnstakedEvent) => {
             const sponsorshipAddress = event.args.sponsorship
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
             if (!streamId) {
