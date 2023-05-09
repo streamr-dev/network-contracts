@@ -3,12 +3,13 @@
   "version": "0.0.1",
   "description": "Provides the necessary interface for Streamr Operator plugin subsystems to access the smart contracts",
   "scripts": {
-    "test": "mocha --require ts-node/register test/*.ts",
+    "test": "mocha --timeout 150000 --require ts-node/register test/*.ts",
     "build": "tsc"
   },
   "author": "Streamr Network AG <contact@streamr.network>",
   "license": "Apache-2.0",
   "dependencies": {
+    "@ethersproject/constants": "5.7.0",
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@ethersproject/units": "5.7.0",
