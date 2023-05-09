@@ -10,7 +10,7 @@ contract MaintenanceMarginPoolYieldPolicy is IMaintenanceMarginPoolYieldPolicy, 
     struct LocalStorage {
         uint initialMargin;  // is this really needed? it will always be 100% in the beginning
         uint maintenanceMarginPercent;
-        uint minimumMarginPercent;
+        uint minimumMarginFraction;
         uint operatorSharePercent;
         uint operatorShareMaxDivertPercent;
     }
@@ -20,15 +20,15 @@ contract MaintenanceMarginPoolYieldPolicy is IMaintenanceMarginPoolYieldPolicy, 
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
-    function setParam(uint initialMargin, uint maintenanceMarginPercent, uint minimumMarginPercent, uint operatorSharePercent, uint operatorShareMaxDivertPercent) external {
+    function setParam(uint initialMargin, uint maintenanceMarginPercent, uint minimumMarginFraction, uint operatorSharePercent, uint operatorShareMaxDivertPercent) external {
         LocalStorage storage data = localData();
         data.initialMargin = initialMargin;
         // consolelog("DefaultPoolYieldPolicy.setParam: initialMargin:", initialMargin);
         require(maintenanceMarginPercent >= 0 && maintenanceMarginPercent < 100, "error_maintenanceMarginPercent");
         data.maintenanceMarginPercent = maintenanceMarginPercent;
         // consolelog("DefaultPoolYieldPolicy.setParam: maintenanceMarginPercent:", maintenanceMarginPercent);
-        data.minimumMarginPercent = minimumMarginPercent;
-        // consolelog("DefaultPoolYieldPolicy.setParam: minimumMarginPercent:", minimumMarginPercent);
+        data.minimumMarginFraction = minimumMarginFraction;
+        // consolelog("DefaultPoolYieldPolicy.setParam: minimumMarginFraction:", minimumMarginFraction);
         data.operatorSharePercent = operatorSharePercent;
         // consolelog("DefaultPoolYieldPolicy.setParam: operatorSharePercent:", operatorSharePercent);
         data.operatorShareMaxDivertPercent = operatorShareMaxDivertPercent;

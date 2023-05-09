@@ -77,6 +77,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     address public owner;
     IERC677 public token;
+    uint public operatorsShareFraction; // 1 ether == 100%, like in tokens
 
     Sponsorship[] public sponsorships;
     mapping(Sponsorship => uint) public indexOfSponsorships; // sponsorships array index PLUS ONE! use 0 as "is it already in the array?" check
@@ -132,7 +133,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         address streamrConfigAddress,
         address ownerAddress,
         string[2] memory operatorParams, // poolTokenName, streamPath
-        uint initialMinimumDelegationWei
+        uint initialMinimumDelegationWei,
+        uint operatorsShare
     ) public initializer {
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
@@ -148,6 +150,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // A fixed queue emptying requirement is simplest for now.
         // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
+        operatorsShareFraction = operatorsShare;
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -221,28 +224,25 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // console.log("onTokenTransfer amount", amount);
         require(_msgSender() == address(token), "error_onlyDATAToken");
 
+        // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
+        // ignore returned tokens, handle them in unstake()/withdraw() instead
+        Sponsorship sponsorship = Sponsorship(sender);
+        if (indexOfSponsorships[sponsorship] > 0) {
+            return;
+        }
+
+        // default: transferAndCall sender wants to delegate the sent DATA tokens, unless they give another address in the ERC677 satellite data
+        address delegator = sender;
         if (data.length == 20) {
             // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
-            address delegator;
             assembly { delegator := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
-            _delegate(delegator, amount);
         } else if (data.length == 32) {
             // assume the address was encoded by converting address -> uint -> bytes32 -> bytes
             // (already in the least significant bytes, no shifting needed; this is what abi.encode would produce)
-            address delegator;
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
-            _delegate(delegator, amount);
-        } else {
-            // check if sender is a sponsorship: unstaking/withdrawing from sponsorships will call this method
-            // ignore returned tokens, handle them in unstake()/withdraw() instead
-            Sponsorship sponsorship = Sponsorship(sender);
-            if (indexOfSponsorships[sponsorship] > 0) {
-                return;
-            }
-
-            _delegate(sender, amount);
         }
+        _delegate(delegator, amount);
     }
 
     /** Delegate by first calling DATA.approve(operatorContract.address, amountWei) then this function */
@@ -253,7 +253,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function _delegate(address delegator, uint amountWei) internal {
-        if (address(delegationPolicy) != address(0)) {
+        if (address(delegationPolicy) != address(0) && delegator != owner) {
             uint allowedToJoin = moduleGet(abi.encodeWithSelector(delegationPolicy.canJoin.selector, delegator, address(delegationPolicy)), "error_joinPolicyFailed");
             require(allowedToJoin == 1, "error_joinPolicyFailed");
         }
@@ -334,11 +334,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Bounties to pay out the queue in parts */
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
-        uint payoutWei = sponsorship.withdraw();
-        uint operatorsShareWei = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.deductOperatorsShare.selector, payoutWei), "error_deductOperatorsShareFailed");
+        uint earningsDataWei = sponsorship.withdraw();
+        // "self-delegate" the operator's share === mint new pooltokens
+        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
         updateApproximatePoolvalueOfSponsorship(sponsorship);
-        emit Profit(sponsorship, payoutWei - operatorsShareWei, operatorsShareWei);
+        _delegate(owner, operatorsShareDataWei);
+        emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
     }
 
     /**
@@ -387,18 +388,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // console.log("unstake new approxPoolValue", approxPoolValue);
         approxPoolValueOfSponsorship[sponsorship] = 0;
 
-        // TODO: here earnings are mixed together with stake. Maybe that's ok though.
-        // unallocatedWei += receivedWei;
         if (receivedWei < amountStakedBeforeWei) {
             // TODO: slash handling
             uint lossesWei = amountStakedBeforeWei - receivedWei;
             emit Loss(sponsorship, lossesWei);
         } else {
-            // TODO: gains handling
-            uint profitWei = receivedWei - amountStakedBeforeWei;
-            uint operatorsShareDataWei = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.deductOperatorsShare.selector, profitWei), "error_deductOperatorsShareFailed");
-            emit Profit(sponsorship, profitWei - operatorsShareDataWei, operatorsShareDataWei);
+            // "self-delegate" the operator's share === mint new pooltokens
+            uint profitDataWei = receivedWei - amountStakedBeforeWei;
+            uint operatorsShareDataWei = profitDataWei * operatorsShareFraction / 1 ether;
+            _delegate(owner, operatorsShareDataWei);
+            emit Profit(sponsorship, profitDataWei - operatorsShareDataWei, operatorsShareDataWei);
         }
         _removeSponsorship(sponsorship);
     }
@@ -552,6 +551,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
         uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
+        // TODO: if delegator == owner, then cap the amountPoolTokens so that operator/owner can't get below minimumMarginFraction
         if (balanceOf(delegator) < amountPoolTokens) {
             amountPoolTokens = balanceOf(delegator);
         }
@@ -621,21 +621,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // POLICY MODULES
     ////////////////////////////////////////
 
-    function setDelegationPolicy(IDelegationPolicy policy, uint256 initialMargin, uint256 minimumMarginPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDelegationPolicy(IDelegationPolicy policy, uint256 initialMargin, uint256 minimumMarginFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegationPolicy = policy;
-        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, initialMargin, minimumMarginPercent), "error_setDelegationPolicyFailed");
+        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, initialMargin, minimumMarginFraction), "error_setDelegationPolicyFailed");
     }
 
-    function setYieldPolicy(IPoolYieldPolicy policy,
-        uint256 initialMargin,
-        uint256 maintenanceMarginPercent,
-        uint256 minimumMarginPercent,
-        uint256 operatorSharePercent,
-        uint256 operatorShareMaxDivertPercent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setYieldPolicy(IPoolYieldPolicy policy, uint256 param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector,
-            initialMargin, maintenanceMarginPercent, minimumMarginPercent, operatorSharePercent,
-            operatorShareMaxDivertPercent), "error_setYieldPolicyFailed");
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
     }
 
     function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -716,8 +709,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      **/
     function getPoolValueFromSponsorship(Sponsorship sponsorship) public view returns (uint256 poolValue) {
         uint alloc = sponsorship.getEarnings(address(this));
-        uint share = moduleGet(abi.encodeWithSelector(yieldPolicy.calculateOperatorsShare.selector, alloc, address(yieldPolicy)), "error_calculateOperatorsShare_Failed");
-        poolValue = sponsorship.getMyStake() + alloc - share;
+        uint operatorShare = operatorsShareFraction * alloc / 1 ether;
+        poolValue = sponsorship.getMyStake() + alloc - operatorShare;
     }
 
     /**
