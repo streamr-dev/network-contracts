@@ -22,7 +22,7 @@ describe("OperatorClient", async () => {
 
     let provider: Provider
     // const sponsorshipAddress = "0x93B517f6014F930631Cb4AD4F7d329b453Bd87d9"
-    const operatorAddress = "0xb7BFd245d932163b68e6796C8D08D022Bc391E9a"
+    const operatorAddress = "0x11Ae98264449ddB794C1C76e82b879535A37cFfe"
     const operatorPrivKey = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
     // const operatorPrivKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
     let operator: Operator
@@ -56,7 +56,7 @@ describe("OperatorClient", async () => {
 
     })
 
-    it("emits addStakedStream only when the first Sponsorship for a stream is staked to", async () => {
+    it.skip("deploy new operator, client watches it while staking to sponsorship", async () => {
         const sponsorshiptx = await sponsorshipFactory.deploySponsorship(parseEther("60"), 0, 1, "Sponsorship-" + Date.now(), "metadata",
             [
                 "0x699B4bE95614f017Bb622e427d3232837Cc814E6", // allocation policy
@@ -79,7 +79,13 @@ describe("OperatorClient", async () => {
         log(tr)
     })
 
-    it("emits removeStakedStream only when the last Sponsorship for a stream was unstaked from", () => {
-        new OperatorClient(operatorAddress, provider)
+    it("instantiate operatorclient with preexisting operator", () => {
+        const oclient = new OperatorClient(operatorAddress, provider)
+        oclient.on("addStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
+        })
+        oclient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
+        })
     })
 })

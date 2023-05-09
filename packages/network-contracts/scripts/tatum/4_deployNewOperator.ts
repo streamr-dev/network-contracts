@@ -14,7 +14,6 @@ const config = Chains.load()["dev1"]
 const CHAINURL = config.rpcEndpoints[0].url
 const chainProvider = new JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
-localConfig.pools = []
 let deploymentOwner: Wallet
 let investor: Wallet
 let operatorFactory: OperatorFactory
@@ -30,11 +29,11 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
-    log("registering stream registry in streamr config")
-    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
-    const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
-    const streamrConfig = await streamrConfigFactoryTx.deployed()
-    await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
+    // log("registering stream registry in streamr config")
+    // const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
+    // const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
+    // const streamrConfig = await streamrConfigFactoryTx.deployed()
+    // await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
 
     const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory", {signer: deploymentOwner })
     const operatorFactoryContact = await operatorFactoryFactory.attach(localConfig.operatorFactory) as OperatorFactory
@@ -50,6 +49,14 @@ const connectToAllContracts = async () => {
 
     if (localConfig.pool) {
         operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
+    }
+
+    if (localConfig.pools && localConfig.pools.length > 0) {
+        for (const pool of localConfig.pools) {
+            pools.push(await ethers.getContractAt("Operator", pool, deploymentOwner) as Operator)
+        }
+    } else {
+        localConfig.pools = []
     }
 }
 
@@ -96,11 +103,11 @@ const stakeIntoSponsorship = async () => {
 //     log("Queued data payout")
 // }
 
-// const operatorUnstakesFromSponsorship = async () => {
-//     const tx = await pool.connect(deploymentOwner).unstake(localConfig.sponsorship)
-//     await tx.wait()
-//     log("Operator unstaked from sponsorship")
-// }
+const operatorUnstakesFromSponsorship = async () => {
+    const tx = await operator.connect(deploymentOwner).unstake(localConfig.sponsorship)
+    await tx.wait()
+    log("Operator unstaked from sponsorship")
+}
 
 // const flag = async () => {
 //     await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
@@ -110,11 +117,11 @@ const stakeIntoSponsorship = async () => {
 
 async function main() {
     await connectToAllContracts()
-    await deployOperatorContracts(1)
-    await investToPool()
+    // await deployOperatorContracts(1)
+    // await investToPool()
     await stakeIntoSponsorship()
+    await operatorUnstakesFromSponsorship()
     // await divestFromPool()
-    // await operatorUnstakesFromSponsorship()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
 
