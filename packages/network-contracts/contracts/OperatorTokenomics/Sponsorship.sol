@@ -186,6 +186,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Stake by first calling DATA.approve(sponsorship.address, amountWei) then this function (2-step ERC20)
      *   or alternatively call DATA.transferAndCall(sponsorship.address, amountWei, operatorAddress) (1-step ERC677)
+     * @param operator the operator to stake for (can stake on behalf of someone else)
      */
     function stake(address operator, uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
@@ -221,34 +222,34 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Get all the stake and allocations out
      * Throw if that's not possible due to open flags or leave penalty (e.g. leaving too early)
      */
-    function unstake() public {
+    function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         require(penaltyWei == 0, "error_leavePenalty");
         require(committedStakeWei[operator] == 0, "error_activeFlag");
-        _removeOperator(operator);
+        payoutWei = _removeOperator(operator);
     }
 
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is committed to flags */
-    function forceUnstake() public {
+    function forceUnstake() public returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
             _slash(operator, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        _removeOperator(operator); // forfeits committed stake
+        payoutWei =_removeOperator(operator); // forfeits committed stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
-    function reduceStakeTo(uint targetStakeWei) external {
+    function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
         address operator = _msgSender();
         require(targetStakeWei < stakedWei[operator], "error_cannotIncreaseStake");
         require(targetStakeWei >= minimumStakeOf(operator), "error_minimumStake");
 
-        uint cashoutWei = stakedWei[operator] - targetStakeWei;
-        _reduceStakeBy(operator, cashoutWei);
-        token.transfer(operator, cashoutWei);
+        payoutWei = stakedWei[operator] - targetStakeWei;
+        _reduceStakeBy(operator, payoutWei);
+        token.transfer(operator, payoutWei);
 
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
         emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
@@ -263,7 +264,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         _reduceStakeBy(operator, amountWei);
         emit OperatorSlashed(operator, amountWei);
         if (operator.code.length > 0) {
-            try IOperator(operator).onSlash() {} catch {}
+            try IOperator(operator).onSlash(amountWei) {} catch {}
         }
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
     }
@@ -278,10 +279,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             _reduceStakeBy(operator, slashingWei);
             emit OperatorSlashed(operator, slashingWei);
         }
-        _removeOperator(operator);
+        uint payoutWei = _removeOperator(operator);
         emit OperatorKicked(operator);
         if (operator.code.length > 0) {
-            try IOperator(operator).onKick() {} catch {}
+            try IOperator(operator).onKick(slashingWei, payoutWei) {} catch {}
         }
     }
 
@@ -302,7 +303,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
      * If operator had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
      */
-    function _removeOperator(address operator) internal {
+    function _removeOperator(address operator) internal returns (uint payoutWei) {
         require(stakedWei[operator] > 0, "error_operatorNotStaked");
         // console.log("_removeOperator", operator);
 
@@ -313,7 +314,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
 
         // send out both allocations and stake
-        _withdraw(operator);
+        uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
         require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
@@ -326,9 +327,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
+
+        return paidOutEarningsWei + paidOutStakeWei;
     }
 
-    // TODO: why not let withdraw for others?
     /** Get earnings out, leave stake in */
     function withdraw() external returns (uint payoutWei) {
         address operator = _msgSender();
