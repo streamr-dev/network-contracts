@@ -224,7 +224,7 @@ describe("Operator contract", (): void => {
         expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("2000.0") // 1000 + 1000
 
         await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from sponsorship")
-        const dataEarned = 500 // 1 DATA per second => 500 DATA
+        // const dataEarned = 500 // 1 DATA per second => 500 DATA
         await operator.withdrawEarningsFromSponsorship(sponsorship.address)
         expect(await token.balanceOf(sponsorship.address)).to.equal(parseEther("1500.0")) // 2000 - 500
         expect(await token.balanceOf(operator.address)).to.equal(parseEther("500"))
