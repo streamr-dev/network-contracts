@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.13;
 
-import "./IMaintenanceMarginPoolYieldPolicy.sol";
+import "./IPoolYieldPolicy.sol";
 import "../Operator.sol";
 
-contract MaintenanceMarginPoolYieldPolicy is IMaintenanceMarginPoolYieldPolicy, Operator {
+contract MaintenanceMarginPoolYieldPolicy is IPoolYieldPolicy, Operator {
 
     struct LocalStorage {
         uint initialMargin;  // is this really needed? it will always be 100% in the beginning
@@ -20,18 +20,17 @@ contract MaintenanceMarginPoolYieldPolicy is IMaintenanceMarginPoolYieldPolicy, 
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
-    function setParam(uint initialMargin, uint maintenanceMarginPercent, uint minimumMarginFraction, uint operatorSharePercent, uint operatorShareMaxDivertPercent) external {
+    function setParam(uint param) external {
         LocalStorage storage data = localData();
-        data.initialMargin = initialMargin;
+        data.initialMargin = 1;
         // consolelog("DefaultPoolYieldPolicy.setParam: initialMargin:", initialMargin);
-        require(maintenanceMarginPercent >= 0 && maintenanceMarginPercent < 100, "error_maintenanceMarginPercent");
-        data.maintenanceMarginPercent = maintenanceMarginPercent;
+        data.maintenanceMarginPercent = param & 255;
         // consolelog("DefaultPoolYieldPolicy.setParam: maintenanceMarginPercent:", maintenanceMarginPercent);
-        data.minimumMarginFraction = minimumMarginFraction;
+        data.minimumMarginFraction = (param >> 8) & 255;
         // consolelog("DefaultPoolYieldPolicy.setParam: minimumMarginFraction:", minimumMarginFraction);
-        data.operatorSharePercent = operatorSharePercent;
+        data.operatorSharePercent = (param >> 16) & 255;
         // consolelog("DefaultPoolYieldPolicy.setParam: operatorSharePercent:", operatorSharePercent);
-        data.operatorShareMaxDivertPercent = operatorShareMaxDivertPercent;
+        data.operatorShareMaxDivertPercent = (param >> 24) & 255;
         // consolelog("DefaultPoolYieldPolicy.setParam: operatorShareMaxDivertPercent:", operatorShareMaxDivertPercent);
     }
 
