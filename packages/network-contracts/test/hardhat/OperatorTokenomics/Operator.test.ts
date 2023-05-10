@@ -112,7 +112,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
 
         const gains = (await token.balanceOf(operator.address)).sub(balanceBefore)
-        expect(formatEther(gains)).to.equal("1000.0") // 200 operator fee was automatically re-delegated
+        expect(formatEther(gains)).to.equal("1000.0") // 200 operator fee was automatically re-delegated (it never left the contract)
     })
 
     describe.skip("DefaultDelegationPolicy", () => {
