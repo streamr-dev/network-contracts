@@ -552,7 +552,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
         uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
-        if (balanceOf(delegator) < amountPoolTokens) {
+        if (balanceOf(delegator) < amountPoolTokens + minimumDelegationWei) {
             amountPoolTokens = balanceOf(delegator);
         }
         if (amountPoolTokens == 0) {
