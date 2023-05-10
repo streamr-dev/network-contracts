@@ -238,10 +238,10 @@ describe("Operator contract", (): void => {
 
         // 0 DATA
         // 500 DATA - 100 DATA
-        const poolValueForCalculation = 1000 + dataEarned - 100
-        const currentAmountOfPoolTokens = 1000
-        const currentExchangeRate = currentAmountOfPoolTokens / poolValueForCalculation // 1000 / 1400 = 0.7142857143
-        const pooltoken = currentExchangeRate * dataEarned / 5 // 20% of the earnings => 71.42857143
+        // const poolValueForCalculation = 1000 + dataEarned - 100
+        // const currentAmountOfPoolTokens = 1000
+        // const currentExchangeRate = currentAmountOfPoolTokens / poolValueForCalculation // 1000 / 1400 = 0.7142857143
+        // const pooltoken = currentExchangeRate * dataEarned / 5 // 20% of the earnings => 71.42857143
 
         // 400 in pool
         // mint pooltoken according to 400 DATA
