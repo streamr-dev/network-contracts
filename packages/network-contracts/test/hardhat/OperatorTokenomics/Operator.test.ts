@@ -115,6 +115,26 @@ describe("Operator contract", (): void => {
         expect(formatEther(gains)).to.equal("800.0") // 200 operator fee
     })
 
+    it("stakes, then stakes more", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await setTokens(delegator, "2000")
+        const sponsorship = await deploySponsorship(sharedContracts)
+        const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 20 })
+        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+
+        await expect(operator.stake(sponsorship.address, parseEther("1000")))
+            .to.emit(operator, "StakeUpdate").withArgs(sponsorship.address, parseEther("1000"), parseEther("1000"))
+            .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+        await expect(operator.stake(sponsorship.address, parseEther("500")))
+            .to.emit(operator, "StakeUpdate").withArgs(sponsorship.address, parseEther("1500"), parseEther("1500"))
+            .to.not.emit(operator, "Staked")
+
+        await expect(operator.stake(sponsorship.address, parseEther("500")))
+            .to.emit(operator, "StakeUpdate").withArgs(sponsorship.address, parseEther("2000"), parseEther("2000"))
+            .to.not.emit(operator, "Staked")
+    })
+
     describe("DefaultDelegationPolicy", () => {
         beforeEach(async () => {
             await setTokens(operatorWallet, "3000")
