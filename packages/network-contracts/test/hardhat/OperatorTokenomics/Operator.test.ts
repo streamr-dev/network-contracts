@@ -115,7 +115,7 @@ describe("Operator contract", (): void => {
         expect(formatEther(gains)).to.equal("1000.0") // 200 operator fee was automatically re-delegated (it never left the contract)
     })
 
-    describe.skip("DefaultDelegationPolicy", () => {
+    describe("DefaultDelegationPolicy", () => {
         beforeEach(async () => {
             await setTokens(operatorWallet, "3000")
             await setTokens(delegator, "15000")
@@ -194,7 +194,7 @@ describe("Operator contract", (): void => {
         expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1000.0")
 
         const operator = await deployOperator(sharedContracts, operatorWallet, {
-            minimumMarginFraction: 20,
+            minOperatorStakePercent: 20,
             operatorSharePercent: 20,
         })
 
@@ -303,9 +303,9 @@ describe("Operator contract", (): void => {
         // TODO: add event to Operator
         // await expect(operator.withdrawEarningsFromSponsorship(sponsorship.address))
         //    .to.emit(operator, "Withdrawn").withArgs(sponsorship.address, parseEther("2500"))
-        
+
         expect(await dataToken.balanceOf(operatorWallet.address)).to.equal(parseEther("0"))
-        // poolValue = operator DATA tokens + 
+        // poolValue = operator DATA tokens +
         //      operator stake in sponsorship + operator earnings from sponsorship - operator's share of the earnings(operator's share * allocation)
         //      = 2500 + 500 + 0 - 0.2 * 500 = 3000
         expect(await operator.calculatePoolValueInData()).to.equal(parseEther("3000"))

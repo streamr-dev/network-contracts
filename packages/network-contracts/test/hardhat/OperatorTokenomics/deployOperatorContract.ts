@@ -11,8 +11,7 @@ let poolindex = 0
  * @returns Operator
  */
 export async function deployOperatorContract(contracts: TestContracts, deployer: Wallet, {
-    minimumMarginFraction = 0,
-    // minOperatorStakePercent = 0,
+    minOperatorStakePercent = 0,
     operatorSharePercent = 0,
     operatorMetadata = "{}",
 } = {}, salt?: string): Promise<Operator> {
@@ -37,7 +36,12 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
             defaultUndelegationPolicy.address
         ],
         [
-            initialMargin, minimumMarginFraction, 0, 0, 0, parseEther("1").mul(operatorSharePercent).div(100)
+            initialMargin,
+            parseEther("1").mul(minOperatorStakePercent).div(100),
+            0,
+            0,
+            0,
+            parseEther("1").mul(operatorSharePercent).div(100)
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
