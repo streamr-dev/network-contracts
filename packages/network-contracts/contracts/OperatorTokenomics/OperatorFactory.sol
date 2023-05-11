@@ -96,21 +96,16 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     // }
 
     /**
-     * Policies array corresponds to the initParams array as follows:
-     *  [0]: join policy => [0] initialMargin, [1] minimumMarginPercent
-     *  [1]: yield policy => [2] initialMargin, [3] maintenanceMargin, [4] minimumMargin, [5] operatorShare, [6] operatorShareMaxDivert
-     *  [2]: exit policy => [7]
+     * [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam, [4] initialMinimumDelegationWei, [5] operatorsShareFraction
      * @param policies smart contract addresses, must be in the trustedPolicies
      */
     function deployOperator(
-        uint32 initialMinimumDelegationWei,
         string[2] calldata stringArgs, // [0] poolTokenName, [1] streamMetadata
-        address[3] calldata policies,
-        uint[8] calldata initParams
+        address[3] calldata policies, // [0] delegation, [1] yield, [2] undelegation policy
+        uint[6] calldata initParams
     ) public returns (address) {
         return _deployOperator(
             _msgSender(),
-            initialMinimumDelegationWei,
             stringArgs,
             policies,
             initParams
@@ -119,10 +114,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function _deployOperator(
         address operatorAddress,
-        uint32 initialMinimumDelegationWei,
         string[2] calldata stringArgs,
         address[3] calldata policies,
-        uint[8] calldata initParams
+        uint[6] calldata initParams
     ) private returns (address) {
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
@@ -136,16 +130,17 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             configAddress,
             operatorAddress,
             stringArgs,
-            initialMinimumDelegationWei
+            initParams[4],
+            initParams[5]
         );
         if (policies[0] != address(0)) {
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), initParams[0], initParams[1]);
         }
         if (policies[1] != address(0)) {
-            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[2], initParams[3], initParams[4], initParams[5], initParams[6]);
+            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[2]);
         }
         if (policies[2] != address(0)) {
-            newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), initParams[7]);
+            newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), initParams[3]);
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time

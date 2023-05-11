@@ -1,6 +1,8 @@
-import { Wallet, ContractReceipt } from "ethers"
+import { Wallet, ContractReceipt, utils } from "ethers"
 import { Operator } from "../../../typechain"
 import { TestContracts } from "./deployTestContracts"
+
+const { parseEther } = utils
 
 let poolindex = 0
 
@@ -9,8 +11,6 @@ let poolindex = 0
  * @returns Operator
  */
 export async function deployOperatorContract(contracts: TestContracts, deployer: Wallet, {
-    maintenanceMarginPercent = 0,
-    maxOperatorDivertPercent = 0,
     minOperatorStakePercent = 0,
     operatorSharePercent = 0,
     operatorMetadata = "{}",
@@ -23,23 +23,25 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
     const initialMargin = "0"
     const poolTokenName = salt ?? `Pool-${Date.now()}-${poolindex++}`
 
-    /** TODO: update after cleaning up the OperatorFactory
-     * Policies array corresponds to the initParams array as follows:
-     *  [0]: join policy => [0] initialMargin, [1] minimumMarginPercent
-     *  [1]: yield policy => [2] initialMargin, [3] maintenanceMargin, [4] minimumMargin, [5] operatorShare, [6] operatorShareMaxDivert
-     *  [2]: undelegation policy => [7]
+    /**
+     * policies, // [0] delegation, [1] yield, [2] undelegation policy
+     * [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam,
+     *      [4] initialMinimumDelegationWei, [5] operatorsShareFraction
      */
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
-        0,
         [ poolTokenName, operatorMetadata ],
         [
             defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultUndelegationPolicy.address
-        ], [
-            initialMargin, minOperatorStakePercent,
-            initialMargin, maintenanceMarginPercent, minOperatorStakePercent, operatorSharePercent, maxOperatorDivertPercent,
-            0
+        ],
+        [
+            initialMargin,
+            parseEther("1").mul(minOperatorStakePercent).div(100),
+            0,
+            0,
+            0,
+            parseEther("1").mul(operatorSharePercent).div(100)
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
