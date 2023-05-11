@@ -91,6 +91,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public totalValueInSponsorshipsWei;
 
     mapping(Sponsorship => uint) public approxPoolValueOfSponsorship; // in Data wei
+    mapping(Sponsorship => uint) public stakedInto; // in Data wei
 
     struct UndelegationQueueEntry {
         address delegator;
@@ -290,11 +291,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "error_badSponsorship");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         token.approve(address(sponsorship), amountWei);
-        if (indexOfSponsorships[sponsorship] == 0) {
-            sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
-            approxPoolValueOfSponsorship[sponsorship] += amountWei;
-            totalValueInSponsorshipsWei += amountWei;
+        sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
+        approxPoolValueOfSponsorship[sponsorship] += amountWei;
+        stakedInto[sponsorship] += amountWei;
+        totalValueInSponsorshipsWei += amountWei;
 
+        if (indexOfSponsorships[sponsorship] == 0) { // initial staking in a new sponsorship
             sponsorships.push(sponsorship);
             indexOfSponsorships[sponsorship] = sponsorships.length; // real array index + 1
             if (sponsorships.length == 1) {
@@ -321,7 +323,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             unstakeWithoutQueue(sponsorship);
             return;
         }
-        sponsorship.reduceStakeTo(targetStakeWei);
+        uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
+        stakedInto[sponsorship] -= cashoutWei;
         updateApproximatePoolvalueOfSponsorship(sponsorship);
         emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)), totalValueInSponsorshipsWei);
     }
@@ -353,10 +356,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
-        uint amountStakedBeforeWei = sponsorship.getMyStake();
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
-        _postUnstake(sponsorship, amountStakedBeforeWei, balanceBeforeWei);
+        _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
     }
 
     /**
@@ -373,37 +375,31 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             require(hasRole(CONTROLLER_ROLE, msg.sender), "error_onlyOperator");
         }
 
-        uint amountStakedBeforeWei = sponsorship.getMyStake();
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.forceUnstake();
-        _postUnstake(sponsorship, amountStakedBeforeWei, balanceBeforeWei);
+        _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
         payOutQueueWithFreeFunds(maxQueuePayoutIterations);
     }
 
-    function _postUnstake(Sponsorship sponsorship, uint amountStakedBeforeWei, uint balanceBeforeWei) private {
-        uint receivedWei = token.balanceOf(address(this)) - balanceBeforeWei;
-        totalValueInSponsorshipsWei -= approxPoolValueOfSponsorship[sponsorship];
-        // console.log("sponsorships approx pool value", approxPoolValueOfSponsorship[sponsorship]);
-        // console.log("unstake receivedWei", receivedWei);
-        // console.log("unstake new approxPoolValue", approxPoolValue);
-        approxPoolValueOfSponsorship[sponsorship] = 0;
-
-        if (receivedWei < amountStakedBeforeWei) {
-            // TODO: slash handling
-            uint lossesWei = amountStakedBeforeWei - receivedWei;
-            emit Loss(sponsorship, lossesWei);
+    /**
+     * Remove a Sponsorship from bookkeeping - either we unstaked from it or got kicked out.
+     * Also calculate the Profit/Loss from that investment at this point.
+     * Earnings were mixed together with stake in the unstaking process; only earnings on top of what has been staked is emitted in Profit event.
+     * This means whatever was slashed gets also deducted from the operator's share
+     */
+    function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
+        if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
+            uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
+            emit Loss(sponsorship, lossWei);
         } else {
             // "self-delegate" the operator's share === mint new pooltokens
-            uint profitDataWei = receivedWei - amountStakedBeforeWei;
+            uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
             uint operatorsShareDataWei = profitDataWei * operatorsShareFraction / 1 ether;
             _delegate(owner, operatorsShareDataWei);
             emit Profit(sponsorship, profitDataWei - operatorsShareDataWei, operatorsShareDataWei);
         }
-        _removeSponsorship(sponsorship);
-    }
 
-    // remove from array: replace with the last element
-    function _removeSponsorship(Sponsorship sponsorship) internal {
+        // remove from array: replace with the last element
         uint index = indexOfSponsorships[sponsorship] - 1; // indexOfSponsorships is the real array index + 1
         Sponsorship lastSponsorship = sponsorships[sponsorships.length - 1];
         sponsorships[index] = lastSponsorship;
@@ -413,6 +409,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (sponsorships.length == 0) {
             try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
         }
+
+        totalValueInSponsorshipsWei -= approxPoolValueOfSponsorship[sponsorship];
+        approxPoolValueOfSponsorship[sponsorship] = 0;
+        stakedInto[sponsorship] = 0;
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0, totalValueInSponsorshipsWei);
     }
@@ -557,6 +557,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         if (amountPoolTokens == 0) {
             // nothing to pay => pop the item
+            // will this actually do anything? Or delete just resets to default value which is anyway zero?
+            // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
             return false;
@@ -598,16 +600,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // SPONSORSHIP CALLBACKS
     /////////////////////////////////////////
 
-    function onSlash() external {
+    function onSlash(uint) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
         updateApproximatePoolvalueOfSponsorship(sponsorship);
     }
 
-    function onKick() external {
+    function onKick(uint, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        _removeSponsorship(sponsorship);
+        _removeSponsorship(sponsorship, receivedPayoutWei);
         updateApproximatePoolvalueOfSponsorship(sponsorship);
     }
 
