@@ -8,8 +8,9 @@ const { parseEther } = utils
 import { abi as sponsorshipFactoryAbi }
     from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
 
-export async function deploySponsorship(deployer: Wallet,
-    chainConfig: Chain, {
+export async function deploySponsorship(
+    chainConfig: Chain,
+    deployer: Wallet, {
         streamId = `Stream-${Date.now()}`,
         metadata = "{}",
         minimumStakeWei = parseEther("60"),
@@ -19,7 +20,7 @@ export async function deploySponsorship(deployer: Wallet,
 ): Promise<Sponsorship> {
 
     const sponsorshipFactory = new Contract(chainConfig.contracts.OperatorFactory, sponsorshipFactoryAbi, deployer)
-
+    console.log("deployer balance", await deployer.getBalance())
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),
         minHorizonSeconds.toString(),

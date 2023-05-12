@@ -4,7 +4,8 @@ import { Wallet, ContractReceipt, Contract, utils } from "ethers"
 import { abi as operatorAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
 import { abi as operatorFactoryAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/OperatorFactory.sol/OperatorFactory.json"
 
-import type { Operator } from "../../network-contracts/typechain"
+import type { Operator, OperatorFactory } from "../../network-contracts/typechain"
+import { AddressZero } from "@ethersproject/constants"
 
 const { parseEther } = utils
 
@@ -19,14 +20,21 @@ export async function deployOperatorContract(
         operatorMetadata = "{}",
     } = {}, poolTokenName = `Pool-${Date.now()}`): Promise<Operator> {
 
-    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryAbi, deployer)
+    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryAbi, deployer) as OperatorFactory
 
+    const contractAddress = await operatorFactory.operators(deployer.address)
+    // if (await operatorFactory.operators(contractAddress) === deployer.address)) {
+    if (contractAddress !== AddressZero) {
+        throw new Error("Operator already has a contract")
+    }
     /**
      * policies: [0] delegation, [1] yield, [2] undelegation policy
      * uint params: [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam,
      *      [4] initialMinimumDelegationWei, [5] operatorsShareFraction
      */
-    const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
+
+    // const a = await 
+    const operatorReceipt = await (await operatorFactory.deployOperator(
         [ poolTokenName, operatorMetadata ],
         [
             chainConfig.contracts.DefaultDelegationPolicy,
@@ -34,7 +42,7 @@ export async function deployOperatorContract(
             chainConfig.contracts.DefaultUndelegationPolicy,
         ], [
             0,
-            parseEther("1").mul(minOperatorStakePercent).div(100),
+            0,
             0,
             0,
             0,

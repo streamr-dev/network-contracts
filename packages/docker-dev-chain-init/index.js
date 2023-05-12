@@ -474,13 +474,15 @@ async function deploySponsorshipFactory() {
     log("Operator deployed at: ", operatorAddress)
     const operatorFactory2 = await ethers.getContractFactory("Operator", { signer: adminWallet })
     const operator = await operatorFactory2.attach(operatorAddress)
+    log("live operator 0 address: ", await operatorFactory.liveOperators(0))
     const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(operator.address, ethers.utils.parseEther("1000"),
-        adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
+    adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
     log("Invested to operator ", operator.address)
     const stakeTx = await operator.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
     await stakeTx.wait()
     log("Staked into sponsorship ", sponsorship.address)
+    log("live operator 0 address: ", await operatorFactory.liveOperators(0))
 }
 
 async function deployENSCacheV2() {
