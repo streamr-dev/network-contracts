@@ -31,8 +31,7 @@ export async function deploySponsorship(
     overrideKickPolicyParam?: string,
 ): Promise<Sponsorship> {
     const {
-        maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy,
-        allocationPolicy, leavePolicy, voteKickPolicy,
+        maxOperatorsJoinPolicy, allocationPolicy, leavePolicy, voteKickPolicy,
         sponsorshipTemplate, sponsorshipFactory
     } = contracts
 
