@@ -22,7 +22,6 @@ export async function deploySponsorship(
         penaltyPeriodSeconds = -1,
         maxOperatorCount = -1,
         allocationWeiPerSecond = parseEther("1"),
-        operatorOnly = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
@@ -56,10 +55,6 @@ export async function deploySponsorship(
     if (maxOperatorCount > -1) {
         policyAddresses.push(maxOperatorsJoinPolicy.address)
         policyParams.push(maxOperatorCount.toString())
-    }
-    if (operatorOnly) {
-        policyAddresses.push(operatorContractOnlyJoinPolicy.address)
-        policyParams.push("0")
     }
     if (extraJoinPolicies) {
         assert(extraJoinPolicyParams, "must give extraJoinPolicyParams if giving extraJoinPolicies")
