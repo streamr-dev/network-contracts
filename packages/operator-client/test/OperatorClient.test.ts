@@ -57,11 +57,11 @@ describe("OperatorClient", async () => {
         )
         const sponsorshipReceipt = await sponsorshiptx.wait()
         const newSponsorshipAddress = sponsorshipReceipt.events![0].address
-        new OperatorClient(operatorAddress, provider)
+        new OperatorClient(operator.address, provider)
         // await (await operator.approve(newSponsorshipAddress, parseEther("1"))).wait()
         const operatorPooltokenBalance = await operator.balanceOf(operatorWallet.address)
         log(`operatorPooltokenBalance ${operatorPooltokenBalance}`)
-        await (await token.transferAndCall(operatorAddress, parseEther("1"), operatorWallet.address)).wait()
+        await (await token.transferAndCall(operator.address, parseEther("1"), operatorWallet.address)).wait()
         const tr = await (await operator.stake(newSponsorshipAddress, parseEther("1"))).wait()
         log(tr)
     })
