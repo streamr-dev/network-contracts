@@ -4,27 +4,22 @@ import { OperatorClient } from "../src/OperatorClient"
 import { Chains } from "@streamr/config"
 import { Wallet } from "@ethersproject/wallet"
 import { parseEther } from "@ethersproject/units"
+import Debug from "debug"
 
 import type { Operator, SponsorshipFactory, TestToken } from "../../network-contracts/typechain"
-import { ContractFactory } from "@ethersproject/contracts"
-import { abi as operatorAbi, bytecode as operatorBytecode } 
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
-import { abi as sponsorshipFactoryAbi, bytecode as sponsorshipFactoryBytecode } 
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
-import { abi as tokenAbi, bytecode as tokenBytecode } 
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const log = require("debug")("streamr:deploy-tatum")
+import { Contract } from "@ethersproject/contracts"
+import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
+
+import { deployOperatorContract } from "./deployOperatorContract"
+
+const log = Debug("streamr:deploy-tatum")
+const config = Chains.load()["dev1"]
+const operatorPrivKey = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
 
 describe("OperatorClient", async () => {
-    const config = Chains.load()["dev1"]
     const chainURL = config.rpcEndpoints[0].url
 
     let provider: Provider
-    // const sponsorshipAddress = "0x93B517f6014F930631Cb4AD4F7d329b453Bd87d9"
-    const operatorAddress = "0x11Ae98264449ddB794C1C76e82b879535A37cFfe"
-    const operatorPrivKey = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
-    // const operatorPrivKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
     let operator: Operator
     let sponsorshipFactory: SponsorshipFactory
     let token: TestToken
@@ -32,21 +27,13 @@ describe("OperatorClient", async () => {
 
     before(async () => {
         provider = new JsonRpcProvider(chainURL)
+        log("Connected to: ", await provider.getNetwork())
 
         operatorWallet = new Wallet(operatorPrivKey, provider)
 
-        const  operatorFactory = new ContractFactory(operatorAbi, operatorBytecode, operatorWallet)
-        operator = await operatorFactory.attach(operatorAddress) as unknown as Operator
-        // eslint-disable-next-line require-atomic-updates
-        operator = await operator.deployed() // checks for bytecode match
+        token = new Contract(config.contracts.LINK, tokenAbi, operatorWallet) as unknown as TestToken
 
-        const sponsorshipFactoryFactory = new ContractFactory(sponsorshipFactoryAbi, sponsorshipFactoryBytecode, operatorWallet)
-        sponsorshipFactory = await sponsorshipFactoryFactory.attach(config.contracts.SponsorshipFactory) as unknown as SponsorshipFactory
-        await sponsorshipFactory.deployed()
-
-        const tokenFactory = new ContractFactory(tokenAbi, tokenBytecode, operatorWallet)
-        token = await tokenFactory.attach(config.contracts.LINK) as unknown as TestToken
-        await token.deployed()
+        operator = await deployOperatorContract(config, operatorWallet, {}, "TestPool")
 
         const operatorWalletBalance = await token.balanceOf(operatorWallet.address)
         log(`operatorWalletBalance ${operatorWalletBalance}`)
@@ -80,12 +67,20 @@ describe("OperatorClient", async () => {
     })
 
     it("instantiate operatorclient with preexisting operator", () => {
-        const oclient = new OperatorClient(operatorAddress, provider)
+        const oclient = new OperatorClient(operator.address, provider)
         oclient.on("addStakedStream", (streamid: string, blockNumber: number) => {
             log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
         })
         oclient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
             log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
         })
+    })
+
+    it("emits addStakedStream/removeStakedStream only when the first/last Sponsorship for a stream is un/staked to/from", () => {
+        // create 2 Sponsorship contracts for the same stream
+        // stake, expect addStakedStream
+        // stake, expect nothing
+        // unstake, expect nothing
+        // unstake, expect removeStakedStream
     })
 })

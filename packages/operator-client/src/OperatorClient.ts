@@ -90,8 +90,11 @@ export class OperatorClient extends EventEmitter {
         return bounty.streamId()
     }
 
-    async getStakedStreams(): Promise<string[]> {
-        return ["lol"]
+    getStakedStreams(): Promise<{ streamIds: Set<StreamID>, blockNumber: number }> {
+        return Promise.resolve({
+            streamIds: new Set(this.initialState),
+            blockNumber: this.initialBlockNumber
+        })
     }
 
     async close(): Promise<void> {
