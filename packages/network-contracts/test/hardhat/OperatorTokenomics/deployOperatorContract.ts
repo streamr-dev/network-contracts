@@ -14,6 +14,7 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
     minOperatorStakePercent = 0,
     operatorSharePercent = 0,
     operatorMetadata = "{}",
+    minimumDelegationWei = 0
 } = {}, salt?: string): Promise<Operator> {
     const {
         operatorFactory, operatorTemplate,
@@ -40,7 +41,7 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
             parseEther("1").mul(minOperatorStakePercent).div(100),
             0,
             0,
-            0,
+            minimumDelegationWei,
             parseEther("1").mul(operatorSharePercent).div(100)
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here

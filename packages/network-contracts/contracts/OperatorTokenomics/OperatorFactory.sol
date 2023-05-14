@@ -130,7 +130,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             configAddress,
             operatorAddress,
             stringArgs,
-            initParams[4],
+            initParams[4], // minimumDelegationWei
             initParams[5]
         );
         if (policies[0] != address(0)) {

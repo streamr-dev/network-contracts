@@ -851,6 +851,26 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Delegated").withArgs(admin.address, parseEther("100"), parseEther("100"))
     })
 
+    it("undelegate everything if the amount left would be less than the minimum delegation amount", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await setTokens(delegator, "101")
+        const minimumDelegationWei = parseEther("10")
+        const operator = await deployOperator(sharedContracts, operatorWallet, { minimumDelegationWei })
+        await (await token.connect(delegator).approve(operator.address, parseEther("101"))).wait()
+        await expect(operator.connect(delegator).delegate(parseEther("101")))
+            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("101"), parseEther("101"))
+        const freeFundsAfterDelegate = await token.balanceOf(operator.address)
+
+        // undelegating 100 will send 101 to delegator to meet the minimum delegation amount
+        await expect(operator.connect(delegator).undelegate(parseEther("100")))
+            // undelegates the entire stake (101) since the amount left would be less than the minimumDelegationWei
+            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("101"), parseEther("0"))
+        const freeFundsAfterUndelegate = await token.balanceOf(operator.address)
+
+        expect(formatEther(freeFundsAfterDelegate)).to.equal("101.0")
+        expect(formatEther(freeFundsAfterUndelegate)).to.equal("0.0")
+    })
+
     describe("Node addresses", function(): void {
         function dummyAddressArray(length: number): string[] {
             return Array.from({ length }, (_, i) => i).map((i) => `0x${(i + 1).toString().padStart(40, "0")}`)
