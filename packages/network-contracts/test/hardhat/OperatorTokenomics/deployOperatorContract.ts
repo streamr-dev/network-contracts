@@ -19,13 +19,11 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
         operatorFactory, operatorTemplate,
         defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy
     } = contracts
-    // TODO: figure out if initialMargin is needed twice...
-    const initialMargin = "0"
     const poolTokenName = salt ?? `Pool-${Date.now()}-${poolindex++}`
 
     /**
-     * policies, // [0] delegation, [1] yield, [2] undelegation policy
-     * [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam,
+     * policies: [0] delegation, [1] yield, [2] undelegation policy
+     * uint params: [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam,
      *      [4] initialMinimumDelegationWei, [5] operatorsShareFraction
      */
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
@@ -34,9 +32,8 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
             defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultUndelegationPolicy.address
-        ],
-        [
-            initialMargin,
+        ], [
+            0,
             parseEther("1").mul(minOperatorStakePercent).div(100),
             0,
             0,

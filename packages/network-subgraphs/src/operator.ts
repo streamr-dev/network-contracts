@@ -5,8 +5,9 @@ import { Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generat
 import { getBucketStartDate } from './helpers'
 
 export function handleDelegationReceived (event: Delegated): void {
-    log.info('handleDelegationReceived: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleDelegationReceived: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
+    log.info('handleDelegationReceived: operatoraddress={} blockNumber={} amountWei={} approxPoolValue={}', [
+        event.address.toHexString(), event.block.number.toString(), event.params.amountWei.toString(), event.params.approxPoolValue.toString()
+    ])
     let operator = Operator.load(event.address.toHexString())
     operator!.delegatorCount = operator!.delegatorCount + 1
     operator!.approximatePoolValue = event.params.approxPoolValue
