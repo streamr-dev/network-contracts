@@ -99,7 +99,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint timestamp;
     }
     mapping(uint => UndelegationQueueEntry) public undelegationQueue;
-    mapping(address => uint) public totalQueuedPerDelegatorWei; // answers 'how much does delegator X have queued in total to be paid out'
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
@@ -272,7 +271,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function undelegate(uint amountPoolTokenWei) public {
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
-        totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         queueLastIndex++;
         emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
@@ -572,7 +570,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // whole amountDataWei is paid out => pop the item and swap tokens
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
-            totalQueuedPerDelegatorWei[delegator] -= amountPoolTokens;
             _burn(delegator, amountPoolTokens);
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei, totalValueInSponsorshipsWei);
@@ -583,7 +580,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                 balanceDataWei, 0), "error_dataToPooltokenFailed"
             );
-            totalQueuedPerDelegatorWei[delegator] -= partialAmountPoolTokens;
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
