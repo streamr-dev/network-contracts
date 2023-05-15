@@ -476,7 +476,7 @@ async function deploySponsorshipFactory() {
     const operator = await operatorFactory2.attach(operatorAddress)
     log("live operator 0 address: ", await operatorFactory.liveOperators(0))
     const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(operator.address, ethers.utils.parseEther("1000"),
-    adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
+        adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
     log("Invested to operator ", operator.address)
     const stakeTx = await operator.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
@@ -490,7 +490,7 @@ async function deployENSCacheV2() {
 
     const ensCacheScriptFactory = await ethers.getContractFactory("ENSCacheV2Streamr", sidechainWalletStreamReg)
     const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
-    const ensCacheScript = await upgrades.deployProxy(ensCacheScriptFactory, 
+    const ensCacheScript = await upgrades.deployProxy(ensCacheScriptFactory,
         [scriptKeyAddress,
             streamRegistryAddress,
             ensCachV1Address], { kind: "uups" })
@@ -504,7 +504,7 @@ async function deployENSCacheV2() {
 
     log("setting ENSCache address in StreamRegistry")
     await (await streamRegistryFromOwner.setEnsCache(ensCacheScript.address)).wait()
-    
+
     log(`granting trusted role ${role} ensaddress ${ensCacheScript.address}`)
     await (await streamRegistryFromOwner.grantRole(role, ensCacheScript.address)).wait()
     log("ensCacheScript address set as trusted role in streamregistry")

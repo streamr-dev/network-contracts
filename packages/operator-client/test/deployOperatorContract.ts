@@ -33,7 +33,6 @@ export async function deployOperatorContract(
      *      [4] initialMinimumDelegationWei, [5] operatorsShareFraction
      */
 
-    // const a = await 
     const operatorReceipt = await (await operatorFactory.deployOperator(
         [ poolTokenName, operatorMetadata ],
         [
@@ -42,7 +41,7 @@ export async function deployOperatorContract(
             chainConfig.contracts.DefaultUndelegationPolicy,
         ], [
             0,
-            0,
+            parseEther("1").mul(minOperatorStakePercent).div(100),
             0,
             0,
             0,
