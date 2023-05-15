@@ -32,7 +32,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     Operator[] public liveOperators;
     mapping (Operator => uint) public liveOperatorsIndex; // real index +1, zero for Operators not staked in a Sponsorship
 
-    mapping (address => address) public operators; // operator wallet => contract address
+    mapping (address => address) public operators; // operator wallet => Operator contract address
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
