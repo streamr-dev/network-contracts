@@ -4,20 +4,19 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "Launch via NPM",
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "test"
+                "start"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "node",
-            "cwd": "${workspaceFolder}/packages/operator-client",
+            "cwd": "${workspaceFolder}/packages/ens-sync-script",
         },
         {
             "name": "ensscript",
