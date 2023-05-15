@@ -1,20 +1,13 @@
 import { JsonRpcProvider, Provider } from "@ethersproject/providers"
-import { AddressZero } from "@ethersproject/constants"
 import { OperatorClient } from "../src/OperatorClient"
 import { Chains } from "@streamr/config"
 import { Wallet } from "@ethersproject/wallet"
-import { parseEther, formatEther } from "@ethersproject/units"
+import { parseEther } from "@ethersproject/units"
 import Debug from "debug"
 
-import type { Operator, Sponsorship, SponsorshipFactory, TestToken, StreamrConfig } from "../../network-contracts/typechain"
+import type { TestToken } from "../../network-contracts/typechain"
 import { Contract } from "@ethersproject/contracts"
 import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
-import { abi as sponsorshipFactoryAbi }
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
-import { abi as configAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json"
-
-import { abi as sponsorshipAbi }
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
@@ -72,8 +65,6 @@ describe("OperatorClient", async () => {
         })
 
         log("Added OperatorClient listeners, deploying Sponsorship contract...")
-        const sponsorshipFactory = new Contract(config.contracts.SponsorshipFactory,
-            sponsorshipFactoryAbi, operatorWallet) as unknown as SponsorshipFactory
         const sponsorship = await deploySponsorship(config, operatorWallet)
 
         log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
@@ -82,19 +73,20 @@ describe("OperatorClient", async () => {
         // log(`operatorPooltokenBalance ${operatorPooltokenBalance}`)
         // await (await token.transferAndCall(operatorContract.address, parseEther("1"), adminWallet.address)).wait()
 
-        const streamrConfigAddress = await operatorContract.streamrConfig()
-        const streamrConfig = new Contract(streamrConfigAddress, configAbi, operatorWallet) as unknown as StreamrConfig
-        const sponsorshipFactoryAddress = await streamrConfig.sponsorshipFactory()
-        log("Factory address from JSON config: %s, from config contract: %s", config.contracts.SponsorshipFactory, sponsorshipFactoryAddress)
-        const deploymentTimestamp = await sponsorshipFactory.deploymentTimestamp(sponsorship.address)
-        log("Deployment timestamp: %s (%s)", deploymentTimestamp.toString(), new Date(deploymentTimestamp.toNumber() * 1000).toISOString())
-        log("Queue is empty: %s", await operatorContract.queueIsEmpty())
-        log("Token address from JSON config: %s, from operator contract: %s", token.address, await operatorContract.token())
-        log("Token balance: %s", formatEther(await token.balanceOf(operatorContract.address)))
-
-        log("Minimum stake: %s", formatEther(await sponsorship.minimumStakeWei()))
-        log("Join policy 0: %s, from config contract: %s", await sponsorship.joinPolicies(0), await streamrConfig.operatorContractOnlyJoinPolicy())
-        log("Allocation policy: %s", await sponsorship.allocationPolicy())
+        // log("Checking Sponsorship contract...")
+        // const sponsorshipFactory = new Contract(config.contracts.SponsorshipFactory, sponsorshipFactoryAbi, operatorWallet)
+        // const streamrConfigAddress = await operatorContract.streamrConfig()
+        // const streamrConfig = new Contract(streamrConfigAddress, configAbi, operatorWallet) as unknown as StreamrConfig
+        // const sponsorshipFactoryAddress = await streamrConfig.sponsorshipFactory()
+        // log("Factory address from JSON config: %s, from config contract: %s", config.contracts.SponsorshipFactory, sponsorshipFactoryAddress)
+        // const deploymentTimestamp = await sponsorshipFactory.deploymentTimestamp(sponsorship.address)
+        // log("Deployment timestamp: %s (%s)", deploymentTimestamp.toString(), new Date(deploymentTimestamp.toNumber() * 1000).toISOString())
+        // log("Queue is empty: %s", await operatorContract.queueIsEmpty())
+        // log("Token address from JSON config: %s, from operator contract: %s", token.address, await operatorContract.token())
+        // log("Token balance: %s", formatEther(await token.balanceOf(operatorContract.address)))
+        // log("Minimum stake: %s", formatEther(await sponsorship.minimumStakeWei()))
+        // log("Join policy 0: %s, from config contract: %s", await sponsorship.joinPolicies(0), await streamrConfig.operatorContractOnlyJoinPolicy())
+        // log("Allocation policy: %s", await sponsorship.allocationPolicy())
 
         log("Staking to sponsorship...")
         const tr = await (await operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
