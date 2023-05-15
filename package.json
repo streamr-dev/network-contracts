@@ -9,8 +9,6 @@
     "./packages/config",
     "./packages/network-contracts",
     "./packages/hub-contracts",
-    "./packages/hub-subgraph",
-    "./packages/tatum-subgraph",
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
     "./packages/operator-client",
