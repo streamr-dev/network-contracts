@@ -181,6 +181,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return super._msgData();
     }
 
+    function _transfer(address from, address to, uint amount) internal override {
+        require(balanceOf(from) >= amount + minimumDelegationWei, "error_minimumDelegationNotReached");
+        super._transfer(from, to, amount);
+    }
+
     /** Pool value (DATA) = staked in sponsorships + free funds */
     function getApproximatePoolValue() public view returns (uint) {
         return totalValueInSponsorshipsWei + token.balanceOf(address(this));
@@ -271,12 +276,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function undelegate(uint amountPoolTokenWei) public {
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
-
-        // minimum delegation is NOT met, undelegate everything
-        uint delegatorPooltokenBalance = balanceOf(_msgSender());
-        if (delegatorPooltokenBalance - amountPoolTokenWei < minimumDelegationWei) {
-            amountPoolTokenWei = delegatorPooltokenBalance;
-        }
 
         totalQueuedPerDelegatorWei[_msgSender()] += amountPoolTokenWei;
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time

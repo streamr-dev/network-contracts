@@ -895,6 +895,27 @@ describe("Operator contract", (): void => {
         expect(formatEther(freeFundsAfterUndelegate)).to.equal("0.0")
     })
 
+    it("enforce delegator to keep the minimum delegation amount on pooltoken transfer", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await setTokens(delegator, "100")
+        const minimumDelegationWei = parseEther("10")
+        const operator = await deployOperator(sharedContracts, operatorWallet, { minimumDelegationWei })
+        await (await token.connect(delegator).approve(operator.address, parseEther("100"))).wait()
+        await expect(operator.connect(delegator).delegate(parseEther("100")))
+            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100"), parseEther("100"))
+        const freeFundsAfterDelegate = await token.balanceOf(operator.address)
+        expect(freeFundsAfterDelegate).to.equal(parseEther("100"))
+
+        // delegator can send tokens to another address if the minimum delegation amount is kept
+        await operator.connect(delegator).transfer(delegator2.address, parseEther("50"))
+        const freeFundsBeforeTransfer = await operator.balanceOf(delegator.address)
+        expect(freeFundsBeforeTransfer).to.equal(parseEther("50"))
+
+        // delegator can NOT send tokens to another address if the minimum delegation amount is NOT kept
+        await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("41")))
+            .to.be.revertedWith("error_minimumDelegationNotReached")
+    })
+
     describe("Node addresses", function(): void {
         function dummyAddressArray(length: number): string[] {
             return Array.from({ length }, (_, i) => i).map((i) => `0x${(i + 1).toString().padStart(40, "0")}`)
