@@ -80,7 +80,6 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
         const sponsorship = await deploySponsorship(contracts, {
             allocationWeiPerSecond: BigNumber.from(0),
             penaltyPeriodSeconds: 0,
-            operatorOnly: true,
             ...sponsorshipSettings
         })
         if (sponsor) {

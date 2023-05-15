@@ -20,7 +20,7 @@ import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
 import "./SponsorshipFactory.sol";
 
-// TODO: replace interface with import
+// TODO ETH-517: replace interface with import
 interface IStreamRegistry {
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
@@ -162,9 +162,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _createOperatorStream();
     }
 
-    /** Each operator contract creates a fleet coordination stream upon creation,
-      * id = <operatorContractAddress>/operator/coordination
-      */
+    /**
+     * Each operator contract creates a fleet coordination stream upon creation,
+     *   id = <operatorContractAddress>/operator/coordination
+     */
     function _createOperatorStream() private {
         streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)

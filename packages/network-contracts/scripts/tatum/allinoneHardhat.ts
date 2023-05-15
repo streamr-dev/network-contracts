@@ -182,10 +182,9 @@ const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         log("Deploying pool")
         const pooltx = await operatorFactory.connect(adminWallet).deployOperator(
-            0, // min initial investment
             [`Pool-${Date.now()}`, "{}"],
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 10, 10, 0]
+            [0, 0, 0, 0, 0, 10]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress

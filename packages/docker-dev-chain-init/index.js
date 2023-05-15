@@ -461,12 +461,11 @@ async function deploySponsorshipFactory() {
     log("Set operator operator factory in StreamrConfig")
 
     const operatortx = await operatorFactory.connect(adminWallet).deployOperator(
-        0, // min initial investment
         [`Operator-${Date.now()}`, "{}"],
         [defaultDelegationPolicy.address,
             defaultPoolYieldPolicy.address,
             defaultUndelegationPolicy.address],
-        [0, 0, 0, 0, 0, 10, 10, 0]
+        [0, 0, 0, 0, 0, parseEther("0.1")]
     )
     const operatorReceipt = await operatortx.wait()
     const operatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
