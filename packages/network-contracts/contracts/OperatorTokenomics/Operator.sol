@@ -182,7 +182,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function _transfer(address from, address to, uint amount) internal override {
-        require(balanceOf(from) >= amount + minimumDelegationWei, "error_minimumDelegationNotReached");
+        require(balanceOf(from) >= amount + minimumDelegationWei, "error_minDelegationNotReached");
         super._transfer(from, to, amount);
     }
 
