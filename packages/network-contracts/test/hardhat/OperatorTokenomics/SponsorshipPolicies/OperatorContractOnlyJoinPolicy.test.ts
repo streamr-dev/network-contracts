@@ -28,7 +28,7 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
 
     it("only allows Operators to stake", async function(): Promise<void> {
         const { streamrConfig, token } = contracts
-        const sponsorship = await deploySponsorship(contracts, { operatorOnly: true })
+        const sponsorship = await deploySponsorship(contracts)
 
         await (await token.approve(sponsorship.address, parseEther("100"))).wait()
         await expect(sponsorship.stake(operator.address, parseEther("100")))
