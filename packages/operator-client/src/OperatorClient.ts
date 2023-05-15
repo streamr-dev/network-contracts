@@ -3,7 +3,6 @@ import { Provider } from "@ethersproject/providers"
 import { abi as OperatorAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
 import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 import type { Operator, Sponsorship } from "../../network-contracts/typechain"
-import { StakedEvent, UnstakedEvent } from "../../network-contracts/typechain/contracts/OperatorTokenomics/Operator.sol/Operator"
 import { EventEmitter } from "eventemitter3"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -48,8 +47,7 @@ export class OperatorClient extends EventEmitter {
         this.provider = provider
         this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator
         log(`OperatorClient created for ${operatorContractAddress}`)
-        // this.provider.on(this.contract.filters.Staked(), async (event: StakedEvent) => {
-        this.contract.on("Staked", async (sponsorship: string) => {
+        this.contract.on(this.contract.filters.Staked.name, async (sponsorship: string) => {
             log(`got Staked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship
             const streamId = await this.getStreamId(sponsorshipAddress)
@@ -65,8 +63,7 @@ export class OperatorClient extends EventEmitter {
                 this.emit("addStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        // provider.on(this.contract.filters.Unstaked(), async (_, event: UnstakedEvent) => {
-        this.contract.on("Unstaked", async (sponsorship: string) => {
+        this.contract.on(this.contract.filters.Unstaked.name, async (sponsorship: string) => {
             log(`got Unstaked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
@@ -97,7 +94,7 @@ export class OperatorClient extends EventEmitter {
         })
     }
 
-    async close(): Promise<void> {
+    close(): void {
         this.provider.removeAllListeners(this.contract.filters.Staked())
         this.provider.removeAllListeners(this.contract.filters.Unstaked())
     }

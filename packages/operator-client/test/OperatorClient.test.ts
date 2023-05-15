@@ -3,14 +3,18 @@ import { AddressZero } from "@ethersproject/constants"
 import { OperatorClient } from "../src/OperatorClient"
 import { Chains } from "@streamr/config"
 import { Wallet } from "@ethersproject/wallet"
-import { parseEther } from "@ethersproject/units"
+import { parseEther, formatEther } from "@ethersproject/units"
 import Debug from "debug"
 
-import type { Operator, Sponsorship, SponsorshipFactory, TestToken } from "../../network-contracts/typechain"
+import type { Operator, Sponsorship, SponsorshipFactory, TestToken, StreamrConfig } from "../../network-contracts/typechain"
 import { Contract } from "@ethersproject/contracts"
 import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
 import { abi as sponsorshipFactoryAbi }
     from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
+import { abi as configAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json"
+
+import { abi as sponsorshipAbi }
+    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
@@ -24,8 +28,8 @@ describe("OperatorClient", async () => {
     const chainURL = config.rpcEndpoints[0].url
 
     let provider: Provider
-    let operator: Operator
-    let sponsorshipFactory: SponsorshipFactory
+    // let operator: Operator
+    // let sponsorshipFactory: SponsorshipFactory
     let token: TestToken
     let adminWallet: Wallet
 
@@ -48,13 +52,15 @@ describe("OperatorClient", async () => {
     it("deploy new operator, client watches it while staking to sponsorship", async () => {
 
         const operatorWallet = Wallet.createRandom().connect(provider)
+        log("Funding address %s...", operatorWallet.address)
         await (await token.transfer(operatorWallet.address, parseEther("1000"))).wait()
         await (await adminWallet.sendTransaction({
             to: operatorWallet.address,
             value: parseEther("1")
         })).wait()
 
-        const operatorContract = await deployOperatorContract(config, operatorWallet, {}, "TestPool")
+        log("Deploying operator contract, config: %o", config)
+        const operatorContract = await deployOperatorContract(config, operatorWallet)
         const operatorClient = new OperatorClient(operatorContract.address, provider)
         let wasCalled = false
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
@@ -65,35 +71,40 @@ describe("OperatorClient", async () => {
             log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
         })
 
-        const sponsorshipFactory = new Contract(config.contracts.SponsorshipFactory, 
+        log("Added OperatorClient listeners, deploying Sponsorship contract...")
+        const sponsorshipFactory = new Contract(config.contracts.SponsorshipFactory,
             sponsorshipFactoryAbi, operatorWallet) as unknown as SponsorshipFactory
-        // const sponsorship = await deploySponsorship(config, operatorWallet)
-        const sponsorshiptx = await sponsorshipFactory.deploySponsorship(parseEther("60"), 0, 1, "Sponsorship-" + Date.now(), "metadata",
-            [
-                "0x699B4bE95614f017Bb622e427d3232837Cc814E6", // allocation policy
-                AddressZero, // leavepolicy?
-                "0x611900fD07BB133016Ed85553aF9586771da5ff9",  // vote kick policy
-            ], [
-                parseEther("0.01"),
-                "0",
-                "0"
-            ]
-        )
-        const sponsorshipReceipt = await sponsorshiptx.wait()
-        const sponsorshipAddress = sponsorshipReceipt.events?.find((e) => e.event === "NewSponsorship")?.args?.sponsorshipContract
-        // const sponsorship = new Contract(sponsorshipAddress, tokenAbi, operatorWallet) as unknown as Sponsorship
-        log(`sponsorship deployed at ${sponsorshipAddress}`)
-        await (await token.connect(operatorWallet).transferAndCall(sponsorshipAddress, parseEther("60"), operatorWallet.address)).wait()
-        log(`transferred 1 token to ${sponsorshipAddress}`)
+        const sponsorship = await deploySponsorship(config, operatorWallet)
+
+        log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
+        await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, parseEther("200"), operatorWallet.address)).wait()
         // const operatorPooltokenBalance = await operatorContract.balanceOf(adminWallet.address)
         // log(`operatorPooltokenBalance ${operatorPooltokenBalance}`)
         // await (await token.transferAndCall(operatorContract.address, parseEther("1"), adminWallet.address)).wait()
-        const tr = await (await operatorContract.stake(sponsorshipAddress, parseEther("60"))).wait()
+
+        const streamrConfigAddress = await operatorContract.streamrConfig()
+        const streamrConfig = new Contract(streamrConfigAddress, configAbi, operatorWallet) as unknown as StreamrConfig
+        const sponsorshipFactoryAddress = await streamrConfig.sponsorshipFactory()
+        log("Factory address from JSON config: %s, from config contract: %s", config.contracts.SponsorshipFactory, sponsorshipFactoryAddress)
+        const deploymentTimestamp = await sponsorshipFactory.deploymentTimestamp(sponsorship.address)
+        log("Deployment timestamp: %s (%s)", deploymentTimestamp.toString(), new Date(deploymentTimestamp.toNumber() * 1000).toISOString())
+        log("Queue is empty: %s", await operatorContract.queueIsEmpty())
+        log("Token address from JSON config: %s, from operator contract: %s", token.address, await operatorContract.token())
+        log("Token balance: %s", formatEther(await token.balanceOf(operatorContract.address)))
+
+        log("Minimum stake: %s", formatEther(await sponsorship.minimumStakeWei()))
+        log("Join policy 0: %s, from config contract: %s", await sponsorship.joinPolicies(0), await streamrConfig.operatorContractOnlyJoinPolicy())
+        log("Allocation policy: %s", await sponsorship.allocationPolicy())
+
+        log("Staking to sponsorship...")
+        const tr = await (await operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
         log(`stake tx hash ${tr.transactionHash}`)
         while (!wasCalled) {
             await new Promise((resolve) => setTimeout(resolve, 1000))
             log("waiting for event")
         }
+
+        operatorClient.close()
     })
 
     // it("instantiate operatorclient with preexisting operator", () => {

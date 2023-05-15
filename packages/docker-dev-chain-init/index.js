@@ -337,23 +337,27 @@ async function deploySponsorshipFactory() {
     log(`hasrole adminwallet ${hasroleEthSigner}`)
     log(`streamrConfig address ${streamrConfig.address}`)
 
-    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy")).deploy()
+    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy")).deploy({ signer: adminWallet })
     await maxOperatorsJoinPolicy.deployed()
     log(`maxOperatorsJoinPolicy address ${maxOperatorsJoinPolicy.address}`)
 
-    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy")).deploy()
+    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy")).deploy({ signer: adminWallet })
     await allocationPolicy.deployed()
     log(`allocationPolicy address ${allocationPolicy.address}`)
 
-    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy")).deploy()
+    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy")).deploy({ signer: adminWallet })
     await leavePolicy.deployed()
     log(`leavePolicy address ${leavePolicy.address}`)
 
-    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy")).deploy()
+    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy")).deploy({ signer: adminWallet })
     await voteKickPolicy.deployed()
     log(`voteKickPolicy address ${voteKickPolicy.address}`)
 
-    const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship")).deploy()
+    const operatorContractOnlyJoinPolicy = await (await ethers.getContractFactory("OperatorContractOnlyJoinPolicy")).deploy({ signer: adminWallet })
+    await operatorContractOnlyJoinPolicy.deployed()
+    log(`operatorContractOnlyJoinPolicy address ${operatorContractOnlyJoinPolicy.address}`)
+
+    const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship")).deploy({ signer: adminWallet })
     await sponsorshipTemplate.deployed()
     log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
@@ -361,8 +365,13 @@ async function deploySponsorshipFactory() {
     const sponsorshipFactoryFactoryTx = await upgrades.deployProxy(sponsorshipFactoryFactory,
         [ sponsorshipTemplate.address, linkToken.address, streamrConfig.address ], {  unsafeAllow: ['delegatecall'], kind: "uups" })
     const sponsorshipFactory = await sponsorshipFactoryFactoryTx.deployed()
-    await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
-        allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
+    await (await sponsorshipFactory.addTrustedPolicies([
+        allocationPolicy.address,
+        leavePolicy.address,
+        voteKickPolicy.address,
+        maxOperatorsJoinPolicy.address,
+        operatorContractOnlyJoinPolicy.address,
+    ])).wait()
 
     await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
     log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
@@ -473,7 +482,7 @@ async function deploySponsorshipFactory() {
     log("Operator deployed at: ", operatorAddress)
     const operatorFactory2 = await ethers.getContractFactory("Operator", { signer: adminWallet })
     const operator = await operatorFactory2.attach(operatorAddress)
-    log("live operator 0 address: ", await operatorFactory.liveOperators(0))
+    // log("live operator 0 address: ", await operatorFactory.liveOperators(0))
     const investTx = await linkToken.connect(adminWalletEthers4).transferAndCall(operator.address, ethers.utils.parseEther("1000"),
         adminWallet.address, { nonce: await adminWallet.getTransactionCount()})
     await investTx.wait()
@@ -481,7 +490,7 @@ async function deploySponsorshipFactory() {
     const stakeTx = await operator.connect(adminWallet).stake(sponsorship.address, ethers.utils.parseEther("1000"))
     await stakeTx.wait()
     log("Staked into sponsorship ", sponsorship.address)
-    log("live operator 0 address: ", await operatorFactory.liveOperators(0))
+    // log("live operator 0 address: ", await operatorFactory.liveOperators(0))
 }
 
 async function deployENSCacheV2() {

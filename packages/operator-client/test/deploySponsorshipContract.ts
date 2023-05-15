@@ -8,6 +8,9 @@ const { parseEther } = utils
 import { abi as sponsorshipFactoryAbi }
     from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
 
+import { abi as sponsorshipAbi }
+    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
+
 export async function deploySponsorship(
     chainConfig: Chain,
     deployer: Wallet, {
@@ -19,8 +22,9 @@ export async function deploySponsorship(
     } = {},
 ): Promise<Sponsorship> {
 
-    const sponsorshipFactory = new Contract(chainConfig.contracts.OperatorFactory, sponsorshipFactoryAbi, deployer)
-    console.log("deployer balance", await deployer.getBalance())
+    // console.log("Chain config: %o", chainConfig)
+    const sponsorshipFactory = new Contract(chainConfig.contracts.SponsorshipFactory, sponsorshipFactoryAbi, deployer)
+    // console.log("deployer balance", await deployer.getBalance())
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),
         minHorizonSeconds.toString(),
@@ -40,6 +44,8 @@ export async function deploySponsorship(
     const sponsorshipDeployReceipt = await sponsorshipDeployTx.wait() as ContractReceipt
     const newSponsorshipEvent = sponsorshipDeployReceipt.events?.find((e) => e.event === "NewSponsorship")
     const newSponsorshipAddress = newSponsorshipEvent?.args?.sponsorshipContract
-    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipFactoryAbi, deployer) as Sponsorship
+    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipAbi, deployer) as Sponsorship
+    console.log("Join policy 0: %s", await newSponsorship.joinPolicies(0))
+
     return newSponsorship
 }
