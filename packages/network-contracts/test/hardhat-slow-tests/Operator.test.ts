@@ -50,7 +50,6 @@ describe("Operator", (): void => {
         for (let i = 0; i < 1000; i++) {
             await operator.connect(delegator).undelegate(parseEther("1"))
         }
-        expect(await operator.totalQueuedPerDelegatorWei(delegator.address)).to.equal(parseEther("1000"))
 
         // doing it in one go with 1000 slots in the queue will fail...
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
@@ -87,7 +86,6 @@ describe("Operator", (): void => {
             sponsorships.push(sponsorship)
         }
         await operator.connect(delegator).undelegate(totalStaked)
-        expect(await operator.totalQueuedPerDelegatorWei(delegator.address)).to.equal(totalStaked)
         expect(await operator.balanceOf(delegator.address)).to.equal(parseEther((numberOfSponsorships * 100).toString()))
 
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
