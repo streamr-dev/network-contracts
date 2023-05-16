@@ -3,6 +3,7 @@ import { OperatorClient } from "../src/OperatorClient"
 import { Chains } from "@streamr/config"
 import { Wallet } from "@ethersproject/wallet"
 import { parseEther } from "@ethersproject/units"
+import { expect } from "chai"
 import Debug from "debug"
 
 import type { TestToken } from "../../network-contracts/typechain"
@@ -54,6 +55,7 @@ describe("OperatorClient", async () => {
 
         log("Deploying operator contract, config: %o", config)
         const operatorContract = await deployOperatorContract(config, operatorWallet)
+        log(`Operator deployed at ${operatorContract.address}`)
         const operatorClient = new OperatorClient(operatorContract.address, provider)
         let wasCalled = false
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
@@ -65,7 +67,11 @@ describe("OperatorClient", async () => {
         })
 
         log("Added OperatorClient listeners, deploying Sponsorship contract...")
-        const sponsorship = await deploySponsorship(config, operatorWallet)
+        const sponsorship = await deploySponsorship(config, operatorWallet , {
+            streamId: "0xf029f3aa8c8ccc84032f5afe539ee716fd2ba95c/operator/coordination" })
+        const sponsorship2 = await deploySponsorship(config, operatorWallet, {
+            streamId: "0xbee449be06b423eb128645e7f348b17e8edbd918/operator/coordination"
+        })
 
         log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
         await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, parseEther("200"), operatorWallet.address)).wait()
@@ -89,8 +95,16 @@ describe("OperatorClient", async () => {
         // log("Allocation policy: %s", await sponsorship.allocationPolicy())
 
         log("Staking to sponsorship...")
-        const tr = await (await operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
-        log(`stake tx hash ${tr.transactionHash}`)
+        const tr = await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship.address}`)
+        const tr2 = await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship2.address}`)
+        await setTimeout(() => {}, 4000)
+        const streams = await operatorClient.getStakedStreams()
+        log(`streams: ${JSON.stringify(streams)}`)
+        expect(streams.streamIds.length).to.equal(2)
+        expect(streams.streamIds).to.contain("0xbee449be06b423eb128645e7f348b17e8edbd918/operator/coordination")
+        expect(streams.streamIds).to.contain("0xf029f3aa8c8ccc84032f5afe539ee716fd2ba95c/operator/coordination")
         while (!wasCalled) {
             await new Promise((resolve) => setTimeout(resolve, 1000))
             log("waiting for event")

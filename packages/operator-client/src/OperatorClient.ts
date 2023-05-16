@@ -5,9 +5,9 @@ import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contrac
 import type { Operator, Sponsorship } from "../../network-contracts/typechain"
 import { EventEmitter } from "eventemitter3"
 import { GraphQLClient } from "./TheGraphClient"
+import Debug from "debug"
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const log = require("debug")("streamr:deploy-tatum")
+const log = Debug("streamr:operator-client")
 
 /**
  * Events emitted by {@link OperatorClient}.
@@ -90,23 +90,42 @@ export class OperatorClient extends EventEmitter {
         return bounty.streamId()
     }
 
-    async getStakedStreams(): Promise<{ streamIds: Set<string>, blockNumber: number }> {
-        const streamids = await this.theGraphClient.sendQuery({
+    async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
+        const queryResult = await this.theGraphClient.sendQuery({
+            // query: `
+            //     {
+            //         operator(id: "${this.address.toLowerCase()}") {
+            //             sponsorships {
+            //                 id
+            //                 streamId
+            //             }
+            //         }
+            //     }
+            // `
             query: `
-                {
-                    operator(id: "${this.address.toLowerCase()}") {
-                        sponsorships {
-                            id
-                            streamId
-                        }
+            {
+                operator(id: "${this.address.toLowerCase()}") {
+                  stakes {
+                    sponsorship {
+                      stream {
+                        id
+                      }
+                    }
+                  }
+                }
+                _meta {
+                    block {
+                    number
                     }
                 }
+              }
             `
         })
-        return Promise.resolve({
-            streamIds: new Set(),
-            blockNumber: 0
-        })
+        return {
+            streamIds: queryResult.operator.stakes.map((s: any) => s.sponsorship.stream.id),
+            // eslint-disable-next-line no-underscore-dangle
+            blockNumber: queryResult._meta.block.number
+        }
     }
 
     close(): void {
