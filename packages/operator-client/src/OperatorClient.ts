@@ -4,6 +4,7 @@ import { abi as OperatorAbi } from "../../network-contracts/artifacts/contracts/
 import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 import type { Operator, Sponsorship } from "../../network-contracts/typechain"
 import { EventEmitter } from "eventemitter3"
+import { GraphQLClient } from "./TheGraphClient"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
@@ -39,10 +40,12 @@ export class OperatorClient extends EventEmitter {
     contract: Operator
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
+    theGraphClient: GraphQLClient
 
     constructor(operatorContractAddress: string, provider: Provider) {
         // if (!options.provider) { throw new Error("must give options.provider!") }
         super()
+        this.theGraphClient = new GraphQLClient()
         this.address = operatorContractAddress
         this.provider = provider
         this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator
@@ -87,7 +90,19 @@ export class OperatorClient extends EventEmitter {
         return bounty.streamId()
     }
 
-    getStakedStreams(): Promise<{ streamIds: Set<string>, blockNumber: number }> {
+    async getStakedStreams(): Promise<{ streamIds: Set<string>, blockNumber: number }> {
+        const streamids = await this.theGraphClient.sendQuery({
+            query: `
+                {
+                    operator(id: "${this.address.toLowerCase()}") {
+                        sponsorships {
+                            id
+                            streamId
+                        }
+                    }
+                }
+            `
+        })
         return Promise.resolve({
             streamIds: new Set(),
             blockNumber: 0

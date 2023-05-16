@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x469f8D4929D3e4b121D202FC63eD0a6A9E7b950B'
+      address: '0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e'
       abi: SponsorshipFactory
       startBlock: 0
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x6a6f9F5A321A59409Cb90f965537655B257f5345'
+      address: '0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9'
       abi: OperatorFactory
       startBlock: 0
     mapping:
