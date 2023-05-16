@@ -1,5 +1,5 @@
 import { BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
-import { OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket } from '../generated/schema'
+import { Delegation, Operator, OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 
@@ -113,6 +113,30 @@ export function updateOrCreateSponsorshipDailyBucket(
     }
     bucket.operatorCount = operatorCount
     bucket.save()
+}
+
+export function loadOrCreateOperator(operatorId: string): Operator {
+    let operator = Operator.load(operatorId)
+    if (operator == null) {
+        operator = new Operator(operatorId)
+        operator.delegatorCount = 0
+        operator.approximatePoolValue = BigInt.fromI32(0)
+        operator.owner = ""
+        operator.unallocatedWei = BigInt.fromI32(0)
+    }
+    return operator
+}
+
+export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string): Delegation {
+    let delegationId = operatorContractAddress + "-" + delegator
+    let delegation = Delegation.load(delegationId)
+    if (delegation == null) {
+        delegation = new Delegation(delegationId)
+        delegation.operator = operatorContractAddress
+        delegation.delegator = delegator
+        delegation.poolTokenWei = BigInt.fromI32(0)
+    }
+    return delegation
 }
 
 export function updateOrCreateOperatorDailyBucket(

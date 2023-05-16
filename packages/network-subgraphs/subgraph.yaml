@@ -259,10 +259,11 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
+          - event: BalanceUpdate(address,uint256)
+            handler: handleBalanceUpdate
           - event: Delegated(indexed address,uint256,uint256)
-            handler: handleDelegationReceived
+            handler: handleDelegated
           - event: Undelegated(indexed address,uint256,uint256)
-            handler: handleDelegationRemoved
+            handler: handleUndelegated
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
-

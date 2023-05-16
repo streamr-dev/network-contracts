@@ -1,11 +1,32 @@
-import { log } from '@graphprotocol/graph-ts'
+import { BigInt, log, store } from '@graphprotocol/graph-ts'
+import { Operator, OperatorDailyBucket } from '../generated/schema'
+import { BalanceUpdate, Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
+import { getBucketStartDate, loadOrCreateDelegation, loadOrCreateOperator } from './helpers'
 
-import { Operator, Delegation, OperatorDailyBucket } from '../generated/schema'
-import { Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
-import { getBucketStartDate } from './helpers'
+export function handleBalanceUpdate (event: BalanceUpdate): void {
+    let operatorContractAddress = event.address.toHexString()
+    let delegator = event.params.delegator.toHexString()
+    let newPoolTokenWei = event.params.newPoolTokenWei
 
-export function handleDelegationReceived (event: Delegated): void {
-    log.info('handleDelegationReceived: operatoraddress={} blockNumber={} amountWei={} approxPoolValue={}', [
+    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
+    log.info('handleBalanceUpdate: newPoolTokenWei={} delegator={}', [newPoolTokenWei.toString(), delegator])
+
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    let delegation = loadOrCreateDelegation(operatorContractAddress, delegator)
+    delegation.poolTokenWei = newPoolTokenWei
+
+    if (newPoolTokenWei == BigInt.fromI32(0)) {
+        // delegator burned/transfered all pool tokens
+        store.remove('Delegation', delegation.id)
+        log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
+    } else {
+        delegation.save()
+    }
+    operator.save()
+}
+
+export function handleDelegated (event: Delegated): void {
+    log.info('handleDelegated: operatorContractAddress={} blockNumber={} amountWei={} approxPoolValue={}', [
         event.address.toHexString(), event.block.number.toString(), event.params.amountWei.toString(), event.params.approxPoolValue.toString()
     ])
     let operator = Operator.load(event.address.toHexString())
@@ -13,16 +34,6 @@ export function handleDelegationReceived (event: Delegated): void {
     operator!.approximatePoolValue = event.params.approxPoolValue
     operator!.save()
 
-    let delegation = Delegation.load(event.params.delegator.toHexString())
-    if (delegation === null) {
-        delegation = new Delegation(event.address.toHexString() + "-" + event.params.delegator.toHexString())
-        delegation.operator = event.address.toHexString()
-        delegation.delegator = event.params.delegator.toHexString()
-    }
-    delegation.amount = event.params.amountWei
-    delegation.save()
-
-    // update OperatorDailyBucket
     let operatorAddress = event.address.toHexString()
     let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
     let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
@@ -32,7 +43,7 @@ export function handleDelegationReceived (event: Delegated): void {
         operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
         operatorDailyBucket.save()
     } else {
-        log.info('handleDelegationReceived: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+        log.info('handleDelegated: operatorDailyBucketId={} not found', [operatorDailyBucketId])
     }
 
 }
@@ -46,21 +57,14 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     operator!.save()
 }
 
-export function handleDelegationRemoved (event: Undelegated): void {
-    log.info('handleDelegationRemoved: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleDelegationRemoved: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
+export function handleUndelegated (event: Undelegated): void {
+    log.info('handleUndelegated: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
+    log.info('handleUndelegated: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
     let operator = Operator.load(event.address.toHexString())
     operator!.delegatorCount = operator!.delegatorCount - 1
     operator!.approximatePoolValue = event.params.approxPoolValue
     operator!.save()
 
-    let delegation = Delegation.load(event.address.toHexString() + "-" + event.params.delegator.toHexString())
-    if (delegation !== null) {
-        delegation.amount = event.params.amountWei
-        delegation.save()
-    }
-
-    // update OperatorDailyBucket
     let operatorAddress = event.address.toHexString()
     let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
     let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
@@ -70,7 +74,7 @@ export function handleDelegationRemoved (event: Undelegated): void {
         operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
         operatorDailyBucket.save()
     } else {
-        log.info('handleDelegationRemoved: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+        log.info('handleUndelegated: operatorDailyBucketId={} not found', [operatorDailyBucketId])
     }
 }
 

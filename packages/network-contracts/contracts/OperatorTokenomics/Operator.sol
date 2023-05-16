@@ -47,6 +47,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountWei, uint approxPoolValue);
     event Undelegated(address indexed delegator, uint amountWei, uint approxPoolValue);
+    event BalanceUpdate(address delegator, uint newPoolTokenWei);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
 
@@ -181,6 +182,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return super._msgData();
     }
 
+    function _transfer(address from, address to, uint amount) internal override {
+        require(balanceOf(from) >= amount + minimumDelegationWei, "error_minDelegationNotReached");
+        super._transfer(from, to, amount);
+        emit BalanceUpdate(from, balanceOf(from));
+        emit BalanceUpdate(to, balanceOf(to));
+    }
+
     /** Pool value (DATA) = staked in sponsorships + free funds */
     function getApproximatePoolValue() public view returns (uint) {
         return totalValueInSponsorshipsWei + token.balanceOf(address(this));
@@ -265,6 +273,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         );
         _mint(delegator, amountPoolToken);
         emit Delegated(delegator, amountWei, getApproximatePoolValue());
+        emit BalanceUpdate(delegator, balanceOf(delegator));
     }
 
     /** Add the request to undelegate into the undelegation queue */
@@ -571,6 +580,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
             _burn(delegator, amountPoolTokens);
+            emit BalanceUpdate(delegator, balanceOf(delegator));
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei, totalValueInSponsorshipsWei);
             return queueIsEmpty();
@@ -584,6 +594,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(delegator, partialAmountPoolTokens);
+            emit BalanceUpdate(delegator, balanceOf(delegator));
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei, totalValueInSponsorshipsWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue);

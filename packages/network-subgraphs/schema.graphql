@@ -246,6 +246,7 @@ type OperatorDailyBucket @entity {
   spotAPY: BigInt!
   totalPayoutsCumulative: BigInt!
   delegatorCount: Int!
+  "Total DATA tokens delegated to this operator, by all delegators"
   totalDelegatedWei: BigInt!
   totalStakedWei: BigInt!
 }
@@ -255,7 +256,8 @@ type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
-  amount: BigInt!
+  "Total amount of pooltokens held by a delegator"
+  poolTokenWei: BigInt!
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
