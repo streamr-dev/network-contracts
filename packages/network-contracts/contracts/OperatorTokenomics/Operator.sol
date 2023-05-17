@@ -45,8 +45,8 @@ interface IStreamRegistry {
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
     // delegator events (initiated by anyone)
-    event Delegated(address indexed delegator, uint amountWei, uint approxPoolValue);
-    event Undelegated(address indexed delegator, uint amountWei, uint approxPoolValue);
+    event Delegated(address indexed delegator, uint amountWei);
+    event Undelegated(address indexed delegator, uint amountWei);
     event BalanceUpdate(address delegator, uint newPoolTokenWei);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
@@ -54,7 +54,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
-    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei, uint approxPoolValue);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei);
+    event PoolValueUpdate(uint totalValueInSponsorshipsWei);
     event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
@@ -272,7 +273,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             "error_dataToPooltokenFailed"
         );
         _mint(delegator, amountPoolToken);
-        emit Delegated(delegator, amountWei, getApproximatePoolValue());
+        emit Delegated(delegator, amountWei);
         emit BalanceUpdate(delegator, balanceOf(delegator));
     }
 
@@ -312,7 +313,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
             emit Staked(sponsorship);
         }
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)), totalValueInSponsorshipsWei);
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
     }
 
     /**
@@ -334,7 +335,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
         updateApproximatePoolvalueOfSponsorship(sponsorship);
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)), totalValueInSponsorshipsWei);
+        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
     }
 
     function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
@@ -422,7 +423,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         approxPoolValueOfSponsorship[sponsorship] = 0;
         stakedInto[sponsorship] = 0;
         emit Unstaked(sponsorship);
-        emit StakeUpdate(sponsorship, 0, totalValueInSponsorshipsWei);
+        emit StakeUpdate(sponsorship, 0);
     }
 
     ////////////////////////////////////////
@@ -582,7 +583,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             _burn(delegator, amountPoolTokens);
             emit BalanceUpdate(delegator, balanceOf(delegator));
             token.transfer(delegator, amountDataWei);
-            emit Undelegated(delegator, amountDataWei, totalValueInSponsorshipsWei);
+            emit Undelegated(delegator, amountDataWei);
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -596,7 +597,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             _burn(delegator, partialAmountPoolTokens);
             emit BalanceUpdate(delegator, balanceOf(delegator));
             token.transfer(delegator, balanceDataWei);
-            emit Undelegated(delegator, balanceDataWei, totalValueInSponsorshipsWei);
+            emit Undelegated(delegator, balanceDataWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue);
             return false;
         }
@@ -711,6 +712,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint approx = approxPoolValueOfSponsorship[sponsorship];
         approxPoolValueOfSponsorship[sponsorship] = actual;
         totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + actual - approx;
+        emit PoolValueUpdate(totalValueInSponsorshipsWei);
     }
 
     /**

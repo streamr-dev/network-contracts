@@ -261,9 +261,11 @@ templates:
       eventHandlers:
           - event: BalanceUpdate(address,uint256)
             handler: handleBalanceUpdate
-          - event: Delegated(indexed address,uint256,uint256)
+          - event: Delegated(indexed address,uint256)
             handler: handleDelegated
-          - event: Undelegated(indexed address,uint256,uint256)
+          - event: Undelegated(indexed address,uint256)
             handler: handleUndelegated
-          - event: StakeUpdate(indexed address,uint256,uint256)
+          - event: StakeUpdate(indexed address,uint256)
             handler: handleStakeUpdated
+          - event: PoolValueUpdate(uint256)
+            handler: handlePoolValueUpdate
