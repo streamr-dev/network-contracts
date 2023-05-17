@@ -6,12 +6,13 @@ import type { Operator, Sponsorship } from "../../network-contracts/typechain"
 import { EventEmitter } from "eventemitter3"
 import { GraphQLClient } from "./TheGraphClient"
 import Debug from "debug"
+import { Logger } from "@streamr/utils"
 
 const log = Debug("streamr:operator-client")
 
 /**
  * Events emitted by {@link OperatorClient}.
- */
+*/
 export interface OperatorClientEvents {
     /**
      * Emitted if an error occurred in the subscription.
@@ -41,11 +42,14 @@ export class OperatorClient extends EventEmitter {
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
     theGraphClient: GraphQLClient
+    private readonly logger: Logger
 
-    constructor(operatorContractAddress: string, provider: Provider) {
-        // if (!options.provider) { throw new Error("must give options.provider!") }
+    constructor(operatorContractAddress: string, provider: Provider, logger: Logger) {
         super()
-        this.theGraphClient = new GraphQLClient()
+
+        this.logger = logger
+        this.logger.trace('OperatorClient created')
+        this.theGraphClient = new GraphQLClient(logger)
         this.address = operatorContractAddress
         this.provider = provider
         this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator

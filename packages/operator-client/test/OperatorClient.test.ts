@@ -4,6 +4,8 @@ import { Chains } from "@streamr/config"
 import { Wallet } from "@ethersproject/wallet"
 import { parseEther } from "@ethersproject/units"
 import { expect } from "chai"
+import { Logger } from '@streamr/utils'
+
 import Debug from "debug"
 
 import type { TestToken } from "../../network-contracts/typechain"
@@ -16,9 +18,11 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 const log = Debug("streamr:deploy-tatum")
 const config = Chains.load()["dev1"]
 const adminPrivKey = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
+
+const logger = new Logger(module)
 // const adminPrivKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
 
-describe("OperatorClient", async () => {
+describe("OperatorClient", () => {
     const chainURL = config.rpcEndpoints[0].url
 
     let provider: Provider
@@ -27,7 +31,7 @@ describe("OperatorClient", async () => {
     let token: TestToken
     let adminWallet: Wallet
 
-    before(async () => {
+    beforeAll(async () => {
         provider = new JsonRpcProvider(chainURL)
         log("Connected to: ", await provider.getNetwork())
 
@@ -56,7 +60,7 @@ describe("OperatorClient", async () => {
         log("Deploying operator contract, config: %o", config)
         const operatorContract = await deployOperatorContract(config, operatorWallet)
         log(`Operator deployed at ${operatorContract.address}`)
-        const operatorClient = new OperatorClient(operatorContract.address, provider)
+        const operatorClient = new OperatorClient(operatorContract.address, provider, logger)
         let wasCalled = false
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
             log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)

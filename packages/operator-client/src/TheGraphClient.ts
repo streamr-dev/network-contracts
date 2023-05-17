@@ -1,8 +1,5 @@
-// import { Logger } from '@streamr/utils'
+import { Logger } from '@streamr/utils'
 import fetch from 'node-fetch'
-import Debug from "debug"
-
-const log = Debug("streamr:operator-client")
 
 export interface GraphQLQuery {
     query: string
@@ -11,17 +8,19 @@ export interface GraphQLQuery {
 
 export class GraphQLClient {
 
-    // private readonly logger: Logger
+    private readonly logger: Logger
     private readonly theGraphUrl = "http://localhost:8000/subgraphs/name/streamr-dev/network-subgraphs"
 
-    constructor() {
-        // this.logger = new Logger(module)
-        // this.logger.
+    constructor(logger: Logger) {
+        this.logger = logger
+        if (!logger) { 
+            this.logger = new Logger(module)
+        }
+        this.logger.trace('GraphQLClient created')
     }
 
     async sendQuery(query: GraphQLQuery): Promise<any> {
-        // this.logger.trace('Send GraphQL query', { query })
-        log('Send GraphQL query', { query })
+        this.logger.trace('Send GraphQL query', { query })
         const res = await fetch(this.theGraphUrl, {
             method: 'POST',
             headers: {
@@ -37,8 +36,7 @@ export class GraphQLClient {
         } catch {
             throw new Error(`GraphQL query failed with "${resText}", check that your theGraphUrl="${this.theGraphUrl}" is correct`)
         }
-        // this.logger.trace('Received GraphQL response', { resJson })
-        log('Received GraphQL response', JSON.stringify(resJson))
+        this.logger.trace('Received GraphQL response', { resJson })
         if (!resJson.data) {
             if (resJson.errors && resJson.errors.length > 0) {
                 throw new Error('GraphQL query failed: ' + JSON.stringify(resJson.errors.map((e: any) => e.message)))
