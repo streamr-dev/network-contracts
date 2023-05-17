@@ -33,12 +33,6 @@ jobs:
         run: |
           npm ci --no-audit
           npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
-      - name: Debugging (delete me!)
-        run: |
-          npm ls
-          npm ls @chainsafe/as-sha256
-          ls node_modules/@chainsafe
-          ls node_modules/@nomicfoundation/hardhat-chai-matchers
       - name: Build and lint
         run: npm run build && npm run lint
       - name: Unit tests
