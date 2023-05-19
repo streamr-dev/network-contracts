@@ -125,8 +125,16 @@ export class OperatorClient extends EventEmitter {
               }
             `
         })
+        for (const stake of queryResult.operator.stakes) {
+            if (stake.sponsorship.stream && stake.sponsorship.stream.id) {
+                const streamId = stake.sponsorship.stream.id
+                this.streamIdOfSponsorship.set(stake.sponsorship.id, stake.sponsorship.stream.id)
+                const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 0) + 1
+                this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
+            }
+        }
         return {
-            streamIds: queryResult.operator.stakes.map((s: any) => s.sponsorship.stream.id),
+            streamIds: Array.from(this.streamIdOfSponsorship.values()),
             // eslint-disable-next-line no-underscore-dangle
             blockNumber: queryResult._meta.block.number
         }
