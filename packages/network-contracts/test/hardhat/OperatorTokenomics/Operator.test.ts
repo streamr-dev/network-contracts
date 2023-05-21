@@ -896,7 +896,7 @@ describe("Operator contract", (): void => {
 
         // delegator can NOT send tokens to another address if the minimum delegation amount is NOT kept
         await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("41")))
-            .to.be.revertedWith("error_minDelegationNotReached")
+            .to.be.revertedWith("error_delegationBelowMinimum")
     })
 
     describe("Node addresses", function(): void {
