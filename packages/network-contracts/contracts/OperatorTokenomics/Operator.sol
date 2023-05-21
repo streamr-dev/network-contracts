@@ -45,17 +45,17 @@ interface IStreamRegistry {
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
 
     // delegator events (initiated by anyone)
-    event Delegated(address indexed delegator, uint amountWei);
-    event Undelegated(address indexed delegator, uint amountWei);
-    event BalanceUpdate(address delegator, uint newPoolTokenWei);
+    event Delegated(address indexed delegator, uint amountDataWei);
+    event Undelegated(address indexed delegator, uint amountDataWei);
+    event BalanceUpdate(address delegator, uint totalPoolTokenWei);
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
     event QueueUpdated(address delegator, uint amountPoolTokenWei);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
-    event StakeUpdate(Sponsorship indexed sponsorship, uint amountWei);
-    event PoolValueUpdate(uint totalValueInSponsorshipsWei);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint totalStakedWei);
+    event PoolValueUpdate(uint totalValueInSponsorshipsWei, uint freeFundsWei);
     event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);
 
@@ -304,6 +304,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         approxPoolValueOfSponsorship[sponsorship] += amountWei;
         stakedInto[sponsorship] += amountWei;
         totalValueInSponsorshipsWei += amountWei;
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
 
         if (indexOfSponsorships[sponsorship] == 0) { // initial staking in a new sponsorship
             sponsorships.push(sponsorship);
@@ -420,6 +421,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         totalValueInSponsorshipsWei -= approxPoolValueOfSponsorship[sponsorship];
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
         approxPoolValueOfSponsorship[sponsorship] = 0;
         stakedInto[sponsorship] = 0;
         emit Unstaked(sponsorship);
@@ -570,6 +572,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
+            emit QueueUpdated(delegator, 0);
             return false;
         }
 
@@ -584,6 +587,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit BalanceUpdate(delegator, balanceOf(delegator));
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
+            emit QueueUpdated(delegator, 0);
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -712,7 +716,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint approx = approxPoolValueOfSponsorship[sponsorship];
         approxPoolValueOfSponsorship[sponsorship] = actual;
         totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + actual - approx;
-        emit PoolValueUpdate(totalValueInSponsorshipsWei);
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
@@ -777,6 +781,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             approxPoolValueOfSponsorship[sponsorship] = actual;
         }
         totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + sumActual - sumApprox;
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
 
         // if total difference is more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
         // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?

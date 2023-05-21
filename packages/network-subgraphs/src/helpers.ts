@@ -120,14 +120,41 @@ export function loadOrCreateOperator(operatorId: string): Operator {
     if (operator == null) {
         operator = new Operator(operatorId)
         operator.delegatorCount = 0
-        operator.approximatePoolValue = BigInt.fromI32(0)
+        operator.poolValue = BigInt.fromI32(0)
+        operator.totalValueInSponsorshipsWei = BigInt.fromI32(0)
+        operator.freeFundsWei = BigInt.fromI32(0)
         operator.owner = ""
-        operator.unallocatedWei = BigInt.fromI32(0)
     }
     return operator
 }
 
-export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string): Delegation {
+export function loadOrCreateOperatorDailyBucket(contractAddress: string, timestamp: BigInt): OperatorDailyBucket {
+    let date = getBucketStartDate(timestamp)
+    let bucketId = contractAddress + "-" + date.toString()
+    let bucket = OperatorDailyBucket.load(bucketId)
+    if (bucket == null) {
+        // absolute values, set at bucket creation time
+        bucket = new OperatorDailyBucket(bucketId)
+        bucket.operator = contractAddress
+        bucket.date = date
+        let operator = loadOrCreateOperator(contractAddress)
+        bucket.poolValue = operator.poolValue
+        bucket.totalValueInSponsorshipsWei = operator.totalValueInSponsorshipsWei
+        bucket.freeFundsWei = operator.freeFundsWei
+        bucket.spotAPY = BigInt.fromI32(0) // TODO: intialize
+        bucket.delegatorCountAtStart = operator.delegatorCount
+
+        // accumulated values, updated when events are fired
+        bucket.delegatorCountChange = 0
+        bucket.totalDelegatedWei = BigInt.fromI32(0)
+        bucket.totalUndelegatedWei = BigInt.fromI32(0)
+        bucket.totalStakedWei = BigInt.fromI32(0)
+        // bucket.totalUnstakedWei = BigInt.fromI32(0)
+    }
+    return bucket
+}
+
+export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string, timestamp: BigInt): Delegation {
     let delegationId = operatorContractAddress + "-" + delegator
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {
@@ -135,41 +162,18 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
         delegation.poolTokenWei = BigInt.fromI32(0)
-    }
-    return delegation
-}
 
-export function updateOrCreateOperatorDailyBucket(
-    contractAddress: string,
-    timestamp: BigInt,
-    approximatePoolValue: BigInt,
-    unallocatedWei: BigInt,
-    delegatorCount: i32,
-    totalDelegatedWei: BigInt,
-    totalStakedWei: BigInt
-): void {
-    let date = getBucketStartDate(timestamp)
-    let bucketId = contractAddress + "-" + date.toString()
-    let bucket = OperatorDailyBucket.load(bucketId)
-    if (bucket === null) {
-        bucket = new OperatorDailyBucket(bucketId)
-        bucket.operator = contractAddress
-        bucket.date = date
-        bucket.approximatePoolValue = BigInt.fromI32(0)
-        bucket.unallocatedWei = BigInt.fromI32(0)
-        bucket.spotAPY = BigInt.fromI32(0)
-        bucket.totalPayoutsCumulative = BigInt.fromI32(0)
-        bucket.delegatorCount = 0
-        bucket.totalDelegatedWei = BigInt.fromI32(0)
-        bucket.totalStakedWei = BigInt.fromI32(0)
-    } else {
-        bucket.approximatePoolValue = approximatePoolValue
-        bucket.unallocatedWei = unallocatedWei
-        bucket.delegatorCount = delegatorCount
-        bucket.totalDelegatedWei = totalDelegatedWei
-        bucket.totalStakedWei = totalStakedWei
+        // creating a Delegation means a new delegator has joined the operator => increase delegator count
+        let operator = loadOrCreateOperator(operatorContractAddress)
+        operator.delegatorCount = operator.delegatorCount + 1
+        operator.save()
+        
+        let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, timestamp)
+        operatorDailyBucket.delegatorCountChange = operatorDailyBucket.delegatorCountChange + 1
+        operatorDailyBucket.save()
     }
-    bucket.save()
+
+    return delegation
 }
 
 export function getBucketStartDate(timestamp: BigInt): BigInt {

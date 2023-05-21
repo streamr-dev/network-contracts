@@ -226,28 +226,60 @@ type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
   delegators: [Delegation!]! @derivedFrom(field: "operator")
+  
+  "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int
-  approximatePoolValue: BigInt!
+  
+  "All pooltokens minted to delegators. Updated by BalanceUpdate event (pooltoken mint/burn/transfer)"
+  poolValue: BigInt!
+  
+  "All DATA staked/removed into/from sponsorship. Updated by PoolValueUpdate event"
+  totalValueInSponsorshipsWei: BigInt!
+  
+  "DATA held by the operator, not yet staked (unallocated). Updated by PoolValueUpdate event"
+  freeFundsWei: BigInt!
 
-  # TODO: unpack metadata to fields
+  metadataJsonString: String # TODO: unpack metadata to fields
   owner: String
 
-  unallocatedWei: BigInt!
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
 }
 
 type OperatorDailyBucket @entity {
+  # absolute values, set at bucket creation time
   id: ID! # operator address + date
   operator: Operator!
+
+  "The day of the bucket. This is a timestamp in seconds"
   date: BigInt!
-  approximatePoolValue: BigInt!
-  unallocatedWei: BigInt!
+
+  "All pooltokens minted to delegators. Initialized from operator.poolValue"
+  poolValue: BigInt!
+
+  "All DATA staked/removed into/from sponsorship. Initialized from operator.totalValueInSponsorshipsWei"
+  totalValueInSponsorshipsWei: BigInt!
+
+  "DATA held by the operator, not yet staked (unallocated). Initialized from operator.freeFundsWei"
+  freeFundsWei: BigInt!
+
+  "Momentary APY. TODO: initialize"
   spotAPY: BigInt!
-  totalPayoutsCumulative: BigInt!
-  delegatorCount: Int!
-  "Total DATA tokens delegated to this operator, by all delegators"
+
+  "All delegators joining this operator. Initialized from operator.delegatorCount"
+  delegatorCountAtStart: Int!
+
+  # accumulated values, updated when events are fired
+  "Delegators joining this operator on this day. Updated when Delegation entity is created"
+  delegatorCountChange: Int!
+
+  "All DATA tokens delegated to this operator, by all delegators. Updated when Delegated event is fired"
   totalDelegatedWei: BigInt!
+
+  "Total DATA tokens undelegated from this operator, by all delegators. Updated when Undelegated event is fired"
+  totalUndelegatedWei: BigInt!
+
+  "Total DATA tokens staked from this operator into the sponsorship. Updated when StakeUpdate event is fired"
   totalStakedWei: BigInt!
 }
 
@@ -256,7 +288,7 @@ type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
-  "Total amount of pooltokens held by a delegator"
+  "All pooltokens held by a delegator"
   poolTokenWei: BigInt!
 }
 

@@ -267,5 +267,5 @@ templates:
             handler: handleUndelegated
           - event: StakeUpdate(indexed address,uint256)
             handler: handleStakeUpdated
-          - event: PoolValueUpdate(uint256)
+          - event: PoolValueUpdate(uint256,uint256)
             handler: handlePoolValueUpdate
