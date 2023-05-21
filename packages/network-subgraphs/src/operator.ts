@@ -1,5 +1,4 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
-import { Operator } from '../generated/schema'
 import { BalanceUpdate, Delegated, MetadataUpdated, PoolValueUpdate, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 
