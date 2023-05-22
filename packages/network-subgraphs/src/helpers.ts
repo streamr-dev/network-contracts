@@ -123,8 +123,13 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.poolValue = BigInt.fromI32(0)
         operator.totalValueInSponsorshipsWei = BigInt.fromI32(0)
         operator.freeFundsWei = BigInt.fromI32(0)
-        operator.owner = ""
+        operator.poolValueTimestamp = BigInt.fromI32(0)
+        operator.poolValueBlockNumber = BigInt.fromI32(0)
         operator.exchangeRate = BigInt.fromI32(0)
+
+        // populated in handleMetadataUpdated, emitted from Operator.initialize()
+        operator.owner = ""
+        operator.metadataJsonString = ""
     }
     return operator
 }

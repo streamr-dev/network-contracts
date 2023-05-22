@@ -228,7 +228,7 @@ type Operator @entity {
   delegators: [Delegation!]! @derivedFrom(field: "operator")
 
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
-  delegatorCount: Int
+  delegatorCount: Int!
 
   "DATA staked, earned and held by the Operator contract = totalValueInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
   poolValue: BigInt!
@@ -248,8 +248,8 @@ type Operator @entity {
   "DATA/pooltoken exchangeRate. Updated by Profit/Loss events"
   exchangeRate: BigInt!
 
-  metadataJsonString: String # TODO: unpack metadata to fields
-  owner: String
+  metadataJsonString: String! # TODO: unpack metadata to fields
+  owner: String!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -289,12 +289,12 @@ type OperatorDailyBucket @entity {
   totalUndelegatedWei: BigInt!
 }
 
-# Delegation in an Operator contract signals trust in the Operator
+# Delegation in an Operator contract signals trust in the operator
 type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
-  "All pooltokens held by a delegator"
+  "Pool tokens held by a delegator in this Operator contract"
   poolTokenWei: BigInt!
 }
 
