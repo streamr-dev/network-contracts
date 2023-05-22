@@ -14,27 +14,31 @@ import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDaily
 export function handleBalanceUpdate(event: BalanceUpdate): void {
     let operatorContractAddress = event.address.toHexString()
     let delegator = event.params.delegator.toHexString()
-    let totalPoolTokenWei = event.params.totalPoolTokenWei
+    let newBalance = event.params.totalPoolTokenWei
+    let totalSupply = event.params.totalSupplyPoolTokenWei
     log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
-    log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, totalPoolTokenWei.toString()])
+    log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, newBalance.toString()])
+
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.poolTokenTotalSupplyWei = totalSupply
+    operator.exchangeRate = operator.poolValue.toBigDecimal().div(totalSupply.toBigDecimal())
 
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
-    delegation.poolTokenWei = totalPoolTokenWei
+    delegation.poolTokenWei = newBalance
 
     // delegator burned/transfered all their pool tokens => remove Delegation entity & decrease delegator count
-    if (totalPoolTokenWei == BigInt.fromI32(0)) {
+    if (newBalance == BigInt.fromI32(0)) {
         store.remove('Delegation', delegation.id)
-        let operator = loadOrCreateOperator(operatorContractAddress)
         operator.delegatorCount = operator.delegatorCount - 1
-        operator.save()
-        let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-        operatorDailyBucket.delegatorCountChange = operatorDailyBucket.delegatorCountChange - 1
-        operatorDailyBucket.save()
+        let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+        bucket.delegatorCountChange = bucket.delegatorCountChange - 1
+        bucket.save()
         log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
     } else {
         delegation.save()
         log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
     }
+    operator.save()
 }
 
 /**
@@ -51,9 +55,9 @@ export function handleDelegated(event: Delegated): void {
     // initialize Delegation entity to increases delegator count
     loadOrCreateDelegation(operatorContractAddress, event.params.delegator.toHexString(), event.block.timestamp)
 
-    let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-    operatorDailyBucket.totalDelegatedWei = operatorDailyBucket.totalDelegatedWei.plus(dataAmountWei)
-    operatorDailyBucket.save()
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.totalDelegatedWei = bucket.totalDelegatedWei.plus(dataAmountWei)
+    bucket.save()
 }
 
 export function handleMetadataUpdate(event: MetadataUpdated): void {
@@ -77,9 +81,9 @@ export function handleUndelegated(event: Undelegated): void {
     log.info('handleUndelegated: operatorContractaddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
     log.info('handleUndelegated: amountDataWei={}', [amountUndelegatedWei.toString()])
 
-    let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-    operatorDailyBucket.totalUndelegatedWei = operatorDailyBucket.totalUndelegatedWei.plus(amountUndelegatedWei)
-    operatorDailyBucket.save()
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.totalUndelegatedWei = bucket.totalUndelegatedWei.plus(amountUndelegatedWei)
+    bucket.save()
 }
 
 /** event emits DATA values in sponsorships */
@@ -95,8 +99,8 @@ export function handlePoolValueUpdate(event: PoolValueUpdate): void {
     operator.poolValueBlockNumber = event.block.number
     operator.save()
 
-    let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-    operatorDailyBucket.save()
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.save()
 }
 
 export function handleProfit(event: Profit): void {
@@ -105,10 +109,10 @@ export function handleProfit(event: Profit): void {
     let operatorsShareWei = event.params.operatorsShareWei
     log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsShareWei={}',
         [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsShareWei.toString()])
-    let operator = loadOrCreateOperator(operatorContractAddress)
-    let exchangeRate = poolIncreaseWei.div(operator.poolValue) // won't be divided by 0 since PT have already been minted
-    operator.exchangeRate = exchangeRate
-    operator.save()
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.profitsWei = bucket.profitsWei.plus(poolIncreaseWei)
+    bucket.operatorsShareWei = bucket.operatorsShareWei.plus(operatorsShareWei)
+    bucket.save()
 }
 
 export function handleLoss(event: Loss): void {
@@ -116,10 +120,9 @@ export function handleLoss(event: Loss): void {
     let poolDecreaseWei = event.params.poolDecreaseWei
     log.info('handleLoss: operatorContractAddress={} blockNumber={} poolDecreaseWei={}',
         [operatorContractAddress, event.block.number.toString(), poolDecreaseWei.toString()])
-    let operator = loadOrCreateOperator(operatorContractAddress)
-    let exchangeRate = poolDecreaseWei.div(operator.poolValue) // won't be divided by 0 since PT have already been minted
-    operator.exchangeRate = exchangeRate
-    operator.save()
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.lossesWei = bucket.lossesWei.plus(poolDecreaseWei)
+    bucket.save()
 }
 
 // export function handleStakeUpdated (event: Staked): void {

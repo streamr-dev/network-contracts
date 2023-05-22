@@ -245,8 +245,11 @@ type Operator @entity {
   "Block number after which poolValue was the best approximation of total DATA staked, earned and held by the Operator contract."
   poolValueBlockNumber: BigInt!
 
-  "DATA/pooltoken exchangeRate. Updated by Profit/Loss events"
-  exchangeRate: BigInt!
+  "Total number of pool tokens in existence"
+  poolTokenTotalSupplyWei: BigInt!
+
+  "DATA/pooltoken exchange rate, equal to poolValue / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
+  exchangeRate: BigDecimal!
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
@@ -287,6 +290,15 @@ type OperatorDailyBucket @entity {
 
   "Total DATA tokens undelegated from this operator, by all delegators. Updated when Undelegated event is fired"
   totalUndelegatedWei: BigInt!
+
+  "Sum of earnings during the bucket, less operator's share"
+  profitsWei: BigInt!
+
+  "Sum of losses during the bucket"
+  lossesWei: BigInt!
+
+  "Sum of operator's share of earnings during the bucket"
+  operatorsShareWei: BigInt!
 }
 
 # Delegation in an Operator contract signals trust in the operator

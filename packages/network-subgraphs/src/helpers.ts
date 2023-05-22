@@ -1,4 +1,4 @@
-import { BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
+import { BigDecimal, BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
 import { Delegation, Operator, OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket, Stake } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
@@ -125,7 +125,8 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.freeFundsWei = BigInt.fromI32(0)
         operator.poolValueTimestamp = BigInt.fromI32(0)
         operator.poolValueBlockNumber = BigInt.fromI32(0)
-        operator.exchangeRate = BigInt.fromI32(0)
+        operator.poolTokenTotalSupplyWei = BigInt.fromI32(0)
+        operator.exchangeRate = BigDecimal.fromString("0")
 
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
         operator.owner = ""
