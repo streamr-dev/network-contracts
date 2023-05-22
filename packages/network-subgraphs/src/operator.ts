@@ -1,5 +1,14 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
-import { BalanceUpdate, Delegated, Loss, MetadataUpdated, PoolValueUpdate, Profit, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
+import {
+    BalanceUpdate,
+    Delegated,
+    Loss,
+    MetadataUpdated,
+    PoolValueUpdate,
+    Profit,
+    StakeUpdate,
+    Undelegated,
+} from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 
 /** event emits pooltoken values */
