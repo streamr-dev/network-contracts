@@ -239,6 +239,9 @@ type Operator @entity {
   "DATA held by the operator, not yet staked (unallocated). Updated by PoolValueUpdate event"
   freeFundsWei: BigInt!
 
+  "DATA/pooltoken exchangeRate. Updated by Profit/Loss events"
+  exchangeRate: BigInt!
+
   metadataJsonString: String # TODO: unpack metadata to fields
   owner: String
 

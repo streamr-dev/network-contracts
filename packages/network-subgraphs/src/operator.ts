@@ -1,5 +1,5 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
-import { BalanceUpdate, Delegated, MetadataUpdated, PoolValueUpdate, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
+import { BalanceUpdate, Delegated, Loss, MetadataUpdated, PoolValueUpdate, Profit, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 
 /** event emits pooltoken values */
@@ -91,6 +91,29 @@ export function handlePoolValueUpdate (event: PoolValueUpdate): void {
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.totalValueInSponsorshipsWei = event.params.totalValueInSponsorshipsWei
     operator.freeFundsWei = event.params.freeFundsWei
+    operator.save()
+}
+
+export function handleProfit(event: Profit): void {
+    let operatorContractAddress = event.address.toHexString()
+    let poolIncreaseWei = event.params.poolIncreaseWei // earningsWei - oeratorsShareWei
+    let operatorsShareWei = event.params.operatorsShareWei
+    log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsShareWei={}',
+        [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsShareWei.toString()])
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    let exchangeRate = poolIncreaseWei.div(operator.poolValue) // won't be divided by 0 since PT have already been minted
+    operator.exchangeRate = exchangeRate
+    operator.save()
+}
+
+export function handleLoss(event: Loss): void {
+    let operatorContractAddress = event.address.toHexString()
+    let poolDecreaseWei = event.params.poolDecreaseWei
+    log.info('handleLoss: operatorContractAddress={} blockNumber={} poolDecreaseWei={}',
+        [operatorContractAddress, event.block.number.toString(), poolDecreaseWei.toString()])
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    let exchangeRate = poolDecreaseWei.div(operator.poolValue) // won't be divided by 0 since PT have already been minted
+    operator.exchangeRate = exchangeRate
     operator.save()
 }
 

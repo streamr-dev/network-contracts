@@ -124,6 +124,7 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.totalValueInSponsorshipsWei = BigInt.fromI32(0)
         operator.freeFundsWei = BigInt.fromI32(0)
         operator.owner = ""
+        operator.exchangeRate = BigInt.fromI32(0)
     }
     return operator
 }
