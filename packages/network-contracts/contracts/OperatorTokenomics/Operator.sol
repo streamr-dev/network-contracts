@@ -181,6 +181,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return super._msgData();
     }
 
+    function _transfer(address from, address to, uint amount) internal override {
+        // enforce minimum delegation amount, but allow transfering everything (e.g. fully undelegate)
+        require(balanceOf(from) >= amount + minimumDelegationWei || balanceOf(from) == amount, "error_delegationBelowMinimum");
+        super._transfer(from, to, amount);
+    }
+
     /** Pool value (DATA) = staked in sponsorships + free funds */
     function getApproximatePoolValue() public view returns (uint) {
         return totalValueInSponsorshipsWei + token.balanceOf(address(this));
@@ -548,10 +554,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
+        // also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
         uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
-        // TODO: if delegator == owner, then cap the amountPoolTokens so that operator/owner can't get below minimumMarginFraction
-        if (balanceOf(delegator) < amountPoolTokens) {
+        if (balanceOf(delegator) < amountPoolTokens + minimumDelegationWei) {
             amountPoolTokens = balanceOf(delegator);
         }
         if (amountPoolTokens == 0) {
