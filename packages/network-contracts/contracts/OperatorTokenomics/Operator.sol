@@ -54,7 +54,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
-    event StakeUpdate(Sponsorship indexed sponsorship, uint totalStakedWei);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
     event PoolValueUpdate(uint totalValueInSponsorshipsWei, uint freeFundsWei);
     event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei);
     event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei);

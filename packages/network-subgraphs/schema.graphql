@@ -281,9 +281,6 @@ type OperatorDailyBucket @entity {
 
   "Total DATA tokens undelegated from this operator, by all delegators. Updated when Undelegated event is fired"
   totalUndelegatedWei: BigInt!
-
-  "Total DATA tokens staked from this operator into the sponsorship. Updated when StakeUpdate event is fired"
-  totalStakedWei: BigInt!
 }
 
 # Delegation in an Operator contract signals trust in the Operator

@@ -6,7 +6,6 @@ import {
     MetadataUpdated,
     PoolValueUpdate,
     Profit,
-    StakeUpdate,
     Undelegated,
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
@@ -76,19 +75,6 @@ export function handleUndelegated (event: Undelegated): void {
 
     let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     operatorDailyBucket.totalUndelegatedWei = operatorDailyBucket.totalUndelegatedWei.plus(amountUndelegatedWei)
-    operatorDailyBucket.save()
-}
-
-/** event emits DATA values */
-export function handleStakeUpdated (event: StakeUpdate): void {
-    let operatorContractAddress = event.address.toHexString()
-    let totalStakedWei = event.params.totalStakedWei
-    log.info('handleStakeUpdated: operatorContractAddress={} blockNumber={} totalStakedWei={}',
-        [operatorContractAddress, event.block.number.toString(), event.params.totalStakedWei.toString()])
-    // stake is being updated from Spronsorship.sol event
-
-    let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-    operatorDailyBucket.totalStakedWei = totalStakedWei
     operatorDailyBucket.save()
 }
 

@@ -265,8 +265,9 @@ templates:
             handler: handleDelegated
           - event: Undelegated(indexed address,uint256)
             handler: handleUndelegated
-          - event: StakeUpdate(indexed address,uint256)
-            handler: handleStakeUpdated
+          # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
+          # - event: StakeUpdate(indexed address,uint256)
+          #   handler: handleStakeUpdated
           - event: PoolValueUpdate(uint256,uint256)
             handler: handlePoolValueUpdate
           - event: Profit(indexed address,uint256,uint256)

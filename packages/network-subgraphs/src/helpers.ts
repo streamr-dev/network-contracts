@@ -1,5 +1,5 @@
 import { BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
-import { Delegation, Operator, OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket } from '../generated/schema'
+import { Delegation, Operator, OperatorDailyBucket, Project, ProjectStakeByUser, ProjectStakingDayBucket, Sponsorship, SponsorshipDailyBucket, Stake } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 
@@ -138,18 +138,19 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket = new OperatorDailyBucket(bucketId)
         bucket.operator = contractAddress
         bucket.date = date
+
+        // populate with current absolute values from Operator entity
         let operator = loadOrCreateOperator(contractAddress)
         bucket.poolValue = operator.poolValue
         bucket.totalValueInSponsorshipsWei = operator.totalValueInSponsorshipsWei
         bucket.freeFundsWei = operator.freeFundsWei
-        bucket.spotAPY = BigInt.fromI32(0) // TODO: intialize
+        bucket.spotAPY = BigInt.fromI32(0) // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
 
         // accumulated values, updated when events are fired
         bucket.delegatorCountChange = 0
         bucket.totalDelegatedWei = BigInt.fromI32(0)
         bucket.totalUndelegatedWei = BigInt.fromI32(0)
-        bucket.totalStakedWei = BigInt.fromI32(0)
         // bucket.totalUnstakedWei = BigInt.fromI32(0)
     }
     return bucket
@@ -168,7 +169,7 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         let operator = loadOrCreateOperator(operatorContractAddress)
         operator.delegatorCount = operator.delegatorCount + 1
         operator.save()
-        
+
         let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, timestamp)
         operatorDailyBucket.delegatorCountChange = operatorDailyBucket.delegatorCountChange + 1
         operatorDailyBucket.save()
