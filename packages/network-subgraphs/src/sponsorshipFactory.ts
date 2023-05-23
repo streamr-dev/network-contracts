@@ -6,9 +6,11 @@ import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
 import { updateOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
-    log.info('handleNewSponsorship at {}', [event.params.sponsorshipContract.toHexString()])
+    let sponsorshipContract = event.params.sponsorshipContract.toHexString()
+    let creator = event.params.creator.toHexString()
+    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} creator={}', [event.block.number.toString(), sponsorshipContract, creator])
 
-    let sponsorship = new Sponsorship(event.params.sponsorshipContract.toHexString())
+    let sponsorship = new Sponsorship(sponsorshipContract)
     sponsorship.totalStakedWei = BigInt.fromI32(0)
     sponsorship.unallocatedWei = BigInt.fromI32(0)
     sponsorship.projectedInsolvency = BigInt.fromI32(0)
@@ -16,6 +18,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
     sponsorship.totalPayoutWeiPerSec = event.params.totalPayoutWeiPerSec
+    sponsorship.creator = creator
     sponsorship.save()
 
     // try to load stream entity
