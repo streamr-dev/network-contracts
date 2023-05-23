@@ -259,10 +259,18 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: Delegated(indexed address,uint256,uint256)
-            handler: handleDelegationReceived
-          - event: Undelegated(indexed address,uint256,uint256)
-            handler: handleDelegationRemoved
-          - event: StakeUpdate(indexed address,uint256,uint256)
-            handler: handleStakeUpdated
-
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
+          - event: Undelegated(indexed address,uint256)
+            handler: handleUndelegated
+          - event: BalanceUpdate(address,uint256,uint256)
+            handler: handleBalanceUpdate
+          # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
+          # - event: StakeUpdate(indexed address,uint256)
+          #   handler: handleStakeUpdated
+          - event: PoolValueUpdate(uint256,uint256)
+            handler: handlePoolValueUpdate
+          - event: Profit(indexed address,uint256,uint256)
+            handler: handleProfit
+          - event: Loss(indexed address,uint256)
+            handler: handleLoss

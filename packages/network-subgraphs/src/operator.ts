@@ -1,98 +1,128 @@
-import { log } from '@graphprotocol/graph-ts'
+import { BigInt, log, store } from '@graphprotocol/graph-ts'
+import {
+    BalanceUpdate,
+    Delegated,
+    Loss,
+    MetadataUpdated,
+    PoolValueUpdate,
+    Profit,
+    Undelegated,
+} from '../generated/templates/Operator/Operator'
+import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 
-import { Operator, Delegation, OperatorDailyBucket } from '../generated/schema'
-import { Delegated, MetadataUpdated, StakeUpdate, Undelegated } from '../generated/templates/Operator/Operator'
-import { getBucketStartDate } from './helpers'
+/** event emits pooltoken values */
+export function handleBalanceUpdate(event: BalanceUpdate): void {
+    let operatorContractAddress = event.address.toHexString()
+    let delegator = event.params.delegator.toHexString()
+    let newBalance = event.params.totalPoolTokenWei
+    let totalSupply = event.params.totalSupplyPoolTokenWei
+    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
+    log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, newBalance.toString()])
 
-export function handleDelegationReceived (event: Delegated): void {
-    log.info('handleDelegationReceived: operatoraddress={} blockNumber={} amountWei={} approxPoolValue={}', [
-        event.address.toHexString(), event.block.number.toString(), event.params.amountWei.toString(), event.params.approxPoolValue.toString()
-    ])
-    let operator = Operator.load(event.address.toHexString())
-    operator!.delegatorCount = operator!.delegatorCount + 1
-    operator!.approximatePoolValue = event.params.approxPoolValue
-    operator!.save()
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.poolTokenTotalSupplyWei = totalSupply
+    operator.exchangeRate = operator.poolValue.toBigDecimal().div(totalSupply.toBigDecimal())
 
-    let delegation = Delegation.load(event.params.delegator.toHexString())
-    if (delegation === null) {
-        delegation = new Delegation(event.address.toHexString() + "-" + event.params.delegator.toHexString())
-        delegation.operator = event.address.toHexString()
-        delegation.delegator = event.params.delegator.toHexString()
-    }
-    delegation.amount = event.params.amountWei
-    delegation.save()
+    let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
+    delegation.poolTokenWei = newBalance
 
-    // update OperatorDailyBucket
-    let operatorAddress = event.address.toHexString()
-    let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
-    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
-    if (operatorDailyBucket !== null) {
-        operatorDailyBucket.delegatorCount = operatorDailyBucket.delegatorCount + 1
-        operatorDailyBucket.totalDelegatedWei = operatorDailyBucket.totalDelegatedWei.plus(event.params.amountWei)
-        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
-        operatorDailyBucket.save()
+    // delegator burned/transfered all their pool tokens => remove Delegation entity & decrease delegator count
+    if (newBalance == BigInt.fromI32(0)) {
+        store.remove('Delegation', delegation.id)
+        operator.delegatorCount = operator.delegatorCount - 1
+        let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+        bucket.delegatorCountChange = bucket.delegatorCountChange - 1
+        bucket.save()
+        log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
     } else {
-        log.info('handleDelegationReceived: operatorDailyBucketId={} not found', [operatorDailyBucketId])
+        delegation.save()
+        log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
     }
+    operator.save()
+}
 
+/**
+ * event emits pooltoken values
+ * Increase the pool value of the operator by the amount of pool tokens delegated by the delegator
+*/
+export function handleDelegated(event: Delegated): void {
+    let operatorContractAddress = event.address.toHexString()
+    let dataAmountWei = event.params.amountDataWei
+    log.info('handleDelegated: operatorContractAddress={} blockNumber={} amountWei={}', [
+        operatorContractAddress, event.block.number.toString(), dataAmountWei.toString()
+    ])
+
+    // initialize Delegation entity to increases delegator count
+    loadOrCreateDelegation(operatorContractAddress, event.params.delegator.toHexString(), event.block.timestamp)
+
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.totalDelegatedWei = bucket.totalDelegatedWei.plus(dataAmountWei)
+    bucket.save()
 }
 
 export function handleMetadataUpdate(event: MetadataUpdated): void {
-    log.info('handleMetadataUpdate: metadataJsonString={}', [event.params.metadataJsonString])
-    let operatorContractAddress = event.address
-    let operator = Operator.load(operatorContractAddress.toHexString())
-    // TODO: unpack event.params.metadataJsonString
-    operator!.owner = event.params.operatorAddress.toHexString()
-    operator!.save()
+    let operatorContractAddress = event.address.toHexString()
+    let operatorAddress = event.params.operatorAddress.toHexString()
+    let metadataJsonString = event.params.metadataJsonString.toString()
+    log.info('handleUndelegated: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
+    log.info('handleUndelegated: operatorAddress={} metadataJsonString={}', [operatorAddress, metadataJsonString])
+
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.owner = operatorAddress
+    // TODO: parse metadataJsonString once we know what to look for
+    operator.metadataJsonString = metadataJsonString
+    operator.save()
 }
 
-export function handleDelegationRemoved (event: Undelegated): void {
-    log.info('handleDelegationRemoved: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleDelegationRemoved: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
-    let operator = Operator.load(event.address.toHexString())
-    operator!.delegatorCount = operator!.delegatorCount - 1
-    operator!.approximatePoolValue = event.params.approxPoolValue
-    operator!.save()
+/** event emits DATA values */
+export function handleUndelegated(event: Undelegated): void {
+    let operatorContractAddress = event.address.toHexString()
+    let amountUndelegatedWei = event.params.amountDataWei
+    log.info('handleUndelegated: operatorContractaddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
+    log.info('handleUndelegated: amountDataWei={}', [amountUndelegatedWei.toString()])
 
-    let delegation = Delegation.load(event.address.toHexString() + "-" + event.params.delegator.toHexString())
-    if (delegation !== null) {
-        delegation.amount = event.params.amountWei
-        delegation.save()
-    }
-
-    // update OperatorDailyBucket
-    let operatorAddress = event.address.toHexString()
-    let operatorDailyBucketId = operatorAddress + "-" + getBucketStartDate(event.block.timestamp).toString()
-    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
-    if (operatorDailyBucket !== null) {
-        operatorDailyBucket.delegatorCount = operatorDailyBucket.delegatorCount - 1
-        operatorDailyBucket.totalDelegatedWei = operatorDailyBucket.totalDelegatedWei.minus(event.params.amountWei)
-        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
-        operatorDailyBucket.save()
-    } else {
-        log.info('handleDelegationRemoved: operatorDailyBucketId={} not found', [operatorDailyBucketId])
-    }
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.totalUndelegatedWei = bucket.totalUndelegatedWei.plus(amountUndelegatedWei)
+    bucket.save()
 }
 
-export function handleStakeUpdated (event: StakeUpdate): void {
-    log.info('handleStakeUpdated: operatoraddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
-    log.info('handleStakeUpdated: amountWei={} approxPoolValue={}', [event.params.amountWei.toString(), event.params.approxPoolValue.toString()])
-    let operator = Operator.load(event.address.toHexString())
-    operator!.approximatePoolValue = event.params.approxPoolValue
-    operator!.save()
+/** event emits DATA values in sponsorships */
+export function handlePoolValueUpdate(event: PoolValueUpdate): void {
+    let operatorContractAddress = event.address.toHexString()
+    log.info('handlePoolValueUpdate: operatorContractAddress={} blockNumber={} totalValueInSponsorshipsWei={}',
+        [operatorContractAddress, event.block.number.toString(), event.params.totalValueInSponsorshipsWei.toString()])
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.totalValueInSponsorshipsWei = event.params.totalValueInSponsorshipsWei
+    operator.freeFundsWei = event.params.freeFundsWei
+    operator.poolValue = event.params.totalValueInSponsorshipsWei.plus(event.params.freeFundsWei)
+    operator.poolValueTimestamp = event.block.timestamp
+    operator.poolValueBlockNumber = event.block.number
+    operator.save()
 
-    // stake is being updated from Spronsorship.sol event
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.save()
+}
 
-    // update OperatorDailyBucket
-    let operatorDailyBucketId = event.address.toHexString() + "-" + getBucketStartDate(event.block.timestamp).toString()
-    let operatorDailyBucket = OperatorDailyBucket.load(operatorDailyBucketId)
-    if (operatorDailyBucket !== null) {
-        operatorDailyBucket.totalStakedWei = operatorDailyBucket.totalStakedWei.plus(event.params.amountWei)
-        operatorDailyBucket.approximatePoolValue = event.params.approxPoolValue
-        operatorDailyBucket.save()
-    } else {
-        log.info('handleStakeUpdated: operatorDailyBucketId={} not found', [operatorDailyBucketId])
-    }
+export function handleProfit(event: Profit): void {
+    let operatorContractAddress = event.address.toHexString()
+    let poolIncreaseWei = event.params.poolIncreaseWei // earningsWei - oeratorsShareWei
+    let operatorsShareWei = event.params.operatorsShareWei
+    log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsShareWei={}',
+        [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsShareWei.toString()])
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.profitsWei = bucket.profitsWei.plus(poolIncreaseWei)
+    bucket.operatorsShareWei = bucket.operatorsShareWei.plus(operatorsShareWei)
+    bucket.save()
+}
+
+export function handleLoss(event: Loss): void {
+    let operatorContractAddress = event.address.toHexString()
+    let poolDecreaseWei = event.params.poolDecreaseWei
+    log.info('handleLoss: operatorContractAddress={} blockNumber={} poolDecreaseWei={}',
+        [operatorContractAddress, event.block.number.toString(), poolDecreaseWei.toString()])
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.lossesWei = bucket.lossesWei.plus(poolDecreaseWei)
+    bucket.save()
 }
 
 // export function handleStakeUpdated (event: Staked): void {
