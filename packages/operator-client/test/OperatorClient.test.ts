@@ -99,9 +99,9 @@ describe("OperatorClient", () => {
         // log("Allocation policy: %s", await sponsorship.allocationPolicy())
 
         log("Staking to sponsorship...")
-        const tr = await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
+        await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
         log(`staked on sponsorship ${sponsorship.address}`)
-        const tr2 = await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
+        await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
         log(`staked on sponsorship ${sponsorship2.address}`)
         await setTimeout(() => {}, 4000)
         const streams = await operatorClient.getStakedStreams()

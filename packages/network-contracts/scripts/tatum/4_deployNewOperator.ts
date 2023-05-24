@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // first register ens domain on mainnet
 // scripts/deploy.js
-import { JsonRpcProvider } from "@ethersproject/providers"
 import { ethers } from "hardhat"
-import { Wallet } from "ethers"
+import { Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
 
 import { Operator, OperatorFactory, LinkToken } from "../../typechain"
@@ -12,7 +12,7 @@ const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
 const config = Chains.load()["dev1"]
 const CHAINURL = config.rpcEndpoints[0].url
-const chainProvider = new JsonRpcProvider(CHAINURL)
+const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
 let deploymentOwner: Wallet
 let investor: Wallet
@@ -64,7 +64,6 @@ const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         log("Deploying pool")
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
-            0, // min initial investment
             [`Pool-${Date.now()}`, "{}"],
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
             [0, 0, 0, 0, 0, 10, 10, 0]
@@ -97,11 +96,11 @@ const stakeIntoSponsorship = async () => {
     }
 }
 
-// const divestFromPool = async () => {
-//     const tx = await pool.connect(investor).undelegate(ethers.utils.parseEther("1"))
-//     await tx.wait()
-//     log("Queued data payout")
-// }
+const divestFromPool = async () => {
+    const tx = await pools[0].connect(investor).undelegate(ethers.utils.parseEther("1"))
+    await tx.wait()
+    log("Queued data payout")
+}
 
 const operatorUnstakesFromSponsorship = async () => {
     const tx = await operator.connect(deploymentOwner).unstake(localConfig.sponsorship)
@@ -109,11 +108,11 @@ const operatorUnstakesFromSponsorship = async () => {
     log("Operator unstaked from sponsorship")
 }
 
-// const flag = async () => {
-//     await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
-//     // console.log(res)
-//     log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
-// }
+const flag = async () => {
+    await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
+    // console.log(res)
+    log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
+}
 
 async function main() {
     await connectToAllContracts()
