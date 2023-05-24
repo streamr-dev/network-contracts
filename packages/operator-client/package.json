@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Provides the necessary interface for Streamr Operator plugin subsystems to access the smart contracts",
   "scripts": {
-    "test": "jest test/*.ts",
+    "test": "jest --runInBand test/*.test.ts",
     "build": "tsc"
   },
   "author": "Streamr Network AG <contact@streamr.network>",
