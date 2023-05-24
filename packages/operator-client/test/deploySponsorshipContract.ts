@@ -44,7 +44,7 @@ export async function deploySponsorship(
     const sponsorshipDeployReceipt = await sponsorshipDeployTx.wait() as ContractReceipt
     const newSponsorshipEvent = sponsorshipDeployReceipt.events?.find((e) => e.event === "NewSponsorship")
     const newSponsorshipAddress = newSponsorshipEvent?.args?.sponsorshipContract
-    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipAbi, deployer) as Sponsorship
+    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipAbi, deployer) as unknown as Sponsorship
 
     return newSponsorship
 }

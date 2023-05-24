@@ -20,7 +20,7 @@ export async function deployOperatorContract(
         operatorMetadata = "{}",
     } = {}, poolTokenName = `Pool-${Date.now()}`): Promise<Operator> {
 
-    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryAbi, deployer) as OperatorFactory
+    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryAbi, deployer) as unknown as OperatorFactory
 
     const contractAddress = await operatorFactory.operators(deployer.address)
     // if (await operatorFactory.operators(contractAddress) === deployer.address)) {
@@ -49,6 +49,6 @@ export async function deployOperatorContract(
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-    const newOperator = new Contract(newOperatorAddress, operatorAbi, deployer) as Operator
+    const newOperator = new Contract(newOperatorAddress, operatorAbi, deployer) as unknown as Operator
     return newOperator
 }
