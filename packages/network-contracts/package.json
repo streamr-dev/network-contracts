@@ -1,18 +1,17 @@
 {
-  "name": "@streamr-contracts/network-contracts",
-  "version": "2.4.0",
+  "name": "@streamr/network-contracts",
+  "version": "2.6.0",
   "description": "Smart contracts for Streamr Network",
-  "files": [
-    "contracts",
-    ".openzeppelin"
-  ],
+  "author": "Streamr Network AG",
+  "license": "ISC",
   "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
+  "publishConfig": { "access": "public" },
+  "files": [ "dist" ],
+  "main": "./dist/src/exports.js",
+  "types": "./dist/src/exports.d.ts",
   "scripts": {
-    "build": "hardhat compile",
-    "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
+    "build": "hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
+    "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
     "integration-test": "npm run test:ens-e2e",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
@@ -32,8 +31,6 @@
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
     "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts"
   },
-  "author": "Streamr Network AG",
-  "license": "ISC",
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
     "@opengsn/contracts": "2.2.6",
