@@ -1,8 +1,7 @@
 import { Contract } from "@ethersproject/contracts"
 import { Provider } from "@ethersproject/providers"
-import { abi as OperatorAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
-import { abi as SponsorshipAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
-import type { Operator, Sponsorship } from "../../network-contracts/typechain"
+import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
+import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
 import { GraphQLClient } from "./TheGraphClient"
 import Debug from "debug"
@@ -52,7 +51,7 @@ export class OperatorClient extends EventEmitter {
         this.theGraphClient = new GraphQLClient(logger)
         this.address = operatorContractAddress
         this.provider = provider
-        this.contract = new Contract(operatorContractAddress, OperatorAbi, this.provider) as unknown as Operator
+        this.contract = new Contract(operatorContractAddress, operatorABI, this.provider) as unknown as Operator
         log(`OperatorClient created for ${operatorContractAddress}`)
         this.contract.on("Staked", async (sponsorship: string) => {
             log(`got Staked event ${sponsorship}`)
@@ -90,7 +89,7 @@ export class OperatorClient extends EventEmitter {
     }
 
     async getStreamId(sponsorshipAddress: string): Promise<string> {
-        const bounty = new Contract(sponsorshipAddress, SponsorshipAbi, this.contract.provider as Provider) as unknown as Sponsorship
+        const bounty = new Contract(sponsorshipAddress, sponsorshipABI, this.contract.provider as Provider) as unknown as Sponsorship
         return bounty.streamId()
     }
 

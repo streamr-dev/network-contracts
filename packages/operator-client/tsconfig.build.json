@@ -1,0 +1,13 @@
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig to read more about this file */
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "target": "ES2022",
+    "declaration": true
+  },
+  "include": [ "./src" ]
+}
