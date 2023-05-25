@@ -58,7 +58,7 @@ export class OperatorClient extends EventEmitter {
             const sponsorshipAddress = sponsorship
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
-                console.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
+                console.error("Sponsorship already staked into, in my bookkeeping!")
                 return
             }
             this.streamIdOfSponsorship.set(sponsorshipAddress, streamId)
@@ -94,7 +94,6 @@ export class OperatorClient extends EventEmitter {
     }
 
     async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
-        log(`getStakedStreams for ${this.address.toLowerCase()}`)
         const queryResult = await this.theGraphClient.sendQuery({
             // query: `
             //     {
@@ -111,12 +110,11 @@ export class OperatorClient extends EventEmitter {
                 operator(id: "${this.address.toLowerCase()}") {
                   stakes {
                     sponsorship {
-                      id
                       stream {
                         id
                       }
                     }
-                 }
+                  }
                 }
                 _meta {
                     block {
@@ -126,14 +124,6 @@ export class OperatorClient extends EventEmitter {
               }
             `
         })
-        if (!queryResult.operator) {
-            this.logger.error(`Operator ${this.address.toLowerCase()} not found in TheGraph`)
-            return {
-                streamIds: [],
-                // eslint-disable-next-line no-underscore-dangle
-                blockNumber: queryResult._meta.block.number
-            }
-        }
         for (const stake of queryResult.operator.stakes) {
             if (stake.sponsorship.stream && stake.sponsorship.stream.id) {
                 const streamId = stake.sponsorship.stream.id
@@ -143,7 +133,7 @@ export class OperatorClient extends EventEmitter {
             }
         }
         return {
-            streamIds: Array.from(this.sponsorshipCountOfStream.keys()),
+            streamIds: Array.from(this.streamIdOfSponsorship.values()),
             // eslint-disable-next-line no-underscore-dangle
             blockNumber: queryResult._meta.block.number
         }
