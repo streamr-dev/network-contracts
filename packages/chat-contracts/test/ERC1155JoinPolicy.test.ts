@@ -3,7 +3,7 @@ import { expect, use } from 'chai'
 import { BigNumber, Contract, ContractFactory} from 'ethers'
 import {sign, hash, createIdentity} from 'eth-crypto'
 
-import StreamRegistryV3 from '@streamr-contracts/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
+import StreamRegistryV3 from '@streamr/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
 
 const { provider } = waffle
 
@@ -30,7 +30,7 @@ const signDelegatedChallenge = (
 use(waffle.solidity)
 describe('ERC1155JoinPolicy', (): void => {
     const wallets = provider.getWallets()
-    let token: any 
+    let token: any
     let contract: Contract
 
     let streamRegistryV3: Contract
@@ -50,7 +50,7 @@ describe('ERC1155JoinPolicy', (): void => {
             StreamRegistryV3.bytecode,
             wallets[0]
         )
-        
+
         streamRegistryV3 = await StreamRegistryV3Factory.deploy()
 
         const ERC1155 = await ethers.getContractFactory('TestERC1155')
@@ -63,9 +63,9 @@ describe('ERC1155JoinPolicy', (): void => {
 
         const DelegatedAccessRegistry = await ethers.getContractFactory('DelegatedAccessRegistry')
         delegatedAccessRegistry = await DelegatedAccessRegistry.deploy()
-        
+
         const signature = signDelegatedChallenge(
-            wallets[0].address, 
+            wallets[0].address,
             signerIdentity.privateKey,
             ChallengeType.Authorize
         )
@@ -76,7 +76,7 @@ describe('ERC1155JoinPolicy', (): void => {
         )
 
         const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
-       
+
         contract = await ERC1155JoinPolicy.deploy(
             token.address,
             streamRegistryV3.address,
@@ -116,12 +116,12 @@ describe('ERC1155JoinPolicy', (): void => {
                 PermissionType.Publish, PermissionType.Subscribe
             ],
             TokenIds.B,
-            0, // minRequiredBalance    
+            0, // minRequiredBalance
             delegatedAccessRegistry.address,
             false // disable staking
         )).to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_minReqBalanceGt0\'')
     })
-    
+
     it('should fail to grant permissions if not enough balance found', async (): Promise<void> => {
         await expect(contract.connect(wallets[0]).requestDelegatedJoin())
             .to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'error_notEnoughTokens'")
@@ -131,12 +131,12 @@ describe('ERC1155JoinPolicy', (): void => {
         await expect(contract.connect(wallets[1]).requestDelegatedJoin())
             .to.be.revertedWith('VM Exception while processing transaction: reverted with reason string \'error_notAuthorized\'')
     })
-    
+
     it ('should grant 1 token to a user and fullfil their requestDelegatedJoin', async () => {
         await token.mint(wallets[0].address, TokenIds.A, 1)
         const balance = await token.balanceOf(wallets[0].address, TokenIds.A)
         expect(balance).to.equal(BigNumber.from(1))
-            
+
         await contract.connect(wallets[0])
             .requestDelegatedJoin()
 
@@ -190,7 +190,7 @@ describe('ERC1155JoinPolicy', (): void => {
     it ('should allow for a main account to be granted access via requestJoin', async () => {
         await token.connect(wallets[0]).safeTransferFrom(
             wallets[0].address,
-            wallets[5].address, 
+            wallets[5].address,
             TokenIds.A,
             1,
             '0x'
@@ -202,14 +202,14 @@ describe('ERC1155JoinPolicy', (): void => {
         )
         expect(events.length).to.equal(2)
         expect(events[1].args).to.not.be.undefined
-        
+
         expect(events[1].args!.mainWallet).to.equal(
             wallets[5].address
         )
         expect(events[1].args!.delegatedWallet).to.equal(
             '0x0000000000000000000000000000000000000000'
         )
-        
+
         expect(await streamRegistryV3.hasPermission(
             streamId,
             wallets[5].address,
@@ -250,7 +250,7 @@ describe('ERC1155JoinPolicy', (): void => {
             const ERC1155JoinPolicy = await ethers.getContractFactory('ERC1155JoinPolicy', wallets[0])
 
             stakedContract = await ERC1155JoinPolicy.deploy(
-     
+
                 token.address,
                 streamRegistryV3.address,
                 streamId,
@@ -258,7 +258,7 @@ describe('ERC1155JoinPolicy', (): void => {
                     PermissionType.Publish, PermissionType.Subscribe
                 ],
                 TokenIds.C,
-                1, // minRequiredBalance    
+                1, // minRequiredBalance
                 delegatedAccessRegistry.address,
                 true // staking enabled
             )
@@ -291,7 +291,7 @@ describe('ERC1155JoinPolicy', (): void => {
                 .depositStake(
                     TokenAmount
                 )
-            
+
             const afterBalance = await token.balanceOf(mainWallet.address, TokenIds.C)
             expect(afterBalance).to.equal(0)
 
@@ -300,14 +300,14 @@ describe('ERC1155JoinPolicy', (): void => {
             )
             expect(events.length).to.equal(1)
             expect(events[0].args).to.not.be.undefined
-            
+
             expect(events[0].args!.mainWallet).to.equal(
                 mainWallet.address
             )
             expect(events[0].args!.delegatedWallet).to.equal(
                 delegatedWallet.address
             )
-            
+
             expect(await streamRegistryV3.hasPermission(
                 streamId,
                 delegatedWallet.address,
@@ -334,7 +334,7 @@ describe('ERC1155JoinPolicy', (): void => {
                 delegatedWallet.address,
                 PermissionType.Grant
             )).to.equal(false)
-           
+
         })
 
         it ('should fail depositStake, reason: not enough balance', async () => {
