@@ -30,6 +30,7 @@
     "migration-run": "npm run migration -w=brubeck-migration-script"
   },
   "devDependencies": {
+    "@chainsafe/ssz": "^0.10.2",
     "@types/chai": "4.3.0",
     "@types/mocha": "9.1.1",
     "@types/node": "16.11.25",
