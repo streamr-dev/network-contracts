@@ -1,12 +1,15 @@
 {
   "name": "@streamr/network-contracts",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "Smart contracts for Streamr Network",
   "author": "Streamr Network AG",
   "license": "ISC",
   "private": false,
   "publishConfig": { "access": "public" },
-  "files": [ "dist" ],
+  "files": [
+    "dist",
+    "contracts"
+  ],
   "main": "./dist/src/exports.js",
   "types": "./dist/src/exports.d.ts",
   "scripts": {
