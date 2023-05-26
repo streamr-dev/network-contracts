@@ -58,7 +58,15 @@
             "StreamStorageRegistry": "0xd04af489677001444280366Dd0885B03dAaDe71D",
             "Uniswap2Router": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
             "SponsorshipFactory": "0xef927F18D2ac3862c6ABCAa953203A4DbF7f519e",
-            "OperatorFactory": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9"
+            "OperatorFactory": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9",
+            "StreamrConfig": "0xa86863053cECFD9f6f861e0Fd39a042238411b75",
+            "MaxOperatorsJoinPolicy": "0x57B81a9442805f88c4617B506206531e72d96290",
+            "StakeWeightedAllocationPolicy": "0x699B4bE95614f017Bb622e427d3232837Cc814E6",
+            "DefaultLeavePolicy": "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c",
+            "VoteKickPolicy": "0x611900fD07BB133016Ed85553aF9586771da5ff9",
+            "DefaultDelegationPolicy": "0x58C8e321d561123649bE41445cB0690Ec3d27Fe9",
+            "DefaultPoolYieldPolicy": "0x3c3D9912219bAba7F9E661607F04dcF04c86FcF2",
+            "DefaultUndelegationPolicy": "0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E"
         }
     },
     "alfajores": {

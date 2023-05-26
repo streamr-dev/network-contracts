@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // first register ens domain on mainnet
 // scripts/deploy.js
-import { JsonRpcProvider } from "@ethersproject/providers"
 import { ethers } from "hardhat"
-import { Wallet } from "ethers"
+import { Wallet, providers } from "ethers"
 import { Chains } from "@streamr/config"
 
 import { Operator, OperatorFactory, LinkToken } from "../../typechain"
@@ -12,9 +12,8 @@ const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
 const config = Chains.load()["dev1"]
 const CHAINURL = config.rpcEndpoints[0].url
-const chainProvider = new JsonRpcProvider(CHAINURL)
+const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
-localConfig.pools = []
 let deploymentOwner: Wallet
 let investor: Wallet
 let operatorFactory: OperatorFactory
@@ -30,11 +29,11 @@ const connectToAllContracts = async () => {
         value: ethers.utils.parseEther("1")
     })).wait()
 
-    log("registering stream registry in streamr config")
-    const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
-    const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
-    const streamrConfig = await streamrConfigFactoryTx.deployed()
-    await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
+    // log("registering stream registry in streamr config")
+    // const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", {signer: deploymentOwner })
+    // const streamrConfigFactoryTx = await streamrConfigFactory.attach(localConfig.streamrConfig)
+    // const streamrConfig = await streamrConfigFactoryTx.deployed()
+    // await (await streamrConfig.connect(deploymentOwner).setStreamRegistryAddress(config.contracts.StreamRegistry)).wait()
 
     const operatorFactoryFactory = await ethers.getContractFactory("OperatorFactory", {signer: deploymentOwner })
     const operatorFactoryContact = await operatorFactoryFactory.attach(localConfig.operatorFactory) as OperatorFactory
@@ -51,13 +50,20 @@ const connectToAllContracts = async () => {
     if (localConfig.pool) {
         operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
     }
+
+    if (localConfig.pools && localConfig.pools.length > 0) {
+        for (const pool of localConfig.pools) {
+            pools.push(await ethers.getContractAt("Operator", pool, deploymentOwner) as Operator)
+        }
+    } else {
+        localConfig.pools = []
+    }
 }
 
 const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         log("Deploying pool")
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
-            0, // min initial investment
             [`Pool-${Date.now()}`, "{}"],
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
             [0, 0, 0, 0, 0, 10, 10, 0]
@@ -90,31 +96,31 @@ const stakeIntoSponsorship = async () => {
     }
 }
 
-// const divestFromPool = async () => {
-//     const tx = await pool.connect(investor).undelegate(ethers.utils.parseEther("1"))
-//     await tx.wait()
-//     log("Queued data payout")
-// }
+const divestFromPool = async () => {
+    const tx = await pools[0].connect(investor).undelegate(ethers.utils.parseEther("1"))
+    await tx.wait()
+    log("Queued data payout")
+}
 
-// const operatorUnstakesFromSponsorship = async () => {
-//     const tx = await pool.connect(deploymentOwner).unstake(localConfig.sponsorship)
-//     await tx.wait()
-//     log("Operator unstaked from sponsorship")
-// }
+const operatorUnstakesFromSponsorship = async () => {
+    const tx = await operator.connect(deploymentOwner).unstake(localConfig.sponsorship)
+    await tx.wait()
+    log("Operator unstaked from sponsorship")
+}
 
-// const flag = async () => {
-//     await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
-//     // console.log(res)
-//     log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
-// }
+const flag = async () => {
+    await (await pools[0].connect(deploymentOwner).flag(localConfig.sponsorship, pools[1].address)).wait()
+    // console.log(res)
+    log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
+}
 
 async function main() {
     await connectToAllContracts()
-    await deployOperatorContracts(1)
-    await investToPool()
+    // await deployOperatorContracts(1)
+    // await investToPool()
     await stakeIntoSponsorship()
+    await operatorUnstakesFromSponsorship()
     // await divestFromPool()
-    // await operatorUnstakesFromSponsorship()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
 }
 

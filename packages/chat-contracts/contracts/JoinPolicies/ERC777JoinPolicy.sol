@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC1820Implementer.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
+import "@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicy.sol";
 import "../DelegatedAccessRegistry.sol";
 
@@ -17,7 +17,7 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
     IERC1820Registry private _erc1820 = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
     bytes32 public constant TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
     bytes32 public constant TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
-    
+
     constructor(
         address tokenAddress_,
         address streamRegistryAddress_,
@@ -48,11 +48,11 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
     function depositStake(
         uint256 amount
     )
-        public 
+        public
         override
         isStakingEnabled()
-        isUserAuthorized() 
-        canJoin() 
+        isUserAuthorized()
+        canJoin()
     {
         token.operatorSend(msg.sender, address(this), amount, "", "");
         balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
@@ -63,10 +63,10 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
     function withdrawStake(
         uint256 amount
     )
-        public 
+        public
         override
         isStakingEnabled()
-        isUserAuthorized() 
+        isUserAuthorized()
     {
         // solhint-disable-next-line
         token.send(msg.sender, amount, "");
@@ -85,7 +85,7 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
         bytes calldata userData,
         bytes calldata operatorData
     ) external {
-        
+
     }
 
     function tokensToSend(
@@ -96,6 +96,6 @@ contract ERC777JoinPolicy is JoinPolicy, ERC1820Implementer, IERC777Recipient{
         bytes calldata userData,
         bytes calldata operatorData
     ) external {
-        
+
     }
 }

@@ -19,7 +19,7 @@
     "@streamr/config": "^2.5.10",
     "debug": "^4.3.4",
     "eth-ens-namehash": "^2.0.8",
-    "node-fetch": "^3.3.1",
+    "node-fetch": "2.6.7",
     "tsx": "^3.12.6"
   },
   "devDependencies": {

@@ -1,21 +1,24 @@
 {
-  "name": "@streamr-contracts/network-contracts",
-  "version": "2.4.0",
+  "name": "@streamr/network-contracts",
+  "version": "2.6.1",
   "description": "Smart contracts for Streamr Network",
-  "files": [
-    "contracts",
-    ".openzeppelin"
-  ],
+  "author": "Streamr Network AG",
+  "license": "ISC",
   "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
+  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "contracts"
+  ],
+  "main": "./dist/src/exports.js",
+  "types": "./dist/src/exports.d.ts",
   "scripts": {
-    "build": "hardhat compile",
-    "clean": "rm -rf artifacts cache coverage typechain deployments .openzeppelin/unknown-31337.json",
+    "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
+    "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
+    "test": "npm run test:fast && npm run test:slow",
+    "integration-test": "npm run test:ens-e2e",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
-    "test": "npm run test:fast && npm run test:slow",
     "test:ens-e2e": "hardhat run --network dev1 test/integration/ens-e2e.test.ts",
     "coverage": "hardhat coverage",
     "lint": "solhint `find contracts -name '*.sol'`",
@@ -31,8 +34,6 @@
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
     "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts"
   },
-  "author": "Streamr Network AG",
-  "license": "ISC",
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
     "@opengsn/contracts": "2.2.6",
@@ -40,6 +41,7 @@
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
+    "@chainsafe/as-sha256": "^0.3.1",
     "@ensdomains/ens": "0.6.2",
     "@ensdomains/resolver": "0.2.4",
     "@metamask/eth-sig-util": "4.0.0",
@@ -49,7 +51,7 @@
     "@openzeppelin/hardhat-upgrades": "1.22.1",
     "@types/debug": "4.1.7",
     "debug": "4.3.3",
-    "ethers": "5.5.3",
+    "ethers": "5.7.0",
     "hardhat": "2.14.0",
     "hardhat-dependency-compiler": "1.1.3",
     "hardhat-gas-reporter": "1.0.9",

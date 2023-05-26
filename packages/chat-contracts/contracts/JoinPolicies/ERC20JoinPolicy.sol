@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
+import "@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicy.sol";
 import "../DelegatedAccessRegistry.sol";
 
@@ -34,15 +34,15 @@ contract ERC20JoinPolicy is JoinPolicy{
         require(token.balanceOf(msg.sender) >= minRequiredBalance, "error_notEnoughTokens");
         _;
     }
-    
+
     function depositStake(
         uint256 amount
-    ) 
+    )
         override
-        public 
+        public
         isStakingEnabled()
-        isUserAuthorized() 
-        canJoin() 
+        isUserAuthorized()
+        canJoin()
     {
         token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender] = SafeMath.add(balances[msg.sender], amount);
@@ -52,11 +52,11 @@ contract ERC20JoinPolicy is JoinPolicy{
 
     function withdrawStake(
         uint256 amount
-    ) 
+    )
         override
-        public 
+        public
         isStakingEnabled()
-        isUserAuthorized() 
+        isUserAuthorized()
     {
         token.transfer(msg.sender, amount);
         balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);
