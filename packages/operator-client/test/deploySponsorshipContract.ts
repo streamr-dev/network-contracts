@@ -1,13 +1,10 @@
 import { Chain } from "@streamr/config"
 import { utils, Wallet, Contract, ContractReceipt } from "ethers"
 
-import { sponsorshipABI } from "@streamr/network-contracts"
-import type { Sponsorship } from "@streamr/network-contracts"
+import { sponsorshipABI, sponsorshipFactoryABI } from "@streamr/network-contracts"
+import type { Sponsorship, SponsorshipFactory } from "@streamr/network-contracts"
 
 const { parseEther } = utils
-
-import { abi as sponsorshipFactoryAbi }
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
 
 export async function deploySponsorship(
     chainConfig: Chain,
@@ -21,7 +18,8 @@ export async function deploySponsorship(
 ): Promise<Sponsorship> {
 
     // console.log("Chain config: %o", chainConfig)
-    const sponsorshipFactory = new Contract(chainConfig.contracts.SponsorshipFactory, sponsorshipFactoryAbi, deployer)
+    const sponsorshipFactory =
+        new Contract(chainConfig.contracts.SponsorshipFactory, sponsorshipFactoryABI, deployer) as unknown as SponsorshipFactory
     // console.log("deployer balance", await deployer.getBalance())
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),

@@ -8,9 +8,9 @@ import { Logger } from '@streamr/utils'
 
 import Debug from "debug"
 
-import type { TestToken } from "../../network-contracts/typechain"
 import { Contract } from "@ethersproject/contracts"
-import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
+import { tokenABI } from "@streamr/network-contracts"
+import type { IERC677 } from "@streamr/network-contracts"
 
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
@@ -28,7 +28,7 @@ describe("OperatorClient", () => {
     let provider: Provider
     // let operator: Operator
     // let sponsorshipFactory: SponsorshipFactory
-    let token: TestToken
+    let token: IERC677
     let adminWallet: Wallet
 
     beforeAll(async () => {
@@ -37,7 +37,7 @@ describe("OperatorClient", () => {
 
         adminWallet = new Wallet(adminPrivKey, provider)
 
-        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as TestToken
+        token = new Contract(config.contracts.LINK, tokenABI, adminWallet) as unknown as IERC677
 
         // const operatorWalletBalance = await token.balanceOf(adminWallet.address)
         // log(`operatorWalletBalance ${operatorWalletBalance}`)

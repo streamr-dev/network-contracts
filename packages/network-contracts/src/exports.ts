@@ -18,12 +18,15 @@ export type { StreamrConfig } from "../typechain/contracts/OperatorTokenomics/St
 
 export { abi as streamRegistryABI, bytecode as streamRegistryBytecode }
     from "../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
-export type { StreamRegistryV4 } from "../typechain/contracts/StreamRegistry/StreamRegistryV4"
+export type { StreamRegistryV4 as StreamRegistry } from "../typechain/contracts/StreamRegistry/StreamRegistryV4"
 
 export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytecode }
     from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json"
-export type { StreamStorageRegistryV2 } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
+export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
 
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 export type { NodeRegistry } from "../typechain/contracts/NodeRegistry/NodeRegistry"
+
+export { abi as tokenABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
+export type { IERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
