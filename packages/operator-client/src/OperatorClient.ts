@@ -72,6 +72,7 @@ export class OperatorClient extends EventEmitter {
                 this.emit("addStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
+        this.provider.on({ address: operatorContractAddress }, (event) => { console.log("Got event %s", event.topics[0]) })
         this.contract.on("Unstaked", async (sponsorship: string) => {
             log(`got Unstaked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
@@ -156,7 +157,8 @@ export class OperatorClient extends EventEmitter {
     }
 
     close(): void {
-        this.provider.removeAllListeners(this.contract.filters.Staked())
-        this.provider.removeAllListeners(this.contract.filters.Unstaked())
+        // this.provider.removeAllListeners(this.contract.filters.Staked())
+        // this.provider.removeAllListeners(this.contract.filters.Unstaked())
+        this.provider.removeAllListeners()
     }
 }

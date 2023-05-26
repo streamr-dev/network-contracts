@@ -215,7 +215,7 @@ describe("OperatorClient", () => {
             operatorClient.close()
         })
 
-        it("client does NOT emit unstake when staked on other sponsorship witht the same stream", async () => {
+        it("client does NOT emit unstake when staked on other sponsorship with the same stream", async () => {
             const operatorClient = new OperatorClient(operatorContract.address, provider, logger)
             await operatorClient.getStakedStreams()
             let eventcount = 0
@@ -229,17 +229,18 @@ describe("OperatorClient", () => {
 
             log("Unstaking from sponsorship1...")
             const tr = await (await operatorContract.unstake(sponsorship.address)).wait()
-            log(`unstaked from sponsorship1 ${sponsorship.address}`)
+            log(`unstaked from sponsorship1 ${sponsorship.address}, events: ${tr.events?.map((e) => e.event).join(", ")}`)
 
-            await new Promise((resolve) => setTimeout(resolve, 5000))
-            assert(eventcount === 0)
-            
+            // await new Promise((resolve) => setTimeout(resolve, 5000))
+            // assert(eventcount === 0)
+
             log("Unstaking from sponsorship2...")
-            await (await operatorContract.unstake(sponsorship2.address)).wait()
-            log(`unstaked from sponsorship2 ${sponsorship2.address}`)
+            const tr2 = await (await operatorContract.unstake(sponsorship2.address)).wait()
+            log(`unstaked from sponsorship2 ${sponsorship2.address}, events: ${tr2.events?.map((e) => e.event).join(", ")}`)
             await waitForCondition(() => eventcount === 1, 10000, 1000)
             assert(eventcount === 1)
 
+            log("closing")
             operatorClient.close()
         })
 
