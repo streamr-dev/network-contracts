@@ -145,7 +145,8 @@ export class OperatorClient extends EventEmitter {
             }
         }
         for (const stake of queryResult.operator.stakes) {
-            if (stake.sponsorship.stream && stake.sponsorship.stream.id) {
+            if (stake.sponsorship.stream && stake.sponsorship.stream.id
+                && this.streamIdOfSponsorship.get(stake.sponsorship.id) !== stake.sponsorship.stream.id) {
                 const streamId = stake.sponsorship.stream.id
                 this.streamIdOfSponsorship.set(stake.sponsorship.id, stake.sponsorship.stream.id)
                 const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 0) + 1

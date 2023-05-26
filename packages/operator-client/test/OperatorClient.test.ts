@@ -162,7 +162,7 @@ describe("OperatorClient", () => {
         })
     })
 
-    describe("edge cases, 2 sponsorships for the same stream", () => {
+    describe.only("edge cases, 2 sponsorships for the same stream", () => {
         let operatorWallet: Wallet
         let operatorContract: Operator
         let sponsorship: Sponsorship
@@ -246,10 +246,10 @@ describe("OperatorClient", () => {
 
     })
 
-    it.only("eventcatching error", async () => {
+    it("eventcatching error", async () => {
         const { operatorWallet, operatorContract } = await deployNewOperator()
 
-        const operatorClient = new OperatorClient(operatorContract.address, provider, logger)
+        let operatorClient = new OperatorClient(operatorContract.address, provider, logger)
         let receivedAddStreams = 0
         let receivedRemoveStreams = 0
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
@@ -287,8 +287,20 @@ describe("OperatorClient", () => {
         // log(`streams: ${JSON.stringify(streams)}`)
         // expect(streams.streamIds.length).to.equal(1)
         // expect(streams.streamIds).to.contain(streamId1)
+        operatorClient.close()
+        await new Promise((resolve) => setTimeout(resolve, 10000)) // wait for events to be processed
 
-        // await operatorClient.getStakedStreams()
+        operatorClient = new OperatorClient(operatorContract.address, provider, logger)
+        operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
+            receivedAddStreams += 1
+        })
+        operatorClient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
+            receivedRemoveStreams += 1
+        })
+
+        await operatorClient.getStakedStreams()
 
         log("Unstaking from sponsorship1...")
         const tr = await (await operatorContract.unstake(sponsorship.address)).wait()
