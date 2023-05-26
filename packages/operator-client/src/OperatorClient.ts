@@ -58,7 +58,7 @@ export class OperatorClient extends EventEmitter {
         log("Subscribing to Staked and Unstaked events")
         this.contract.on("Staked", async (sponsorship: string) => {
             log(`got Staked event ${sponsorship}`)
-            const sponsorshipAddress = sponsorship
+            const sponsorshipAddress = sponsorship.toLowerCase()
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
                 console.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
@@ -69,6 +69,7 @@ export class OperatorClient extends EventEmitter {
             const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 0) + 1
             this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
             if (sponsorshipCount === 1) {
+                log(`emitting addStakedStream for ${streamId}`)
                 this.emit("addStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
@@ -76,15 +77,18 @@ export class OperatorClient extends EventEmitter {
         this.contract.on("Unstaked", async (sponsorship: string) => {
             log(`got Unstaked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
+            log(`2 removing ${sponsorshipAddress} from streamIdOfSponsorship`)
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
+            log(`3 streamId for ${sponsorshipAddress} is ${streamId}`)
             if (!streamId) {
                 logger.error("Sponsorship not found!")
                 return
             }
+            log(`4 removing ${sponsorshipAddress} from streamIdOfSponsorship`)
             this.streamIdOfSponsorship.delete(sponsorshipAddress)
-
+            log(`5 removing ${sponsorshipAddress} from sponsorshipCountOfStream`)
             const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 1) - 1
-            log(`sponsorshipCount for ${streamId} is now ${sponsorshipCount}`)
+            log(`6 sponsorshipCount for ${streamId} is now ${sponsorshipCount}`)
             this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
             if (sponsorshipCount === 0) {
                 this.sponsorshipCountOfStream.delete(streamId)

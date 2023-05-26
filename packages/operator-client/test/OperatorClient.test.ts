@@ -162,7 +162,7 @@ describe("OperatorClient", () => {
         })
     })
 
-    describe.only("edge cases, 2 sponsorships for the same stream", () => {
+    describe("edge cases, 2 sponsorships for the same stream", () => {
         let operatorWallet: Wallet
         let operatorContract: Operator
         let sponsorship: Sponsorship
@@ -243,6 +243,66 @@ describe("OperatorClient", () => {
             log("closing")
             operatorClient.close()
         })
+
+    })
+
+    it.only("eventcatching error", async () => {
+        const { operatorWallet, operatorContract } = await deployNewOperator()
+
+        const operatorClient = new OperatorClient(operatorContract.address, provider, logger)
+        let receivedAddStreams = 0
+        let receivedRemoveStreams = 0
+        operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
+            receivedAddStreams += 1
+        })
+        operatorClient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
+            receivedRemoveStreams += 1
+        })
+
+        log("Added OperatorClient listeners, deploying Sponsorship contract...")
+        const sponsorship = await deploySponsorship(config, operatorWallet , {
+            streamId: streamId1 })
+        const sponsorship2 = await deploySponsorship(config, operatorWallet, {
+            streamId: streamId1
+        })
+
+        log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
+        await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, parseEther("200"), operatorWallet.address)).wait()
+
+        log("Staking to sponsorship 1...")
+        await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship.address}`)
+        await waitForCondition(() => receivedAddStreams === 1, 10000, 1000)
+        log("Staking to sponsorship 2...")
+        await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship2.address}`)
+        // log(`staked on sponsorship ${sponsorship2.address}`)
+        // await new Promise((resolve) => setTimeout(resolve, 10000)) // wait for events to be processed
+        // expect(receivedAddStreams).to.equal(2)
+        await waitForCondition(() => receivedAddStreams === 1, 10000, 1000)
+
+        // const streams = await operatorClient.getStakedStreams()
+        // log(`streams: ${JSON.stringify(streams)}`)
+        // expect(streams.streamIds.length).to.equal(1)
+        // expect(streams.streamIds).to.contain(streamId1)
+
+        // await operatorClient.getStakedStreams()
+
+        log("Unstaking from sponsorship1...")
+        const tr = await (await operatorContract.unstake(sponsorship.address)).wait()
+        log(`unstaked from sponsorship1 ${sponsorship.address}`)
+        // await new Promise((resolve) => setTimeout(resolve, 10000))
+        await waitForCondition(() => receivedRemoveStreams === 0, 10000, 1000)
+        await (await operatorContract.unstake(sponsorship2.address)).wait()
+        // await new Promise((resolve) => setTimeout(resolve, 10000))
+        await waitForCondition(() => receivedRemoveStreams === 1, 10000, 1000)
+
+        log("receivedRemoveStreams: ", receivedRemoveStreams)
+        expect(receivedRemoveStreams).to.equal(1)
+        log("Closing operatorclient...")
+        operatorClient.close()
 
     })
 
