@@ -50,6 +50,7 @@ const connectToAllContracts = async () => {
 
     if (localConfig.pool) {
         operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
+        log("Operator loaded from local config: ", operator.address)
     }
 }
 
@@ -57,10 +58,9 @@ const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         log("Deploying pool")
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
-            0, // min initial investment
-            [`Pool-${Date.now()}`, "{}"],
+            [`Pool-${Date.now()}`, `{"creator": "${deploymentOwner.address}"}`],
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 10, 10, 0]
+            [0, 0, 0, 0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
@@ -90,6 +90,18 @@ const stakeIntoSponsorship = async () => {
     }
 }
 
+const delegateToPool = async (amount = 50) => {
+    log(`Delegate ${amount} tokens to operator ${operator.address} `)
+    const amountWei = ethers.utils.parseEther(amount.toString())
+    const tx0 = await token.transfer(investor.address, amountWei)
+    await tx0.wait()
+    const tx = await token.connect(investor).approve(operator.address, amountWei)
+    await tx.wait()
+    const tx2 = await operator.connect(investor).delegate(amountWei)
+    await tx2.wait()
+    log("Delegated to operator!")
+}
+
 // const divestFromPool = async () => {
 //     const tx = await pool.connect(investor).undelegate(ethers.utils.parseEther("1"))
 //     await tx.wait()
@@ -108,6 +120,7 @@ const stakeIntoSponsorship = async () => {
 //     log("Flag: pool ", pools[0].address, " flagged ", pools[1].address)
 // }
 
+/** npx hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts */
 async function main() {
     await connectToAllContracts()
     await deployOperatorContracts(1)
@@ -115,7 +128,9 @@ async function main() {
     await stakeIntoSponsorship()
     // await divestFromPool()
     // await operatorUnstakesFromSponsorship()
+    await delegateToPool()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
+    log("Wrote new operator address to local config")
 }
 
 main()

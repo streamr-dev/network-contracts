@@ -85,6 +85,7 @@ async function deploySponsorshipFactory() {
     log(`transferred 1 ETH to ${operatorWallet.address}`)
 }
 
+/** npx hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts */
 async function main() {
     adminWallet = new Wallet(privKeyStreamRegistry, new JsonRpcProvider(chainURL))
 
@@ -96,7 +97,7 @@ async function main() {
     localConfig.adminKey = privKeyStreamRegistry
     const configString = JSON.stringify(localConfig, null, 4)
     fs.writeFileSync("localConfig.json", configString)
-    log("wrote localConfig.json")
+    log("Wrote sponsorship factory and related contracts to local config")
 }
 
 main()
