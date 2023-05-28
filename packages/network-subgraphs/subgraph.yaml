@@ -219,7 +219,6 @@ templates:
       entities:
         - Sponsorship
         - Stake
-        - Operator
         - Flag
       abis:
         - name: Sponsorship
@@ -255,6 +254,7 @@ templates:
       entities:
         - Operator
         - Delegation
+        - OperatorDailyBucket
       abis:
         - name: Operator
           file: ./abis/Operator.json
