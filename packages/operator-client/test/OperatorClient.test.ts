@@ -40,36 +40,6 @@ describe("OperatorClient", () => {
 
     let opertatorConfig: OperatorClientConfig
 
-    beforeAll(async () => {
-        provider = new JsonRpcProvider(chainURL)
-        log("Connected to: ", await provider.getNetwork())
-
-        adminWallet = new Wallet(adminPrivKey, provider)
-
-        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as IERC677
-        const timeString = (new Date()).getTime().toString()
-        const streamPath1 = "/operatorclienttest-1-" + timeString
-        const streamPath2 = "/operatorclienttest-2-" + timeString
-        streamId1 = adminWallet.address.toLowerCase() + streamPath1
-        streamId2 = adminWallet.address.toLowerCase() + streamPath2
-        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamregAbi, adminWallet) as unknown as StreamRegistryV4
-        log(`creating stream with streamId1 ${streamId1}`)
-        await (await streamRegistry.createStream(streamPath1, "metadata")).wait()
-        log(`creating stream with streamId2 ${streamId2}`)
-        await (await streamRegistry.createStream(streamPath2, "metadata")).wait()
-
-        // const operatorWalletBalance = await token.balanceOf(adminWallet.address)
-        // log(`operatorWalletBalance ${operatorWalletBalance}`)
-
-        // await (await token.mint(operatorWallet.address, parseEther("1000000"))).wait()
-        // log(`minted 1000000 tokens to ${operatorWallet.address}`)
-
-    })
-    
-    beforeEach(async () => {
-        ({ operatorWallet, operatorContract } = await deployNewOperator())
-    })
-
     const deployNewOperator = async () => {
         const operatorWallet = Wallet.createRandom().connect(provider)
         log("Funding address %s...", operatorWallet.address)
@@ -89,6 +59,40 @@ describe("OperatorClient", () => {
         }
         return {operatorWallet, operatorContract}
     }
+
+    beforeEach(async () => {
+        provider = new JsonRpcProvider(chainURL)
+        log("Connected to: ", await provider.getNetwork())
+
+        adminWallet = new Wallet(adminPrivKey, provider)
+
+        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as IERC677
+        const timeString = (new Date()).getTime().toString()
+        const streamPath1 = "/operatorclienttest-1-" + timeString
+        const streamPath2 = "/operatorclienttest-2-" + timeString
+        streamId1 = adminWallet.address.toLowerCase() + streamPath1
+        streamId2 = adminWallet.address.toLowerCase() + streamPath2
+        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamregAbi, adminWallet) as unknown as StreamRegistryV4
+        log(`creating stream with streamId1 ${streamId1}`)
+        await (await streamRegistry.createStream(streamPath1, "metadata")).wait()
+        log(`creating stream with streamId2 ${streamId2}`)
+        await (await streamRegistry.createStream(streamPath2, "metadata")).wait();
+
+        // const operatorWalletBalance = await token.balanceOf(adminWallet.address)
+        // log(`operatorWalletBalance ${operatorWalletBalance}`)
+
+        // await (await token.mint(operatorWallet.address, parseEther("1000000"))).wait()
+        // log(`minted 1000000 tokens to ${operatorWallet.address}`)
+
+    // })
+    
+    // beforeEach(async () => {
+        ({ operatorWallet, operatorContract } = await deployNewOperator())
+    })
+
+    afterEach(async () => {
+        await operatorContract.provider.removeAllListeners()
+    })
 
     it("client catches onchain events and emits join and leave events", async () => {
 
