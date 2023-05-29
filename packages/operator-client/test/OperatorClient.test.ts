@@ -8,7 +8,9 @@ import { Logger, waitForCondition } from '@streamr/utils'
 
 import Debug from "debug"
 
-import type { Operator, StreamRegistryV4, TestToken } from "../../network-contracts/typechain"
+import type { Operator, StreamRegistryV4 } from "../../network-contracts/typechain"
+import type { IERC677 } from "@streamr/network-contracts"
+
 import { Contract } from "@ethersproject/contracts"
 import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
 import { abi as streamregAbi } from "../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
@@ -31,7 +33,7 @@ describe("OperatorClient", () => {
     let provider: Provider
     // let operator: Operator
     // let sponsorshipFactory: SponsorshipFactory
-    let token: TestToken
+    let token: IERC677
     let adminWallet: Wallet
     let streamId1: string
     let streamId2: string
@@ -44,7 +46,7 @@ describe("OperatorClient", () => {
 
         adminWallet = new Wallet(adminPrivKey, provider)
 
-        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as TestToken
+        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as IERC677
         const timeString = (new Date()).getTime().toString()
         const streamPath1 = "/operatorclienttest-1-" + timeString
         const streamPath2 = "/operatorclienttest-2-" + timeString
@@ -164,7 +166,8 @@ describe("OperatorClient", () => {
             log(`unstaked from sponsorship ${sponsorship2.address}`)
             // await setTimeout(() => {}, 20000) // wait for events to be processed
 
-            waitForCondition(() => eventcount === 2, 10000, 1000)
+            await waitForCondition(() => eventcount === 2, 10000, 1000)
+
             operatorClient.close()
         })
     })

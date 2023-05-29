@@ -1,11 +1,9 @@
 import { Chain } from "@streamr/config"
 import { Wallet, ContractReceipt, Contract, utils } from "ethers"
-
-import { abi as operatorAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
-import { abi as operatorFactoryAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/OperatorFactory.sol/OperatorFactory.json"
-
-import type { Operator, OperatorFactory } from "../../network-contracts/typechain"
 import { AddressZero } from "@ethersproject/constants"
+
+import { operatorABI, operatorFactoryABI } from "@streamr/network-contracts"
+import type { Operator, OperatorFactory } from "@streamr/network-contracts"
 
 const { parseEther } = utils
 
@@ -20,7 +18,7 @@ export async function deployOperatorContract(
         operatorMetadata = "{}",
     } = {}, poolTokenName = `Pool-${Date.now()}`): Promise<Operator> {
 
-    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryAbi, deployer) as unknown as OperatorFactory
+    const operatorFactory = new Contract(chainConfig.contracts.OperatorFactory, operatorFactoryABI, deployer) as unknown as OperatorFactory
 
     const contractAddress = await operatorFactory.operators(deployer.address)
     // if (await operatorFactory.operators(contractAddress) === deployer.address)) {
@@ -49,6 +47,6 @@ export async function deployOperatorContract(
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-    const newOperator = new Contract(newOperatorAddress, operatorAbi, deployer) as unknown as Operator
+    const newOperator = new Contract(newOperatorAddress, operatorABI, deployer) as unknown as Operator
     return newOperator
 }
