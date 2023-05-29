@@ -84,9 +84,9 @@ describe("OperatorClient", () => {
         // await (await token.mint(operatorWallet.address, parseEther("1000000"))).wait()
         // log(`minted 1000000 tokens to ${operatorWallet.address}`)
 
-    // })
+        // })
     
-    // beforeEach(async () => {
+        // beforeEach(async () => {
         ({ operatorWallet, operatorContract } = await deployNewOperator())
     })
 
