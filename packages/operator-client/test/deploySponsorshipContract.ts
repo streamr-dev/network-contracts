@@ -1,15 +1,10 @@
 import { Chain } from "@streamr/config"
 import { utils, Wallet, Contract, ContractReceipt } from "ethers"
 
-import type { Sponsorship } from "../../network-contracts/typechain"
+import { sponsorshipABI, sponsorshipFactoryABI } from "@streamr/network-contracts"
+import type { Sponsorship, SponsorshipFactory } from "@streamr/network-contracts"
 
 const { parseEther } = utils
-
-import { abi as sponsorshipFactoryAbi }
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json"
-
-import { abi as sponsorshipAbi }
-    from "../../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json"
 
 export async function deploySponsorship(
     chainConfig: Chain,
@@ -23,7 +18,8 @@ export async function deploySponsorship(
 ): Promise<Sponsorship> {
 
     // console.log("Chain config: %o", chainConfig)
-    const sponsorshipFactory = new Contract(chainConfig.contracts.SponsorshipFactory, sponsorshipFactoryAbi, deployer)
+    const sponsorshipFactory =
+        new Contract(chainConfig.contracts.SponsorshipFactory, sponsorshipFactoryABI, deployer) as unknown as SponsorshipFactory
     // console.log("deployer balance", await deployer.getBalance())
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),
@@ -44,7 +40,7 @@ export async function deploySponsorship(
     const sponsorshipDeployReceipt = await sponsorshipDeployTx.wait() as ContractReceipt
     const newSponsorshipEvent = sponsorshipDeployReceipt.events?.find((e) => e.event === "NewSponsorship")
     const newSponsorshipAddress = newSponsorshipEvent?.args?.sponsorshipContract
-    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipAbi, deployer) as unknown as Sponsorship
+    const newSponsorship = new Contract(newSponsorshipAddress, sponsorshipABI, deployer) as unknown as Sponsorship
 
     return newSponsorship
 }

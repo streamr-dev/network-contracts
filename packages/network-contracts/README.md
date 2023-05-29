@@ -1,6 +1,37 @@
-<h3>Deploy Streamregistry and connect the Graph</h3>
+# Streamr Network contracts
 
-Just run
+Solidity files plus Typescript interfaces for the Streamr Network smart contracts.
+
+## Contracts
+
+Listed by file path:
+* [StreamRegistry](./contracts/StreamRegistry/StreamRegistryV4.sol): Streams are added here along with metadata how to join them
+* [NodeRegistry](./contracts/NodeRegistry/NodeRegistry.sol): Storage nodes can register themselves here
+* [StreamStorageRegistry](./contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol): Connects storage nodes to streams that they store
+* OperatorTokenomics: [Operator](./contracts/OperatorTokenomics/Operator.sol) and [Sponsorship](./contracts/OperatorTokenomics/Sponsorship.sol) contracts that govern how to pay for better service in the Network, and how to get paid for providing it
+  * Spoiler: you '''sponsor''' streams by deploying a Sponsorship and sending DATA tokens to it, and operators '''stake''' into that Sponsorship to receive that DATA over time
+  * if operators stake but don't actually provide service, they get kicked out and their stake gets slashed
+  * additionally, 3rd parties can '''delegate''' their DATA tokens to the Operator contracts and receive a share of the operator's earnings. This way the operator gets more DATA to stake to more Sponsorships, in order to more fully utilize their network resources to earn more DATA.
+
+## Usage from Typescript
+
+Snippet from the [Operator client]():
+
+```typescript
+import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
+import type { Operator, Sponsorship } from "@streamr/network-contracts"
+
+...
+
+const contract = new Contract(operatorContractAddress, operatorABI, this.provider) as unknown as Operator
+contract.on("Staked", async (sponsorship: string) => {
+    log(`got Staked event ${sponsorship}`)
+})
+```
+
+## Developer notes
+
+To deploy StreamRegistry and deploy the subgraph, run:
 ```
 npm ci
 npm run build
