@@ -9,9 +9,10 @@ export interface GraphQLQuery {
 export class GraphQLClient {
 
     private readonly logger: Logger
-    private readonly theGraphUrl = "http://localhost:8000/subgraphs/name/streamr-dev/network-subgraphs"
+    private readonly theGraphUrl: string
 
-    constructor(logger: Logger) {
+    constructor(theGraphUrl: string,  logger: Logger) {
+        this.theGraphUrl = theGraphUrl
         this.logger = logger
         if (!logger) { 
             this.logger = new Logger(module)

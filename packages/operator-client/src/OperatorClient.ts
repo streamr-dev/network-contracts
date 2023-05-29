@@ -4,10 +4,10 @@ import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
 import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
 import { GraphQLClient } from "./TheGraphClient"
-import Debug from "debug"
+// import Debug from "debug"
 import { Logger } from "@streamr/utils"
 
-const log = Debug("streamr:operator-client")
+// const log = Debug("streamr:operator-client")
 
 /**
  * Events emitted by {@link OperatorClient}.
@@ -29,10 +29,12 @@ export interface OperatorClientEvents {
     removeStakedStream: (streamId: string, blockNumber: number) => void
 }
 
-// interface OperatorClientOptions {
-//     provider?: Provider
-//     chain?: string
-// }
+export interface OperatorClientConfig {
+    provider: Provider
+    // chain?: 
+    operatorContractAddress: string
+    theGraphUrl: string
+}
 
 export class OperatorClient extends EventEmitter {
     provider: Provider
@@ -43,25 +45,25 @@ export class OperatorClient extends EventEmitter {
     theGraphClient: GraphQLClient
     private readonly logger: Logger
 
-    constructor(operatorContractAddress: string, provider: Provider, logger: Logger) {
+    constructor(config: OperatorClientConfig, logger: Logger) {
         super()
 
         this.logger = logger
         this.logger.trace('OperatorClient created')
-        this.theGraphClient = new GraphQLClient(logger)
-        this.address = operatorContractAddress
-        this.provider = provider
-        this.contract = new Contract(operatorContractAddress, operatorABI, this.provider) as unknown as Operator
-        log(`OperatorClient created for ${operatorContractAddress}`)
-        log("getting all streams from TheGraph")
+        this.theGraphClient = new GraphQLClient(config.theGraphUrl, logger)
+        this.address = config.operatorContractAddress
+        this.provider = config.provider
+        this.contract = new Contract(config.operatorContractAddress, operatorABI, this.provider) as unknown as Operator
+        logger.info(`OperatorClient created for ${config.operatorContractAddress}`)
+        // log("getting all streams from TheGraph")
         // this.getStakedStreams()
-        log("Subscribing to Staked and Unstaked events")
+        logger.info("Subscribing to Staked and Unstaked events")
         this.contract.on("Staked", async (sponsorship: string) => {
-            log(`got Staked event ${sponsorship}`)
+            logger.info(`got Staked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
-                console.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
+                logger.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
                 return
             }
             this.streamIdOfSponsorship.set(sponsorshipAddress, streamId)
@@ -69,30 +71,23 @@ export class OperatorClient extends EventEmitter {
             const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 0) + 1
             this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
             if (sponsorshipCount === 1) {
-                log(`emitting addStakedStream for ${streamId}`)
                 this.emit("addStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        this.provider.on({ address: operatorContractAddress }, (event) => { console.log("Got event %s", event.topics[0]) })
+        // this.provider.on({ address: config.operatorContractAddress }, (event) => { console.log("Got event %s", event.topics[0]) })
         this.contract.on("Unstaked", async (sponsorship: string) => {
-            log(`got Unstaked event ${sponsorship}`)
+            logger.info(`got Unstaked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
-            log(`2 removing ${sponsorshipAddress} from streamIdOfSponsorship`)
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
-            log(`3 streamId for ${sponsorshipAddress} is ${streamId}`)
             if (!streamId) {
                 logger.error("Sponsorship not found!")
                 return
             }
-            log(`4 removing ${sponsorshipAddress} from streamIdOfSponsorship`)
             this.streamIdOfSponsorship.delete(sponsorshipAddress)
-            log(`5 removing ${sponsorshipAddress} from sponsorshipCountOfStream`)
             const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 1) - 1
-            log(`6 sponsorshipCount for ${streamId} is now ${sponsorshipCount}`)
             this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
             if (sponsorshipCount === 0) {
                 this.sponsorshipCountOfStream.delete(streamId)
-                log(`emitting removeStakedStream for ${streamId}`)
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
@@ -104,18 +99,8 @@ export class OperatorClient extends EventEmitter {
     }
 
     async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
-        log(`getStakedStreams for ${this.address.toLowerCase()}`)
+        this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
         const queryResult = await this.theGraphClient.sendQuery({
-            // query: `
-            //     {
-            //         operator(id: "${this.address.toLowerCase()}") {
-            //             sponsorships {
-            //                 id
-            //                 streamId
-            //             }
-            //         }
-            //     }
-            // `
             query: `
             {
                 operator(id: "${this.address.toLowerCase()}") {
@@ -151,7 +136,7 @@ export class OperatorClient extends EventEmitter {
                 this.streamIdOfSponsorship.set(stake.sponsorship.id, stake.sponsorship.stream.id)
                 const sponsorshipCount = (this.sponsorshipCountOfStream.get(streamId) || 0) + 1
                 this.sponsorshipCountOfStream.set(streamId, sponsorshipCount)
-                log(`added ${stake.sponsorship.id} to stream ${streamId} with sponsorshipCount ${sponsorshipCount}`)
+                this.logger.info(`added ${stake.sponsorship.id} to stream ${streamId} with sponsorshipCount ${sponsorshipCount}`)
             }
         }
         return {
@@ -162,8 +147,6 @@ export class OperatorClient extends EventEmitter {
     }
 
     close(): void {
-        // this.provider.removeAllListeners(this.contract.filters.Staked())
-        // this.provider.removeAllListeners(this.contract.filters.Unstaked())
         this.provider.removeAllListeners()
     }
 }
