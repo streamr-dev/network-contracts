@@ -94,6 +94,46 @@ describe("OperatorClient", () => {
         await operatorContract.provider.removeAllListeners()
     })
 
+    it("client emits events when sponsorships are unstaked completely", async () => {
+        const operatorClient = new OperatorClient(opertatorConfig, logger)
+        await operatorClient.getStakedStreams()
+        let eventcount = 0
+        operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
+        })
+        operatorClient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
+            log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
+            eventcount += 1
+        })
+
+        log("Added OperatorClient listeners, deploying Sponsorship contract...")
+        const sponsorship = await deploySponsorship(config, operatorWallet , {
+            streamId: streamId1 })
+        const sponsorship2 = await deploySponsorship(config, operatorWallet, {
+            streamId: streamId2
+        })
+    
+        log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
+        await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, parseEther("200"), operatorWallet.address)).wait()
+    
+        log("Staking to sponsorship...")
+        await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship.address}`)
+        await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
+        log(`staked on sponsorship ${sponsorship2.address}`)
+
+        log("Unstaking from sponsorships...")
+        await (await operatorContract.unstake(sponsorship.address)).wait()
+        log(`unstaked from sponsorship ${sponsorship.address}`)
+        await (await operatorContract.unstake(sponsorship2.address)).wait()
+        log(`unstaked from sponsorship ${sponsorship2.address}`)
+        // await setTimeout(() => {}, 20000) // wait for events to be processed
+
+        await waitForCondition(() => eventcount === 2, 10000, 1000)
+
+        operatorClient.close()
+    })
+
     it("client catches onchain events and emits join and leave events", async () => {
 
         const operatorClient = new OperatorClient(opertatorConfig, logger)
@@ -155,45 +195,6 @@ describe("OperatorClient", () => {
         expect(streams.streamIds.length).to.equal(2)
         expect(streams.streamIds).to.contain(streamId1)
         expect(streams.streamIds).to.contain(streamId2)
-
-        operatorClient.close()
-    })
-
-    it("client emits events when sponsorships are unstaked completely", async () => {
-        log("Added OperatorClient listeners, deploying Sponsorship contract...")
-        const sponsorship = await deploySponsorship(config, operatorWallet , {
-            streamId: streamId1 })
-        const sponsorship2 = await deploySponsorship(config, operatorWallet, {
-            streamId: streamId2
-        })
-    
-        log(`Sponsorship deployed at ${sponsorship.address}, delegating...`)
-        await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, parseEther("200"), operatorWallet.address)).wait()
-    
-        log("Staking to sponsorship...")
-        await (await operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
-        log(`staked on sponsorship ${sponsorship.address}`)
-        await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
-        log(`staked on sponsorship ${sponsorship2.address}`)
-        const operatorClient = new OperatorClient(opertatorConfig, logger)
-        await operatorClient.getStakedStreams()
-        let eventcount = 0
-        operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
-            log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
-        })
-        operatorClient.on("removeStakedStream", (streamid: string, blockNumber: number) => {
-            log(`got removeStakedStream event for stream ${streamid} at block ${blockNumber}`)
-            eventcount += 1
-        })
-
-        log("Unstaking from sponsorships...")
-        await (await operatorContract.unstake(sponsorship.address)).wait()
-        log(`unstaked from sponsorship ${sponsorship.address}`)
-        await (await operatorContract.unstake(sponsorship2.address)).wait()
-        log(`unstaked from sponsorship ${sponsorship2.address}`)
-        // await setTimeout(() => {}, 20000) // wait for events to be processed
-
-        await waitForCondition(() => eventcount === 2, 10000, 1000)
 
         operatorClient.close()
     })
