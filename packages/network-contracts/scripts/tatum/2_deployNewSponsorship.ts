@@ -79,6 +79,7 @@ const stakeOnSponsorship = async () => {
 //     log("updated metadata")
 // }
 
+/** npx hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts */
 async function main() {
     await connectToAllContracts()
     await deployNewSponsorship()
@@ -87,6 +88,7 @@ async function main() {
     // await updateMetadata()
     localConfig.sponsorship = sponsorshipAddress
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
+    log("Wrote sponsorship address to local config")
 }
 
 main()

@@ -157,7 +157,9 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.delegatorCountChange = 0
         bucket.totalDelegatedWei = BigInt.fromI32(0)
         bucket.totalUndelegatedWei = BigInt.fromI32(0)
-        // bucket.totalUnstakedWei = BigInt.fromI32(0)
+        bucket.profitsWei = BigInt.fromI32(0)
+        bucket.lossesWei = BigInt.fromI32(0)
+        bucket.operatorsShareWei = BigInt.fromI32(0)
     }
     return bucket
 }
