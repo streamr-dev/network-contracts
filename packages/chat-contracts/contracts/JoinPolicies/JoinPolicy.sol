@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
+import "@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "../DelegatedAccessRegistry.sol";
 
 abstract contract JoinPolicy{
@@ -11,7 +11,7 @@ abstract contract JoinPolicy{
 
     StreamRegistryV3 private streamRegistry;
     DelegatedAccessRegistry public delegatedAccessRegistry;
-    
+
     event Accepted (address indexed mainWallet, address delegatedWallet);
     event Revoked (address indexed mainWallet, address delegatedWallet);
 
@@ -83,10 +83,10 @@ abstract contract JoinPolicy{
         accept(msg.sender);
     }
 
-    function requestDelegatedJoin() 
+    function requestDelegatedJoin()
         public
-        isUserAuthorized() 
-        canJoin() 
+        isUserAuthorized()
+        canJoin()
     {
         address delegatedWallet = delegatedAccessRegistry.getDelegatedWalletFor(msg.sender);
         accept(msg.sender, delegatedWallet);

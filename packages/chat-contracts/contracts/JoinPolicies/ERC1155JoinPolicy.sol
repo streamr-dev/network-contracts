@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
+import "@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicy.sol";
 import "../DelegatedAccessRegistry.sol";
 
@@ -43,10 +43,10 @@ contract ERC1155JoinPolicy is JoinPolicy, ERC1155Holder {
         uint256 amount
     )
         override
-        public 
+        public
         isStakingEnabled()
-        isUserAuthorized() 
-        canJoin() 
+        isUserAuthorized()
+        canJoin()
     {
         token.safeTransferFrom(msg.sender, address(this), tokenId, amount, "");
         balances[msg.sender]= SafeMath.add(balances[msg.sender], amount);
@@ -58,9 +58,9 @@ contract ERC1155JoinPolicy is JoinPolicy, ERC1155Holder {
         uint256 amount
     )
         override
-        public 
+        public
         isStakingEnabled()
-        isUserAuthorized() 
+        isUserAuthorized()
     {
         token.safeTransferFrom(address(this), msg.sender, tokenId, amount, "");
         balances[msg.sender] = SafeMath.sub(balances[msg.sender], amount);

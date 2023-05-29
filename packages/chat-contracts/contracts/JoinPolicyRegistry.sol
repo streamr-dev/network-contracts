@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.9;
 
-import "@streamr-contracts/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
+import "@streamr/network-contracts/contracts/StreamRegistry/StreamRegistryV3.sol";
 import "./JoinPolicies/ERC20JoinPolicy.sol";
 import "./JoinPolicies/ERC721JoinPolicy.sol";
 import "./JoinPolicies/ERC1155JoinPolicy.sol";
@@ -14,10 +14,10 @@ contract JoinPolicyRegistry {
     mapping(address => mapping(uint256 => mapping(string => mapping(bool => address)))) public policies;
 
     event Registered(
-        address indexed tokenAddress, 
-        string indexed streamId, 
+        address indexed tokenAddress,
+        string indexed streamId,
         bool indexed isStakingEnabled,
-        address policyAddress, 
+        address policyAddress,
         bytes32 policyId
     );
 
@@ -62,5 +62,5 @@ contract JoinPolicyRegistry {
         bool stakingEnabled_
     ) public view returns (address) {
         return policies[tokenAddress_][tokenId_][streamId_][stakingEnabled_];
-    }    
+    }
 }

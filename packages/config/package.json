@@ -1,7 +1,9 @@
 {
-    "version": "2.5.10",
+    "version": "2.6.0",
     "name": "@streamr/config",
     "description": "Zero dependency package that contains Streamr Network smart contract addresses",
+    "private": false,
+    "publishConfig": { "access": "public" },
     "main": "dist/src/index.js",
     "types": "dist/src/index.d.ts",
     "directories": {

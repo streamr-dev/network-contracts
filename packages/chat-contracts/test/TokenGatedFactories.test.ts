@@ -2,7 +2,7 @@ import { waffle, ethers } from 'hardhat'
 import { expect, use } from 'chai'
 import { Contract, ContractFactory} from 'ethers'
 
-import StreamRegistryV3 from '@streamr-contracts/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
+import StreamRegistryV3 from '@streamr/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
 
 const { provider } = waffle
 
@@ -25,7 +25,7 @@ describe('TokenGatedFactories', (): void => {
             StreamRegistryV3.bytecode,
             wallets[0]
         )
-        
+
         streamRegistryV3 = await StreamRegistryV3Factory.deploy()
 
         await streamRegistryV3.createStream(
@@ -48,14 +48,14 @@ describe('TokenGatedFactories', (): void => {
 
         before( async (): Promise<void> => {
             const ERC20 = await ethers.getContractFactory('TestERC20')
-            token = await ERC20.deploy() 
+            token = await ERC20.deploy()
 
             const ERC20PolicyFactory = await ethers.getContractFactory('ERC20PolicyFactory')
             factory = await ERC20PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
-            )  
+            )
         })
 
         it ('should exercise the deploy method', async () => {
@@ -97,20 +97,20 @@ describe('TokenGatedFactories', (): void => {
 
     describe('ERC721PolicyFactory', (): void => {
         const streamId = `erc721/${wallets[0].address}${streamPath}`.toLowerCase()
-        
+
         let factory: Contract
         let token: Contract
-        
+
         before( async (): Promise<void> => {
             const ERC721 = await ethers.getContractFactory('TestERC721')
-            token = await ERC721.deploy() 
+            token = await ERC721.deploy()
 
             const ERC721PolicyFactory = await ethers.getContractFactory('ERC721PolicyFactory')
             factory = await ERC721PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
-            )  
+            )
         })
 
         it ('should exercise the deploy method', async () => {
@@ -158,14 +158,14 @@ describe('TokenGatedFactories', (): void => {
 
         before( async (): Promise<void> => {
             const ERC777 = await ethers.getContractFactory('TestERC777')
-            token = await ERC777.deploy() 
+            token = await ERC777.deploy()
 
             const ERC777PolicyFactory = await ethers.getContractFactory('ERC777PolicyFactory')
             factory = await ERC777PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
-            )  
+            )
         })
 
         it ('should exercise the deploy method', async () => {
@@ -207,20 +207,20 @@ describe('TokenGatedFactories', (): void => {
 
     describe('ERC1155PolicyFactory', (): void => {
         const streamId = `erc1155/${wallets[0].address}${streamPath}`.toLowerCase()
-        
+
         let factory: Contract
         let token: Contract
-        
+
         before( async (): Promise<void> => {
             const ERC1155 = await ethers.getContractFactory('TestERC1155')
-            token = await ERC1155.deploy() 
+            token = await ERC1155.deploy()
 
             const ERC1155PolicyFactory = await ethers.getContractFactory('ERC1155PolicyFactory')
             factory = await ERC1155PolicyFactory.deploy(
                 joinPolicyRegistry.address,
                 streamRegistryV3.address,
                 delegatedAccessRegistry.address
-            )  
+            )
         })
 
         it ('should exercise the deploy method', async () => {

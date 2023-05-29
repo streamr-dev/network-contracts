@@ -4,7 +4,7 @@ import { BigNumber, Contract, ContractFactory} from 'ethers'
 
 import {sign, hash, createIdentity} from 'eth-crypto'
 
-import StreamRegistryV3 from '@streamr-contracts/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
+import StreamRegistryV3 from '@streamr/network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json'
 
 const { provider } = waffle
 
@@ -31,7 +31,7 @@ const signDelegatedChallenge = (
 use(waffle.solidity)
 describe('ERC20JoinPolicy', (): void => {
     const wallets = provider.getWallets()
-    let token: any 
+    let token: any
     let contract: Contract
 
     let streamRegistryV3: Contract
@@ -50,7 +50,7 @@ describe('ERC20JoinPolicy', (): void => {
             StreamRegistryV3.bytecode,
             wallets[0]
         )
-        
+
         streamRegistryV3 = await StreamRegistryV3Factory.deploy()
         const ERC20 = await ethers.getContractFactory('TestERC20')
         token = await ERC20.deploy()
@@ -150,14 +150,14 @@ describe('ERC20JoinPolicy', (): void => {
         )
         expect(events.length).to.equal(1)
         expect(events[0].args).to.not.be.undefined
-        
+
         expect(events[0].args!.mainWallet).to.equal(
             wallets[1].address
         )
         expect(events[0].args!.delegatedWallet).to.equal(
             signerIdentity.address
         )
-        
+
         expect(await streamRegistryV3.hasPermission(
             streamId,
             signerIdentity.address,
@@ -200,14 +200,14 @@ describe('ERC20JoinPolicy', (): void => {
         )
         expect(events.length).to.equal(2)
         expect(events[1].args).to.not.be.undefined
-        
+
         expect(events[1].args!.mainWallet).to.equal(
             wallets[5].address
         )
         expect(events[1].args!.delegatedWallet).to.equal(
             '0x0000000000000000000000000000000000000000'
         )
-        
+
         expect(await streamRegistryV3.hasPermission(
             streamId,
             wallets[5].address,
@@ -282,7 +282,7 @@ describe('ERC20JoinPolicy', (): void => {
             await token.connect(mainWallet).approve(stakedContract.address, tokenBalance)
             await stakedContract.connect(mainWallet)
                 .depositStake(tokenBalance)
-            
+
             const afterBalance = await token.balanceOf(mainWallet.address)
             expect(afterBalance).to.equal(0)
 
@@ -294,14 +294,14 @@ describe('ERC20JoinPolicy', (): void => {
             )
             expect(events.length).to.equal(1)
             expect(events[0].args).to.not.be.undefined
-            
+
             expect(events[0].args!.mainWallet).to.equal(
                 mainWallet.address
             )
             expect(events[0].args!.delegatedWallet).to.equal(
                 delegatedWallet.address
             )
-            
+
             expect(await streamRegistryV3.hasPermission(
                 streamId,
                 delegatedWallet.address,
@@ -328,7 +328,7 @@ describe('ERC20JoinPolicy', (): void => {
                 delegatedWallet.address,
                 PermissionType.Grant
             )).to.equal(false)
-           
+
         })
 
         it ('should fail depositStake, reason: not enough balance', async () => {

@@ -11,13 +11,15 @@
     "./packages/hub-contracts",
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
+    "./packages/operator-client",
     "./packages/chat-contracts"
   ],
   "scripts": {
-    "clean": "npm run clean --workspaces --if-present",
     "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present && eslint .",
     "test": "npm run test --workspaces --if-present",
+    "integration-test": "npm run integration-test --workspaces --if-present",
     "test:subgraph": "graph test -d",
     "graph1_build": "npm run deployLocalWithExport -w=network-contracts",
     "graph2_copyInfo": "./scripts/copyAbis.sh && ./scripts/generateYaml.sh",
@@ -28,6 +30,7 @@
     "migration-run": "npm run migration -w=brubeck-migration-script"
   },
   "devDependencies": {
+    "@chainsafe/ssz": "^0.10.2",
     "@types/chai": "4.3.0",
     "@types/mocha": "9.1.1",
     "@types/node": "16.11.25",

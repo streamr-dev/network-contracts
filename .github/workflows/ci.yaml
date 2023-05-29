@@ -37,7 +37,7 @@ jobs:
         run: npm run build && npm run lint
       - name: Unit tests
         run: npm run test
-  ens-e2e-test:
+  integration-tests:
     needs:
       - lint-and-unit-test
     runs-on: ubuntu-20.04
@@ -52,7 +52,7 @@ jobs:
         id: cache-node-modules
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          key: cache-node-modules-${{ hashFiles('package-lock.json') }}
           path: |
             node_modules
             packages/*/node_modules
@@ -66,9 +66,9 @@ jobs:
       - name: Start Streamr Docker Stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'ens-sync-script'
+          services-to-start: 'ens-sync-script deploy-network-subgraphs'
       - name: Integration Test (with dev-docker environment)
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
-        run: npm run -w packages/network-contracts test:ens-e2e
+        run: npm run integration-test

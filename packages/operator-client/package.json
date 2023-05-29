@@ -1,0 +1,35 @@
+{
+  "name": "@streamr/operator-client",
+  "version": "2.6.1",
+  "description": "Provides the necessary interface for Streamr Operator plugin subsystems to access the smart contracts",
+  "author": "Streamr Network AG <contact@streamr.network>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "integration-test": "jest --runInBand test/*.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json"
+  },
+  "files": [ "./dist" ],
+  "main": "./dist/exports.js",
+  "types": "./dist/exports.d.ts",
+  "dependencies": {
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.0",
+    "@streamr/config": "2.6.0",
+    "@streamr/network-contracts": "2.6.1",
+    "@streamr/utils": "8.5.0",
+    "debug": "^4.3.4",
+    "eventemitter3": "5.0.0",
+    "jest": "29.5.0",
+    "node-fetch": "2.6.7",
+    "ts-jest": "29.1.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "2.0.0",
+    "@types/chai": "4.3.4",
+    "@types/mocha": "10.0.1",
+    "chai": "4.3.7",
+    "mocha": "10.2.0",
+    "ts-node": "10.9.1",
+    "typescript": "5.0.4"
+  }
+}
