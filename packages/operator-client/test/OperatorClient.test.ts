@@ -266,7 +266,7 @@ describe("OperatorClient", () => {
 
     })
 
-    it("only returns the stream from getAllStreamsw when staked on 2 sponsorships for the stream", async () => {
+    it("only returns the stream from getAllStreams when staked on 2 sponsorships for the stream", async () => {
         const { operatorWallet, operatorContract } = await deployNewOperator()
 
         const operatorClient = new OperatorClient(opertatorConfig, logger)

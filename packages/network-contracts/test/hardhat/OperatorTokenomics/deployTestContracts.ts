@@ -2,6 +2,7 @@ import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { Wallet, utils} from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
+    StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, StreamrConfig } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers

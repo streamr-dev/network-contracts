@@ -323,6 +323,7 @@ type Sponsorship @entity {
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
+  creator: String!
 }
 
 type SponsorshipDailyBucket @entity {

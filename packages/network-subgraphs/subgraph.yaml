@@ -180,7 +180,7 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(address,string,string,uint256)
+        - event: NewSponsorship(address,string,string,uint256,address)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
@@ -219,7 +219,6 @@ templates:
       entities:
         - Sponsorship
         - Stake
-        - Operator
         - Flag
       abis:
         - name: Sponsorship
@@ -255,6 +254,7 @@ templates:
       entities:
         - Operator
         - Delegation
+        - OperatorDailyBucket
       abis:
         - name: Operator
           file: ./abis/Operator.json

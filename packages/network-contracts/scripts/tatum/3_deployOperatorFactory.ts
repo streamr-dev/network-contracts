@@ -42,7 +42,7 @@ async function deployOperatorFactory() {
         operatorTemplate.address,
         localConfig.token,
         localConfig.streamrConfig
-    ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as OperatorFactory
+    ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as unknown as OperatorFactory
     // eslint-disable-next-line require-atomic-updates
     // localConfig.operatorFactory = operatorFactory.address
     await operatorFactory.deployed()
@@ -62,10 +62,12 @@ async function deployOperatorFactory() {
     log("Set Operator contract factory in StreamrConfig")
 }
 
+/** npx hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts */
 async function main() {
     deploymentOwner = new Wallet(localConfig.adminKey, chainProvider)
     await deployOperatorFactory()
     fs.writeFileSync("localConfig.json", JSON.stringify(localConfig, null, 2))
+    log("Wrote operator factory and related contracts to local config")
 }
 
 main()
