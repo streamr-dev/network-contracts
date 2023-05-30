@@ -12,7 +12,8 @@
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
     "./packages/operator-client",
-    "./packages/chat-contracts"
+    "./packages/chat-contracts",
+    "./packages/ens-sync-script"
   ],
   "scripts": {
     "build": "npm run build --workspaces",

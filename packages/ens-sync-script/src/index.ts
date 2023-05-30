@@ -55,7 +55,7 @@ async function main(){
         mainnetProvider = new JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
         sidechainProvider = new JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
-        ENSCacheV2Address = "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166"
+        ENSCacheV2Address = sidechainConfig.contracts.ENSCacheV2
     }
     
     const ensAddress = mainnetConfig.contracts.ENS
