@@ -105,36 +105,42 @@ export class OperatorClient extends EventEmitter {
 
     async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
         this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
-        const queryResult = await this.theGraphClient.queryEntity<any>({
-            query: `
-            {
-                operator(id: "${this.address.toLowerCase()}") {
-                  stakes {
-                    sponsorship {
-                      id
-                      stream {
-                        id
-                      }
-                    }
-                 }
-                }
-                _meta {
-                    block {
-                    number
-                    }
-                }
-              }
-            `
-        })
-        if (!queryResult.operator) {
-            this.logger.error(`Operator ${this.address.toLowerCase()} not found in TheGraph`)
+        const createQuery = (lastId: string, pageSize: number) => {
             return {
-                streamIds: [],
-                // eslint-disable-next-line no-underscore-dangle
-                blockNumber: queryResult._meta.block.number
+                query: `
+                    {
+                        operator(id: "${this.address.toLowerCase()}") {
+                            stakes(where: {id_gt: "${lastId}"}, first: ${pageSize}) {
+                                sponsorship {
+                                  id
+                                  stream {
+                                    id
+                                  }
+                                }
+                              }
+                        }
+                        _meta {
+                            block {
+                            number
+                            }
+                        }
+                    }
+                    `
             }
         }
-        for (const stake of queryResult.operator.stakes) {
+        let latestBlockNumber = 0
+        const parseItems = (response: any) => {
+            // eslint-disable-next-line no-underscore-dangle
+            latestBlockNumber = response._meta.block.number
+            if (!response.operator) {
+                this.logger.error(`Operator ${this.address.toLowerCase()} not found in TheGraph`)
+                return []
+            }
+            return response.operator.stakes
+        }
+        const queryResult = this.theGraphClient.queryEntities<any>(createQuery, parseItems)
+
+        for await (const stake of queryResult) {
             if (stake.sponsorship.stream && stake.sponsorship.stream.id
                 && this.streamIdOfSponsorship.get(stake.sponsorship.id) !== stake.sponsorship.stream.id) {
                 const streamId = stake.sponsorship.stream.id
@@ -146,8 +152,7 @@ export class OperatorClient extends EventEmitter {
         }
         return {
             streamIds: Array.from(this.sponsorshipCountOfStream.keys()),
-            // eslint-disable-next-line no-underscore-dangle
-            blockNumber: queryResult._meta.block.number
+            blockNumber: latestBlockNumber
         }
     }
 
