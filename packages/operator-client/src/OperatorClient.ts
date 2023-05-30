@@ -148,5 +148,6 @@ export class OperatorClient extends EventEmitter {
 
     close(): void {
         this.provider.removeAllListeners()
+        this.removeAllListeners()
     }
 }
