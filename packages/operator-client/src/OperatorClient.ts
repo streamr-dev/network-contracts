@@ -3,9 +3,9 @@ import { Provider } from "@ethersproject/providers"
 import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
 import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
-import { GraphQLClient } from "./TheGraphClient"
 // import Debug from "debug"
-import { Logger } from "@streamr/utils"
+import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
+// import fetch from 'node-fetch'
 
 // const log = Debug("streamr:operator-client")
 
@@ -34,6 +34,7 @@ export interface OperatorClientConfig {
     // chain?: 
     operatorContractAddress: string
     theGraphUrl: string
+    fetch: (url: string, init?: Record<string, unknown>) => Promise<FetchResponse>;
 }
 
 export class OperatorClient extends EventEmitter {
@@ -42,7 +43,7 @@ export class OperatorClient extends EventEmitter {
     contract: Operator
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
-    theGraphClient: GraphQLClient
+    theGraphClient: TheGraphClient
     private readonly logger: Logger
 
     constructor(config: OperatorClientConfig, logger: Logger) {
@@ -50,7 +51,11 @@ export class OperatorClient extends EventEmitter {
 
         this.logger = logger
         this.logger.trace('OperatorClient created')
-        this.theGraphClient = new GraphQLClient(config.theGraphUrl, logger)
+        this.theGraphClient = new TheGraphClient({
+            serverUrl: config.theGraphUrl,
+            fetch: config.fetch,
+            logger
+        })
         this.address = config.operatorContractAddress
         this.provider = config.provider
         this.contract = new Contract(config.operatorContractAddress, operatorABI, this.provider) as unknown as Operator
@@ -100,7 +105,7 @@ export class OperatorClient extends EventEmitter {
 
     async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
         this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
-        const queryResult = await this.theGraphClient.sendQuery({
+        const queryResult = await this.theGraphClient.queryEntity<any>({
             query: `
             {
                 operator(id: "${this.address.toLowerCase()}") {
@@ -148,5 +153,6 @@ export class OperatorClient extends EventEmitter {
 
     close(): void {
         this.provider.removeAllListeners()
+        this.removeAllListeners()
     }
 }
