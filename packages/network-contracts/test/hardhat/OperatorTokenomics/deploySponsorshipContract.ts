@@ -1,5 +1,5 @@
 import assert from "assert"
-import { utils, BigNumber, ContractReceipt, Wallet } from "ethers"
+import { utils, BigNumber, ContractReceipt } from "ethers"
 import { ethers as hardhatEthers } from "hardhat"
 
 import { Sponsorship, IAllocationPolicy, IJoinPolicy, IKickPolicy, StreamRegistryV4 } from "../../../typechain"
