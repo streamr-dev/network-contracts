@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+/**
+ * @dev not yet imported by the StreamRegistryV4 contract
+ * @dev added to fix the compiler version errors for Operator and SponsorshipFactory contracts
+ */
 interface IStreamRegistryV4 {
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
     function exists(string calldata streamId) external view returns (bool);
