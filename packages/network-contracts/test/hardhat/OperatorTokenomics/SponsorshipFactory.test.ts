@@ -13,7 +13,7 @@ import { StreamRegistryV4 } from "../../../typechain"
 let sponsorshipCounter = 0
 
 async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
-    const streamPath = "/sponsorship/" + sponsorshipCounter++
+    const streamPath = "/sponsorships/" + sponsorshipCounter++
     const streamId = deployerAddress.toLowerCase() + streamPath
     await (await streamRegistry.createStream(streamPath, streamId)).wait()
     return streamId
@@ -179,6 +179,13 @@ describe("SponsorshipFactory", () => {
         await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId, "metadata",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
+    })
+
+    it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy } = contracts
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "0xnonexistingstreamid", "metadata",
+            [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address],
+            ["0", "0", "0", "0"])).to.be.revertedWith("error_streamNotFound")
     })
 
     // must be last test, will remove all policies in the sponsorshipFactory
