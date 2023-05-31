@@ -5,6 +5,7 @@ import { Wallet } from "@ethersproject/wallet"
 import { parseEther } from "@ethersproject/units"
 import { expect } from "chai"
 import { Logger, waitForCondition } from '@streamr/utils'
+import fetch from "node-fetch"
 
 import Debug from "debug"
 
@@ -55,7 +56,8 @@ describe("OperatorClient", () => {
         opertatorConfig = {
             operatorContractAddress: operatorContract.address,
             provider,
-            theGraphUrl
+            theGraphUrl,
+            fetch
         }
         return {operatorWallet, operatorContract}
     }
