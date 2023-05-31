@@ -13,7 +13,7 @@ import { StreamRegistryV4 } from "../../../typechain"
 let sponsorshipCounter = 0
 
 async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
-    const streamPath = "/" + sponsorshipCounter++
+    const streamPath = "/sponsorship/" + sponsorshipCounter++
     const streamId = deployerAddress.toLowerCase() + streamPath
     await (await streamRegistry.createStream(streamPath, streamId)).wait()
     return streamId
