@@ -337,27 +337,27 @@ async function deploySponsorshipFactory() {
     log(`hasrole adminwallet ${hasroleEthSigner}`)
     log(`streamrConfig address ${streamrConfig.address}`)
 
-    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy")).deploy({ signer: adminWallet })
+    const maxOperatorsJoinPolicy = await (await ethers.getContractFactory("MaxOperatorsJoinPolicy", { signer: adminWallet })).deploy()
     await maxOperatorsJoinPolicy.deployed()
     log(`maxOperatorsJoinPolicy address ${maxOperatorsJoinPolicy.address}`)
 
-    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy")).deploy({ signer: adminWallet })
+    const allocationPolicy = await (await ethers.getContractFactory("StakeWeightedAllocationPolicy", { signer: adminWallet })).deploy()
     await allocationPolicy.deployed()
     log(`allocationPolicy address ${allocationPolicy.address}`)
 
-    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy")).deploy({ signer: adminWallet })
+    const leavePolicy = await (await ethers.getContractFactory("DefaultLeavePolicy", { signer: adminWallet })).deploy()
     await leavePolicy.deployed()
     log(`leavePolicy address ${leavePolicy.address}`)
 
-    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy")).deploy({ signer: adminWallet })
+    const voteKickPolicy = await (await ethers.getContractFactory("VoteKickPolicy", { signer: adminWallet })).deploy()
     await voteKickPolicy.deployed()
     log(`voteKickPolicy address ${voteKickPolicy.address}`)
 
-    const operatorContractOnlyJoinPolicy = await (await ethers.getContractFactory("OperatorContractOnlyJoinPolicy")).deploy({ signer: adminWallet })
+    const operatorContractOnlyJoinPolicy = await (await ethers.getContractFactory("OperatorContractOnlyJoinPolicy", { signer: adminWallet })).deploy()
     await operatorContractOnlyJoinPolicy.deployed()
     log(`operatorContractOnlyJoinPolicy address ${operatorContractOnlyJoinPolicy.address}`)
 
-    const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship")).deploy({ signer: adminWallet })
+    const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship", { signer: adminWallet })).deploy()
     await sponsorshipTemplate.deployed()
     log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
@@ -387,7 +387,11 @@ async function deploySponsorshipFactory() {
     // log(`transferred 100000 datatokens to ${operatorWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${operatorWallet.address}`)
-    const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, "Sponsorship-" + Date.now(),
+
+    await (await streamRegistryFromOwner.createStream('/test', JSON.stringify({ partitions: 1}), { gasLimit: 5999990 })).wait()
+    const streamId = streamRegistryFromOwner.signer.address.toLowerCase() + '/test'
+
+    const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, streamId,
         '{ "metadata": "test"}',
         [
             allocationPolicy.address,

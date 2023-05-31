@@ -190,6 +190,7 @@ describe("OperatorClient", () => {
         await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
         log(`staked on sponsorship ${sponsorship2.address}`)
         // sleep 5 seconds to make sure theGraph has processed the events
+        await new Promise((resolve) => setTimeout(resolve, 5000))
         const operatorClient = new OperatorClient(opertatorConfig, logger)
 
         const streams = await operatorClient.getStakedStreams()

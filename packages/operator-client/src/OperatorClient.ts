@@ -3,11 +3,8 @@ import { Provider } from "@ethersproject/providers"
 import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
 import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
-// import Debug from "debug"
 import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
-// import fetch from 'node-fetch'
-
-// const log = Debug("streamr:operator-client")
+import { Logger } from "@streamr/utils"
 
 /**
  * Events emitted by {@link OperatorClient}.
