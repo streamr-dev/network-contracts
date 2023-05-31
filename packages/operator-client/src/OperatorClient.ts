@@ -4,7 +4,6 @@ import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
 import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
 import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
-import { Logger } from "@streamr/utils"
 
 /**
  * Events emitted by {@link OperatorClient}.
