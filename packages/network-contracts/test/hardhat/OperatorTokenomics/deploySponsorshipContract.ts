@@ -1,8 +1,8 @@
 import assert from "assert"
-import { utils, BigNumber, ContractReceipt } from "ethers"
+import { utils, BigNumber, ContractReceipt, Wallet } from "ethers"
 import { ethers as hardhatEthers } from "hardhat"
 
-import { Sponsorship, IAllocationPolicy, IJoinPolicy, IKickPolicy } from "../../../typechain"
+import { Sponsorship, IAllocationPolicy, IJoinPolicy, IKickPolicy, StreamRegistryV4 } from "../../../typechain"
 import type { TestContracts } from "./deployTestContracts"
 
 const { parseEther } = utils
@@ -31,8 +31,10 @@ export async function deploySponsorship(
     overrideKickPolicyParam?: string,
 ): Promise<Sponsorship> {
     const {
+        deployer,
         maxOperatorsJoinPolicy, allocationPolicy, leavePolicy, voteKickPolicy,
-        sponsorshipTemplate, sponsorshipFactory
+        sponsorshipTemplate, sponsorshipFactory,
+        streamRegistry,
     } = contracts
 
     /**
@@ -63,11 +65,12 @@ export async function deploySponsorship(
             policyParams.push(extraJoinPolicyParams[i])
         }
     }
+    const streamId = createStream(deployer.address, streamRegistry)
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
         minimumStakeWei.toString(),
         minHorizonSeconds.toString(),
         minOperatorCount.toString(),
-        `Sponsorship-${sponsorshipCounter++}-${Date.now()}`,
+        streamId,
         "metadata",
         policyAddresses,
         policyParams
@@ -102,12 +105,14 @@ export async function deploySponsorshipWithoutFactory(
         token, deployer,
         maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy,
         allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
+        streamRegistry,
     } = contracts
 
     const sponsorship = await (await getContractFactory("Sponsorship", { signer: deployer })).deploy()
     await sponsorship.deployed()
+    const streamId = createStream(deployer.address, streamRegistry)
     await sponsorship.initialize(
-        "streamID",
+        streamId,
         "metadata",
         contracts.streamrConfig.address,
         token.address,
@@ -141,4 +146,11 @@ export async function deploySponsorshipWithoutFactory(
     await (await sponsorship.renounceRole(await sponsorship.DEFAULT_ADMIN_ROLE(), deployer.address)).wait()
     await (await token.approve(sponsorship.address, parseEther("100000"))).wait()
     return sponsorship
+}
+
+async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
+    const streamPath = "/" + sponsorshipCounter++
+    const streamId = deployerAddress.toLowerCase() + streamPath
+    await (await streamRegistry.createStream(streamPath, streamId)).wait()
+    return streamId
 }

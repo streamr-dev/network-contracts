@@ -108,8 +108,6 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
-        IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        require(streamRegistry.exists(streamId), "error_streamNotFound");
         return _deploySponsorship(
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
@@ -137,6 +135,8 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
+        IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
+        require(streamRegistry.exists(streamId), "error_streamNotFound");
         address sponsorshipAddress = ClonesUpgradeable.clone(sponsorshipContractTemplate);
         Sponsorship sponsorship = Sponsorship(sponsorshipAddress);
         uint[4] memory sponsorshipParams = [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinOperatorCount, initParams[0]];

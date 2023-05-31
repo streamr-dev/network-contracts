@@ -8,8 +8,16 @@ const { getSigners } = hardhatEthers
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
+import { StreamRegistryV4 } from "../../../typechain"
 
 let sponsorshipCounter = 0
+
+async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
+    const streamPath = "/" + sponsorshipCounter++
+    const streamId = deployerAddress.toLowerCase() + streamPath
+    await (await streamRegistry.createStream(streamPath, streamId)).wait()
+    return streamId
+}
 
 describe("SponsorshipFactory", () => {
     let admin: Wallet
@@ -35,7 +43,7 @@ describe("SponsorshipFactory", () => {
     })
 
     it("can create a Sponsorship with transferAndCall (atomic fund and deploy sponsorship)", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token } = contracts
+        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
 
         // uint initialMinimumStakeWei,
         // uint32 initialMinHorizonSeconds,
@@ -43,8 +51,9 @@ describe("SponsorshipFactory", () => {
         // string memory sponsorshipName,
         // address[] memory policies,
         // uint[] memory initParams
+        const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata", [
+            [parseEther("100"), 0, 1, streamId, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -61,9 +70,10 @@ describe("SponsorshipFactory", () => {
     })
 
     it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token } = contracts
+        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 0, "Sponsorship-" + sponsorshipCounter++, "metadata", [
+            [parseEther("100"), 0, 0, streamId, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -78,9 +88,10 @@ describe("SponsorshipFactory", () => {
     })
 
     it("will NOT create a Sponsorship with zero minimumStake", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token } = contracts
+        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [0, 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata", [
+            [0, 0, 1, streamId, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -96,9 +107,10 @@ describe("SponsorshipFactory", () => {
 
     it("will NOT create a Sponsorship with a minimumStake < minimumStakeWei", async function(): Promise<void> {
         const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token } = contracts
+        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [minimumStakeWei.sub(1), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata", [
+            [minimumStakeWei.sub(1), 0, 1, streamId, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -111,8 +123,9 @@ describe("SponsorshipFactory", () => {
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
             .to.be.revertedWith("error_minimumStakeTooLow")
 
+        const streamId2 = await createStream(deployer.address, streamRegistry)
         const data2 = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [minimumStakeWei, 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata", [
+            [minimumStakeWei, 0, 1, streamId2, "metadata", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
