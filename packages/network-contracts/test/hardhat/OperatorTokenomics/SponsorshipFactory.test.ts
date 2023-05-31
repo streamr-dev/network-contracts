@@ -140,7 +140,7 @@ describe("SponsorshipFactory", () => {
     })
 
     it("will NOT create a Sponsorship with untrusted policies", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, maxOperatorsJoinPolicy } = contracts
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, maxOperatorsJoinPolicy, deployer, streamRegistry } = contracts
         /**
          * Policies array is interpreted as follows:
          *   0: allocation policy (address(0) for none)
@@ -151,27 +151,32 @@ describe("SponsorshipFactory", () => {
         const untrustedAddress = "0x1234567890123456789012345678901234567890"
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
+        const streamId1 = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId1, "metadata",
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
+        const streamId2 = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId2, "metadata",
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // kickpolicy
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
+        const streamId3 = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId3, "metadata",
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // joinpolicy
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
+        const streamId4 = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId4, "metadata",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
     })
 
     it("will NOT create a Sponsorship with mismatching number of policies and params", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy } = contracts
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "Sponsorship-" + sponsorshipCounter++, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId, "metadata",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })
