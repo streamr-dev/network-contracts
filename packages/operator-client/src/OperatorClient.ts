@@ -33,7 +33,7 @@ export interface OperatorClientConfig {
     fetch: (url: string, init?: Record<string, unknown>) => Promise<FetchResponse>;
 }
 
-export class OperatorClient extends EventEmitter {
+export class OperatorClient extends EventEmitter<OperatorClientEvents> {
     provider: Provider
     address: string
     contract: Operator
@@ -58,13 +58,17 @@ export class OperatorClient extends EventEmitter {
         logger.info(`OperatorClient created for ${config.operatorContractAddress}`)
         // log("getting all streams from TheGraph")
         // this.getStakedStreams()
-        logger.info("Subscribing to Staked and Unstaked events")
+    }
+
+    async start(): Promise<{ streamIds: string[], blockNumber: number }> {
+        this.logger.info("Starting OperatorClient")
+        this.logger.info("Subscribing to Staked and Unstaked events")
         this.contract.on("Staked", async (sponsorship: string) => {
-            logger.info(`got Staked event ${sponsorship}`)
+            this.logger.info(`got Staked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
-                logger.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
+                this.logger.info(`Sponsorship ${sponsorship} already staked into, ignoring`)
                 return
             }
             this.streamIdOfSponsorship.set(sponsorshipAddress, streamId)
@@ -77,11 +81,11 @@ export class OperatorClient extends EventEmitter {
         })
         // this.provider.on({ address: config.operatorContractAddress }, (event) => { console.log("Got event %s", event.topics[0]) })
         this.contract.on("Unstaked", async (sponsorship: string) => {
-            logger.info(`got Unstaked event ${sponsorship}`)
+            this.logger.info(`got Unstaked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
             const streamId = this.streamIdOfSponsorship.get(sponsorshipAddress)
             if (!streamId) {
-                logger.error("Sponsorship not found!")
+                this.logger.error("Sponsorship not found!")
                 return
             }
             this.streamIdOfSponsorship.delete(sponsorshipAddress)
@@ -92,6 +96,7 @@ export class OperatorClient extends EventEmitter {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
+        return this.getStakedStreams()
     }
 
     async getStreamId(sponsorshipAddress: string): Promise<string> {
@@ -99,7 +104,7 @@ export class OperatorClient extends EventEmitter {
         return bounty.streamId()
     }
 
-    async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
+    private async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
         this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
         const createQuery = (lastId: string, pageSize: number) => {
             return {
@@ -152,7 +157,7 @@ export class OperatorClient extends EventEmitter {
         }
     }
 
-    close(): void {
+    stop(): void {
         this.provider.removeAllListeners()
         this.removeAllListeners()
     }
