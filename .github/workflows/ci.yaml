@@ -38,7 +38,7 @@ jobs:
       - name: Unit tests
         run: npm run test
   integration-tests:
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs:
       - lint-and-unit-test
     runs-on: ubuntu-20.04
