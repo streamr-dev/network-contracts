@@ -20,7 +20,6 @@ import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
 import "./SponsorshipFactory.sol";
 
-// TODO ETH-517: replace interface with import
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
 // import "hardhat/console.sol";
