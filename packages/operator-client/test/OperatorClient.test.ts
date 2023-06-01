@@ -9,17 +9,16 @@ import fetch from "node-fetch"
 
 import Debug from "debug"
 
-import type { Operator, StreamRegistryV4 } from "../../network-contracts/typechain"
+import type { Operator } from "../../network-contracts/typechain"
 import type { IERC677 } from "@streamr/network-contracts"
+import type { StreamRegistry } from "@streamr/network-contracts"
 
+import { tokenABI } from "@streamr/network-contracts"
+import { streamRegistryABI } from "@streamr/network-contracts"
 import { Contract } from "@ethersproject/contracts"
-import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
-import { abi as streamregAbi } from "../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
 
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
-// import { Sponsorship } from "@streamr/network-contracts"
-// import { operatorTokenomics } from "@streamr/network-contracts/typechain/contracts"
 
 const log = Debug("streamr:operator-client-test")
 const config = Chains.load()["dev1"]
@@ -68,13 +67,13 @@ describe("OperatorClient", () => {
 
         adminWallet = new Wallet(adminPrivKey, provider)
 
-        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as IERC677
+        token = new Contract(config.contracts.LINK, tokenABI, adminWallet) as unknown as IERC677
         const timeString = (new Date()).getTime().toString()
         const streamPath1 = "/operatorclienttest-1-" + timeString
         const streamPath2 = "/operatorclienttest-2-" + timeString
         streamId1 = adminWallet.address.toLowerCase() + streamPath1
         streamId2 = adminWallet.address.toLowerCase() + streamPath2
-        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamregAbi, adminWallet) as unknown as StreamRegistryV4
+        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamRegistryABI, adminWallet) as unknown as StreamRegistry
         log(`creating stream with streamId1 ${streamId1}`)
         await (await streamRegistry.createStream(streamPath1, "metadata")).wait()
         log(`creating stream with streamId2 ${streamId2}`)
