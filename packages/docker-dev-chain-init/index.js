@@ -387,7 +387,11 @@ async function deploySponsorshipFactory() {
     // log(`transferred 100000 datatokens to ${operatorWallet.address}`)
     // await (await adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
     // log(`transferred 1 ETH to ${operatorWallet.address}`)
-    const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, "Sponsorship-" + Date.now(),
+
+    await (await streamRegistryFromOwner.createStream('/test', JSON.stringify({ partitions: 1}), { gasLimit: 5999990 })).wait()
+    const streamId = streamRegistryFromOwner.signer.address.toLowerCase() + '/test'
+
+    const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, streamId,
         '{ "metadata": "test"}',
         [
             allocationPolicy.address,

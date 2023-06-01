@@ -5,6 +5,7 @@ import { Wallet } from "@ethersproject/wallet"
 import { parseEther } from "@ethersproject/units"
 import { expect } from "chai"
 import { Logger, waitForCondition } from '@streamr/utils'
+import fetch from "node-fetch"
 
 import Debug from "debug"
 
@@ -55,7 +56,8 @@ describe("OperatorClient", () => {
         opertatorConfig = {
             operatorContractAddress: operatorContract.address,
             provider,
-            theGraphUrl
+            theGraphUrl,
+            fetch
         }
         return {operatorWallet, operatorContract}
     }
@@ -188,6 +190,7 @@ describe("OperatorClient", () => {
         await (await operatorContract.stake(sponsorship2.address, parseEther("100"))).wait()
         log(`staked on sponsorship ${sponsorship2.address}`)
         // sleep 5 seconds to make sure theGraph has processed the events
+        await new Promise((resolve) => setTimeout(resolve, 5000))
         const operatorClient = new OperatorClient(opertatorConfig, logger)
 
         const streams = await operatorClient.getStakedStreams()

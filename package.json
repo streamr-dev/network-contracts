@@ -1,6 +1,6 @@
 {
   "name": "streamr-contracts",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "description": "Network Contracts with chainlink oracle and The Graph",
   "author": "Streamr Network AG",
   "private": true,
@@ -12,7 +12,8 @@
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
     "./packages/operator-client",
-    "./packages/chat-contracts"
+    "./packages/chat-contracts",
+    "./packages/ens-sync-script"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
