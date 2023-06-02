@@ -391,6 +391,9 @@ async function deploySponsorshipFactory() {
     await (await streamRegistryFromOwner.createStream('/test', JSON.stringify({ partitions: 1}), { gasLimit: 5999990 })).wait()
     const streamId = streamRegistryFromOwner.signer.address.toLowerCase() + '/test'
 
+    // stream registry must be set in config before sponsorship is deployed because it checks if stream exists
+    await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
+    
     const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, streamId,
         '{ "metadata": "test"}',
         [
@@ -469,7 +472,6 @@ async function deploySponsorshipFactory() {
         defaultUndelegationPolicy.address,
     ])).wait()
     log("Added trusted policies")
-    await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
     await (await streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
     log("Set operator operator factory in StreamrConfig")
 
