@@ -9,8 +9,7 @@ import fetch from "node-fetch"
 
 import Debug from "debug"
 
-import type { Operator } from "../../network-contracts/typechain"
-import type { IERC677 } from "@streamr/network-contracts"
+import type { IERC677, Operator } from "@streamr/network-contracts"
 import type { StreamRegistry } from "@streamr/network-contracts"
 
 import { tokenABI } from "@streamr/network-contracts"
@@ -193,7 +192,8 @@ describe("OperatorClient", () => {
         await new Promise((resolve) => setTimeout(resolve, 5000))
         const operatorClient = new OperatorClient(opertatorConfig, logger)
 
-        const streams = await operatorClient.start()
+        await operatorClient.start()
+        const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
         expect(streams.streamIds.length).to.equal(2)
         expect(streams.streamIds).to.contain(streamId1)
@@ -303,7 +303,8 @@ describe("OperatorClient", () => {
         log(`staked on sponsorship ${sponsorship2.address}`)
         await waitForCondition(() => receivedAddStreams === 1, 10000, 1000)
 
-        const streams = await operatorClient.start()
+        await operatorClient.start()
+        const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
         expect(streams.streamIds.length).to.equal(1)
         expect(streams.streamIds).to.contain(streamId1)

@@ -60,7 +60,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         // this.getStakedStreams()
     }
 
-    async start(): Promise<{ streamIds: string[], blockNumber: number }> {
+    async start(): Promise<void> {
         this.logger.info("Starting OperatorClient")
         this.logger.info("Subscribing to Staked and Unstaked events")
         this.contract.on("Staked", async (sponsorship: string) => {
@@ -96,7 +96,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        return this.getStakedStreams()
+        await this.getStakedStreams()
     }
 
     async getStreamId(sponsorshipAddress: string): Promise<string> {
@@ -104,7 +104,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         return bounty.streamId()
     }
 
-    private async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
+    async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
         this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
         const createQuery = (lastId: string, pageSize: number) => {
             return {
