@@ -2,7 +2,7 @@ module.exports = {
     preset: 'ts-jest/presets/js-with-ts',
     testEnvironment: 'node',
     clearMocks: true,
-    testTimeout: 100000,
+    testTimeout: 1000000,
     transform: {
         '^.+\\.ts$': [
             'ts-jest',

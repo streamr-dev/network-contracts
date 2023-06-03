@@ -1,10 +1,13 @@
 import { Contract } from "@ethersproject/contracts"
 import { Provider } from "@ethersproject/providers"
+import { Signer } from "@ethersproject/abstract-signer"
 import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
 import type { Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
 import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
 
+export const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
+export const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
 /**
  * Events emitted by {@link OperatorClient}.
 */
@@ -27,7 +30,7 @@ export interface OperatorClientEvents {
 
 export interface OperatorClientConfig {
     provider: Provider
-    // chain?: 
+    signer: Signer
     operatorContractAddress: string
     theGraphUrl: string
     fetch: (url: string, init?: Record<string, unknown>) => Promise<FetchResponse>;
@@ -37,6 +40,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
     provider: Provider
     address: string
     contract: Operator
+    signer: Signer
     streamIdOfSponsorship: Map<string, string> = new Map()
     sponsorshipCountOfStream: Map<string, number> = new Map()
     theGraphClient: TheGraphClient
@@ -54,7 +58,10 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         })
         this.address = config.operatorContractAddress
         this.provider = config.provider
-        this.contract = new Contract(config.operatorContractAddress, operatorABI, this.provider) as unknown as Operator
+        this.signer = config.signer
+        this.signer.connect(this.provider)
+        this.contract = new Contract(config.operatorContractAddress, operatorABI, this.signer) as unknown as Operator
+        // this.contract.connect(this.signer)
         logger.info(`OperatorClient created for ${config.operatorContractAddress}`)
         // log("getting all streams from TheGraph")
         // this.getStakedStreams()
@@ -106,6 +113,19 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
 
     async getStakedStreams(): Promise<string[]> {
         return Array.from(this.sponsorshipCountOfStream.keys())
+    }
+
+    async flag(sponsorship: string, operator: string): Promise<void> {
+        await this.contract.flag(sponsorship, operator)
+    }
+
+    async voteOnFlag(sponsorship: string, targetOperator: string, vote: boolean): Promise<void> {
+        const voteData = vote ? VOTE_KICK : VOTE_NO_KICK
+        await this.contract.voteOnFlag(sponsorship, targetOperator, voteData)
+    }
+
+    async setNodeAddresses(addresses: string[]): Promise<void> {
+        await this.contract.setNodeAddresses(addresses)
     }
 
     private async pullStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
