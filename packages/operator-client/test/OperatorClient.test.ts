@@ -196,9 +196,9 @@ describe("OperatorClient", () => {
         await operatorClient.start()
         const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
-        expect(streams.streamIds.length).to.equal(2)
-        expect(streams.streamIds).to.contain(streamId1)
-        expect(streams.streamIds).to.contain(streamId2)
+        expect(streams.length).to.equal(2)
+        expect(streams).to.contain(streamId1)
+        expect(streams).to.contain(streamId2)
 
         operatorClient.stop()
     })
@@ -307,8 +307,8 @@ describe("OperatorClient", () => {
         await operatorClient.start()
         const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
-        expect(streams.streamIds.length).to.equal(1)
-        expect(streams.streamIds).to.contain(streamId1)
+        expect(streams.length).to.equal(1)
+        expect(streams).to.contain(streamId1)
         operatorClient.stop()
     })
 

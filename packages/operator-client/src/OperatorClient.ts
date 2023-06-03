@@ -96,7 +96,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        await this.getStakedStreams()
+        await this.pullStakedStreams()
     }
 
     async getStreamId(sponsorshipAddress: string): Promise<string> {
@@ -104,7 +104,11 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         return bounty.streamId()
     }
 
-    async getStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
+    async getStakedStreams(): Promise<string[]> {
+        return Array.from(this.sponsorshipCountOfStream.keys())
+    }
+
+    private async pullStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
         this.logger.info(`getStakedStreams for ${this.address.toLowerCase()}`)
         const createQuery = (lastId: string, pageSize: number) => {
             return {
