@@ -91,6 +91,7 @@ describe("OperatorClient", () => {
     })
 
     afterEach(async () => {
+        // TODO: call operatorClient.close() instead
         await operatorContract.provider.removeAllListeners()
     })
 

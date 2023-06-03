@@ -10,6 +10,8 @@ import "./Sponsorship.sol";
 import "./IERC677.sol";
 import "./StreamrConfig.sol";
 
+import "../StreamRegistry/IStreamRegistryV4.sol";
+
 /**
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
  * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
@@ -106,6 +108,8 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         address[] memory policies,
         uint[] memory initParams
     ) public returns (address) {
+        IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
+        require(streamRegistry.exists(streamId), "error_streamNotFound");
         return _deploySponsorship(
             initialMinimumStakeWei,
             initialMinHorizonSeconds,

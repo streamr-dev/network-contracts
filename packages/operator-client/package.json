@@ -14,8 +14,8 @@
   "dependencies": {
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.0",
-    "@streamr/config": "latest",
-    "@streamr/network-contracts": "2.6.2",
+    "@streamr/config": "^2.6.3",
+    "@streamr/network-contracts": "2.6.5",
     "@streamr/utils": "8.5.1",
     "debug": "^4.3.4",
     "eventemitter3": "5.0.0",

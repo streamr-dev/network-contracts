@@ -20,17 +20,7 @@ import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
 import "./SponsorshipFactory.sol";
 
-// TODO ETH-517: replace interface with import
-interface IStreamRegistry {
-    enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
-
-    function createStream(string calldata streamIdPath, string calldata metadataJsonString) external;
-    function updateStreamMetadata(string calldata streamId, string calldata metadata) external;
-    function grantPublicPermission(string calldata streamId, PermissionType permissionType) external;
-    function grantPermission(string calldata streamId, address user, PermissionType permissionType) external;
-    function revokePermission(string calldata streamId, address user, PermissionType permissionType) external;
-    function addressToString(address _address) external pure returns(string memory);
-}
+import "../StreamRegistry/IStreamRegistryV4.sol";
 
 // import "hardhat/console.sol";
 
@@ -113,7 +103,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
-    IStreamRegistry public streamRegistry;
+    IStreamRegistryV4 public streamRegistry;
     string public streamId;
     string public metadata;
 
@@ -168,11 +158,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   id = <operatorContractAddress>/operator/coordination
      */
     function _createOperatorStream() private {
-        streamRegistry = IStreamRegistry(streamrConfig.streamRegistryAddress());
+        streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
         streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
         streamRegistry.createStream("/operator/coordination", "{}");
-        streamRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
+        streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -495,7 +485,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         nodes.push(node);
         nodeIndex[node] = nodes.length; // will be +1
 
-        streamRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+        streamRegistry.grantPermission(streamId, node, IStreamRegistryV4.PermissionType.Publish);
     }
 
     function _removeNode(address node) internal {
@@ -506,7 +496,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         nodeIndex[lastNode] = index + 1;
         delete nodeIndex[node];
 
-        streamRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+        streamRegistry.revokePermission(streamId, node, IStreamRegistryV4.PermissionType.Publish);
     }
 
     function getNodeAddresses() external view returns (address[] memory) {
