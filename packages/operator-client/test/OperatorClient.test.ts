@@ -295,8 +295,6 @@ describe("OperatorClient", () => {
         })
 
         it("only returns the stream from getAllStreams when staked on 2 sponsorships for the stream", async () => {
-            const { operatorWallet, operatorContract } = await deployNewOperator()
-
             const operatorClient = new OperatorClient(operatorConfig, logger)
             await operatorClient.start()
             let receivedAddStreams = 0
@@ -336,7 +334,7 @@ describe("OperatorClient", () => {
         })
     })
 
-    it.only("allows to flag an operator as malicious", async () => {
+    it("allows to flag an operator as malicious", async () => {
         log("Deploying flagger operator contract")
         const flagger = await deployNewOperator()
         log("Deploying target operator contract")
@@ -374,6 +372,7 @@ describe("OperatorClient", () => {
 
         log("flagging target operator")
         await flagger.operatorContract.flag(sponsorship.address, target.operatorContract.address)
+        operatorClient.stop()
     })
 
     // it("instantiate operatorclient with preexisting operator", () => {
