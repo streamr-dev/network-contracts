@@ -9,17 +9,15 @@ import fetch from "node-fetch"
 
 import Debug from "debug"
 
-import type { Operator, StreamRegistryV4 } from "../../network-contracts/typechain"
-import type { IERC677 } from "@streamr/network-contracts"
+import type { IERC677, Operator } from "@streamr/network-contracts"
+import type { StreamRegistry } from "@streamr/network-contracts"
 
+import { tokenABI } from "@streamr/network-contracts"
+import { streamRegistryABI } from "@streamr/network-contracts"
 import { Contract } from "@ethersproject/contracts"
-import { abi as tokenAbi } from "../../network-contracts/artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
-import { abi as streamregAbi } from "../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
 
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
-// import { Sponsorship } from "@streamr/network-contracts"
-// import { operatorTokenomics } from "@streamr/network-contracts/typechain/contracts"
 
 const log = Debug("streamr:operator-client-test")
 const config = Chains.load()["dev1"]
@@ -68,13 +66,13 @@ describe("OperatorClient", () => {
 
         adminWallet = new Wallet(adminPrivKey, provider)
 
-        token = new Contract(config.contracts.LINK, tokenAbi, adminWallet) as unknown as IERC677
+        token = new Contract(config.contracts.LINK, tokenABI, adminWallet) as unknown as IERC677
         const timeString = (new Date()).getTime().toString()
         const streamPath1 = "/operatorclienttest-1-" + timeString
         const streamPath2 = "/operatorclienttest-2-" + timeString
         streamId1 = adminWallet.address.toLowerCase() + streamPath1
         streamId2 = adminWallet.address.toLowerCase() + streamPath2
-        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamregAbi, adminWallet) as unknown as StreamRegistryV4
+        const streamRegistry = new Contract(config.contracts.StreamRegistry, streamRegistryABI, adminWallet) as unknown as StreamRegistry
         log(`creating stream with streamId1 ${streamId1}`)
         await (await streamRegistry.createStream(streamPath1, "metadata")).wait()
         log(`creating stream with streamId2 ${streamId2}`)
@@ -99,7 +97,7 @@ describe("OperatorClient", () => {
 
     it("client emits events when sponsorships are unstaked completely", async () => {
         const operatorClient = new OperatorClient(opertatorConfig, logger)
-        await operatorClient.getStakedStreams()
+        await operatorClient.start()
         let eventcount = 0
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
             log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
@@ -134,12 +132,13 @@ describe("OperatorClient", () => {
 
         await waitForCondition(() => eventcount === 2, 10000, 1000)
 
-        operatorClient.close()
+        operatorClient.stop()
     })
 
     it("client catches onchain events and emits join and leave events", async () => {
 
         const operatorClient = new OperatorClient(opertatorConfig, logger)
+        await operatorClient.start()
         let eventcount = 0
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
             log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
@@ -171,7 +170,7 @@ describe("OperatorClient", () => {
             log("waiting for event")
         }
 
-        operatorClient.close()
+        operatorClient.stop()
     })
 
     it("client returns all streams from theGraph", async () => {
@@ -194,18 +193,20 @@ describe("OperatorClient", () => {
         await new Promise((resolve) => setTimeout(resolve, 5000))
         const operatorClient = new OperatorClient(opertatorConfig, logger)
 
+        await operatorClient.start()
         const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
-        expect(streams.streamIds.length).to.equal(2)
-        expect(streams.streamIds).to.contain(streamId1)
-        expect(streams.streamIds).to.contain(streamId2)
+        expect(streams.length).to.equal(2)
+        expect(streams).to.contain(streamId1)
+        expect(streams).to.contain(streamId2)
 
-        operatorClient.close()
+        operatorClient.stop()
     })
 
     it("edge cases, 2 sponsorships for the same stream", async () => {
 
         let operatorClient = new OperatorClient(opertatorConfig, logger)
+        await operatorClient.start()
         let receivedAddStreams = 0
         let receivedRemoveStreams = 0
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
@@ -239,7 +240,7 @@ describe("OperatorClient", () => {
         // expect(receivedAddStreams).to.equal(2)
         await waitForCondition(() => receivedAddStreams === 1, 10000, 1000)
 
-        operatorClient.close()
+        operatorClient.stop()
         await new Promise((resolve) => setTimeout(resolve, 10000)) // wait for events to be processed
 
         operatorClient = new OperatorClient(opertatorConfig, logger)
@@ -252,7 +253,7 @@ describe("OperatorClient", () => {
             receivedRemoveStreams += 1
         })
 
-        await operatorClient.getStakedStreams()
+        await operatorClient.start()
 
         log("Unstaking from sponsorship1...")
         await (await operatorContract.unstake(sponsorship.address)).wait()
@@ -266,7 +267,7 @@ describe("OperatorClient", () => {
         log("receivedRemoveStreams: ", receivedRemoveStreams)
         expect(receivedRemoveStreams).to.equal(1)
         log("Closing operatorclient...")
-        operatorClient.close()
+        operatorClient.stop()
 
     })
 
@@ -274,6 +275,7 @@ describe("OperatorClient", () => {
         const { operatorWallet, operatorContract } = await deployNewOperator()
 
         const operatorClient = new OperatorClient(opertatorConfig, logger)
+        await operatorClient.start()
         let receivedAddStreams = 0
         operatorClient.on("addStakedStream", (streamid: string, blockNumber: number) => {
             log(`got addStakedStream event for stream ${streamid} at block ${blockNumber}`)
@@ -302,11 +304,12 @@ describe("OperatorClient", () => {
         log(`staked on sponsorship ${sponsorship2.address}`)
         await waitForCondition(() => receivedAddStreams === 1, 10000, 1000)
 
+        await operatorClient.start()
         const streams = await operatorClient.getStakedStreams()
         log(`streams: ${JSON.stringify(streams)}`)
-        expect(streams.streamIds.length).to.equal(1)
-        expect(streams.streamIds).to.contain(streamId1)
-        operatorClient.close()
+        expect(streams.length).to.equal(1)
+        expect(streams).to.contain(streamId1)
+        operatorClient.stop()
     })
 
     // it("instantiate operatorclient with preexisting operator", () => {
