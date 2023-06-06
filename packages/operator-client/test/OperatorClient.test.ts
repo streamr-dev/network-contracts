@@ -334,17 +334,24 @@ describe("OperatorClient", () => {
         })
     })
 
-    it("allows to flag an operator as malicious", async () => {
-        log("Deploying flagger operator contract")
+    it.only("allows to flag an operator as malicious", async () => {
         const flagger = await deployNewOperator()
-        log("Deploying target operator contract")
+        log("deployed flagger contract" + flagger.operatorConfig.operatorContractAddress)
         const target = await deployNewOperator()
-        log("Deploying voter operator contract")
+        log("deployed target contract" + target.operatorConfig.operatorContractAddress)
         const voter = await deployNewOperator()
+        log("deployed voter contract" + voter.operatorConfig.operatorContractAddress)
 
-        const operatorClient = new OperatorClient(flagger.operatorConfig, logger)
-        await operatorClient.start()
+        const flaggerOperatorClient = new OperatorClient(flagger.operatorConfig, logger)
+        await flaggerOperatorClient.start()
 
+        const voterOperatorClient = new OperatorClient(voter.operatorConfig, logger)
+        await voterOperatorClient.start()
+        let receivedReviewRequested = false
+        voterOperatorClient.on("onReviewRequest", (targetOperator: string, sponsorship: string) => {
+            log(`got onRviewRequested event for targetOperator ${targetOperator} with sponsorship ${sponsorship}`)
+            receivedReviewRequested = true
+        })
         log("deploying sponsorship contract")
         const sponsorship = await deploySponsorship(config, flagger.operatorWallet , {
             streamId: streamId1 })
@@ -359,20 +366,27 @@ describe("OperatorClient", () => {
             parseEther("200"), target.operatorWallet.address)).wait()
         await (await token.connect(voter.operatorWallet).transferAndCall(voter.operatorContract.address,
             parseEther("200"), voter.operatorWallet.address)).wait()
+        
+        await new Promise((resolve) => setTimeout(resolve, 3000))
 
         log("staking to sponsorship contract from flagger and target and voter")
-        await (await flagger.operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
-        await (await target.operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
-        await (await voter.operatorContract.stake(sponsorship.address, parseEther("100"))).wait()
+        log("staking from flagger: ", flagger.operatorContract.address)
+        await (await flagger.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
+        log("staking from target: ", target.operatorContract.address)
+        await (await target.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
+        log("staking from voter: ", voter.operatorContract.address)
+        await (await voter.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
         
         log("registering node addresses")
         // await (await flagger.operatorContract.setNodeAddresses([await flagger.operatorContract.owner()])).wait()
-        await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
-        // await operatorClient.setNodeAddresses([flagger.operatorWallet.address])
+        // await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
+        await flaggerOperatorClient.setNodeAddresses([flagger.operatorWallet.address])
 
         log("flagging target operator")
-        await flagger.operatorContract.flag(sponsorship.address, target.operatorContract.address)
-        operatorClient.stop()
+        const tr = await (await flagger.operatorContract.flag(sponsorship.address, target.operatorContract.address)).wait()
+        await waitForCondition(() => receivedReviewRequested, 10000, 1000)
+
+        flaggerOperatorClient.stop()
     })
 
     // it("instantiate operatorclient with preexisting operator", () => {

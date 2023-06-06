@@ -26,6 +26,13 @@ export interface OperatorClientEvents {
      * Emitted when a unstaked from ALL Sponsorships for the given stream
      */
     removeStakedStream: (streamId: string, blockNumber: number) => void
+
+    /**
+     * Emitted when a new review request is made
+     * @param targetOperator The operator that is being reviewed
+     * @param sponsorship The sponsorship the review is done for
+     * */
+    onReviewRequest: (targetOperator: string, sponsorship: string) => void
 }
 
 export interface OperatorClientConfig {
@@ -103,6 +110,13 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
+
+        this.contract.on("ReviewRequest", async (sponsorship: string, targetOperator: string) => {
+            this.logger.info(`got ReviewRequest event ${sponsorship} ${targetOperator}`)
+            const sponsorshipAddress = sponsorship.toLowerCase()
+            this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
+        })
+
         await this.pullStakedStreams()
     }
 
@@ -116,16 +130,16 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
     }
 
     async flag(sponsorship: string, operator: string): Promise<void> {
-        await this.contract.flag(sponsorship, operator)
+        await (await this.contract.flag(sponsorship, operator)).wait()
     }
 
     async voteOnFlag(sponsorship: string, targetOperator: string, vote: boolean): Promise<void> {
         const voteData = vote ? VOTE_KICK : VOTE_NO_KICK
-        await this.contract.voteOnFlag(sponsorship, targetOperator, voteData)
+        await (await this.contract.voteOnFlag(sponsorship, targetOperator, voteData)).wait()
     }
 
     async setNodeAddresses(addresses: string[]): Promise<void> {
-        await this.contract.setNodeAddresses(addresses)
+        await (await this.contract.setNodeAddresses(addresses)).wait()
     }
 
     private async pullStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {
