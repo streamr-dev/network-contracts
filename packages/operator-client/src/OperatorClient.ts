@@ -110,13 +110,27 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-
-        this.contract.on("ReviewRequest", async (sponsorship: string, targetOperator: string) => {
-            this.logger.info(`got ReviewRequest event ${sponsorship} ${targetOperator}`)
-            const sponsorshipAddress = sponsorship.toLowerCase()
-            this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
+        // const filter = {
+        //     address: this.address,
+        //     // topics: [
+        //     //     // the name of the event, parnetheses containing the data type of each event, no spaces
+        //     //     id("ReviewRequest(address,address)")
+        //     // ]
+        // }
+        const filter = this.contract.filters.ReviewRequest()
+        this.provider.on(filter, (event) => { 
+            console.log(this.address, " Got ReviewRequest event %s", event.topics[0], event.topics[1]) 
+            this.logger.info(`${this.address} Got ReviewRequest event ${ event.topics[0], event.topics[1] }`)
+            // this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
         })
-
+        // })
+        // // this.contract.on("ReviewRequest", async (sponsorship: string, targetOperator: string) => {
+        // this.contract.filters.ReviewRequest().  (async (sponsorship: string, targetOperator: string) => {
+        //     this.logger.info(`${this.contract.address} got ReviewRequest event ${sponsorship} ${targetOperator}`)
+        //     const sponsorshipAddress = sponsorship.toLowerCase()
+        //     this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
+        // })
+        
         await this.pullStakedStreams()
     }
 
@@ -136,10 +150,6 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
     async voteOnFlag(sponsorship: string, targetOperator: string, vote: boolean): Promise<void> {
         const voteData = vote ? VOTE_KICK : VOTE_NO_KICK
         await (await this.contract.voteOnFlag(sponsorship, targetOperator, voteData)).wait()
-    }
-
-    async setNodeAddresses(addresses: string[]): Promise<void> {
-        await (await this.contract.setNodeAddresses(addresses)).wait()
     }
 
     private async pullStakedStreams(): Promise<{ streamIds: string[], blockNumber: number }> {

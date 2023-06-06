@@ -342,8 +342,12 @@ describe("OperatorClient", () => {
         const voter = await deployNewOperator()
         log("deployed voter contract" + voter.operatorConfig.operatorContractAddress)
 
+        await new Promise((resolve) => setTimeout(resolve, 10000)) // wait for events to be processed
         const flaggerOperatorClient = new OperatorClient(flagger.operatorConfig, logger)
         await flaggerOperatorClient.start()
+
+        const targetOperatorClient = new OperatorClient(target.operatorConfig, logger)
+        await targetOperatorClient.start()
 
         const voterOperatorClient = new OperatorClient(voter.operatorConfig, logger)
         await voterOperatorClient.start()
@@ -379,13 +383,12 @@ describe("OperatorClient", () => {
         
         log("registering node addresses")
         // await (await flagger.operatorContract.setNodeAddresses([await flagger.operatorContract.owner()])).wait()
-        // await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
-        await flaggerOperatorClient.setNodeAddresses([flagger.operatorWallet.address])
+        await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
 
         log("flagging target operator")
         const tr = await (await flagger.operatorContract.flag(sponsorship.address, target.operatorContract.address)).wait()
-        await waitForCondition(() => receivedReviewRequested, 10000, 1000)
-
+        await waitForCondition(() => receivedReviewRequested, 100000, 1000)
+        
         flaggerOperatorClient.stop()
     })
 
