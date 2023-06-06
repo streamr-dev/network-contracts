@@ -61,7 +61,7 @@ describe("OperatorClient", () => {
         return {operatorWallet, operatorContract, operatorConfig}
     }
 
-    beforeAll(async () => {
+    before(async () => {
         provider = new JsonRpcProvider(chainURL)
         log("Connected to: ", await provider.getNetwork())
 

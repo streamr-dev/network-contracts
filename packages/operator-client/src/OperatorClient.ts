@@ -8,6 +8,7 @@ import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
 
 export const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
 export const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
+
 /**
  * Events emitted by {@link OperatorClient}.
 */
@@ -124,12 +125,13 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
             // this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
         })
         // })
-        // // this.contract.on("ReviewRequest", async (sponsorship: string, targetOperator: string) => {
+        this.contract.on("ReviewRequest", async (sponsorship: string, targetOperator: string) => {
         // this.contract.filters.ReviewRequest().  (async (sponsorship: string, targetOperator: string) => {
-        //     this.logger.info(`${this.contract.address} got ReviewRequest event ${sponsorship} ${targetOperator}`)
-        //     const sponsorshipAddress = sponsorship.toLowerCase()
-        //     this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
-        // })
+            console.log(this.contract.address, " got ReviewRequest event %s %s", sponsorship, targetOperator)
+            this.logger.info(`${this.contract.address} got ReviewRequest event ${sponsorship} ${targetOperator}`)
+            const sponsorshipAddress = sponsorship.toLowerCase()
+            this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
+        })
         
         await this.pullStakedStreams()
     }
