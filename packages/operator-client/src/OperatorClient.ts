@@ -1,9 +1,10 @@
 import { Contract } from "@ethersproject/contracts"
 import { Provider } from "@ethersproject/providers"
-import { operatorABI, sponsorshipABI } from "@streamr/network-contracts"
-import type { Operator, Sponsorship } from "@streamr/network-contracts"
+import { operatorABI, sponsorshipABI, streamrConfigABI } from "@streamr/network-contracts"
+import type { StreamrConfig, Operator, Sponsorship } from "@streamr/network-contracts"
 import { EventEmitter } from "eventemitter3"
 import { FetchResponse, Logger, TheGraphClient } from "@streamr/utils"
+
 
 /**
  * Events emitted by {@link OperatorClient}.
@@ -161,6 +162,58 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         }
     }
 
+    async checkValue(operatorContractAddress: string, threshold?: bigint): Promise<void> {
+        this.logger.info(`checkValue for operator contract: ${operatorContractAddress}`)
+        this.logger.info(`checkValue threshold: ${threshold}`)
+
+        const operator = new Contract(operatorContractAddress, operatorABI, this.contract.provider as Provider) as unknown as Operator
+        
+        // treshold is a wei fraction, set in config.poolValueDriftLimitFraction
+        if (!threshold) {
+            // const OPERATOR_VALUE_UPDATE_THRESHOLD = BigInt("10000000000000000000") // 0.1 ETH
+            const streamrConfigAddress = await operator.streamrConfig()
+            const streamrConfig = new Contract(streamrConfigAddress, streamrConfigABI, this.contract.provider as Provider) as unknown as StreamrConfig
+            threshold = (await streamrConfig.poolValueDriftLimitFraction()).toBigInt()
+        }
+
+        const { sponsorshipAddresses, approxValues, realValues } = await operator.getApproximatePoolValuesPerSponsorship()
+
+        let totalDiff = BigInt(0)
+        const sponsorships = []
+        for (let i=0; i<sponsorshipAddresses.length; i++) {
+            const sponsorship = {
+                address: sponsorshipAddresses,
+                approxValue: approxValues,
+                realValue: realValues,
+                diff: realValues[i].sub(approxValues[i])
+            }
+            sponsorships.push(sponsorship)
+            totalDiff = totalDiff + sponsorship.diff.toBigInt()
+        }
+
+        this.logger.info(`totalDiff: ${totalDiff}`)
+
+        if (totalDiff > threshold) {
+            // sort sponsorships by diff in descending order
+            const sortedSponsorships = sponsorships.sort((a: any, b: any) => b.diff.toBigInt() - a.diff.toBigInt())
+
+            // find the number of sponsorships needed to get the total diff under the threshold
+            let neededSponsorships = 0
+            let total = BigInt(0)
+            for (const sponsorship of sortedSponsorships) {
+                total = total + sponsorship.diff.toBigInt()
+                neededSponsorships += 1
+                if (total > threshold) {
+                    break
+                }
+            }
+            
+            // pick the first OPERATOR_VALUE_UPDATE_ITEMS entries
+            const updateSponsorshipAddresses = sortedSponsorships.slice(0, neededSponsorships).map((sponsorship: any) => sponsorship.address)
+            await operator.updateApproximatePoolvalueOfSponsorships(updateSponsorshipAddresses)
+        }
+    }
+    
     stop(): void {
         this.provider.removeAllListeners()
         this.removeAllListeners()
