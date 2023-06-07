@@ -342,7 +342,7 @@ describe("OperatorClient", () => {
         const voter = await deployNewOperator()
         log("deployed voter contract" + voter.operatorConfig.operatorContractAddress)
 
-        await new Promise((resolve) => setTimeout(resolve, 10000)) // wait for events to be processed
+        await new Promise((resolve) => setTimeout(resolve, 5000)) // wait for events to be processed
         const flaggerOperatorClient = new OperatorClient(flagger.operatorConfig, logger)
         await flaggerOperatorClient.start()
 
@@ -351,41 +351,60 @@ describe("OperatorClient", () => {
 
         const voterOperatorClient = new OperatorClient(voter.operatorConfig, logger)
         await voterOperatorClient.start()
+    
         let receivedReviewRequested = false
         voterOperatorClient.on("onReviewRequest", (targetOperator: string, sponsorship: string) => {
             log(`got onRviewRequested event for targetOperator ${targetOperator} with sponsorship ${sponsorship}`)
             receivedReviewRequested = true
         })
+
         log("deploying sponsorship contract")
-        const sponsorship = await deploySponsorship(config, flagger.operatorWallet , {
+        const sponsorship = await deploySponsorship(config, adminWallet , {
             streamId: streamId1 })
         log("sponsoring sponsorship contract")
-        await (await token.connect(flagger.operatorWallet).approve(sponsorship.address, parseEther("500"))).wait()
+        await (await token.connect(adminWallet).approve(sponsorship.address, parseEther("500"))).wait()
         await (await sponsorship.sponsor(parseEther("500"))).wait()
 
+        voter.operatorContract.on("ReviewRequest", (targetOperator: string, sponsorship: string) => {
+            log(`IN TEST got ReviewRequest event for targetOperator ${targetOperator} with sponsorship ${sponsorship}`)
+            receivedReviewRequested = true
+        })
+
+        flagger.operatorContract.on("ReviewRequest", (targetOperator: string, sponsorship: string) => {
+            log(`IN TEST got ReviewRequest event for targetOperator ${targetOperator} with sponsorship ${sponsorship}`)
+            receivedReviewRequested = true
+        })
+
         log("each operator delegates to its operactor contract")
+        log("delegating from flagger: ", flagger.operatorWallet.address)
         await (await token.connect(flagger.operatorWallet).transferAndCall(flagger.operatorContract.address,
             parseEther("200"), flagger.operatorWallet.address)).wait()
+        log("delegating from target: ", target.operatorWallet.address)
         await (await token.connect(target.operatorWallet).transferAndCall(target.operatorContract.address,
             parseEther("200"), target.operatorWallet.address)).wait()
+        log("delegating from voter: ", voter.operatorWallet.address)
         await (await token.connect(voter.operatorWallet).transferAndCall(voter.operatorContract.address,
             parseEther("200"), voter.operatorWallet.address)).wait()
         
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await new Promise((resolve) => setTimeout(resolve, 5000))
 
         log("staking to sponsorship contract from flagger and target and voter")
         log("staking from flagger: ", flagger.operatorContract.address)
-        await (await flagger.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
+        await (await flagger.operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
         log("staking from target: ", target.operatorContract.address)
-        await (await target.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await (await target.operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
         log("staking from voter: ", voter.operatorContract.address)
-        await (await voter.operatorContract.stake(sponsorship.address, parseEther("200"))).wait()
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await (await voter.operatorContract.stake(sponsorship.address, parseEther("150"))).wait()
+        await new Promise((resolve) => setTimeout(resolve, 3000))
         
         log("registering node addresses")
         // await (await flagger.operatorContract.setNodeAddresses([await flagger.operatorContract.owner()])).wait()
-        await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
+        const nodesettr = await (await flagger.operatorContract.setNodeAddresses([flagger.operatorWallet.address])).wait()
 
         log("flagging target operator")
+        // flaggerOC -> sponsorshipC -> voterOC.emits
         const tr = await (await flagger.operatorContract.flag(sponsorship.address, target.operatorContract.address)).wait()
         await waitForCondition(() => receivedReviewRequested, 100000, 1000)
         

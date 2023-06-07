@@ -71,6 +71,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         this.contract = new Contract(config.operatorContractAddress, operatorABI, this.signer) as unknown as Operator
         // this.contract.connect(this.signer)
         logger.info(`OperatorClient created for ${config.operatorContractAddress}`)
+        logger.info(`OperatorClient signer address ${this.signer.getAddress()}`)
         // log("getting all streams from TheGraph")
         // this.getStakedStreams()
     }
@@ -79,7 +80,7 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
         this.logger.info("Starting OperatorClient")
         this.logger.info("Subscribing to Staked and Unstaked events")
         this.contract.on("Staked", async (sponsorship: string) => {
-            this.logger.info(`got Staked event ${sponsorship}`)
+            this.logger.info(`${this.address}, ${this.contract.address} got Staked event ${sponsorship}`)
             const sponsorshipAddress = sponsorship.toLowerCase()
             const streamId = await this.getStreamId(sponsorshipAddress)
             if (this.streamIdOfSponsorship.has(sponsorshipAddress)) {
@@ -111,17 +112,17 @@ export class OperatorClient extends EventEmitter<OperatorClientEvents> {
                 this.emit("removeStakedStream", streamId, await this.contract.provider.getBlockNumber())
             }
         })
-        // const filter = {
-        //     address: this.address,
+        const filter = {
+            address: this.address,
         //     // topics: [
         //     //     // the name of the event, parnetheses containing the data type of each event, no spaces
         //     //     id("ReviewRequest(address,address)")
         //     // ]
-        // }
-        const filter = this.contract.filters.ReviewRequest()
+        }
+        // const filter = this.contract.filters.ReviewRequest()
         this.provider.on(filter, (event) => { 
-            console.log(this.address, " Got ReviewRequest event %s", event.topics[0], event.topics[1]) 
-            this.logger.info(`${this.address} Got ReviewRequest event ${ event.topics[0], event.topics[1] }`)
+            // console.log(this.address, " Got ReviewRequest event %s", event.topics[0], event.topics[1]) 
+            this.logger.info(`${this.address} Got event ${ event.topics[0], event.topics[1] }`)
             // this.emit("onReviewRequest", targetOperator, sponsorshipAddress)
         })
         // })
