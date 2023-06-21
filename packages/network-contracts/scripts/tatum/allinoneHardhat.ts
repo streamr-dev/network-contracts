@@ -1,8 +1,10 @@
 import { Wallet } from "ethers"
 // import { Chains } from "@streamr/config"
 import hhat from "hardhat"
-import { Sponsorship, SponsorshipFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConfig, TestToken, Operator, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, OperatorFactory } from "../../typechain"
+import { Sponsorship, SponsorshipFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConfig, TestToken, Operator, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, OperatorFactory, StreamRegistryV4, IERC677 } from "../../typechain"
 import * as fs from "fs"
+import { streamRegistry } from "../../typechain/contracts"
+import { Test } from "mocha"
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 // import { SponsorshipFactory } from '../../typechain/SponsorshipFactory'
@@ -24,8 +26,29 @@ let sponsorship: Sponsorship
 let token: TestToken
 let operatorFactory: OperatorFactory
 const pools: Operator[] = []
+let streamRegistryAddress: string
+let streamId: string
 
 const localConfig: any = {}
+
+async function deployStreamRegistry() {
+    log("deploying StreamRegistry")
+    const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV4", { signer: adminWallet })
+    const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [
+        Wallet.createRandom().address,
+        Wallet.createRandom().address
+    ], { kind: "uups" })
+    const streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
+    streamRegistryAddress = streamRegistry.address 
+    const streampath = "/test" + Date.now()
+    log(`deployed StreamRegistry at ${streamRegistry.address}`)
+    log(`creating stream ${streampath}`)
+    await ((await streamRegistry.createStream(streampath, "{}")).wait())
+    streamId = adminWallet.address.toLowerCase() + streampath
+    log(`streamId ${streamId}`)
+    const streamExists = await streamRegistry.exists(streamId)
+    log(streamExists)
+}
 
 async function deploySponsorshipFactory() {
     log((await ethers.getSigners())[0].address)
@@ -36,8 +59,9 @@ async function deploySponsorshipFactory() {
     log(`hasrole ${hasroleEthSigner}`)
     localConfig.streamrConfig = streamrConfig.address
     log(`streamrConfig address ${streamrConfig.address}`)
+    await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
 
-    token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
+    const token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
     await token.deployed()
     localConfig.token = token.address
     log(`token address ${token.address}`)
@@ -91,7 +115,7 @@ async function deploySponsorshipFactory() {
 }
 
 const deployNewSponsorship = async () => {
-    const sponsorshiptx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("60"), 0, 1, "Sponsorship-" + Date.now(), "metadata",
+    const sponsorshiptx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("60"), 0, 1, streamId, "metadata",
         [
             localConfig.allocationPolicy,
             ethers.constants.AddressZero,
@@ -218,6 +242,7 @@ async function main() {
     operatorWallet = ethers.Wallet.createRandom()
     log(`wallet address ${adminWallet.address}`)
 
+    await deployStreamRegistry()
     await deploySponsorshipFactory()
     await deployNewSponsorship()
     await sponsorNewSponsorship()
