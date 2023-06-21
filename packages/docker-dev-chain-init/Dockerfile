@@ -3,7 +3,7 @@ RUN apt-get update && apt-get install -y \
 	build-essential \
 	curl \
 	git \
-	python \
+	python-is-python3 \
 	apt-transport-https \
     ca-certificates \
     curl \
@@ -25,7 +25,7 @@ RUN node --version
 RUN npm --version
 COPY ./ ./
 RUN npm run clean
-RUN npm ci
+RUN npm i
 ENV DEBUG=*
 RUN npm run build -w=@streamr-contracts/docker-dev-chain-init
 CMD npm run preload -w=@streamr-contracts/docker-dev-chain-init && \
