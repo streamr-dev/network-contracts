@@ -6,7 +6,14 @@ import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
     OperatorFactory, Sponsorship, SponsorshipFactory, StreamRegistryV4,
     StreamStorageRegistry, StreamrConfig, TestToken } from "../typechain"
 import debug from "debug"
-import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLeavePolicyABI, defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode, defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI, operatorFactoryBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI, sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode, streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode, tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
+import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
+    defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
+    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, maxOperatorsJoinPolicyABI,
+    maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
+    operatorFactoryBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
+    streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
+    tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
 export type EnvContracAddresses = {
     // DATA token
@@ -83,10 +90,10 @@ const log = debug.log
 
 export class StreamrEnvDeployer {
 
-    private readonly adminWallet: Wallet
-    private readonly addresses: EnvContracAddresses
-    private readonly contracts: EnvContracts
-    private streamId: string
+    readonly adminWallet: Wallet
+    readonly addresses: EnvContracAddresses
+    readonly contracts: EnvContracts
+    streamId: string
     sponsorshipAddress: any
     sponsorship?: Sponsorship
     operatorAddress: any
@@ -199,7 +206,7 @@ export class StreamrEnvDeployer {
         this.contracts.sponsorshipFactory = sponsorshipFactory
         log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
 
-        await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
+        await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
         // await (await token.mint(operatorWallet.address, ethers.utils.parseEther("100000"))).wait()
         // log(`transferred 100000 tokens to ${operatorWallet.address}`)

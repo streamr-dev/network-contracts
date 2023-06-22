@@ -1,11 +1,11 @@
 import { Contract, Wallet, providers } from "ethers"
-import { Logger } from "@streamr/utils"
+// import { Logger } from "@streamr/utils"
 import { ethers, upgrades } from "hardhat"
 import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
     IKickPolicy, ILeavePolicy, IPoolYieldPolicy, IUndelegationPolicy, NodeRegistry,
     Operator,
     OperatorFactory, Sponsorship, SponsorshipFactory, StreamRegistryV4,
-    StreamStorageRegistry, StreamrConfig, TestToken } from "../typechain"
+    StreamStorageRegistry, StreamrConfig, TestToken } from "../../typechain"
 import debug from "debug"
 
 export type EnvContracAddresses = {
