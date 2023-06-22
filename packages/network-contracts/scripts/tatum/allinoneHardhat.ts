@@ -61,7 +61,7 @@ async function deploySponsorshipFactory() {
     log(`streamrConfig address ${streamrConfig.address}`)
     await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
 
-    const token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
+    token = await (await ethers.getContractFactory("TestToken", { signer: adminWallet })).deploy("Test token", "TEST") as TestToken
     await token.deployed()
     localConfig.token = token.address
     log(`token address ${token.address}`)
