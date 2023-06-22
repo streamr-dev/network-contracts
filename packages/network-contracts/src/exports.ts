@@ -1,3 +1,5 @@
+import exp from "constants"
+
 export { abi as operatorABI, bytecode as operatorBytecode } from "../artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
 export type { Operator } from "../typechain/contracts/OperatorTokenomics/Operator"
 
@@ -28,5 +30,26 @@ export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 export type { NodeRegistry } from "../typechain/contracts/NodeRegistry/NodeRegistry"
 
-export { abi as tokenABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
-export type { IERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+export { abi as tokenABI, bytecode as tokenBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
+
+export { abi as maxOperatorsJoinPolicyABI, bytecode as maxOperatorsJoinPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy.sol/MaxOperatorsJoinPolicy.json"
+
+export { abi as stakeWeightedAllocationPolicyABI, bytecode as stakeWeightedAllocationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/StakeWeightedAllocationPolicy.sol/StakeWeightedAllocationPolicy.json"
+
+export { abi as defaultLeavePolicyABI, bytecode as defaultLeavePolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/DefaultLeavePolicy.sol/DefaultLeavePolicy.json"
+
+export { abi as voteKickPolicyABI, bytecode as voteKickPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/VoteKickPolicy.sol/VoteKickPolicy.json"
+
+export { abi as defaultDelegationPolicyABI, bytecode as defaultDelegationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy.sol/DefaultDelegationPolicy.json"
+
+export { abi as defaultPoolYieldPolicyABI, bytecode as defaultPoolYieldPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy.sol/DefaultPoolYieldPolicy.json"
+
+export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
