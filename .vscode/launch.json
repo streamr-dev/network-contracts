@@ -28,14 +28,14 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "hat"
+                "start"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "node",
-            "cwd": "${workspaceFolder}/packages/network-contracts",
+            "cwd": "${workspaceFolder}/packages/ens-sync-script",
         },
         {
             "name": "ensscript",

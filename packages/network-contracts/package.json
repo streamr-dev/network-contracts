@@ -33,8 +33,8 @@
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
     "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts",
-    "hat": "hardhat run --network localhost scripts/tatum/streamrEnvDeployer.ts",
-    "hat2": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
+    "streamrEnvDeployer": "npx tsx scripts/tatum/streamrEnvDeployer.ts",
+    "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
   },
   "dependencies": {
     "@chainlink/contracts": "0.3.1",

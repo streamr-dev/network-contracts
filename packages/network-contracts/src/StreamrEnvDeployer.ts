@@ -106,20 +106,23 @@ export class StreamrEnvDeployer {
         this.streamId = ""
     }
 
-    async deployEverything(): Promise<void>{
+    async deployEvironment(): Promise<void>{
         await this.deployStreamRegistry()
         await this.deploySponsorshipFactory()
+        await this.deployOperatorFactory()
+    }
+
+    async createFundStakeSponsorshipAndOperator(): Promise<void> {
+        await this.createStream()
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
         await this.stakeOnSponsorship()
-        await this.deployOperatorFactory()
         await this.deployOperatorContract()
         await this.investToPool()
         await this.stakeIntoSponsorship()
     }
 
     async deployStreamRegistry(): Promise<void> {
-        log("deploying StreamRegistry")
         const streamRegistryFactory = new ContractFactory(streamRegistryABI, streamRegistryBytecode, this.adminWallet)
         const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistryV4
         await streamRegistry.deployed()
@@ -127,14 +130,16 @@ export class StreamrEnvDeployer {
             Wallet.createRandom().address,
             Wallet.createRandom().address
         )).wait()
-        // const streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
         this.addresses.StreamRegistry = streamRegistry.address
         this.contracts.streamRegistry = streamRegistry
+        log(`streamRegistry address ${this.addresses.StreamRegistry}`)
+    }
 
+    async createStream(): Promise<void> {
         const streampath = "/test" + Date.now()
-        log(`deployed StreamRegistry at ${streamRegistry.address}`)
+        log(`deployed StreamRegistry at ${this.contracts.streamRegistry.address}`)
         log(`creating stream ${streampath}`)
-        await ((await streamRegistry.createStream(streampath, "{}")).wait())
+        await ((await this.contracts.streamRegistry.createStream(streampath, "{}")).wait())
         this.streamId = this.adminWallet.address.toLowerCase() + streampath
         log(`streamId ${this.streamId}`)
     }
@@ -144,14 +149,11 @@ export class StreamrEnvDeployer {
         const streamrConfig = await streamrConfigFactory.deploy() as StreamrConfig
         await streamrConfig.deployed()
         await (await streamrConfig.initialize()).wait()
-        const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.DEFAULT_ADMIN_ROLE(), this.adminWallet.address)
-        log(`hasrole ${hasroleEthSigner}`)
         this.addresses.StreamrConfig = streamrConfig.address
         this.contracts.streamrConfig = streamrConfig
         log(`streamrConfig address ${streamrConfig.address}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
 
-        log("deploying SponsorshipFactory")
         const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
         const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
         await token.deployed()
@@ -214,7 +216,7 @@ export class StreamrEnvDeployer {
         // log(`transferred 1 ETH to ${operatorWallet.address}`)
     }
 
-    async deployNewSponsorship(): Promise<void> {
+    async deployNewSponsorship(): Promise<Sponsorship> {
         const sponsorshiptx = await this.contracts.sponsorshipFactory.deploySponsorship(
             ethers.utils.parseEther("60"), 0, 1, this.streamId, "metadata",
             [
@@ -230,15 +232,12 @@ export class StreamrEnvDeployer {
         const sponsorshipReceipt = await sponsorshiptx.wait()
         this.sponsorshipAddress = sponsorshipReceipt.events?.filter((e) => e.event === "NewSponsorship")[0]?.args?.sponsorshipContract
         this.sponsorship = new Contract(this.sponsorshipAddress, sponsorshipABI, this.adminWallet) as Sponsorship
-
         log("new sponsorship address: " + this.sponsorshipAddress)
+        return this.sponsorship
     }
 
     async sponsorNewSponsorship(): Promise<void> {
-    // sponsor with token approval
-    // const ownerbalance = await token.balanceOf(adminWallet.address)
         await (await this.contracts.DATA.approve(this.sponsorshipAddress, ethers.utils.parseEther("7"))).wait()
-        // const allowance = await token.allowance(adminWallet.address, sponsorship.address)
         const sponsorTx = await this.sponsorship!.sponsor(ethers.utils.parseEther("7"))
         await sponsorTx.wait()
         log("sponsored through token approval")
@@ -275,10 +274,10 @@ export class StreamrEnvDeployer {
             this.adminWallet)
         const operatorFactory = await operatorFactoryFactory.deploy() as OperatorFactory
         await operatorFactory.deployed()
-        await operatorFactory.initialize(
+        await (await operatorFactory.initialize(
             operatorTemplate.address,
             this.addresses.DATA,
-            this.addresses.StreamrConfig)
+            this.addresses.StreamrConfig)).wait()
         log("Deployed Operator contract factory " + operatorFactory.address)
         // eslint-disable-next-line require-atomic-updates
         this.addresses.OperatorFactory = operatorFactory.address
@@ -294,7 +293,7 @@ export class StreamrEnvDeployer {
         log("Set Operator contract factory in StreamrConfig")
     }
 
-    async deployOperatorContract(): Promise<void> {
+    async deployOperatorContract(): Promise<Operator> {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
             [`Pool-${Date.now()}`, "{}"],
@@ -308,6 +307,7 @@ export class StreamrEnvDeployer {
         log("Operator deployed at: ", operatorAddress)
         this.operatorAddress = operatorAddress
         this.operator = new Contract(operatorAddress, operatorABI, this.adminWallet) as Operator
+        return this.operator
     }
 
     async investToPool(): Promise<void> {
