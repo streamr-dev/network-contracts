@@ -1,6 +1,3 @@
-import exp from "constants"
-import { StreamrEnvDeployer } from "./StreamrEnvDeployer"
-
 export { abi as operatorABI, bytecode as operatorBytecode } from "../artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json"
 export type { Operator } from "../typechain/contracts/OperatorTokenomics/Operator"
 

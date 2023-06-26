@@ -1,10 +1,10 @@
 import { Wallet } from "ethers"
 // import { Chains } from "@streamr/config"
 import hhat from "hardhat"
-import { Sponsorship, SponsorshipFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConfig, TestToken, Operator, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, OperatorFactory, StreamRegistryV4, IERC677 } from "../../typechain"
+import { Sponsorship, SponsorshipFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, 
+    StreamrConfig, TestToken, Operator, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, 
+    OperatorFactory, StreamRegistryV4 } from "../../typechain"
 import * as fs from "fs"
-import { streamRegistry } from "../../typechain/contracts"
-import { Test } from "mocha"
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 // import { SponsorshipFactory } from '../../typechain/SponsorshipFactory'
