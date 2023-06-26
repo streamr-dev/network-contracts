@@ -1,0 +1,17 @@
+{
+  "name": "@streamr-contracts/docker-dev-chain-init",
+  "version": "3.0.0",
+  "description": "Locally run Ethereum client for developing the Streamr services",
+  "private": true,
+  "scripts": {
+    "build": "npm run clean && docker build -t streamr/dev-chain-fast .",
+    "clean": "rm -fr node_modules"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hardhat": "^2.16.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3"
+  }
+}
