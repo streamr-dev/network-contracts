@@ -9,7 +9,7 @@ import fetch from "node-fetch"
 
 import Debug from "debug"
 
-import type { IERC677, Operator } from "@streamr/network-contracts"
+import type { Operator, TestToken } from "@streamr/network-contracts"
 import type { StreamRegistry } from "@streamr/network-contracts"
 
 import { tokenABI } from "@streamr/network-contracts"
@@ -32,7 +32,7 @@ describe("OperatorClient", () => {
     let provider: Provider
     let operatorWallet: Wallet
     let operatorContract: Operator
-    let token: IERC677
+    let token: TestToken
     let adminWallet: Wallet
     let streamId1: string
     let streamId2: string
@@ -66,7 +66,7 @@ describe("OperatorClient", () => {
 
         adminWallet = new Wallet(adminPrivKey, provider)
 
-        token = new Contract(config.contracts.LINK, tokenABI, adminWallet) as unknown as IERC677
+        token = new Contract(config.contracts.LINK, tokenABI, adminWallet) as unknown as TestToken
         const timeString = (new Date()).getTime().toString()
         const streamPath1 = "/operatorclienttest-1-" + timeString
         const streamPath2 = "/operatorclienttest-2-" + timeString

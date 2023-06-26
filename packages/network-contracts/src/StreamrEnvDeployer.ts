@@ -16,23 +16,23 @@ import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLea
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
 export type EnvContracAddresses = {
-    // DATA token
+            // DATA token
             "DATA": string,
-// ENS
+            // ENS
             "ENS": string,
             "FIFSRegistrar": string,
             "PublicResolver": string,
-// Network
+            // Network
             "TrackerRegistry": string,
             "StorageNodeRegistry": string,
             "StreamRegistry": string,
             "ENSCacheV2": string,
             "StreamStorageRegistry": string,
-// Projects related
+            // Projects related
             "MarketplaceV4": string,
             "ProjectRegistryV1": string,
             "ProjectStakingV1": string,
-// Incentive mechanism
+            // Incentive mechanism
             "StreamrConfig": string,
             "SponsorshipFactory": string,
             "SponsorshipDefaultLeavePolicy": string,
@@ -46,7 +46,7 @@ export type EnvContracAddresses = {
             "OperatorDefaultUndelegationPolicy": string,
             "OperatorDefaultPoolYieldPolicy": string,
 
-// Data Unions:
+            // Data Unions:
             "DataUnionFactory": string,
             "DataUnionTemplate": string,
             "DefaultFeeOracle": string,
@@ -205,10 +205,6 @@ export class StreamrEnvDeployer {
 
         await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
-        // await (await token.mint(operatorWallet.address, ethers.utils.parseEther("100000"))).wait()
-        // log(`transferred 100000 tokens to ${operatorWallet.address}`)
-        // await (await this.adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
-        // log(`transferred 1 ETH to ${operatorWallet.address}`)
     }
 
     async deployNewSponsorship(): Promise<Sponsorship> {
@@ -317,27 +313,5 @@ export class StreamrEnvDeployer {
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
-
-    // async function main() {
-    //     this.adminWallet = (await ethers.getSigners())[0] as unknown as Wallet
-
-    //     operatorWallet = ethers.Wallet.createRandom()
-    //     log(`wallet address ${adminWallet.address}`)
-
-    //     await deployStreamRegistry()
-    //     await deploySponsorshipFactory()
-    //     await deployNewSponsorship()
-    //     await sponsorNewSponsorship()
-    //     await stakeOnSponsorship()
-    //     await deployOperatorFactory()
-    //     await deployOperatorContracts(1)
-    //     await investToPool()
-    //     await stakeIntoSponsorship()
-
-    //     this.config.adminKey = privKeyStreamRegistry
-    //     const configString = JSON.stringify(this.config, null, 4)
-    //     fs.writeFileSync("this.config.json", configString)
-    //     log("wrote this.config.json")
-    // }
 
 }

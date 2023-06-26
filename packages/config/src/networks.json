@@ -68,7 +68,7 @@
             "OperatorFactory": "0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3",
             "OperatorDefaultDelegationPolicy": "0x03CF38C75BFb9F4466fBA0aEd95f2613B0D1bCA0",
             "OperatorDefaultUndelegationPolicy": "0x67A0E9C9c21d11dB4eBAe420aBf705626a3a2561",
-            "OperatorDefaultPoolYieldPolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d",
+            "OperatorDefaultPoolYieldPolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d"
         }
     },
     "alfajores": {
