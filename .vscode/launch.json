@@ -6,24 +6,6 @@
     "configurations": [
         
         {
-            "name": "test operatorclient",
-            "request": "launch",
-            "runtimeArgs": [
-                "run",
-                "integration-test"
-            ],
-            "runtimeExecutable": "npm",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "env": {
-                "DEBUG": "*"
-            },
-            "console": "integratedTerminal",
-            "type": "node",
-            "cwd": "${workspaceFolder}/packages/operator-client",
-        },
-        {
             "name": "Launch via NPM",
             "request": "launch",
             "runtimeArgs": [

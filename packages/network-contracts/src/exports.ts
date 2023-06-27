@@ -28,5 +28,36 @@ export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 export type { NodeRegistry } from "../typechain/contracts/NodeRegistry/NodeRegistry"
 
-export { abi as tokenABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
-export type { IERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+export { abi as tokenABI, bytecode as tokenBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
+export type { TestToken } from "../typechain/contracts/OperatorTokenomics/testcontracts/TestToken"
+
+export { abi as maxOperatorsJoinPolicyABI, bytecode as maxOperatorsJoinPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy.sol/MaxOperatorsJoinPolicy.json"
+export type { MaxOperatorsJoinPolicy } from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy"
+
+export { abi as stakeWeightedAllocationPolicyABI, bytecode as stakeWeightedAllocationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/StakeWeightedAllocationPolicy.sol/StakeWeightedAllocationPolicy.json"
+export type { StakeWeightedAllocationPolicy } from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/StakeWeightedAllocationPolicy"
+
+export { abi as defaultLeavePolicyABI, bytecode as defaultLeavePolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/DefaultLeavePolicy.sol/DefaultLeavePolicy.json"
+export type { DefaultLeavePolicy } from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/DefaultLeavePolicy"
+
+export { abi as voteKickPolicyABI, bytecode as voteKickPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/VoteKickPolicy.sol/VoteKickPolicy.json"
+export type { VoteKickPolicy } from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/VoteKickPolicy"
+
+export { abi as defaultDelegationPolicyABI, bytecode as defaultDelegationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy.sol/DefaultDelegationPolicy.json"
+export type { DefaultDelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy"
+
+export { abi as defaultPoolYieldPolicyABI, bytecode as defaultPoolYieldPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy.sol/DefaultPoolYieldPolicy.json"
+export type { DefaultPoolYieldPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy"
+
+export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
+export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
+
+export { StreamrEnvDeployer } from "./StreamrEnvDeployer"

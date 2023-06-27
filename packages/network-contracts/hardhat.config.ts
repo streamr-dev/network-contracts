@@ -70,9 +70,6 @@ const config: HardhatUserConfig = {
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         }
     },
-    etherscan: {
-        apiKey: ""
-    },
     dependencyCompiler: {
         paths: [
             "@openzeppelin/contracts/metatx/MinimalForwarder.sol",
@@ -138,11 +135,11 @@ const config: HardhatUserConfig = {
     // namedAccounts: { // 224126
     //     deployer: 0,
     // },
-    warnings: {
-        "@chainlink/contracts/src/v0.4/**/*": {
-            default: "off",
-        },
-    },
+    // warnings: {
+    //     "@chainlink/contracts/src/v0.4/**/*": {
+    //         default: "off",
+    //     },
+    // },
     typechain: {
         outDir: "./typechain",
         target: "ethers-v5",
