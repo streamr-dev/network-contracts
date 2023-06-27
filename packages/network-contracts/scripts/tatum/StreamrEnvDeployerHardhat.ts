@@ -1,5 +1,4 @@
 import { Contract, Wallet, providers } from "ethers"
-// import { Logger } from "@streamr/utils"
 import { ethers, upgrades } from "hardhat"
 import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
     IKickPolicy, ILeavePolicy, IPoolYieldPolicy, IUndelegationPolicy, NodeRegistry,
@@ -10,42 +9,42 @@ import debug from "debug"
 
 export type EnvContracAddresses = {
     // DATA token
-            "DATA": string,
-// ENS
-            "ENS": string,
-            "FIFSRegistrar": string,
-            "PublicResolver": string,
-// Network
-            "TrackerRegistry": string,
-            "StorageNodeRegistry": string,
-            "StreamRegistry": string,
-            "ENSCacheV2": string,
-            "StreamStorageRegistry": string,
-// Projects related
-            "MarketplaceV4": string,
-            "ProjectRegistryV1": string,
-            "ProjectStakingV1": string,
-// Incentive mechanism
-            "StreamrConfig": string,
-            "SponsorshipFactory": string,
-            "SponsorshipDefaultDelegationPolicy": string,
-            // "SponsorshipDefaultPoolYieldPolicy": string,
-            "SponsorshipDefaultUndelegationPolicy": string,
-            "SponsorshipMaxOperatorsJoinPolicy": string,
-            "SponsorshipStakeWeightedAllocationPolicy": string,
-            "SponsorshipDefaultLeavePolicy": string,
-            "SponsorshipVoteKickPolicy": string,
-            "SponsorshipOperatorContractOnlyJoinPolicy": string,
-            "OperatorFactory": string,
-            "OperatorDefaultDelegationPolicy": string,
-            "OperatorDefaultUndelegationPolicy": string,
-            "OperatorDefaultPoolYieldPolicy": string,
-            "OperatorContractOnlyJoinPolicy": string,
+    "DATA": string,
+    // ENS
+    "ENS": string,
+    "FIFSRegistrar": string,
+    "PublicResolver": string,
+    // Network
+    "TrackerRegistry": string,
+    "StorageNodeRegistry": string,
+    "StreamRegistry": string,
+    "ENSCacheV2": string,
+    "StreamStorageRegistry": string,
+    // Projects related
+    "MarketplaceV4": string,
+    "ProjectRegistryV1": string,
+    "ProjectStakingV1": string,
+    // Incentive mechanism
+    "StreamrConfig": string,
+    "SponsorshipFactory": string,
+    "SponsorshipDefaultDelegationPolicy": string,
+    // "SponsorshipDefaultPoolYieldPolicy": string,
+    "SponsorshipDefaultUndelegationPolicy": string,
+    "SponsorshipMaxOperatorsJoinPolicy": string,
+    "SponsorshipStakeWeightedAllocationPolicy": string,
+    "SponsorshipDefaultLeavePolicy": string,
+    "SponsorshipVoteKickPolicy": string,
+    "SponsorshipOperatorContractOnlyJoinPolicy": string,
+    "OperatorFactory": string,
+    "OperatorDefaultDelegationPolicy": string,
+    "OperatorDefaultUndelegationPolicy": string,
+    "OperatorDefaultPoolYieldPolicy": string,
+    "OperatorContractOnlyJoinPolicy": string,
 
-// Data Unions:
-            "DataUnionFactory": string,
-            "DataUnionTemplate": string,
-            "DefaultFeeOracle": string,
+    // Data Unions:
+    "DataUnionFactory": string,
+    "DataUnionTemplate": string,
+    "DefaultFeeOracle": string,
 }
 
 export type EnvContracts = {
@@ -87,16 +86,18 @@ export class StreamrEnvDeployerHardhat {
     private readonly addresses: EnvContracAddresses
     private readonly contracts: EnvContracts
     private streamId: string
-    sponsorshipAddress: any
-    sponsorship?: Sponsorship
-    operatorAddress: any
-    operator?: Operator
+    private sponsorshipAddress: string
+    private sponsorship?: Sponsorship
+    private operatorAddress: string
+    private operator?: Operator
 
     constructor(key: string, chainEndpointUrl: string) {
         this.adminWallet = new Wallet(key, new providers.JsonRpcProvider(chainEndpointUrl))
         this.addresses = {} as EnvContracAddresses
         this.contracts = {} as EnvContracts
         this.streamId = ""
+        this.sponsorshipAddress = ""
+        this.operatorAddress = ""
     }
 
     async deployEverything(): Promise<void>{
@@ -177,7 +178,6 @@ export class StreamrEnvDeployerHardhat {
 
         const sponsorshipTemplate = await (await ethers.getContractFactory("Sponsorship")).deploy() as Sponsorship
         await sponsorshipTemplate.deployed()
-        // this.config.sponsorshipTemplate = sponsorshipTemplate.address
         log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
         const sponsorshipFactoryFactory = await ethers.getContractFactory("SponsorshipFactory", { signer: this.adminWallet })
@@ -194,10 +194,6 @@ export class StreamrEnvDeployerHardhat {
 
         await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
-        // await (await token.mint(operatorWallet.address, ethers.utils.parseEther("100000"))).wait()
-        // log(`transferred 100000 tokens to ${operatorWallet.address}`)
-        // await (await this.adminWallet.sendTransaction({ to: operatorWallet.address, value: ethers.utils.parseEther("1") })).wait()
-        // log(`transferred 1 ETH to ${operatorWallet.address}`)
     }
 
     async deployNewSponsorship(): Promise<void> {
@@ -221,10 +217,7 @@ export class StreamrEnvDeployerHardhat {
     }
 
     async sponsorNewSponsorship(): Promise<void> {
-    // sponsor with token approval
-    // const ownerbalance = await token.balanceOf(adminWallet.address)
         await (await this.contracts.DATA.approve(this.sponsorshipAddress, ethers.utils.parseEther("7"))).wait()
-        // const allowance = await token.allowance(adminWallet.address, sponsorship.address)
         const sponsorTx = await this.sponsorship!.sponsor(ethers.utils.parseEther("7"))
         await sponsorTx.wait()
         log("sponsored through token approval")
@@ -264,11 +257,8 @@ export class StreamrEnvDeployerHardhat {
             this.addresses.DATA,
             this.addresses.StreamrConfig
         ], {kind: "uups", unsafeAllow: ["delegatecall"]}) as unknown as OperatorFactory
-        // eslint-disable-next-line require-atomic-updates
-        // this.config.operatorFactory = operatorFactory.address
         await operatorFactory.deployed()
         log("Deployed Operator contract factory " + operatorFactory.address)
-        // eslint-disable-next-line require-atomic-updates
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory
         await (await operatorFactory.addTrustedPolicies([
@@ -294,7 +284,6 @@ export class StreamrEnvDeployerHardhat {
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
-        // eslint-disable-next-line require-atomic-updates
         log("Operator deployed at: ", operatorAddress)
         this.operatorAddress = operatorAddress
         this.operator = await ethers.getContractAt("Operator", operatorAddress, this.adminWallet) as Operator
@@ -312,27 +301,4 @@ export class StreamrEnvDeployerHardhat {
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
-
-    // async function main() {
-    //     this.adminWallet = (await ethers.getSigners())[0] as unknown as Wallet
-
-    //     operatorWallet = ethers.Wallet.createRandom()
-    //     log(`wallet address ${adminWallet.address}`)
-
-    //     await deployStreamRegistry()
-    //     await deploySponsorshipFactory()
-    //     await deployNewSponsorship()
-    //     await sponsorNewSponsorship()
-    //     await stakeOnSponsorship()
-    //     await deployOperatorFactory()
-    //     await deployOperatorContracts(1)
-    //     await investToPool()
-    //     await stakeIntoSponsorship()
-
-    //     this.config.adminKey = privKeyStreamRegistry
-    //     const configString = JSON.stringify(this.config, null, 4)
-    //     fs.writeFileSync("this.config.json", configString)
-    //     log("wrote this.config.json")
-    // }
-
 }

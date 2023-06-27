@@ -1,5 +1,4 @@
 import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
-// import { Logger } from "@streamr/utils"
 import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
     IKickPolicy, ILeavePolicy, IPoolYieldPolicy, IUndelegationPolicy, NodeRegistry,
     Operator,
@@ -16,40 +15,40 @@ import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLea
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
 export type EnvContracAddresses = {
-            // DATA token
-            "DATA": string,
-            // ENS
-            "ENS": string,
-            "FIFSRegistrar": string,
-            "PublicResolver": string,
-            // Network
-            "TrackerRegistry": string,
-            "StorageNodeRegistry": string,
-            "StreamRegistry": string,
-            "ENSCacheV2": string,
-            "StreamStorageRegistry": string,
-            // Projects related
-            "MarketplaceV4": string,
-            "ProjectRegistryV1": string,
-            "ProjectStakingV1": string,
-            // Incentive mechanism
-            "StreamrConfig": string,
-            "SponsorshipFactory": string,
-            "SponsorshipDefaultLeavePolicy": string,
-            "SponsorshipMaxOperatorsJoinPolicy": string,
-            "SponsorshipOperatorContractOnlyJoinPolicy": string,
-            "SponsorshipStakeWeightedAllocationPolicy": string,
-            "SponsorshipVoteKickPolicy": string,
+    // DATA token
+    "DATA": string,
+    // ENS
+    "ENS": string,
+    "FIFSRegistrar": string,
+    "PublicResolver": string,
+    // Network
+    "TrackerRegistry": string,
+    "StorageNodeRegistry": string,
+    "StreamRegistry": string,
+    "ENSCacheV2": string,
+    "StreamStorageRegistry": string,
+    // Projects related
+    "MarketplaceV4": string,
+    "ProjectRegistryV1": string,
+    "ProjectStakingV1": string,
+    // Incentive mechanism
+    "StreamrConfig": string,
+    "SponsorshipFactory": string,
+    "SponsorshipDefaultLeavePolicy": string,
+    "SponsorshipMaxOperatorsJoinPolicy": string,
+    "SponsorshipOperatorContractOnlyJoinPolicy": string,
+    "SponsorshipStakeWeightedAllocationPolicy": string,
+    "SponsorshipVoteKickPolicy": string,
 
-            "OperatorFactory": string,
-            "OperatorDefaultDelegationPolicy": string,
-            "OperatorDefaultUndelegationPolicy": string,
-            "OperatorDefaultPoolYieldPolicy": string,
+    "OperatorFactory": string,
+    "OperatorDefaultDelegationPolicy": string,
+    "OperatorDefaultUndelegationPolicy": string,
+    "OperatorDefaultPoolYieldPolicy": string,
 
-            // Data Unions:
-            "DataUnionFactory": string,
-            "DataUnionTemplate": string,
-            "DefaultFeeOracle": string,
+    // Data Unions:
+    "DataUnionFactory": string,
+    "DataUnionTemplate": string,
+    "DefaultFeeOracle": string,
 }
 
 export type EnvContracts = {
@@ -187,7 +186,6 @@ export class StreamrEnvDeployer {
         const sponsorshipTemplate = await (new ContractFactory(sponsorshipABI, sponsorshipBytecode,
             this.adminWallet)).deploy() as Sponsorship
         await sponsorshipTemplate.deployed()
-        // this.config.sponsorshipTemplate = sponsorshipTemplate.address
         log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
         const sponsorshipFactoryFactory = await(new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode,
@@ -270,7 +268,6 @@ export class StreamrEnvDeployer {
             this.addresses.DATA,
             this.addresses.StreamrConfig)).wait()
         log("Deployed Operator contract factory " + operatorFactory.address)
-        // eslint-disable-next-line require-atomic-updates
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory
         await (await operatorFactory.addTrustedPolicies([
@@ -294,7 +291,6 @@ export class StreamrEnvDeployer {
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
-        // eslint-disable-next-line require-atomic-updates
         log("Operator deployed at: ", operatorAddress)
         this.operatorAddress = operatorAddress
         this.operator = new Contract(operatorAddress, operatorABI, this.adminWallet) as Operator

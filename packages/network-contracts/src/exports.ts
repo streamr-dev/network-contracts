@@ -61,4 +61,3 @@ export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPol
 export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
 
 export { StreamrEnvDeployer } from "./StreamrEnvDeployer"
-// export type { StreamrEnvDeployerConfig } from "./StreamrEnvDeployer"
