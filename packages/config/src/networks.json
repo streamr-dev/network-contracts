@@ -165,13 +165,7 @@
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "wss://polygon-rpc.com"
-            },
-            {
                 "url": "https://poly-rpc.gateway.pokt.network/"
-            },
-            {
-                "url": "https://rpc-mainnet.matic.network"
             }
         ],
         "contracts": {
