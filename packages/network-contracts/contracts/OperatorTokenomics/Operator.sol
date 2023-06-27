@@ -389,6 +389,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
+        updateApproximatePoolvalueOfSponsorship(sponsorship);
+
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(sponsorship, lossWei);
@@ -410,8 +412,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (sponsorships.length == 0) {
             try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
         }
-
-        totalValueInSponsorshipsWei -= approxPoolValueOfSponsorship[sponsorship];
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
         approxPoolValueOfSponsorship[sponsorship] = 0;
         stakedInto[sponsorship] = 0;
@@ -614,7 +614,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         Sponsorship sponsorship = Sponsorship(msg.sender);
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
         _removeSponsorship(sponsorship, receivedPayoutWei);
-        updateApproximatePoolvalueOfSponsorship(sponsorship);
     }
 
     function onReviewRequest(address targetOperator) external {

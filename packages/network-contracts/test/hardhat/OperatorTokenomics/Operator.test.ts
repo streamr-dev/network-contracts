@@ -585,11 +585,11 @@ describe("Operator contract", (): void => {
             await (await operator.connect(delegator).forceUnstake(sponsorship.address, 10)).wait()
 
             // 1000 were staked, 1000 are earnings, 21% is operator's share
-            //   => with 1000 PT existing, value of 1 PT is 1.86 DATA,
-            //   => the 100 queued PT will pay out 186 DATA
+            //   => with 1000 PT existing, value of 1 PT is 1.79 DATA,
+            //   => the 100 queued PT will pay out 179 DATA
             const balanceAfter = await token.balanceOf(delegator.address)
 
-            expect(formatEther(balanceAfter)).to.equal("186.0")
+            expect(formatEther(balanceAfter)).to.equal("179.0")
         })
     })
 
