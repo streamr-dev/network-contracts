@@ -386,7 +386,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei - stakedInto[sponsorship];
+        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei > stakedInto[sponsorship]
+            ? totalValueInSponsorshipsWei - stakedInto[sponsorship]
+            : 0;
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
