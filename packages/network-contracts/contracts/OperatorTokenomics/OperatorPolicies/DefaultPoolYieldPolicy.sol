@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 import "./IPoolYieldPolicy.sol";
 import "../Operator.sol";
 
+import "hardhat/console.sol";
 
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
 
@@ -27,15 +28,19 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
     }
 
     function dataToPooltoken(uint dataWei, uint subtractFromPoolvalue) public view returns (uint poolTokenWei) {
+        console.log("dataToPooltoken: dataWei=%s, subtractFromPoolvalue=%s", dataWei / 1 ether, subtractFromPoolvalue / 1 ether);
         // in the beginning, the pool is empty => we set 1:1 exchange rate
         if (this.totalSupply() == 0) {
             return dataWei;
         }
-        uint poolValue = getApproximatePoolValue();
+        uint poolValue = getApproximatePoolValue(); // 1500 + 500 = 2000
+        console.log("dataToPooltoken: poolValue=%s", poolValue / 1 ether);
         assert(subtractFromPoolvalue < poolValue);
-        uint poolValueData = poolValue - subtractFromPoolvalue;
+        uint poolValueData = poolValue - subtractFromPoolvalue; // 2000 - 
+        console.log("dataToPooltoken: poolValueData=%s", poolValueData / 1 ether);
         // uint poolValueData = this.calculatePoolValueInData(subtractFromPoolvalue);
 
+        console.log("dataToPooltoken: dataWei=%s, totalSupply=%s, poolValueData=%s", dataWei / 1 ether, this.totalSupply() / 1 ether, poolValueData / 1 ether);
         return dataWei * this.totalSupply() / poolValueData;
     }
 }
