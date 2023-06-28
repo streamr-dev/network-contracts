@@ -620,10 +620,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // SPONSORSHIP CALLBACKS
     /////////////////////////////////////////
 
-    function onSlash(uint) external {
+    function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        pullEarningsAndUpdateApproximatePoolValueOfSponsorship(sponsorship);
+        totalValueInSponsorshipsWei -= amountSlashed;
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
