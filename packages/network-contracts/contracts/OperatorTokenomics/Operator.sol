@@ -22,7 +22,7 @@ import "./SponsorshipFactory.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * Operator contract receives and holds the delegators' tokens.
@@ -76,10 +76,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     uint public minimumDelegationWei;
 
-    // Pool value = DATA value of all stake + earnings in sponsorships (operator's share of those earnings since they are automatically re-delegated)
+    // Pool value = DATA value of all stake + earnings in sponsorships - operator's share of those earnings
     // It can be queried / calculated in different ways:
     // 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
-    // 2. approximate but always available: totalValueInSponsorshipsWei (updated in staking/unstaking and updateApproximatePoolvalueOfSponsorship/Sponsorships)
+    // 2. approximate but always available: totalValueInSponsorshipsWei (updated in stake, reduceStakeWithoutQueue, _removeSponsorship, onSlash)
     uint public totalValueInSponsorshipsWei;
 
     mapping(Sponsorship => uint) public stakedInto; // in Data wei
@@ -253,10 +253,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function _delegate(address delegator, uint amountWei) internal {
-        // console.log("## _delegate: delegator: %s, amountWei: %s", delegator, amountWei / 1 ether);
         if (address(delegationPolicy) != address(0) && delegator != owner) {
             uint allowedToJoin = moduleGet(abi.encodeWithSelector(delegationPolicy.canJoin.selector, delegator, address(delegationPolicy)), "error_joinPolicyFailed");
-            // console.log("## _delegate: allowedToJoin", allowedToJoin);
             require(allowedToJoin == 1, "error_joinPolicyFailed");
         }
         // remove amountWei from pool value to get the "Pool Tokens before transfer"
@@ -264,7 +262,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountWei, amountWei),
             "error_dataToPooltokenFailed"
         );
-        // console.log("## _delegate: amountPoolToken", amountPoolToken / 1 ether);
         _mint(delegator, amountPoolToken);
         emit Delegated(delegator, amountWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
@@ -328,12 +325,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
         emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
-        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei - cashoutWei;
+        totalValueInSponsorshipsWei -= cashoutWei;
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
-        // pullEarningsAndUpdateApproximatePoolValueOfSponsorship(sponsorship); // TODO: why is update needed before withdraw?
         withdrawEarningsFromSponsorshipWithoutQueue(sponsorship);
         payOutQueueWithFreeFunds(0);
     }
@@ -344,22 +340,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint earningsDataWei = sponsorship.withdraw();
         uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
         emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
-        // console.log("## withdrawEarningsFromSponsorshipWithoutQueue: earningsDataWei=%s, operatorsShareDataWei=%s", earningsDataWei / 1 ether, operatorsShareDataWei / 1 ether);
-        _redelegateBrokersShare(earningsDataWei);
-        // _delegate(owner, operatorsShareDataWei);
-    }
-
-    /**
-     * Update the total approximate pool value and automatically re-delegate the operator's share of the earnings.
-     * Operator's share of the earnings is considered as part of the pool since it's re-delegated
-     **/
-    function _redelegateBrokersShare(uint earningsDataWei) private {
-        // totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + earningsDataWei;
-        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
-        console.log("## _increaseTotalApproxAndRedelegateOperatorsShare: totalValueInSponsorshipsWei", totalValueInSponsorshipsWei / 1 ether);
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
-        // "self-delegate" the operator's share === mint new pooltokens
-        _delegate(owner, operatorsShareDataWei);
+        _redelegateOperatorsShare(earningsDataWei);
     }
 
     /**
@@ -405,7 +386,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        // pullEarningsAndUpdateApproximatePoolValueOfSponsorship(sponsorship);//update
         totalValueInSponsorshipsWei = totalValueInSponsorshipsWei - stakedInto[sponsorship];
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
@@ -715,27 +695,30 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     ////////////////////////////////////////
 
     /**
-     * The accurate "accounting value" of a sponsorship = stake + earnings (includes operator's share of the earnings)
+     * The accurate "accounting value" of a sponsorship = stake + earnings - operator's share of the earnings
      **/
     function getPoolValueFromSponsorship(Sponsorship sponsorship) public view returns (uint256 poolValue) {
-        return sponsorship.getMyStake() + sponsorship.getEarnings(address(this));
+        uint alloc = sponsorship.getEarnings(address(this));
+        uint operatorShare = operatorsShareFraction * alloc / 1 ether;
+        poolValue = sponsorship.getMyStake() + alloc - operatorShare;
     }
 
 
     /**
-     * The operator contract earnings and the operator's share of the earnings (included because it is now automatically re-delegated)
+     * The sponsorship earnings - operator's share of the earnings
      * This value will be used to calculate the total pool value, and therefore also the pool token exchange rate
      **/
     function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint256 earnings) {
-        return sponsorship.getEarnings(address(this));
+        uint alloc = sponsorship.getEarnings(address(this));
+        uint operatorShare = operatorsShareFraction * alloc / 1 ether;
+        return alloc - operatorShare;
     }
 
     /**
      * Convenience method to get all sponsorship values
-     * The operator needs to keep an eye on the accumulated earnings at all times
-     *      so that the total approximation (totalValueInSponsorshipsWei) is not too far off of the total real values (stake + earnings).
+     * The operator needs to keep an eye on the approximate values at all times, so that the approximation is not too far off.
      * If someone else notices that the approximation is too far off
-     *      they can call pullEarningsAndUpdateApproximatePoolValueOfSponsorships to get a small prize (paid from operator's pool tokens).
+     *      they can call pullEarningsFromSponsorships to get a small prize (paid from operator's pool tokens).
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
     function getPoolValuesPerSponsorship() external view returns (
@@ -748,14 +731,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         realValues = new uint[](sponsorships.length);
         for (uint i = 0; i < sponsorships.length; i++) {
             sponsorshipAddresses[i] = address(sponsorships[i]);
-            earnings[i] = getEarningsFromSponsorship(sponsorships[i]);
-            realValues[i] = getPoolValueFromSponsorship(sponsorships[i]); // stake + earnings
+            earnings[i] = getEarningsFromSponsorship(sponsorships[i]); // earnings - operator's share of earnings
+            realValues[i] = getPoolValueFromSponsorship(sponsorships[i]); // stake + earnings - operator's share of earnings
         }
     }
 
     /**
      * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
-     * If the difference is too large. call updateApproximatePoolvalueOfSponsorships to get a small prize (paid from operator's pool tokens)
+     * If the difference is too large call pullEarningsFromSponsorships to get a small prize (paid from operator's pool tokens)
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      * TODO: is this function needed? getApproximatePoolValuesPerSponsorship gives same info, and more
      */
@@ -771,32 +754,28 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   then anyone can call this method and point out a set of sponsorships that together sum up to poolValueDriftLimitFraction
      * Caller gets rewarded poolValueDriftPenaltyFraction of the operator's pool tokens
      */
-    function pullEarningsAndUpdateApproximatePoolValueOfSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+    function pullEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         uint sumEarnings = 0;
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             Sponsorship sponsorship = sponsorshipAddresses[i];
             uint earnings = sponsorship.withdraw(); // earnings + share of operator's earnings
-            // uint operatorsShareDataWei = earnings * operatorsShareFraction / 1 ether;
-            // emit Profit(sponsorship, earnings - operatorsShareDataWei, operatorsShareDataWei);
             sumEarnings += earnings;
         }
-        _redelegateBrokersShare(sumEarnings);
-        _slashOperatorIfAboveThreshold(sumEarnings);
-    }
-    function pullEarningsAndUpdateApproximatePoolValueOfSponsorship(Sponsorship sponsorship) public {
-        uint earnings = sponsorship.withdraw();
-        uint operatorsShareDataWei = earnings * operatorsShareFraction / 1 ether;
-        emit Profit(sponsorship, earnings - operatorsShareDataWei, operatorsShareDataWei);
-        _redelegateBrokersShare(earnings);
-        _slashOperatorIfAboveThreshold(earnings);
-    }
+        
+        _redelegateOperatorsShare(sumEarnings);
 
-    function _slashOperatorIfAboveThreshold(uint diff) private {
         // if earnings are more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
         uint allowedDifference = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-        if (diff > allowedDifference) {
+        if (sumEarnings > allowedDifference) {
             uint penaltyWei = balanceOf(owner) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             _transfer(owner, _msgSender(), penaltyWei);
         }
+    }
+
+    function _redelegateOperatorsShare(uint earningsDataWei) private {
+        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        // "self-delegate" the operator's share === mint new pooltokens
+        _delegate(owner, operatorsShareDataWei);
     }
 }
