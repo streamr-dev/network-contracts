@@ -344,16 +344,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint earningsDataWei = sponsorship.withdraw();
         uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
         emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
-        console.log("## withdrawEarningsFromSponsorshipWithoutQueue: earningsDataWei=%s, operatorsShareDataWei=%s", earningsDataWei / 1 ether, operatorsShareDataWei / 1 ether);
-        _increaseTotalApproxAndRedelegateOperatorsShare(earningsDataWei);
+        // console.log("## withdrawEarningsFromSponsorshipWithoutQueue: earningsDataWei=%s, operatorsShareDataWei=%s", earningsDataWei / 1 ether, operatorsShareDataWei / 1 ether);
+        _redelegateBrokersShare(earningsDataWei);
+        // _delegate(owner, operatorsShareDataWei);
     }
 
     /**
      * Update the total approximate pool value and automatically re-delegate the operator's share of the earnings.
      * Operator's share of the earnings is considered as part of the pool since it's re-delegated
      **/
-    function _increaseTotalApproxAndRedelegateOperatorsShare(uint earningsDataWei) private {
-        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + earningsDataWei;
+    function _redelegateBrokersShare(uint earningsDataWei) private {
+        // totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + earningsDataWei;
         uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
         console.log("## _increaseTotalApproxAndRedelegateOperatorsShare: totalValueInSponsorshipsWei", totalValueInSponsorshipsWei / 1 ether);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
@@ -405,16 +406,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
         // pullEarningsAndUpdateApproximatePoolValueOfSponsorship(sponsorship);//update
+        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei - stakedInto[sponsorship];
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
-            totalValueInSponsorshipsWei = totalValueInSponsorshipsWei - lossWei;
             emit Loss(sponsorship, lossWei);
         } else {
             // "self-delegate" the operator's share === mint new pooltokens
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
             uint operatorsShareDataWei = profitDataWei * operatorsShareFraction / 1 ether;
-            totalValueInSponsorshipsWei = totalValueInSponsorshipsWei + profitDataWei;
             _delegate(owner, operatorsShareDataWei);
             emit Profit(sponsorship, profitDataWei - operatorsShareDataWei, operatorsShareDataWei);
         }
@@ -775,18 +775,18 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             Sponsorship sponsorship = sponsorshipAddresses[i];
             uint earnings = sponsorship.withdraw(); // earnings + share of operator's earnings
-            uint operatorsShareDataWei = earnings * operatorsShareFraction / 1 ether;
-            emit Profit(sponsorship, earnings - operatorsShareDataWei, operatorsShareDataWei);
+            // uint operatorsShareDataWei = earnings * operatorsShareFraction / 1 ether;
+            // emit Profit(sponsorship, earnings - operatorsShareDataWei, operatorsShareDataWei);
             sumEarnings += earnings;
         }
-        _increaseTotalApproxAndRedelegateOperatorsShare(sumEarnings);
+        _redelegateBrokersShare(sumEarnings);
         _slashOperatorIfAboveThreshold(sumEarnings);
     }
     function pullEarningsAndUpdateApproximatePoolValueOfSponsorship(Sponsorship sponsorship) public {
         uint earnings = sponsorship.withdraw();
         uint operatorsShareDataWei = earnings * operatorsShareFraction / 1 ether;
         emit Profit(sponsorship, earnings - operatorsShareDataWei, operatorsShareDataWei);
-        _increaseTotalApproxAndRedelegateOperatorsShare(earnings);
+        _redelegateBrokersShare(earnings);
         _slashOperatorIfAboveThreshold(earnings);
     }
 
