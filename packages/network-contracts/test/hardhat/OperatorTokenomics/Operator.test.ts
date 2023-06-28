@@ -668,13 +668,13 @@ describe("Operator contract", (): void => {
 
         const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const operator = await deployOperator(sharedContracts, operatorWallet)
-        const balanceBefore = await token.balanceOf(delegator.address) // 1000
-        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait() // 0 | 1000
-        await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()// 0 | 1000
+        const balanceBefore = await token.balanceOf(delegator.address)
+        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
         // await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
         await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address) // op=0 sp=1000
+            .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
         // queue payout
         const numberOfQueueSlots = 2
@@ -683,11 +683,9 @@ describe("Operator contract", (): void => {
         }
 
         await operator.unstake(sponsorship.address, { gasLimit: 0xF42400 })
-        // op 1000 | sp 0
-        // delegator 2 op 998
 
-        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther(numberOfQueueSlots.toString())) // 2
-        const balanceAfter = await token.balanceOf(delegator.address) // 2
+        const expectedBalance = balanceBefore.sub(parseEther("1000")).add(parseEther(numberOfQueueSlots.toString()))
+        const balanceAfter = await token.balanceOf(delegator.address)
         expect(balanceAfter).to.equal(expectedBalance)
     })
 
