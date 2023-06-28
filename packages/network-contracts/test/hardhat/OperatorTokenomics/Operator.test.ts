@@ -215,55 +215,63 @@ describe("Operator contract", (): void => {
         await setTokens(operatorWallet, "1000")
         await setTokens(delegator, "1000")
         const sponsorship = await deploySponsorship(sharedContracts)
-        console.log("\nSponsoring 1000...")
         await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+        expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1000.0")
+
         const operator = await deployOperator(sharedContracts, operatorWallet, {
             minOperatorStakePercent: 20,
             operatorSharePercent: 20,
         })
-        console.log("\nDelegating from operatorWallet 100...")
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-        console.log("\nDelegating from delegator 900...")
-        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("900"), "0x")).wait()
-        
-        expect(formatEther(await token.balanceOf(sponsor.address))).to.equal("0.0")
-        expect(formatEther(await token.balanceOf(delegator.address))).to.equal("100.0")
-        expect(formatEther(await token.balanceOf(operatorWallet.address))).to.equal("900.0")
-        expect(formatEther(await token.balanceOf(operator.address))).to.equal("1000.0")
-        expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1000.0")
-        expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("900.0")
-        // expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
-        
-        // // operator staked 100 DATA so they should have 100 Operator tokens
-        // const timeAtStart = await getBlockTimestamp()
-        // await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
-        // console.log("\nStaking 1000 from OP to sponsorship...")
-        // await expect(operator.stake(sponsorship.address, parseEther("1000"))) // operator now has 0 DATA staked | sponsorship now has 1000 DATA staked
-        //     .to.emit(operator, "Staked").withArgs(sponsorship.address)
-        // expect(formatEther(await token.balanceOf(sponsor.address))).to.equal("0.0")
-        // expect(formatEther(await token.balanceOf(delegator.address))).to.equal("100.0")
-        // expect(formatEther(await token.balanceOf(operatorWallet.address))).to.equal("900.0")
-        // expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
-        // expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("2000.0")
-        // expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("900.0")
-        // expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
 
-        // await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from sponsorship")
-        // // const dataEarned = 500 // 1 DATA per second => 500 DATA
-        // console.log("\nWithdrawing earnings from sponsorship...")
-        // await operator.withdrawEarningsFromSponsorship(sponsorship.address)
-        // expect(formatEther(await token.balanceOf(sponsor.address))).to.equal("0.0")
-        // expect(formatEther(await token.balanceOf(delegator.address))).to.equal("100.0")
-        // expect(formatEther(await token.balanceOf(operatorWallet.address))).to.equal("900.0") // did not receive any DATA because were re-delegated
-        // expect(formatEther(await token.balanceOf(operator.address))).to.equal("500.0")
-        // expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1500.0")
-        // expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("900.0")
-        // // TODO: calculate how many PT are minted for re-delegation
-        // // const poolValueForCalculation = 1000 (staked) + 500 (earned) = 1500
-        // // const currentAmountOfPoolTokens = 1000 (100 to operator wallet and 900 to delegator)
-        // // const currentExchangeRate = currentAmountOfPoolTokens / poolValueForCalculation = 1000 / 1500 = 0.6666666
-        // // mint according to 500 earnings => 500 * 0.6666666 = 333.3333 * 0.2 (operator share) = 66.66666
-        // expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("166.0") //TODO: WHY 152.6315789 (and not 166.66666)?
+        expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
+        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+
+        expect(formatEther(await token.balanceOf(operatorWallet.address))).to.equal("900.0")
+        expect(formatEther(await token.balanceOf(operator.address))).to.equal("100.0")
+        expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
+
+        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("900"), "0x")).wait()
+
+        expect(formatEther(await token.balanceOf(delegator.address))).to.equal("100.0") // 1000 - 900
+        expect(formatEther(await token.balanceOf(operator.address))).to.equal("1000.0") // 100 + 900
+        expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("900.0")
+
+        const timeAtStart = await getBlockTimestamp()
+        const operatorsDataBefore = await token.balanceOf(operatorWallet.address)
+
+        // operator staked 100 DATA so they should have 100 Operator tokens
+        await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+        await expect(operator.stake(sponsorship.address, parseEther("1000")))
+            .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+        expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
+        expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
+        expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("2000.0") // 1000 + 1000
+
+        await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from sponsorship")
+        // const dataEarned = 500 // 1 DATA per second => 500 DATA
+        await operator.withdrawEarningsFromSponsorship(sponsorship.address)
+        expect(await token.balanceOf(sponsorship.address)).to.equal(parseEther("1500.0")) // 2000 - 500
+        expect(await token.balanceOf(operator.address)).to.equal(parseEther("500"))
+
+        // despite operatorSharePercent=20%, operator should not have more DATA since 1000 of his earnings are staked (left in operator)
+        const operatorsDataAfter = await token.balanceOf(operatorWallet.address)
+        expect(operatorsDataAfter).to.equal(operatorsDataBefore)
+
+        // operator's share of (500 * 20% = 100) DATA are added to the operator and minted for the operator
+        // exchange rate is 1 operator token / DATA like it was before the withdraw
+
+        // 0 DATA
+        // 500 DATA - 100 DATA
+        // const poolValueForCalculation = 1000 + dataEarned - 100
+        // const currentAmountOfPoolTokens = 1000
+        // const currentExchangeRate = currentAmountOfPoolTokens / poolValueForCalculation // 1000 / 1400 = 0.7142857143
+        // const pooltoken = currentExchangeRate * dataEarned / 5 // 20% of the earnings => 71.42857143
+
+        // 400 in pool
+        // mint pooltoken according to 400 DATA
+        // expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal(pooltoken + 100) // TODO: fix JS rounding error
+        expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("171.428571428571428571") // 100 + 71.42857143
     })
 
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
