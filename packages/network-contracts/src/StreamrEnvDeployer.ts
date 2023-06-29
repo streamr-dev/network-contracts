@@ -7,9 +7,10 @@ import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
 import debug from "debug"
 import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, maxOperatorsJoinPolicyABI,
+    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryAbi, ensRegistryBytecode,
+    fifsRegistrarAbi, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
     maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    operatorFactoryBytecode, publicResolverAbi, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
@@ -114,6 +115,44 @@ export class StreamrEnvDeployer {
         await this.deployOperatorContract()
         await this.investToPool()
         await this.stakeIntoSponsorship()
+    }
+
+    async deployEns(): Promise<void> {
+        log("Deploying ENS")
+        const ensDeploy = new ContractFactory(ensRegistryAbi, ensRegistryBytecode, this.adminWallet)
+        const ensDeployTx = await ensDeploy.deploy()
+        this.contracts.ENS = await ensDeployTx.deployed()
+        this.addresses.ENS = this.contracts.ENS.address
+        log(`ENS registry deployed at ${this.contracts.ENS.address}`)
+
+        const rootDomain = "eth"
+        const domainNameHash = ethers.utils.namehash("eth")
+        const rootDomainSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootDomain)) 
+        const fifsDeploy = new ContractFactory(fifsRegistrarAbi, fifsRegistrarBytecode, this.adminWallet)
+        const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, domainNameHash)
+        this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
+        this.addresses.FIFSRegistrar = this.contracts.FIFSRegistrar.address
+        log(`FIFSRegistrar deployed at ${this.contracts.FIFSRegistrar.address}`)
+
+        await(await this.contracts.ENS.setSubnodeOwner("0x0000000000000000000000000000000000000000000000000000000000000000",
+            rootDomainSha3, this.contracts.FIFSRegistrar.address)).wait()
+        const resDeploy = new ContractFactory(publicResolverAbi, publicResolverBytecode, this.adminWallet)
+        const resDeployTx = await resDeploy.deploy(this.contracts.ENS.address)
+        this.contracts.publicResolver = await resDeployTx.deployed()
+        this.addresses.PublicResolver = this.contracts.publicResolver.address
+        log(`PublicResolver deployed at ${this.contracts.publicResolver.address}`)
+    }
+
+    async registerEnsName(domain: string, ownerAddress: string): Promise<void> {
+        const ensName = domain + ".eth"
+        const hashedDomain = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(domain))
+        const nameHashedENSName = ethers.utils.namehash(ensName)
+        let tx = await this.contracts.FIFSRegistrar.register(hashedDomain, ownerAddress)
+        await tx.wait()
+
+        log("setting owner (" + ownerAddress + "), resolver and ttl for ens")
+        tx = await this.contracts.ENS.setRecord(nameHashedENSName, ownerAddress, this.addresses.PublicResolver, 1000000)
+        await tx.wait()
     }
 
     async deployStreamRegistry(): Promise<void> {
