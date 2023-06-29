@@ -60,4 +60,9 @@ export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPol
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
 export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
 
+export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/ENSRegistry.json"
+export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/FIFSRegistrar.json"
+export { abi as publicResolverAbi, bytecode as publicResolverBytecode } 
+    from "../../../node_modules/@ensdomains/resolver/build/contracts/PublicResolver.json"
+
 export { StreamrEnvDeployer } from "./StreamrEnvDeployer"

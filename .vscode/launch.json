@@ -10,14 +10,14 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "start"
+                "streamrEnvDeployer"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "node",
-            "cwd": "${workspaceFolder}/packages/ens-sync-script",
+            "cwd": "${workspaceFolder}/packages/network-contracts",
         },
         {
             "name": "ensscript",
