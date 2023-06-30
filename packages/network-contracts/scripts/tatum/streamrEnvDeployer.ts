@@ -15,7 +15,7 @@ async function main() {
     // await streamrEnvDeployer.deployEvironment()
     // await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.deployEns()
-    await streamrEnvDeployer.registerEnsName("streamrasd", Wallet.createRandom().address)
+    await streamrEnvDeployer.registerEnsName("streamrasd", Wallet.createRandom())
 
 }
 

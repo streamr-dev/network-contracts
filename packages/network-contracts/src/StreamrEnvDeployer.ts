@@ -93,9 +93,11 @@ export class StreamrEnvDeployer {
     sponsorship?: Sponsorship
     operatorAddress: any
     operator?: Operator
+    provider: providers.JsonRpcProvider
 
     constructor(key: string, chainEndpointUrl: string) {
-        this.adminWallet = new Wallet(key, new providers.JsonRpcProvider(chainEndpointUrl))
+        this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
+        this.adminWallet = new Wallet(key, this.provider)
         this.addresses = {} as EnvContracAddresses
         this.contracts = {} as EnvContracts
         this.streamId = ""
@@ -125,17 +127,17 @@ export class StreamrEnvDeployer {
         this.addresses.ENS = this.contracts.ENS.address
         log(`ENS registry deployed at ${this.contracts.ENS.address}`)
 
-        const rootDomain = "eth"
-        const domainNameHash = ethers.utils.namehash("eth")
-        const rootDomainSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootDomain)) 
+        const rootNode = "eth"
+        const rootNodeNamehash = ethers.utils.namehash(rootNode)
+        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode)) 
         const fifsDeploy = new ContractFactory(fifsRegistrarAbi, fifsRegistrarBytecode, this.adminWallet)
-        const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, domainNameHash)
+        const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
         this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
         this.addresses.FIFSRegistrar = this.contracts.FIFSRegistrar.address
         log(`FIFSRegistrar deployed at ${this.contracts.FIFSRegistrar.address}`)
 
         await(await this.contracts.ENS.setSubnodeOwner("0x0000000000000000000000000000000000000000000000000000000000000000",
-            rootDomainSha3, this.contracts.FIFSRegistrar.address)).wait()
+            rootNodeSha3, this.contracts.FIFSRegistrar.address)).wait()
         const resDeploy = new ContractFactory(publicResolverAbi, publicResolverBytecode, this.adminWallet)
         const resDeployTx = await resDeploy.deploy(this.contracts.ENS.address)
         this.contracts.publicResolver = await resDeployTx.deployed()
@@ -143,15 +145,19 @@ export class StreamrEnvDeployer {
         log(`PublicResolver deployed at ${this.contracts.publicResolver.address}`)
     }
 
-    async registerEnsName(domain: string, ownerAddress: string): Promise<void> {
+    async registerEnsName(domain: string, newOwner: Wallet): Promise<void> {
+        newOwner = newOwner.connect(this.provider)
+        await (await this.adminWallet.sendTransaction({to: newOwner.address, value: ethers.utils.parseEther("1")})).wait()
+
         const ensName = domain + ".eth"
         const hashedDomain = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(domain))
         const nameHashedENSName = ethers.utils.namehash(ensName)
-        let tx = await this.contracts.FIFSRegistrar.register(hashedDomain, ownerAddress)
+        let tx = await this.contracts.FIFSRegistrar.register(hashedDomain, newOwner.address)
         await tx.wait()
 
-        log("setting owner (" + ownerAddress + "), resolver and ttl for ens")
-        tx = await this.contracts.ENS.setRecord(nameHashedENSName, ownerAddress, this.addresses.PublicResolver, 1000000)
+        log("setting owner (" + newOwner.address + "), resolver and ttl for ens")
+        tx = await this.contracts.ENS.connect(newOwner)
+            .setRecord(nameHashedENSName, newOwner.address, this.addresses.PublicResolver, BigInt(100000000))
         await tx.wait()
     }
 
