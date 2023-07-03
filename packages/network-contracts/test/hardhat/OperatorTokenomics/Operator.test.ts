@@ -697,7 +697,7 @@ describe("Operator contract", (): void => {
 
         const sponsorship1 = await deploySponsorship(sharedContracts)
         const sponsorship2 = await deploySponsorship(sharedContracts)
-        const operator = await deployOperator(sharedContracts, operatorWallet)
+        const operator = await deployOperator(sharedContracts, operatorWallet, { operatorSharePercent: 10 })
         await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("1000"), "0x")).wait()
         await (await token.connect(sponsor).transferAndCall(sponsorship2.address, parseEther("1000"), "0x")).wait()
@@ -709,17 +709,24 @@ describe("Operator contract", (): void => {
         await expect(operator.stake(sponsorship2.address, parseEther("500")))
             .to.emit(operator, "Staked").withArgs(sponsorship2.address)
 
-        // poolvalue will have changed, will be 3000, approx poolvalue will be 1000
+        // poolvalue will have changed, will be 3000 - 2000 * 0.1 = 2800, approx poolvalue will be 1000
         await advanceToTimestamp(timeAtStart + 5000, "withdraw earnings from sponsorship")
-        expect(await operator.calculatePoolValueInData()).to.equal(parseEther("3000"))
+        expect(await operator.calculatePoolValueInData()).to.equal(parseEther("2800")) // freeFunds + stake + earnings - operator's share of earnings
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1000"))
         expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000"))
 
         await operator.connect(delegator).pullEarningsFromSponsorships([sponsorship1.address, sponsorship2.address])
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("3000"))
-
-        expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("995"))
-        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("5"))
+        
+        // operator got slashed
+        // pool value = 2800, pool tokens = 1000
+        // exchange rate to mint PT for operator's share = 1000/2800 = 0.357
+        // mint PT to operator wallet according to the exchange rate => 200 * 0.3571 = 71.4
+        // new operator wallet PT balance = 1000 + 71.4 = 1071.4
+        // penalty wei = 0.005 * 1071.4 = 5.357 (poolValueDriftPenaltyFraction * operatorWalletPTBalance)
+        // operator wallet PT balance after slashing = 1000 + 71.4 - 5.357 = 1066.071
+        expect(await operator.balanceOf(operatorWallet.address)).to.be.closeTo(parseEther("1066.071"), parseEther("0.001")) // 1066.071428571428571429
+        expect(await operator.balanceOf(delegator.address)).to.be.closeTo(parseEther("5.357"), parseEther("0.001")) // 5.357142857142857142
     })
 
     it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {

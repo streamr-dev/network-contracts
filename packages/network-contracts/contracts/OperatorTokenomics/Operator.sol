@@ -742,7 +742,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
      * If the difference is too large call pullEarningsFromSponsorships to get a small prize (paid from operator's pool tokens)
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     * TODO: is this function needed? getApproximatePoolValuesPerSponsorship gives same info, and more
+     * TODO: is this function needed? getPoolValuesPerSponsorship gives same info, and more
      */
     function calculatePoolValueInData() external view returns (uint256 poolValue) {
         poolValue = token.balanceOf(address(this));
@@ -764,18 +764,19 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             sumEarnings += earnings;
         }
         
-        _redelegateOperatorsShare(sumEarnings);
+        uint operatorsShareDataWei = _redelegateOperatorsShare(sumEarnings);
 
+        // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
         // if earnings are more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
         uint allowedDifference = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-        if (sumEarnings > allowedDifference) {
+        if (sumEarnings - operatorsShareDataWei > allowedDifference) {
             uint penaltyWei = balanceOf(owner) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             _transfer(owner, _msgSender(), penaltyWei);
         }
     }
 
-    function _redelegateOperatorsShare(uint earningsDataWei) private {
-        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
+    function _redelegateOperatorsShare(uint earningsDataWei) private returns (uint operatorsShareDataWei) {
+        operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
         // "self-delegate" the operator's share === mint new pooltokens
         _delegate(owner, operatorsShareDataWei);
