@@ -79,7 +79,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // Pool value = DATA value of all stake + earnings in sponsorships - operator's share of those earnings
     // It can be queried / calculated in different ways:
     // 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
-    // 2. approximate but always available: totalValueInSponsorshipsWei (updated in stake, reduceStakeWithoutQueue, _removeSponsorship, onSlash)
+    // 2. approximate but always available: totalValueInSponsorshipsWei (tracks only the stake, does not include accumulated earnings)
     uint public totalValueInSponsorshipsWei;
 
     mapping(Sponsorship => uint) public stakedInto; // in Data wei
@@ -718,8 +718,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Convenience method to get all sponsorship values
-     * The operator needs to keep an eye on the approximate values at all times, so that the approximation is not too far off.
-     * If someone else notices that the approximation is too far off
+     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
+     * If someone else notices that there's too much unwithdrawn earnings
      *      they can call pullEarningsFromSponsorships to get a small prize (paid from operator's pool tokens).
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
@@ -752,9 +752,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * If the accumulated earnings (includes operator's share of the earnings) becomes too large,
-     *   then anyone can call this method and point out a set of sponsorships that together sum up to poolValueDriftLimitFraction
-     * Caller gets rewarded poolValueDriftPenaltyFraction of the operator's pool tokens
+     * If the sum of accumulated earnings over all staked bounties (includes operator's share of the earnings) becomes too large,
+     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
+     * Caller gets rewarded poolValueDriftPenaltyFraction of the operator's pool tokens if they provide that set of sponsorships.
      */
     function pullEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         uint sumEarnings = 0;
@@ -767,7 +767,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint operatorsShareDataWei = _redelegateOperatorsShare(sumEarnings);
 
         // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
-        // if earnings are more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
+        // if sum of earnings are more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
         uint allowedDifference = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
         if (sumEarnings - operatorsShareDataWei > allowedDifference) {
             uint penaltyWei = balanceOf(owner) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
