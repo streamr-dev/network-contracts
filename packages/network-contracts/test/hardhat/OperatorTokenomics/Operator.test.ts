@@ -165,7 +165,7 @@ describe("Operator contract", (): void => {
         })
     })
 
-    it("withdraws sponsorships earnings when pullEarningsFromSponsorships is called", async function(): Promise<void> {
+    it("withdraws sponsorships earnings when withdrawEarningsFromSponsorships is called", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(sponsor, "1000")
         await setTokens(operatorWallet, "1000")
@@ -183,28 +183,28 @@ describe("Operator contract", (): void => {
 
         const approxPoolValueBefore = await operator.getApproximatePoolValue()
         const actualPoolValueBefore = await operator.calculatePoolValueInData()
-        const poolValuePerSponsorshipBefore = await operator.getPoolValuesPerSponsorship()
+        const poolValuePerSponsorshipBefore = await operator.getEarningsFromSponsorships()
         const totalValueInSponsorshipsWeiBefore = await operator.totalValueInSponsorshipsWei()
 
-        await (await operator.pullEarningsFromSponsorships([sponsorship.address])).wait()
+        await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
 
         const approxPoolValueAfter = await operator.getApproximatePoolValue()
         const actualPoolValueAfter = await operator.calculatePoolValueInData()
-        const poolValuePerSponsorshipAfter = await operator.getPoolValuesPerSponsorship()
+        const poolValuePerSponsorshipAfter = await operator.getEarningsFromSponsorships()
         const totalValueInSponsorshipsWeiAfter = await operator.totalValueInSponsorshipsWei()
 
         expect(formatEther(approxPoolValueBefore)).to.equal("1000.0")
         expect(formatEther(actualPoolValueBefore)).to.equal("2000.0")
 
         expect(formatEther(poolValuePerSponsorshipBefore.earnings[0])).to.equal("1000.0")
-        expect(formatEther(poolValuePerSponsorshipBefore.realValues[0])).to.equal("2000.0")
+        // expect(formatEther(poolValuePerSponsorshipBefore.realValues[0])).to.equal("2000.0")
         expect(poolValuePerSponsorshipBefore.sponsorshipAddresses[0]).to.equal(sponsorship.address)
         expect(formatEther(totalValueInSponsorshipsWeiBefore)).to.equal("1000.0")
 
         expect(formatEther(approxPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(actualPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(poolValuePerSponsorshipAfter.earnings[0])).to.equal("0.0") // it's zero because we pulled all earnings
-        expect(formatEther(poolValuePerSponsorshipAfter.realValues[0])).to.equal("1000.0") // doesn't include the free funds
+        // expect(formatEther(poolValuePerSponsorshipAfter.realValues[0])).to.equal("1000.0") // doesn't include the free funds
         expect(poolValuePerSponsorshipAfter.sponsorshipAddresses[0]).to.equal(sponsorship.address)
         // TODO: should it include the free funds ?!
         expect(formatEther(totalValueInSponsorshipsWeiAfter)).to.equal("1000.0") // doesn't include the free funds
@@ -314,7 +314,7 @@ describe("Operator contract", (): void => {
 
         expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("0"))
         expect(await dataToken.balanceOf(sponsorship.address)).to.equal(parseEther("3000")) // 2500 sponsorship + 500 stake
-        expect(await operator.getPoolValueFromSponsorship(sponsorship.address)).to.equal(parseEther("500"))
+        expect(await operator.getEarningsFromSponsorship(sponsorship.address)).to.equal(parseEther("0"))
         expect(await sponsorship.stakedWei(operator.address)).to.equal(parseEther("500"))
         expect(await sponsorship.getEarnings(operator.address)).to.equal(parseEther("0"))
 
@@ -715,9 +715,9 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1000"))
         expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000"))
 
-        await operator.connect(delegator).pullEarningsFromSponsorships([sponsorship1.address, sponsorship2.address])
+        await operator.connect(delegator).withdrawEarningsFromSponsorships([sponsorship1.address, sponsorship2.address])
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("3000"))
-        
+
         // operator got slashed
         // pool value = 2800, pool tokens = 1000
         // exchange rate to mint PT for operator's share = 1000/2800 = 0.357
@@ -745,7 +745,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
         await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
-        await operator.pullEarningsFromSponsorships([sponsorship.address])
+        await operator.withdrawEarningsFromSponsorships([sponsorship.address])
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
         // TestKickPolicy actually kicks and slashes given amount (here, 10)
@@ -771,7 +771,7 @@ describe("Operator contract", (): void => {
 
         // update poolvalue
         await advanceToTimestamp(timeAtStart + 1000, "slash")
-        await operator.pullEarningsFromSponsorships([sponsorship.address])
+        await operator.withdrawEarningsFromSponsorships([sponsorship.address])
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("2000"))
 
         await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
