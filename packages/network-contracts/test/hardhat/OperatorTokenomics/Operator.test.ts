@@ -595,8 +595,33 @@ describe("Operator contract", (): void => {
             expect(formatEther(balanceAfter)).to.equal("179.0")
         })
 
-        it("gets called when withdrawing", async () => {
-            // TODO
+        it("pays out the queue on withdrawEarningsFromSponsorships", async () => {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "1000")
+
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const operator = await deployOperator(sharedContracts, operatorWallet) // zero operator's share
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait() // 1000 free funds
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait() // 1000 available to be earned
+
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
+            await operator.connect(delegator).undelegate(parseEther("100"))
+            // delegator is queued, but no funds were moved yet
+            expect(await token.balanceOf(delegator.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
+
+            await operator.withdrawEarningsFromSponsorships([sponsorship.address])
+            // pool value = 1000 (staked) + 1000 (earnings) = 2000 DATA => exchange rate = 2000 / 1000 = 2 DATA/PT
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("900")) // 100 PT are burned
+            expect(await token.balanceOf(delegator.address)).to.equal(parseEther("200")) // 200 DATA are transfered to delegator (1 PT = 2 DATA)
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("800")) // 800 DATA are left in the pool, as free funds
         })
     })
 
