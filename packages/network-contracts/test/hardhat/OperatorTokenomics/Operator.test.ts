@@ -188,7 +188,7 @@ describe("Operator contract", (): void => {
 
         await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
 
-        const approxPoolValueAfter = await operator.getApproximatePoolValue()
+        const approxPoolValueAfter = await operator.getApproximatePoolValue() // == totalValueInSponsorshipsWei + free funds (Operator DATA balance)
         const actualPoolValueAfter = await operator.calculatePoolValueInData()
         const poolValuePerSponsorshipAfter = await operator.getEarningsFromSponsorships()
         const totalValueInSponsorshipsWeiAfter = await operator.totalValueInSponsorshipsWei()
@@ -197,16 +197,13 @@ describe("Operator contract", (): void => {
         expect(formatEther(actualPoolValueBefore)).to.equal("2000.0")
 
         expect(formatEther(poolValuePerSponsorshipBefore.earnings[0])).to.equal("1000.0")
-        // expect(formatEther(poolValuePerSponsorshipBefore.realValues[0])).to.equal("2000.0")
         expect(poolValuePerSponsorshipBefore.sponsorshipAddresses[0]).to.equal(sponsorship.address)
         expect(formatEther(totalValueInSponsorshipsWeiBefore)).to.equal("1000.0")
 
         expect(formatEther(approxPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(actualPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(poolValuePerSponsorshipAfter.earnings[0])).to.equal("0.0") // it's zero because we pulled all earnings
-        // expect(formatEther(poolValuePerSponsorshipAfter.realValues[0])).to.equal("1000.0") // doesn't include the free funds
         expect(poolValuePerSponsorshipAfter.sponsorshipAddresses[0]).to.equal(sponsorship.address)
-        // TODO: should it include the free funds ?!
         expect(formatEther(totalValueInSponsorshipsWeiAfter)).to.equal("1000.0") // doesn't include the free funds
     })
 
@@ -596,6 +593,10 @@ describe("Operator contract", (): void => {
             const balanceAfter = await token.balanceOf(delegator.address)
 
             expect(formatEther(balanceAfter)).to.equal("179.0")
+        })
+
+        it("gets called when withdrawing", async () => {
+            // TODO
         })
     })
 

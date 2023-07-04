@@ -385,7 +385,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
-        // payOutQueueWithFreeFunds(0);
+        payOutQueueWithFreeFunds(0);
     }
 
     function _redelegateOperatorsShare(uint earningsDataWei) private returns (uint operatorsShareDataWei) {
