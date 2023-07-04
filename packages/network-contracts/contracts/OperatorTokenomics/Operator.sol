@@ -629,6 +629,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
             emit QueueUpdated(delegator, 0);
+            emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -644,9 +645,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue);
+            emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return false;
         }
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /* solhint-enable reentrancy */
