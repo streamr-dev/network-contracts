@@ -5,7 +5,6 @@ pragma solidity ^0.8.13;
 import "./IPoolYieldPolicy.sol";
 import "../Operator.sol";
 
-
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
 
     //struct LocalStorage {
