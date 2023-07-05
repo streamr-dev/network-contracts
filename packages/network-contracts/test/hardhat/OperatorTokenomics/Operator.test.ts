@@ -612,12 +612,12 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
             await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
-            await operator.connect(delegator).undelegate(parseEther("100"))
+            await(await operator.connect(delegator).undelegate(parseEther("100"))).wait()
             // delegator is queued, but no funds were moved yet
             expect(await token.balanceOf(delegator.address)).to.equal(parseEther("0"))
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
 
-            await operator.withdrawEarningsFromSponsorships([sponsorship.address])
+            await(await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
             // pool value = 1000 (staked) + 1000 (earnings) = 2000 DATA => exchange rate = 2000 / 1000 = 2 DATA/PT
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("900")) // 100 PT are burned
             expect(await token.balanceOf(delegator.address)).to.equal(parseEther("200")) // 200 DATA are transfered to delegator (1 PT = 2 DATA)
