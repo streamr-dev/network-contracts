@@ -228,7 +228,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If the data bytes contains an address, the incoming tokens are delegated on behalf of that delegator
      * If not, the token sender is the delegator
      * If the address is this contract, then add tokens to free funds (don't delegate at all)
-     *    Those tokens are "gifted" to the Operator contract, and won't be delegated for anyone.
+     *    Those tokens are "gifted" to the Operator contract, and won't be delegated for anyone, but instead count as Profit.
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         // console.log("## onTokenTransfer from", sender);
@@ -255,7 +255,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         // "gifted" tokens aren't delegated at all, only added to free funds, so no need to mint tokens
-        if (delegator != address(this)) {
+        if (delegator == address(this)) {
+            emit Profit(Sponsorship(address(0)), amount, 0);
+        } else {
             _mintPoolTokensFor(delegator, amount);
         }
 
@@ -357,42 +359,59 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
         uint earningsDataWei = sponsorship.withdraw();
-        uint operatorsShareDataWei = _redelegateOperatorsShare(earningsDataWei);
+        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
+        _mintPoolTokensFor(owner, operatorsShareDataWei);
         emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
      * If the sum of accumulated earnings over all staked bounties (includes operator's share of the earnings) becomes too large,
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
-     * Caller gets rewarded poolValueDriftPenaltyFraction of the operator's pool tokens if they provide that set of sponsorships.
+     * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+        uint poolValueBeforeWithdraw = getApproximatePoolValue();
+
+        // the sumEarnings new DATA tokens from .withdraw() are split between operatorsShareDataWei and free funds (Profit)
+        // operatorsShareDataWei may be split between the operator and the OperatorValueBreachWatcher (if they're the caller of this function)
+        // remaining operator's share is "self-delegated" in the end, OperatorValueBreachWatcher's share is sent out as a reward
         uint sumEarnings = 0;
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
-            Sponsorship sponsorship = sponsorshipAddresses[i];
-            uint earnings = sponsorship.withdraw(); // earnings + share of operator's earnings
-            sumEarnings += earnings;
+            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
+        }
+        require(sumEarnings > 0, "error_noEarnings");
+        uint operatorsShareDataWei = sumEarnings * operatorsShareFraction / 1 ether;
+
+        // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsShareDataWei to the caller as a reward
+        uint operatorPaymentDataWei = operatorsShareDataWei;
+        if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
+            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
+            uint penaltyDataWei = operatorsShareDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
+            if (sumEarnings > allowedDifference) {
+                // NOTE: careful with changing state before this line, possible re-entrancy from here!
+                // _msgSender() in ERC677 metadata means: gift tokens to Operator whose triggerAnotherOperatorWithdraw was called
+                token.transferAndCall(_msgSender(), penaltyDataWei, abi.encode(_msgSender()));
+                operatorPaymentDataWei -= penaltyDataWei;
+            }
         }
 
-        uint operatorsShareDataWei = _redelegateOperatorsShare(sumEarnings);
-
-        // TODO: this could move pool tokens to someone who isn't delegated into the pool! TODO: Add them if they're not in the pool?
-        // if sum of earnings are more than allowed, then slash the operator a bit: move some of their pool tokens to reward the caller
-        uint allowedDifference = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-        if (sumEarnings - operatorsShareDataWei > allowedDifference) {
-            uint penaltyWei = balanceOf(owner) * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
-            _transfer(owner, _msgSender(), penaltyWei);
-        }
-
+        _mintPoolTokensFor(owner, operatorPaymentDataWei);
+        emit Profit(Sponsorship(address(0)), sumEarnings - operatorsShareDataWei, operatorPaymentDataWei);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+
         payOutQueueWithFreeFunds(0);
     }
 
-    function _redelegateOperatorsShare(uint earningsDataWei) private returns (uint operatorsShareDataWei) {
-        operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
-        // "self-delegate" the operator's share === mint new pooltokens
-        _mintPoolTokensFor(owner, operatorsShareDataWei);
+    /**
+     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * This function can only be called if there really are too many unwithdrawn earnings.
+     **/
+    function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+        uint balanceBeforeWei = token.balanceOf(address(this)); // TODO: do we want these checks?
+        other.withdrawEarningsFromSponsorships(sponsorshipAddresses); // expects an increase in free funds
+        uint balanceAfterWei = token.balanceOf(address(this));
+        require(balanceAfterWei > balanceBeforeWei, "error_didNotReceiveReward");
     }
 
     /**
@@ -648,6 +667,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return false;
         }
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /* solhint-enable reentrancy */
@@ -746,9 +766,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /* solhint-enable */
 
-    ////////////////////////////////////////
-    // POOL VALUE UPDATING + incentivization
-    ////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    // POOL VALUE UPDATING convenience methods: find unwithdrawn earnings
+    ////////////////////////////////////////////////////////////////////////
 
     /**
      * Unwithdrawn earnings in the Sponsorship, minus operator's share of the earnings
