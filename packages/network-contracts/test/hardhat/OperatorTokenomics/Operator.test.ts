@@ -723,7 +723,7 @@ describe("Operator contract", (): void => {
             ...await deployOperatorFactory(sharedContracts, admin)
         }
         const operator1 = await deployOperatorContract(contracts, operatorWallet, { operatorSharePercent: 40 })
-        const operator2 = await deployOperatorContract(contracts, operator2Wallet, { operatorSharePercent: 40 })
+        const operator2 = await deployOperatorContract(contracts, operator2Wallet, { operatorSharePercent: 17 }) // number doesn't affect calculations
         const sponsorship1 = await deploySponsorship(contracts)
         const sponsorship2 = await deploySponsorship(contracts)
 
@@ -764,11 +764,12 @@ describe("Operator contract", (): void => {
         // total withdrawable earnings = 2000 DATA
         // operator's share = 2000 * 40% = 800 DATA
         // the rest of the earnings (1200 DATA) was added to operator1's free funds (Profit)
-        // pool value after Profit is 2000 + 1200 = 3200 DATA => exchange rate is 3200 / 2000 = 1.6 DATA / pool token
+        // operator1 pool value after Profit is 2000 + 1200 = 3200 DATA => exchange rate is 3200 / 2000 = 1.6 DATA / pool token
         // half of the operator's share went to operator2 for being a good OperatorValueBreachWatcher, so both got 400 DATA
-        // operator2's 400 DATA was added to free funds (Profit)
-        // operator1's 400 DATA was added to pool value as self-delegation (not Profit)
+        // operator1's 400 DATA was added to operator1 pool value as self-delegation (not Profit)
         //  => operatorWallet1 received 400 / 1.6 = 250 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
+        // operator2's 400 DATA was added to operator2 pool value as self-delegation, exchange rate still 1 DATA / pool token
+        //  => operatorWallet2 received 400 / 1 = 400 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
         expect(await operator1.calculatePoolValueInData()).to.equal(parseEther("3600")) // free funds + stakes + profits + operator's self-delegation
         expect(await operator1.getApproximatePoolValue()).to.equal(parseEther("3600"))  // no unwithdrawn earnings => approximate is correct
         expect(await token.balanceOf(operator1.address)).to.equal(parseEther("1600"))   // free funds including profits + operator's self-delegation
@@ -778,7 +779,8 @@ describe("Operator contract", (): void => {
         expect(await token.balanceOf(operator2.address)).to.equal(parseEther("1400"))
 
         expect(await operator1.balanceOf(delegator.address)).to.equal(parseEther("1000"))
-        expect(await operator1.balanceOf(operatorWallet.address)).to.equal(parseEther("1250")) // operator's self-delegation
+        expect(await operator1.balanceOf(operatorWallet.address)).to.equal(parseEther("1250")) // operator1's self-delegation
+        expect(await operator2.balanceOf(operator2Wallet.address)).to.equal(parseEther("1400")) // operator2's self-delegation
     })
 
     it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {

@@ -115,6 +115,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public streamId;
     string public metadata;
 
+    uint public reentrancyGuard; // set to 1 e.g. during triggerAnotherOperatorWithdraw
+
     modifier onlyOperator() {
         require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
         _;
@@ -242,6 +244,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             return;
         }
 
+        // we're "expecting tokens" e.g. during triggerAnotherOperatorWithdraw call, ignore them here and handle in the function instead
+        if (reentrancyGuard > 0) {
+            return;
+        }
+
         // default: transferAndCall sender wants to delegate the sent DATA tokens, unless they give another address in the ERC677 satellite data
         address delegator = sender;
         if (data.length == 20) {
@@ -355,7 +362,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         payOutQueueWithFreeFunds(0);
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Bounties to pay out the queue in parts */
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
         uint earningsDataWei = sponsorship.withdraw();
@@ -366,7 +373,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * If the sum of accumulated earnings over all staked bounties (includes operator's share of the earnings) becomes too large,
+     * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
      * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
@@ -390,8 +397,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             uint penaltyDataWei = operatorsShareDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 // NOTE: careful with changing state before this line, possible re-entrancy from here!
-                // _msgSender() in ERC677 metadata means: gift tokens to Operator whose triggerAnotherOperatorWithdraw was called
-                token.transferAndCall(_msgSender(), penaltyDataWei, abi.encode(_msgSender()));
+                token.transferAndCall(_msgSender(), penaltyDataWei, "reward");
                 operatorPaymentDataWei -= penaltyDataWei;
             }
         }
@@ -405,13 +411,21 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
-     * This function can only be called if there really are too many unwithdrawn earnings.
+     * The reward will be re-delegated for the owner (same way as withdrawn earnings)
+     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
      **/
-    function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
-        uint balanceBeforeWei = token.balanceOf(address(this)); // TODO: do we want these checks?
-        other.withdrawEarningsFromSponsorships(sponsorshipAddresses); // expects an increase in free funds
+    function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public onlyOperator {
+        require(reentrancyGuard == 0, "error_reentrancy"); // could happen if the other isn't an Operator...
+        reentrancyGuard = 1;
+        uint balanceBeforeWei = token.balanceOf(address(this));
+        other.withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
-        require(balanceAfterWei > balanceBeforeWei, "error_didNotReceiveReward");
+        uint earnings = balanceAfterWei - balanceBeforeWei;
+        require(earnings > 0, "error_didNotReceiveReward");
+        // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
+        _mintPoolTokensFor(owner, earnings);
+        emit PoolValueUpdate(totalValueInSponsorshipsWei, balanceAfterWei);
+        reentrancyGuard = 0;
     }
 
     /**
