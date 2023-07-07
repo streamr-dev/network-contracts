@@ -115,8 +115,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public streamId;
     string public metadata;
 
-    uint public reentrancyGuard; // set to 1 e.g. during triggerAnotherOperatorWithdraw
-
     modifier onlyOperator() {
         require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
         _;
@@ -241,11 +239,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // ignore returned tokens, handle them in unstake()/withdraw() instead
         Sponsorship sponsorship = Sponsorship(sender);
         if (indexOfSponsorships[sponsorship] > 0) {
-            return;
-        }
-
-        // we're "expecting tokens" e.g. during triggerAnotherOperatorWithdraw call, ignore them here and handle in the function instead
-        if (reentrancyGuard > 0) {
             return;
         }
 
@@ -397,7 +390,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             uint penaltyDataWei = operatorsShareDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 // NOTE: careful with changing state before this line, possible re-entrancy from here!
-                token.transferAndCall(_msgSender(), penaltyDataWei, "reward");
+                token.transfer(_msgSender(), penaltyDataWei);
                 operatorPaymentDataWei -= penaltyDataWei;
             }
         }
@@ -415,8 +408,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public onlyOperator {
-        require(reentrancyGuard == 0, "error_reentrancy"); // could happen if the other isn't an Operator...
-        reentrancyGuard = 1;
         uint balanceBeforeWei = token.balanceOf(address(this));
         other.withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
@@ -425,7 +416,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, balanceAfterWei);
-        reentrancyGuard = 0;
     }
 
     /**
