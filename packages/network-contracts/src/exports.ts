@@ -24,6 +24,10 @@ export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytec
     from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json"
 export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
 
+export { abi as ENSCacheV2ABI, bytecode as ENSCacheV2Bytecode }
+    from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/chainlinkClient/ENSCacheV2Streamr"
+
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 export type { NodeRegistry } from "../typechain/contracts/NodeRegistry/NodeRegistry"
@@ -60,9 +64,12 @@ export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPol
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
 export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
 
+export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnlyJoinPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
+export type { OperatorContractOnlyJoinPolicy } from 
+    "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
+
 export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/ENSRegistry.json"
 export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/FIFSRegistrar.json"
 export { abi as publicResolverAbi, bytecode as publicResolverBytecode } 
     from "../../../node_modules/@ensdomains/resolver/build/contracts/PublicResolver.json"
-
-export { StreamrEnvDeployer } from "./StreamrEnvDeployer"
