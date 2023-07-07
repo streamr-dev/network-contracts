@@ -389,7 +389,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
             uint penaltyDataWei = operatorsShareDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
-                // NOTE: careful with changing state before this line, possible re-entrancy from here!
                 token.transfer(_msgSender(), penaltyDataWei);
                 operatorPaymentDataWei -= penaltyDataWei;
             }
