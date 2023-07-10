@@ -12,10 +12,13 @@ async function main() {
 
     const streamrEnvDeployer = new StreamrEnvDeployer(key, url)
 
-    // await streamrEnvDeployer.deployEvironment()
-    // await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
+    await streamrEnvDeployer.deployEvironment()
+    await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.deployEns()
     await streamrEnvDeployer.registerEnsName("streamrasd", Wallet.createRandom())
+
+    const contracts = await streamrEnvDeployer.contracts
+    await (await contracts.streamRegistry.createStream("/test" + Date.now(), "{}")).wait()
 
 }
 

@@ -31,14 +31,9 @@ contract.on("Staked", async (sponsorship: string) => {
 
 ## Developer notes
 
-To deploy StreamRegistry and deploy the subgraph, run:
-```
-npm ci
-npm run build
-npm run localDeploy
-```
-to deploy the contracts into a locally running eth environment.
-Then follow the README in the streamregistry-thegraph-subgraph folder.
+The package exports all of the artifacts needed to interact with the contracts, and also a class that deploys them into a chain and then gives an object with all addresses and with all contract objects.
+
+An example of how to use it can be seen in network-contracts/packages/network-contracts/scripts/tatum/streamrEnvDeployer.ts, that can be run with the streamrEnvDeployer npm task
 
 
 <h3>Proxy contracts</h3>
