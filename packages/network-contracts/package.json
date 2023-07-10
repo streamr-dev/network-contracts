@@ -1,11 +1,13 @@
 {
   "name": "@streamr/network-contracts",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Smart contracts for Streamr Network",
   "author": "Streamr Network AG",
   "license": "ISC",
   "private": false,
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
     "contracts"
@@ -38,6 +40,8 @@
   },
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
+    "@ensdomains/buffer": "0.1.1",
+    "@ensdomains/dnssec-oracle": "0.2.0",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"

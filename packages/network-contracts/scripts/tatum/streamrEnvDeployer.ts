@@ -1,3 +1,4 @@
+import { Wallet } from "ethers"
 import { StreamrEnvDeployer } from "../../src/StreamrEnvDeployer"
 
 async function main() {
@@ -10,8 +11,15 @@ async function main() {
     // const url = "http://10.200.10.1:8546"
 
     const streamrEnvDeployer = new StreamrEnvDeployer(key, url)
+
     await streamrEnvDeployer.deployEvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
+    await streamrEnvDeployer.deployEns()
+    await streamrEnvDeployer.registerEnsName("streamrasd", Wallet.createRandom())
+
+    const contracts = await streamrEnvDeployer.contracts
+    await (await contracts.streamRegistry.createStream("/test" + Date.now(), "{}")).wait()
+
 }
 
 main()
