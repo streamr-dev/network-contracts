@@ -6,9 +6,12 @@ import {
     MetadataUpdated,
     PoolValueUpdate,
     Profit,
+    QueueUpdated,
+    QueuedDataPayout,
     Undelegated,
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
+import { QueueEntry } from '../generated/schema'
 
 /** event emits pooltoken values */
 export function handleBalanceUpdate(event: BalanceUpdate): void {
@@ -142,3 +145,29 @@ export function handleLoss(event: Loss): void {
 //     stake.amount = event.params.amountWei
 //     stake.save()
 // }
+
+export function handleQueuedDataPayout(event: QueuedDataPayout): void {
+    let operatorContractAddress = event.address.toHexString()
+    let dataAmountPT = event.params.amountPoolTokenWei
+    log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
+        operatorContractAddress, event.block.number.toString(), dataAmountPT.toString()
+    ])
+
+    let queueEntry = new QueueEntry(operatorContractAddress + "-" + event.transaction.hash.toHexString())
+    queueEntry.operator = operatorContractAddress
+    queueEntry.amount = dataAmountPT
+    queueEntry.date = event.block.timestamp
+    queueEntry.delegator = event.params.delegator.toHexString()
+    queueEntry.save()
+}
+
+export function handleQueueUpdated(event: QueueUpdated): void {
+    let operatorContractAddress = event.address.toHexString()
+    log.info('handleQueueUpdated: operatorContractAddress={} blockNumber={}', [
+        operatorContractAddress, event.block.number.toString()
+    ])
+
+    // let queueEntry = QueueEntry.load(operatorContractAddress + "-" + event.transaction.hash.toHexString())
+
+    // TODO: need to add queue index to event first
+}

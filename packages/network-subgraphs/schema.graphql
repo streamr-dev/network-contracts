@@ -339,6 +339,30 @@ type SponsorshipDailyBucket @entity {
   operatorCount: Int!
 }
 
+type SlashingEvent @entity {
+  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  sponsorship: Sponsorship!
+}
+
+type StakingEvent @entity {
+  id: ID! # 
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  sponsorship: Sponsorship!
+}
+
+type QueueEntry @entity {
+  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  delegator: String!
+}
+
 # Operators hold Stake in Sponsorships
 type Stake @entity {
   id: ID! # 0xsponsorshipAddress-0xoperatorAddress
