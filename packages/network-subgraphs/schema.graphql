@@ -321,6 +321,7 @@ type Sponsorship @entity {
   operatorCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
+  spotAPY: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!

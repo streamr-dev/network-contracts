@@ -1,4 +1,4 @@
-import { log } from '@graphprotocol/graph-ts'
+import { log, BigInt } from '@graphprotocol/graph-ts'
 
 import { Sponsorship, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
 import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate } from '../generated/templates/Sponsorship/Sponsorship'
@@ -44,6 +44,10 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     sponsorship!.unallocatedWei = event.params.unallocatedWei
     sponsorship!.operatorCount = event.params.operatorCount.toI32()
     sponsorship!.isRunning = event.params.isRunning
+    if (sponsorship && sponsorship.totalPayoutWeiPerSec && sponsorship!.totalStakedWei.gt(BigInt.fromI32(0))) {
+        sponsorship!.spotAPY = sponsorship!.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship!.totalStakedWei)
+    }
+
     sponsorship!.save()
 
     // update SponsorshipDailyBucket

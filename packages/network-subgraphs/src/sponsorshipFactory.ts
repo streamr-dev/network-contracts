@@ -13,6 +13,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     let sponsorship = new Sponsorship(sponsorshipContract)
     sponsorship.totalStakedWei = BigInt.fromI32(0)
     sponsorship.unallocatedWei = BigInt.fromI32(0)
+    sponsorship.spotAPY = BigInt.fromI32(0)
     sponsorship.projectedInsolvency = BigInt.fromI32(0)
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
