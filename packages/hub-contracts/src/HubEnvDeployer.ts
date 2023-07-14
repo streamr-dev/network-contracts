@@ -2,7 +2,6 @@ import { ContractFactory, Wallet, providers } from "ethers"
 import {
     MarketplaceV4, marketplaceV4ABI, marketplaceV4Bytecode,
     ProjectRegistryV1, projectRegistryV1ABI, projectRegistryV1Bytecode,
-    ProjectStakingV1, projectStakingV1ABI, projectStakingV1Bytecode,
     RemoteMarketplaceV1, remoteMarketplaceV1ABI, remoteMarketplaceV1Bytecode,
     Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode
 } from "./exports"
@@ -13,7 +12,6 @@ const log = debug.log
 export type HubEnvContractAddresses = {
     "MarketplaceV4": string,
     "ProjectRegistryV1": string,
-    "ProjectStakingV1": string,
     "RemoteMarketplaceV1": string,
     "Uniswap2AdapterV4": string,
 }
@@ -21,7 +19,6 @@ export type HubEnvContractAddresses = {
 export type HubEnvContracts = {
     "marketplaceV4": MarketplaceV4,
     "projectRegistryV1": ProjectRegistryV1,
-    "projectStakingV1": ProjectStakingV1,
     "remoteMarketplaceV1": RemoteMarketplaceV1,
     "uniswap2AdapterV4": Uniswap2AdapterV4,
 }
@@ -63,21 +60,6 @@ export class HubEnvDeployer {
         this.contracts.projectRegistryV1 = projectRegistryV1
         this.addresses.ProjectRegistryV1 = projectRegistryV1.address
         return projectRegistryV1
-    }
-
-    async deployProjectStakingV1(projectRegistryAddress: string, stakingTokenAddress: string): Promise<ProjectStakingV1> {
-        log("Deploying ProjectStakingV1")
-        const projectStakingV1Factory = new ContractFactory(projectStakingV1ABI, projectStakingV1Bytecode, this.adminWallet)
-        log("   created factory")
-        const projectStakingV1 = await projectStakingV1Factory.deploy() as ProjectStakingV1
-        log("   deployed", projectStakingV1.address)
-        await projectStakingV1.deployed()
-        log("   initializing", projectRegistryAddress, stakingTokenAddress)
-        await (await projectStakingV1.initialize(projectRegistryAddress, stakingTokenAddress)).wait()
-        log("Deployed ProjectStakingV1 contract " + projectStakingV1.address)
-        this.contracts.projectStakingV1 = projectStakingV1
-        this.addresses.ProjectStakingV1 = projectStakingV1.address
-        return projectStakingV1
     }
 
     async deployMarketplaceV4(projectRegistryAddress: string, destinationDomainId: number): Promise<MarketplaceV4> {
