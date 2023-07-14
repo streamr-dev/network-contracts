@@ -77,7 +77,12 @@ export class HubEnvDeployer {
     async deployUniswap2AdapterV4(uniswapV2RouterAddress: string): Promise<Uniswap2AdapterV4> {
         log("Deploying Uniswap2AdapterV4")
         const uniswap2AdapterV4Factory = new ContractFactory(uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode, this.adminWallet)
-        const uniswap2AdapterV4 = await uniswap2AdapterV4Factory.deploy(this.addresses.MarketplaceV4, uniswapV2RouterAddress) as Uniswap2AdapterV4
+        const uniswap2AdapterV4 = await uniswap2AdapterV4Factory.deploy(
+            this.addresses.MarketplaceV4,
+            this.addresses.ProjectRegistryV1,
+            uniswapV2RouterAddress,
+            this.destinationDomainId
+        ) as Uniswap2AdapterV4
         await uniswap2AdapterV4.deployed()
         log("Deployed Uniswap2AdapterV4 contract " + uniswap2AdapterV4.address)
         this.contracts.uniswap2AdapterV4 = uniswap2AdapterV4
