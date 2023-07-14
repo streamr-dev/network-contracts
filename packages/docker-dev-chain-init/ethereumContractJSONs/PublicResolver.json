@@ -1,4 +1,5 @@
 {
+  "NOTE": "manually deleted the 2-arg setAddr because it messed up ethers5 function object",
   "contractName": "PublicResolver",
   "abi": [
     {
@@ -411,24 +412,6 @@
         }
       ],
       "name": "setZonehash",
-      "outputs": [],
-      "payable": false,
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "constant": false,
-      "inputs": [
-        {
-          "name": "node",
-          "type": "bytes32"
-        },
-        {
-          "name": "a",
-          "type": "address"
-        }
-      ],
-      "name": "setAddr",
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",

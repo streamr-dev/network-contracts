@@ -31,6 +31,7 @@ const connectToAllContracts = async () => {
     const sponsorshipFactoryContact = await sponsorshipFactoryFactory.attach(localConfig.sponsorshipFactory) as SponsorshipFactory
     sponsorshipFactory = await sponsorshipFactoryContact.connect(deploymentOwner) as SponsorshipFactory
 
+    // TODO: sponsorshipFactory should be using the DATA token from the config
     const linkTokenFactory = await ethers.getContractFactory("LinkToken", { signer: deploymentOwner })
     const linkTokenFactoryTx = await linkTokenFactory.attach(localConfig.token)
     const linkTokenContract = await linkTokenFactoryTx.deployed()
