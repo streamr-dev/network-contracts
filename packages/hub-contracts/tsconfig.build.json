@@ -14,5 +14,5 @@
         "declaration": true,
         "outDir": "dist"
     },
-    "include": ["./src/exports.ts"]
+    "include": ["./src/exports.ts", "./src/HubEnvDeployer.ts"]
 }
