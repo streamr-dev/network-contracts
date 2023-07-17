@@ -90,11 +90,11 @@ module.exports = {
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
             '@chainlink/contracts/src/v0.4/LinkToken.sol',
             '@chainlink/contracts/src/v0.6/Oracle.sol',
-            '@streamr-contracts/hub-contracts/contracts/Marketplace/MarketplaceV3.sol',
-            '@streamr-contracts/hub-contracts/contracts/Marketplace/MarketplaceV4.sol',
-            '@streamr-contracts/hub-contracts/contracts/Marketplace/Uniswap2Adapter.sol',
-            '@streamr-contracts/hub-contracts/contracts/ProjectRegistry/ProjectRegistryV1.sol',
-            '@streamr-contracts/hub-contracts/contracts/ProjectStaking/ProjectStakingV1.sol'
+            '@streamr/hub-contracts/contracts/Marketplace/MarketplaceV3.sol',
+            '@streamr/hub-contracts/contracts/Marketplace/MarketplaceV4.sol',
+            '@streamr/hub-contracts/contracts/Marketplace/Uniswap2Adapter.sol',
+            '@streamr/hub-contracts/contracts/ProjectRegistry/ProjectRegistryV1.sol',
+            '@streamr/hub-contracts/contracts/ProjectStaking/ProjectStakingV1.sol'
         ],
     },
     solidity: {
