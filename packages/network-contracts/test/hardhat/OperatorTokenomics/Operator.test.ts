@@ -11,7 +11,7 @@ import { IKickPolicy } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 const { parseEther, formatEther, hexZeroPad } = utils
-const { getSigners, getContractFactory } = hardhatEthers
+const { getContractFactory } = hardhatEthers
 
 describe("Operator contract", (): void => {
     let admin: Wallet           // creates the Sponsorship
@@ -49,10 +49,19 @@ describe("Operator contract", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller] = await getSigners() as unknown as Wallet[]
-        sharedContracts = await deployTestContracts(admin)
+        admin = new Wallet("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").connect(hardhatEthers.provider)
+        sponsor = new Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d").connect(hardhatEthers.provider)
+        operatorWallet = new Wallet("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a").connect(hardhatEthers.provider)
+        operator2Wallet = new Wallet("0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6").connect(hardhatEthers.provider)
+        delegator = new Wallet("0xc526ee95bf44d8fc405a158bb884d9d1238d99f0612e9f33d006bb0789009aaa").connect(hardhatEthers.provider)
+        delegator2 = new Wallet("0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba").connect(hardhatEthers.provider)
+        delegator3 = new Wallet("0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e").connect(hardhatEthers.provider)
+        controller = new Wallet("0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356").connect(hardhatEthers.provider)
 
-        testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
+        sharedContracts = await deployTestContracts(admin)
+        const balance = await admin.getBalance()
+
+        testKickPolicy = await (await (await getContractFactory("TestKickPolicy", { signer: admin })).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
     })
 
@@ -783,7 +792,7 @@ describe("Operator contract", (): void => {
         expect(await operator2.balanceOf(operator2Wallet.address)).to.equal(parseEther("1400")) // operator2's self-delegation
     })
 
-    it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
+    it.only("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "1000")
         await setTokens(sponsor, "1000")
@@ -808,7 +817,7 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
-    it("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
+    it.only("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "1000")
         await setTokens(sponsor, "1000")

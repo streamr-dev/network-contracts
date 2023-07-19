@@ -43,5 +43,6 @@ export async function deployOperatorContract(contracts: TestContracts, deployer:
         ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+    console.log("Operator deployed " + newOperatorAddress)
     return operatorTemplate.attach(newOperatorAddress).connect(deployer)
 }

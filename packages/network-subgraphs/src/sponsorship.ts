@@ -1,6 +1,6 @@
 import { log, BigInt } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent } from '../generated/schema'
+import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, Stream } from '../generated/schema'
 import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate, OperatorSlashed } from '../generated/templates/Sponsorship/Sponsorship'
 import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
 
@@ -36,6 +36,12 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stakingEvent.date = event.block.timestamp
     stakingEvent.amount = event.params.stakedWei
     stakingEvent.save()
+
+    // let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
+    // if (sponsorship != null) {
+    //     stakingEvent.sponsorship = sponsorship.id
+    //     stakingEvent.save()
+    // }
 }
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {

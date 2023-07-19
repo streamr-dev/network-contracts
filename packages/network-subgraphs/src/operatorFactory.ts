@@ -9,9 +9,9 @@ export function handleNewOperator(event: NewOperator): void {
     log.info('handleNewOperator: operatorAddress={} blockNumber={}', [contractAddressString, event.block.number.toString()])
 
     // Instantiate template
-    OperatorTemplate.create(contractAddress)
+    // OperatorTemplate.create(contractAddress)
 
-    let operator = loadOrCreateOperator(contractAddressString)
-    operator.save()
-    log.info('handleNewOperator: operatorId={}', [operator.id])
+    // let operator = loadOrCreateOperator(contractAddressString)
+    // operator.save()
+    // log.info('handleNewOperator: operatorId={}', [operator.id])
 }

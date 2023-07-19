@@ -117,6 +117,7 @@ export class StreamrEnvDeployer {
         await this.deployOperatorContract()
         await this.investToPool()
         await this.stakeIntoSponsorship()
+        await this.queueUndelegation()
     }
 
     async deployEns(): Promise<void> {
@@ -353,6 +354,12 @@ export class StreamrEnvDeployer {
         const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("1000"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
+    }
+
+    async queueUndelegation(): Promise<void> {
+        const tx = await this.operator!.connect(this.adminWallet).undelegate(ethers.utils.parseEther("500"))
+        await tx.wait()
+        log("Queued undelegation from pool ", this.operatorAddress)
     }
 
 }

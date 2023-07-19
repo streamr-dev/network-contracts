@@ -10,7 +10,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "streamrEnvDeployer"
+                "t"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
@@ -108,6 +108,8 @@
             "runtimeArgs": [
                 "hardhat",
                 "test",
+                "--network",
+                "dev1",
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",

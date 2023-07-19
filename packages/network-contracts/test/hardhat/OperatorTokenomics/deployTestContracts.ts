@@ -85,6 +85,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         streamrConfig.address
     )).wait()
     await sponsorshipFactory.deployed()
+    console.log("SponsorshipFactory " + sponsorshipFactory.address)
     await (await sponsorshipFactory.addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,
@@ -106,11 +107,13 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         token, streamrConfig,
         defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
     }, signer)
+    console.log("Operatorfactory " + operatorFactory.address)
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
     const streamRegistry = await upgrades.deployProxy(streamRegistryFactory,
         [hardhatEthers.constants.AddressZero, Wallet.createRandom().address], { kind: "uups" }) as StreamRegistryV4
 
+    console.log("Streamregistry " + streamRegistry.address)
     await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
     return {

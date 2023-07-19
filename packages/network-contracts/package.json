@@ -36,7 +36,8 @@
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
     "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts",
     "streamrEnvDeployer": "npx tsx scripts/tatum/streamrEnvDeployer.ts",
-    "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
+    "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts",
+    "t": "hardhat test --network dev1 test/hardhat/OperatorTokenomics/Operator.test.ts"
   },
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
