@@ -13,7 +13,7 @@ dataSources:
     name: StreamRegistry
     network: xDai
     source:
-      address: "0xbf2ad38fd09F37f50f723E35dd84EEa1C282c5C9"
+      address: "0x8f119cd256a0FfFeed643E830ADCD9767a1d517F"
       abi: StreamRegistry
       # startBlock: 10000000 #TODO
     mapping:
@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x6A47346e722937B60Df7a1149168c0E76DD6520f'
+      address: '0xeC1BB74f5799811c0c1Bff94Ef76Fb40abccbE4a'
       abi: SponsorshipFactory
       startBlock: 0
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xe044814c9eD1e6442Af956a817c161192cBaE98F'
+      address: '0xF00D62D3563738F3148A855d4eC15819F99D9226'
       abi: OperatorFactory
       startBlock: 0
     mapping:
@@ -283,3 +283,5 @@ templates:
             handler: handleQueuedDataPayout
           - event: QueueUpdated(address,uint256)
             handler: handleQueueUpdated
+          - event: NodesSet(address[])
+            handler: handleNodesSet

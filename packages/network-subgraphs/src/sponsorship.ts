@@ -1,6 +1,6 @@
 import { log, BigInt } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, Stream } from '../generated/schema'
+import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, Stream, Operator } from '../generated/schema'
 import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate, OperatorSlashed } from '../generated/templates/Sponsorship/Sponsorship'
 import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
 
@@ -125,4 +125,11 @@ export function handleOperatorSlashed(event: OperatorSlashed): void {
     slashingEvent.date = event.block.timestamp
     slashingEvent.amount = event.params.amountWei
     slashingEvent.save()
+
+    // update Operator
+    let operator = Operator.load(operatorAddress.toHexString())
+    if (operator !== null) {
+        operator.slashingsCount = operator.slashingsCount + 1
+        operator.save()
+    }
 }

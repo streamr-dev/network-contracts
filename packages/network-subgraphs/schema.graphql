@@ -255,6 +255,8 @@ type Operator @entity {
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
+  slashingsCount: Int!
+  nodes: [String!]!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
