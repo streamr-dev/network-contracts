@@ -125,6 +125,7 @@ async function main() {
     const jsonOutput = JSON.stringify({
         DATA: token.address,
         ENS: ens.address,
+        ENSCacheV2: ensCache.address,
         LINK: linkToken.address,
         MarketplaceV4: market.address,
         FIFSRegistrar: fifs.address,
@@ -576,13 +577,13 @@ async function deploySponsorshipFactory(wallet, token, streamRegistry) {
         "SponsorshipFactory": sponsorshipFactory.address,
         "OperatorFactory": operatorFactory.address,
         "StreamrConfig": streamrConfig.address,
-        "MaxOperatorsJoinPolicy": maxOperatorsJoinPolicy.address,
-        "StakeWeightedAllocationPolicy": allocationPolicy.address,
-        "DefaultLeavePolicy": leavePolicy.address,
-        "VoteKickPolicy": voteKickPolicy.address,
-        "DefaultDelegationPolicy": defaultDelegationPolicy.address,
-        "DefaultPoolYieldPolicy": defaultPoolYieldPolicy.address,
-        "DefaultUndelegationPolicy": defaultUndelegationPolicy.address,
+        "SponsorshipMaxOperatorsJoinPolicy": maxOperatorsJoinPolicy.address,
+        "SponsorshipStakeWeightedAllocationPolicy": allocationPolicy.address,
+        "SponsorshipDefaultLeavePolicy": leavePolicy.address,
+        "SponsorshipVoteKickPolicy": voteKickPolicy.address,
+        "OperatorDefaultDelegationPolicy": defaultDelegationPolicy.address,
+        "OperatorDefaultPoolYieldPolicy": defaultPoolYieldPolicy.address,
+        "OperatorDefaultUndelegationPolicy": defaultUndelegationPolicy.address,
     }
 }
 

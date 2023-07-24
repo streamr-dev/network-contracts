@@ -13,6 +13,7 @@
             "DATA": "0xd2D23b73A67208a90CBfEE1381415329954f54E2",
             "ENS": "0x7739b57beC285539A62434DF9808f66ebB405ba3",
             "LINK": "0x3387F44140ea19100232873a5aAf9E46608c791E",
+            "ENSCacheV2": "0xEAA002f7Dc60178B6103f8617Be45a9D3df659B6",
             "MarketplaceV4": "0x256D4CB67452b6b8280B2b67F040fD22f1C378f4",
             "FIFSRegistrar": "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0",
             "PublicResolver": "0xd04af489677001444280366Dd0885B03dAaDe71D",
@@ -25,13 +26,13 @@
             "SponsorshipFactory": "0x67A0E9C9c21d11dB4eBAe420aBf705626a3a2561",
             "OperatorFactory": "0x1511BC764c24c7f8c7aC41032130E2c7EA71C585",
             "StreamrConfig": "0x3c3D9912219bAba7F9E661607F04dcF04c86FcF2",
-            "MaxOperatorsJoinPolicy": "0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E",
-            "StakeWeightedAllocationPolicy": "0x8E60F7C82ab4a65505e75A8302DDEF7e8D481D47",
-            "DefaultLeavePolicy": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9",
-            "VoteKickPolicy": "0xd3fDB8c6b973597782a5eB6f5b3Fe4068AF7DF19",
-            "DefaultDelegationPolicy": "0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A",
-            "DefaultPoolYieldPolicy": "0x382b486B81FefB1F280166f2000a53b961b9840d",
-            "DefaultUndelegationPolicy": "0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b"
+            "SponsorshipMaxOperatorsJoinPolicy": "0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x8E60F7C82ab4a65505e75A8302DDEF7e8D481D47",
+            "SponsorshipDefaultLeavePolicy": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9",
+            "SponsorshipVoteKickPolicy": "0xd3fDB8c6b973597782a5eB6f5b3Fe4068AF7DF19",
+            "OperatorDefaultDelegationPolicy": "0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A",
+            "OperatorDefaultPoolYieldPolicy": "0x382b486B81FefB1F280166f2000a53b961b9840d",
+            "OperatorDefaultUndelegationPolicy": "0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b"
         }
     },
     "dev1": {
@@ -48,6 +49,7 @@
             "DATA": "0xd2D23b73A67208a90CBfEE1381415329954f54E2",
             "ENS": "0x7739b57beC285539A62434DF9808f66ebB405ba3",
             "LINK": "0x3387F44140ea19100232873a5aAf9E46608c791E",
+            "ENSCacheV2": "0xEAA002f7Dc60178B6103f8617Be45a9D3df659B6",
             "MarketplaceV4": "0x256D4CB67452b6b8280B2b67F040fD22f1C378f4",
             "FIFSRegistrar": "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0",
             "PublicResolver": "0xd04af489677001444280366Dd0885B03dAaDe71D",
@@ -60,13 +62,13 @@
             "SponsorshipFactory": "0x67A0E9C9c21d11dB4eBAe420aBf705626a3a2561",
             "OperatorFactory": "0x1511BC764c24c7f8c7aC41032130E2c7EA71C585",
             "StreamrConfig": "0x3c3D9912219bAba7F9E661607F04dcF04c86FcF2",
-            "MaxOperatorsJoinPolicy": "0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E",
-            "StakeWeightedAllocationPolicy": "0x8E60F7C82ab4a65505e75A8302DDEF7e8D481D47",
-            "DefaultLeavePolicy": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9",
-            "VoteKickPolicy": "0xd3fDB8c6b973597782a5eB6f5b3Fe4068AF7DF19",
-            "DefaultDelegationPolicy": "0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A",
-            "DefaultPoolYieldPolicy": "0x382b486B81FefB1F280166f2000a53b961b9840d",
-            "DefaultUndelegationPolicy": "0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b"
+            "SponsorshipMaxOperatorsJoinPolicy": "0x97F8951F19f1b69b7cAbb9a15d7a83d09555f93E",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x8E60F7C82ab4a65505e75A8302DDEF7e8D481D47",
+            "SponsorshipDefaultLeavePolicy": "0xBE3Ead36C00A96B08feC94F31F4A53684b582Fa9",
+            "SponsorshipVoteKickPolicy": "0xd3fDB8c6b973597782a5eB6f5b3Fe4068AF7DF19",
+            "OperatorDefaultDelegationPolicy": "0x29505F847B8E2c10EE2Ad6C4039223D9f0eB2C5A",
+            "OperatorDefaultPoolYieldPolicy": "0x382b486B81FefB1F280166f2000a53b961b9840d",
+            "OperatorDefaultUndelegationPolicy": "0x36c64EE95d9D6735f8841aB157Bd8fEE35aab28b"
         }
     },
     "alfajores": {

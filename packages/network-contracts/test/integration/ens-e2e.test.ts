@@ -21,16 +21,14 @@ if (keyidparam == "0") {
     DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0" // deploymentowner of streamregistry
 } else if (keyidparam == "1") {
     DEFAULTPRIVATEKEY = "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb" // owner of testdomain1.eth
-} else if (keyidparam == "2") { 
+} else if (keyidparam == "2") {
     DEFAULTPRIVATEKEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae" // owner of testdomain2.eth
 }
 
 // ens on mainnet
-const ENSADDRESS = "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03"
-const FIFSADDRESS = "0x57B81a9442805f88c4617B506206531e72d96290"
-const RESOLVERADDRESS = "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c"
-
-const ENSCacheV1 = "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3"
+const ENSADDRESS = sidechainConfig.contracts.ENS || "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03"
+const FIFSADDRESS = sidechainConfig.contracts.FIFSRegistrar || "0x57B81a9442805f88c4617B506206531e72d96290"
+const RESOLVERADDRESS = sidechainConfig.contracts.PublicResolver || "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c"
 
 const domainOwner = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
 const domainOwnerSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
