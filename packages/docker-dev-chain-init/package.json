@@ -20,7 +20,7 @@
     "@ethersproject/experimental": "5.7.0",
     "@ethersproject/providers": "5.7.2",
     "@ethersproject/wallet": "5.7.0",
-    "@openzeppelin/contracts": "4.8.2",
+    "@openzeppelin/contracts": "4.9.2",
     "@openzeppelin/contracts-upgradeable": "4.8.2",
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
