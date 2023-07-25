@@ -40,10 +40,7 @@
   },
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
-    "@ensdomains/buffer": "0.1.1",
-    "@ensdomains/dnssec-oracle": "0.2.0",
-    "@ensdomains/ens": "0.6.2",
-    "@ensdomains/resolver": "0.2.4",
+    "@ensdomains/ens-contracts": "0.0.22",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"

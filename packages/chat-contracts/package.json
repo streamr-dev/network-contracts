@@ -33,8 +33,6 @@
         "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
     },
     "devDependencies": {
-        "@ensdomains/ens": "0.6.2",
-        "@ensdomains/resolver": "0.2.4",
         "@ethersproject/bignumber": "5.5.0",
         "@ethersproject/contracts": "5.5.0",
         "@ethersproject/experimental": "5.5.0",
