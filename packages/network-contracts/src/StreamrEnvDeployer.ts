@@ -15,7 +15,7 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
-export type EnvContracAddresses = {
+export type StreamrContractAddresses = {
     // DATA token
     "DATA": string,
     // ENS
@@ -51,8 +51,9 @@ export type EnvContracAddresses = {
     "DataUnionTemplate": string,
     "DefaultFeeOracle": string,
 }
+export type EnvContracAddresses = StreamrContractAddresses // TODO: remove
 
-export type EnvContracts = {
+export type StreamrContracts = {
     "DATA": TestToken,
     "ENS": Contract,
     "FIFSRegistrar": Contract,
@@ -80,14 +81,15 @@ export type EnvContracts = {
     "dataUnionTemplate": Contract,
     "defaultFeeOracle": Contract
 }
+export type EnvContracts = StreamrContracts // TODO: remove
 
 const log = debug.log
 
 export class StreamrEnvDeployer {
 
     readonly adminWallet: Wallet
-    readonly addresses: EnvContracAddresses
-    readonly contracts: EnvContracts
+    readonly addresses: StreamrContractAddresses
+    readonly contracts: StreamrContracts
     streamId: string
     sponsorshipAddress: any
     sponsorship?: Sponsorship
@@ -98,15 +100,20 @@ export class StreamrEnvDeployer {
     constructor(key: string, chainEndpointUrl: string) {
         this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
         this.adminWallet = new Wallet(key, this.provider)
-        this.addresses = {} as EnvContracAddresses
-        this.contracts = {} as EnvContracts
+        this.addresses = {} as StreamrContractAddresses
+        this.contracts = {} as StreamrContracts
         this.streamId = ""
     }
 
-    async deployEvironment(): Promise<void>{
+    async deployEnvironment(): Promise<void> {
         await this.deployStreamRegistry()
         await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
+    }
+
+    // TODO: remove
+    async deployEvironment(): Promise<void> {
+        return this.deployEnvironment()
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -129,7 +136,7 @@ export class StreamrEnvDeployer {
 
         const rootNode = "eth"
         const rootNodeNamehash = ethers.utils.namehash(rootNode)
-        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode)) 
+        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode))
         const fifsDeploy = new ContractFactory(fifsRegistrarAbi, fifsRegistrarBytecode, this.adminWallet)
         const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
         this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
@@ -236,7 +243,7 @@ export class StreamrEnvDeployer {
         const sponsorshipFactoryFactory = await(new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode,
             this.adminWallet)).deploy() as SponsorshipFactory
         const sponsorshipFactory = await sponsorshipFactoryFactory.deployed()
-        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address, 
+        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address,
             token.address, streamrConfig.address)).wait()
         await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
@@ -354,5 +361,4 @@ export class StreamrEnvDeployer {
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
-
 }
