@@ -11,7 +11,7 @@
   "author": "Streamr Network AG <contact@streamr.network>",
   "license": "Apache-2.0",
   "dependencies": {
-    "@ensdomains/ens": "^0.6.2",
+    "@ensdomains/ens-contracts": "^0.0.22",
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@ethersproject/units": "^5.7.0",

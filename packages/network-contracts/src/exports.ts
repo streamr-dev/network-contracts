@@ -66,11 +66,14 @@ export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorT
 
 export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnlyJoinPolicyBytecode }
     from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
-export type { OperatorContractOnlyJoinPolicy } from
-    "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
+export type { OperatorContractOnlyJoinPolicy }
+    from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
 
-export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode } from "@ensdomains/ens/build/contracts/ENSRegistry.json"
-export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode } from "@ensdomains/ens/build/contracts/FIFSRegistrar.json"
-export { abi as publicResolverAbi, bytecode as publicResolverBytecode } from "@ensdomains/resolver/build/contracts/PublicResolver.json"
+export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+export { abi as publicResolverAbi, bytecode as publicResolverBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/resolvers/PublicResolver.sol/PublicResolver.json"
 
 export * from "./StreamrEnvDeployer"

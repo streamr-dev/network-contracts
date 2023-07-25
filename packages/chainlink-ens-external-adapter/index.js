@@ -1,5 +1,5 @@
 /* eslint-disable promise/no-callback-in-promise */
-const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
+const ensAbi = require('@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json').abi
 const { ethers } = require('ethers')
 const namehash = require('eth-ens-namehash')
 const { Requester, Validator } = require('@chainlink/external-adapter')
@@ -20,7 +20,7 @@ const createRequest = (input, callback) => {
     const validator = new Validator(input, customParams)
     const jobRunID = validator.validated.id
 
-    const ensContract = new ethers.Contract(process.env.ENS_CONTRACT_ADDRESS, ensAbi.abi, provider)
+    const ensContract = new ethers.Contract(process.env.ENS_CONTRACT_ADDRESS, ensAbi, provider)
     const ensHashedName = namehash.hash(validator.validated.data.name)
     ensContract.owner(ensHashedName)
         .then((res) => {
