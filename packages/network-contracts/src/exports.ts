@@ -69,11 +69,14 @@ export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnly
 export type { OperatorContractOnlyJoinPolicy }
     from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
 
-export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode }
+export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
+export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+
+export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
-export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode }
+export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
-export { abi as publicResolverAbi, bytecode as publicResolverBytecode }
+export { abi as publicResolverABI, bytecode as publicResolverBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/resolvers/PublicResolver.sol/PublicResolver.json"
 
 export * from "./StreamrEnvDeployer"

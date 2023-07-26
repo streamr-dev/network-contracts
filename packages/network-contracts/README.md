@@ -51,3 +51,6 @@ then copy the Proxy and Proxyadmin addresses to the upgradeProxy.ts script and r
 npm run localUpgradeImpl
 ````
 
+# Changelog
+
+4.2.0 export ERC677 ABI and type

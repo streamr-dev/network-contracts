@@ -7,10 +7,10 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
     defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryAbi, ensRegistryBytecode,
-    fifsRegistrarAbi, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
+    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
+    fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
     maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, publicResolverAbi, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
@@ -128,7 +128,7 @@ export class StreamrEnvDeployer {
 
     async deployEns(): Promise<void> {
         log("Deploying ENS")
-        const ensDeploy = new ContractFactory(ensRegistryAbi, ensRegistryBytecode, this.adminWallet)
+        const ensDeploy = new ContractFactory(ensRegistryABI, ensRegistryBytecode, this.adminWallet)
         const ensDeployTx = await ensDeploy.deploy()
         this.contracts.ENS = await ensDeployTx.deployed()
         this.addresses.ENS = this.contracts.ENS.address
@@ -137,7 +137,7 @@ export class StreamrEnvDeployer {
         const rootNode = "eth"
         const rootNodeNamehash = ethers.utils.namehash(rootNode)
         const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode))
-        const fifsDeploy = new ContractFactory(fifsRegistrarAbi, fifsRegistrarBytecode, this.adminWallet)
+        const fifsDeploy = new ContractFactory(fifsRegistrarABI, fifsRegistrarBytecode, this.adminWallet)
         const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
         this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
         this.addresses.FIFSRegistrar = this.contracts.FIFSRegistrar.address
@@ -145,7 +145,7 @@ export class StreamrEnvDeployer {
 
         await(await this.contracts.ENS.setSubnodeOwner("0x0000000000000000000000000000000000000000000000000000000000000000",
             rootNodeSha3, this.contracts.FIFSRegistrar.address)).wait()
-        const resDeploy = new ContractFactory(publicResolverAbi, publicResolverBytecode, this.adminWallet)
+        const resDeploy = new ContractFactory(publicResolverABI, publicResolverBytecode, this.adminWallet)
         const resDeployTx = await resDeploy.deploy(this.contracts.ENS.address)
         this.contracts.publicResolver = await resDeployTx.deployed()
         this.addresses.PublicResolver = this.contracts.publicResolver.address
