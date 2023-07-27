@@ -20,6 +20,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.metadata = event.params.metadata
     sponsorship.totalPayoutWeiPerSec = event.params.totalPayoutWeiPerSec
     sponsorship.creator = creator
+    sponsorship.cumulativeSponsoring = BigInt.fromI32(0)
     sponsorship.save()
 
     // try to load stream entity

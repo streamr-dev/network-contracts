@@ -4,6 +4,7 @@ import {
     Delegated,
     Loss,
     MetadataUpdated,
+    NodesSet,
     PoolValueUpdate,
     Profit,
     QueueUpdated,
@@ -153,7 +154,7 @@ export function handleQueuedDataPayout(event: QueuedDataPayout): void {
         operatorContractAddress, event.block.number.toString(), dataAmountPT.toString()
     ])
 
-    let queueEntry = new QueueEntry(operatorContractAddress + "-" + event.transaction.hash.toHexString())
+    let queueEntry = new QueueEntry(operatorContractAddress + "-" + event.params.queueIndex.toString())
     queueEntry.operator = operatorContractAddress
     queueEntry.amount = dataAmountPT
     queueEntry.date = event.block.timestamp
@@ -167,7 +168,25 @@ export function handleQueueUpdated(event: QueueUpdated): void {
         operatorContractAddress, event.block.number.toString()
     ])
 
-    // let queueEntry = QueueEntry.load(operatorContractAddress + "-" + event.transaction.hash.toHexString())
+    let queueEntry = QueueEntry.load(operatorContractAddress + "-" + event.params.queueIndex.toString())
+    if (queueEntry !== null) {
+        if (event.params.amountPoolTokenWei.equals(BigInt.fromI32(0))) {
+            store.remove('QueueEntry', queueEntry.id)
+        }
+        else {
+            queueEntry.amount = event.params.amountPoolTokenWei
+            queueEntry.save()
+        }
+    }
+}
 
-    // TODO: need to add queue index to event first
+export function handleNodesSet(event: NodesSet): void {
+    let operatorContractAddress = event.address.toHexString()
+    log.info('handleNodesSet: operatorContractAddress={} blockNumber={}', [
+        operatorContractAddress, event.block.number.toString()
+    ])
+
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.nodes = event.params.nodes.map<string>((node) => node.toHexString())
+    operator.save()
 }

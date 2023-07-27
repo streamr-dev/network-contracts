@@ -38,8 +38,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
     event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
-    event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
-    event QueueUpdated(address delegator, uint amountPoolTokenWei);
+    event QueuedDataPayout(address delegator, uint amountPoolTokenWei, uint queueIndex);
+    event QueueUpdated(address delegator, uint amountPoolTokenWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
@@ -294,7 +294,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         queueLastIndex++;
-        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
+        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei, queueLastIndex - 1);
         payOutQueueWithFreeFunds(0);
     }
 
@@ -635,7 +635,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
             queueCurrentIndex++;
-            emit QueueUpdated(delegator, 0);
+            emit QueueUpdated(delegator, 0, queueCurrentIndex - 1);
             return false;
         }
 
@@ -650,7 +650,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
-            emit QueueUpdated(delegator, 0);
+            emit QueueUpdated(delegator, 0, queueCurrentIndex - 1);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return queueIsEmpty();
         } else {
@@ -666,7 +666,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei);
-            emit QueueUpdated(delegator, poolTokensLeftInQueue);
+            emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return false;
         }

@@ -226,6 +226,8 @@ type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
   delegators: [Delegation!]! @derivedFrom(field: "operator")
+  slashingEvents: [SlashingEvent!]! @derivedFrom(field: "operator")
+  stakingEvents: [StakingEvent!]! @derivedFrom(field: "operator")
 
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
@@ -253,6 +255,8 @@ type Operator @entity {
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
+  slashingsCount: Int!
+  nodes: [String!]!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -318,6 +322,10 @@ type Sponsorship @entity {
   isRunning: Boolean!
   totalPayoutWeiPerSec: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
+  slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
+  stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
+  sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
+  cumulativeSponsoring: BigInt!
   operatorCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
@@ -353,6 +361,14 @@ type StakingEvent @entity {
   amount: BigInt!
   date: BigInt!
   sponsorship: Sponsorship!
+}
+
+type SponsoringEvent @entity {
+  id: ID!
+  sponsor: String!
+  amount: BigInt!
+  sponsorship: Sponsorship!
+  date: BigInt!
 }
 
 type QueueEntry @entity {

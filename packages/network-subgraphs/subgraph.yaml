@@ -239,8 +239,8 @@ templates:
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
-        # - event: SponsorshipReceived(indexed address,uint256)
-        #   handler: handleSponsorshipReceived
+          - event: SponsorshipReceived(indexed address,uint256)
+            handler: handleSponsorshipReceived
         # - event: OperatorJoined(indexed address)
         #   handler: handleOperatorJoined
         # - event: OperatorLeft(indexed address,uint256)
@@ -279,7 +279,9 @@ templates:
             handler: handleProfit
           - event: Loss(indexed address,uint256)
             handler: handleLoss
-          - event: QueuedDataPayout(address,uint256)
+          - event: QueuedDataPayout(address,uint256,uint256)
             handler: handleQueuedDataPayout
-          - event: QueueUpdated(address,uint256)
+          - event: QueueUpdated(address,uint256,uint256)
             handler: handleQueueUpdated
+          - event: NodesSet(address[])
+            handler: handleNodesSet
