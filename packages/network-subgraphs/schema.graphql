@@ -324,6 +324,8 @@ type Sponsorship @entity {
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
+  sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
+  cumulativeSponsoring: BigInt!
   operatorCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
@@ -359,6 +361,14 @@ type StakingEvent @entity {
   amount: BigInt!
   date: BigInt!
   sponsorship: Sponsorship!
+}
+
+type SponsoringEvent @entity {
+  id: ID!
+  sponsor: String!
+  amount: BigInt!
+  sponsorship: Sponsorship!
+  date: BigInt!
 }
 
 type QueueEntry @entity {

@@ -1,7 +1,7 @@
 import { log, BigInt } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, Stream, Operator } from '../generated/schema'
-import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate, OperatorSlashed } from '../generated/templates/Sponsorship/Sponsorship'
+import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
+import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate, OperatorSlashed, SponsorshipReceived } from '../generated/templates/Sponsorship/Sponsorship'
 import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
@@ -132,4 +132,20 @@ export function handleOperatorSlashed(event: OperatorSlashed): void {
         operator.slashingsCount = operator.slashingsCount + 1
         operator.save()
     }
+}
+
+export function handleSponsorshipReceived(event: SponsorshipReceived): void {
+    log.info('handleSponsorshipReceived: sponsor={} amount={}', [event.params.sponsor.toHexString(),
+        event.params.amount.toString()
+    ])
+    let sponsorship = Sponsorship.load(event.address.toHexString())
+    sponsorship!.cumulativeSponsoring = sponsorship!.cumulativeSponsoring.plus(event.params.amount)
+    sponsorship!.save()
+
+    let sponsoringEvent = new SponsoringEvent(event.address.toHexString() + event.transaction.hash.toHexString())
+    sponsoringEvent.sponsorship = event.address.toHexString()
+    sponsoringEvent.sponsor = event.params.sponsor.toHexString()
+    sponsoringEvent.date = event.block.timestamp
+    sponsoringEvent.amount = event.params.amount
+    sponsoringEvent.save()
 }

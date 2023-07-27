@@ -38,6 +38,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
     const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy()
     await operatorFactory.deployed()
+    console.log("Operatorfactory deployed " + operatorFactory.address)
     await (await operatorFactory.initialize(
         operatorTemplate!.address,
         token!.address,
