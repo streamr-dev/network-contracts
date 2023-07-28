@@ -1,110 +1,119 @@
 import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
-// import { Logger } from "@streamr/utils"
-import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
-    IKickPolicy, ILeavePolicy, IPoolYieldPolicy, IUndelegationPolicy, NodeRegistry,
-    Operator,
-    OperatorFactory, Sponsorship, SponsorshipFactory, StreamRegistryV4,
-    StreamStorageRegistry, StreamrConfig, TestToken } from "../typechain"
+
 import debug from "debug"
-import { defaultDelegationPolicyABI, defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
+import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, DefaultUndelegationPolicy,
+    ENSCacheV2, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
+    OperatorFactory, Sponsorship, SponsorshipFactory, StakeWeightedAllocationPolicy, StreamRegistry,
+    StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
+    defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, maxOperatorsJoinPolicyABI,
+    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
+    fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
     maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
-export type EnvContracAddresses = {
-            // DATA token
-            "DATA": string,
-            // ENS
-            "ENS": string,
-            "FIFSRegistrar": string,
-            "PublicResolver": string,
-            // Network
-            "TrackerRegistry": string,
-            "StorageNodeRegistry": string,
-            "StreamRegistry": string,
-            "ENSCacheV2": string,
-            "StreamStorageRegistry": string,
-            // Projects related
-            "MarketplaceV4": string,
-            "ProjectRegistryV1": string,
-            "ProjectStakingV1": string,
-            // Incentive mechanism
-            "StreamrConfig": string,
-            "SponsorshipFactory": string,
-            "SponsorshipDefaultLeavePolicy": string,
-            "SponsorshipMaxOperatorsJoinPolicy": string,
-            "SponsorshipOperatorContractOnlyJoinPolicy": string,
-            "SponsorshipStakeWeightedAllocationPolicy": string,
-            "SponsorshipVoteKickPolicy": string,
+export type StreamrContractAddresses = {
+    // DATA token
+    "DATA": string,
+    // ENS
+    "ENS": string,
+    "FIFSRegistrar": string,
+    "PublicResolver": string,
+    // Network
+    "TrackerRegistry": string,
+    "StorageNodeRegistry": string,
+    "StreamRegistry": string,
+    "ENSCacheV2": string,
+    "StreamStorageRegistry": string,
+    // Projects related
+    "MarketplaceV4": string,
+    "ProjectRegistryV1": string,
+    "ProjectStakingV1": string,
+    // Incentive mechanism
+    "StreamrConfig": string,
+    "SponsorshipFactory": string,
+    "SponsorshipDefaultLeavePolicy": string,
+    "SponsorshipMaxOperatorsJoinPolicy": string,
+    "SponsorshipOperatorContractOnlyJoinPolicy": string,
+    "SponsorshipStakeWeightedAllocationPolicy": string,
+    "SponsorshipVoteKickPolicy": string,
 
-            "OperatorFactory": string,
-            "OperatorDefaultDelegationPolicy": string,
-            "OperatorDefaultUndelegationPolicy": string,
-            "OperatorDefaultPoolYieldPolicy": string,
+    "OperatorFactory": string,
+    "OperatorDefaultDelegationPolicy": string,
+    "OperatorDefaultUndelegationPolicy": string,
+    "OperatorDefaultPoolYieldPolicy": string,
 
-            // Data Unions:
-            "DataUnionFactory": string,
-            "DataUnionTemplate": string,
-            "DefaultFeeOracle": string,
+    // Data Unions:
+    "DataUnionFactory": string,
+    "DataUnionTemplate": string,
+    "DefaultFeeOracle": string,
 }
+export type EnvContracAddresses = StreamrContractAddresses // TODO: remove
 
-export type EnvContracts = {
+export type StreamrContracts = {
     "DATA": TestToken,
     "ENS": Contract,
     "FIFSRegistrar": Contract,
     "publicResolver": Contract,
     "trackerRegistry": NodeRegistry,
     "storageNodeRegistry": NodeRegistry,
-    "streamRegistry": StreamRegistryV4,
-    "eNSCacheV2": ENSCache,
+    "streamRegistry": StreamRegistry,
+    "eNSCacheV2": ENSCacheV2,
     "streamStorageRegistry": StreamStorageRegistry,
     "marketplaceV4": Contract,
     "projectRegistryV1": Contract,
     "projectStakingV1": Contract,
     "streamrConfig": StreamrConfig,
     "sponsorshipFactory": SponsorshipFactory,
-    "sponsorshipDefaultLeavePolicy": ILeavePolicy,
-    "sponsorshipMaxOperatorsJoinPolicy": IJoinPolicy,
-    "sponsorshipOperatorContractOnlyJoinPolicy": IJoinPolicy,
-    "sponsorshipStakeWeightedAllocationPolicy": IAllocationPolicy,
-    "sponsorshipVoteKickPolicy": IKickPolicy,
+    "sponsorshipDefaultLeavePolicy": DefaultLeavePolicy,
+    "sponsorshipMaxOperatorsJoinPolicy": MaxOperatorsJoinPolicy,
+    "sponsorshipOperatorContractOnlyJoinPolicy": OperatorContractOnlyJoinPolicy,
+    "sponsorshipStakeWeightedAllocationPolicy": StakeWeightedAllocationPolicy,
+    "sponsorshipVoteKickPolicy": VoteKickPolicy,
     "operatorFactory": OperatorFactory,
-    "operatorDefaultDelegationPolicy": IDelegationPolicy,
-    "operatorDefaultUndelegationPolicy": IUndelegationPolicy,
-    "operatorDefaultPoolYieldPolicy": IAllocationPolicy,
+    "operatorDefaultDelegationPolicy": DefaultDelegationPolicy,
+    "operatorDefaultUndelegationPolicy": DefaultUndelegationPolicy,
+    "operatorDefaultPoolYieldPolicy": DefaultPoolYieldPolicy,
     "dataUnionFactory": Contract,
     "dataUnionTemplate": Contract,
     "defaultFeeOracle": Contract
 }
+export type EnvContracts = StreamrContracts // TODO: remove
 
 const log = debug.log
 
 export class StreamrEnvDeployer {
 
     readonly adminWallet: Wallet
-    readonly addresses: EnvContracAddresses
-    readonly contracts: EnvContracts
+    readonly addresses: StreamrContractAddresses
+    readonly contracts: StreamrContracts
     streamId: string
     sponsorshipAddress: any
     sponsorship?: Sponsorship
     operatorAddress: any
     operator?: Operator
+    provider: providers.JsonRpcProvider
 
     constructor(key: string, chainEndpointUrl: string) {
-        this.adminWallet = new Wallet(key, new providers.JsonRpcProvider(chainEndpointUrl))
-        this.addresses = {} as EnvContracAddresses
-        this.contracts = {} as EnvContracts
+        this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
+        this.adminWallet = new Wallet(key, this.provider)
+        this.addresses = {} as StreamrContractAddresses
+        this.contracts = {} as StreamrContracts
         this.streamId = ""
     }
 
-    async deployEvironment(): Promise<void>{
+    async deployEnvironment(): Promise<void> {
         await this.deployStreamRegistry()
         await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
+    }
+
+    // TODO: remove
+    async deployEvironment(): Promise<void> {
+        return this.deployEnvironment()
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -117,9 +126,51 @@ export class StreamrEnvDeployer {
         await this.stakeIntoSponsorship()
     }
 
+    async deployEns(): Promise<void> {
+        log("Deploying ENS")
+        const ensDeploy = new ContractFactory(ensRegistryABI, ensRegistryBytecode, this.adminWallet)
+        const ensDeployTx = await ensDeploy.deploy()
+        this.contracts.ENS = await ensDeployTx.deployed()
+        this.addresses.ENS = this.contracts.ENS.address
+        log(`ENS registry deployed at ${this.contracts.ENS.address}`)
+
+        const rootNode = "eth"
+        const rootNodeNamehash = ethers.utils.namehash(rootNode)
+        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode))
+        const fifsDeploy = new ContractFactory(fifsRegistrarABI, fifsRegistrarBytecode, this.adminWallet)
+        const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
+        this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
+        this.addresses.FIFSRegistrar = this.contracts.FIFSRegistrar.address
+        log(`FIFSRegistrar deployed at ${this.contracts.FIFSRegistrar.address}`)
+
+        await(await this.contracts.ENS.setSubnodeOwner("0x0000000000000000000000000000000000000000000000000000000000000000",
+            rootNodeSha3, this.contracts.FIFSRegistrar.address)).wait()
+        const resDeploy = new ContractFactory(publicResolverABI, publicResolverBytecode, this.adminWallet)
+        const resDeployTx = await resDeploy.deploy(this.contracts.ENS.address)
+        this.contracts.publicResolver = await resDeployTx.deployed()
+        this.addresses.PublicResolver = this.contracts.publicResolver.address
+        log(`PublicResolver deployed at ${this.contracts.publicResolver.address}`)
+    }
+
+    async registerEnsName(domain: string, newOwner: Wallet): Promise<void> {
+        newOwner = newOwner.connect(this.provider)
+        await (await this.adminWallet.sendTransaction({to: newOwner.address, value: ethers.utils.parseEther("1")})).wait()
+
+        const ensName = domain + ".eth"
+        const hashedDomain = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(domain))
+        const nameHashedENSName = ethers.utils.namehash(ensName)
+        let tx = await this.contracts.FIFSRegistrar.register(hashedDomain, newOwner.address)
+        await tx.wait()
+
+        log("setting owner (" + newOwner.address + "), resolver and ttl for ens")
+        tx = await this.contracts.ENS.connect(newOwner)
+            .setRecord(nameHashedENSName, newOwner.address, this.addresses.PublicResolver, BigInt(100000000))
+        await tx.wait()
+    }
+
     async deployStreamRegistry(): Promise<void> {
         const streamRegistryFactory = new ContractFactory(streamRegistryABI, streamRegistryBytecode, this.adminWallet)
-        const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistryV4
+        const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistry
         await streamRegistry.deployed()
         await (await streamRegistry.initialize(
             Wallet.createRandom().address,
@@ -157,28 +208,28 @@ export class StreamrEnvDeployer {
         log(`token address ${token.address}`)
 
         const maxOperatorsJoinPolicy = await (new ContractFactory(maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode,
-            this.adminWallet)).deploy() as IJoinPolicy
+            this.adminWallet)).deploy() as MaxOperatorsJoinPolicy
         await maxOperatorsJoinPolicy.deployed()
         this.addresses.SponsorshipMaxOperatorsJoinPolicy = maxOperatorsJoinPolicy.address
         this.contracts.sponsorshipMaxOperatorsJoinPolicy = maxOperatorsJoinPolicy
         log(`maxOperatorsJoinPolicy address ${maxOperatorsJoinPolicy.address}`)
 
         const allocationPolicy = await (new ContractFactory(stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
-            this.adminWallet)).deploy() as IAllocationPolicy
+            this.adminWallet)).deploy() as StakeWeightedAllocationPolicy
         await allocationPolicy.deployed()
         this.addresses.SponsorshipStakeWeightedAllocationPolicy = allocationPolicy.address
         this.contracts.sponsorshipStakeWeightedAllocationPolicy = allocationPolicy
         log(`allocationPolicy address ${allocationPolicy.address}`)
 
         const leavePolicy = await (new ContractFactory(defaultLeavePolicyABI, defaultLeavePolicyBytecode,
-            this.adminWallet)).deploy() as ILeavePolicy
+            this.adminWallet)).deploy() as DefaultLeavePolicy
         await leavePolicy.deployed()
         this.addresses.SponsorshipDefaultLeavePolicy = leavePolicy.address
         this.contracts.sponsorshipDefaultLeavePolicy = leavePolicy
         log(`leavePolicy address ${leavePolicy.address}`)
 
         const voteKickPolicy = await (new ContractFactory(voteKickPolicyABI, voteKickPolicyBytecode,
-            this.adminWallet)).deploy() as IKickPolicy
+            this.adminWallet)).deploy() as VoteKickPolicy
         await voteKickPolicy.deployed()
         this.addresses.SponsorshipVoteKickPolicy = voteKickPolicy.address
         this.contracts.sponsorshipVoteKickPolicy = voteKickPolicy
@@ -187,13 +238,12 @@ export class StreamrEnvDeployer {
         const sponsorshipTemplate = await (new ContractFactory(sponsorshipABI, sponsorshipBytecode,
             this.adminWallet)).deploy() as Sponsorship
         await sponsorshipTemplate.deployed()
-        // this.config.sponsorshipTemplate = sponsorshipTemplate.address
         log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
         const sponsorshipFactoryFactory = await(new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode,
             this.adminWallet)).deploy() as SponsorshipFactory
         const sponsorshipFactory = await sponsorshipFactoryFactory.deployed()
-        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address, 
+        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address,
             token.address, streamrConfig.address)).wait()
         await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
@@ -246,17 +296,17 @@ export class StreamrEnvDeployer {
         await operatorTemplate.deployed()
         log("Deployed Operator contract template " + operatorTemplate.address)
         const defaultDelegationPolicy = await (new ContractFactory(defaultDelegationPolicyABI, defaultDelegationPolicyBytecode,
-            this.adminWallet)).deploy() as IDelegationPolicy
+            this.adminWallet)).deploy() as DefaultDelegationPolicy
         await defaultDelegationPolicy.deployed()
         this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
         log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
         const defaultPoolYieldPolicy = await (new ContractFactory(defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-            this.adminWallet)).deploy() as IPoolYieldPolicy
+            this.adminWallet)).deploy() as DefaultPoolYieldPolicy
         await defaultPoolYieldPolicy.deployed()
         this.addresses.OperatorDefaultPoolYieldPolicy = defaultPoolYieldPolicy.address
         log("Deployed default Operator contract yield policy " + defaultPoolYieldPolicy.address)
         const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
-            this.adminWallet)).deploy() as IUndelegationPolicy
+            this.adminWallet)).deploy() as DefaultUndelegationPolicy
         await defaultUndelegationPolicy.deployed()
         this.addresses.OperatorDefaultUndelegationPolicy = defaultUndelegationPolicy.address
         log("Deployed default Operator contract undelegation policy " + defaultUndelegationPolicy.address)
@@ -270,7 +320,6 @@ export class StreamrEnvDeployer {
             this.addresses.DATA,
             this.addresses.StreamrConfig)).wait()
         log("Deployed Operator contract factory " + operatorFactory.address)
-        // eslint-disable-next-line require-atomic-updates
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory
         await (await operatorFactory.addTrustedPolicies([
@@ -294,7 +343,6 @@ export class StreamrEnvDeployer {
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
-        // eslint-disable-next-line require-atomic-updates
         log("Operator deployed at: ", operatorAddress)
         this.operatorAddress = operatorAddress
         this.operator = new Contract(operatorAddress, operatorABI, this.adminWallet) as Operator
@@ -313,5 +361,4 @@ export class StreamrEnvDeployer {
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
-
 }

@@ -2,6 +2,13 @@
 
 ## Development notes
 
+### Publish `hub-contracts` package
+
+The package exports all of the artifacts & types needed to interact with the hub-contracts.
+    - `npm run build`
+    - `npm pack --dry-run`
+    - `npm publish`
+
 ### Upgrading the smart contract
 
 The Marketplace smart contract is UUPS upgradeable proxy contract. When you need to upgrade it, please follow this process:

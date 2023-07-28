@@ -24,6 +24,10 @@ export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytec
     from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json"
 export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
 
+export { abi as ENSCacheV2ABI, bytecode as ENSCacheV2Bytecode }
+    from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/chainlinkClient/ENSCacheV2Streamr"
+
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 export type { NodeRegistry } from "../typechain/contracts/NodeRegistry/NodeRegistry"
@@ -60,5 +64,19 @@ export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPol
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
 export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
 
-export { StreamrEnvDeployer } from "./StreamrEnvDeployer"
-// export type { StreamrEnvDeployerConfig } from "./StreamrEnvDeployer"
+export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnlyJoinPolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
+export type { OperatorContractOnlyJoinPolicy }
+    from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
+
+export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
+export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+
+export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+export { abi as publicResolverABI, bytecode as publicResolverBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/resolvers/PublicResolver.sol/PublicResolver.json"
+
+export * from "./StreamrEnvDeployer"

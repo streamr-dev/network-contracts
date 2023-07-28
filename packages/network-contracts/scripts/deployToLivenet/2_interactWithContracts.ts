@@ -7,8 +7,8 @@ import { Contract, providers, Wallet, utils } from "ethers"
 import { ENSCache, Oracle, StreamRegistry } from "../../typechain"
 
 // const { ethers } = hhat
-// import ensAbi from '@ensdomains/ens/build/contracts/ENS.json'
-// import fifsAbi from '@ensdomains/ens/build/contracts/FIFSRegistrar.json'
+// import { abi as ensAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+// import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 // const resolverAbi = require('@ensdomains/resolver/build/contracts/PublicResolver.json')
 
 // hardhat
@@ -93,10 +93,10 @@ const connectToAllContracts = async () => {
     registryFromUser = await registryContract.connect(walletSidechain) as StreamRegistry
     registryFromOwner = await registryContract.connect(deploymentOwner) as StreamRegistry
 
-    // const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
+    // const ensContract = new Contract(ENSADDRESS, ensAbi, mainnetProvider)
     // ensFomAdmin = await ensContract.connect(walletMainnet)
 
-    // const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
+    // const fifsContract = new Contract(FIFSADDRESS, fifsAbi, mainnetProvider)
     // fifsFromAdmin = await fifsContract.connect(walletMainnet)
 
     // const resolverContract = new ethers.Contract(RESOLVERADDRESS, resolverAbi.abi, mainnetProvider)

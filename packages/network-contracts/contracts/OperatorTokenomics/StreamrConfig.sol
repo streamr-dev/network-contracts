@@ -137,7 +137,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
         maxPenaltyPeriodSeconds = 30 days;
         poolValueDriftLimitFraction = 0.1 ether;
-        poolValueDriftPenaltyFraction = 0.005 ether;
+        poolValueDriftPenaltyFraction = 0.5 ether;
         flagReviewerCount = 5;
         flagReviewerRewardWei = 1 ether;
         flaggerRewardWei = 1 ether;
