@@ -11,6 +11,7 @@
     "./packages/hub-contracts",
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
+    "./packages/dev-chain-fast",
     "./packages/chat-contracts",
     "./packages/ens-sync-script"
   ],
