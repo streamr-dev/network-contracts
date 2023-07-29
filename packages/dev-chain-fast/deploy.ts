@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Wallet } from "ethers"
 import { StreamrEnvDeployer } from "@streamr/network-contracts"
 
@@ -14,11 +15,13 @@ async function main() {
 
     await streamrEnvDeployer.deployEvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
-    await streamrEnvDeployer.deployEns()
-    await streamrEnvDeployer.registerEnsName("streamrasd", Wallet.createRandom())
+    // await streamrEnvDeployer.deployEns()
+    // await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
-    const contracts = await streamrEnvDeployer.contracts
-    await (await contracts.streamRegistry.createStream("/test" + Date.now(), "{}")).wait()
+    // const contracts = await streamrEnvDeployer.contracts
+    // await (await contracts.streamRegistry.createStream("/test" + Date.now(), "{}")).wait()
+    console.log("Deployed contracts:")
+    console.log(JSON.stringify(streamrEnvDeployer.addresses))
 
 }
 
