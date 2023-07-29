@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@chainlink/external-adapter": "0.2.6",
-    "@ensdomains/ens": "0.6.2",
+    "@ensdomains/ens-contracts": "0.0.22",
     "body-parser": "1.19.1",
     "dotenv": "16.0.0",
     "eth-ens-namehash": "2.0.8",

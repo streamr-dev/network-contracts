@@ -6,11 +6,13 @@ import { Wallet } from "@ethersproject/wallet"
 import { Chains } from "@streamr/config"
 import { createRequire } from "module"
 import fetch from "node-fetch"
+
+// TODO: use import?
 const require = createRequire(import.meta.url)
-const ABIenscache = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json")
-const ABIstreamRegistry = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json")
+const streamRegistryAbi = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json").abi
 const namehash = require('eth-ens-namehash')
-const ensAbi = require('@ensdomains/ens/build/contracts/ENS.json')
+const ensCacheAbi = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json").abi
+const ensAbi = require('@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json').abi
 
 const {
     DELAY = "",
@@ -35,8 +37,8 @@ let sidechainProvider: Provider
 let mutex = Promise.resolve(true)
 let domainOwnerSidechain: Wallet
 
-async function main(){
-    
+async function main() {
+
     if (delay) {
         log(`starting with answer delay ${delay} milliseconds`)
     }
@@ -57,14 +59,14 @@ async function main(){
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
         ENSCacheV2Address = sidechainConfig.contracts.ENSCacheV2
     }
-    
+
     const ensAddress = mainnetConfig.contracts.ENS
 
-    streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, ABIstreamRegistry.abi, sidechainProvider)
+    streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, streamRegistryAbi, sidechainProvider)
     domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
     log("wallet address: ", domainOwnerSidechain.address)
-    ensCacheContract = new Contract(ENSCacheV2Address, ABIenscache.abi, domainOwnerSidechain) // TODO
-    ensContract = new Contract(ensAddress, ensAbi.abi, mainnetProvider)
+    ensCacheContract = new Contract(ENSCacheV2Address, ensCacheAbi, domainOwnerSidechain) // TODO
+    ensContract = new Contract(ensAddress, ensAbi, mainnetProvider)
     log("starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
         log("Got RequestENSOwnerAndCreateStream event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)

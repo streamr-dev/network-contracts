@@ -66,10 +66,17 @@ export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorT
 
 export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnlyJoinPolicyBytecode }
     from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
-export type { OperatorContractOnlyJoinPolicy } from 
-    "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
+export type { OperatorContractOnlyJoinPolicy }
+    from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
 
-export { abi as ensRegistryAbi, bytecode as ensRegistryBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/ENSRegistry.json"
-export { abi as fifsRegistrarAbi, bytecode as fifsRegistrarBytecode } from "../../../node_modules/@ensdomains/ens/build/contracts/FIFSRegistrar.json"
-export { abi as publicResolverAbi, bytecode as publicResolverBytecode } 
-    from "../../../node_modules/@ensdomains/resolver/build/contracts/PublicResolver.json"
+export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
+export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+
+export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+export { abi as publicResolverABI, bytecode as publicResolverBytecode }
+    from "@ensdomains/ens-contracts/artifacts/contracts/resolvers/PublicResolver.sol/PublicResolver.json"
+
+export * from "./StreamrEnvDeployer"

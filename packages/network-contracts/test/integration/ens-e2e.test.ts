@@ -7,8 +7,8 @@ import { Chains } from "@streamr/config"
 
 import { StreamRegistry } from "../../typechain"
 
-import ensAbi from "@ensdomains/ens/build/contracts/ENS.json"
-import fifsAbi from "@ensdomains/ens/build/contracts/FIFSRegistrar.json"
+import { abi as ensAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 
 const mainnetConfig = Chains.load()["dev0"]
 const sidechainConfig = Chains.load()["dev1"]
@@ -21,7 +21,7 @@ if (keyidparam == "0") {
     DEFAULTPRIVATEKEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0" // deploymentowner of streamregistry
 } else if (keyidparam == "1") {
     DEFAULTPRIVATEKEY = "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb" // owner of testdomain1.eth
-} else if (keyidparam == "2") { 
+} else if (keyidparam == "2") {
     DEFAULTPRIVATEKEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae" // owner of testdomain2.eth
 }
 
@@ -53,10 +53,10 @@ const connectToAllContracts = async () => {
     const registryContract = await registry.deployed()
     registryFromUser = await registryContract.connect(domainOwnerSidechain) as StreamRegistry
 
-    const ensContract = new Contract(ENSADDRESS, ensAbi.abi, mainnetProvider)
+    const ensContract = new Contract(ENSADDRESS, ensAbi, mainnetProvider)
     ensFromAdmin = await ensContract.connect(domainOwner)
 
-    const fifsContract = new Contract(FIFSADDRESS, fifsAbi.abi, mainnetProvider)
+    const fifsContract = new Contract(FIFSADDRESS, fifsAbi, mainnetProvider)
     fifsFromAdmin = await fifsContract.connect(domainOwner)
 }
 

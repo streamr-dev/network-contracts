@@ -7,15 +7,15 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
     defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryAbi, ensRegistryBytecode,
-    fifsRegistrarAbi, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
+    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
+    fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
     maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, publicResolverAbi, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
-export type EnvContracAddresses = {
+export type StreamrContractAddresses = {
     // DATA token
     "DATA": string,
     // ENS
@@ -51,8 +51,9 @@ export type EnvContracAddresses = {
     "DataUnionTemplate": string,
     "DefaultFeeOracle": string,
 }
+export type EnvContracAddresses = StreamrContractAddresses // TODO: remove
 
-export type EnvContracts = {
+export type StreamrContracts = {
     "DATA": TestToken,
     "ENS": Contract,
     "FIFSRegistrar": Contract,
@@ -80,14 +81,15 @@ export type EnvContracts = {
     "dataUnionTemplate": Contract,
     "defaultFeeOracle": Contract
 }
+export type EnvContracts = StreamrContracts // TODO: remove
 
 const log = debug.log
 
 export class StreamrEnvDeployer {
 
     readonly adminWallet: Wallet
-    readonly addresses: EnvContracAddresses
-    readonly contracts: EnvContracts
+    readonly addresses: StreamrContractAddresses
+    readonly contracts: StreamrContracts
     streamId: string
     sponsorshipAddress: any
     sponsorship?: Sponsorship
@@ -98,15 +100,20 @@ export class StreamrEnvDeployer {
     constructor(key: string, chainEndpointUrl: string) {
         this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
         this.adminWallet = new Wallet(key, this.provider)
-        this.addresses = {} as EnvContracAddresses
-        this.contracts = {} as EnvContracts
+        this.addresses = {} as StreamrContractAddresses
+        this.contracts = {} as StreamrContracts
         this.streamId = ""
     }
 
-    async deployEvironment(): Promise<void>{
+    async deployEnvironment(): Promise<void> {
         await this.deployStreamRegistry()
         await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
+    }
+
+    // TODO: remove
+    async deployEvironment(): Promise<void> {
+        return this.deployEnvironment()
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -121,7 +128,7 @@ export class StreamrEnvDeployer {
 
     async deployEns(): Promise<void> {
         log("Deploying ENS")
-        const ensDeploy = new ContractFactory(ensRegistryAbi, ensRegistryBytecode, this.adminWallet)
+        const ensDeploy = new ContractFactory(ensRegistryABI, ensRegistryBytecode, this.adminWallet)
         const ensDeployTx = await ensDeploy.deploy()
         this.contracts.ENS = await ensDeployTx.deployed()
         this.addresses.ENS = this.contracts.ENS.address
@@ -129,8 +136,8 @@ export class StreamrEnvDeployer {
 
         const rootNode = "eth"
         const rootNodeNamehash = ethers.utils.namehash(rootNode)
-        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode)) 
-        const fifsDeploy = new ContractFactory(fifsRegistrarAbi, fifsRegistrarBytecode, this.adminWallet)
+        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode))
+        const fifsDeploy = new ContractFactory(fifsRegistrarABI, fifsRegistrarBytecode, this.adminWallet)
         const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
         this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
         this.addresses.FIFSRegistrar = this.contracts.FIFSRegistrar.address
@@ -138,7 +145,7 @@ export class StreamrEnvDeployer {
 
         await(await this.contracts.ENS.setSubnodeOwner("0x0000000000000000000000000000000000000000000000000000000000000000",
             rootNodeSha3, this.contracts.FIFSRegistrar.address)).wait()
-        const resDeploy = new ContractFactory(publicResolverAbi, publicResolverBytecode, this.adminWallet)
+        const resDeploy = new ContractFactory(publicResolverABI, publicResolverBytecode, this.adminWallet)
         const resDeployTx = await resDeploy.deploy(this.contracts.ENS.address)
         this.contracts.publicResolver = await resDeployTx.deployed()
         this.addresses.PublicResolver = this.contracts.publicResolver.address
@@ -236,7 +243,7 @@ export class StreamrEnvDeployer {
         const sponsorshipFactoryFactory = await(new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode,
             this.adminWallet)).deploy() as SponsorshipFactory
         const sponsorshipFactory = await sponsorshipFactoryFactory.deployed()
-        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address, 
+        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address,
             token.address, streamrConfig.address)).wait()
         await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
@@ -354,5 +361,4 @@ export class StreamrEnvDeployer {
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
-
 }
