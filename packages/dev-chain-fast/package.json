@@ -4,8 +4,8 @@
   "description": "Locally run Ethereum client for developing the Streamr services",
   "private": true,
   "scripts": {
-    "builda": "./build_and_preload.sh",
-    "build": "npm run clean && docker build -t streamr/dev-chain-fast .",
+    "build": "npm run clean && npm ci && docker build -t streamr/dev-chain-fast .",
+    "builda": "docker build -t streamr/dev-chain-fast .",
     "deploy": "tsx deploy.ts",
     "clean": "rm -fr node_modules"
   },
