@@ -4,19 +4,20 @@
   "description": "Locally run Ethereum client for developing the Streamr services",
   "private": true,
   "scripts": {
-    "build": "npm run clean && npm ci && docker build -t streamr/dev-chain-fast .",
+    "build": "./prepare.sh && docker build -t streamr/dev-chain-fast .",
     "builda": "docker build -t streamr/dev-chain-fast .",
+    "buildb": "./prepare.sh",
     "deploy": "tsx deploy.ts",
     "clean": "rm -fr node_modules"
   },
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
+    "@streamr/hub-contracts": "file:../hub-contracts",
+    "@streamr/network-contracts": "file:../network-contracts/streamr-network-contracts-4.2.0.tgz",
     "hardhat": "^2.16.0",
     "ts-node": "^10.9.1",
     "tsx": "^3.12.7",
-    "typescript": "^5.1.3",
-    "@streamr/network-contracts": "^4.2.0",
-    "@streamr/hub-contracts": "^1.0.2"
+    "typescript": "^5.1.3"
   }
 }
