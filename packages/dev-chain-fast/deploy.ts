@@ -17,17 +17,14 @@ async function main() {
     // await streamrEnvDeployer.deployEns()
     // await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
-    // const contracts = await streamrEnvDeployer.contracts
-    // await (await contracts.streamRegistry.createStream("/test" + Date.now(), "{}")).wait()
-    console.log("Deployed contracts:")
-    console.log(JSON.stringify(streamrEnvDeployer.addresses))
-
     console.log("Deploying Hub contracts...")
     const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 1337)
     await hubDeployer.deployCoreContracts()
-    console.log("Deployed hub contracts")
-    console.log("")
 
+    console.log("Deployed network contracts:")
+    console.log(JSON.stringify(streamrEnvDeployer.addresses))
+    console.log("Deployed hub contracts:")
+    console.log(JSON.stringify(hubDeployer.addresses))
 }
 
 main()
