@@ -4,7 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
+
         {
             "name": "Launch via NPM",
             "request": "launch",
@@ -36,7 +36,7 @@
             "cwd": "${workspaceFolder}/packages/ens-sync-script",
         },
 
-        
+
         {
             "name": "run index.js",
             "command": "npx hardhat run --network localsidechain index.js",
@@ -129,7 +129,7 @@
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}/packages/network-contracts"
+            "cwd": "${workspaceFolder}"
         },
     ]
 }
