@@ -1,5 +1,5 @@
+npm run clean
 cd ../..
-pwd
 npm run build -w @streamr/network-contracts
 npm run build -w @streamr/hub-contracts
 cd packages/network-contracts

@@ -1,4 +1,5 @@
 FROM node:18-slim
+RUN apt-get update && apt-get install curl -y
 WORKDIR /usr/src/hardhat
 COPY ./ ./
 RUN npm i
