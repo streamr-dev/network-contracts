@@ -13,7 +13,7 @@ dataSources:
     name: StreamRegistry
     network: xDai
     source:
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      address: "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222"
       abi: StreamRegistry
       # startBlock: 10000000 #TODO
     mapping:
@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e'
+      address: '0x58C8e321d561123649bE41445cB0690Ec3d27Fe9'
       abi: SponsorshipFactory
       startBlock: 0
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xc6e7DF5E7b4f2A278906862b61205850344D4e7d'
+      address: '0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3'
       abi: OperatorFactory
       startBlock: 0
     mapping:

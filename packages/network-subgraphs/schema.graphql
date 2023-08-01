@@ -372,7 +372,7 @@ type SponsoringEvent @entity {
 }
 
 type QueueEntry @entity {
-  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  id: ID! # 0xsponsorshipAddress-queueIndex
   operator: Operator!
   amount: BigInt!
   date: BigInt!

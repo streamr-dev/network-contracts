@@ -149,14 +149,14 @@ export function handleLoss(event: Loss): void {
 
 export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     let operatorContractAddress = event.address.toHexString()
-    let dataAmountPT = event.params.amountPoolTokenWei
+    let amountPT = event.params.amountPoolTokenWei
     log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
-        operatorContractAddress, event.block.number.toString(), dataAmountPT.toString()
+        operatorContractAddress, event.block.number.toString(), amountPT.toString()
     ])
 
     let queueEntry = new QueueEntry(operatorContractAddress + "-" + event.params.queueIndex.toString())
     queueEntry.operator = operatorContractAddress
-    queueEntry.amount = dataAmountPT
+    queueEntry.amount = amountPT
     queueEntry.date = event.block.timestamp
     queueEntry.delegator = event.params.delegator.toHexString()
     queueEntry.save()
@@ -169,14 +169,16 @@ export function handleQueueUpdated(event: QueueUpdated): void {
     ])
 
     let queueEntry = QueueEntry.load(operatorContractAddress + "-" + event.params.queueIndex.toString())
-    if (queueEntry !== null) {
-        if (event.params.amountPoolTokenWei.equals(BigInt.fromI32(0))) {
-            store.remove('QueueEntry', queueEntry.id)
-        }
-        else {
-            queueEntry.amount = event.params.amountPoolTokenWei
-            queueEntry.save()
-        }
+    if (queueEntry === null) {
+        log.warning('handleQueueUpdated: queueEntry not found for operatorContractAddress={} queueIndex={}', [
+            operatorContractAddress, event.params.queueIndex.toString()])
+        return
+    }
+    if (event.params.amountPoolTokenWei.equals(BigInt.fromI32(0))) {
+        store.remove('QueueEntry', queueEntry.id)
+    }  else {
+        queueEntry.amount = event.params.amountPoolTokenWei
+        queueEntry.save()
     }
 }
 
