@@ -66,7 +66,15 @@ describe("SponsorshipFactory", () => {
         const sponsorshipDeployTx = await token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data)
         const sponsorshipDeployReceipt = await sponsorshipDeployTx.wait()
         const newSponsorshipAddress = sponsorshipDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        const newSponsorshipLog = sponsorshipDeployReceipt.logs.find((e) => e.address == sponsorshipFactory.address)
+        if (!newSponsorshipLog) { throw new Error("NewSponsorship event not found") }  // typescript can't infer not-undefined from expect
+        const newSponsorshipEvent = sponsorshipFactory.interface.parseLog(newSponsorshipLog)
         expect(newSponsorshipAddress).to.be.not.undefined
+        expect(newSponsorshipEvent.name).to.equal("NewSponsorship")
+        expect(newSponsorshipEvent.args.creator).to.equal(admin.address)
+        expect(newSponsorshipEvent.args.sponsorshipContract).to.equal(newSponsorshipAddress)
+        expect(newSponsorshipEvent.args.metadata).to.equal("metadata")
+        expect(newSponsorshipEvent.args.streamId).to.equal(streamId)
     })
 
     it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
