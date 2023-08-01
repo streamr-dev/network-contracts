@@ -38,8 +38,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
     event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
-    event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
-    event QueueUpdated(address delegator, uint amountPoolTokenWei);
+    event QueuedDataPayout(address delegator, uint amountPoolTokenWei, uint queueIndex);
+    event QueueUpdated(address delegator, uint amountPoolTokenWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
@@ -293,8 +293,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei, queueLastIndex);
         queueLastIndex++;
-        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
     }
 
@@ -634,8 +634,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // will this actually do anything? Or delete just resets to default value which is anyway zero?
             // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
+            emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
-            emit QueueUpdated(delegator, 0);
             return false;
         }
 
@@ -645,13 +645,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (balanceDataWei >= amountDataWei) {
             // whole amountDataWei is paid out => pop the item and swap tokens
             delete undelegationQueue[queueCurrentIndex];
-            queueCurrentIndex++;
             _burn(delegator, amountPoolTokens);
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
-            emit QueueUpdated(delegator, 0);
+            emit QueueUpdated(delegator, 0, queueCurrentIndex);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+            queueCurrentIndex++;
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -666,7 +666,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei);
-            emit QueueUpdated(delegator, poolTokensLeftInQueue);
+            emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return false;
         }

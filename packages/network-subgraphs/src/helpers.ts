@@ -136,6 +136,8 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.poolValueBlockNumber = BigInt.fromI32(0)
         operator.poolTokenTotalSupplyWei = BigInt.fromI32(0)
         operator.exchangeRate = BigDecimal.fromString("0")
+        operator.slashingsCount = 0
+        operator.nodes = []
 
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
         operator.owner = ""
