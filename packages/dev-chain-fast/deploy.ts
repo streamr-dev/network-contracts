@@ -13,7 +13,7 @@ async function main() {
 
     const streamrEnvDeployer = new StreamrEnvDeployer(key, url)
 
-    await streamrEnvDeployer.deployEvironment()
+    await streamrEnvDeployer.deployEnvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.deployEns()
     await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
