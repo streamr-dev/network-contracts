@@ -67,10 +67,10 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         return trustedPolicies[policyAddress];
     }
 
-    function onTokenTransfer(address, uint amount, bytes calldata param) external {
+    function onTokenTransfer(address from, uint amount, bytes calldata param) external {
         (
             uint initialMinimumStakeWei,
-            uint32 initialMinHorizonSeconds,
+            ,
             uint32 initialMinOperatorCount,
             string memory streamId,
             string memory metadata,
@@ -81,13 +81,14 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         );
         address sponsorshipAddress = _deploySponsorship(
             initialMinimumStakeWei,
-            initialMinHorizonSeconds,
+            0,
             initialMinOperatorCount,
             streamId,
             metadata,
             policies,
             initParams
         );
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], from);
         IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, "");
     }
 
@@ -110,7 +111,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     ) public returns (address) {
         IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         require(streamRegistry.exists(streamId), "error_streamNotFound");
-        return _deploySponsorship(
+        address sponsorshipAddress = _deploySponsorship(
             initialMinimumStakeWei,
             initialMinHorizonSeconds,
             initialMinOperatorCount,
@@ -119,6 +120,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             policies,
             initParams
         );
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], _msgSender());
     }
 
     function _deploySponsorship(
@@ -161,7 +163,6 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         }
         sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.operatorContractOnlyJoinPolicy()), 0);
         sponsorship.renounceRole(sponsorship.DEFAULT_ADMIN_ROLE(), address(this));
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], _msgSender());
         // solhint-disable-next-line not-rely-on-time
         deploymentTimestamp[sponsorshipAddress] = block.timestamp;
         return sponsorshipAddress;

@@ -330,7 +330,7 @@ export class StreamrEnvDeployer {
         log("Added trusted policies")
 
         await (await this.contracts.streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
-        log("Set Operator contract factory in StreamrConfig")
+        log("Operator contract factory is now set in StreamrConfig")
     }
 
     async deployOperatorContract(): Promise<Operator> {
