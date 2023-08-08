@@ -35,7 +35,8 @@ async function deployDataUnionFactory(
     tokenAddress: string,
     protocolFeeOracleAddress: string,
 ): Promise<DataUnionFactory> {
-    log("deployDataUnionFactory (deployer=%s, templateAddress=%s, tokenAddress=%s, protocolFeeOracleAddress=%s)")
+    log("deployDataUnionFactory (deployer=%s, templateAddress=%s, tokenAddress=%s, protocolFeeOracleAddress=%s)",
+        deployer.address, templateAddress, tokenAddress, protocolFeeOracleAddress)
     const factory = new ContractFactory(factoryJson.abi, factoryJson.bytecode, deployer)
     const contract = await factory.deploy() as unknown as DataUnionFactory
     await contract.deployTransaction.wait()
