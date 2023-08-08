@@ -142,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: xDai
     source:
-      address: "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF" # TODO update address
+      address: "0x5c08f6Fb7B820ac73e83b4BdaCF5099231494f07"
       abi: ProjectStakingV1
       startBlock: 0
     mapping:

@@ -7,4 +7,3 @@ typechain
 #Hardhat files
 cache
 artifacts
-streamr-hub-contracts-*.tgz

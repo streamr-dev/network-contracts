@@ -98,8 +98,11 @@
             "OperatorDefaultPoolYieldPolicy": "0x75Cb7CA52637991A3f166B8546542B3F6D712fd4",
             "OperatorDefaultUndelegationPolicy": "0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873",
             "OperatorFactory": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
-            "ProjectRegistryV1":"0x0849a4AeF33B1C2B083DfE4efD8eBe23C35e612B",
-            "MarketplaceV4":"0xca710199Fd00383cd7716bc3163e33A6B7D2C29C"
+            "ProjectRegistryV1": "0x0849a4AeF33B1C2B083DfE4efD8eBe23C35e612B",
+            "MarketplaceV4": "0xca710199Fd00383cd7716bc3163e33A6B7D2C29C",
+            "ProjectStakingV1": "0x5c08f6Fb7B820ac73e83b4BdaCF5099231494f07",
+            "DataUnionFactory": "0x916FE6b8DB2C0D01FB96F37550CE8ff41F4Ed470",
+            "DataUnionTemplate": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789"
         }
     },
     "alfajores": {
