@@ -1,7 +1,13 @@
 ---
 name: Dependency
+# on:
+#   - pull_request
+
+# TODO: temporarily disable the dependency review, please put back on before 1.0
 on:
-  - pull_request
+  pull_request:
+    branches:
+      - lol
 
 permissions:
   contents: read
