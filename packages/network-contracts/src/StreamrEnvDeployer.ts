@@ -2,17 +2,17 @@ import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
 
 import debug from "debug"
 import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, DefaultUndelegationPolicy,
-    ENSCacheV2, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
+    ENSCacheV2, ENSCacheV2ABI, ENSCacheV2Bytecode, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
     OperatorFactory, Sponsorship, SponsorshipFactory, StakeWeightedAllocationPolicy, StreamRegistry,
     StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
     defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
     defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
     fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
-    maxOperatorsJoinPolicyBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
+    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
     operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
-    streamRegistryABI, streamRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
+    streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 
 export type StreamrContractAddresses = {
@@ -28,10 +28,10 @@ export type StreamrContractAddresses = {
     "StreamRegistry": string,
     "ENSCacheV2": string,
     "StreamStorageRegistry": string,
-    // Projects related
-    "MarketplaceV4": string,
-    "ProjectRegistryV1": string,
-    "ProjectStakingV1": string,
+    // Projects related   TODO: remove, these are deployed by hub-contracts
+    // "MarketplaceV4": string,
+    // "ProjectRegistryV1": string,
+    // "ProjectStakingV1": string,
     // Incentive mechanism
     "StreamrConfig": string,
     "SponsorshipFactory": string,
@@ -46,10 +46,10 @@ export type StreamrContractAddresses = {
     "OperatorDefaultUndelegationPolicy": string,
     "OperatorDefaultPoolYieldPolicy": string,
 
-    // Data Unions:
-    "DataUnionFactory": string,
-    "DataUnionTemplate": string,
-    "DefaultFeeOracle": string,
+    // Data Unions: // TODO: remove, these are deployed elsewhere
+    // "DataUnionFactory": string,
+    // "DataUnionTemplate": string,
+    // "DefaultFeeOracle": string,
 }
 export type EnvContracAddresses = StreamrContractAddresses // TODO: remove
 
@@ -63,9 +63,9 @@ export type StreamrContracts = {
     "streamRegistry": StreamRegistry,
     "eNSCacheV2": ENSCacheV2,
     "streamStorageRegistry": StreamStorageRegistry,
-    "marketplaceV4": Contract,
-    "projectRegistryV1": Contract,
-    "projectStakingV1": Contract,
+    // "marketplaceV4": Contract,
+    // "projectRegistryV1": Contract,
+    // "projectStakingV1": Contract,
     "streamrConfig": StreamrConfig,
     "sponsorshipFactory": SponsorshipFactory,
     "sponsorshipDefaultLeavePolicy": DefaultLeavePolicy,
@@ -77,9 +77,9 @@ export type StreamrContracts = {
     "operatorDefaultDelegationPolicy": DefaultDelegationPolicy,
     "operatorDefaultUndelegationPolicy": DefaultUndelegationPolicy,
     "operatorDefaultPoolYieldPolicy": DefaultPoolYieldPolicy,
-    "dataUnionFactory": Contract,
-    "dataUnionTemplate": Contract,
-    "defaultFeeOracle": Contract
+    // "dataUnionFactory": Contract,
+    // "dataUnionTemplate": Contract,
+    // "defaultFeeOracle": Contract
 }
 export type EnvContracts = StreamrContracts // TODO: remove
 
@@ -106,14 +106,10 @@ export class StreamrEnvDeployer {
     }
 
     async deployEnvironment(): Promise<void> {
-        await this.deployStreamRegistry()
+        await this.deployEns()
+        await this.deployRegistries()
         await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
-    }
-
-    // TODO: remove
-    async deployEvironment(): Promise<void> {
-        return this.deployEnvironment()
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -168,7 +164,24 @@ export class StreamrEnvDeployer {
         await tx.wait()
     }
 
-    async deployStreamRegistry(): Promise<void> {
+    async deployRegistries(): Promise<void> {
+        log("Deploying Registries")
+
+        // TODO do we still need a tracker registry?
+
+        const initialNodes = []
+        const initialMetadata = []
+        initialNodes.push("0xde1112f631486CfC759A50196853011528bC5FA0")
+        initialMetadata.push("{\"http\": \"http://10.200.10.1:8891\"}")
+        const nodeRegistryFactory = new ContractFactory(nodeRegistryABI, nodeRegistryBytecode, this.adminWallet)
+        const nodeRegistry = await nodeRegistryFactory.deploy() as NodeRegistry
+        await nodeRegistry.deployed()
+        await (await nodeRegistry.initialize(this.adminWallet.address, 
+            false, initialNodes, initialMetadata)).wait()
+        this.addresses.StorageNodeRegistry = nodeRegistry.address
+        this.contracts.storageNodeRegistry = nodeRegistry
+        log(`nodeRegistry address ${this.addresses.StorageNodeRegistry}`)
+
         const streamRegistryFactory = new ContractFactory(streamRegistryABI, streamRegistryBytecode, this.adminWallet)
         const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistry
         await streamRegistry.deployed()
@@ -179,11 +192,46 @@ export class StreamrEnvDeployer {
         this.addresses.StreamRegistry = streamRegistry.address
         this.contracts.streamRegistry = streamRegistry
         log(`streamRegistry address ${this.addresses.StreamRegistry}`)
+
+        const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
+        const ensCacheV2Factory = new ContractFactory(ENSCacheV2ABI, ENSCacheV2Bytecode, this.adminWallet)
+        const ensCacheV2 = await ensCacheV2Factory.deploy() as ENSCacheV2
+        await ensCacheV2.deployed()
+        await (await ensCacheV2.initialize(
+            scriptKeyAddress,
+            streamRegistry.address,
+            Wallet.createRandom().address, // # ENSCacheV1, do we need this in dev env?
+        )).wait()
+        this.addresses.ENSCacheV2 = ensCacheV2.address
+        this.contracts.eNSCacheV2 = ensCacheV2
+        log(`ENSCacheV2 address ${this.addresses.ENSCacheV2}`)
+
+        const role = await streamRegistry.TRUSTED_ROLE()
+        log(`granting trusted role ${role} to self ${this.adminWallet.address}`)
+        await (await streamRegistry.grantRole(role, this.adminWallet.address)).wait()
+
+        log("setting ENSCache address in StreamRegistry")
+        await (await streamRegistry.setEnsCache(ensCacheV2.address)).wait()
+
+        log(`granting trusted role ${role} ensaddress ${ensCacheV2.address}`)
+        await (await streamRegistry.grantRole(role, ensCacheV2.address)).wait()
+        log("ensCacheScript address set as trusted role in streamregistry")
+
+        const streamStorageRegistryFactory = new ContractFactory(streamStorageRegistryABI, streamStorageRegistryBytecode, this.adminWallet)
+        const streamStorageRegistry = await streamStorageRegistryFactory.deploy() as StreamStorageRegistry
+        await streamStorageRegistry.deployed()
+        await (await streamStorageRegistry.initialize(
+            streamRegistry.address,
+            nodeRegistry.address,
+            ethers.constants.AddressZero
+        )).wait()
+        this.addresses.StreamStorageRegistry = streamStorageRegistry.address
+        this.contracts.streamStorageRegistry = streamStorageRegistry
+        log(`streamStorageRegistry address ${this.addresses.StreamStorageRegistry}`)
     }
 
     async createStream(): Promise<void> {
         const streampath = "/test" + Date.now()
-        log(`deployed StreamRegistry at ${this.contracts.streamRegistry.address}`)
         log(`creating stream ${streampath}`)
         await ((await this.contracts.streamRegistry.createStream(streampath, "{}")).wait())
         this.streamId = this.adminWallet.address.toLowerCase() + streampath

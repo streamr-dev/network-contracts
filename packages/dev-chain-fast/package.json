@@ -15,9 +15,11 @@
   "dependencies": {
     "@streamr/hub-contracts": "file:../hub-contracts",
     "@streamr/network-contracts": "file:../network-contracts",
-    "hardhat": "^2.16.0",
+    "hardhat": "^2.17.1",
+    "tsx": "^3.12.7"
+  },
+  "devDependencies": {
     "ts-node": "^10.9.1",
-    "tsx": "^3.12.7",
     "typescript": "^5.1.3"
   }
 }
