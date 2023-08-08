@@ -1,5 +1,5 @@
 npx hardhat node &
-sleep 3
+sleep 6
 npm run deploy &
 # keep container running
 tail -f /dev/null
