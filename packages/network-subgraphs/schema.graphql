@@ -255,7 +255,7 @@ type Operator @entity {
 
   "Connection metadata, to be able to find a node in the Operator's fleet"
   latestHeartbeatMetadata: String!
-  latestHeartbeatTimestamp: Int!
+  latestHeartbeatTimestamp: BigInt!
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
