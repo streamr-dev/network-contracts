@@ -4,7 +4,7 @@
  * Upgraded on polygon on 2023-04-02
  * https://polygonscan.com/tx/0xfb5e20c0daf89b2fd026755d374d59b4e802ccdca6f6e3721691c0483ea9fdcd
  */
- 
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.9;
@@ -24,7 +24,7 @@ import "./IProjectStakingV1.sol";
  */
 contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable, IProjectStakingV1 {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    
+
     IProjectRegistryV1 public projectRegistry;
     address public stakingTokenAddress;
 
@@ -40,7 +40,7 @@ contract ProjectStakingV1 is Initializable, AccessControlUpgradeable, UUPSUpgrad
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        _disableInitializers();
+        // _disableInitializers(); // instead of disabling the template, let's call initialize on it (which prevents re-initialization)
     }
     function initialize(address projectRegistryAddress, address tokenAddress) public initializer {
         __AccessControl_init();

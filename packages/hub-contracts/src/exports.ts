@@ -17,3 +17,5 @@ export type { Uniswap2AdapterV4 } from "../typechain/contracts/Marketplace/Unisw
 export { abi as remoteMarketplaceV1ABI, bytecode as remoteMarketplaceV1Bytecode }
     from "../artifacts/contracts/Marketplace/RemoteMarketplaceV1.sol/RemoteMarketplaceV1.json"
 export type { RemoteMarketplaceV1 } from "../typechain/contracts/Marketplace/RemoteMarketplaceV1"
+
+export * from "./HubEnvDeployer"

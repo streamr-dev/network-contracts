@@ -71,6 +71,40 @@
             "OperatorDefaultPoolYieldPolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d"
         }
     },
+    "dev2": {
+        "id": 31337,
+        "rpcEndpoints": [
+            {
+                "url": "http://10.200.10.1:8547"
+            }
+        ],
+        "adminPrivateKey": "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
+        "contracts": {
+            "ENS": "0x3AE0ad89b0e094fD09428589849C161f0F7f4E6A",
+            "FIFSRegistrar": "0x96098FABAdAF6B4eFdB7201a18bD6815124b824B",
+            "PublicResolver": "0x01f26Ca429FbE59617C5Fcdcb7f2214dcD09fB75",
+            "StorageNodeRegistry": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
+            "StreamRegistry": "0x642D2B84A32A9A92FEc78CeAA9488388b3704898",
+            "ENSCacheV2": "0x231b810D98702782963472e1D60a25496999E75D",
+            "StreamStorageRegistry": "0x3b11D489411BF11e843Cb28f8824dedBfcB75Df3",
+            "StreamrConfig": "0xCcc2CD65bbF6B2f62cEc8116A4d36CE043f13352",
+            "DATA": "0x00E680d549FE53a627a3db86a6F88fA2471CFfAa",
+            "SponsorshipMaxOperatorsJoinPolicy": "0xA90CeCcA042312b8f2e8B924C04Ce62516CBF7b2",
+            "SponsorshipStakeWeightedAllocationPolicy": "0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78",
+            "SponsorshipDefaultLeavePolicy": "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37",
+            "SponsorshipVoteKickPolicy": "0x36368Be8Cde49558Ab6ceEf2632984b282Db8775",
+            "SponsorshipFactory": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
+            "OperatorDefaultDelegationPolicy": "0x256D4CB67452b6b8280B2b67F040fD22f1C378f4",
+            "OperatorDefaultPoolYieldPolicy": "0x75Cb7CA52637991A3f166B8546542B3F6D712fd4",
+            "OperatorDefaultUndelegationPolicy": "0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873",
+            "OperatorFactory": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
+            "ProjectRegistryV1": "0x0849a4AeF33B1C2B083DfE4efD8eBe23C35e612B",
+            "MarketplaceV4": "0xca710199Fd00383cd7716bc3163e33A6B7D2C29C",
+            "ProjectStakingV1": "0x5c08f6Fb7B820ac73e83b4BdaCF5099231494f07",
+            "DataUnionFactory": "0x916FE6b8DB2C0D01FB96F37550CE8ff41F4Ed470",
+            "DataUnionTemplate": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789"
+        }
+    },
     "alfajores": {
         "id": 44787,
         "rpcEndpoints": [
