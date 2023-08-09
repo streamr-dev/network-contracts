@@ -2,6 +2,7 @@ import { BigInt, log, store } from '@graphprotocol/graph-ts'
 import {
     BalanceUpdate,
     Delegated,
+    Heartbeat,
     Loss,
     MetadataUpdated,
     NodesSet,
@@ -75,6 +76,17 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     operator.owner = operatorAddress
     // TODO: parse metadataJsonString once we know what to look for
     operator.metadataJsonString = metadataJsonString
+    operator.save()
+}
+
+export function handleHeartbeat(event: Heartbeat): void {
+    let operatorContractAddress = event.address.toHexString()
+    // let nodeAddress = event.params.nodeAddress.toHexString()
+    let metadataJsonString = event.params.jsonData.toString()
+
+    let operator = loadOrCreateOperator(operatorContractAddress)
+    operator.latestHeartbeatMetadata = metadataJsonString
+    operator.latestHeartbeatTimestamp = event.block.timestamp
     operator.save()
 }
 

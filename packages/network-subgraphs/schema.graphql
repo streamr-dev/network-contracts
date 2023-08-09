@@ -253,6 +253,10 @@ type Operator @entity {
   "DATA/pooltoken exchange rate, equal to poolValue / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
   exchangeRate: BigDecimal!
 
+  "Connection metadata, to be able to find a node in the Operator's fleet"
+  latestHeartbeatMetadata: String
+  latestHeartbeatTimestamp: BigInt
+
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
   slashingsCount: Int!
@@ -356,7 +360,7 @@ type SlashingEvent @entity {
 }
 
 type StakingEvent @entity {
-  id: ID! # 
+  id: ID! # 0xSponsorshipAddress-0xTransactionHash
   operator: Operator!
   amount: BigInt!
   date: BigInt!

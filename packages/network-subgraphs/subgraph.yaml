@@ -285,3 +285,5 @@ templates:
             handler: handleQueueUpdated
           - event: NodesSet(address[])
             handler: handleNodesSet
+          - event: Heartbeat(indexed address,string)
+            handler: handleHeartbeat
