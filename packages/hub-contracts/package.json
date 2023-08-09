@@ -1,6 +1,6 @@
 {
   "name": "@streamr/hub-contracts",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "description": "Smart contracts for the Streamr multi-chain Hub",
   "private": false,
   "publishConfig": {
@@ -12,6 +12,7 @@
   "main": "./dist/src/exports.js",
   "scripts": {
     "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
+    "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "eslint": "eslint {src,scripts,test}/**/*.ts",
     "lint": "solhint contracts/**/*.sol",
     "test": "hardhat test test/contracts/*",
