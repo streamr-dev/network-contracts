@@ -116,7 +116,7 @@ export class StreamrEnvDeployer {
         await this.createStream()
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
-        await this.stakeOnSponsorship()
+        // await this.stakeOnSponsorship()
         await this.deployOperatorContract()
         await this.investToPool()
         await this.stakeIntoSponsorship()
