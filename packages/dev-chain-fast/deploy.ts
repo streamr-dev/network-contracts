@@ -35,6 +35,14 @@ async function main() {
 
     const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
+    console.log("\n\n")
+    console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
+
+    console.log("Wallets with preloaded DATA:")
+    for (const wallet of streamrEnvDeployer.preloadedDATAWallets) {
+        console.log(`- address: ${wallet.address} (private key: ${wallet.privateKey})`)
+    }
+
     const contractAddresses = {
         ...streamrEnvDeployer.addresses,
         ...hubDeployer.addresses,
