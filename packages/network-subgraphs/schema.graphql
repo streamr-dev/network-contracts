@@ -340,7 +340,7 @@ type Sponsorship @entity {
 }
 
 type SponsorshipDailyBucket @entity {
-  id: ID! # sponsorship address + date
+  id: ID! # 0xSponsorshipAddress-TIMESTAMP
   sponsorship: Sponsorship!
   date: BigInt!
   totalStakedWei: BigInt!
@@ -352,7 +352,7 @@ type SponsorshipDailyBucket @entity {
 }
 
 type SlashingEvent @entity {
-  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   operator: Operator!
   amount: BigInt!
   date: BigInt!
@@ -376,7 +376,7 @@ type SponsoringEvent @entity {
 }
 
 type QueueEntry @entity {
-  id: ID! # 0xsponsorshipAddress-queueIndex
+  id: ID! # 0xSponsorshipAddress-QueueIndex
   operator: Operator!
   amount: BigInt!
   date: BigInt!
@@ -385,7 +385,7 @@ type QueueEntry @entity {
 
 # Operators hold Stake in Sponsorships
 type Stake @entity {
-  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!
