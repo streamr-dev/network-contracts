@@ -1,10 +1,3 @@
-/**
- * @deprecated prefer using config directly instead
- */
-export const Chains = {
-    load(): typeof config { return config }
-}
-
 export const config = {
     "dev0": {
         "id": 8995,
