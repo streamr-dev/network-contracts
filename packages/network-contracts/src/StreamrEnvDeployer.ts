@@ -179,17 +179,17 @@ export class StreamrEnvDeployer {
         initialTrackerNodes.push("0xf2C195bE194a2C91e93Eacb1d6d55a00552a85E2")
         initialTrackerMetadata.push("{\"ws\": \"ws://10.200.10.1:30303\", \"http\": \"http://10.200.10.1:30303\"}")
         
-        // trackerregistry
         const nodeRegistryFactory = new ContractFactory(nodeRegistryABI, nodeRegistryBytecode, this.adminWallet)
         const trackerRegDeployTx = await nodeRegistryFactory.deploy()
         const trackerRegistry = await trackerRegDeployTx.deployed() as NodeRegistry
         await (await trackerRegistry.initialize(this.adminWallet.address, false, initialTrackerNodes, initialTrackerMetadata)).wait()
         this.addresses.TrackerRegistry = trackerRegistry.address
         this.contracts.trackerRegistry = trackerRegistry
-        log(`NodeRegistry deployed at ${trackerRegistry.address}`)
+        log(`TrackerNodeRegistry deployed at ${trackerRegistry.address}`)
         const nodes = await trackerRegistry.getNodes()
-        log(`NodeRegistry nodes : ${JSON.stringify(nodes)}`)
-
+        log(`TrackerNodeRegistry nodes : ${JSON.stringify(nodes)}`)
+        
+        log("Deploying NodeRegistry contract 2 (storage node registry)")
         const initialStorageNodes = []
         const initialStorageMetadata = []
         initialStorageNodes.push("0xde1112f631486CfC759A50196853011528bC5FA0")
@@ -200,7 +200,7 @@ export class StreamrEnvDeployer {
             false, initialStorageNodes, initialStorageMetadata)).wait()
         this.addresses.StorageNodeRegistry = nodeRegistry.address
         this.contracts.storageNodeRegistry = nodeRegistry
-        log(`nodeRegistry address ${this.addresses.StorageNodeRegistry}`)
+        log(`StorageNodeRegistry deployed at ${this.addresses.StorageNodeRegistry}`)
 
         const streamRegistryFactory = new ContractFactory(streamRegistryABI, streamRegistryBytecode, this.adminWallet)
         const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistry
