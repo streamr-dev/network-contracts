@@ -32,7 +32,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
         sponsorship.save()
     }
 
-    // create a new Sponsorship object from the template
+    // start listening to events from the newly created Sponsorship contract
     SponsorshipTemplate.create(event.params.sponsorshipContract)
 
     loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
