@@ -43,8 +43,7 @@
     "@ensdomains/ens-contracts": "0.0.22",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
-    "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2",
-    "@streamr/config": "3.1.1"
+    "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
     "@chainsafe/as-sha256": "^0.3.1",
