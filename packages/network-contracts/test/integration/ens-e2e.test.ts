@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ethers, upgrades } from "hardhat"
+import { ethers } from "hardhat"
 import { Contract, providers, Wallet, utils } from "ethers"
 import Debug from "debug"
 const log = Debug("streamr:test:chainlink-ens")
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 import { StreamRegistry } from "../../typechain"
 
 import { abi as ensAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
 import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 
-const mainnetConfig = Chains.load()["dev0"]
-const sidechainConfig = Chains.load()["dev1"]
+const mainnetConfig = config.dev0
+const sidechainConfig = config.dev1
 const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
 const sideChainProvider = new providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 
