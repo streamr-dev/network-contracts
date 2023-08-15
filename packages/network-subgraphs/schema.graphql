@@ -347,7 +347,6 @@ type SponsorshipDailyBucket @entity {
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
   spotAPY: BigInt!
-  totalPayoutsCumulative: BigInt!
   operatorCount: Int!
 }
 

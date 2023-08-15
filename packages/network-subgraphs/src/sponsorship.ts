@@ -1,8 +1,15 @@
 import { log, BigInt } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Stake, Flag, SponsorshipDailyBucket, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate, OperatorSlashed, SponsorshipReceived } from '../generated/templates/Sponsorship/Sponsorship'
-import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
+import {
+    StakeUpdate,
+    SponsorshipUpdate,
+    FlagUpdate,
+    ProjectedInsolvencyUpdate,
+    OperatorSlashed,
+    SponsorshipReceived
+} from '../generated/templates/Sponsorship/Sponsorship'
+import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
+import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
@@ -39,49 +46,53 @@ export function handleStakeUpdated(event: StakeUpdate): void {
 }
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
-    // log.info('handleSponsorshipUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     log.info('handleSponsorshipUpdated: totalStakeWei={} unallocatedWei={} operatorCount={} isRunning={}', [
-        event.params.totalStakeWei.toString(),
-        event.params.unallocatedWei.toString(),
-        event.params.operatorCount.toString(),
-        event.params.isRunning.toString()
+        event.params.totalStakeWei.toString(), event.params.unallocatedWei.toString(),
+        event.params.operatorCount.toString(), event.params.isRunning.toString()
     ])
-    let sponsorshipAddress = event.address
-    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
-    sponsorship!.totalStakedWei = event.params.totalStakeWei
-    sponsorship!.unallocatedWei = event.params.unallocatedWei
-    sponsorship!.operatorCount = event.params.operatorCount.toI32()
-    sponsorship!.isRunning = event.params.isRunning
-    if (sponsorship && sponsorship.totalPayoutWeiPerSec && sponsorship.totalStakedWei.gt(BigInt.fromI32(0))) {
-        sponsorship.spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship.totalStakedWei)
+
+    let sponsorshipAddress = event.address.toHexString()
+    let sponsorship = Sponsorship.load(sponsorshipAddress)!
+
+    // TODO: should !isRunning mean APY is zero?
+    let spotAPY = BigInt.zero()
+    if (sponsorship.totalPayoutWeiPerSec > BigInt.zero() && sponsorship.totalStakedWei.gt(BigInt.zero())) {
+        spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship.totalStakedWei)
     }
 
-    sponsorship!.save()
+    sponsorship.totalStakedWei = event.params.totalStakeWei
+    sponsorship.unallocatedWei = event.params.unallocatedWei
+    sponsorship.operatorCount = event.params.operatorCount.toI32()
+    sponsorship.isRunning = event.params.isRunning
+    sponsorship.spotAPY = spotAPY
+    sponsorship.save()
 
-    // update SponsorshipDailyBucket
-    updateOrCreateSponsorshipDailyBucket(sponsorshipAddress.toHexString(),
-        event.block.timestamp,
-        event.params.totalStakeWei,
-        event.params.unallocatedWei,
-        event.params.operatorCount.toI32(),
-        null)
+    // By continuously updating, we would get "end of bucket" values.
+    // By not updating, we get "start of bucket" values which would be just as good; and save work.
+    loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    // const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    // bucket.totalStakedWei = event.params.totalStakeWei
+    // bucket.unallocatedWei = event.params.unallocatedWei
+    // bucket.operatorCount = event.params.operatorCount.toI32()
+    // bucket.spotAPY = spotAPY
+    // bucket.save()
 }
 
 export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
     log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
         [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
-    let sponsorshipAddress = event.address
-    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
-    sponsorship!.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    sponsorship!.save()
 
-    // update SponsorshipDailyBucket
-    let sponsorshipId = event.address.toHexString() + "-" + getBucketStartDate(event.block.timestamp).toString()
-    let sponsorshipDailyBucket = SponsorshipDailyBucket.load(sponsorshipId)
-    if (sponsorshipDailyBucket !== null) {
-        sponsorshipDailyBucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-        sponsorshipDailyBucket.save()
-    }
+    let sponsorshipAddress = event.address.toHexString()
+    let sponsorship = Sponsorship.load(sponsorshipAddress)!
+    sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    sponsorship.save()
+
+    // By continuously updating, we would get "end of bucket" values.
+    // By not updating, we get "start of bucket" values which would be just as good; and save work.
+    loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    // const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    // bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    // bucket.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
