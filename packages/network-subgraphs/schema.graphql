@@ -257,6 +257,9 @@ type Operator @entity {
   latestHeartbeatMetadata: String
   latestHeartbeatTimestamp: BigInt
 
+  "Total earnings including brokers shrare"
+  cumulativeProfitssWei: BigInt!
+
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
   slashingsCount: Int!
