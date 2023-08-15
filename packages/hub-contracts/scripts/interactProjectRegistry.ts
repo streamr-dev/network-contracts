@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 // import { chainToDomainId, chainToMailboxAddress } from "../utils"
 import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV4, ProjectStakingV1 } from "../typechain"
 
@@ -29,7 +29,7 @@ const {
         MarketplaceV4: MARKETPLACE_ADDRESS,
         ProjectStakingV1: PROJECT_STAKING_ADDRESS = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF',
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 // const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 // const MARKETPLACE_ADDRESS = "" // mumbai

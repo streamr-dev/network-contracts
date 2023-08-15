@@ -1,5 +1,5 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { ProjectRegistryV1, StreamRegistryV4 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
@@ -16,7 +16,7 @@ const {
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
         ProjectRegistry: PROJECT_REGISTRY_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 let projectRegistry: ProjectRegistryV1
 let streamRegistry: StreamRegistryV4

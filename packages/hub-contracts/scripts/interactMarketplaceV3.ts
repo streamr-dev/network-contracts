@@ -30,7 +30,7 @@ const {
         MarketplaceV3: MARKETPLACE_V3_ADDRESS,
         Uniswap2AdapterForMarketplaceV3: UNISWAP_2_ADAPTER_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 const {
     rpcEndpoints: [{
@@ -39,7 +39,7 @@ const {
     contracts: {
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
     }
-} = Chains.load()[POLYGON]
+} = (config as any)[POLYGON]
 
 const DEFAULT_PRIVATE_KEY = '0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0'
 const DEPLOYMENT_OWNER_KEY = '0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae'

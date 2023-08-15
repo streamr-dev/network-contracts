@@ -3,15 +3,14 @@
 // scripts/deploy.js
 import { ethers } from "hardhat"
 import { Wallet, providers } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 import { Operator, OperatorFactory, LinkToken } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
-const config = Chains.load()["dev1"]
-const CHAINURL = config.rpcEndpoints[0].url
+const CHAINURL = config.dev1.rpcEndpoints[0].url
 const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
 let deploymentOwner: Wallet

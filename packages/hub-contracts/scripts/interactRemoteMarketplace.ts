@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { Wallet, providers } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { RemoteMarketplace } from "../typechain/RemoteMarketplace"
 import { chainToBlockExplorer, chainToEthereumRpcUrl } from "../utils"
 
@@ -20,7 +20,7 @@ const {
         RemoteMarketplace: REMOTE_MARKETPLACE_ADDRESS,
         LINK: LINK_TOKEN_ADDRESS,
     }
-} = Chains.load()[REMOTE_CHAIN]
+} = (config as any)[REMOTE_CHAIN]
 // const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
 // const REMOTE_MARKETPLACE_ADDRESS = "" // goerli => must send some ETH to this address; contract pays for interchain gas fees
 

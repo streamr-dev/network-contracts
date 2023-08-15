@@ -1,5 +1,5 @@
 import { ethers as hhEthers, upgrades } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 const { log } = console
 
@@ -11,7 +11,7 @@ const {
     contracts: {
         StreamRegistry: STREAM_REGISTRY_ADDRESS, // = 0x0000000000000000000000000000000000000000
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 if (!STREAM_REGISTRY_ADDRESS) { throw new Error(`No StreamRegistry found in chain "${CHAIN}"`) }
 // const STREAM_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000000"

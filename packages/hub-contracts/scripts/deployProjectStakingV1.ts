@@ -1,5 +1,5 @@
 import { ethers as hhEthers, upgrades } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 const { log } = console
 
@@ -12,7 +12,7 @@ const {
         DATA: STAKING_TOKEN_ADDRESS, // LINK dev1 - 0x3387F44140ea19100232873a5aAf9E46608c791E
         ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
 
