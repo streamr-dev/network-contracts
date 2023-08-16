@@ -1,5 +1,5 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { utils } from "ethers"
 import { chainToDomainId, chainToMailboxAddress } from "../utils"
 
@@ -15,7 +15,7 @@ const {
     contracts: {
         ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 

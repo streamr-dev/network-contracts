@@ -1,5 +1,5 @@
 import { ethers, upgrades } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { chainToDomainId, chainToMailboxAddress, chainToDefaultPaymasterAddress, chainToQueryRouterAddress } from "../utils"
 
 const { log } = console
@@ -19,7 +19,7 @@ const {
     contracts: {
         MarketplaceV4: RECIPIENT_MARKETPLACE_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 if (!RECIPIENT_MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV4 found in chain "${CHAIN}"`) }
 // const RECIPIENT_MARKETPLACE_ADDRESS = ""
 

@@ -1,12 +1,12 @@
 import { HubEnvDeployer } from "../src/HubEnvDeployer"
 
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 const {
     contracts: {
         StreamRegistry,
         DATA,
     }
-} = Chains.load()["dev1"]
+} = config.dev1
 
 async function main() {
     // sidechain key preloaded with ETH (from docker-dev-init)

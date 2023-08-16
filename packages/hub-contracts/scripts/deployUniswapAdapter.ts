@@ -1,5 +1,5 @@
 import { ethers } from "hardhat"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 const { log } = console
 
@@ -11,7 +11,7 @@ const {
     contracts: {
         MarketplaceV3: MARKETPLACE_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 if (!MARKETPLACE_ADDRESS) { throw new Error(`No MarketplaceV3 found in chain "${CHAIN}"`) }
 

@@ -3,15 +3,15 @@ import { ethers, upgrades } from "hardhat"
 import { Contract } from "ethers"
 import Debug from "debug"
 const log = Debug("streamr:test:chainlink-ens")
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 import { StreamRegistry } from "../../typechain"
 
 import { abi as ensAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
 import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 
-// const mainnetConfig = Chains.load()["polygon"]
-const sidechainConfig = Chains.load()["polygon"]
+// const mainnetConfig = config.polygon
+const sidechainConfig = config.polygon
 // const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
 const sideChainProvider = new ethers.providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 

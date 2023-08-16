@@ -3,7 +3,7 @@ import { Contract } from "@ethersproject/contracts"
 import { JsonRpcProvider, Provider } from "@ethersproject/providers"
 import { parseUnits } from "@ethersproject/units"
 import { Wallet } from "@ethersproject/wallet"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { createRequire } from "module"
 import fetch from "node-fetch"
 
@@ -46,14 +46,14 @@ async function main() {
     let mainnetConfig
     let sidechainConfig
     if (ENVIRONMENT === 'prod') {
-        mainnetConfig = Chains.load()["ethereum"]
-        sidechainConfig = Chains.load()["polygon"]
+        mainnetConfig = config.ethereum
+        sidechainConfig = config.polygon
         mainnetProvider = new JsonRpcProvider(RPC_URL_MAINNET)
         sidechainProvider = new JsonRpcProvider(RPC_URL)
         privateKey = PRIVATE_KEY
     } else {
-        mainnetConfig = Chains.load()["dev0"]
-        sidechainConfig = Chains.load()["dev1"]
+        mainnetConfig = config.dev0
+        sidechainConfig = config.dev1
         mainnetProvider = new JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
         sidechainProvider = new JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"

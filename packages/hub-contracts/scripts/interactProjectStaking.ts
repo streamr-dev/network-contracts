@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { DATAv2, ProjectStakingV1 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
@@ -21,7 +21,7 @@ const {
         DATA: STAKING_TOKEN,
         ProjectStakingV1: PROJECT_STAKING_ADDRESS,
     }
-} = Chains.load()[CHAIN]
+} = (config as any)[CHAIN]
 
 let projectStaking: ProjectStakingV1
 let stakingToken: DATAv2
