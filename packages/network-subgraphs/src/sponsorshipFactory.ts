@@ -35,5 +35,6 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // start listening to events from the newly created Sponsorship contract
     SponsorshipTemplate.create(event.params.sponsorshipContract)
 
-    loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
+    bucket.save()
 }

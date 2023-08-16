@@ -103,7 +103,6 @@ export function loadOrCreateSponsorshipDailyBucket(
         bucket.totalStakedWei = sponsorship!.totalStakedWei
         bucket.unallocatedWei = sponsorship!.unallocatedWei
         bucket.spotAPY = sponsorship!.spotAPY
-        bucket.save()
     }
     return bucket
 }

@@ -67,15 +67,12 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     sponsorship.spotAPY = spotAPY
     sponsorship.save()
 
-    // By continuously updating, we would get "end of bucket" values.
-    // By not updating, we get "start of bucket" values which would be just as good; and save work.
-    loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    // const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    // bucket.totalStakedWei = event.params.totalStakeWei
-    // bucket.unallocatedWei = event.params.unallocatedWei
-    // bucket.operatorCount = event.params.operatorCount.toI32()
-    // bucket.spotAPY = spotAPY
-    // bucket.save()
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    bucket.totalStakedWei = event.params.totalStakeWei
+    bucket.unallocatedWei = event.params.unallocatedWei
+    bucket.operatorCount = event.params.operatorCount.toI32()
+    bucket.spotAPY = spotAPY
+    bucket.save()
 }
 
 export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
@@ -87,12 +84,9 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
     sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
     sponsorship.save()
 
-    // By continuously updating, we would get "end of bucket" values.
-    // By not updating, we get "start of bucket" values which would be just as good; and save work.
-    loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    // const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    // bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    // bucket.save()
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    bucket.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
