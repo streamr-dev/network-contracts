@@ -86,42 +86,25 @@ export function getIsDataUnionValue(jsonString: string): boolean {
     return false
 }
 
-export function updateOrCreateSponsorshipDailyBucket(
+export function loadOrCreateSponsorshipDailyBucket(
     sponsorshipAddress: string,
     timestamp: BigInt,
-    totalStakedWei: BigInt,
-    unallocatedWei: BigInt,
-    operatorCount: i32,
-    projectedInsolvency: BigInt | null
-): void {
+): SponsorshipDailyBucket {
     let date = getBucketStartDate(timestamp)
     let bucketId = sponsorshipAddress + "-" + date.toString()
     let bucket = SponsorshipDailyBucket.load(bucketId)
-    let sponsorship = Sponsorship.load(sponsorshipAddress)
     if (bucket === null) {
-        log.info("updateOrCreateSponsorshipDailyBucket: creating new stat statId={}", [bucketId])
+        log.info("loadOrCreateSponsorshipDailyBucket: creating new bucketId={}", [bucketId])
+        let sponsorship = Sponsorship.load(sponsorshipAddress)
         bucket = new SponsorshipDailyBucket(bucketId)
         bucket.sponsorship = sponsorshipAddress
         bucket.date = date
-        bucket.totalStakedWei = totalStakedWei
-        bucket.unallocatedWei = unallocatedWei
-        bucket.projectedInsolvency = new BigInt(0)
-        bucket.spotAPY = new BigInt(0)
-        bucket.totalPayoutsCumulative = new BigInt(0)
-    } else {
-        bucket.totalStakedWei = bucket.totalStakedWei.plus(totalStakedWei)
-        bucket.unallocatedWei = bucket.unallocatedWei.plus(unallocatedWei)
-        if (projectedInsolvency !== null) {
-            bucket.projectedInsolvency = projectedInsolvency
-        }
-        if (sponsorship && sponsorship.totalPayoutWeiPerSec && bucket.totalStakedWei.gt(BigInt.fromI32(0))) {
-            bucket.spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(bucket.totalStakedWei)
-            log.info("updateOrCreateSponsorshipDailyBucket debug1: spotAPY={} totalPayoutWeiPerSec={} totalPayoutWeiPerSec={}",
-                [bucket.spotAPY.toString(), sponsorship.totalPayoutWeiPerSec.toString(), bucket.totalStakedWei.toString()])
-        }
+        bucket.projectedInsolvency = sponsorship!.projectedInsolvency
+        bucket.totalStakedWei = sponsorship!.totalStakedWei
+        bucket.unallocatedWei = sponsorship!.unallocatedWei
+        bucket.spotAPY = sponsorship!.spotAPY
     }
-    bucket.operatorCount = operatorCount
-    bucket.save()
+    return bucket
 }
 
 export function loadOrCreateOperator(operatorId: string): Operator {

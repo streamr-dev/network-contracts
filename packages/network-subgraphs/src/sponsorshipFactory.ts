@@ -3,24 +3,26 @@ import { BigInt, log } from '@graphprotocol/graph-ts'
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
-import { updateOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
-    let sponsorshipContract = event.params.sponsorshipContract.toHexString()
+    let sponsorshipContractAddress = event.params.sponsorshipContract.toHexString()
     let creator = event.params.creator.toHexString()
-    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} creator={}', [event.block.number.toString(), sponsorshipContract, creator])
+    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} creator={}',
+        [event.block.number.toString(), sponsorshipContractAddress, creator]
+    )
 
-    let sponsorship = new Sponsorship(sponsorshipContract)
-    sponsorship.totalStakedWei = BigInt.fromI32(0)
-    sponsorship.unallocatedWei = BigInt.fromI32(0)
-    sponsorship.spotAPY = BigInt.fromI32(0)
-    sponsorship.projectedInsolvency = BigInt.fromI32(0)
+    let sponsorship = new Sponsorship(sponsorshipContractAddress)
+    sponsorship.totalStakedWei = BigInt.zero()
+    sponsorship.unallocatedWei = BigInt.zero()
+    sponsorship.spotAPY = BigInt.zero()
+    sponsorship.projectedInsolvency = BigInt.zero()
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
     sponsorship.totalPayoutWeiPerSec = event.params.totalPayoutWeiPerSec
     sponsorship.creator = creator
-    sponsorship.cumulativeSponsoring = BigInt.fromI32(0)
+    sponsorship.cumulativeSponsoring = BigInt.zero()
     sponsorship.save()
 
     // try to load stream entity
@@ -30,13 +32,9 @@ export function handleNewSponsorship(event: NewSponsorship): void {
         sponsorship.save()
     }
 
-    // Instantiate template
+    // start listening to events from the newly created Sponsorship contract
     SponsorshipTemplate.create(event.params.sponsorshipContract)
-    // SponsorshipTemplate.create(event.params.sponsorshipContract)
-    updateOrCreateSponsorshipDailyBucket(event.params.sponsorshipContract.toHexString(),
-        event.block.timestamp,
-        BigInt.fromI32(0),
-        BigInt.fromI32(0),
-        0,
-        null)
+
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
+    bucket.save()
 }
