@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { Wallet } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { MarketplaceV4 } from "../typechain"
 import { chainToDomainId } from "../utils"
 
@@ -16,13 +16,13 @@ const {
     contracts: {
         MarketplaceV4: MARKETPLACE_V4_ADDRESS,
     }
-} = Chains.load()[DESTINATION_CHAIN]
+} = (config as any)[DESTINATION_CHAIN]
 
 const {
     contracts: {
         RemoteMarketplace: REMOTE_MARKETPLACE_ADDRESS,
     }
-} = Chains.load()[ORIGIN_CHAIN]
+} = (config as any)[ORIGIN_CHAIN]
 
 let marketplace: MarketplaceV4
 let buyerWallet: Wallet

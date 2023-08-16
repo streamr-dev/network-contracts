@@ -1,13 +1,13 @@
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "ethers"
-import { Chains } from "@streamr/config"
+import { config as streamrconfig } from "@streamr/config"
 import hhat from "hardhat"
 import { Sponsorship, SponsorshipFactory, IAllocationPolicy, IJoinPolicy, IKickPolicy, ILeavePolicy, StreamrConfig, TestToken } from "../../typechain"
 import * as fs from "fs"
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 // import { SponsorshipFactory } from '../../typechain/SponsorshipFactory'
-const config = Chains.load()["dev1"]
+const config = streamrconfig.dev1
 
 const { ethers, upgrades } = hhat
 
