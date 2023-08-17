@@ -22,7 +22,7 @@ const url = "http://127.0.0.1:8545"
 const provider = new JsonRpcProvider(url)
 
 async function main() {
-    for(let i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
         try {
             console.log("Checking if chain node is up...")
             await provider.getBlockNumber()
