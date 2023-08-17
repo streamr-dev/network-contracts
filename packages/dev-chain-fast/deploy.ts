@@ -3,9 +3,10 @@ import { StreamrEnvDeployer } from "@streamr/network-contracts"
 import { HubEnvDeployer } from "@streamr/hub-contracts"
 
 import { JsonRpcProvider } from "@ethersproject/providers"
-import { Wallet } from '@ethersproject/wallet'
+import { Wallet } from "@ethersproject/wallet"
+import { parseEther } from "@ethersproject/units"
 
-import deployDataUnionContracts from "./deployDataUnionContracts"
+import { deployDataUnionContracts, deployDataUnion } from "./deployDataUnionContracts"
 
 async function main() {
     // hardhat node mockchain (first private key from testrpc mnemonic)
@@ -34,6 +35,13 @@ async function main() {
     await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
 
     const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
+
+    // deploy a data union to populate the subgraph
+    const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
+    await (await dataUnion.addMembersWithWeights(
+        [ "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd2D23b73A67208a90CBfEE1381415329954f54E2" ],
+        [ parseEther("1"), parseEther("2") ],
+    ))
 
     console.log("\n\n")
     console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
