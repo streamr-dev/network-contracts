@@ -73,7 +73,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public minOperatorCount;
     uint public minHorizonSeconds;
     uint public unallocatedWei;
-    uint public minimumStakeWei;
 
     function getMyStake() public view returns (uint) {
         return stakedWei[_msgSender()];
@@ -85,6 +84,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * When joining, committed stake is zero, so the it's the same minimumStakeWei for everyone.
      */
     function minimumStakeOf(address operator) public view returns (uint) {
+        uint minimumStakeWei = streamrConfig.minimumStakeWei();
         return max(committedStakeWei[operator], minimumStakeWei);
     }
 
@@ -118,18 +118,18 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         uint[4] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
     ) public initializer {
-        require(initParams[2] > 0, "error_minOperatorCountZero");
-        require(initParams[0] > 0, "error_minimumStakeZero");
+        minHorizonSeconds = uint32(initParams[1]);
+        minOperatorCount = uint32(initParams[2]);
+        uint allocationPerSecond = initParams[3];
+
+        require(minOperatorCount > 0, "error_minOperatorCountZero");
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
-        minimumStakeWei = initParams[0];
-        minHorizonSeconds = uint32(initParams[1]);
-        minOperatorCount = uint32(initParams[2]);
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
-        setAllocationPolicy(initialAllocationPolicy, initParams[3]);
+        setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
 
     /**
@@ -195,25 +195,26 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     function _stake(address operator, uint amountWei) internal {
         // console.log("join/stake at ", block.timestamp, operator, amountWei);
-        require(amountWei >= minimumStakeWei, "error_minimumStake");
-        if (stakedWei[operator] == 0) {
-           // console.log("Operator joins and stakes", operator, amountWei);
+        bool newStaker = stakedWei[operator] == 0;
+        stakedWei[operator] += amountWei;
+        totalStakedWei += amountWei;
+        require(stakedWei[operator] >= streamrConfig.minimumStakeWei(), "error_minimumStake");
+
+        if (newStaker) {
+            // console.log("Operator joins and stakes", operator, amountWei);
+            operatorCount += 1;
+            joinTimeOfOperator[operator] = block.timestamp; // solhint-disable-line not-rely-on-time
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, operator, amountWei), "error_joinPolicyOnJoin");
             }
-            stakedWei[operator] += amountWei;
-            operatorCount += 1;
-            totalStakedWei += amountWei;
-            joinTimeOfOperator[operator] = block.timestamp; // solhint-disable-line not-rely-on-time
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, operator), "error_allocationPolicyOnJoin");
             emit OperatorJoined(operator);
         } else {
-           // console.log("Operator already joined, increasing stake", operator, amountWei);
-            stakedWei[operator] += amountWei;
-            totalStakedWei += amountWei;
+            // console.log("Operator already joined, increasing stake", operator, amountWei);
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)), "error_stakeIncreaseFailed");
         }
+
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
         emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
     }
