@@ -714,9 +714,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // POLICY MODULES
     ////////////////////////////////////////
 
-    function setDelegationPolicy(IDelegationPolicy policy, uint256 initialMargin, uint256 minimumMarginFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDelegationPolicy(IDelegationPolicy policy, uint256 param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegationPolicy = policy;
-        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, initialMargin, minimumMarginFraction), "error_setDelegationPolicyFailed");
+        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param), "error_setDelegationPolicyFailed");
     }
 
     function setYieldPolicy(IPoolYieldPolicy policy, uint256 param) public onlyRole(DEFAULT_ADMIN_ROLE) {

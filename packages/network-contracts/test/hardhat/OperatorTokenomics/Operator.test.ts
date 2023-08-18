@@ -142,9 +142,12 @@ describe("Operator contract", (): void => {
             await setTokens(operatorWallet, "3000")
             await setTokens(delegator, "15000")
         })
+
+        // NOTE: minimumSelfDelegationFraction is now set in StreamrConfig to be 10%
+
         it("negativetest minoperatorstakepercent, cannot join when operators stake too small", async function(): Promise<void> {
             const { token } = sharedContracts
-            const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
+            const operator = await deployOperator(sharedContracts, operatorWallet)
             // operator should have 111.2 operator tokens, but has nothing
             await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
                 .to.be.revertedWith("error_joinPolicyFailed")
@@ -152,7 +155,7 @@ describe("Operator contract", (): void => {
 
         it("negativetest minoperatorstakepercent, delegator can't join if the operator's stake would fall too low", async function(): Promise<void> {
             const { token } = sharedContracts
-            const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
+            const operator = await deployOperator(sharedContracts, operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
             await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
@@ -161,7 +164,7 @@ describe("Operator contract", (): void => {
 
         it("positivetest minoperatorstakepercent, can join", async function(): Promise<void> {
             const { token } = sharedContracts
-            const operator = await deployOperator(sharedContracts, operatorWallet, { minOperatorStakePercent: 10 })
+            const operator = await deployOperator(sharedContracts, operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("113"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         })

@@ -3,8 +3,8 @@
 pragma solidity ^0.8.13;
 
 interface IDelegationPolicy {
-    function setParam(uint256 initialMargin, uint256 minimumMarginFraction) external;
+    function setParam(uint256 param) external;
 
-    /** @return allowedToJoin must be 0 for false, or 1 for true */
-    function canJoin(address delegator) external view returns (uint allowedToJoin);
+    /** can throw to prevent delegation. Gets called AFTER the pool token minting */
+    function onDelegate(address delegator) external;
 }

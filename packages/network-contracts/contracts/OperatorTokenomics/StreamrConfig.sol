@@ -19,6 +19,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     /**
+     * The minimum share of the Operator contract's own token should belong to the owner ("skin in the game")
+     * By default, further delegation is prevented if the operator's own delegation would fall below this fraction of the total delegations (= token supply).
+     **/
+    uint public minimumSelfDelegationFraction;
+
+    /** Prevent "sand delegations" */
+    uint public minimumDelegationWei;
+
+    /**
      * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
      *
      * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
@@ -135,9 +144,20 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
-        maxPenaltyPeriodSeconds = 30 days;
-        poolValueDriftLimitFraction = 0.1 ether;
+        // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
+        minimumSelfDelegationFraction = 0.1 ether;
+
+        // Prevent "sand delegations", set minimum delegation to 1 DATA
+        minimumDelegationWei = 1 ether;
+
+        // Sponsorship leave penalty parameter limit
+        maxPenaltyPeriodSeconds = 14 days;
+
+        // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
+        poolValueDriftLimitFraction = 0.05 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
+
+        // flagging + voting
         flagReviewerCount = 5;
         flagReviewerRewardWei = 1 ether;
         flaggerRewardWei = 1 ether;
@@ -165,6 +185,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         streamRegistryAddress = streamRegistryAddress_;
+    }
+
+    function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newMinimumSelfDelegationFraction > 1 ether, "error_tooHigh"); // can't be more than 100%
+        minimumSelfDelegationFraction = newMinimumSelfDelegationFraction;
     }
 
     function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -204,7 +229,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 10 / 9, "error_tooLow");
+        require(newFlagStakeWei * 9 >= 10 * flagReviewerCount * flagReviewerRewardWei, "error_tooLow");
         flagStakeWei = newFlagStakeWei;
     }
 
