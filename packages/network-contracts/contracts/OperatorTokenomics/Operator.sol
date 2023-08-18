@@ -623,29 +623,27 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function payOutQueueWithFreeFunds(uint maxIterations) public {
         // TODO: instead of special-casing maxIterations zero, call with a large value?
         if (maxIterations == 0) { maxIterations = 1 ether; } // see TODO above
-        for (uint i = 0; i < maxIterations; i++) {
-            if (payOutFirstInQueue()) {
-                break;
-            }
+        for (uint i = 0; i < maxIterations && !queueIsEmpty(); i++) {
+            payOutFirstInQueue();
         }
     }
 
     /**
      * Pay out the first item in the undelegation queue.
      * If free funds run out, only pay the first item partially and leave it in front of the queue.
-     * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
-    function payOutFirstInQueue() public returns (bool payoutComplete) {
+    function payOutFirstInQueue() public {
         uint balanceDataWei = token.balanceOf(address(this));
         if (balanceDataWei == 0 || queueIsEmpty()) {
-            return true;
+            return;
         }
 
-        // take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has
-        // also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance
+        // Take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has,
+        //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
+        // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
         uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
-        if (balanceOf(delegator) < amountPoolTokens + minimumDelegationWei) {
+        if (balanceOf(delegator) < amountPoolTokens + streamrConfig.minimumDelegationWei()) {
             amountPoolTokens = balanceOf(delegator);
         }
         if (amountPoolTokens == 0) {
@@ -655,7 +653,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
-            return false;
+            return;
         }
 
         // console.log("payOutFirstInQueue amountPoolTokens", amountPoolTokens);
@@ -665,13 +663,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // whole amountDataWei is paid out => pop the item and swap tokens
             delete undelegationQueue[queueCurrentIndex];
             _burn(delegator, amountPoolTokens);
-            emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
-            emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             queueCurrentIndex++;
-            return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
             uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy),
@@ -682,13 +677,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
             _burn(delegator, partialAmountPoolTokens);
-            emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
-            emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
-            return false;
         }
+        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
