@@ -102,12 +102,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
-    /**
-     * The time the operator is given for paying out the undelegation queue.
-     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
-     */
-    uint public maxQueueSeconds;
-
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
@@ -147,9 +141,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
 
-        // A fixed queue emptying requirement is simplest for now.
-        // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
-        maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
         operatorsShareFraction = operatorsShare;
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
@@ -443,7 +434,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
         }
 
