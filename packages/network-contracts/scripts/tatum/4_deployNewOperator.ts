@@ -10,6 +10,7 @@ import { Operator, OperatorFactory, LinkToken } from "../../typechain"
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
+import { parseEther } from "ethers/lib/utils"
 const CHAINURL = config.dev1.rpcEndpoints[0].url
 const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
@@ -64,9 +65,11 @@ const deployOperatorContracts = async (amount: number) => {
     for (let i = 0; i < amount; i++) {
         log("Deploying pool")
         const pooltx = await operatorFactory.connect(deploymentOwner).deployOperator(
-            [`Pool-${Date.now()}`, "{}"],
+            parseEther("0.1"),
+            `Pool-${Date.now()}`,
+            "{}",
             [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 0]
+            [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress

@@ -45,7 +45,8 @@ describe("Operator contract", (): void => {
             ...await deployOperatorFactory(contracts, deployer)
         }
 
-        return deployOperatorContract(newContracts, deployer, opts)
+        const operatorsCutFraction = parseEther("1").mul(opts.operatorSharePercent ?? 0).div(100)
+        return deployOperatorContract(newContracts, deployer, operatorsCutFraction)
     }
 
     before(async (): Promise<void> => {

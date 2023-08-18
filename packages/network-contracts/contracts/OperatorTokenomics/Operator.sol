@@ -77,21 +77,23 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     IUndelegationPolicy public undelegationPolicy;
 
     StreamrConfig public streamrConfig;
-    uint public minimumDelegationWei;
 
     address public owner;
+
+    /** DATA token address */
     IERC677 public token;
 
     /**
      * How much the operator gets from every withdraw
      * 1 ether == 100%, like in tokens
      **/
-    uint public operatorsShareFraction;
+    uint public operatorsCutFraction;
 
     Sponsorship[] public sponsorships;
     mapping(Sponsorship => uint) public indexOfSponsorships; // sponsorships array index PLUS ONE! use 0 as "is it already in the array?" check
 
-    mapping(Sponsorship => uint) public stakedInto; // in Data wei
+    /** stake in a Sponsorship, in DATA-wei */
+    mapping(Sponsorship => uint) public stakedInto;
 
     struct UndelegationQueueEntry {
         address delegator;
@@ -128,13 +130,21 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
+    /**
+     * @param tokenAddress default from OperatorFactory: DATA
+     * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
+     * @param ownerAddress controller/owner of this Operator contract
+     * @param poolTokenName name of the pool token (e.g. "Operator 1")
+     * @param operatorMetadataJson metadata for the operator (e.g. "https://streamr.network/operators/1")
+     * @param operatorsCut fraction of the earnings that the operator gets from withdrawn earnings, as a fraction of 10^18 (use parseEther)
+     */
     function initialize(
         address tokenAddress,
         address streamrConfigAddress,
         address ownerAddress,
-        string[2] memory operatorParams, // poolTokenName, streamPath
-        uint initialMinimumDelegationWei,
-        uint operatorsShare
+        string memory poolTokenName,
+        string memory operatorMetadataJson,
+        uint operatorsCut
     ) public initializer {
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
@@ -144,19 +154,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         token = IERC677(tokenAddress);
         owner = ownerAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
-        minimumDelegationWei = initialMinimumDelegationWei;
-        ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
+        ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
 
         // A fixed queue emptying requirement is simplest for now.
         // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
         maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
-        operatorsShareFraction = operatorsShare;
+        operatorsCutFraction = operatorsCut;
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-        metadata = operatorParams[1];
-        emit MetadataUpdated(operatorParams[1], ownerAddress);
+        emit MetadataUpdated(operatorMetadataJson, ownerAddress);
 
         _createOperatorStream();
     }
@@ -182,8 +190,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function _transfer(address from, address to, uint amount) internal override {
-        // enforce minimum delegation amount, but allow transfering everything (e.g. fully undelegate)
-        require(balanceOf(from) >= amount + minimumDelegationWei || balanceOf(from) == amount, "error_delegationBelowMinimum");
+        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
+        require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "error_delegationBelowMinimum");
         super._transfer(from, to, amount);
         emit BalanceUpdate(from, balanceOf(from), totalSupply());
         emit BalanceUpdate(to, balanceOf(to), totalSupply());
@@ -274,16 +282,18 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** DATA token transfer must have happened before calling this function, give back the correct amount of pool tokens */
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
-        if (address(delegationPolicy) != address(0) && delegator != owner) {
-            uint allowedToJoin = moduleGet(abi.encodeWithSelector(delegationPolicy.canJoin.selector, delegator, address(delegationPolicy)), "error_joinPolicyFailed");
-            require(allowedToJoin == 1, "error_joinPolicyFailed");
-        }
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
         uint256 amountPoolToken = moduleCall(address(yieldPolicy),
             abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei),
             "error_dataToPooltokenFailed"
         );
         _mint(delegator, amountPoolToken);
+
+        // check if the delegation policy allows this delegation
+        if (address(delegationPolicy) != address(0)) {
+            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator), "error_delegationPolicyFailed");
+        }
+
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
     }
@@ -292,8 +302,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function undelegate(uint amountPoolTokenWei) public {
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
-        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei, queueLastIndex);
+
+        address undelegator = _msgSender();
+
+        // check if the undelegation policy allows this undelegation
+        // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
+        if (address(undelegationPolicy) != address(0)) {
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator), "error_undelegationPolicyFailed");
+        }
+
+        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(undelegator, amountPoolTokenWei, queueLastIndex);
         queueLastIndex++;
         payOutQueueWithFreeFunds(0);
     }
@@ -359,7 +378,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
         uint earningsDataWei = sponsorship.withdraw();
-        uint operatorsShareDataWei = earningsDataWei * operatorsShareFraction / 1 ether;
+        uint operatorsShareDataWei = earningsDataWei * operatorsCutFraction / 1 ether;
         _mintPoolTokensFor(owner, operatorsShareDataWei);
         emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
@@ -381,7 +400,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
         require(sumEarnings > 0, "error_noEarnings");
-        uint operatorsShareDataWei = sumEarnings * operatorsShareFraction / 1 ether;
+        uint operatorsShareDataWei = sumEarnings * operatorsCutFraction / 1 ether;
 
         // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsShareDataWei to the caller as a reward
         uint operatorPaymentDataWei = operatorsShareDataWei;
@@ -470,7 +489,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         } else {
             // "self-delegate" the operator's share === mint new pooltokens
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
-            uint operatorsShareDataWei = profitDataWei * operatorsShareFraction / 1 ether;
+            uint operatorsShareDataWei = profitDataWei * operatorsCutFraction / 1 ether;
             _mintPoolTokensFor(owner, operatorsShareDataWei);
             emit Profit(sponsorship, profitDataWei - operatorsShareDataWei, operatorsShareDataWei);
         }
@@ -779,8 +798,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      **/
     function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint256 earnings) {
         uint alloc = sponsorship.getEarnings(address(this));
-        uint operatorShare = operatorsShareFraction * alloc / 1 ether;
-        return alloc - operatorShare;
+        uint operatorsCutWei = operatorsCutFraction * alloc / 1 ether;
+        return alloc - operatorsCutWei;
     }
 
     /**

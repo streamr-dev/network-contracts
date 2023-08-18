@@ -14,6 +14,7 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
+import { parseEther } from "ethers/lib/utils"
 
 export type StreamrContractAddresses = {
     // DATA token
@@ -178,7 +179,7 @@ export class StreamrEnvDeployer {
         const nodeRegistryFactory = new ContractFactory(nodeRegistryABI, nodeRegistryBytecode, this.adminWallet)
         const nodeRegistry = await nodeRegistryFactory.deploy() as NodeRegistry
         await nodeRegistry.deployed()
-        await (await nodeRegistry.initialize(this.adminWallet.address, 
+        await (await nodeRegistry.initialize(this.adminWallet.address,
             false, initialNodes, initialMetadata)).wait()
         this.addresses.StorageNodeRegistry = nodeRegistry.address
         this.contracts.storageNodeRegistry = nodeRegistry
@@ -386,10 +387,12 @@ export class StreamrEnvDeployer {
     async deployOperatorContract(): Promise<Operator> {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
-            [`Pool-${Date.now()}`, "{}"],
+            parseEther("0.1"),
+            `Pool-${Date.now()}`,
+            "{}",
             [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 10]
+            [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
