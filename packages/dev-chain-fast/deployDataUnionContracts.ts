@@ -1,4 +1,4 @@
-import { ContractFactory } from '@ethersproject/contracts'
+import { Contract, ContractFactory } from '@ethersproject/contracts'
 import { parseEther } from '@ethersproject/units'
 import { Wallet } from '@ethersproject/wallet'
 
@@ -50,7 +50,7 @@ async function deployDataUnionFactory(
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export default async function deployDataUnionContracts(tokenAddress: string, deployer: Wallet) {
+export async function deployDataUnionContracts(tokenAddress: string, deployer: Wallet) {
     log("deployDataUnionContracts (tokenAddress=%s, deployer=%s)", tokenAddress, deployer.address)
     await deployer.provider.getNetwork().catch(() => {
         throw new Error('No network found. Please start e.g. `hardhat node`')
@@ -70,4 +70,35 @@ export default async function deployDataUnionContracts(tokenAddress: string, dep
         dataUnionFactory,
         dataUnionTemplate
     }
+}
+
+export async function deployDataUnion(
+    deployer: Wallet,
+    duFactory: DataUnionFactory,
+    ownerAddress = deployer.address,
+    adminFeeBN = parseEther("0.1"),
+    agentAddressList = [ deployer.address ],
+    metadata = {}
+): Promise<DataUnionTemplate> {
+    // function deployNewDataUnion(
+    //     address payable owner,
+    //     uint256 adminFeeFraction,
+    //     address[] memory agents
+    // )
+    const tx = await duFactory.connect(deployer).deployNewDataUnion(
+        ownerAddress,
+        adminFeeBN,
+        agentAddressList,
+        JSON.stringify(metadata)
+    )
+    const receipt = await tx.wait()
+
+    const createdEvent = receipt.events?.find((e) => e.event === 'DUCreated')
+    if (createdEvent == null) {
+        throw new Error('Factory did not emit a DUCreated event!')
+    }
+
+    const contractAddress = createdEvent.args!.du as string
+    log("DataUnion deployed at %s", contractAddress)
+    return new Contract(contractAddress, templateJson.abi, deployer) as unknown as DataUnionTemplate
 }

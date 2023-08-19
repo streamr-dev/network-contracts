@@ -71,7 +71,8 @@ export const config = {
             "OperatorDefaultDelegationPolicy": "0x03CF38C75BFb9F4466fBA0aEd95f2613B0D1bCA0",
             "OperatorDefaultUndelegationPolicy": "0x67A0E9C9c21d11dB4eBAe420aBf705626a3a2561",
             "OperatorDefaultPoolYieldPolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d"
-        }
+        },
+        "theGraphUrl": "http://10.200.10.1:8000/subgraphs/name/streamr-dev/network-subgraphs"
     },
     "dev2": {
         "id": 31337,
@@ -107,7 +108,8 @@ export const config = {
             "ProjectStakingV1": "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794",
             "DataUnionFactory": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13",
             "DataUnionTemplate": "0x8c1032014E7f14dECAD2b06f01215280C858c3Fe"
-        }
+        },
+        "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs"
     },
     "alfajores": {
         "id": 44787,

@@ -416,7 +416,7 @@ export class StreamrEnvDeployer {
     async deployOperatorContract(): Promise<Operator> {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
-            [`Pool-${Date.now()}`, "{}"],
+            ["TestPool1", "{}"],
             [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
             [0, 0, 0, 0, 0, 10]

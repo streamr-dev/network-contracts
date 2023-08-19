@@ -66,7 +66,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     function onFlag(address target) external {
         address flagger = _msgSender();
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(stakedWei[flagger] >= minimumStakeWei, "error_notEnoughStake");
+        require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
         require(stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         flaggerAddress[target] = flagger;
@@ -74,8 +74,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds(); // solhint-disable-line not-rely-on-time
 
         // the flag target risks to lose 10% if the flag resolves to KICK
-        // take at least 10% of minimumStake to ensure everyone can get paid!
-        targetStakeAtRiskWei[target] = max(stakedWei[target], minimumStakeWei) / 10;
+        // take at least 10% of minimumStakeWei to ensure everyone can get paid!
+        targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) / 10;
         committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // cache these just in case the config changes during the flag
