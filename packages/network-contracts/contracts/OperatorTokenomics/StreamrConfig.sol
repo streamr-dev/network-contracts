@@ -141,6 +141,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
+        maxQueueSeconds = 30 days;
         maxPenaltyPeriodSeconds = 30 days;
         poolValueDriftLimitFraction = 0.1 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
