@@ -1,8 +1,15 @@
-import { log } from '@graphprotocol/graph-ts'
+import { log, BigInt } from '@graphprotocol/graph-ts'
 
-import { Sponsorship, Stake, Flag, SponsorshipDailyBucket } from '../generated/schema'
-import { StakeUpdate, SponsorshipUpdate, FlagUpdate, ProjectedInsolvencyUpdate } from '../generated/templates/Sponsorship/Sponsorship'
-import { updateOrCreateSponsorshipDailyBucket, getBucketStartDate } from './helpers'
+import {
+    StakeUpdate,
+    SponsorshipUpdate,
+    FlagUpdate,
+    ProjectedInsolvencyUpdate,
+    OperatorSlashed,
+    SponsorshipReceived
+} from '../generated/templates/Sponsorship/Sponsorship'
+import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
+import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
@@ -28,48 +35,58 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     //     stake.operator = operator.id
     // }
     stake.save()
+
+    // also save StakingEvent
+    let stakingEvent = new StakingEvent(sponsorshipAddress.toHexString() + "-" + event.transaction.hash.toHexString())
+    stakingEvent.sponsorship = sponsorshipAddress.toHexString()
+    stakingEvent.operator = operatorAddress.toHexString()
+    stakingEvent.date = event.block.timestamp
+    stakingEvent.amount = event.params.stakedWei
+    stakingEvent.save()
 }
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
-    // log.info('handleSponsorshipUpdated: sidechainaddress={} blockNumber={}', [event.address.toHexString(), event.block.number.toString()])
     log.info('handleSponsorshipUpdated: totalStakeWei={} unallocatedWei={} operatorCount={} isRunning={}', [
-        event.params.totalStakeWei.toString(),
-        event.params.unallocatedWei.toString(),
-        event.params.operatorCount.toString(),
-        event.params.isRunning.toString()
+        event.params.totalStakeWei.toString(), event.params.unallocatedWei.toString(),
+        event.params.operatorCount.toString(), event.params.isRunning.toString()
     ])
-    let sponsorshipAddress = event.address
-    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
-    sponsorship!.totalStakedWei = event.params.totalStakeWei
-    sponsorship!.unallocatedWei = event.params.unallocatedWei
-    sponsorship!.operatorCount = event.params.operatorCount.toI32()
-    sponsorship!.isRunning = event.params.isRunning
-    sponsorship!.save()
 
-    // update SponsorshipDailyBucket
-    updateOrCreateSponsorshipDailyBucket(sponsorshipAddress.toHexString(),
-        event.block.timestamp,
-        event.params.totalStakeWei,
-        event.params.unallocatedWei,
-        event.params.operatorCount.toI32(),
-        null)
+    let sponsorshipAddress = event.address.toHexString()
+    let sponsorship = Sponsorship.load(sponsorshipAddress)!
+
+    // TODO: should !isRunning mean APY is zero?
+    let spotAPY = BigInt.zero()
+    if (sponsorship.totalPayoutWeiPerSec > BigInt.zero() && sponsorship.totalStakedWei.gt(BigInt.zero())) {
+        spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship.totalStakedWei)
+    }
+
+    sponsorship.totalStakedWei = event.params.totalStakeWei
+    sponsorship.unallocatedWei = event.params.unallocatedWei
+    sponsorship.operatorCount = event.params.operatorCount.toI32()
+    sponsorship.isRunning = event.params.isRunning
+    sponsorship.spotAPY = spotAPY
+    sponsorship.save()
+
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    bucket.totalStakedWei = event.params.totalStakeWei
+    bucket.unallocatedWei = event.params.unallocatedWei
+    bucket.operatorCount = event.params.operatorCount.toI32()
+    bucket.spotAPY = spotAPY
+    bucket.save()
 }
 
 export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
     log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
         [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
-    let sponsorshipAddress = event.address
-    let sponsorship = Sponsorship.load(sponsorshipAddress.toHexString())
-    sponsorship!.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    sponsorship!.save()
 
-    // update SponsorshipDailyBucket
-    let sponsorshipId = event.address.toHexString() + "-" + getBucketStartDate(event.block.timestamp).toString()
-    let sponsorshipDailyBucket = SponsorshipDailyBucket.load(sponsorshipId)
-    if (sponsorshipDailyBucket !== null) {
-        sponsorshipDailyBucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-        sponsorshipDailyBucket.save()
-    }
+    let sponsorshipAddress = event.address.toHexString()
+    let sponsorship = Sponsorship.load(sponsorshipAddress)!
+    sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    sponsorship.save()
+
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+    bucket.save()
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
@@ -90,4 +107,44 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.targetSlashAmount = event.params.targetCommittedStake
     flag.result = event.params.result
     flag.save()
+}
+
+export function handleOperatorSlashed(event: OperatorSlashed): void {
+    log.info('handleOperatorSlashed: operator={} slashedAmount={}',
+        [event.params.operator.toHexString(),
+            event.params.amountWei.toString()
+        ])
+    let sponsorshipAddress = event.address
+    let operatorAddress = event.params.operator
+
+    let slashID = sponsorshipAddress.toHexString() + "-" + event.transaction.hash.toHexString()
+    let slashingEvent = new SlashingEvent(slashID)
+    slashingEvent.sponsorship = sponsorshipAddress.toHexString()
+    slashingEvent.operator = operatorAddress.toHexString()
+    slashingEvent.date = event.block.timestamp
+    slashingEvent.amount = event.params.amountWei
+    slashingEvent.save()
+
+    // update Operator
+    let operator = Operator.load(operatorAddress.toHexString())
+    if (operator !== null) {
+        operator.slashingsCount = operator.slashingsCount + 1
+        operator.save()
+    }
+}
+
+export function handleSponsorshipReceived(event: SponsorshipReceived): void {
+    log.info('handleSponsorshipReceived: sponsor={} amount={}', [event.params.sponsor.toHexString(),
+        event.params.amount.toString()
+    ])
+    let sponsorship = Sponsorship.load(event.address.toHexString())
+    sponsorship!.cumulativeSponsoring = sponsorship!.cumulativeSponsoring.plus(event.params.amount)
+    sponsorship!.save()
+
+    let sponsoringEvent = new SponsoringEvent(event.address.toHexString() + event.transaction.hash.toHexString())
+    sponsoringEvent.sponsorship = event.address.toHexString()
+    sponsoringEvent.sponsor = event.params.sponsor.toHexString()
+    sponsoringEvent.date = event.block.timestamp
+    sponsoringEvent.amount = event.params.amount
+    sponsoringEvent.save()
 }

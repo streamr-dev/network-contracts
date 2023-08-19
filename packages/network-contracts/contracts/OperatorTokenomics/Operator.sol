@@ -38,8 +38,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
     event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
-    event QueuedDataPayout(address delegator, uint amountPoolTokenWei);
-    event QueueUpdated(address delegator, uint amountPoolTokenWei);
+    event QueuedDataPayout(address delegator, uint amountPoolTokenWei, uint queueIndex);
+    event QueueUpdated(address delegator, uint amountPoolTokenWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
@@ -102,12 +102,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
-    /**
-     * The time the operator is given for paying out the undelegation queue.
-     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
-     */
-    uint public maxQueueSeconds;
-
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
@@ -147,9 +141,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         minimumDelegationWei = initialMinimumDelegationWei;
         ERC20Upgradeable.__ERC20_init(operatorParams[0], operatorParams[0]);
 
-        // A fixed queue emptying requirement is simplest for now.
-        // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
-        maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
         operatorsShareFraction = operatorsShare;
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
@@ -169,7 +160,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
         streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
-        streamRegistry.createStream("/operator/coordination", "{}");
+        streamRegistry.createStream("/operator/coordination", "{partitions:1}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
     }
 
@@ -293,8 +284,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // console.log("## undelegate");
         require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(_msgSender(), amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei, queueLastIndex);
         queueLastIndex++;
-        emit QueuedDataPayout(_msgSender(), amountPoolTokenWei);
         payOutQueueWithFreeFunds(0);
     }
 
@@ -443,7 +434,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
         }
 
@@ -634,8 +625,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             // will this actually do anything? Or delete just resets to default value which is anyway zero?
             // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
+            emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
-            emit QueueUpdated(delegator, 0);
             return false;
         }
 
@@ -645,13 +636,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (balanceDataWei >= amountDataWei) {
             // whole amountDataWei is paid out => pop the item and swap tokens
             delete undelegationQueue[queueCurrentIndex];
-            queueCurrentIndex++;
             _burn(delegator, amountPoolTokens);
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, amountDataWei);
             emit Undelegated(delegator, amountDataWei);
-            emit QueueUpdated(delegator, 0);
+            emit QueueUpdated(delegator, 0, queueCurrentIndex);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+            queueCurrentIndex++;
             return queueIsEmpty();
         } else {
             // whole pool's balance is paid out as a partial payment, update the item in the queue
@@ -666,7 +657,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
             token.transfer(delegator, balanceDataWei);
             emit Undelegated(delegator, balanceDataWei);
-            emit QueueUpdated(delegator, poolTokensLeftInQueue);
+            emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
             emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
             return false;
         }

@@ -226,6 +226,8 @@ type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
   delegators: [Delegation!]! @derivedFrom(field: "operator")
+  slashingEvents: [SlashingEvent!]! @derivedFrom(field: "operator")
+  stakingEvents: [StakingEvent!]! @derivedFrom(field: "operator")
 
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
@@ -251,8 +253,14 @@ type Operator @entity {
   "DATA/pooltoken exchange rate, equal to poolValue / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
   exchangeRate: BigDecimal!
 
+  "Connection metadata, to be able to find a node in the Operator's fleet"
+  latestHeartbeatMetadata: String
+  latestHeartbeatTimestamp: BigInt
+
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
+  slashingsCount: Int!
+  nodes: [String!]!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -318,29 +326,65 @@ type Sponsorship @entity {
   isRunning: Boolean!
   totalPayoutWeiPerSec: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
+  slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
+  stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
+  sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
+  cumulativeSponsoring: BigInt!
   operatorCount: Int!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
+  spotAPY: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!
 }
 
 type SponsorshipDailyBucket @entity {
-  id: ID! # sponsorship address + date
+  id: ID! # 0xSponsorshipAddress-TIMESTAMP
   sponsorship: Sponsorship!
   date: BigInt!
   totalStakedWei: BigInt!
   unallocatedWei: BigInt!
   projectedInsolvency: BigInt!
   spotAPY: BigInt!
-  totalPayoutsCumulative: BigInt!
   operatorCount: Int!
+}
+
+type SlashingEvent @entity {
+  id: ID! # 0xSponsorshipAddress-0xOperatorAddress
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  sponsorship: Sponsorship!
+}
+
+type StakingEvent @entity {
+  id: ID! # 0xSponsorshipAddress-0xTransactionHash
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  sponsorship: Sponsorship!
+}
+
+type SponsoringEvent @entity {
+  id: ID!
+  sponsor: String!
+  amount: BigInt!
+  sponsorship: Sponsorship!
+  date: BigInt!
+}
+
+type QueueEntry @entity {
+  id: ID! # 0xSponsorshipAddress-QueueIndex
+  operator: Operator!
+  amount: BigInt!
+  date: BigInt!
+  delegator: String!
 }
 
 # Operators hold Stake in Sponsorships
 type Stake @entity {
-  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
+  id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!

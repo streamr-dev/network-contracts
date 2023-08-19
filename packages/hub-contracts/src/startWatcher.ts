@@ -1,7 +1,7 @@
 import { IMarketplace } from "../typechain/IMarketplace"
 import IMarketplaceJson from "../artifacts/contracts/IMarketplace.sol/IMarketplace.json"
 
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 import { Contract, providers } from "ethers"
 
 const { log } = console
@@ -15,7 +15,7 @@ const {
             "Marketplace": marketplaceAddress
         }
     }
-} = Chains.load("development")
+} = config
 
 const provider = new providers.JsonRpcProvider(rpcUrl)
 

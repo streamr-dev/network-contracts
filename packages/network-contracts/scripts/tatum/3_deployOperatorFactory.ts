@@ -3,15 +3,14 @@
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { ethers, upgrades } from "hardhat"
 import { Wallet } from "ethers"
-import { Chains } from "@streamr/config"
+import { config } from "@streamr/config"
 
 import { Operator, OperatorFactory, IUndelegationPolicy, IDelegationPolicy, IPoolYieldPolicy, StreamrConfig } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
-const config = Chains.load()["dev1"]
-const CHAINURL = config.rpcEndpoints[0].url
+const CHAINURL = config.dev1.rpcEndpoints[0].url
 const chainProvider = new JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
 let deploymentOwner: Wallet

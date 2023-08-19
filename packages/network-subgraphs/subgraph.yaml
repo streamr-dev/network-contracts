@@ -13,7 +13,7 @@ dataSources:
     name: StreamRegistry
     network: xDai
     source:
-      address: "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222"
+      address: "0x231b810D98702782963472e1D60a25496999E75D"
       abi: StreamRegistry
       # startBlock: 10000000 #TODO
     mapping:
@@ -39,7 +39,7 @@ dataSources:
     name: NodeRegistry
     network: xDai
     source:
-      address: "0x231b810D98702782963472e1D60a25496999E75D"
+      address: "0x642D2B84A32A9A92FEc78CeAA9488388b3704898"
       abi: NodeRegistry
       # startBlock: 10000000 #TODO
     mapping:
@@ -65,7 +65,7 @@ dataSources:
     name: StreamStorageRegistry
     network: xDai
     source:
-      address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
+      address: "0xCcc2CD65bbF6B2f62cEc8116A4d36CE043f13352"
       abi: StreamStorageRegistry
       # startBlock: 10000000 #TODO
     mapping:
@@ -88,7 +88,7 @@ dataSources:
     name: ProjectRegistryV1
     network: xDai # xDai means dev1
     source:
-      address: "0x3C841B9Aa08166e9B864972930703e878d25804B"
+      address: "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2"
       abi: ProjectRegistryV1
       startBlock: 0
     mapping:
@@ -122,7 +122,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
+      address: "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
@@ -142,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: xDai
     source:
-      address: "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF"
+      address: "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794"
       abi: ProjectStakingV1
       startBlock: 0
     mapping:
@@ -166,7 +166,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x58C8e321d561123649bE41445cB0690Ec3d27Fe9'
+      address: '0x57B81a9442805f88c4617B506206531e72d96290'
       abi: SponsorshipFactory
       startBlock: 0
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3'
+      address: '0xfC31c70FafCbFe399195C789602ae2455B247fD2'
       abi: OperatorFactory
       startBlock: 0
     mapping:
@@ -219,6 +219,8 @@ templates:
       entities:
         - Sponsorship
         - Stake
+        - StakeEvent
+        - SlashingEvent
         - Flag
       abis:
         - name: Sponsorship
@@ -232,11 +234,13 @@ templates:
             handler: handleFlagUpdate
           - event: ProjectedInsolvencyUpdate(uint256)
             handler: handleProjectedInsolvencyUpdate
+          - event: OperatorSlashed(indexed address,uint256)
+            handler: handleOperatorSlashed
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
-        # - event: SponsorshipReceived(indexed address,uint256)
-        #   handler: handleSponsorshipReceived
+          - event: SponsorshipReceived(indexed address,uint256)
+            handler: handleSponsorshipReceived
         # - event: OperatorJoined(indexed address)
         #   handler: handleOperatorJoined
         # - event: OperatorLeft(indexed address,uint256)
@@ -253,6 +257,7 @@ templates:
       file: ./src/operator.ts
       entities:
         - Operator
+        - QueueEntry
         - Delegation
         - OperatorDailyBucket
       abis:
@@ -274,3 +279,11 @@ templates:
             handler: handleProfit
           - event: Loss(indexed address,uint256)
             handler: handleLoss
+          - event: QueuedDataPayout(address,uint256,uint256)
+            handler: handleQueuedDataPayout
+          - event: QueueUpdated(address,uint256,uint256)
+            handler: handleQueueUpdated
+          - event: NodesSet(address[])
+            handler: handleNodesSet
+          - event: Heartbeat(indexed address,string)
+            handler: handleHeartbeat

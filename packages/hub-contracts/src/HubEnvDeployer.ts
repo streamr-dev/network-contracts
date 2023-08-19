@@ -3,7 +3,8 @@ import {
     MarketplaceV4, marketplaceV4ABI, marketplaceV4Bytecode,
     ProjectRegistryV1, projectRegistryV1ABI, projectRegistryV1Bytecode,
     RemoteMarketplaceV1, remoteMarketplaceV1ABI, remoteMarketplaceV1Bytecode,
-    Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode
+    Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode,
+    ProjectStakingV1, projectStakingV1ABI, projectStakingV1Bytecode,
 } from "./exports"
 import debug from "debug"
 
@@ -14,6 +15,7 @@ export type HubEnvContractAddresses = {
     "ProjectRegistryV1": string,
     "RemoteMarketplaceV1": string,
     "Uniswap2AdapterV4": string,
+    "ProjectStakingV1": string,
 }
 
 export type HubEnvContracts = {
@@ -21,6 +23,7 @@ export type HubEnvContracts = {
     "projectRegistryV1": ProjectRegistryV1,
     "remoteMarketplaceV1": RemoteMarketplaceV1,
     "uniswap2AdapterV4": Uniswap2AdapterV4,
+    "projectStakingV1": ProjectStakingV1,
 }
 
 export class HubEnvDeployer {
@@ -45,9 +48,10 @@ export class HubEnvDeployer {
         this.adminWallet = new Wallet(key, this.provider)
     }
 
-    async deployCoreContracts(): Promise<void> {
+    async deployCoreContracts(tokenAddress: string): Promise<void> {
         await this.deployProjectRegistryV1(this.streamRegistryAddress)
         await this.deployMarketplaceV4(this.addresses.ProjectRegistryV1, this.destinationDomainId)
+        await this.deployProjectStaking(this.addresses.ProjectRegistryV1, tokenAddress)
     }
 
     async deployProjectRegistryV1(streamRegistryAddress: string): Promise<ProjectRegistryV1> {
@@ -112,5 +116,18 @@ export class HubEnvDeployer {
         await (await remoteMarketplaceV1.addRecipient(this.destinationDomainId, this.addresses.MarketplaceV4)).wait()
         log("Added MarketplaceV4 as recipient for RemoteMarketplaceV1")
         return remoteMarketplaceV1
+    }
+
+    async deployProjectStaking(
+        projectRegistryAddress: string,
+        tokenAddress: string,
+    ): Promise<ProjectStakingV1> {
+        const projectStakingV1Factory = new ContractFactory(projectStakingV1ABI, projectStakingV1Bytecode, this.adminWallet)
+        const projectStakingV1 = await projectStakingV1Factory.deploy() as ProjectStakingV1
+        await projectStakingV1.deployed()
+        await (await projectStakingV1.initialize(projectRegistryAddress, tokenAddress)).wait()
+        this.contracts.projectStakingV1 = projectStakingV1
+        this.addresses.ProjectStakingV1 = projectStakingV1.address
+        return projectStakingV1
     }
 }

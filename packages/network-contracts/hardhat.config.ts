@@ -43,6 +43,11 @@ const config: HardhatUserConfig = {
             blockGasLimit: 0x1fffffffffffff,
             allowUnlimitedContractSize: true
         },
+        dev2: {
+            chainId: 31337,
+            url: "http://localhost:8547",
+            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+        },
         dev1: {
             chainId: 8997,
             url: "http://localhost:8546",

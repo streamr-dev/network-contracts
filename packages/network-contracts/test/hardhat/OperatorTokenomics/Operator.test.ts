@@ -343,7 +343,7 @@ describe("Operator contract", (): void => {
         // Because there is 20 in terms of funds that is available currently, that is the amount of DATA which will be paid out.
         // 20 DATA / 5 Exchange Rate = 4 Operator Tokens are paid out, 1 operator token payout is put into the queue.
         await expect(operator.connect(delegator).undelegate(parseEther("500")))
-            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"))
+            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"), 0)
             .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("2500"))
 
         expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("3000"))
@@ -409,7 +409,7 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.connect(delegator).undelegate(parseEther("100")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"), 0)
             expect(await operator.queuePositionOf(delegator.address)).to.equal(1)
 
             // earnings are 1 token/second * 1000 seconds = 1000, minus 200 operator fee = 800 DATA
@@ -443,7 +443,7 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.connect(delegator).undelegate(parseEther("1000")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"), 0)
 
             // earnings are 2000, minus 500 operator fee = 1500 DATA
             // 1500 DATA will be paid out
@@ -506,7 +506,7 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.connect(delegator).undelegate(parseEther("600")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"), 0)
 
             // move operator tokens away, leave only 100 to the delegator; that will be the whole amount of the exit, not 600
             await operator.connect(delegator).transfer(sponsor.address, parseEther("900"))
@@ -542,7 +542,7 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.connect(delegator).undelegate(parseEther("600")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("600"), 0)
 
             // move operator tokens away, nothing can be exited, although nominally there's still 600 in the queue
             await operator.connect(delegator).transfer(sponsor.address, parseEther("1000"))
@@ -562,7 +562,7 @@ describe("Operator contract", (): void => {
         })
 
         it("accepts forced takeout from non-operator after grace period is over (negative + positive test)", async function(): Promise<void> {
-            const { token } = sharedContracts
+            const { token, streamrConfig } = sharedContracts
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
 
@@ -572,7 +572,7 @@ describe("Operator contract", (): void => {
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
             const timeAtStart = await getBlockTimestamp()
-            const gracePeriod = +await operator.maxQueueSeconds()
+            const gracePeriod = +await streamrConfig.maxQueueSeconds()
 
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
@@ -873,7 +873,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
         await expect(operator.connect(delegator).undelegate(parseEther("100")))
-            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"))
+            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"), 0)
 
         expect(await operator.queueIsEmpty()).to.be.false
         await expect(operator.stake(sponsorship.address, parseEther("1000")))

@@ -77,6 +77,6 @@ export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
 export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 export { abi as publicResolverABI, bytecode as publicResolverBytecode }
-    from "@ensdomains/ens-contracts/artifacts/contracts/resolvers/PublicResolver.sol/PublicResolver.json"
+    from "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json"
 
 export * from "./StreamrEnvDeployer"

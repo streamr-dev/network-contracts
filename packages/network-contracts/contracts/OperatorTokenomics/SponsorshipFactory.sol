@@ -81,9 +81,9 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             streamId,
             metadata,
             policies,
-            initParams,
-            from
+            initParams
         );
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], from);
         IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, "");
     }
 
@@ -96,9 +96,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
      * @param policies smart contract addresses found in the trustedPolicies
      */
     function deploySponsorship(
-        uint initialMinimumStakeWei, // ignored, TODO: remove (in the next breaking change)
-        uint32 initialMinHorizonSeconds, // ignored, TODO: remove (in the next breaking change)
-        uint32 minOperatorCount, // TODO: change to uint (in the next breaking change)
+        uint minOperatorCount,
         string memory streamId,
         string memory metadata,
         address[] memory policies,
@@ -106,14 +104,15 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     ) public returns (address) {
         IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         require(streamRegistry.exists(streamId), "error_streamNotFound");
-        return _deploySponsorship(
+        address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
             metadata,
             policies,
-            initParams,
-            _msgSender()
+            initParams
         );
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], _msgSender());
+        return sponsorshipAddress;
     }
 
     function _deploySponsorship(
@@ -121,8 +120,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         string memory streamId,
         string memory metadata,
         address[] memory policies,
-        uint[] memory initParams,
-        address creatorAddress
+        uint[] memory initParams
     ) private returns (address) {
         require(policies.length == initParams.length, "error_badArguments");
         require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
@@ -156,9 +154,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         }
         sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.operatorContractOnlyJoinPolicy()), 0);
         sponsorship.renounceRole(sponsorship.DEFAULT_ADMIN_ROLE(), address(this));
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], creatorAddress);
-        // solhint-disable-next-line not-rely-on-time
-        deploymentTimestamp[sponsorshipAddress] = block.timestamp;
+        deploymentTimestamp[sponsorshipAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         return sponsorshipAddress;
     }
 
