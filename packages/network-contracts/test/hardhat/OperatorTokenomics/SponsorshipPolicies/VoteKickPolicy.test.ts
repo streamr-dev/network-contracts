@@ -439,10 +439,7 @@ describe("VoteKickPolicy", (): void => {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
             } = await setupSponsorships(contracts, [3, 0], "flagger-slashed-below-minimum", {
-                stakeAmountWei: parseEther("70"),
-                sponsorshipSettings: {
-                    minimumStakeWei: parseEther("70"),
-                }
+                stakeAmountWei: await contracts.streamrConfig.minimumStakeWei()
             })
             const start = await getBlockTimestamp()
 
@@ -453,7 +450,7 @@ describe("VoteKickPolicy", (): void => {
             await (await voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
             expect(await sponsorship.getFlag(target.address)).to.equal("0") // flag is resolved
 
-            expect(await sponsorship.stakedWei(flagger.address)).to.equal(parseEther("69")) // paid one reviewer's fee
+            expect(await sponsorship.stakedWei(flagger.address)).to.equal(parseEther("59")) // paid one reviewer's fee
 
             await advanceToTimestamp(start + VOTE_START + 1000, `${addr(flagger)} tries to flag ${addr(voter)}`)
             await expect(flagger.flag(sponsorship.address, voter.address)).to.be.rejectedWith("error_notEnoughStake")
@@ -476,7 +473,6 @@ describe("VoteKickPolicy", (): void => {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, ...voters ],
             } = await setupSponsorships(contracts, [2, reviewerCount], "sufficient-flag-stake", {
-                sponsorshipSettings: { minimumStakeWei },
                 sponsor: false
             })
             const start = await getBlockTimestamp()
