@@ -25,8 +25,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    // TODO: make addresses indexed (in the next breaking change)
-    event NewSponsorship(address sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, address creator);
+    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
