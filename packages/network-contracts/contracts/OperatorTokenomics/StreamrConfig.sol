@@ -19,6 +19,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     /**
+     * The time the operator is given for paying out the undelegation queue.
+     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
+     */
+    uint public maxQueueSeconds;
+
+    /**
      * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
      *
      * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
@@ -135,6 +141,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
+        maxQueueSeconds = 30 days;
         maxPenaltyPeriodSeconds = 30 days;
         poolValueDriftLimitFraction = 0.1 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
@@ -188,6 +195,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         require(flagReviewerCount >= 1, "error_tooLow");
         require(flagReviewerCount <= 32, "error_tooHigh");
         flagReviewerCount = newFlagReviewerCount;
+    }
+
+    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooLow");
+        maxQueueSeconds = newMaxQueueSeconds;
     }
 
     function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
