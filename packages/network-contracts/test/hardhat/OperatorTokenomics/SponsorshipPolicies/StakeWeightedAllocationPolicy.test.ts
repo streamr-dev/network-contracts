@@ -268,8 +268,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // expect(formatEther(newTokens1)).to.equal("7200.0")
         // expect(formatEther(newTokens2)).to.equal("2800.0")
 
-        // TODO: why the missing wei?
-        expect(formatEther(newTokens1)).to.equal("7199.9999999999988") // 1200000 wei missing
+        expect(formatEther(newTokens1)).to.equal("7199.9999999999988") // 1200000 wei missing, maybe rounding error?
         expect(formatEther(newTokens2)).to.equal("2799.9999999999996") //  400000 wei missing
     })
 
