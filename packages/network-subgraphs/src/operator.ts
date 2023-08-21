@@ -125,8 +125,11 @@ export function handleProfit(event: Profit): void {
     let operatorsShareWei = event.params.operatorsShareWei
     log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsShareWei={}',
         [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsShareWei.toString()])
+    
     let operator = loadOrCreateOperator(operatorContractAddress)
-    operator.
+    operator.cumulativeProfitssWei = operator.cumulativeProfitssWei.plus(poolIncreaseWei)
+    operator.cumulativeOperatorsShareWei = operator.cumulativeOperatorsShareWei.plus(operatorsShareWei)
+    operator.save()
     
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.profitsWei = bucket.profitsWei.plus(poolIncreaseWei)

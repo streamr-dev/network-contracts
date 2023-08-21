@@ -119,6 +119,8 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.poolValueTimestamp = BigInt.fromI32(0)
         operator.poolValueBlockNumber = BigInt.fromI32(0)
         operator.poolTokenTotalSupplyWei = BigInt.fromI32(0)
+        operator.cumulativeProfitssWei = BigInt.fromI32(0)
+        operator.cumulativeOperatorsShareWei = BigInt.fromI32(0)
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
         operator.nodes = []
