@@ -108,7 +108,7 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWith("error_minimumStake")
         })
 
-        it.only("lets you add stake any small positive amount", async function(): Promise<void> {
+        it("lets you add stake any small positive amount", async function(): Promise<void> {
             // ...as long of course as the minimum stake hasn't been changed in the meanwhile!
             // Adding stake won't take you below the minimum, which you already have since if you were staked.
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
