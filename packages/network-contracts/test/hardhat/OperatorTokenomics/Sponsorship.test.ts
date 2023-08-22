@@ -97,23 +97,35 @@ describe("Sponsorship contract", (): void => {
         })
     })
 
-    it("will NOT let stake zero", async function(): Promise<void> {
-        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0"), operator.address))
-            .to.be.revertedWith("error_minimumStake")
-    })
+    describe("Adding/reducing stake", (): void => {
+        it("will NOT let stake zero", async function(): Promise<void> {
+            await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0"), operator.address))
+                .to.be.revertedWith("error_minimumStake")
+        })
 
-    it("will NOT let stake below minimum", async function(): Promise<void> {
-        await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0.5"), operator.address))
-            .to.be.revertedWith("error_minimumStake")
-    })
+        it("will NOT let stake below minimum", async function(): Promise<void> {
+            await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0.5"), operator.address))
+                .to.be.revertedWith("error_minimumStake")
+        })
 
-    // NOTE: minimum stake = 60 in StreamrConfig
-    it("won't let reduce stake below minimum", async function(): Promise<void> {
-        const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-        await (await sponsorship.sponsor(parseEther("10000"))).wait()
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
-        await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("50")))
-            .to.be.revertedWith("error_minimumStake")
+        it.only("lets you add stake any small positive amount", async function(): Promise<void> {
+            // ...as long of course as the minimum stake hasn't been changed in the meanwhile!
+            // Adding stake won't take you below the minimum, which you already have since if you were staked.
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("0.1"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, "1", operator.address)).wait()
+        })
+
+        // NOTE: minimum stake = 60 in StreamrConfig
+        it("won't let reduce stake below minimum", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("50")))
+                .to.be.revertedWith("error_minimumStake")
+        })
     })
 
     it("shows zero allocation after a withdraw", async function(): Promise<void> {
