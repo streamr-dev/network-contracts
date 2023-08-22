@@ -265,6 +265,7 @@ type Operator @entity {
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
+  operatorsShareFraction: BigInt!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")

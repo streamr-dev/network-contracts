@@ -69,13 +69,15 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     let operatorContractAddress = event.address.toHexString()
     let operatorAddress = event.params.operatorAddress.toHexString()
     let metadataJsonString = event.params.metadataJsonString.toString()
-    log.info('handleUndelegated: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
-    log.info('handleUndelegated: operatorAddress={} metadataJsonString={}', [operatorAddress, metadataJsonString])
+    log.info('handleMetadataUpdate: operatorContractAddress={} blockNumber={} operatorAddress={} metadataJsonString={}', [
+        operatorContractAddress, event.block.number.toString(), operatorAddress, metadataJsonString
+    ])
 
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.owner = operatorAddress
     // TODO: parse metadataJsonString once we know what to look for
     operator.metadataJsonString = metadataJsonString
+    operator.operatorsShareFraction = event.params.operatorsShareFraction
     operator.save()
 }
 

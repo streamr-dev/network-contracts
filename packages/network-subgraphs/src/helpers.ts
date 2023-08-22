@@ -21,18 +21,18 @@ export function loadOrCreateProject(projectId: Bytes): Project {
     if (project == null) {
         project = new Project(projectId.toHexString())
         project.domainIds = []
-        project.minimumSubscriptionSeconds = BigInt.fromI32(0)
+        project.minimumSubscriptionSeconds = BigInt.zero()
         project.metadata = ""
         project.streams = []
         project.permissions = []
         project.subscriptions = []
         project.paymentDetails = []
         project.purchases = []
-        project.createdAt = BigInt.fromI32(0)
+        project.createdAt = BigInt.zero()
         project.counter = 0
-        project.score = BigInt.fromI32(0)
+        project.score = BigInt.zero()
         project.isDataUnion = false
-        project.stakedWei = BigInt.fromI32(0)
+        project.stakedWei = BigInt.zero()
     }
     return project
 }
@@ -45,15 +45,15 @@ export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: B
         bucket = new ProjectStakingDayBucket(bucketId)
         bucket.project = projectId
         bucket.date = bucketStartDate
-        let bucketStakeAtStart = BigInt.fromI32(0)
+        let bucketStakeAtStart = BigInt.zero()
         let project = Project.load(projectId)
         if (project !== null) {
             bucketStakeAtStart = project.stakedWei
         }
         bucket.stakeAtStart = bucketStakeAtStart
-        bucket.stakeChange = BigInt.fromI32(0)
-        bucket.stakingsWei = BigInt.fromI32(0)
-        bucket.unstakingsWei = BigInt.fromI32(0)
+        bucket.stakeChange = BigInt.zero()
+        bucket.stakingsWei = BigInt.zero()
+        bucket.unstakingsWei = BigInt.zero()
     }
     return bucket
 }
@@ -65,7 +65,7 @@ export function loadOrCreateProjectStake(projectId: string, user: Bytes): Projec
         projectStake = new ProjectStakeByUser(projectStakeId)
         projectStake.project = projectId
         projectStake.user = user
-        projectStake.userStake = BigInt.fromI32(0)
+        projectStake.userStake = BigInt.zero()
     }
     return projectStake
 }
@@ -113,16 +113,17 @@ export function loadOrCreateOperator(operatorId: string): Operator {
     if (operator == null) {
         operator = new Operator(operatorId)
         operator.delegatorCount = 0
-        operator.poolValue = BigInt.fromI32(0)
-        operator.totalValueInSponsorshipsWei = BigInt.fromI32(0)
-        operator.freeFundsWei = BigInt.fromI32(0)
-        operator.poolValueTimestamp = BigInt.fromI32(0)
-        operator.poolValueBlockNumber = BigInt.fromI32(0)
-        operator.poolTokenTotalSupplyWei = BigInt.fromI32(0)
-        operator.cumulativeProfitssWei = BigInt.fromI32(0)
-        operator.cumulativeOperatorsShareWei = BigInt.fromI32(0)
+        operator.poolValue = BigInt.zero()
+        operator.totalValueInSponsorshipsWei = BigInt.zero()
+        operator.freeFundsWei = BigInt.zero()
+        operator.poolValueTimestamp = BigInt.zero()
+        operator.poolValueBlockNumber = BigInt.zero()
+        operator.poolTokenTotalSupplyWei = BigInt.zero()
+        operator.cumulativeProfitssWei = BigInt.zero()
+        operator.cumulativeOperatorsShareWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
+        operator.operatorsShareFraction = BigInt.zero()
         operator.nodes = []
 
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
@@ -147,16 +148,16 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.poolValue = operator.poolValue
         bucket.totalValueInSponsorshipsWei = operator.totalValueInSponsorshipsWei
         bucket.freeFundsWei = operator.freeFundsWei
-        bucket.spotAPY = BigInt.fromI32(0) // TODO
+        bucket.spotAPY = BigInt.zero() // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
 
         // accumulated values, updated when events are fired
         bucket.delegatorCountChange = 0
-        bucket.totalDelegatedWei = BigInt.fromI32(0)
-        bucket.totalUndelegatedWei = BigInt.fromI32(0)
-        bucket.profitsWei = BigInt.fromI32(0)
-        bucket.lossesWei = BigInt.fromI32(0)
-        bucket.operatorsShareWei = BigInt.fromI32(0)
+        bucket.totalDelegatedWei = BigInt.zero()
+        bucket.totalUndelegatedWei = BigInt.zero()
+        bucket.profitsWei = BigInt.zero()
+        bucket.lossesWei = BigInt.zero()
+        bucket.operatorsShareWei = BigInt.zero()
     }
     return bucket
 }
@@ -168,7 +169,7 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation = new Delegation(delegationId)
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
-        delegation.poolTokenWei = BigInt.fromI32(0)
+        delegation.poolTokenWei = BigInt.zero()
 
         // creating a Delegation means a new delegator has joined the operator => increase delegator count
         let operator = loadOrCreateOperator(operatorContractAddress)

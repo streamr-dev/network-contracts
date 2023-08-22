@@ -287,5 +287,5 @@ templates:
             handler: handleNodesSet
           - event: Heartbeat(indexed address,string)
             handler: handleHeartbeat
-          - event: MetadataUpdated(string)
-            handler: handleMetadataUpdated
+          - event: MetadataUpdated(string,indexed address,uint256)
+            handler: handleMetadataUpdate
