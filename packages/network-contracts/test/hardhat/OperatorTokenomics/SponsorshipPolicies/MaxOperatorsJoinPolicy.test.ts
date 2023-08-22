@@ -27,7 +27,7 @@ describe("MaxOperatorsJoinPolicy", (): void => {
         await (await token.mint(admin.address, parseEther("1000"))).wait()
     })
 
-    it.skip("will NOT let too many operators join", async function(): Promise<void> {
+    it("will NOT let too many operators join", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, { maxOperatorCount: 1 })
         await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
