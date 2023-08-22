@@ -6,7 +6,7 @@ import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
-const { parseEther } = utils
+const { parseEther, formatEther } = utils
 
 // this disables the "Duplicate definition of Transfer" error message from ethers
 // @ts-expect-error should use LogLevel.ERROR
@@ -45,26 +45,26 @@ describe("DefaultLeavePolicy", (): void => {
             penaltyPeriodSeconds: 1000,
             allocationWeiPerSecond: parseEther("0")
         })
-        await setTokenBalance(contracts, operator, parseEther("10"))
+        await setTokenBalance(contracts, operator, parseEther("100"))
 
-        // sponsor 1 token to make sponsorship "running" (don't distribute tokens though, since allocationWeiPerSecond = 0)
+        // sponsor 1 DATA to make sponsorship "running" (don't distribute tokens though, since allocationWeiPerSecond = 0)
         await token.approve(sponsorship.address, parseEther("1"))
         await sponsorship.sponsor(parseEther("1"))
 
-        // stake 10 token
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("10"), operator.address)).wait()
+        // stake 100 DATA
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
         const tokensAfterStaking = await token.balanceOf(operator.address)
 
         // safety: won't unstake if losing stake
         expect(sponsorship.connect(operator).unstake())
             .to.be.revertedWith("error_leavePenalty")
 
-        // lose 10% = 1 token because leaving a "running" sponsorship too early
+        // lose 10% = 10 DATA because leaving a "running" sponsorship too early
         await (await sponsorship.connect(operator).forceUnstake()).wait()
         const tokensAfterLeaving = await token.balanceOf(operator.address)
 
-        expect(tokensAfterStaking).to.equal(parseEther("0"))
-        expect(tokensAfterLeaving).to.equal(parseEther("9"))
+        expect(tokensAfterStaking).to.equal(0)
+        expect(formatEther(tokensAfterLeaving)).to.equal("90.0")
     })
 
     it("penalizes only the operator that leaves early while sponsorship is running", async function(): Promise<void> {
