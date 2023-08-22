@@ -55,7 +55,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // operator admin events
     event NodesSet(address[] nodes);
-    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress); // = owner() of this contract
+    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsShareFraction); // = owner() of this contract
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
@@ -156,7 +156,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         metadata = operatorParams[1];
-        emit MetadataUpdated(operatorParams[1], ownerAddress);
+        emit MetadataUpdated(operatorParams[1], ownerAddress, operatorsShare);
 
         _createOperatorStream();
     }
@@ -212,7 +212,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
-        emit MetadataUpdated(metadataJsonString, owner);
+        emit MetadataUpdated(metadataJsonString, owner, operatorsShareFraction);
     }
 
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
