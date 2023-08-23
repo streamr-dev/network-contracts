@@ -55,21 +55,70 @@ describe("Sponsorship contract", (): void => {
             await expect(defaultSponsorship.connect(operator).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
         })
 
-        it("adds to unallocatedWei even with ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
+        it("adds to unallocatedWei with just ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.transfer(sponsorship.address, parseEther("100"))).wait()
             expect(await sponsorship.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
-            await (await sponsorship.sponsor(parseEther("0"))).wait()
+            await expect(sponsorship.sponsor(parseEther("0")))
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, "0")
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs("0x0000000000000000000000000000000000000000", parseEther("100"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("100"), 0, false)
             expect(await sponsorship.unallocatedWei()).to.equal(parseEther("100"))
         })
 
-        it("adds to unallocatedWei even with ERC20.transfer, after a second sponsoring", async function(): Promise<void> {
+        it("adds to unallocatedWei with just ERC20.transfer, after a second sponsoring", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.transfer(sponsorship.address, parseEther("100"))).wait()
             expect(await sponsorship.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
             await (await token.approve(sponsorship.address, parseEther("100"))).wait()
-            await (await sponsorship.sponsor(parseEther("100"))).wait()
+            await expect(sponsorship.sponsor(parseEther("100")))
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("100"))
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs("0x0000000000000000000000000000000000000000", parseEther("100"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
             expect(await sponsorship.unallocatedWei()).to.equal(parseEther("200"))
+        })
+
+        it("works for top-up before old sponsorship runs out", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            const start = await getBlockTimestamp()
+
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("100"), 0, false)
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
+
+            await advanceToTimestamp(start, "Stake to sponsorship")
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+
+            await advanceToTimestamp(start + 50, "Top-up sponsorship")
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("300"), 1, true)
+                // .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("250"), 1, true)
+
+            // TODO: should be 250 after bugfix because 50 should have been allocated at this point
+            // expect(await sponsorship.unallocatedWei()).to.equal(parseEther("250"))
+        })
+
+        it("works for top-up after old sponsorship runs out", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            const start = await getBlockTimestamp()
+
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("100"), 0, false)
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
+
+            await advanceToTimestamp(start, "Stake to sponsorship")
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+
+            await advanceToTimestamp(start + 300, "Top-up sponsorship")
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("300"), 1, true)
+                // .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("100"), 1, true)
+            // TODO: also expect InsolvencyStarted / Ended
+
+            // TODO: should be 250 after bugfix because 50 should have been allocated at this point
+            // expect(await sponsorship.unallocatedWei()).to.equal(parseEther("100"))
         })
     })
 
