@@ -258,7 +258,7 @@ type Operator @entity {
   latestHeartbeatTimestamp: BigInt
 
   "Total earnings excluding brokers shrare"
-  cumulativeProfitssWei: BigInt!
+  cumulativeProfitsWei: BigInt!
   cumulativeOperatorsShareWei: BigInt!
 
   metadataJsonString: String! # TODO: unpack metadata to fields

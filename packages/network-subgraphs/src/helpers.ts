@@ -119,7 +119,7 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.poolValueTimestamp = BigInt.zero()
         operator.poolValueBlockNumber = BigInt.zero()
         operator.poolTokenTotalSupplyWei = BigInt.zero()
-        operator.cumulativeProfitssWei = BigInt.zero()
+        operator.cumulativeProfitsWei = BigInt.zero()
         operator.cumulativeOperatorsShareWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
