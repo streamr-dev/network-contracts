@@ -170,12 +170,17 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         _addSponsorship(_msgSender(), amountWei);
     }
 
-    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using ERC20.transfer */
+    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor` */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
-        uint unknownTokensWei = newTokensWei - amountWei; // newTokens > amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        uint unallocatedWeiBefore = unallocatedWei;
+        uint unallocatedWeiAfter = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
+        uint newTokensWei = unallocatedWeiAfter - unallocatedWeiBefore;
+
+        // newTokens >= amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        uint unknownTokensWei = newTokensWei - amountWei;
+
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
-        unallocatedWei += newTokensWei;
+        unallocatedWei = unallocatedWeiAfter;
         emit SponsorshipReceived(sponsorAddress, amountWei);
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
