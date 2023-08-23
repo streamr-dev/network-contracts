@@ -104,12 +104,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
-    /**
-     * The time the operator is given for paying out the undelegation queue.
-     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
-     */
-    uint public maxQueueSeconds;
-
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
@@ -151,15 +145,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _setupRole(CONTROLLER_ROLE, ownerAddress);
         _setRoleAdmin(CONTROLLER_ROLE, OWNER_ROLE); // owner sets the controllers
         _setRoleAdmin(TRUSTED_FORWARDER_ROLE, CONTROLLER_ROLE); // controller can set the GSN trusted forwarder
-        token = IERC677(tokenAddress);
-        owner = ownerAddress;
-        streamrConfig = StreamrConfig(streamrConfigAddress);
-        ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
 
-        // A fixed queue emptying requirement is simplest for now.
-        // This ensures a diligent operator can always pay out the undelegation queue without getting leavePenalties
-        maxQueueSeconds = streamrConfig.maxPenaltyPeriodSeconds();
+        token = IERC677(tokenAddress);
+        streamrConfig = StreamrConfig(streamrConfigAddress);
+        owner = ownerAddress;
         operatorsCutFraction = operatorsCut;
+
+        ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -462,7 +454,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + maxQueueSeconds) { // solhint-disable-line not-rely-on-time
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
         }
 

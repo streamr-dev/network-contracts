@@ -28,6 +28,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public minimumDelegationWei;
 
     /**
+     * The time the operator is given for paying out the undelegation queue.
+     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
+     */
+    uint public maxQueueSeconds;
+
+    /**
      * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
      *
      * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
@@ -153,8 +159,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         // Sponsorship leave penalty parameter limit
         maxPenaltyPeriodSeconds = 14 days;
 
+        // Undelegation escape hatch: self-service available after maxQueueSeconds
+        maxQueueSeconds = 30 days;
+
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
         poolValueDriftLimitFraction = 0.05 ether;
+        poolValueDriftLimitFraction = 0.1 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
 
         // flagging + voting
@@ -213,6 +223,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         require(flagReviewerCount >= 1, "error_tooLow");
         require(flagReviewerCount <= 32, "error_tooHigh");
         flagReviewerCount = newFlagReviewerCount;
+    }
+
+    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooLow");
+        maxQueueSeconds = newMaxQueueSeconds;
     }
 
     function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {

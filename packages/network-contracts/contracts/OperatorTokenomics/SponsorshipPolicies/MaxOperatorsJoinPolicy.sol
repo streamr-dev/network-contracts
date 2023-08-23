@@ -21,9 +21,8 @@ contract MaxOperatorsJoinPolicy is IJoinPolicy, Sponsorship {
         localData().maxOperators = maxOperators;
     }
 
-    /** Check if there's room for one more */
     // solc-ignore-next-line func-mutability
     function onJoin(address, uint256) external {
-        require(operatorCount < localData().maxOperators, "error_tooManyOperators");
+        require(operatorCount <= localData().maxOperators, "error_tooManyOperators");
     }
 }

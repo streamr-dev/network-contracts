@@ -1,5 +1,6 @@
 # TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
 # scalar Date
+# for now, use BigInt because that's what the events return
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes

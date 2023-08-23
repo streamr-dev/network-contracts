@@ -566,7 +566,7 @@ describe("Operator contract", (): void => {
         })
 
         it("accepts forced takeout from non-operator after grace period is over (negative + positive test)", async function(): Promise<void> {
-            const { token } = sharedContracts
+            const { token, streamrConfig } = sharedContracts
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
 
@@ -576,7 +576,7 @@ describe("Operator contract", (): void => {
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
             const timeAtStart = await getBlockTimestamp()
-            const gracePeriod = +await operator.maxQueueSeconds()
+            const gracePeriod = +await streamrConfig.maxQueueSeconds()
 
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
             await expect(operator.stake(sponsorship.address, parseEther("1000")))

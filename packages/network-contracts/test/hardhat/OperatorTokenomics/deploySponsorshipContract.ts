@@ -1,5 +1,5 @@
 import assert from "assert"
-import { utils, BigNumber, ContractReceipt } from "ethers"
+import { utils, ContractReceipt } from "ethers"
 import { ethers as hardhatEthers } from "hardhat"
 
 import { Sponsorship, IAllocationPolicy, IJoinPolicy, IKickPolicy, StreamRegistryV4 } from "../../../typechain"
@@ -16,8 +16,6 @@ export let sponsorshipCounter = 0
  */
 export async function deploySponsorship(
     contracts: TestContracts, {
-        minimumStakeWei = parseEther("60"),
-        minHorizonSeconds = 0,
         minOperatorCount = 1,
         penaltyPeriodSeconds = -1,
         maxOperatorCount = -1,
@@ -67,8 +65,6 @@ export async function deploySponsorship(
     }
     const streamId = createStream(deployer.address, streamRegistry)
     const sponsorshipDeployTx = await sponsorshipFactory.deploySponsorship(
-        minimumStakeWei.toString(),
-        minHorizonSeconds.toString(),
         minOperatorCount.toString(),
         streamId,
         "metadata",
@@ -87,7 +83,6 @@ export async function deploySponsorship(
  */
 export async function deploySponsorshipWithoutFactory(
     contracts: TestContracts, {
-        minimumStakeWei = BigNumber.from(1),
         minHorizonSeconds = 0,
         minOperatorCount = 1,
         penaltyPeriodSeconds = -1,
@@ -117,7 +112,6 @@ export async function deploySponsorshipWithoutFactory(
         contracts.streamrConfig.address,
         token.address,
         [
-            minimumStakeWei.toString(),
             minHorizonSeconds.toString(),
             minOperatorCount.toString(),
             overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()

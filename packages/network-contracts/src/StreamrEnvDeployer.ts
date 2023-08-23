@@ -170,20 +170,37 @@ export class StreamrEnvDeployer {
     async deployRegistries(): Promise<void> {
         log("Deploying Registries")
 
-        // TODO do we still need a tracker registry?
+        log("Deploying NodeRegistry contract 1 (tracker registry)")
+        const initialTrackerNodes = []
+        const initialTrackerMetadata = []
+        initialTrackerNodes.push("0xb9e7cEBF7b03AE26458E32a059488386b05798e8")
+        initialTrackerMetadata.push("{\"ws\": \"ws://10.200.10.1:30301\", \"http\": \"http://10.200.10.1:30301\"}")
+        initialTrackerNodes.push("0x0540A3e144cdD81F402e7772C76a5808B71d2d30")
+        initialTrackerMetadata.push("{\"ws\": \"ws://10.200.10.1:30302\", \"http\": \"http://10.200.10.1:30302\"}")
+        initialTrackerNodes.push("0xf2C195bE194a2C91e93Eacb1d6d55a00552a85E2")
+        initialTrackerMetadata.push("{\"ws\": \"ws://10.200.10.1:30303\", \"http\": \"http://10.200.10.1:30303\"}")
 
-        const initialNodes = []
-        const initialMetadata = []
-        initialNodes.push("0xde1112f631486CfC759A50196853011528bC5FA0")
-        initialMetadata.push("{\"http\": \"http://10.200.10.1:8891\"}")
         const nodeRegistryFactory = new ContractFactory(nodeRegistryABI, nodeRegistryBytecode, this.adminWallet)
+        const trackerRegDeployTx = await nodeRegistryFactory.deploy()
+        const trackerRegistry = await trackerRegDeployTx.deployed() as NodeRegistry
+        await (await trackerRegistry.initialize(this.adminWallet.address, false, initialTrackerNodes, initialTrackerMetadata)).wait()
+        this.addresses.TrackerRegistry = trackerRegistry.address
+        this.contracts.trackerRegistry = trackerRegistry
+        log(`TrackerNodeRegistry deployed at ${trackerRegistry.address}`)
+        const nodes = await trackerRegistry.getNodes()
+        log(`TrackerNodeRegistry nodes : ${JSON.stringify(nodes)}`)
+
+        log("Deploying NodeRegistry contract 2 (storage node registry)")
+        const initialStorageNodes = []
+        const initialStorageMetadata = []
+        initialStorageNodes.push("0xde1112f631486CfC759A50196853011528bC5FA0")
+        initialStorageMetadata.push("{\"http\": \"http://10.200.10.1:8891\"}")
         const nodeRegistry = await nodeRegistryFactory.deploy() as NodeRegistry
         await nodeRegistry.deployed()
-        await (await nodeRegistry.initialize(this.adminWallet.address,
-            false, initialNodes, initialMetadata)).wait()
+        await (await nodeRegistry.initialize(this.adminWallet.address, false, initialStorageNodes, initialStorageMetadata)).wait()
         this.addresses.StorageNodeRegistry = nodeRegistry.address
         this.contracts.storageNodeRegistry = nodeRegistry
-        log(`nodeRegistry address ${this.addresses.StorageNodeRegistry}`)
+        log(`StorageNodeRegistry deployed at ${this.addresses.StorageNodeRegistry}`)
 
         const streamRegistryFactory = new ContractFactory(streamRegistryABI, streamRegistryBytecode, this.adminWallet)
         const streamRegistry = await streamRegistryFactory.deploy() as StreamRegistry
@@ -195,6 +212,18 @@ export class StreamrEnvDeployer {
         this.addresses.StreamRegistry = streamRegistry.address
         this.contracts.streamRegistry = streamRegistry
         log(`streamRegistry address ${this.addresses.StreamRegistry}`)
+
+        const storageNodePk = "0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747bce966"
+        const storageNodeWallet = new ethers.Wallet(storageNodePk, this.provider)
+        const streamRegistry2 = streamRegistry.connect(storageNodeWallet)
+
+        log("Create storage node assignment stream")
+        const storageNodeAssignmentPath = "/assignments"
+        const storageNodeAssignmentsStreamId = "0xde1112f631486cfc759a50196853011528bc5fa0/assignments"
+        await (await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}))).wait()
+        await (await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId,
+            ethers.constants.MaxUint256, ethers.constants.MaxUint256)).wait()
+        log("Storage node assignment stream created: " + storageNodeAssignmentsStreamId)
 
         const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
         const ensCacheV2Factory = new ContractFactory(ENSCacheV2ABI, ENSCacheV2Bytecode, this.adminWallet)
@@ -310,7 +339,7 @@ export class StreamrEnvDeployer {
 
     async deployNewSponsorship(): Promise<Sponsorship> {
         const sponsorshiptx = await this.contracts.sponsorshipFactory.deploySponsorship(
-            ethers.utils.parseEther("60"), 0, 1, this.streamId, "metadata",
+            1, this.streamId, "metadata",
             [
                 this.addresses.SponsorshipStakeWeightedAllocationPolicy,
                 ethers.constants.AddressZero,
@@ -417,7 +446,8 @@ export class StreamrEnvDeployer {
 
     async preloadDATAToken(): Promise<void> {
         const preloadAmount = ethers.utils.parseEther("1000000")
-        const preloadPrivkeys = ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
+        const preloadPrivkeys = [
+            "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
             "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb",
             "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae",
             "0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9",
@@ -425,7 +455,8 @@ export class StreamrEnvDeployer {
             "0xfe1d528b7e204a5bdfb7668a1ed3adfee45b4b96960a175c9ef0ad16dd58d728",
             "0xd7609ae3a29375768fac8bc0f8c2f6ac81c5f2ffca2b981e6cf15460f01efe14",
             "0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7",
-            "0x2cd9855d17e01ce041953829398af7e48b24ece04ff9d0e183414de54dc52285"]
+            "0x2cd9855d17e01ce041953829398af7e48b24ece04ff9d0e183414de54dc52285"
+        ]
         for (const preloadPrivkey of preloadPrivkeys) {
             const preloadWallet = new Wallet(preloadPrivkey, this.provider)
             this.preloadedDATAWallets.push(preloadWallet)

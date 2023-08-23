@@ -18,9 +18,9 @@ contract TestJoinPolicy is IJoinPolicy, Sponsorship {
 
     // solc-ignore-next-line func-mutability
     function onJoin(address, uint256 amount) external {
-        if (amount == 1) {
+        if (amount == 100 ether) {
             require(false, "test-error: onJoin join policy");
-        } else if (amount == 2) {
+        } else if (amount == 200 ether) {
             require(false);
         }
     }
