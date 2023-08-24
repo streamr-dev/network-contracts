@@ -45,12 +45,11 @@ describe("SponsorshipFactory", () => {
     it("can create a Sponsorship with transferAndCall (atomic fund and deploy sponsorship)", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
 
-        // uint initialMinimumStakeWei,
-        // uint32 initialMinHorizonSeconds,
-        // uint32 initialMinOperatorCount,
-        // string memory sponsorshipName,
+        // uint minOperatorCount,
+        // string memory streamId,
+        // string memory metadata,
         // address[] memory policies,
-        // uint[] memory initParams
+        // uint[] memory policyParams
         const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[]", "uint[]"],
             [1, streamId, "{}", [
