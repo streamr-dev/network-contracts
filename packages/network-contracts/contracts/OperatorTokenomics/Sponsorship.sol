@@ -31,7 +31,7 @@ import "./StreamrConfig.sol";
  *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
- * - committedFundsWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
+ * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
@@ -67,7 +67,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
     mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
-    uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    uint public committedForfeitedStakeWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
     uint public totalStakedWei;
     uint public operatorCount;
     uint public minOperatorCount;
@@ -176,7 +176,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor` */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
         uint unallocatedWeiBefore = unallocatedWei;
-        uint unallocatedWeiAfter = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
+        uint unallocatedWeiAfter = token.balanceOf(address(this)) - totalStakedWei - committedForfeitedStakeWei;
         uint newTokensWei = unallocatedWeiAfter - unallocatedWeiBefore;
 
         // newTokens >= amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
@@ -310,7 +310,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Operator stops servicing the stream and withdraws their stake + earnings.
      * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
-     * If operator had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
+     * If operator had any committed stake, it is forfeited and accounted as committedForfeitedStakeWei, under control of e.g. the VoteKickPolicy.
      */
     function _removeOperator(address operator) internal returns (uint payoutWei) {
         require(stakedWei[operator] > 0, "error_operatorNotStaked");
@@ -318,7 +318,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         if (committedStakeWei[operator] > 0) {
             _slash(operator, committedStakeWei[operator]);
-            committedFundsWei += committedStakeWei[operator];
+            committedForfeitedStakeWei += committedStakeWei[operator];
             committedStakeWei[operator] = 0;
         }
 
