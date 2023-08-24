@@ -108,7 +108,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
-     * @param initParams array of: [0] initialMinHorizonSeconds, [1] initialMinOperatorCount, [2] weiPerSecond
+     * @param initParams uint arguments packed into an array to avoid the "stack too deep" error
+     *  [0] minHorizonSeconds: if there's less than this much sponsorship left, Operators can leave without penalty (not used for now)
+     *  [1] minOperatorCount: when will the Sponsorship start paying (or stop paying if Operator count goes below this)
+     *  [2] weiPerSecond (parameter sent to the allocation policy)
      */
     function initialize(
         string calldata streamId_,
