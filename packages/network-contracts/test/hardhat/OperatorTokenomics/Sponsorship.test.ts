@@ -88,14 +88,15 @@ describe("Sponsorship contract", (): void => {
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
 
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("200"), 1, true)
 
             await advanceToTimestamp(start + 50, "Top-up sponsorship")
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("300"), 1, true)
                 // .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("250"), 1, true)
 
-            // TODO: should be 250 after bugfix because 50 should have been allocated at this point
+            // TODO ETH-581: should be 250 after bugfix because 50 should have been allocated at this point
             // expect(await sponsorship.unallocatedWei()).to.equal(parseEther("250"))
         })
 
@@ -103,21 +104,20 @@ describe("Sponsorship contract", (): void => {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             const start = await getBlockTimestamp()
 
-            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
-                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("100"), 0, false)
-            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
+            await expect(token.transferAndCall(sponsorship.address, parseEther("200"), "0x"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
 
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("200"), 1, true)
 
             await advanceToTimestamp(start + 300, "Top-up sponsorship")
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("300"), 1, true)
                 // .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("100"), 1, true)
-            // TODO: also expect InsolvencyStarted / Ended
+            // TODO ETH-578/ETH-581: also expect InsolvencyStarted and InsolvencyEnded, after fixing the update calls
 
-            // TODO: should be 250 after bugfix because 50 should have been allocated at this point
+            // TODO ETH-581: should be 100 after bugfix
             // expect(await sponsorship.unallocatedWei()).to.equal(parseEther("100"))
         })
     })

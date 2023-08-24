@@ -46,8 +46,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
     event PoolValueUpdate(uint totalValueInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event
-    event Profit(Sponsorship indexed sponsorship, uint poolIncreaseWei, uint operatorsShareWei); // TODO: remove sponsorship argument, update subgraph
-    event Loss(Sponsorship indexed sponsorship, uint poolDecreaseWei); // TODO: remove sponsorship argument, update subgraph
+    event Profit(uint poolIncreaseWei, uint operatorsShareWei); // TODO: rename to operatorsCutDataWei
+    event Loss(uint poolDecreaseWei);
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
@@ -55,7 +55,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // operator admin events
     event NodesSet(address[] nodes);
-    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress); // = owner() of this contract
+    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsCutFraction); // = owner() of this contract
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
@@ -125,6 +125,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
+     * Initializes the Operator smart contract into a valid state.
+     * Also creates a fleet coordination stream upon creation, id = <operatorContractAddress>/operator/coordination
      * @param tokenAddress default from OperatorFactory: DATA
      * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
      * @param ownerAddress controller/owner of this Operator contract
@@ -156,20 +158,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-        emit MetadataUpdated(operatorMetadataJson, ownerAddress);
+        // can't call updateMetadata because it has the onlyOperator guard
+        metadata = operatorMetadataJson;
+        emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
 
-        _createOperatorStream();
-    }
-
-    /**
-     * Each operator contract creates a fleet coordination stream upon creation,
-     *   id = <operatorContractAddress>/operator/coordination
-     */
-    function _createOperatorStream() private {
         streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
         streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
-        streamRegistry.createStream("/operator/coordination", "{partitions:1}");
+        streamRegistry.createStream("/operator/coordination", "{\"partitions\":1}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
     }
 
@@ -212,7 +208,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
-        emit MetadataUpdated(metadataJsonString, owner);
+        emit MetadataUpdated(metadataJsonString, owner, operatorsCutFraction);
     }
 
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
@@ -256,7 +252,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // "gifted" tokens aren't delegated at all, only added to free funds, so no need to mint tokens
         if (delegator == address(this)) {
-            emit Profit(Sponsorship(address(0)), amount, 0);
+            emit Profit(amount, 0);
         } else {
             _mintPoolTokensFor(delegator, amount);
         }
@@ -370,9 +366,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
         uint earningsDataWei = sponsorship.withdraw();
-        uint operatorsShareDataWei = earningsDataWei * operatorsCutFraction / 1 ether;
-        _mintPoolTokensFor(owner, operatorsShareDataWei);
-        emit Profit(sponsorship, earningsDataWei - operatorsShareDataWei, operatorsShareDataWei);
+        uint operatorsCutDataWei = earningsDataWei * operatorsCutFraction / 1 ether;
+        _mintPoolTokensFor(owner, operatorsCutDataWei);
+        emit Profit(earningsDataWei - operatorsCutDataWei, operatorsCutDataWei);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
@@ -384,21 +380,21 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         uint poolValueBeforeWithdraw = getApproximatePoolValue();
 
-        // the sumEarnings new DATA tokens from .withdraw() are split between operatorsShareDataWei and free funds (Profit)
-        // operatorsShareDataWei may be split between the operator and the OperatorValueBreachWatcher (if they're the caller of this function)
+        // the sumEarnings new DATA tokens from .withdraw() are split between operatorsCutDataWei and free funds (Profit)
+        // operatorsCutDataWei may be split between the operator and the OperatorValueBreachWatcher (if they're the caller of this function)
         // remaining operator's share is "self-delegated" in the end, OperatorValueBreachWatcher's share is sent out as a reward
         uint sumEarnings = 0;
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
         require(sumEarnings > 0, "error_noEarnings");
-        uint operatorsShareDataWei = sumEarnings * operatorsCutFraction / 1 ether;
+        uint operatorsCutDataWei = sumEarnings * operatorsCutFraction / 1 ether;
 
-        // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsShareDataWei to the caller as a reward
-        uint operatorPaymentDataWei = operatorsShareDataWei;
+        // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsCutDataWei to the caller as a reward
+        uint operatorPaymentDataWei = operatorsCutDataWei;
         if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
             uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-            uint penaltyDataWei = operatorsShareDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
+            uint penaltyDataWei = operatorsCutDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 token.transfer(_msgSender(), penaltyDataWei);
                 operatorPaymentDataWei -= penaltyDataWei;
@@ -406,7 +402,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         _mintPoolTokensFor(owner, operatorPaymentDataWei);
-        emit Profit(Sponsorship(address(0)), sumEarnings - operatorsShareDataWei, operatorPaymentDataWei);
+        emit Profit(sumEarnings - operatorsCutDataWei, operatorPaymentDataWei);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
 
         payOutQueueWithFreeFunds(0);
@@ -477,13 +473,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
-            emit Loss(sponsorship, lossWei);
+            emit Loss(lossWei);
         } else {
             // "self-delegate" the operator's share === mint new pooltokens
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
-            uint operatorsShareDataWei = profitDataWei * operatorsCutFraction / 1 ether;
-            _mintPoolTokensFor(owner, operatorsShareDataWei);
-            emit Profit(sponsorship, profitDataWei - operatorsShareDataWei, operatorsShareDataWei);
+            uint operatorsCutDataWei = profitDataWei * operatorsCutFraction / 1 ether;
+            _mintPoolTokensFor(owner, operatorsCutDataWei);
+            emit Profit(profitDataWei - operatorsCutDataWei, operatorsCutDataWei);
         }
 
         // remove from array: replace with the last element

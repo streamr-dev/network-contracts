@@ -258,10 +258,15 @@ type Operator @entity {
   latestHeartbeatMetadata: String
   latestHeartbeatTimestamp: BigInt
 
+  "Total earnings excluding brokers shrare"
+  cumulativeProfitsWei: BigInt!
+  cumulativeOperatorsShareWei: BigInt!
+
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
+  operatorsShareFraction: BigInt!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
