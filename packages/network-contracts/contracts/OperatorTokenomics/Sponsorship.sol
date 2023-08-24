@@ -108,19 +108,22 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
-     * @param initParams array of: [0] initialMinimumStakeWei, [1] initialMinHorizonSeconds, [2] initialMinOperatorCount, [3] weiPerSecond
+     * @param initParams uint arguments packed into an array to avoid the "stack too deep" error
+     *  [0] minHorizonSeconds: if there's less than this much sponsorship left, Operators can leave without penalty (not used for now)
+     *  [1] minOperatorCount: when will the Sponsorship start paying (or stop paying if Operator count goes below this)
+     *  [2] weiPerSecond (parameter sent to the allocation policy)
      */
     function initialize(
         string calldata streamId_,
         string calldata metadata_,
         StreamrConfig globalStreamrConfig,
         address tokenAddress,
-        uint[4] calldata initParams,
+        uint[3] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
     ) public initializer {
-        minHorizonSeconds = uint32(initParams[1]);
-        minOperatorCount = uint32(initParams[2]);
-        uint allocationPerSecond = initParams[3];
+        minHorizonSeconds = uint32(initParams[0]);
+        minOperatorCount = uint32(initParams[1]);
+        uint allocationPerSecond = initParams[2];
 
         require(minOperatorCount > 0, "error_minOperatorCountZero");
         token = IERC677(tokenAddress);

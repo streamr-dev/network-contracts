@@ -45,15 +45,14 @@ describe("SponsorshipFactory", () => {
     it("can create a Sponsorship with transferAndCall (atomic fund and deploy sponsorship)", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
 
-        // uint initialMinimumStakeWei,
-        // uint32 initialMinHorizonSeconds,
-        // uint32 initialMinOperatorCount,
-        // string memory sponsorshipName,
+        // uint minOperatorCount,
+        // string memory streamId,
+        // string memory metadata,
         // address[] memory policies,
-        // uint[] memory initParams
+        // uint[] memory policyParams
         const streamId = await createStream(deployer.address, streamRegistry)
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 1, streamId, "metadata", [
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[]", "uint[]"],
+            [1, streamId, "{}", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -73,15 +72,15 @@ describe("SponsorshipFactory", () => {
         expect(newSponsorshipEvent.name).to.equal("NewSponsorship")
         expect(newSponsorshipEvent.args.creator).to.equal(admin.address)
         expect(newSponsorshipEvent.args.sponsorshipContract).to.equal(newSponsorshipAddress)
-        expect(newSponsorshipEvent.args.metadata).to.equal("metadata")
+        expect(newSponsorshipEvent.args.metadata).to.equal("{}")
         expect(newSponsorshipEvent.args.streamId).to.equal(streamId)
     })
 
     it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [parseEther("100"), 0, 0, streamId, "metadata", [
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[]", "uint[]"],
+            [0, streamId, "{}", [
                 allocationPolicy.address,
                 leavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
@@ -93,58 +92,6 @@ describe("SponsorshipFactory", () => {
         )
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
             .to.be.revertedWith("error_minOperatorCountZero")
-    })
-
-    it("will NOT create a Sponsorship with zero minimumStake", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
-        const streamId = await createStream(deployer.address, streamRegistry)
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [0, 0, 1, streamId, "metadata", [
-                allocationPolicy.address,
-                leavePolicy.address,
-                "0x0000000000000000000000000000000000000000",
-            ], [
-                "2000000000000000000",
-                "0",
-                "0",
-            ]]
-        )
-        await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
-            .to.be.revertedWith("error_minimumStakeTooLow")
-    })
-
-    it("will NOT create a Sponsorship with a minimumStake < minimumStakeWei", async function(): Promise<void> {
-        const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
-        const streamId = await createStream(deployer.address, streamRegistry)
-        const data = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [minimumStakeWei.sub(1), 0, 1, streamId, "metadata", [
-                allocationPolicy.address,
-                leavePolicy.address,
-                "0x0000000000000000000000000000000000000000",
-            ], [
-                "2000000000000000000",
-                "0",
-                "0",
-            ]]
-        )
-        await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
-            .to.be.revertedWith("error_minimumStakeTooLow")
-
-        const streamId2 = await createStream(deployer.address, streamRegistry)
-        const data2 = defaultAbiCoder.encode(["uint", "uint32", "uint32", "string", "string", "address[]", "uint[]"],
-            [minimumStakeWei, 0, 1, streamId2, "metadata", [
-                allocationPolicy.address,
-                leavePolicy.address,
-                "0x0000000000000000000000000000000000000000",
-            ], [
-                "2000000000000000000",
-                "0",
-                "0",
-            ]]
-        )
-        await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data2))
-            .to.not.be.reverted
     })
 
     it("will NOT create a Sponsorship with untrusted policies", async function(): Promise<void> {
@@ -160,22 +107,22 @@ describe("SponsorshipFactory", () => {
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         // allocationpolicy
         const streamId1 = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId1, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId1, "{}",
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // leavepolicy
         const streamId2 = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId2, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId2, "{}",
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // kickpolicy
         const streamId3 = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId3, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId3, "{}",
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
         // joinpolicy
         const streamId4 = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId4, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId4, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
     })
@@ -184,14 +131,14 @@ describe("SponsorshipFactory", () => {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, streamId, "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
     })
 
     it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy } = contracts
-        await expect(sponsorshipFactory.deploySponsorship(parseEther("100"), 0, 1, "0xnonexistingstreamid", "metadata",
+        await expect(sponsorshipFactory.deploySponsorship(1, "0xnonexistingstreamid", "{}",
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWith("error_streamNotFound")
     })
