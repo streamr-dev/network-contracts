@@ -51,7 +51,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
-    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator);
+    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator, string flagMetadata);
 
     // operator admin events
     event NodesSet(address[] nodes);
@@ -690,7 +690,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onReviewRequest(address targetOperator) external {
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "error_onlySponsorship");
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        emit ReviewRequest(sponsorship, targetOperator);
+        emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
     }
 
     ////////////////////////////////////////
