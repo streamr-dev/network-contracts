@@ -24,6 +24,6 @@ contract DefaultDelegationPolicy is IDelegationPolicy, Operator {
         if (delegator == owner) { return; }
 
         // multiplying the left side by 1 ether is equivalent to dividing the right side by 1 ether, but numerically a lot better
-        require(1 ether * balanceOf(owner) > totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+        require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
     }
 }

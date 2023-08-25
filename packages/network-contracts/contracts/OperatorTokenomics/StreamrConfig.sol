@@ -198,7 +198,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMinimumSelfDelegationFraction > 1 ether, "error_tooHigh"); // can't be more than 100%
+        require(newMinimumSelfDelegationFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
         minimumSelfDelegationFraction = newMinimumSelfDelegationFraction;
     }
 
