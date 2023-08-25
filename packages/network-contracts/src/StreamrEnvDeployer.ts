@@ -116,7 +116,7 @@ export class StreamrEnvDeployer {
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
-        await this.createStream()
+        await this.createStream("/testStream")
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
         // await this.stakeOnSponsorship()
@@ -262,8 +262,7 @@ export class StreamrEnvDeployer {
         log(`streamStorageRegistry address ${this.addresses.StreamStorageRegistry}`)
     }
 
-    async createStream(): Promise<void> {
-        const streampath = "/test" + Date.now()
+    async createStream(streampath: string): Promise<void> {
         log(`creating stream ${streampath}`)
         await ((await this.contracts.streamRegistry.createStream(streampath, "{}")).wait())
         this.streamId = this.adminWallet.address.toLowerCase() + streampath
@@ -417,7 +416,7 @@ export class StreamrEnvDeployer {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
             parseEther("0.1"),
-            `Pool-${Date.now()}`,
+            "TestPool1",
             "{}",
             [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
