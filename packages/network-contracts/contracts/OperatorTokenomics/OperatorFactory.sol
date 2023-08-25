@@ -120,6 +120,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address[3] calldata policies,
         uint[3] calldata policyParams
     ) private returns (address) {
+        require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCutFraction");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
