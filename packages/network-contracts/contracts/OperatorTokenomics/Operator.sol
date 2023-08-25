@@ -609,21 +609,23 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Pay out up to maxIterations items in the queue */
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        // TODO: instead of special-casing maxIterations zero, call with a large value?
-        if (maxIterations == 0) { maxIterations = 1 ether; } // see TODO above
-        for (uint i = 0; i < maxIterations && !queueIsEmpty(); i++) {
-            payOutFirstInQueue();
+        if (maxIterations == 0) { maxIterations = 1 ether; }
+        for (uint i = 0; i < maxIterations; i++) {
+            if (payOutFirstInQueue()) {
+                break;
+            }
         }
     }
 
     /**
      * Pay out the first item in the undelegation queue.
      * If free funds run out, only pay the first item partially and leave it in front of the queue.
+     * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
-    function payOutFirstInQueue() public {
+    function payOutFirstInQueue() public returns (bool payoutComplete) {
         uint balanceDataWei = token.balanceOf(address(this));
         if (balanceDataWei == 0 || queueIsEmpty()) {
-            return;
+            return true;
         }
 
         // Take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has,
@@ -634,43 +636,44 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (balanceOf(delegator) < amountPoolTokens + streamrConfig.minimumDelegationWei()) {
             amountPoolTokens = balanceOf(delegator);
         }
+
+        // nothing to pay => pop the queue item
         if (amountPoolTokens == 0) {
-            // nothing to pay => pop the item
-            // will this actually do anything? Or delete just resets to default value which is anyway zero?
-            // actually it will remove the struct (I think)
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
-            return;
+            return false;
         }
 
-        // console.log("payOutFirstInQueue amountPoolTokens", amountPoolTokens);
-        uint256 amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+        // convert to DATA and see if we have enough free funds to pay out the queue item in full
+        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
             amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
         if (balanceDataWei >= amountDataWei) {
-            // whole amountDataWei is paid out => pop the item and swap tokens
+            // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
-            _burn(delegator, amountPoolTokens);
-            token.transfer(delegator, amountDataWei);
-            emit Undelegated(delegator, amountDataWei);
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
         } else {
-            // whole pool's balance is paid out as a partial payment, update the item in the queue
-            uint256 partialAmountPoolTokens = moduleCall(address(yieldPolicy),
+            // not enough DATA for full payout => all free funds are paid out as a partial payment, update the item in the queue
+            amountDataWei = balanceDataWei;
+            amountPoolTokens = moduleCall(address(yieldPolicy),
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                balanceDataWei, 0), "error_dataToPooltokenFailed"
+                amountDataWei, 0), "error_dataToPooltokenFailed"
             );
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
-            uint256 poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - partialAmountPoolTokens;
+            uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
-            _burn(delegator, partialAmountPoolTokens);
-            token.transfer(delegator, balanceDataWei);
-            emit Undelegated(delegator, balanceDataWei);
             emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
         }
+
+        // console.log("payOutFirstInQueue: pool tokens", amountPoolTokens, "DATA", amountDataWei);
+        _burn(delegator, amountPoolTokens);
+        token.transfer(delegator, amountDataWei);
+        emit Undelegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+
+        return false;
     }
 
     /* solhint-enable reentrancy */
