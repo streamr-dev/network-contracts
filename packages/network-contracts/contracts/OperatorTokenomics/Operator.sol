@@ -673,7 +673,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
 
-        return false;
+        return token.balanceOf(address(this)) == 0 || queueIsEmpty();
     }
 
     /* solhint-enable reentrancy */
