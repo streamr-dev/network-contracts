@@ -260,13 +260,13 @@ type Operator @entity {
 
   "Total earnings excluding brokers shrare"
   cumulativeProfitsWei: BigInt!
-  cumulativeOperatorsShareWei: BigInt!
+  cumulativeOperatorsCutWei: BigInt!
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
-  operatorsShareFraction: BigInt!
+  operatorsCutFraction: BigInt!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -312,7 +312,7 @@ type OperatorDailyBucket @entity {
   lossesWei: BigInt!
 
   "Sum of operator's share of earnings during the bucket"
-  operatorsShareWei: BigInt!
+  operatorsCutWei: BigInt!
 }
 
 # Delegation in an Operator contract signals trust in the operator

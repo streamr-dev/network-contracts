@@ -46,7 +46,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
     event PoolValueUpdate(uint totalValueInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event
-    event Profit(uint poolIncreaseWei, uint operatorsShareWei); // TODO: rename to operatorsCutDataWei
+    event Profit(uint poolIncreaseWei, uint operatorsCutDataWei);
     event Loss(uint poolDecreaseWei);
 
     // node events (initiated by nodes)
