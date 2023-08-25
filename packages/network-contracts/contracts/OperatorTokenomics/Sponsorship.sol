@@ -41,7 +41,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
     event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
-    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
+    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
