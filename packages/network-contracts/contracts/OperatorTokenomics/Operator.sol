@@ -241,11 +241,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // default: transferAndCall sender wants to delegate the sent DATA tokens, unless they give another address in the ERC677 satellite data
         address delegator = sender;
         if (data.length == 20) {
-            // shift the 20 address bytes (= 160 bits) to end of uint to populate an address variable => shift by 256 - 160 = 96
+            // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
             assembly { delegator := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
         } else if (data.length == 32) {
-            // assume the address was encoded by converting address -> uint -> bytes32 -> bytes
+            // assume the address was encoded by converting address -> uint256 -> bytes32 -> bytes
             // (already in the least significant bytes, no shifting needed; this is what abi.encode would produce)
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
         }
@@ -753,7 +753,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
-        // assume a successful call returns precisely one uint or nothing, so take that out and drop the rest
+        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
         // for the function that return nothing, the returnValue will just be garbage
         assembly { returnValue := mload(add(returndata, 32)) }
     }
@@ -766,7 +766,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
-        // assume a successful call returns precisely one uint, so take that out and drop the rest
+        // assume a successful call returns precisely one uint256, so take that out and drop the rest
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
