@@ -25,7 +25,7 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
-        await (await token.mint(admin.address, parseEther("10"))).wait()
+        await (await token.mint(operator.address, parseEther("1000"))).wait()
     })
 
     it("only allows Operators to stake", async function(): Promise<void> {
@@ -38,12 +38,12 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
 
         const badOp = await (await (await getContractFactory("Operator", operator)).deploy()).deployed() as Operator
         await (await badOp.initialize(token.address, streamrConfig.address, operator.address, "testpool", "{}", "1")).wait()
-        await (await token.transferAndCall(badOp.address, parseEther("100"), "0x")).wait()
+        await (await token.connect(operator).transferAndCall(badOp.address, parseEther("100"), "0x")).wait()
         await expect(badOp.stake(sponsorship.address, parseEther("100")))
             .to.be.revertedWith("error_onlyOperators")
 
         const goodOp = await deployOperatorContract(contracts, operator)
-        await (await token.transferAndCall(goodOp.address, parseEther("100"), "0x")).wait()
+        await (await token.connect(operator).transferAndCall(goodOp.address, parseEther("100"), "0x")).wait()
         await expect(goodOp.stake(sponsorship.address, parseEther("100")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(goodOp.address)
             .to.emit(goodOp, "Staked")
