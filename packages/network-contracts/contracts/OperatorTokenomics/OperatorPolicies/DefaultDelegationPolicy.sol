@@ -8,7 +8,7 @@ import "../Operator.sol";
 
 contract DefaultDelegationPolicy is IDelegationPolicy, Operator {
 
-    function setParam(uint256 param) external {
+    function setParam(uint param) external {
 
     }
 

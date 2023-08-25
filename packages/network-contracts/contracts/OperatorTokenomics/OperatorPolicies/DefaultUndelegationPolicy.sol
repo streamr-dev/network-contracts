@@ -8,7 +8,7 @@ import "../Operator.sol";
 
 contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
 
-    function setParam(uint256) external {
+    function setParam(uint) external {
 
     }
 
@@ -18,11 +18,11 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
      * @dev Consequence of this limit: if there's lots of undelegation queue, those tokens still count for the totalSupply.
      * @dev This means that the more of the queue is serviced, the lower the operator's self-delegation can go.
      **/
-    function onUndelegate(address delegator, uint256 amount) external {
+    function onUndelegate(address delegator, uint amount) external {
         // limitation only applies to the operator, others can always undelegate
         if (delegator != owner) { return; }
 
         uint newBalance = balanceOf(owner) - amount;
-        require(1 ether * newBalance > totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+        require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
     }
 }

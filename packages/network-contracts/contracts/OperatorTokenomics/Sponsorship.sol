@@ -459,15 +459,15 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /* solhint-enable */
 
-    function solventUntilTimestamp() public view returns(uint256 horizon) {
+    function solventUntilTimestamp() public view returns(uint horizon) {
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
-    function getEarnings(address operator) public view returns(uint256 allocation) {
+    function getEarnings(address operator) public view returns(uint allocation) {
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, operator, address(allocationPolicy)), "error_getEarningsFailed");
     }
 
-    function getLeavePenalty(address operator) public view returns(uint256 leavePenalty) {
+    function getLeavePenalty(address operator) public view returns(uint leavePenalty) {
         if (address(leavePolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }

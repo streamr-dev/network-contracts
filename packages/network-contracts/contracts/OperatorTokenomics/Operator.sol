@@ -190,7 +190,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return totalValueInSponsorshipsWei + token.balanceOf(address(this));
     }
 
-    function getMyBalanceInData() public view returns (uint256 amountDataWei) {
+    function getMyBalanceInData() public view returns (uint amountDataWei) {
         // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
         (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
@@ -241,7 +241,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // default: transferAndCall sender wants to delegate the sent DATA tokens, unless they give another address in the ERC677 satellite data
         address delegator = sender;
         if (data.length == 20) {
-            // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
+            // shift the 20 address bytes (= 160 bits) to end of uint to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
             assembly { delegator := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
         } else if (data.length == 32) {
@@ -271,7 +271,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** DATA token transfer must have happened before calling this function, give back the correct amount of pool tokens */
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
-        uint256 amountPoolToken = moduleCall(address(yieldPolicy),
+        uint amountPoolToken = moduleCall(address(yieldPolicy),
             abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei),
             "error_dataToPooltokenFailed"
         );
@@ -705,12 +705,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // POLICY MODULES
     ////////////////////////////////////////
 
-    function setDelegationPolicy(IDelegationPolicy policy, uint256 param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setDelegationPolicy(IDelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegationPolicy = policy;
         moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param), "error_setDelegationPolicyFailed");
     }
 
-    function setYieldPolicy(IPoolYieldPolicy policy, uint256 param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
     }
@@ -753,7 +753,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
-        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
+        // assume a successful call returns precisely one uint or nothing, so take that out and drop the rest
         // for the function that return nothing, the returnValue will just be garbage
         assembly { returnValue := mload(add(returndata, 32)) }
     }
@@ -766,7 +766,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             if (returndata.length == 0) { revert(defaultReason); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
-        // assume a successful call returns precisely one uint256, so take that out and drop the rest
+        // assume a successful call returns precisely one uint, so take that out and drop the rest
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
@@ -780,7 +780,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Unwithdrawn earnings in the Sponsorship, minus operator's share of the earnings
      * This is the part the belongs to the pool, and will be used in calculating the update penalty threshold
      **/
-    function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint256 earnings) {
+    function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint earnings) {
         uint alloc = sponsorship.getEarnings(address(this));
         uint operatorsCutWei = operatorsCutFraction * alloc / 1 ether;
         return alloc - operatorsCutWei;
@@ -809,7 +809,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If the difference is too large, call withdrawEarningsFromSponsorships to get a small reward
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      */
-    function calculatePoolValueInData() external view returns (uint256 poolValue) {
+    function calculatePoolValueInData() external view returns (uint poolValue) {
         poolValue = getApproximatePoolValue();
         for (uint i = 0; i < sponsorships.length; i++) {
             poolValue += getEarningsFromSponsorship(sponsorships[i]);

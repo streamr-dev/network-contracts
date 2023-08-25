@@ -14,7 +14,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
     //    assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     //}
 
-    function setParam(uint256) external {
+    function setParam(uint) external {
     }
 
     function pooltokenToData(uint poolTokenWei, uint subtractFromPoolvalue) public view returns (uint dataWei) {
