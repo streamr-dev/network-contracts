@@ -164,7 +164,6 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
         poolValueDriftLimitFraction = 0.05 ether;
-        poolValueDriftLimitFraction = 0.1 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
 
         // flagging + voting
