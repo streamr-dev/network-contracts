@@ -491,6 +491,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         sponsorship.flag(targetOperator);
     }
 
+    function flagWithMetadata(Sponsorship sponsorship, address targetOperator, string memory flagMetadata) external onlyNodes {
+        sponsorship.flagWithMetadata(targetOperator, flagMetadata);
+    }
+
     function voteOnFlag(Sponsorship sponsorship, address targetOperator, bytes32 voteData) external onlyNodes {
         sponsorship.voteOnFlag(targetOperator, voteData);
     }

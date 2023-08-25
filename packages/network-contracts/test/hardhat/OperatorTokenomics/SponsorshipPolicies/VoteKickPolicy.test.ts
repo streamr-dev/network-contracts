@@ -176,6 +176,22 @@ describe("VoteKickPolicy", (): void => {
             await expect(flagger.flag(sponsorship.address, notStaked.address))
                 .to.be.revertedWith("error_flagTargetNotStaked")
         })
+
+        it("opens a flag and adds metadata to it", async function(): Promise<void> {
+            const {
+                sponsorships: [ sponsorship ],
+                operatorsPerSponsorship: [ [flagger, target] ]
+            } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            const flagMetadata = "{flagged: true}"
+            await (await flagger.flagWithMetadata(sponsorship.address, target.address, flagMetadata)).wait()
+
+            const flagData = await sponsorship.getFlag(target.address)
+            expect(flagData[0]).to.not.equal("0") // open
+            expect(flagData[1]).to.equal(flagMetadata)
+        })
     })
 
     describe("Flag resolution", function(): void {
