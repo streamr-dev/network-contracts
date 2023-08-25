@@ -296,7 +296,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // check if the undelegation policy allows this undelegation
         // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
         if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator), "error_undelegationPolicyFailed");
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei), "error_undelegationPolicyFailed");
         }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
