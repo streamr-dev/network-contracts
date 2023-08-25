@@ -15,7 +15,6 @@ const { getSigners } = hardhatEthers
 describe("Operator", (): void => {
     let admin: Wallet
     let operatorWallet: Wallet  // creates Operator contract
-    let delegator: Wallet       // delegates DATA to Operator
 
     // burn all tokens then mint the corrent amount of new ones
     async function setTokens(token: TestToken, account: Wallet, amount: string) {
@@ -27,7 +26,7 @@ describe("Operator", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, operatorWallet, delegator] = await getSigners() as unknown as Wallet[]
+        [admin, operatorWallet] = await getSigners() as unknown as Wallet[]
     })
 
     it("edge case many queue entries, one sponsorship, batched", async function(): Promise<void> {
@@ -35,7 +34,6 @@ describe("Operator", (): void => {
         const { token, streamrConfig } = contracts
         await (await streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await setTokens(token, operatorWallet, "1000")
-        await setTokens(token, delegator, "1000")
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
