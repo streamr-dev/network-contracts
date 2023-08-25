@@ -2,6 +2,8 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { utils as ethersUtils, Wallet } from "ethers"
 
+import { Operator } from "../../../../typechain"
+
 const { parseEther } = ethersUtils
 const { getSigners, getContractFactory } = hardhatEthers
 
@@ -34,8 +36,8 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         await expect(sponsorship.stake(operator.address, parseEther("100")))
             .to.be.revertedWith("error_onlyOperators")
 
-        const badOp = await (await (await getContractFactory("Operator", operator)).deploy()).deployed()
-        await (await badOp.initialize(token.address, streamrConfig.address, operator.address, ["testpool", "metadata"], "1", 0)).wait()
+        const badOp = await (await (await getContractFactory("Operator", operator)).deploy()).deployed() as Operator
+        await (await badOp.initialize(token.address, streamrConfig.address, operator.address, "testpool", "{}", "1")).wait()
         await (await token.transferAndCall(badOp.address, parseEther("100"), "0x")).wait()
         await expect(badOp.stake(sponsorship.address, parseEther("100")))
             .to.be.revertedWith("error_onlyOperators")
