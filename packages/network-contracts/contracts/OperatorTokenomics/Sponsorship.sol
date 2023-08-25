@@ -63,6 +63,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     IKickPolicy public kickPolicy;
     string public streamId;
     string public metadata;
+    mapping(address => string) public flagMetadataJson;
 
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
@@ -361,9 +362,18 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Start the flagging process to kick an abusive operator */
-    function flag(address target) external {
+    function flag(address target) public {
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
+    }
+
+    /**
+     * Start the flagging process to kick an abusive operator and pass arbitrary metadata object along with the flag
+     * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
+    */
+    function flagWithMetadata(address target, string memory metadataJsonString) external {
+        flag(target);
+        flagMetadataJson[target] = metadataJsonString;
     }
 
     /** Peer reviewers vote on the flag */
@@ -373,9 +383,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */
-    function getFlag(address target) external view returns (uint flagData) {
+    function getFlag(address target) external view returns (uint flagData, string memory flagMetadata) {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        return moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");
+        flagData = moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");
+        flagMetadata = flagMetadataJson[target];
     }
 
     /////////////////////////////////////////

@@ -192,9 +192,9 @@ describe("VoteKickPolicy", (): void => {
 
             // attempting to vote actually ends the vote because voting period is over
             await advanceToTimestamp(start + VOTE_END + 10, "End vote")
-            expect(await sponsorship.getFlag(target.address)).to.not.equal("0") // open
+            expect((await sponsorship.getFlag(target.address))[0]).to.not.equal("0") // open
             await (await target.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
-            expect(await sponsorship.getFlag(target.address)).to.equal("0") // closed
+            expect((await sponsorship.getFlag(target.address))[0]).to.equal("0") // closed
 
             // target is not kicked
             expect(await sponsorship.stakedWei(target.address)).to.not.equal("0")
