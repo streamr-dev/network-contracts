@@ -372,8 +372,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
     */
     function flagWithMetadata(address target, string memory metadataJsonString) external {
-        flag(target);
         flagMetadataJson[target] = metadataJsonString;
+        flag(target);
     }
 
     /** Peer reviewers vote on the flag */
