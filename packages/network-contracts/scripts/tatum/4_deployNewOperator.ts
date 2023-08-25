@@ -10,7 +10,9 @@ import { Operator, OperatorFactory, LinkToken } from "../../typechain"
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
 import * as fs from "fs"
-import { parseEther } from "ethers/lib/utils"
+
+const { parseEther } = ethers.utils
+
 const CHAINURL = config.dev1.rpcEndpoints[0].url
 const chainProvider = new providers.JsonRpcProvider(CHAINURL)
 const localConfig = JSON.parse(fs.readFileSync("localConfig.json", "utf8"))
@@ -26,7 +28,7 @@ const connectToAllContracts = async () => {
     deploymentOwner = new Wallet(localConfig.adminKey, chainProvider)
     await (await deploymentOwner.sendTransaction({
         to: investor.address,
-        value: ethers.utils.parseEther("1")
+        value: parseEther("1")
     })).wait()
 
     log("registering stream registry in streamr config")
@@ -45,7 +47,7 @@ const connectToAllContracts = async () => {
     token = await linkTokenContract.connect(deploymentOwner) as LinkToken
 
     //send some tokens to investor
-    // await (await token.transfer(investor.address, ethers.utils.parseEther("10000"))).wait()
+    // await (await token.transfer(investor.address, parseEther("10000"))).wait()
 
     if (localConfig.pool) {
         operator = await ethers.getContractAt("Operator", localConfig.pool, deploymentOwner) as Operator
@@ -84,7 +86,7 @@ const deployOperatorContracts = async (amount: number) => {
 
 const investToPool = async () => {
     for (const pool of pools) {
-        const tx = await token.connect(deploymentOwner).transferAndCall(pool.address, ethers.utils.parseEther("60"),
+        const tx = await token.connect(deploymentOwner).transferAndCall(pool.address, parseEther("60"),
             investor.address)
         await tx.wait()
         log("Invested to pool ", pool.address)
@@ -93,7 +95,7 @@ const investToPool = async () => {
 
 const stakeIntoSponsorship = async () => {
     for (const pool of pools) {
-        const tx = await pool.connect(deploymentOwner).stake(localConfig.sponsorship, ethers.utils.parseEther("60"))
+        const tx = await pool.connect(deploymentOwner).stake(localConfig.sponsorship, parseEther("60"))
         await tx.wait()
         log("Staked into sponsorship from pool ", pool.address)
     }
@@ -101,7 +103,7 @@ const stakeIntoSponsorship = async () => {
 
 const delegateToPool = async (amount = 50) => {
     log(`Delegate ${amount} tokens to operator ${operator.address} `)
-    const amountWei = ethers.utils.parseEther(amount.toString())
+    const amountWei = parseEther(amount.toString())
     const tx0 = await token.transfer(investor.address, amountWei)
     await tx0.wait()
     const tx = await token.connect(investor).approve(operator.address, amountWei)
@@ -112,7 +114,7 @@ const delegateToPool = async (amount = 50) => {
 }
 
 // const divestFromPool = async () => {
-//     const tx = await pool.connect(investor).undelegate(ethers.utils.parseEther("1"))
+//     const tx = await pool.connect(investor).undelegate(parseEther("1"))
 //     await tx.wait()
 //     log("Queued data payout")
 // }
