@@ -21,7 +21,7 @@
     "integration-test": "npm run test:ens-e2e",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
-    "test:ens-e2e": "hardhat run --network dev1 test/integration/ens-e2e.test.ts",
+    "test:ens-e2e": "hardhat run --network dev2 test/integration/ens-e2e.test.ts",
     "coverage": "hardhat coverage",
     "lint": "solhint `find contracts -name '*.sol'`",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",
@@ -46,13 +46,13 @@
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
-    "@streamr/config": "latest",
     "@chainsafe/as-sha256": "^0.3.1",
     "@metamask/eth-sig-util": "4.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
     "@opengsn/provider": "2.2.6",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
+    "@streamr/config": "^4.0.1",
     "@types/debug": "4.1.7",
     "debug": "4.3.3",
     "ethers": "5.7.0",

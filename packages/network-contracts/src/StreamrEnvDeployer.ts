@@ -232,7 +232,7 @@ export class StreamrEnvDeployer {
         await (await ensCacheV2.initialize(
             scriptKeyAddress,
             streamRegistry.address,
-            Wallet.createRandom().address, // # ENSCacheV1, do we need this in dev env?
+            ethers.constants.AddressZero, // # ENSCacheV1, do we need this in dev env?
         )).wait()
         this.addresses.ENSCacheV2 = ensCacheV2.address
         this.contracts.eNSCacheV2 = ensCacheV2
