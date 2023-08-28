@@ -90,11 +90,13 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
-    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}',
+    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}, flagMetadata={}',
         [event.params.flagger.toHexString(),
             event.params.target.toHexString(),
             event.params.targetCommittedStake.toString(),
-            event.params.result.toString()])
+            event.params.result.toString(),
+            event.params.flagMetadata // not indexed as there is no use case for it yet, but could be useful
+        ])
     let sponsorshipAddress = event.address
     let flagID = sponsorshipAddress.toHexString() + "-" + event.params.target.toHexString()
     let flag = Flag.load(flagID)

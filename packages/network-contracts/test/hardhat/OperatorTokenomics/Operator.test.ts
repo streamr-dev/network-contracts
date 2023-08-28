@@ -1032,7 +1032,7 @@ describe("Operator contract", (): void => {
 
             await (await flagger.setNodeAddresses([await flagger.owner()])).wait()
             await expect(flagger.flag(sponsorship.address, target.address))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address)
+                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
 
             await advanceToTimestamp(start + VOTE_START, "Voting starts")
             await (await voter.setNodeAddresses([])).wait()

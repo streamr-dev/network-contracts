@@ -141,7 +141,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0);
+        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
     }
 
     /**
