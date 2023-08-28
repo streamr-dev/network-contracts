@@ -14,6 +14,7 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
+import { parseEther } from "ethers/lib/utils"
 
 export type StreamrContractAddresses = {
     // DATA token
@@ -115,7 +116,7 @@ export class StreamrEnvDeployer {
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
-        await this.createStream()
+        await this.createStream("/testStream")
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
         // await this.stakeOnSponsorship()
@@ -196,8 +197,7 @@ export class StreamrEnvDeployer {
         initialStorageMetadata.push("{\"http\": \"http://10.200.10.1:8891\"}")
         const nodeRegistry = await nodeRegistryFactory.deploy() as NodeRegistry
         await nodeRegistry.deployed()
-        await (await nodeRegistry.initialize(this.adminWallet.address,
-            false, initialStorageNodes, initialStorageMetadata)).wait()
+        await (await nodeRegistry.initialize(this.adminWallet.address, false, initialStorageNodes, initialStorageMetadata)).wait()
         this.addresses.StorageNodeRegistry = nodeRegistry.address
         this.contracts.storageNodeRegistry = nodeRegistry
         log(`StorageNodeRegistry deployed at ${this.addresses.StorageNodeRegistry}`)
@@ -262,8 +262,7 @@ export class StreamrEnvDeployer {
         log(`streamStorageRegistry address ${this.addresses.StreamStorageRegistry}`)
     }
 
-    async createStream(): Promise<void> {
-        const streampath = "/test" + Date.now()
+    async createStream(streampath: string): Promise<void> {
         log(`creating stream ${streampath}`)
         await ((await this.contracts.streamRegistry.createStream(streampath, "{}")).wait())
         this.streamId = this.adminWallet.address.toLowerCase() + streampath
@@ -416,10 +415,12 @@ export class StreamrEnvDeployer {
     async deployOperatorContract(): Promise<Operator> {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
-            ["TestPool1", "{}"],
+            parseEther("0.1"),
+            "TestPool1",
+            "{}",
             [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 10]
+            [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress

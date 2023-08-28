@@ -120,10 +120,10 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.poolValueBlockNumber = BigInt.zero()
         operator.poolTokenTotalSupplyWei = BigInt.zero()
         operator.cumulativeProfitsWei = BigInt.zero()
-        operator.cumulativeOperatorsShareWei = BigInt.zero()
+        operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
-        operator.operatorsShareFraction = BigInt.zero()
+        operator.operatorsCutFraction = BigInt.zero()
         operator.nodes = []
 
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
@@ -157,7 +157,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.totalUndelegatedWei = BigInt.zero()
         bucket.profitsWei = BigInt.zero()
         bucket.lossesWei = BigInt.zero()
-        bucket.operatorsShareWei = BigInt.zero()
+        bucket.operatorsCutWei = BigInt.zero()
     }
     return bucket
 }

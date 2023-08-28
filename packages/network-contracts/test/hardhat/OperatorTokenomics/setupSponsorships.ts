@@ -19,6 +19,7 @@ export interface SponsorshipTestSetup {
 
 export interface SponsorshipTestSetupOptions {
     sponsorshipSettings?: any
+    operatorsCutFraction?: BigNumber
     stakeAmountWei?: BigNumber
     sponsor?: boolean
 }
@@ -38,6 +39,7 @@ function splitBy<T>(arr: T[], counts: number[]): T[][] {
  */
 export async function setupSponsorships(contracts: TestContracts, operatorCounts = [0, 3], saltSeed: string, {
     sponsorshipSettings = {},
+    operatorsCutFraction = parseEther("1"),
     stakeAmountWei = parseEther("1000"),
     sponsor = true,
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
@@ -63,7 +65,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
-    const operators = await Promise.all(signers.map((signer) => deployOperatorContract(newContracts, signer, {}, saltSeed)))
+    const operators = await Promise.all(signers.map((signer) => deployOperatorContract(newContracts, signer, operatorsCutFraction, "{}", saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
     // add operator also as the (only) node, so that flag/vote functions Just Work

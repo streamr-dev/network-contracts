@@ -77,7 +77,7 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
     operator.owner = operatorAddress
     // TODO: parse metadataJsonString once we know what to look for
     operator.metadataJsonString = metadataJsonString
-    operator.operatorsShareFraction = event.params.operatorsShareFraction
+    operator.operatorsCutFraction = event.params.operatorsCutFraction
     operator.save()
 }
 
@@ -124,18 +124,18 @@ export function handlePoolValueUpdate(event: PoolValueUpdate): void {
 export function handleProfit(event: Profit): void {
     let operatorContractAddress = event.address.toHexString()
     let poolIncreaseWei = event.params.poolIncreaseWei // earningsWei - oeratorsShareWei
-    let operatorsShareWei = event.params.operatorsShareWei
-    log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsShareWei={}',
-        [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsShareWei.toString()])
+    let operatorsCutDataWei = event.params.operatorsCutDataWei
+    log.info('handleProfit: operatorContractAddress={} blockNumber={} poolIncreaseWei={} operatorsCutDataWei={}',
+        [operatorContractAddress, event.block.number.toString(), poolIncreaseWei.toString(), operatorsCutDataWei.toString()])
 
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.cumulativeProfitsWei = operator.cumulativeProfitsWei.plus(poolIncreaseWei)
-    operator.cumulativeOperatorsShareWei = operator.cumulativeOperatorsShareWei.plus(operatorsShareWei)
+    operator.cumulativeOperatorsCutWei = operator.cumulativeOperatorsCutWei.plus(operatorsCutDataWei)
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.profitsWei = bucket.profitsWei.plus(poolIncreaseWei)
-    bucket.operatorsShareWei = bucket.operatorsShareWei.plus(operatorsShareWei)
+    bucket.operatorsCutWei = bucket.operatorsCutWei.plus(operatorsCutDataWei)
     bucket.save()
 }
 
