@@ -1,3 +1,9 @@
+#!/bin/bash
+set -ex
+
+# start in this script's directory
+cd "$(dirname "$0")"
+
 npm run clean
 cd ../..
 npm run build -w @streamr/network-contracts
