@@ -310,6 +310,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /////////////////////////////////////////
 
     /**
+     * Update operator's cut fraction.
+     * Operator can update it's cut if it isn't staked into any Sponsorships
+     */
+    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
+        require(totalValueInSponsorshipsWei == 0, "error_stakedInSponsorships");
+        
+        operatorsCutFraction = newOperatorsCutFraction;
+        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
+    }
+
+    /**
      * Stake DATA tokens from free funds into Sponsorships.
      * Can only happen if all the delegators who want to undelegate have been paid out first.
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.

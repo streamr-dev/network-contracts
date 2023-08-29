@@ -59,6 +59,46 @@ describe("Operator contract", (): void => {
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
     })
 
+    it("can update operator cut fraction for himself, but NOT for others", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        const operator2 = await deployOperator(operator2Wallet)
+
+        await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
+            .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.2"))
+        await expect(operator2.connect(operatorWallet).updateOperatorsCutFraction(parseEther("0.2")))
+            .to.be.revertedWith("error_onlyOperator")
+    })
+
+    it("can NOT update the operator cut fraction if it's staked in any sponsorships", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await setTokens(delegator, "1000")
+        const operator = await deployOperator(operatorWallet)
+        const sponsorship = await deploySponsorship(sharedContracts)
+        const sponsorship2 = await deploySponsorship(sharedContracts)
+        await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+        await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
+
+        // can update the operator cut fraction before staking
+        await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
+            .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.2"))
+            
+        // can't update the operator cut fraction after staking
+        await (await operator.stake(sponsorship.address, parseEther("500"))).wait()
+        await (await operator.stake(sponsorship2.address, parseEther("500"))).wait()
+        await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
+            .to.be.revertedWith("error_stakedInSponsorships")
+
+         // must unstake from all sponsorships before updating the operator cut fraction
+         await (await operator.unstake(sponsorship.address)).wait() // unstake only from one sponsorship, not both
+         await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
+            .to.be.revertedWith("error_stakedInSponsorships")
+
+        // can update the operator cut fraction after unstaking from ALL sponsorships
+        await (await operator.unstake(sponsorship2.address)).wait()
+        await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
+            .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.3"))
+    })
+
     it("allows delegate and undelegate", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(delegator, "1000")
