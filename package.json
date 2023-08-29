@@ -12,7 +12,8 @@
     "./packages/network-subgraphs",
     "./packages/docker-dev-chain-init",
     "./packages/chat-contracts",
-    "./packages/ens-sync-script"
+    "./packages/ens-sync-script",
+    "./packages/dev-chain-fast"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

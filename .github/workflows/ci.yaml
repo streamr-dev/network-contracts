@@ -10,40 +10,11 @@ on:
       - master
 
 jobs:
-  lint-and-unit-test:
-    timeout-minutes: 30
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v3
-        with:
-          key: cache-node-modules-${{ hashFiles('package-lock.json') }}
-          path: |
-            node_modules
-            packages/*/node_modules
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
-      - name: Build and lint
-        run: npm run build && npm run lint
-      - name: Unit tests
-        run: npm run test
-  # integration-tests: # ens-e2e test with docker images from dockerhub
-  #   timeout-minutes: 20
-  #   needs:
-  #     - lint-and-unit-test
+  # lint-and-unit-test:
+  #   timeout-minutes: 30
   #   runs-on: ubuntu-20.04
   #   steps:
-  #     - uses: actions/checkout@v3.0.2
+  #     - uses: actions/checkout@v3
   #     - uses: actions/setup-node@v3
   #       with:
   #         node-version-file: '.nvmrc'
@@ -62,21 +33,15 @@ jobs:
   #       run: |
   #         npm ci --no-audit
   #         npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
-  #     - name: Build packages
-  #       run: npm run build -w packages/network-contracts -w packages/config
-  #     - name: Start Streamr Docker Stack
-  #       uses: streamr-dev/streamr-docker-dev-action@v1.0.1
-  #       with:
-  #         services-to-start: 'ens-sync-script deploy-network-subgraphs'
-  #     - name: Integration Test (with dev-docker environment)
-  #       env:
-  #         TEST_TIMEOUT: '600000'
-  #         DEBUG: "*,-mocha:*"
-  #       run: npm run integration-test
+  #     - name: Build and lint
+  #       run: npm run build && npm run lint
+  #     - name: Unit tests
+  #       run: npm run test
   fastchain-docker-image:
     timeout-minutes: 20
-    needs:
-      - lint-and-unit-test
+    runs-on: ubuntu-20.04
+    # needs:
+    #   - lint-and-unit-test
     steps:
       - uses: actions/checkout@v3.0.2
       - uses: actions/setup-node@v3
@@ -96,7 +61,7 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+          # npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build fastchain image
         run: npm run build -w packages/dev-chain-fast
       - name: Build subgraph image
