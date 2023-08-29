@@ -6,6 +6,7 @@ import { Wallet } from "@ethersproject/wallet"
 import { config } from "@streamr/config"
 import { createRequire } from "module"
 import fetch from "node-fetch"
+import fs from "fs"
 
 // TODO: use import?
 const require = createRequire(import.meta.url)
@@ -86,6 +87,11 @@ async function main() {
     // streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
     //     log("Got StreamCreated event params: ", streamId, metadataJsonString)
     // })
+
+    // send heartbeat every 10 minutes
+    setInterval(() => {
+        fs.writeFileSync("heartbeat", "")
+    }, 1000 * 10)
 }
 
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
