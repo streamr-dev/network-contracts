@@ -3,7 +3,7 @@
 
 Test the images manually before pushing to Docker Hub:
 1. Build dev chain and subgraph deployer images
-2. Start them
+1. Start them
 
 ### Building the dev chain Docker images locally
 
@@ -30,3 +30,12 @@ query {
   sponsorships { id }
 }
 ```
+
+### Push to Docker Hub
+
+1. [Set up docker multi architecture builds with buildx](https://www.docker.com/blog/how-to-rapidly-build-multi-architecture-images-with-buildx/)
+    * `docker buildx create --name mybuilder --use --bootstrap`
+    * Check mybuilder is in `docker buildx ls`
+1. Build and push the images
+    * `cd packages/dev-chain-fast && npm run buildMultiArchAndPush`
+    * `cd packages/network-subgraphs && npm run docker:buildAndPushMultiArch`
