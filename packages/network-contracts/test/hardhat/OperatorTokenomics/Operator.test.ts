@@ -880,6 +880,31 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
+    it.skip("total value in sponsorships is NOT decreased when the operator is slashed", async function(): Promise<void> {
+        const { token } = sharedContracts
+        await setTokens(operatorWallet, "1000")
+
+        const operator = await deployOperator(operatorWallet)
+        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+        const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+
+        const totalValueInSponsorshipsBeforeStake = await operator.totalValueInSponsorshipsWei()
+        const approxPoolValueBeforeStake = await operator.getApproximatePoolValue()
+        await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+        const totalValueInSponsorshipsAfterStake = await operator.totalValueInSponsorshipsWei()
+        const approxPoolValueAfterStake = await operator.getApproximatePoolValue()
+
+        await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
+        const totalValueInSponsorshipsAfterSlashing = await operator.totalValueInSponsorshipsWei()
+        const approxPoolValueAfterSlashing = await operator.getApproximatePoolValue()
+
+        expect(totalValueInSponsorshipsBeforeStake).to.equal(parseEther("0"))
+        expect(approxPoolValueBeforeStake).to.equal(parseEther("1000"))
+        expect(totalValueInSponsorshipsAfterStake).to.equal(parseEther("1000"))
+        expect(approxPoolValueAfterStake).to.equal(parseEther("1000"))
+        expect(totalValueInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
+        expect(approxPoolValueAfterSlashing).to.equal(parseEther("990"))
+    })
     it("will NOT let anyone else to stake except the operator of the Operator", async function(): Promise<void> {
         const operator = await deployOperator(operatorWallet)
         const sponsorship = await deploySponsorship(sharedContracts)
