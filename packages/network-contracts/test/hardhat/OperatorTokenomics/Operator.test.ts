@@ -880,7 +880,7 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
-    it.skip("total value in sponsorships is NOT decreased when the operator is slashed", async function(): Promise<void> {
+    it("total value in sponsorships is NOT decreased when the operator is slashed", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "1000")
 

@@ -95,6 +95,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** stake in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public stakedInto;
 
+    mapping(Sponsorship => uint) public slashedWei;
+    uint public slashedInSponsorshipsWei;
+
     struct UndelegationQueueEntry {
         address delegator;
         uint amountPoolTokenWei;
@@ -187,7 +190,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Pool value (DATA) = staked in sponsorships + free funds, does not include unwithdrawn earnings */
     function getApproximatePoolValue() public view returns (uint) {
-        return totalValueInSponsorshipsWei + token.balanceOf(address(this));
+        return totalValueInSponsorshipsWei + token.balanceOf(address(this)) - slashedInSponsorshipsWei;
     }
 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
@@ -478,9 +481,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei > stakedInto[sponsorship]
-            ? totalValueInSponsorshipsWei - stakedInto[sponsorship]
-            : 0;
+        uint currentStake = stakedInto[sponsorship] - slashedWei[sponsorship];
+        totalValueInSponsorshipsWei -= currentStake;
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
@@ -700,7 +702,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        totalValueInSponsorshipsWei -= amountSlashed;
+        slashedWei[sponsorship] += amountSlashed;
+        slashedInSponsorshipsWei += amountSlashed;
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
