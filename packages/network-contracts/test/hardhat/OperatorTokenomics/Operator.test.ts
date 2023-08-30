@@ -233,27 +233,27 @@ describe("Operator contract", (): void => {
         const approxPoolValueBefore = await operator.getApproximatePoolValue()
         const actualPoolValueBefore = await operator.calculatePoolValueInData()
         const poolValuePerSponsorshipBefore = await operator.getEarningsFromSponsorships()
-        const totalValueInSponsorshipsWeiBefore = await operator.totalValueInSponsorshipsWei()
+        const totalStakeInSponsorshipsWeiBefore = await operator.totalStakeInSponsorshipsWei()
 
         await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
 
-        const approxPoolValueAfter = await operator.getApproximatePoolValue() // == totalValueInSponsorshipsWei + free funds (Operator DATA balance)
+        const approxPoolValueAfter = await operator.getApproximatePoolValue() // == totalStakeInSponsorshipsWei + free funds (Operator DATA balance)
         const actualPoolValueAfter = await operator.calculatePoolValueInData()
         const poolValuePerSponsorshipAfter = await operator.getEarningsFromSponsorships()
-        const totalValueInSponsorshipsWeiAfter = await operator.totalValueInSponsorshipsWei()
+        const totalStakeInSponsorshipsWeiAfter = await operator.totalStakeInSponsorshipsWei()
 
         expect(formatEther(approxPoolValueBefore)).to.equal("1000.0")
         expect(formatEther(actualPoolValueBefore)).to.equal("2000.0")
 
         expect(formatEther(poolValuePerSponsorshipBefore.earnings[0])).to.equal("1000.0")
         expect(poolValuePerSponsorshipBefore.sponsorshipAddresses[0]).to.equal(sponsorship.address)
-        expect(formatEther(totalValueInSponsorshipsWeiBefore)).to.equal("1000.0")
+        expect(formatEther(totalStakeInSponsorshipsWeiBefore)).to.equal("1000.0")
 
         expect(formatEther(approxPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(actualPoolValueAfter)).to.equal("2000.0")
         expect(formatEther(poolValuePerSponsorshipAfter.earnings[0])).to.equal("0.0") // it's zero because we pulled all earnings
         expect(poolValuePerSponsorshipAfter.sponsorshipAddresses[0]).to.equal(sponsorship.address)
-        expect(formatEther(totalValueInSponsorshipsWeiAfter)).to.equal("1000.0") // doesn't include the free funds
+        expect(formatEther(totalStakeInSponsorshipsWeiAfter)).to.equal("1000.0") // doesn't include the free funds
     })
 
     it("re-delegates all of operator's share", async function(): Promise<void> {
@@ -880,7 +880,7 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
-    it("total value in sponsorships is NOT decreased when the operator is slashed", async function(): Promise<void> {
+    it("total skate in sponsorships is NOT decreased when the operator is slashed", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "1000")
 
@@ -888,21 +888,21 @@ describe("Operator contract", (): void => {
         await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
 
-        const totalValueInSponsorshipsBeforeStake = await operator.totalValueInSponsorshipsWei()
+        const totalStakeInSponsorshipsBeforeStake = await operator.totalStakeInSponsorshipsWei()
         const approxPoolValueBeforeStake = await operator.getApproximatePoolValue()
         await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
-        const totalValueInSponsorshipsAfterStake = await operator.totalValueInSponsorshipsWei()
+        const totalStakeInSponsorshipsAfterStake = await operator.totalStakeInSponsorshipsWei()
         const approxPoolValueAfterStake = await operator.getApproximatePoolValue()
 
         await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
-        const totalValueInSponsorshipsAfterSlashing = await operator.totalValueInSponsorshipsWei()
+        const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakeInSponsorshipsWei()
         const approxPoolValueAfterSlashing = await operator.getApproximatePoolValue()
 
-        expect(totalValueInSponsorshipsBeforeStake).to.equal(parseEther("0"))
+        expect(totalStakeInSponsorshipsBeforeStake).to.equal(parseEther("0"))
         expect(approxPoolValueBeforeStake).to.equal(parseEther("1000"))
-        expect(totalValueInSponsorshipsAfterStake).to.equal(parseEther("1000"))
+        expect(totalStakeInSponsorshipsAfterStake).to.equal(parseEther("1000"))
         expect(approxPoolValueAfterStake).to.equal(parseEther("1000"))
-        expect(totalValueInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
+        expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
         expect(approxPoolValueAfterSlashing).to.equal(parseEther("990"))
     })
     it("will NOT let anyone else to stake except the operator of the Operator", async function(): Promise<void> {

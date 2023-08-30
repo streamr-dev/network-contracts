@@ -107,12 +107,12 @@ export function handleUndelegated(event: Undelegated): void {
 /** event emits DATA values in sponsorships */
 export function handlePoolValueUpdate(event: PoolValueUpdate): void {
     let operatorContractAddress = event.address.toHexString()
-    log.info('handlePoolValueUpdate: operatorContractAddress={} blockNumber={} totalValueInSponsorshipsWei={}',
-        [operatorContractAddress, event.block.number.toString(), event.params.totalValueInSponsorshipsWei.toString()])
+    log.info('handlePoolValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
+        [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
     let operator = loadOrCreateOperator(operatorContractAddress)
-    operator.totalValueInSponsorshipsWei = event.params.totalValueInSponsorshipsWei
+    operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
     operator.freeFundsWei = event.params.freeFundsWei
-    operator.poolValue = event.params.totalValueInSponsorshipsWei.plus(event.params.freeFundsWei)
+    operator.poolValue = event.params.totalStakeInSponsorshipsWei.plus(event.params.freeFundsWei)
     operator.poolValueTimestamp = event.block.timestamp
     operator.poolValueBlockNumber = event.block.number
     operator.save()
