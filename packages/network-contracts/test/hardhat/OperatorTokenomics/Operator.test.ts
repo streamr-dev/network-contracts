@@ -88,9 +88,9 @@ describe("Operator contract", (): void => {
         await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
             .to.be.revertedWith("error_stakedInSponsorships")
 
-         // must unstake from all sponsorships before updating the operator cut fraction
-         await (await operator.unstake(sponsorship.address)).wait() // unstake only from one sponsorship, not both
-         await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
+        // must unstake from all sponsorships before updating the operator cut fraction
+        await (await operator.unstake(sponsorship.address)).wait() // unstake only from one sponsorship, not both
+        await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
             .to.be.revertedWith("error_stakedInSponsorships")
 
         // can update the operator cut fraction after unstaking from ALL sponsorships
