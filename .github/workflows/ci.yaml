@@ -62,7 +62,6 @@ jobs:
         run: |
           npm ci --no-audit
           # npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
-          npm i -g graph-cli
       - name: Build fastchain image
         run: npm run build -w packages/dev-chain-fast
       - name: Build subgraph image
