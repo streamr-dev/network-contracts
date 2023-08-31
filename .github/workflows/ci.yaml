@@ -62,8 +62,10 @@ jobs:
         run: |
           npm ci --no-audit
           # npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+      - name: Build all packages
+        run: npm run build
       - name: Build fastchain image
-        run: npm run build -w packages/dev-chain-fast
+        run: npm run buildLocalArch -w packages/dev-chain-fast
       - name: Build subgraph image
         run: npm run docker:buildLocalArch -w packages/network-subgraphs
       - name: start docker stack
