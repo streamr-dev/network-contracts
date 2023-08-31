@@ -68,7 +68,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * It can be queried / calculated in different ways:
      * 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
      * 2. approximate but always available: getApproximatePoolValue() (tracks only the stake+funds, does not include accumulated earnings)
-     *      getApproximatePoolValue = totalStakeInSponsorshipsWei + DATA.balanceOf(this)
+     *      getApproximatePoolValue = totalStakeInSponsorshipsWei + DATA.balanceOf(this) - slashedInSponsorshipsWei
      */
     uint public totalStakeInSponsorshipsWei;
 
@@ -481,8 +481,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        uint currentStake = stakedInto[sponsorship] - slashedWei[sponsorship];
-        totalStakeInSponsorshipsWei -= currentStake;
+        uint sponsorshipStake = stakedInto[sponsorship] /*- slashedWei[sponsorship]*/;
+        totalStakeInSponsorshipsWei -= sponsorshipStake;
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
