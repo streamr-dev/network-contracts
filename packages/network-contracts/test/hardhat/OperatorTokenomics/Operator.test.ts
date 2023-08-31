@@ -880,7 +880,7 @@ describe("Operator contract", (): void => {
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1990"))
     })
 
-    it("calculates totalStakeInSponsorships and approx pool value correctly after flagging+slashing", async function(): Promise<void> {
+    it("calculates totalStakeInSponsorships and getApproximatePoolValue correctly after flagging+slashing", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "2000")
 
@@ -908,7 +908,7 @@ describe("Operator contract", (): void => {
         expect(approxPoolValueAfterSlashing).to.equal(parseEther("1990"))
     })
 
-    it("calculates totalStakeInSponsorships correctly after slashing+unstake", async function(): Promise<void> {
+    it("calculates totalStakeInSponsorships and getApproximatePoolValue correctly after slashing+unstake", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "2000")
         await setTokens(sponsor, "60")
@@ -924,35 +924,15 @@ describe("Operator contract", (): void => {
         await (await operator.stake(sponsorship1.address, parseEther("1000"))).wait()
         await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
         const totalStakeInSponsorshipsBeforeSlashing = await operator.totalStakeInSponsorshipsWei()
-
-        await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
-        const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakeInSponsorshipsWei()
-
-        expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
-        expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
-    })
-
-    it("calculates getApproximatePoolValue correctly after slashing+unstake", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(operatorWallet, "2000")
-        await setTokens(sponsor, "60")
-
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
-        const penaltyPeriodSeconds = 60 // trigger penalty check e.g. `block.timestamp >= joinTimestamp + penaltyPeriodSeconds`
-        const allocationWeiPerSecond = parseEther("0") // avoind earnings additions
-        const sponsorship1 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds, allocationWeiPerSecond })
-        await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("60"), "0x")).wait()
-        const sponsorship2 = await deploySponsorship(sharedContracts)
-
-        await (await operator.stake(sponsorship1.address, parseEther("1000"))).wait()
-        await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
         const approxPoolValueBeforeSlashing = await operator.getApproximatePoolValue()
 
         await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
+        const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakeInSponsorshipsWei()
         const approxPoolValueAfterSlashing = await operator.getApproximatePoolValue()
 
+        expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
         expect(approxPoolValueBeforeSlashing).to.equal(parseEther("2000"))
+        expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
         expect(approxPoolValueAfterSlashing).to.equal(parseEther("1900"))
     })
 
