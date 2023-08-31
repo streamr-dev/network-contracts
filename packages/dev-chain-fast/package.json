@@ -14,8 +14,8 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
-    "@streamr/hub-contracts": "file:../hub-contracts",
-    "@streamr/network-contracts": "file:../network-contracts",
+    "@streamr/hub-contracts": "^1.1.2",
+    "@streamr/network-contracts": "^4.3.3",
     "@dataunions/contracts": "^3.0.8",
     "hardhat": "^2.17.1",
     "tsx": "^3.12.7"

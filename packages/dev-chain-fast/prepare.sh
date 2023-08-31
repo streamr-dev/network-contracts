@@ -15,7 +15,7 @@ cd ../hub-contracts
 rm -f streamr-hub-contracts-*.tgz
 npm pack
 cd ../dev-chain-fast
-npm i ../network-contracts/streamr-network-contracts-*.tgz
-npm i ../hub-contracts/streamr-hub-contracts-*.tgz
+npm ci ../network-contracts/streamr-network-contracts-*.tgz
+npm ci ../hub-contracts/streamr-hub-contracts-*.tgz
 rm -f ../network-contracts/streamr-network-contracts-*.tgz
 rm -f ../hub-contracts/streamr-hub-contracts-*.tgz
