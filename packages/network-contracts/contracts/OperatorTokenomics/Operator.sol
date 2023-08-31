@@ -94,6 +94,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** stake in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public stakedInto;
+    /** slashed in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public slashedInto;
     uint public slashedInSponsorshipsWei;
 
@@ -480,9 +481,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        uint sponsorshipStake = stakedInto[sponsorship] - slashedInto[sponsorship];
-        totalStakeInSponsorshipsWei -= sponsorshipStake;
-
+        totalStakeInSponsorshipsWei -= stakedInto[sponsorship];
+        slashedInSponsorshipsWei -= slashedInto[sponsorship];
+        slashedInto[sponsorship] = 0;
+        
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(lossWei);

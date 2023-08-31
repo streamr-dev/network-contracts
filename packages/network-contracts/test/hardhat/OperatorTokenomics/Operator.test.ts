@@ -908,7 +908,7 @@ describe("Operator contract", (): void => {
         expect(approxPoolValueAfterSlashing).to.equal(parseEther("1990"))
     })
 
-    it.skip("calculates totalStakeInSponsorships correctly after slashing+unstake", async function(): Promise<void> {
+    it("calculates totalStakeInSponsorships correctly after slashing+unstake", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "2000")
         await setTokens(sponsor, "60")
@@ -932,7 +932,7 @@ describe("Operator contract", (): void => {
         expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
     })
 
-    it("returns getApproximatePoolValue correctly after slashing+unstake", async function(): Promise<void> {
+    it("calculates getApproximatePoolValue correctly after slashing+unstake", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(operatorWallet, "2000")
         await setTokens(sponsor, "60")
