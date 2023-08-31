@@ -94,8 +94,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** stake in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public stakedInto;
-
-    mapping(Sponsorship => uint) public slashedWei;
+    mapping(Sponsorship => uint) public slashedInto;
     uint public slashedInSponsorshipsWei;
 
     struct UndelegationQueueEntry {
@@ -481,7 +480,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        uint sponsorshipStake = stakedInto[sponsorship] /*- slashedWei[sponsorship]*/;
+        uint sponsorshipStake = stakedInto[sponsorship] - slashedInto[sponsorship];
         totalStakeInSponsorshipsWei -= sponsorshipStake;
 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
@@ -702,7 +701,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        slashedWei[sponsorship] += amountSlashed;
+        slashedInto[sponsorship] += amountSlashed;
         slashedInSponsorshipsWei += amountSlashed;
         emit PoolValueUpdate(totalStakeInSponsorshipsWei, token.balanceOf(address(this)));
     }
