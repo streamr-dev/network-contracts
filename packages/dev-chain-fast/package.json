@@ -6,7 +6,7 @@
   "scripts": {
     "buildLocalArch": "./prepare.sh && docker build -t streamr/dev-chain-fast:dev .",
     "buildMultiArchAndPush": "./prepare.sh && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/dev-chain-fast:dev --push .",
-    "builda": "docker build -t streamr/dev-chain-fast .",
+    "builda": "docker build -t streamr/dev-chain-fast:dev .",
     "buildb": "./prepare.sh",
     "deploy": "tsx deploy.ts",
     "clean": "rm -fr node_modules"
@@ -14,8 +14,8 @@
   "author": "Streamr Network AG",
   "license": "ISC",
   "dependencies": {
-    "@streamr/hub-contracts": "^1.1.2",
-    "@streamr/network-contracts": "^4.3.3",
+    "@streamr/hub-contracts": "file:../hub-contracts",
+    "@streamr/network-contracts": "file:../network-contracts",
     "@dataunions/contracts": "^3.0.8",
     "hardhat": "^2.17.1",
     "tsx": "^3.12.7"
