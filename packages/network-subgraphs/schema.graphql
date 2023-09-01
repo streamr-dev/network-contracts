@@ -283,7 +283,7 @@ type OperatorDailyBucket @entity {
   "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
   poolValue: BigInt!
 
-  "DATA staked and earned in sponsorship contracts (first event in bucket)"
+  "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
   totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked (first event in bucket)"
