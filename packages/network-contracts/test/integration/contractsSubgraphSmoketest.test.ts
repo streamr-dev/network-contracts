@@ -17,7 +17,7 @@ describe("docker image integration test", () => {
 
     it("can get all the indexed example data from thegraph", async () => {
 
-        const result = await graphClient.queryEntity<{ operator: { flagsTargeted: any[] } }>({ query: `
+        const resultFixedIds = await graphClient.queryEntity<{ operator: { flagsTargeted: any[] } }>({ query: `
         {
             delegations {
               id
@@ -28,16 +28,10 @@ describe("docker image integration test", () => {
             operators {
               id
             }
-            sponsoringEvents {
-              id
-            }
             sponsorships {
               id
             }
             stakes {
-              id
-            }
-            stakingEvents {
               id
             }
             streamPermissions {
@@ -48,7 +42,7 @@ describe("docker image integration test", () => {
             }
         }
         `})
-        expect(result).to.deep.equal({
+        expect(resultFixedIds).to.deep.equal({
             "delegations": [
                 {
                     "id": "0x139dfa493a45364b598f2f98e504192819082c85-0xa3d1f77acff0060f7213d7bf3c7fec78df847de1"
@@ -64,11 +58,6 @@ describe("docker image integration test", () => {
                     "id": "0x139dfa493a45364b598f2f98e504192819082c85"
                 }
             ],
-            "sponsoringEvents": [
-                {
-                    "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d0xe42549de096cc143f7363a2dd07a0bad539b9af71c166be2720d309c46a8ad0c"
-                }
-            ],
             "sponsorships": [
                 {
                     "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d"
@@ -77,11 +66,6 @@ describe("docker image integration test", () => {
             "stakes": [
                 {
                     "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d-0x139dfa493a45364b598f2f98e504192819082c85"
-                }
-            ],
-            "stakingEvents": [
-                {
-                    "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d-0xc224d08060a9f33132e62bb42a23d1d555c221d05dcbc48780fcda0470daecf2"
                 }
             ],
             "streamPermissions": [
@@ -113,5 +97,31 @@ describe("docker image integration test", () => {
                 }
             ]
         })
+
+        const resultDynamicIds = await graphClient.queryEntity<{ 
+        operatorDailyBuckets: [],
+        sponsorshipDailyBuckets: [],
+        stakingEvents: [],
+        sponsoringEvents: []
+     }>({ query: `
+        {
+            operatorDailyBuckets {
+                id
+            }
+            sponsorshipDailyBuckets {
+                id
+            }
+            stakingEvents {
+                id
+            }
+            sponsoringEvents {
+                id
+            }
+        }
+        `})
+        expect(resultDynamicIds.operatorDailyBuckets.length).to.be.greaterThan(0)
+        expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.be.greaterThan(0)
+        expect(resultDynamicIds.stakingEvents.length).to.be.greaterThan(0)
+        expect(resultDynamicIds.sponsoringEvents.length).to.be.greaterThan(0)
     })
 })
