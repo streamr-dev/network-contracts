@@ -68,9 +68,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * It can be queried / calculated in different ways:
      * 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
      * 2. approximate but always available: getApproximatePoolValue() (tracks only the stake+funds, does not include accumulated earnings)
-     *      getApproximatePoolValue = totalStakedInSponsorshipsWei + DATA.balanceOf(this) - slashedInSponsorshipsWei
+     *      getApproximatePoolValue = totalStakedInSponsorshipsWei + DATA.balanceOf(this) - totalSlashedInSponsorshipsWei
      */
     uint public totalStakedInSponsorshipsWei;
+    uint public totalSlashedInSponsorshipsWei;
 
     IDelegationPolicy public delegationPolicy;
     IPoolYieldPolicy public yieldPolicy;
@@ -96,7 +97,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     mapping(Sponsorship => uint) public stakedInto;
     /** slashed in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public slashedIn;
-    uint public slashedInSponsorshipsWei;
 
     struct UndelegationQueueEntry {
         address delegator;
@@ -190,7 +190,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Pool value (DATA) = staked in sponsorships + free funds, does not include unwithdrawn earnings */
     function getApproximatePoolValue() public view returns (uint) {
-        return totalStakedInSponsorshipsWei + token.balanceOf(address(this)) - slashedInSponsorshipsWei;
+        return totalStakedInSponsorshipsWei + token.balanceOf(address(this)) - totalSlashedInSponsorshipsWei;
     }
 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
@@ -482,7 +482,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
         totalStakedInSponsorshipsWei -= stakedInto[sponsorship];
-        slashedInSponsorshipsWei -= slashedIn[sponsorship];
+        totalSlashedInSponsorshipsWei -= slashedIn[sponsorship];
         slashedIn[sponsorship] = 0;
         
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
@@ -704,7 +704,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         Sponsorship sponsorship = Sponsorship(_msgSender());
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
         slashedIn[sponsorship] += amountSlashed;
-        slashedInSponsorshipsWei += amountSlashed;
+        totalSlashedInSponsorshipsWei += amountSlashed;
         emit PoolValueUpdate(totalStakedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
