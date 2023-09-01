@@ -595,18 +595,30 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * Get the position of the LAST undelegation request in the queue for the given delegator.
-     * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
-     * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
+     * Find all queue positions for the given delegator
+     * @return position the queue positions
+     * @return tokensQueuedBefore how many pool tokens are queued BEFORE each position
      */
-    function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
+    function queuePositionsOf(address delegator) external view returns (uint[] memory position, uint[] memory tokensQueuedBefore) {
+        uint queueItemCount = 0;
+        for (uint i = queueCurrentIndex; i < queueLastIndex; i++) {
             if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
+                queueItemCount += 1;
             }
         }
-        return queueLastIndex - queueCurrentIndex + 1;
+        uint[] memory positions = new uint[](queueItemCount);
+        uint[] memory tokensQueuedBefores = new uint[](queueItemCount);
+        uint j = 0;
+        uint tokensBefore = 0;
+        for (uint i = queueCurrentIndex; i < queueLastIndex; i++) {
+            if (undelegationQueue[i].delegator == delegator) {
+                positions[j] = i - queueCurrentIndex;
+                tokensQueuedBefore[j] = tokensBefore;
+                j += 1;
+            }
+            tokensBefore += undelegationQueue[i].amountPoolTokenWei;
+        }
+        return (positions, tokensQueuedBefores);
     }
 
     /* solhint-disable reentrancy */ // TODO: remove when solhint stops being silly
