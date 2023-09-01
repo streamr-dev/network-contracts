@@ -5,17 +5,18 @@ set -ex
 cd "$(dirname "$0")"
 
 npm run clean
+rm -f streamr-network-contracts-*.tgz
+rm -f streamr-hub-contracts-*.tgz
+# rm -f dev-chain-fast-*.tgz
 cd ../..
 npm run build -w @streamr/network-contracts
 npm run build -w @streamr/hub-contracts
 cd packages/network-contracts
-rm -f streamr-network-contracts-*.tgz
 npm pack
+mv streamr-network-contracts-*.tgz ../dev-chain-fast
 cd ../hub-contracts
-rm -f streamr-hub-contracts-*.tgz
 npm pack
+mv streamr-hub-contracts-*.tgz ../dev-chain-fast
 cd ../dev-chain-fast
-npm ci ../network-contracts/streamr-network-contracts-*.tgz
-npm ci ../hub-contracts/streamr-hub-contracts-*.tgz
-rm -f ../network-contracts/streamr-network-contracts-*.tgz
-rm -f ../hub-contracts/streamr-hub-contracts-*.tgz
+npm run build
+# npm pack

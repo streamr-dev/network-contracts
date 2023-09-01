@@ -25,16 +25,10 @@ describe("docker image integration test", () => {
             nodes {
               id
             }
-            operatorDailyBuckets {
-              id
-            }
             operators {
               id
             }
             sponsoringEvents {
-              id
-            }
-            sponsorshipDailyBuckets {
               id
             }
             sponsorships {
@@ -65,11 +59,6 @@ describe("docker image integration test", () => {
                     "id": "0xde1112f631486cfc759a50196853011528bc5fa0"
                 }
             ],
-            "operatorDailyBuckets": [
-                {
-                    "id": "0x139dfa493a45364b598f2f98e504192819082c85-1693267200"
-                }
-            ],
             "operators": [
                 {
                     "id": "0x139dfa493a45364b598f2f98e504192819082c85"
@@ -78,11 +67,6 @@ describe("docker image integration test", () => {
             "sponsoringEvents": [
                 {
                     "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d0xe42549de096cc143f7363a2dd07a0bad539b9af71c166be2720d309c46a8ad0c"
-                }
-            ],
-            "sponsorshipDailyBuckets": [
-                {
-                    "id": "0xf248372d794e889bb923411e78a78a7f6c1e093d-1693267200"
                 }
             ],
             "sponsorships": [
