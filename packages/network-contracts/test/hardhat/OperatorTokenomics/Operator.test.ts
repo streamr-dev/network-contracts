@@ -237,7 +237,7 @@ describe("Operator contract", (): void => {
 
         await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
 
-        const approxPoolValueAfter = await operator.getApproximatePoolValue() // == totalStakedIntoSponsorshipsWei + free funds (Operator DATA balance)
+        const approxPoolValueAfter = await operator.getApproximatePoolValue() // = totalStakedIntoSponsorshipsWei + free funds (Operator DATA balance)
         const actualPoolValueAfter = await operator.calculatePoolValueInData()
         const poolValuePerSponsorshipAfter = await operator.getEarningsFromSponsorships()
         const totalStakedIntoSponsorshipsWeiAfter = await operator.totalStakedIntoSponsorshipsWei()
