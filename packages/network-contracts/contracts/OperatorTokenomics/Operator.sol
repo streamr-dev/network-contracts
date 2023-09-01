@@ -345,7 +345,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
             emit Staked(sponsorship);
         }
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
     }
 
     /**
@@ -366,7 +366,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         totalStakedInSponsorshipsWei -= cashoutWei;
         emit PoolValueUpdate(totalStakedInSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
@@ -483,7 +483,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
         totalStakedInSponsorshipsWei -= stakedInto[sponsorship];
         totalSlashedInSponsorshipsWei -= slashedIn[sponsorship];
-        slashedIn[sponsorship] = 0;
         
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
@@ -508,6 +507,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         emit PoolValueUpdate(totalStakedInSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         stakedInto[sponsorship] = 0;
+        slashedIn[sponsorship] = 0;
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
     }
@@ -705,6 +705,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit PoolValueUpdate(totalStakedInSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
