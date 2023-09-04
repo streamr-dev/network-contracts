@@ -26,11 +26,13 @@ import "./StreamrConfig.sol";
  * Operators can also `unstake` and stop earning, signalling to stop servicing the stream.
  *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
  *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
- * The tokens held by `Sponsorship` are tracked in three accounts:
+ * The tokens held by `Sponsorship` are tracked in four accounts:
  * - totalStakedWei: total amount of tokens staked by all operators
  *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
+ * - allocatedWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
+ *  -> governed by the `IAllocationPolicy`
  * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
@@ -74,6 +76,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public minOperatorCount;
     uint public minHorizonSeconds;
     uint public unallocatedWei;
+    uint public allocatedWei;
 
     function getMyStake() public view returns (uint) {
         return stakedWei[_msgSender()];
@@ -177,14 +180,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor` */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
         uint unallocatedWeiBefore = unallocatedWei;
-        uint unallocatedWeiAfter = token.balanceOf(address(this)) - totalStakedWei - committedForfeitedStakeWei;
-        uint newTokensWei = unallocatedWeiAfter - unallocatedWeiBefore;
+        unallocatedWei = token.balanceOf(address(this)) - allocatedWei - totalStakedWei - committedForfeitedStakeWei;
+        uint newTokensWei = unallocatedWei - unallocatedWeiBefore;
 
-        // newTokens >= amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
         uint unknownTokensWei = newTokensWei - amountWei;
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
-        unallocatedWei = unallocatedWeiAfter;
         emit SponsorshipReceived(sponsorAddress, amountWei);
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
