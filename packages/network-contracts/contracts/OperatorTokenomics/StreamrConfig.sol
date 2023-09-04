@@ -65,6 +65,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      */
     uint public poolValueDriftPenaltyFraction;
 
+    /** Protocol fee is collected when earnings arrive to Operator, fraction expressed as fixed-point decimal between 0.0 ~ 1.0, like ether: 1e18 ~= 100% */
+    uint public protocolFeeFraction;
+
+    /** Address where the protocol fee is sent */
+    address public protocolFeeBeneficiary;
+
     /** How many reviewers we ideally (=usually) select to review a Sponsorship flag, see VoteKickPolicy.sol */
     uint public flagReviewerCount;
 
@@ -165,6 +171,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
         poolValueDriftLimitFraction = 0.05 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
+
+        // protocol fee
+        protocolFeeFraction = 0.01 ether;
+        protocolFeeBeneficiary = address(0xD20b71E226f1a63794e40f02c7fD511E798F17Aa);
 
         // flagging + voting
         flagReviewerCount = 5;
