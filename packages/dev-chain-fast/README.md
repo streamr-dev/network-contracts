@@ -3,7 +3,8 @@
 
 Test the images manually before pushing to Docker Hub:
 1. Build dev chain and subgraph deployer images
-1. Start them
+1. Start them, run tests (at least: run a subgraph query manually in the browser)
+1. Push to Docker Hub
 
 ### Building the dev chain Docker images locally
 
