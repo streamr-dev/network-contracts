@@ -45,7 +45,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
-    event PoolValueUpdate(uint totalValueInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event
+    event PoolValueUpdate(uint totalStakeInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event (staked - slashed)
     event Profit(uint poolIncreaseWei, uint operatorsCutDataWei);
     event Loss(uint poolDecreaseWei);
 
@@ -62,15 +62,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     /**
-     * totalValueInSponsorshipsWei is used for tracking the pool value in DATA
+     * totalStakedIntoSponsorshipsWei is used for tracking the pool value in DATA
      *
      * Pool value = DATA value of all stake + earnings in sponsorships - operator's share of those earnings
      * It can be queried / calculated in different ways:
      * 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
      * 2. approximate but always available: getApproximatePoolValue() (tracks only the stake+funds, does not include accumulated earnings)
-     *      getApproximatePoolValue = totalValueInSponsorshipsWei + DATA.balanceOf(this)
+     *      getApproximatePoolValue = totalStakedIntoSponsorshipsWei + DATA.balanceOf(this) - totalSlashedInSponsorshipsWei
      */
-    uint public totalValueInSponsorshipsWei;
+    uint public totalStakedIntoSponsorshipsWei;
+    uint public totalSlashedInSponsorshipsWei;
 
     IDelegationPolicy public delegationPolicy;
     IPoolYieldPolicy public yieldPolicy;
@@ -94,6 +95,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** stake in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public stakedInto;
+    /** slashed in a Sponsorship, in DATA-wei */
+    mapping(Sponsorship => uint) public slashedIn;
 
     struct UndelegationQueueEntry {
         address delegator;
@@ -187,7 +190,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Pool value (DATA) = staked in sponsorships + free funds, does not include unwithdrawn earnings */
     function getApproximatePoolValue() public view returns (uint) {
-        return totalValueInSponsorshipsWei + token.balanceOf(address(this));
+        return totalStakedIntoSponsorshipsWei + token.balanceOf(address(this)) - totalSlashedInSponsorshipsWei;
     }
 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
@@ -257,7 +260,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             _mintPoolTokensFor(delegator, amount);
         }
 
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
@@ -265,7 +268,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // console.log("## delegate");
         token.transferFrom(_msgSender(), address(this), amountWei);
         _mintPoolTokensFor(_msgSender(), amountWei);
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /** DATA token transfer must have happened before calling this function, give back the correct amount of pool tokens */
@@ -310,6 +313,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /////////////////////////////////////////
 
     /**
+     * Update operator's cut fraction.
+     * Operator can update it's cut if it isn't staked into any Sponsorships
+     */
+    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
+        require(totalStakedIntoSponsorshipsWei == 0, "error_stakedInSponsorships");
+        
+        operatorsCutFraction = newOperatorsCutFraction;
+        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
+    }
+
+    /**
      * Stake DATA tokens from free funds into Sponsorships.
      * Can only happen if all the delegators who want to undelegate have been paid out first.
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
@@ -320,8 +334,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
-        totalValueInSponsorshipsWei += amountWei;
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        totalStakedIntoSponsorshipsWei += amountWei;
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         if (indexOfSponsorships[sponsorship] == 0) { // initial staking in a new sponsorship
             sponsorships.push(sponsorship);
@@ -331,7 +345,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
             emit Staked(sponsorship);
         }
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
     }
 
     /**
@@ -352,9 +366,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
-        emit StakeUpdate(sponsorship, sponsorship.stakedWei(address(this)));
-        totalValueInSponsorshipsWei -= cashoutWei;
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
+        totalStakedIntoSponsorshipsWei -= cashoutWei;
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
@@ -369,7 +383,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint operatorsCutDataWei = earningsDataWei * operatorsCutFraction / 1 ether;
         _mintPoolTokensFor(owner, operatorsCutDataWei);
         emit Profit(earningsDataWei - operatorsCutDataWei, operatorsCutDataWei);
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
@@ -403,7 +417,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         _mintPoolTokensFor(owner, operatorPaymentDataWei);
         emit Profit(sumEarnings - operatorsCutDataWei, operatorPaymentDataWei);
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         payOutQueueWithFreeFunds(0);
     }
@@ -421,7 +435,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         require(earnings > 0, "error_didNotReceiveReward");
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, balanceAfterWei);
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
     }
 
     /**
@@ -467,10 +481,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means whatever was slashed gets also deducted from the operator's share
      */
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-        totalValueInSponsorshipsWei = totalValueInSponsorshipsWei > stakedInto[sponsorship]
-            ? totalValueInSponsorshipsWei - stakedInto[sponsorship]
-            : 0;
-
+        totalStakedIntoSponsorshipsWei -= stakedInto[sponsorship];
+        totalSlashedInSponsorshipsWei -= slashedIn[sponsorship];
+        
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(lossWei);
@@ -492,8 +505,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (sponsorships.length == 0) {
             try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
         }
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         stakedInto[sponsorship] = 0;
+        slashedIn[sponsorship] = 0;
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
     }
@@ -675,7 +689,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty();
     }
@@ -689,8 +703,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
         require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        totalValueInSponsorshipsWei -= amountSlashed;
-        emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
+        slashedIn[sponsorship] += amountSlashed;
+        totalSlashedInSponsorshipsWei += amountSlashed;
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
