@@ -367,14 +367,15 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("171.428571428571428571") // 100 + 71.42857143
         })
 
-        it("pays part of operator's cut from withdraw to OperatorValueBreachWatcher if too much unwithdrawn earnings", async function(): Promise<void> {
-            // deploy two operators using deployOperatorContract. It's important they come from same factory, hence can't use deployOperator helper as-is
+        it("pays part of operator's cut from withdraw to caller if too much unwithdrawn earnings", async function(): Promise<void> {
+            // deploy two operators using deployOperatorContract.
+            // It's important they come from same factory, hence can't use deployOperator helper as-is
             const contracts = {
                 ...sharedContracts,
                 ...await deployOperatorFactory(sharedContracts, admin)
             }
             const operator1 = await deployOperatorContract(contracts, operatorWallet, parseEther("0.4"))
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet, parseEther("0.123")) // operator2's cut doesn't affect calculations
+            const operator2 = await deployOperatorContract(contracts, operator2Wallet, parseEther("0.123")) // doesn't affect calculations
             const sponsorship1 = await deploySponsorship(contracts)
             const sponsorship2 = await deploySponsorship(contracts)
 
@@ -421,9 +422,9 @@ describe("Operator contract", (): void => {
             //  => operatorWallet1 received 400 / 1.6 = 250 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
             // operator2's 400 DATA was added to operator2 pool value as self-delegation, exchange rate still 1 DATA / pool token
             //  => operatorWallet2 received 400 / 1 = 400 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
-            expect(await operator1.calculatePoolValueInData()).to.equal(parseEther("3600")) // free funds + stakes + profits + operator's self-delegation
+            expect(await operator1.calculatePoolValueInData()).to.equal(parseEther("3600")) // free funds + stakes + profits + self-delegation
             expect(await operator1.getApproximatePoolValue()).to.equal(parseEther("3600"))  // no unwithdrawn earnings => approximate is correct
-            expect(await token.balanceOf(operator1.address)).to.equal(parseEther("1600"))   // free funds including profits + operator's self-delegation
+            expect(await token.balanceOf(operator1.address)).to.equal(parseEther("1600"))   // free funds including profits + self-delegation
 
             expect(await operator2.calculatePoolValueInData()).to.equal(parseEther("1400")) // no staking, so just the free funds
             expect(await operator2.getApproximatePoolValue()).to.equal(parseEther("1400"))
