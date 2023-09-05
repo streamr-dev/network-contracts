@@ -45,6 +45,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
+    event Sponsored(address indexed sponsor, uint totalSponsoredWei);
     event OperatorKicked(address indexed operator);
     event OperatorSlashed(address indexed operator, uint amountWei);
 
@@ -64,6 +65,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     string public streamId;
     string public metadata;
     mapping(address => string) public flagMetadataJson;
+
+    uint cumulativeSponsoredWei; // lifetime sum of incoming sponsorships
 
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
@@ -155,6 +158,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             assembly { stakeBeneficiary := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
             _stake(stakeBeneficiary, amount);
         } else {
+            cumulativeSponsoredWei += amount;
+            emit Sponsored(sender, cumulativeSponsoredWei);
             _addSponsorship(sender, amount);
         }
     }
@@ -170,6 +175,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function sponsor(uint amountWei) external {
         if (amountWei > 0) {
             token.transferFrom(_msgSender(), address(this), amountWei);
+            cumulativeSponsoredWei += amountWei;
+            emit Sponsored(_msgSender(), cumulativeSponsoredWei);
         }
         _addSponsorship(_msgSender(), amountWei);
     }
