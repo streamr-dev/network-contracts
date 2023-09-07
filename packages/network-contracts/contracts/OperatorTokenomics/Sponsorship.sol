@@ -248,7 +248,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             _slash(operator, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        payoutWei =_removeOperator(operator); // forfeits committed stake
+        payoutWei = _removeOperator(operator); // forfeits committed stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
