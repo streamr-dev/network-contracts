@@ -370,11 +370,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    function withdrawEarningsFromSponsorship(Sponsorship sponsorship) external onlyOperator {
-        withdrawEarningsFromSponsorshipWithoutQueue(sponsorship);
-        payOutQueueWithFreeFunds(0);
-    }
-
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
@@ -423,6 +418,27 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
+    }
+
+    /**
+     * Convenience method to get all sponsorship values
+     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
+     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
+     * @dev Don't call from other smart contracts in a transaction, could be expensive!
+     **/
+    function getEarningsFromSponsorships() external view returns (
+        address[] memory sponsorshipAddresses,
+        uint[] memory earnings,
+        uint rewardLimit
+    ) {
+        sponsorshipAddresses = new address[](sponsorships.length);
+        earnings = new uint[](sponsorships.length);
+        for (uint i = 0; i < sponsorships.length; i++) {
+            Sponsorship sponsorship = sponsorships[i];
+            sponsorshipAddresses[i] = address(sponsorship);
+            earnings[i] = sponsorship.getEarnings(address(this));
+        }
+        rewardLimit = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
     }
 
     /**
@@ -499,14 +515,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Whenever profit (earnings from Sponsorships) comes in,
-     *  pay part of it to the Operator by minting pool tokens, and also
-     *  pay part of it as protocol fee
+     *  pay part of it as protocol fee, and then
+     *  pay part of it to the Operator by minting pool tokens
      * If the operator is penalized for too much unwithdrawn earnings, a penalty will be deducted from the operator's cut and sent to operatorPenaltyRecipient
      * @param earningsDataWei income to be processed, in DATA
      * @param operatorPenaltyRecipient non-zero if the operator is penalized for too much unwithdrawn earnings, otherwise `address(0)`
      **/
     function _handleProfit(uint earningsDataWei, address operatorPenaltyRecipient) private {
         uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
+        token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
 
         uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
 
@@ -803,48 +820,4 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /* solhint-enable */
-
-    ////////////////////////////////////////////////////////////////////////
-    // POOL VALUE UPDATING convenience methods: find unwithdrawn earnings
-    ////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Unwithdrawn earnings in the Sponsorship, minus operator's share of the earnings
-     * This is the part the belongs to the pool, and will be used in calculating the update penalty threshold
-     **/
-    function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint earnings) {
-        uint alloc = sponsorship.getEarnings(address(this));
-        uint operatorsCutWei = operatorsCutFraction * alloc / 1 ether;
-        return alloc - operatorsCutWei;
-    }
-
-    /**
-     * Convenience method to get all sponsorship values
-     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
-     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
-     * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     **/
-    function getEarningsFromSponsorships() external view returns (
-        address[] memory sponsorshipAddresses,
-        uint[] memory earnings
-    ) {
-        sponsorshipAddresses = new address[](sponsorships.length);
-        earnings = new uint[](sponsorships.length);
-        for (uint i = 0; i < sponsorships.length; i++) {
-            sponsorshipAddresses[i] = address(sponsorships[i]);
-            earnings[i] = getEarningsFromSponsorship(sponsorships[i]); // earnings - operator's share of earnings
-        }
-    }
-
-    /**
-     * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
-     * If the difference is too large, call withdrawEarningsFromSponsorships to get a small reward
-     * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     */
-    function calculatePoolValueInData() external view returns (uint poolValue) {
-        poolValue = getApproximatePoolValue();
-        for (uint i = 0; i < sponsorships.length; i++) {
-            poolValue += getEarningsFromSponsorship(sponsorships[i]);
-        }
-    }
 }
