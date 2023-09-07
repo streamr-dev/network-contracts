@@ -11,11 +11,16 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 
     /**
-     * 10% of minimumStakeWei must be enough to pay reviewers+flagger
-     * That is: minimumStakeWei >= 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei)
+     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship, or if they unstake from a sponsorship prematurely
+     */
+    uint public slashingFraction;
+
+    /**
+     * Minimum amount to pay reviewers+flagger
+     * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
      */
     function minimumStakeWei() public view returns (uint) {
-        return 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei);
+        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
     }
 
     /**
@@ -51,15 +56,17 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the difference between the actual "pool-value sum" and the updated pool-value sum is more than poolValueDriftLimitFraction,
-     *   the operator is slashed a little when updateApproximatePoolvalueOfSponsorships is called.
-     * This means operator should call updateApproximatePoolvalueOfSponsorships often enough to not get slashed.
+     * If the difference between the actual "pool-value sum" and the last recorder pool-value sum is more than poolValueDriftLimitFraction * actual "pool-value",
+     *   the operator is slashed a little when withdrawEarningsFromSponsorships is called. "Sum" reffers to earnings from all sponsorships.
+     * Actual pool-value sum is the accurate pool-value and includes the sum of all Sponsorships' earnings at that moment in time.
+     * Last recorded pool-value sum is the actual pool-value sum after the last withdrawEarningsFromSponsorships call.
+     * This means operator should call withdrawEarningsFromSponsorships often enough to not get slashed.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public poolValueDriftLimitFraction;
 
     /**
-     * In case "pool-value sum" of updateApproximatePoolvalueOfSponsorships is above poolValueDriftLimitFraction,
+     * In case "pool-value sum" from getApproximatePoolValue is above poolValueDriftLimitFraction of the last recorded "pool-value sum",
      *   this is the fraction of the operator's stake that is slashed.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
@@ -102,15 +109,13 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     /**
      * How much the flagger must stake to flag another Operator in a Sponsorship.
-     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed 10% of the total stake).
+     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
      *      The total committed stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + 10% of stake that's left into the sponsorship (= committed)
-     *      After n flags: n * flagStakeWei >= n * reviewer fees + 10% of total committed stake
-     *        =>  n * flagStakeWei >= n * (flagReviewerCount * flagReviewerRewardWei) + 10% of (n * flagStakeWei) (assuming only flagging causes committed stake)
-     *        =>  flagStakeWei * 9/10 >= flagReviewerCount * flagReviewerRewardWei
-     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 10/9
-     *      That is where the 10/9 comes from. TODO: not sure if this reasoning is necessary anymore, now that we always take at least 10% of minimumStake
+     *        flag stakes >= reviewer fees + slashing percent of stake that's left into the sponsorship (= committed)
+     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing percent of total committed stake
+     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes committed stake)
+     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
      */
     uint public flagStakeWei;
 
@@ -149,6 +154,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+
+        slashingFraction = 0.1 ether;
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         minimumSelfDelegationFraction = 0.1 ether;
@@ -243,7 +250,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagStakeWei * 9 >= 10 * flagReviewerCount * flagReviewerRewardWei, "error_tooLow");
+        require(newFlagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction), "error_tooLow");
         flagStakeWei = newFlagStakeWei;
     }
 

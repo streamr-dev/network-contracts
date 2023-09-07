@@ -27,7 +27,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     mapping (address => address) public flaggerAddress;
     mapping (address => uint) public voteStartTimestamp;
     mapping (address => uint) public voteEndTimestamp;
-    mapping (address => uint) public targetStakeAtRiskWei; // 10% of the target's stake that is in the risk of being slashed upon kick
+    mapping (address => uint) public targetStakeAtRiskWei; // slashingFraction of the target's stake that is in the risk of being slashed upon kick
 
     // voting
     mapping (address => Operator[]) public reviewers; // list of reviewers, for rewarding
@@ -73,9 +73,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
         voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds(); // solhint-disable-line not-rely-on-time
 
-        // the flag target risks to lose 10% if the flag resolves to KICK
-        // take at least 10% of minimumStakeWei to ensure everyone can get paid!
-        targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) / 10;
+        // the flag target risks to lose a slashingFraction if the flag resolves to KICK
+        // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid!
+        targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) * streamrConfig.slashingFraction() / 1 ether;
         committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // cache these just in case the config changes during the flag
@@ -83,11 +83,11 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         reviewerRewardWei[target] = streamrConfig.flagReviewerRewardWei();
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
-        // TODO: after taking at least minimumStake, all 9/10s here are probably overthinking; it's enough that flagStakeWei is 10/9 of the total reviewer reward
-        //       the limit for flagging is 9/10s of the stake so that there's still room to get flagged and lose the remaining 10% of minimumStake
-        // TODO: try to find the "extreme case" by writing more tests and see if the 10/9 can safely be removed
+        // TODO: after taking at least minimumStake, all "1 - slashingFraction" here are probably overthinking
+        //       the limit for flagging is "1 - slashingFraction" of the stake so that there's still room to get flagged and lose the remaining slashingFraction of minimumStake
+        // TODO: try to find the "extreme case" by writing more tests and see if the check can safely be removed
         committedStakeWei[flagger] += flagStakeWei[target];
-        require(committedStakeWei[flagger] * 10 <= 9 * stakedWei[flagger], "error_notEnoughStake");
+        require(committedStakeWei[flagger]  <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()) / 1 ether, "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
         Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;

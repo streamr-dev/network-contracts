@@ -59,7 +59,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
                 .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("100"))
 
-            expect(await token.balanceOf(target.address)).to.equal(parseEther("900")) // slash 10%
+            expect(await token.balanceOf(target.address)).to.equal(parseEther("900")) // slash the slashingFraction
         })
 
         it("with 3 voters", async function(): Promise<void> {
@@ -331,7 +331,7 @@ describe("VoteKickPolicy", (): void => {
             expect (await token.balanceOf(voters[4].address)).to.equal(parseEther("0"))
 
             expect(targetBalanceBefore).to.equal("0")
-            expect(targetBalanceAfter).to.equal(parseEther("900")) // 10% stake was forfeited
+            expect(targetBalanceAfter).to.equal(parseEther("900")) // slashingFraction of stake was forfeited
         })
     })
 
@@ -473,12 +473,14 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
-            // important that 10% of minimumStakeWei is enough to pay reviewers
-            // I.e. minimumStakeWei >= 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei)
+            // important that slashingFraction of minimumStakeWei is enough to pay reviewers
+            // I.e. minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
 
             const reviewerCount = +await contracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
             const flagStakeWei = await contracts.streamrConfig.flagStakeWei()
+            const oneEther = BigNumber.from("1000000000000000000")
+            const slashingFraction = (await contracts.streamrConfig.slashingFraction())
             // const flagReviewerRewardWei = parseEther("1")
             // const flaggerRewardWei = parseEther("1")
             // const totalRewardsWei =  flagReviewerRewardWei.mul(MAX_REVIEWERS).add(flaggerRewardWei)
@@ -496,7 +498,7 @@ describe("VoteKickPolicy", (): void => {
 
             const minimumStake = await sponsorship.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
-            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(10).div(9).add(1)) // can't flag unless stake is 10/9 of flagStakeWei
+            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(oneEther).add(1)) // can't flag unless stake is slashingFraction of flagStakeWei
             await expect(flagger.reduceStakeTo(sponsorship.address, flaggerStakeWei))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
@@ -532,7 +534,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger gets maximally slashed then kicked", async function(): Promise<void> {
-            // important that flagStakeWei is at least 10/9 of possible total reviewer rewards
+            // important that flagStakeWei is at least 10/9 of possible total reviewer rewards // TODO
             // because (flagStakeWei - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
             const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagger", {
                 stakeAmountWei: parseEther("67"), // flag-stake is 10 tokens
