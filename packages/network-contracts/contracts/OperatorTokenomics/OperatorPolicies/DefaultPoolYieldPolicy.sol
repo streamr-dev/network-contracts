@@ -33,7 +33,6 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
         uint poolValue = getApproximatePoolValue();
         assert(subtractFromPoolvalue < poolValue);
         uint poolValueData = poolValue - subtractFromPoolvalue;
-        // uint poolValueData = this.calculatePoolValueInData(subtractFromPoolvalue);
 
         return dataWei * this.totalSupply() / poolValueData;
     }
