@@ -173,7 +173,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         poolValueDriftPenaltyFraction = 0.5 ether;
 
         // protocol fee
-        protocolFeeFraction = 0.01 ether;
+        protocolFeeFraction = 0.05 ether;
         protocolFeeBeneficiary = address(0xD20b71E226f1a63794e40f02c7fD511E798F17Aa);
 
         // flagging + voting
