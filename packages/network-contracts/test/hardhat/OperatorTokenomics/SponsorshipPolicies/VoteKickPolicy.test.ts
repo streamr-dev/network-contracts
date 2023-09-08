@@ -498,7 +498,8 @@ describe("VoteKickPolicy", (): void => {
 
             const minimumStake = await sponsorship.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
-            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(oneEther).add(1)) // can't flag unless stake is slashingFraction of flagStakeWei
+            // can't flag unless stake is slashingFraction of flagStakeWei
+            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(oneEther).add(1))
             await expect(flagger.reduceStakeTo(sponsorship.address, flaggerStakeWei))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
