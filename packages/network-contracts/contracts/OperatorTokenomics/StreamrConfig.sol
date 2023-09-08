@@ -56,7 +56,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the difference between the actual "pool-value sum" and the last recorder pool-value sum is more than poolValueDriftLimitFraction * actual "pool-value",
+     * If the difference between the actual "pool-value sum" and the last recorder pool-value sum is more than poolValueDriftLimitFraction * last recorded "pool-value",
      *   the operator is slashed a little when withdrawEarningsFromSponsorships is called. "Sum" reffers to earnings from all sponsorships.
      * Actual pool-value sum is the accurate pool-value and includes the sum of all Sponsorships' earnings at that moment in time.
      * Last recorded pool-value sum is the actual pool-value sum after the last withdrawEarningsFromSponsorships call.
@@ -66,7 +66,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public poolValueDriftLimitFraction;
 
     /**
-     * In case "pool-value sum" from getApproximatePoolValue is above poolValueDriftLimitFraction of the last recorded "pool-value sum",
+     * In case the difference between the "pool-value sum" from getApproximatePoolValue and the actual "pool-value sum" 
+     *   is above poolValueDriftLimitFraction * approximate "pool-value sum",
      *   this is the fraction of the operator's stake that is slashed.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */

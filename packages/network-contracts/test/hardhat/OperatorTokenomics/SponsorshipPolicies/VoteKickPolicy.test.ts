@@ -535,7 +535,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger gets maximally slashed then kicked", async function(): Promise<void> {
-            // important that flagStakeWei is at least 10/9 of possible total reviewer rewards // TODO
+            // important that flagStakeWei is at least the slashingFraction of possible total reviewer rewards
             // because (flagStakeWei - reviewer rewards) * (number of flags) will be left to the flagger after maximal slashing
             const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagger", {
                 stakeAmountWei: parseEther("67"), // flag-stake is 10 tokens
