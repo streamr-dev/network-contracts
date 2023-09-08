@@ -109,6 +109,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     /**
      * How much the flagger must stake to flag another Operator in a Sponsorship.
+     * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
+     * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
      *      The total committed stake must be enough to pay the reviewers of all flags.
