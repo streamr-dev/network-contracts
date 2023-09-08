@@ -56,20 +56,19 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the difference between the actual "pool-value sum" and the last recorder pool-value sum is more than poolValueDriftLimitFraction * last recorded "pool-value",
-     *   the operator is slashed a little when withdrawEarningsFromSponsorships is called. "Sum" reffers to earnings from all sponsorships.
-     * Actual pool-value sum is the accurate pool-value and includes the sum of all Sponsorships' earnings at that moment in time.
-     * Last recorded pool-value sum is the actual pool-value sum after the last withdrawEarningsFromSponsorships call.
-     * This means operator should call withdrawEarningsFromSponsorships often enough to not get slashed.
+     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
+     *   part of the operator's cut is sent to the withdrawEarningsFromSponsorships caller, which can be anyone.
+     * This means operator should call withdrawEarningsFromSponsorships often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public poolValueDriftLimitFraction;
 
     /**
-     * In case the difference between the "pool-value sum" from getApproximatePoolValue and the actual "pool-value sum" 
-     *   is above poolValueDriftLimitFraction * approximate "pool-value sum",
-     *   this is the fraction of the operator's stake that is slashed.
+     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
+     *   this is the fraction of the operator's cut that is sent out to the caller.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
+     * E.g. if poolValueDriftPenaltyFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
+     *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA. 
      */
     uint public poolValueDriftPenaltyFraction;
 
