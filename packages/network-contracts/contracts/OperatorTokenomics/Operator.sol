@@ -272,14 +272,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
         uint amountPoolToken = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei),
-            "error_dataToPooltokenFailed"
-        );
+            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountPoolToken);
 
         // check if the delegation policy allows this delegation
         if (address(delegationPolicy) != address(0)) {
-            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator), "error_delegationPolicyFailed");
+            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
         }
 
         emit Delegated(delegator, amountDataWei);
@@ -296,7 +294,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // check if the undelegation policy allows this undelegation
         // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
         if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei), "error_undelegationPolicyFailed");
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
         }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
@@ -520,32 +518,32 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit Heartbeat(_msgSender(), jsonData);
     }
 
-    mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
-    function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
-        // add new nodes on top
-        for (uint i = 0; i < newNodes.length; i++) {
-            address node = newNodes[i];
-            if (nodeIndex[node] == 0) {
-                _addNode(node);
-            }
-            isInNewNodes[node] = true;
-        }
-        // remove from old nodes
-        for (uint i = 0; i < nodes.length;) {
-            address node = nodes[i];
-            if (!isInNewNodes[node]) {
-                _removeNode(node);
-            } else {
-                i++;
-            }
-        }
-        // reset lookup (TODO: replace with transient storage once https://eips.ethereum.org/EIPS/eip-1153 is available)
-        for (uint i = 0; i < newNodes.length; i++) {
-            address node = newNodes[i];
-            delete isInNewNodes[node];
-        }
-        emit NodesSet(nodes);
-    }
+    // mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
+    // function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
+    //     // add new nodes on top
+    //     for (uint i = 0; i < newNodes.length; i++) {
+    //         address node = newNodes[i];
+    //         if (nodeIndex[node] == 0) {
+    //             _addNode(node);
+    //         }
+    //         isInNewNodes[node] = true;
+    //     }
+    //     // remove from old nodes
+    //     for (uint i = 0; i < nodes.length;) {
+    //         address node = nodes[i];
+    //         if (!isInNewNodes[node]) {
+    //             _removeNode(node);
+    //         } else {
+    //             i++;
+    //         }
+    //     }
+    //     // reset lookup (TODO: replace with transient storage once https://eips.ethereum.org/EIPS/eip-1153 is available)
+    //     for (uint i = 0; i < newNodes.length; i++) {
+    //         address node = newNodes[i];
+    //         delete isInNewNodes[node];
+    //     }
+    //     emit NodesSet(nodes);
+    // }
 
     /** First add then remove addresses (if in both lists, ends up removed!) */
     function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
@@ -600,14 +598,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
-    function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
-            }
-        }
-        return queueLastIndex - queueCurrentIndex + 1;
-    }
+    // function queuePositionOf(address delegator) external view returns (uint) {
+    //     for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
+    //         if (undelegationQueue[i].delegator == delegator) {
+    //             return i - queueCurrentIndex + 1;
+    //         }
+    //     }
+    //     return queueLastIndex - queueCurrentIndex + 1;
+    // }
 
     /* solhint-disable reentrancy */ // TODO: remove when solhint stops being silly
 
@@ -651,7 +649,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
         uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
+            amountPoolTokens, 0));
         if (balanceDataWei >= amountDataWei) {
             // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
@@ -662,7 +660,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             amountDataWei = balanceDataWei;
             amountPoolTokens = moduleCall(address(yieldPolicy),
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                amountDataWei, 0), "error_dataToPooltokenFailed"
+                amountDataWei, 0)
             );
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
@@ -711,17 +709,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function setDelegationPolicy(IDelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegationPolicy = policy;
-        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param), "error_setDelegationPolicyFailed");
+        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
     }
 
     function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
     }
 
     function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         undelegationPolicy = policy;
-        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param), "error_setUndelegationPolicyFailed");
+        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param));
     }
 
     /* solhint-disable */
@@ -751,10 +749,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
+    function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
+            if (returndata.length == 0) { revert(); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest

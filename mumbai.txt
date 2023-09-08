@@ -1,0 +1,33 @@
+
+Checking if chain node is up...
+Chain node is up, deploying contracts...
+
+Deploying ENS
+ENS registry deployed at 0xCe0946B3bC585029160C28956c0c819adF30E885
+FIFSRegistrar deployed at 0xEb0C852EE64832a29E3fEb5Fbb7B17C21444fe3a
+PublicResolver deployed at 0xB8F4c716Bc9091f971E23fBc3cd8C701506df012
+
+Deploying Registries
+Deploying NodeRegistry contract 1 (tracker registry)
+TrackerNodeRegistry deployed at 0xf44064dD8c7eFF40b07cDd06A4dC4C114de15ef7
+TrackerNodeRegistry nodes : [["0xb9e7cEBF7b03AE26458E32a059488386b05798e8","{\"ws\": \"ws://10.200.10.1:30301\", \"http\": \"http://10.200.10.1:30301\"}",{"type":"BigNumber","hex":"0x64f5b500"}],["0x0540A3e144cdD81F402e7772C76a5808B71d2d30","{\"ws\": \"ws://10.200.10.1:30302\", \"http\": \"http://10.200.10.1:30302\"}",{"type":"BigNumber","hex":"0x64f5b500"}],["0xf2C195bE194a2C91e93Eacb1d6d55a00552a85E2","{\"ws\": \"ws://10.200.10.1:30303\", \"http\": \"http://10.200.10.1:30303\"}",{"type":"BigNumber","hex":"0x64f5b500"}]]
+Deploying NodeRegistry contract 2 (storage node registry)
+StorageNodeRegistry deployed at 0xEB9B6EDB6dCd861c7bDa180cDaADc650709aB07B
+streamRegistry address 0x77a14961c92061D588fB0Dbf16A011f1547d1B53
+skipping storage node assignment stream
+ENSCacheV2 address 0x5Fa72E313504394CFf32fDF65939C3303457D96d
+granting trusted role 0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7 to self 0x7DA74Da488d856e3b5Eae24eA59b5C29eD47bbfB
+setting ENSCache address in StreamRegistry
+granting trusted role 0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7 ensaddress 0x5Fa72E313504394CFf32fDF65939C3303457D96d
+ensCacheScript address set as trusted role in streamregistry
+streamStorageRegistry address 0x905D3D667dE346d38b2adBfC98CF44fC45eC0Fd9
+streamrConfig address 0x568b93eddD7c0b94e851Bb03E998d7770720a655
+Duplicate definition of Transfer (Transfer(address,address,uint256,bytes), Transfer(address,address,uint256))
+token address 0x78A8DbB2886734086492D9c2774d6AeA647B761a
+maxOperatorsJoinPolicy address 0xcA00919d3a6A2F79364f9F49Db8ED716b5c927d7
+allocationPolicy address 0xaDC1bD5A4c394966D54288ACBAc5DddEE4561b5b
+leavePolicy address 0x723856Ca50f360b6425a55f2Ba30cb926BCf4662
+voteKickPolicy address 0x87FE0348989CaC7Fef9C19Eb4446CbE5AC00Defe
+sponsorshipTemplate address 0x1dc1d8E4b6d62AE2b9713524e4E86579f87D32De
+sponsorshipFactory address 0x4A88a974F2c36c624f3121f0d81E3D9C60662dB1
+minted 1000000 tokens to 0x7DA74Da488d856e3b5Eae24eA59b5C29eD47bbfB

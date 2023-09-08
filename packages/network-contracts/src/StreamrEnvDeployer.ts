@@ -108,9 +108,9 @@ export class StreamrEnvDeployer {
     }
 
     async deployEnvironment(): Promise<void> {
-        await this.deployEns()
-        await this.deployRegistries()
-        await this.deploySponsorshipFactory()
+        // await this.deployEns()
+        // await this.deployRegistries()
+        // await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
         await this.preloadDATAToken()
     }
@@ -217,13 +217,13 @@ export class StreamrEnvDeployer {
         const storageNodeWallet = new ethers.Wallet(storageNodePk, this.provider)
         const streamRegistry2 = streamRegistry.connect(storageNodeWallet)
 
-        log("Create storage node assignment stream")
-        const storageNodeAssignmentPath = "/assignments"
-        const storageNodeAssignmentsStreamId = "0xde1112f631486cfc759a50196853011528bc5fa0/assignments"
-        await (await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}))).wait()
-        await (await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId,
-            ethers.constants.MaxUint256, ethers.constants.MaxUint256)).wait()
-        log("Storage node assignment stream created: " + storageNodeAssignmentsStreamId)
+        log("skipping storage node assignment stream")
+        // const storageNodeAssignmentPath = "/assignments"
+        // const storageNodeAssignmentsStreamId = "0xde1112f631486cfc759a50196853011528bc5fa0/assignments"
+        // await (await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}))).wait()
+        // await (await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId,
+        //     ethers.constants.MaxUint256, ethers.constants.MaxUint256)).wait()
+        // log("Storage node assignment stream created: " + storageNodeAssignmentsStreamId)
 
         const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
         const ensCacheV2Factory = new ContractFactory(ENSCacheV2ABI, ENSCacheV2Bytecode, this.adminWallet)
