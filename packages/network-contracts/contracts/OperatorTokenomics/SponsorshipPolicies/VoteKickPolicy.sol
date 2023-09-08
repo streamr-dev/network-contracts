@@ -83,11 +83,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         reviewerRewardWei[target] = streamrConfig.flagReviewerRewardWei();
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
-        // TODO: after taking at least minimumStake, all "1 - slashingFraction" here are probably overthinking
-        //       the limit for flagging is "1 - slashingFraction" of the stake so that there's still room to get flagged and lose the remaining slashingFraction of minimumStake
-        // TODO: try to find the "extreme case" by writing more tests and see if the check can safely be removed
         committedStakeWei[flagger] += flagStakeWei[target];
-        require(committedStakeWei[flagger]  <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()) / 1 ether, "error_notEnoughStake");
+        require(committedStakeWei[flagger] <= stakedWei[flagger], "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
         Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
