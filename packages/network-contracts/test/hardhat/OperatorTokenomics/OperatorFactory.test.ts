@@ -4,6 +4,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deployOperatorContract } from "./deployOperatorContract"
 import { Wallet } from "ethers"
+import { defaultAbiCoder, formatEther, parseEther } from "ethers/lib/utils"
 
 const { getSigners } = hardhatEthers
 
@@ -24,4 +25,45 @@ describe("OperatorFactory", function(): void {
         await expect(deployOperatorContract(sharedContracts, operatorWallet))
             .to.be.revertedWith("error_operatorAlreadyDeployed")
     })
+
+    it.skip("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
+        const { operatorFactory, token, defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy } = sharedContracts
+
+        const operatorSharePercent = 10
+        const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
+            [
+                operatorsCutFraction,
+                "PoolTokenName",
+                "{}",
+                [
+                    defaultDelegationPolicy.address,
+                    defaultPoolYieldPolicy.address,
+                    defaultUndelegationPolicy.address
+                ],
+                [
+                    0,
+                    0,
+                    0
+                ]
+            ]
+        )
+
+        console.log("data", data)
+        console.log("token.address", token.address)
+        console.log("operatorFactory.address", operatorFactory.address)
+        console.log("deployer balance before", formatEther(await token.balanceOf(deployer.address)))
+        const operatorDeployTx = await token.connect(deployer).transferAndCall(operatorFactory.address, parseEther("10"), data)
+        const operatorDeployReceipt = await operatorDeployTx.wait()
+        const newOperatorAddress = operatorDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
+        const newOperatorLog = operatorDeployReceipt.logs.find((e) => e.address == operatorFactory.address)
+        if (!newOperatorLog) { throw new Error("NewOperator event not found") }  // typescript can't infer not-undefined from expect
+        const newOperatorEvent = operatorFactory.interface.parseLog(newOperatorLog)
+        expect(newOperatorAddress).to.be.not.undefined
+        expect(newOperatorEvent.name).to.equal("NewOperator")
+        expect(newOperatorEvent.args.creator).to.equal(deployer.address)
+        expect(newOperatorEvent.args.operatorContractAddress).to.equal(newOperatorAddress)
+        expect(newOperatorEvent.args.metadata).to.equal("{}")
+    })
+    
 })
