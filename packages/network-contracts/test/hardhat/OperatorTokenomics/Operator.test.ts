@@ -111,6 +111,8 @@ describe("Operator contract", (): void => {
         //   protocol fee is 5% = 2000 * 0.05 = 100 => 2000 - 100 = 1900 DATA left
         //   the operator's cut 20% = 1900 * 0.2 = 380 DATA is added to self-delegation
         // Profit is 2000 - 100 - 380 = 1520 DATA
+        // Exchange rate for operator's cut is (stake 500 + funds 1520) / 500 ~= 4.04 DATA / pool token
+        //   so the operator's self-delegation increases by 380 / 4.04 = 9500/101 ~= 94.05940594059406 pool tokens
         await advanceToTimestamp(timeAtStart + 10000, "Withdraw from sponsorship")
         await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
             .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
