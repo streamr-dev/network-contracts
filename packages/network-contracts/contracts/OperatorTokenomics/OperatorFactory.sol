@@ -11,6 +11,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IOperatorLivenessRegistry.sol";
 import "./Operator.sol";
 import "./IERC677.sol";
+import "./StreamrConfig.sol";
+import "../StreamRegistry/StreamRegistryV4.sol";
 
 /**
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
@@ -23,7 +25,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public operatorTemplate;
-    address public configAddress;
+    StreamrConfig public streamrConfig;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
@@ -32,7 +34,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     Operator[] public liveOperators;
     mapping (Operator => uint) public liveOperatorsIndex; // real index +1, zero for Operators not staked in a Sponsorship
 
-    mapping (address => address) public operators; // operator wallet => Operator contract address
+    mapping (address => Operator) public operators; // operator wallet => Operator contract address
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -40,7 +42,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        configAddress = streamrConfigAddress;
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
     }
@@ -101,7 +103,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         string memory operatorMetadataJson,
         address[3] calldata policies,  // [0] delegation, [1] yield, [2] undelegation policy
         uint[3] calldata policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
-    ) public returns (address) {
+    ) public returns (Operator) {
         return _deployOperator(
             _msgSender(),
             operatorsCutFraction,
@@ -119,22 +121,36 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         string memory operatorMetadataJson,
         address[3] calldata policies,
         uint[3] calldata policyParams
-    ) private returns (address) {
+    ) private returns (Operator) {
+        require(address(operators[operatorAddress]) == address(0), "error_operatorAlreadyDeployed");
         require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCut");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(poolTokenName, operatorAddress));
-        address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
-        Operator newOperatorContract = Operator(newContractAddress);
+
+        StreamRegistryV4 streamRegistry = StreamRegistryV4(streamrConfig.streamRegistryAddress());
+        string memory coordinationStreamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
+        streamRegistry.trustedSetStreamWithPermission(
+            coordinationStreamId,
+            "{\"partitions\":1}",
+            address(0),
+            false,
+            false,
+            0,
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff,
+            false
+        );
+
+        Operator newOperatorContract = Operator(ClonesUpgradeable.cloneDeterministic(operatorTemplate, keccak256(abi.encode(poolTokenName, operatorAddress))));
         newOperatorContract.initialize(
             tokenAddress,
-            configAddress,
+            address(streamrConfig),
             operatorAddress,
             poolTokenName,
             operatorMetadataJson,
-            operatorsCutFraction
+            operatorsCutFraction,
+            coordinationStreamId
         );
         if (policies[0] != address(0)) {
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
@@ -146,13 +162,11 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
-        deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
-        emit NewOperator(operatorAddress, newContractAddress);
+        deploymentTimestamp[address(newOperatorContract)] = block.timestamp; // solhint-disable-line not-rely-on-time
+        emit NewOperator(operatorAddress, address(newOperatorContract));
 
-        require(operators[operatorAddress] == address(0), "error_operatorAlreadyDeployed");
-        operators[operatorAddress] = newContractAddress;
-
-        return newContractAddress;
+        operators[operatorAddress] = newOperatorContract;
+        return newOperatorContract;
     }
 
     function predictAddress(string calldata poolTokenName) public view returns (address) {

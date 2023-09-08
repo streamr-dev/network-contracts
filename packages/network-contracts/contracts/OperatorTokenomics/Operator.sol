@@ -143,7 +143,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         address ownerAddress,
         string memory poolTokenName,
         string memory operatorMetadataJson,
-        uint operatorsCut
+        uint operatorsCut,
+        string memory coordinationStreamId
     ) public initializer {
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
@@ -166,10 +167,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
 
         streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
-        streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
-        streamRegistry.createStream("/operator/coordination", "{\"partitions\":1}");
-        streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
+        streamId = coordinationStreamId;
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
