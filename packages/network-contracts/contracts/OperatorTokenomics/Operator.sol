@@ -660,8 +660,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return queueLastIndex - queueCurrentIndex + 1;
     }
 
-    /* solhint-disable reentrancy */ // TODO: remove when solhint stops being silly
-
     /** Pay out up to maxIterations items in the queue */
     function payOutQueueWithFreeFunds(uint maxIterations) public {
         if (maxIterations == 0) { maxIterations = 1 ether; }
@@ -730,8 +728,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty();
     }
-
-    /* solhint-enable reentrancy */
 
     /////////////////////////////////////////
     // SPONSORSHIP CALLBACKS
