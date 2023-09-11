@@ -244,7 +244,6 @@ export const config = {
                 "url": "https://rpc-mumbai.maticvigil.com"
             }
         ],
-        "adminPrivateKey": "0x",
         "contracts": {
             "ENS": "",
             "FIFSRegistrar": "",
@@ -271,6 +270,6 @@ export const config = {
             "DataUnionFactory": "",
             "DataUnionTemplate": ""
         },
-        "theGraphUrl": "http://"
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs"
     }
 }

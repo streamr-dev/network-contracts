@@ -1,6 +1,6 @@
 import { BigInt, log, store } from '@graphprotocol/graph-ts'
 import {
-    BalanceUpdate,
+    // BalanceUpdate,
     Delegated,
     Heartbeat,
     Loss,
@@ -16,35 +16,35 @@ import { loadOrCreateDelegation, loadOrCreateOperator, loadOrCreateOperatorDaily
 import { QueueEntry } from '../generated/schema'
 
 /** event emits pooltoken values */
-export function handleBalanceUpdate(event: BalanceUpdate): void {
-    let operatorContractAddress = event.address.toHexString()
-    let delegator = event.params.delegator.toHexString()
-    let newBalance = event.params.totalPoolTokenWei
-    let totalSupply = event.params.totalSupplyPoolTokenWei
-    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
-    log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, newBalance.toString()])
+// export function handleBalanceUpdate(event: BalanceUpdate): void {
+//     let operatorContractAddress = event.address.toHexString()
+//     let delegator = event.params.delegator.toHexString()
+//     let newBalance = event.params.totalPoolTokenWei
+//     let totalSupply = event.params.totalSupplyPoolTokenWei
+//     log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
+//     log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, newBalance.toString()])
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
-    operator.poolTokenTotalSupplyWei = totalSupply
-    operator.exchangeRate = operator.poolValue.toBigDecimal().div(totalSupply.toBigDecimal())
+//     let operator = loadOrCreateOperator(operatorContractAddress)
+//     operator.poolTokenTotalSupplyWei = totalSupply
+//     operator.exchangeRate = operator.poolValue.toBigDecimal().div(totalSupply.toBigDecimal())
 
-    let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
-    delegation.poolTokenWei = newBalance
+//     let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
+//     delegation.poolTokenWei = newBalance
 
-    // delegator burned/transfered all their pool tokens => remove Delegation entity & decrease delegator count
-    if (newBalance == BigInt.fromI32(0)) {
-        store.remove('Delegation', delegation.id)
-        operator.delegatorCount = operator.delegatorCount - 1
-        let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-        bucket.delegatorCountChange = bucket.delegatorCountChange - 1
-        bucket.save()
-        log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
-    } else {
-        delegation.save()
-        log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
-    }
-    operator.save()
-}
+//     // delegator burned/transfered all their pool tokens => remove Delegation entity & decrease delegator count
+//     if (newBalance == BigInt.fromI32(0)) {
+//         store.remove('Delegation', delegation.id)
+//         operator.delegatorCount = operator.delegatorCount - 1
+//         let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+//         bucket.delegatorCountChange = bucket.delegatorCountChange - 1
+//         bucket.save()
+//         log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
+//     } else {
+//         delegation.save()
+//         log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
+//     }
+//     operator.save()
+// }
 
 /**
  * event emits pooltoken values
