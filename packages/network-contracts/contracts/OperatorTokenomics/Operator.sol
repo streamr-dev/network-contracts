@@ -255,7 +255,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // "gifted" tokens aren't delegated at all, but instead count as Profit
         if (delegator == address(this)) {
-            _handleProfit(amount, address(0));
+            _handleProfit(amount, 0, address(0));
         } else {
             _mintPoolTokensFor(delegator, amount);
             emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
@@ -374,7 +374,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         // takes all earnings, including the operator's share
         uint earningsDataWei = sponsorship.withdraw();
-        _handleProfit(earningsDataWei, address(0));
+        _handleProfit(earningsDataWei, 0, address(0));
     }
 
     /**
@@ -393,13 +393,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operator's cut to the caller as a reward
         address penaltyRecipient = address(0);
+        uint penaltyFraction = 0;
         if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
             uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 penaltyRecipient = _msgSender();
+                penaltyFraction = streamrConfig.poolValueDriftPenaltyFraction();
             }
         }
-        _handleProfit(sumEarnings, penaltyRecipient);
+        _handleProfit(sumEarnings, penaltyFraction, penaltyRecipient);
 
         payOutQueueWithFreeFunds(0);
     }
@@ -490,9 +492,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(lossWei);
+            emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         } else {
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
-            _handleProfit(profitDataWei, address(0));
+            _handleProfit(profitDataWei, 0, address(0));
         }
 
         // remove from array: replace with the last element
@@ -517,20 +520,21 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Whenever profit (earnings from Sponsorships) comes in,
      *  pay part of it as protocol fee, and then
      *  pay part of it to the Operator by minting pool tokens
-     * If the operator is penalized for too much unwithdrawn earnings, a penalty will be deducted from the operator's cut and sent to operatorPenaltyRecipient
+     * If the operator is penalized for too much unwithdrawn earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
-     * @param operatorPenaltyRecipient non-zero if the operator is penalized for too much unwithdrawn earnings, otherwise `address(0)`
+     * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
+     * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much unwithdrawn earnings, otherwise `address(0)`
      **/
-    function _handleProfit(uint earningsDataWei, address operatorPenaltyRecipient) private {
+    function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) private {
         uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
         token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
 
         uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
 
         uint operatorPenaltyDataWei = 0;
-        if (operatorPenaltyRecipient != address(0)) {
-            operatorPenaltyDataWei = operatorsCutDataWei * streamrConfig.poolValueDriftPenaltyFraction() / 1 ether;
-            token.transfer(operatorPenaltyRecipient, operatorPenaltyDataWei);
+        if (operatorsCutSplitFraction > 0) {
+            operatorPenaltyDataWei = operatorsCutDataWei * operatorsCutSplitFraction / 1 ether;
+            token.transfer(operatorsCutSplitRecipient, operatorPenaltyDataWei);
         }
 
         // "self-delegate" the operator's share === mint new pooltokens
