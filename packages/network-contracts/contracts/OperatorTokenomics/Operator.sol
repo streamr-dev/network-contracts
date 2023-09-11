@@ -37,7 +37,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
+    // event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
     event QueuedDataPayout(address delegator, uint amountPoolTokenWei, uint queueIndex);
     event QueueUpdated(address delegator, uint amountPoolTokenWei, uint queueIndex);
 
@@ -177,13 +177,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return super._msgData();
     }
 
-    function _transfer(address from, address to, uint amount) internal override {
-        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-        require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "error_delegationBelowMinimum");
-        super._transfer(from, to, amount);
-        emit BalanceUpdate(from, balanceOf(from), totalSupply());
-        emit BalanceUpdate(to, balanceOf(to), totalSupply());
-    }
+    // function _transfer(address from, address to, uint amount) internal override {
+    //     // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
+    //     require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "error_delegationBelowMinimum");
+    //     super._transfer(from, to, amount);
+    //     emit BalanceUpdate(from, balanceOf(from), totalSupply());
+    //     emit BalanceUpdate(to, balanceOf(to), totalSupply());
+    // }
 
     /** Pool value (DATA) = staked in sponsorships + free funds, does not include unwithdrawn earnings */
     function getApproximatePoolValue() public view returns (uint) {
@@ -286,7 +286,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // }
 
         emit Delegated(delegator, amountDataWei);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        // emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
     }
 
     /** Add the request to undelegate into the undelegation queue */
@@ -681,7 +681,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _burn(delegator, amountPoolTokens);
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        // emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty();
