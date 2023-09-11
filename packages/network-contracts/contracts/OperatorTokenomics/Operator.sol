@@ -423,12 +423,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * Convenience method to get all sponsorship values
+     * Convenience method to get all sponsorships and their outstanding earnings
      * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
      * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
-    function getSponsorships() external view returns (
+    function getSponsorshipsAndEarnings() external view returns (
         address[] memory addresses,
         uint[] memory earnings,
         uint rewardThreshold

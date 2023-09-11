@@ -254,14 +254,14 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(timeAtStart + 1001, "Read the earnings back to Operator")
 
             const approxPoolValueBefore = await operator.getApproximatePoolValue()
-            const sponsorshipsBefore = await operator.getSponsorships()
+            const sponsorshipsBefore = await operator.getSponsorshipsAndEarnings()
             const totalStakedIntoSponsorshipsWeiBefore = await operator.totalStakedIntoSponsorshipsWei()
 
             await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
 
             // value after == totalStakedIntoSponsorshipsWei + free funds (Operator DATA balance)
             const approxPoolValueAfter = await operator.getApproximatePoolValue()
-            const sponsorshipsAfter = await operator.getSponsorships()
+            const sponsorshipsAfter = await operator.getSponsorshipsAndEarnings()
             const totalStakedIntoSponsorshipsWeiAfter = await operator.totalStakedIntoSponsorshipsWei()
 
             expect(formatEther(approxPoolValueBefore)).to.equal("1000.0")
@@ -353,7 +353,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator1, "Staked").withArgs(sponsorship2.address)
 
             // total unwithdrawn earnings is 10 < 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should fail
-            const sponsorshipsBefore = await operator1.getSponsorships()
+            const sponsorshipsBefore = await operator1.getSponsorshipsAndEarnings()
             expect(sponsorshipsBefore.addresses).to.deep.equal([sponsorship1.address, sponsorship2.address])
             expect(sponsorshipsBefore.earnings.map(formatEther)).to.deep.equal(["10.0", "0.0"])
             expect(formatEther(sponsorshipsBefore.rewardThreshold)).to.equal("100.0")
@@ -373,7 +373,7 @@ describe("Operator contract", (): void => {
             expect(await operator2.getApproximatePoolValue()).to.equal(parseEther("1000"))
 
             // unwithdrawn earnings is 2000 > 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should work
-            const sponsorshipsAfter = await operator1.getSponsorships()
+            const sponsorshipsAfter = await operator1.getSponsorshipsAndEarnings()
             expect(sponsorshipsAfter.addresses).to.deep.equal([sponsorship1.address, sponsorship2.address])
             expect(sponsorshipsAfter.earnings.map(formatEther)).to.deep.equal(["1000.0", "1000.0"])
             expect(formatEther(sponsorshipsAfter.rewardThreshold)).to.equal("100.0")
