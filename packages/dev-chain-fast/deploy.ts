@@ -21,7 +21,7 @@ import { deployDataUnionContracts, deployDataUnion } from "./deployDataUnionCont
 // const url = "http://10.200.10.1:8546"
 
 // mumbai testnet
-const key = "0x23f12a73997bc0b1dad9204ce648757fe1fca39fb9b16e2ea73a895c74b9b8f3"
+const key = process.env.MUMBAI_PRIVATE_KEY || ""
 const url = "https://rpc-mumbai.maticvigil.com"
 
 const provider = new JsonRpcProvider(url)
@@ -48,20 +48,24 @@ async function deploy() {
     await streamrEnvDeployer.deployEnvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.deployEns()
-    await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
+
+    console.log(JSON.stringify(streamrEnvDeployer.addresses, null, 4))
+    // await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
     console.log("Deploying Hub contracts...")
-    const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 1337)
+    const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 80001)
     await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
+
+    console.log(JSON.stringify(hubDeployer.addresses, null, 4))
 
     const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
     // deploy a data union to populate the subgraph
     const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
-    await (await dataUnion.addMembersWithWeights(
-        [ "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd2D23b73A67208a90CBfEE1381415329954f54E2" ],
-        [ parseEther("1"), parseEther("2") ],
-    ))
+    // await (await dataUnion.addMembersWithWeights(
+    //     [ "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd2D23b73A67208a90CBfEE1381415329954f54E2" ],
+    //     [ parseEther("1"), parseEther("2") ],
+    // ))
 
     console.log("\n\n")
     console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
