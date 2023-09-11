@@ -27,7 +27,14 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
 error OperatorsOnly();
 error NodesOnly();
 error NotMyStakedSponsorship();
-
+error SelfDelegationTooLow();
+error BadSponsorshipError();
+error OnlyDATAToken();
+error ZeroUndelegation();
+error FirstEmptyQueueThenStake();
+error NoEarnings();
+error DidNotReceiveReward();
+error BadSponsorship();
 /**
  * Operator contract receives and holds the delegators' tokens.
  * The operator (owner()) stakes them to Sponsorships of the streams that the operator's nodes relay.
@@ -237,7 +244,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         // console.log("## onTokenTransfer from", sender);
         // console.log("onTokenTransfer amount", amount);
-        require(_msgSender() == address(token), "onlyDATAToken");
+        if (_msgSender() != address(token)) {
+            revert OnlyDATAToken();
+        }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -286,9 +295,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // check if the delegation policy allows this delegation
         // if (address(delegationPolicy) != address(0)) {
-        if (delegator != owner) {
-            require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
-         }
+        if (delegator != owner && 1 ether * balanceOf(owner) < totalSupply() * streamrConfig.minimumSelfDelegationFraction()) {
+            revert SelfDelegationTooLow();
+        }
 
         // multiplying the left side by 1 ether is equivalent to dividing the right side by 1 ether, but numerically a lot better
         //     moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
@@ -301,8 +310,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** Add the request to undelegate into the undelegation queue */
     function undelegate(uint amountPoolTokenWei) public {
         // console.log("## undelegate");
-        require(amountPoolTokenWei > 0, "zeroUndelegation"); // TODO: should there be minimum undelegation amount?
-
+        if (amountPoolTokenWei == 0) {
+            revert ZeroUndelegation();
+        }
         address undelegator = _msgSender();
 
         // check if the undelegation policy allows this undelegation
@@ -312,7 +322,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // }
         if (undelegator == owner) {
             uint newBalance = balanceOf(owner) - amountPoolTokenWei;
-            require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
+            if (1 ether * newBalance < totalSupply() * streamrConfig.minimumSelfDelegationFraction()) {
+                revert SelfDelegationTooLow();
+            }
          }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
@@ -331,8 +343,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
     function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "badSponsorship");
-        require(queueIsEmpty(), "firstEmptyQueueThenStake");
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
+            revert BadSponsorshipError();
+        }
+        if (!queueIsEmpty()) {
+            revert FirstEmptyQueueThenStake();
+        }
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
@@ -403,7 +419,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
-        require(sumEarnings > 0, "noEarnings");
+        if (sumEarnings == 0) {
+            revert NoEarnings();
+        }
         uint operatorsCutDataWei = sumEarnings * operatorsCutFraction / 1 ether;
 
         // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsCutDataWei to the caller as a reward
@@ -434,7 +452,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         other.withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
-        require(earnings > 0, "didNotReceiveReward");
+        if (earnings == 0) {
+            revert DidNotReceiveReward();
+        }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, balanceAfterWei);
@@ -720,7 +740,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function onReviewRequest(address targetOperator) external {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "onlySponsorship");
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) == 0) {
+            revert BadSponsorship();
+        }
         Sponsorship sponsorship = Sponsorship(_msgSender());
         emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
     }
