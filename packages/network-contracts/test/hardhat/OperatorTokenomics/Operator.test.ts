@@ -22,6 +22,7 @@ describe("Operator contract", (): void => {
     let delegator2: Wallet
     let delegator3: Wallet
     let controller: Wallet      // acts on behalf of operatorWallet
+    let protocolFeeBeneficiary: Wallet
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
@@ -50,18 +51,21 @@ describe("Operator contract", (): void => {
     }
 
     before(async (): Promise<void> => {
-        [admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller] = await getSigners() as unknown as Wallet[]
+        [
+            admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller, protocolFeeBeneficiary
+        ] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
+        await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
     })
 
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
     it("revenue sharing scenarios 1..6: happy path operator life cycle", async function(): Promise<void> {
-        const { token: dataToken, streamrConfig } = sharedContracts
+        const { token: dataToken } = sharedContracts
 
         // Setup:
         // - There is one single delegator with funds of 1000 DATA and no delegations.
@@ -121,7 +125,7 @@ describe("Operator contract", (): void => {
         expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("1900.0")
         expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("500.0")
         expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("500.0")
-        expect(formatEther(await dataToken.balanceOf(streamrConfig.protocolFeeBeneficiary()))).to.equal("100.0")
+        expect(formatEther(await dataToken.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
         expect(formatEther(await operator.totalSupply())).to.equal("594.059405940594059405") // TODO: find nicer numbers!
 
         // 5: Withdraw
