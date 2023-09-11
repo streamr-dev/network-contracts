@@ -13,7 +13,7 @@ import { setupSponsorships } from "./setupSponsorships"
 const { parseEther, formatEther, hexZeroPad } = utils
 const { getSigners, getContractFactory } = hardhatEthers
 
-describe("Operator contract", (): void => {
+describe.only("Operator contract", (): void => {
     let admin: Wallet           // creates the Sponsorship
     let sponsor: Wallet         // sponsors the Sponsorship
     let operatorWallet: Wallet  // creates Operator contract

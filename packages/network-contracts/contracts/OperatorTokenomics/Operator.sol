@@ -12,9 +12,9 @@ import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 import "./IOperator.sol";
 import "./IOperatorLivenessRegistry.sol";
-import "./OperatorPolicies/IDelegationPolicy.sol";
+// import "./OperatorPolicies/IDelegationPolicy.sol";
 import "./OperatorPolicies/IPoolYieldPolicy.sol";
-import "./OperatorPolicies/IUndelegationPolicy.sol";
+// import "./OperatorPolicies/IUndelegationPolicy.sol";
 
 import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
@@ -72,9 +72,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     uint public totalValueInSponsorshipsWei;
 
-    IDelegationPolicy public delegationPolicy;
+    // IDelegationPolicy public delegationPolicy;
     IPoolYieldPolicy public yieldPolicy;
-    IUndelegationPolicy public undelegationPolicy;
+    // IUndelegationPolicy public undelegationPolicy;
 
     StreamrConfig public streamrConfig;
 
@@ -276,9 +276,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _mint(delegator, amountPoolToken);
 
         // check if the delegation policy allows this delegation
-        if (address(delegationPolicy) != address(0)) {
-            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
-        }
+        // if (address(delegationPolicy) != address(0)) {
+        if (delegator != owner) { 
+            require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+         }
+
+        // multiplying the left side by 1 ether is equivalent to dividing the right side by 1 ether, but numerically a lot better
+        //     moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
+        // }
 
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
@@ -293,9 +298,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // check if the undelegation policy allows this undelegation
         // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
-        if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
-        }
+        // if (address(undelegationPolicy) != address(0)) {
+        //     moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
+        // }
+        if (undelegator == owner) { 
+            uint newBalance = balanceOf(owner) - amountPoolTokenWei;
+            require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+         }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
         emit QueuedDataPayout(undelegator, amountPoolTokenWei, queueLastIndex);
@@ -707,20 +716,20 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // POLICY MODULES
     ////////////////////////////////////////
 
-    function setDelegationPolicy(IDelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        delegationPolicy = policy;
-        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
-    }
+    // function setDelegationPolicy(IDelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     delegationPolicy = policy;
+    //     moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
+    // }
 
     function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
         moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
     }
 
-    function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        undelegationPolicy = policy;
-        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param));
-    }
+    // function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     undelegationPolicy = policy;
+    //     moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param));
+    // }
 
     /* solhint-disable */
 
@@ -782,7 +791,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Unwithdrawn earnings in the Sponsorship, minus operator's share of the earnings
      * This is the part the belongs to the pool, and will be used in calculating the update penalty threshold
      **/
-    function(Sponsorship sponsorship) public view returns (uint earnings) {
+    function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint earnings) {
         uint alloc = sponsorship.getEarnings(address(this));
         uint operatorsCutWei = operatorsCutFraction * alloc / 1 ether;
         return alloc - operatorsCutWei;
