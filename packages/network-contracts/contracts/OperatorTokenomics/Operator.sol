@@ -24,6 +24,10 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
 
 // import "hardhat/console.sol";
 
+error OperatorsOnly();
+error NodesOnly();
+error NotMyStakedSponsorship();
+
 /**
  * Operator contract receives and holds the delegators' tokens.
  * The operator (owner()) stakes them to Sponsorships of the streams that the operator's nodes relay.
@@ -112,12 +116,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public metadata;
 
     modifier onlyOperator() {
-        require(hasRole(CONTROLLER_ROLE, _msgSender()), "onlyOperator");
+        if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
+            revert OperatorsOnly();
+        }
         _;
     }
 
     modifier onlyNodes() {
-        require(nodeIndex[_msgSender()] > 0, "onlyNodes");
+        if (nodeIndex[_msgSender()] == 0) {
+            revert NodesOnly();
+        }
         _;
     }
 
@@ -278,7 +286,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // check if the delegation policy allows this delegation
         // if (address(delegationPolicy) != address(0)) {
-        if (delegator != owner) { 
+        if (delegator != owner) {
             require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
          }
 
@@ -302,7 +310,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // if (address(undelegationPolicy) != address(0)) {
         //     moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
         // }
-        if (undelegator == owner) { 
+        if (undelegator == owner) {
             uint newBalance = balanceOf(owner) - amountPoolTokenWei;
             require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
          }
@@ -459,7 +467,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
-            require(hasRole(CONTROLLER_ROLE, _msgSender()), "onlyOperator");
+            if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
+                revert OperatorsOnly();
+            }
         }
 
         uint balanceBeforeWei = token.balanceOf(address(this));
@@ -698,14 +708,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "notMyStakedSponsorship");
+        if (indexOfSponsorships[sponsorship] == 0) { revert NotMyStakedSponsorship(); }
         totalValueInSponsorshipsWei -= amountSlashed;
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "notMyStakedSponsorship");
+        if (indexOfSponsorships[sponsorship] == 0) { revert NotMyStakedSponsorship(); }
         _removeSponsorship(sponsorship, receivedPayoutWei);
     }
 
