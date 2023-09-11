@@ -91,7 +91,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             policyParams
         );
         emit NewOperator(from, operatorContractAddress);
-        IERC677(tokenAddress).transferAndCall(operatorContractAddress, amount, ""); // empty extra-data => the token sender is the delegator
+        IERC677(tokenAddress).transferAndCall(operatorContractAddress, amount, abi.encodePacked(from));
     }
 
     /**
