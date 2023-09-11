@@ -182,7 +182,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function _transfer(address from, address to, uint amount) internal override {
         // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-        require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "error_delegationBelowMinimum");
+        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+        require(balanceOf(to) + amount >= minimumDelegationWei &&
+            (balanceOf(from) >= amount + minimumDelegationWei || balanceOf(from) == amount),
+            "error_delegationBelowMinimum"
+        );
         super._transfer(from, to, amount);
         emit BalanceUpdate(from, balanceOf(from), totalSupply());
         emit BalanceUpdate(to, balanceOf(to), totalSupply());
