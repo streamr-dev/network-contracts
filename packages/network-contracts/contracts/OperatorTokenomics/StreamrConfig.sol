@@ -153,7 +153,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
@@ -174,7 +174,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
         // protocol fee
         protocolFeeFraction = 0.05 ether;
-        protocolFeeBeneficiary = address(0xD20b71E226f1a63794e40f02c7fD511E798F17Aa);
+        protocolFeeBeneficiary = _msgSender();
 
         // flagging + voting
         flagReviewerCount = 5;
@@ -221,6 +221,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setPoolValueDriftPenaltyFraction(uint newPoolValueDriftPenaltyFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
         poolValueDriftPenaltyFraction = newPoolValueDriftPenaltyFraction;
+    }
+
+    function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newProtocolFeeFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        protocolFeeFraction = newProtocolFeeFraction;
+    }
+
+    function setProtocolFeeBeneficiary(address newProtocolFeeBeneficiary) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
     /**

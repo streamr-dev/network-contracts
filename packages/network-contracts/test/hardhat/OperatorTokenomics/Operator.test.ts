@@ -117,7 +117,6 @@ describe("Operator contract", (): void => {
         await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
             .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
 
-        expect(await dataToken.balanceOf(operatorWallet.address)).to.equal(parseEther("0"))
         // poolValue = DATA balance + stake(s) in sponsorship(s) + earnings in sponsorship(s) = 1900 + 500 + 0 = 2400 DATA
         expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("1900.0")
         expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("500.0")
