@@ -109,8 +109,8 @@ export class StreamrEnvDeployer {
 
     async deployEnvironment(): Promise<void> {
         // await this.deployEns()
-        // await this.deployRegistries()
-        // await this.deploySponsorshipFactory()
+        await this.deployRegistries()
+        await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
         await this.preloadDATAToken()
     }
@@ -374,21 +374,21 @@ export class StreamrEnvDeployer {
         const operatorTemplate = await (new ContractFactory(operatorABI, operatorBytecode, this.adminWallet)).deploy() as Operator
         await operatorTemplate.deployed()
         log("Deployed Operator contract template " + operatorTemplate.address)
-        const defaultDelegationPolicy = await (new ContractFactory(defaultDelegationPolicyABI, defaultDelegationPolicyBytecode,
-            this.adminWallet)).deploy() as DefaultDelegationPolicy
-        await defaultDelegationPolicy.deployed()
-        this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
-        log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
-        const defaultPoolYieldPolicy = await (new ContractFactory(defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-            this.adminWallet)).deploy() as DefaultPoolYieldPolicy
-        await defaultPoolYieldPolicy.deployed()
-        this.addresses.OperatorDefaultPoolYieldPolicy = defaultPoolYieldPolicy.address
-        log("Deployed default Operator contract yield policy " + defaultPoolYieldPolicy.address)
-        const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
-            this.adminWallet)).deploy() as DefaultUndelegationPolicy
-        await defaultUndelegationPolicy.deployed()
-        this.addresses.OperatorDefaultUndelegationPolicy = defaultUndelegationPolicy.address
-        log("Deployed default Operator contract undelegation policy " + defaultUndelegationPolicy.address)
+        // const defaultDelegationPolicy = await (new ContractFactory(defaultDelegationPolicyABI, defaultDelegationPolicyBytecode,
+        //     this.adminWallet)).deploy() as DefaultDelegationPolicy
+        // await defaultDelegationPolicy.deployed()
+        // this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
+        // log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
+        // const defaultPoolYieldPolicy = await (new ContractFactory(defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
+        //     this.adminWallet)).deploy() as DefaultPoolYieldPolicy
+        // await defaultPoolYieldPolicy.deployed()
+        // this.addresses.OperatorDefaultPoolYieldPolicy = defaultPoolYieldPolicy.address
+        // log("Deployed default Operator contract yield policy " + defaultPoolYieldPolicy.address)
+        // const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
+        //     this.adminWallet)).deploy() as DefaultUndelegationPolicy
+        // await defaultUndelegationPolicy.deployed()
+        // this.addresses.OperatorDefaultUndelegationPolicy = defaultUndelegationPolicy.address
+        // log("Deployed default Operator contract undelegation policy " + defaultUndelegationPolicy.address)
 
         const operatorFactoryFactory = new ContractFactory(operatorFactoryABI, operatorFactoryBytecode,
             this.adminWallet)
@@ -401,12 +401,12 @@ export class StreamrEnvDeployer {
         log("Deployed Operator contract factory " + operatorFactory.address)
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory
-        await (await operatorFactory.addTrustedPolicies([
-            defaultDelegationPolicy.address,
-            defaultPoolYieldPolicy.address,
-            defaultUndelegationPolicy.address,
-        ])).wait()
-        log("Added trusted policies")
+        // await (await operatorFactory.addTrustedPolicies([
+        //     defaultDelegationPolicy.address,
+        //     defaultPoolYieldPolicy.address,
+        //     defaultUndelegationPolicy.address,
+        // ])).wait()
+        // log("Added trusted policies")
 
         await (await this.contracts.streamrConfig.setOperatorFactory(operatorFactory.address)).wait()
         log("Operator contract factory is now set in StreamrConfig")
@@ -418,8 +418,7 @@ export class StreamrEnvDeployer {
             parseEther("0.1"),
             "TestPool1",
             "{}",
-            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
-                this.addresses.OperatorDefaultUndelegationPolicy],
+            [ethers.constants.AddressZero, ethers.constants.AddressZero, ethers.constants.AddressZero],
             [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()

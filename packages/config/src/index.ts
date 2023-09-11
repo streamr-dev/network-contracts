@@ -235,5 +235,42 @@ export const config = {
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         }
+    },
+    "mumbai": {
+        "id": 80001,
+        "name": "mumbai",
+        "rpcEndpoints": [
+            {
+                "url": "https://rpc-mumbai.maticvigil.com"
+            }
+        ],
+        "adminPrivateKey": "0x",
+        "contracts": {
+            "ENS": "",
+            "FIFSRegistrar": "",
+            "PublicResolver": "",
+            "TrackerRegistry": "0xFcB1B24C389C9FBE97e401C175d2f24dEFBE0B54",
+            "StorageNodeRegistry": "0xe5463eb5A8C967c1D647BbB52Ba9A6879ed0C834",
+            "StreamRegistry": "0x06080921ef2EF5d538eACAA36904C566FAC22144",
+            "ENSCacheV2": "0x827A7C621421e213307C43f68b4419A488254ad2",
+            "StreamStorageRegistry": "0x42c33673d13ebF1E403Dd3Be49EdA7a70984aeE2",
+            "StreamrConfig": "0x852de34F8aB62dc4ac59F25a413D82Cf917A87e7",
+            "DATA": "0xf74CC909D1397475472aebF4101E506aa886dD04",
+            "SponsorshipMaxOperatorsJoinPolicy": "0xde17bd36528BccE6fC8C55704439659B7f4d1E11",
+            "SponsorshipStakeWeightedAllocationPolicy": "0xbFF7736a2C7cAb264d31216804D7DCbE8F446Dc6",
+            "SponsorshipDefaultLeavePolicy": "0x17a95EA604883558298F0917D1edb2e9853BE8eA",
+            "SponsorshipVoteKickPolicy": "0x5176bC03C7bCd35BF2B8986F33B200eFFbf373a3",
+            "SponsorshipFactory": "0x3A84CFC43634E08b5Befb37df51B0ecB7929c0dB",
+            "OperatorDefaultDelegationPolicy": "0x0000000000000000000000000000000000000000",
+            "OperatorDefaultPoolYieldPolicy": "0x0000000000000000000000000000000000000000",
+            "OperatorDefaultUndelegationPolicy": "0x0000000000000000000000000000000000000000",
+            "OperatorFactory": "0x5B37Ae19AE424A596f04EBC7fC7E80492001b31b",
+            "ProjectRegistryV1": "",
+            "MarketplaceV4": "",
+            "ProjectStakingV1": "",
+            "DataUnionFactory": "",
+            "DataUnionTemplate": ""
+        },
+        "theGraphUrl": "http://"
     }
 }

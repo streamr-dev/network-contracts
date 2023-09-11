@@ -121,10 +121,10 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         uint[3] calldata policyParams
     ) private returns (address) {
         require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCut");
-        for (uint i = 0; i < policies.length; i++) {
-            address policyAddress = policies[i];
-            require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
-        }
+        // for (uint i = 0; i < policies.length; i++) {
+        //     address policyAddress = policies[i];
+        //     require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
+        // }
         bytes32 salt = keccak256(abi.encode(poolTokenName, operatorAddress));
         address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
         Operator newOperatorContract = Operator(newContractAddress);
