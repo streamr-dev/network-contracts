@@ -115,12 +115,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public metadata;
 
     modifier onlyOperator() {
-        require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
+        require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_accessDeniedOperatorOnly");
         _;
     }
 
     modifier onlyNodes() {
-        require(nodeIndex[_msgSender()] > 0, "error_onlyNodes");
+        require(nodeIndex[_msgSender()] > 0, "error_accessDeniedNodesOnly");
         _;
     }
 
@@ -312,19 +312,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /////////////////////////////////////////
-    // OPERATOR FUNCTIONS
+    // OPERATOR FUNCTIONS: STAKE MANAGEMENT
     /////////////////////////////////////////
-
-    /**
-     * Update operator's cut fraction.
-     * Operator can update it's cut if it isn't staked into any Sponsorships
-     */
-    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
-        require(totalStakedIntoSponsorshipsWei == 0, "error_stakedInSponsorships");
-
-        operatorsCutFraction = newOperatorsCutFraction;
-        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
-    }
 
     /**
      * Stake DATA tokens from free funds into Sponsorships.
@@ -374,79 +363,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function withdrawEarningsFromSponsorshipWithoutQueue(Sponsorship sponsorship) public onlyOperator {
-        // takes all earnings, including the operator's share
-        uint earningsDataWei = sponsorship.withdraw();
-        _handleProfit(earningsDataWei, 0, address(0));
-    }
-
-    /**
-     * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
-     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
-     * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
-     */
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
-        uint poolValueBeforeWithdraw = getApproximatePoolValue();
-
-        uint sumEarnings = 0;
-        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
-            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
-        }
-        require(sumEarnings > 0, "error_noEarnings");
-
-        // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operator's cut to the caller as a reward
-        address penaltyRecipient = address(0);
-        uint penaltyFraction = 0;
-        if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
-            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-            if (sumEarnings > allowedDifference) {
-                penaltyRecipient = _msgSender();
-                penaltyFraction = streamrConfig.poolValueDriftPenaltyFraction();
-            }
-        }
-        _handleProfit(sumEarnings, penaltyFraction, penaltyRecipient);
-
-        payOutQueueWithFreeFunds(0);
-    }
-
-    /**
-     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
-     * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
-     **/
-    function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public onlyOperator {
-        uint balanceBeforeWei = token.balanceOf(address(this));
-        other.withdrawEarningsFromSponsorships(sponsorshipAddresses);
-        uint balanceAfterWei = token.balanceOf(address(this));
-        uint earnings = balanceAfterWei - balanceBeforeWei;
-        require(earnings > 0, "error_didNotReceiveReward");
-        // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
-        _mintPoolTokensFor(owner, earnings);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
-    }
-
-    /**
-     * Convenience method to get all sponsorship values
-     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
-     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
-     * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     **/
-    function getEarningsFromSponsorships() external view returns (
-        address[] memory sponsorshipAddresses,
-        uint[] memory earnings,
-        uint rewardLimit
-    ) {
-        sponsorshipAddresses = new address[](sponsorships.length);
-        earnings = new uint[](sponsorships.length);
-        for (uint i = 0; i < sponsorships.length; i++) {
-            Sponsorship sponsorship = sponsorships[i];
-            sponsorshipAddresses[i] = address(sponsorship);
-            earnings[i] = sponsorship.getEarnings(address(this));
-        }
-        rewardLimit = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-    }
-
     /**
      * Unstake from a sponsorship
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
@@ -474,7 +390,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
-            require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
+            require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_accessDeniedOperatorOnly");
         }
 
         uint balanceBeforeWei = token.balanceOf(address(this));
@@ -520,6 +436,94 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit StakeUpdate(sponsorship, 0);
     }
 
+    //////////////////////////////////////////////////////////////////////////////////
+    // OPERATOR/NODE FUNCTIONS: WITHDRAWING AND PROFIT SHARING
+    // Withdrawing functions are not guarded because they "cannot harm" the Operator or delegators.
+    // In fact, they should ideally be called as often as is feasible, to keep the pool value approximation accurate.
+    // The only incentivized function is withdrawEarningsFromSponsorships, others are expected to be used by the operator or nodes only.
+    //////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Update operator's cut fraction.
+     * Operator can update it's cut if it isn't staked into any Sponsorships
+     */
+    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
+        require(totalStakedIntoSponsorshipsWei == 0, "error_stakedInSponsorships");
+
+        operatorsCutFraction = newOperatorsCutFraction;
+        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
+    }
+
+    /**
+     * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
+     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
+     * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
+     */
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        payOutQueueWithFreeFunds(0);
+    }
+
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
+        uint poolValueBeforeWithdraw = getApproximatePoolValue();
+
+        uint sumEarnings = 0;
+        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
+            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
+        }
+        require(sumEarnings > 0, "error_noEarnings");
+
+        // if the caller is an outsider, and if sum of earnings are more than allowed, then give part of the operator's cut to the caller as a reward
+        address penaltyRecipient = address(0);
+        uint penaltyFraction = 0;
+        if (!hasRole(CONTROLLER_ROLE, _msgSender()) && nodeIndex[_msgSender()] == 0) {
+            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
+            if (sumEarnings > allowedDifference) {
+                penaltyRecipient = _msgSender();
+                penaltyFraction = streamrConfig.poolValueDriftPenaltyFraction();
+            }
+        }
+        _handleProfit(sumEarnings, penaltyFraction, penaltyRecipient);
+    }
+
+    /**
+     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * The reward will be re-delegated for the owner (same way as withdrawn earnings)
+     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
+     **/
+    function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+        uint balanceBeforeWei = token.balanceOf(address(this));
+        other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        uint balanceAfterWei = token.balanceOf(address(this));
+        uint earnings = balanceAfterWei - balanceBeforeWei;
+        require(earnings > 0, "error_didNotReceiveReward");
+        // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
+        _mintPoolTokensFor(owner, earnings);
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
+    }
+
+    /**
+     * Convenience method to get all sponsorship values
+     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
+     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
+     * @dev Don't call from other smart contracts in a transaction, could be expensive!
+     **/
+    function getEarningsFromSponsorships() external view returns (
+        address[] memory sponsorshipAddresses,
+        uint[] memory earnings,
+        uint rewardLimit
+    ) {
+        sponsorshipAddresses = new address[](sponsorships.length);
+        earnings = new uint[](sponsorships.length);
+        for (uint i = 0; i < sponsorships.length; i++) {
+            Sponsorship sponsorship = sponsorships[i];
+            sponsorshipAddresses[i] = address(sponsorship);
+            earnings[i] = sponsorship.getEarnings(address(this));
+        }
+        rewardLimit = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
+    }
+
     /**
      * Whenever profit (earnings from Sponsorships) comes in,
      *  pay part of it as protocol fee, and then
@@ -550,8 +554,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     ////////////////////////////////////////
-    // NODE FUNCTIONALITY
-    // NODE MANAGEMENT
+    // NODE FUNCTIONS: HEARTBEAT, FLAGGING, AND VOTING
     ////////////////////////////////////////
 
     function flag(Sponsorship sponsorship, address targetOperator) external onlyNodes {
@@ -570,6 +573,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function heartbeat(string calldata jsonData) external onlyNodes {
         emit Heartbeat(_msgSender(), jsonData);
     }
+
+    ////////////////////////////////////////
+    // OPERATOR FUNCTIONS: NODE MANAGEMENT
+    ////////////////////////////////////////
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
     function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
