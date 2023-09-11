@@ -10,10 +10,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
-import "./IOperator.sol";
+// import "./IOperator.sol";
 import "./IOperatorLivenessRegistry.sol";
 // import "./OperatorPolicies/IDelegationPolicy.sol";
-import "./OperatorPolicies/IPoolYieldPolicy.sol";
+// import "./OperatorPolicies/IPoolYieldPolicy.sol";
 // import "./OperatorPolicies/IUndelegationPolicy.sol";
 
 import "./StreamrConfig.sol";
@@ -73,7 +73,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public totalValueInSponsorshipsWei;
 
     // IDelegationPolicy public delegationPolicy;
-    IPoolYieldPolicy public yieldPolicy;
+    // IPoolYieldPolicy public yieldPolicy;
     // IUndelegationPolicy public undelegationPolicy;
 
     StreamrConfig public streamrConfig;
@@ -112,12 +112,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public metadata;
 
     modifier onlyOperator() {
-        require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
+        require(hasRole(CONTROLLER_ROLE, _msgSender()), "onlyOperator");
         _;
     }
 
     modifier onlyNodes() {
-        require(nodeIndex[_msgSender()] > 0, "error_onlyNodes");
+        require(nodeIndex[_msgSender()] > 0, "onlyNodes");
         _;
     }
 
@@ -179,7 +179,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // function _transfer(address from, address to, uint amount) internal override {
     //     // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-    //     require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "error_delegationBelowMinimum");
+    //     require(balanceOf(from) >= amount + streamrConfig.minimumDelegationWei() || balanceOf(from) == amount, "delegationBelowMinimum");
     //     super._transfer(from, to, amount);
     //     emit BalanceUpdate(from, balanceOf(from), totalSupply());
     //     emit BalanceUpdate(to, balanceOf(to), totalSupply());
@@ -193,7 +193,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // function getMyBalanceInData() public view returns (uint amountDataWei) {
     //     // console.log("## getMyBalanceInData");
     //     uint poolTokenBalance = balanceOf(_msgSender());
-    //     (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
+    //     (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "pooltokenToData_Failed");
     //     // console.log("getMyBalanceInData dataWei", dataWei);
     //     return dataWei;
     // }
@@ -229,7 +229,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         // console.log("## onTokenTransfer from", sender);
         // console.log("onTokenTransfer amount", amount);
-        require(_msgSender() == address(token), "error_onlyDATAToken");
+        require(_msgSender() == address(token), "onlyDATAToken");
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -271,14 +271,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** DATA token transfer must have happened before calling this function, give back the correct amount of pool tokens */
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
-        uint amountPoolToken = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei));
+        // uint amountPoolToken = moduleCall(address(yieldPolicy),
+        //     abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei));
+        uint amountPoolToken = dataToPooltoken(amountDataWei, amountDataWei);
         _mint(delegator, amountPoolToken);
 
         // check if the delegation policy allows this delegation
         // if (address(delegationPolicy) != address(0)) {
         if (delegator != owner) { 
-            require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+            require(1 ether * balanceOf(owner) >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
          }
 
         // multiplying the left side by 1 ether is equivalent to dividing the right side by 1 ether, but numerically a lot better
@@ -292,7 +293,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** Add the request to undelegate into the undelegation queue */
     function undelegate(uint amountPoolTokenWei) public {
         // console.log("## undelegate");
-        require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
+        require(amountPoolTokenWei > 0, "zeroUndelegation"); // TODO: should there be minimum undelegation amount?
 
         address undelegator = _msgSender();
 
@@ -303,7 +304,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // }
         if (undelegator == owner) { 
             uint newBalance = balanceOf(owner) - amountPoolTokenWei;
-            require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+            require(1 ether * newBalance >= totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "selfDelegationTooLow");
          }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
@@ -322,8 +323,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
     function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "error_badSponsorship");
-        require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
+        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "badSponsorship");
+        require(queueIsEmpty(), "firstEmptyQueueThenStake");
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
@@ -394,7 +395,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
-        require(sumEarnings > 0, "error_noEarnings");
+        require(sumEarnings > 0, "noEarnings");
         uint operatorsCutDataWei = sumEarnings * operatorsCutFraction / 1 ether;
 
         // if sum of earnings are more than allowed, then give poolValueDriftPenaltyFraction of the operatorsCutDataWei to the caller as a reward
@@ -425,7 +426,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         other.withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
-        require(earnings > 0, "error_didNotReceiveReward");
+        require(earnings > 0, "didNotReceiveReward");
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
         emit PoolValueUpdate(totalValueInSponsorshipsWei, balanceAfterWei);
@@ -458,7 +459,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
-            require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_onlyOperator");
+            require(hasRole(CONTROLLER_ROLE, _msgSender()), "onlyOperator");
         }
 
         uint balanceBeforeWei = token.balanceOf(address(this));
@@ -657,8 +658,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
-        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokens, 0));
+        // uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
+        //     amountPoolTokens, 0));
+        uint amountDataWei = pooltokenToData(amountPoolTokens, 0);
         if (balanceDataWei >= amountDataWei) {
             // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
@@ -667,10 +669,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         } else {
             // not enough DATA for full payout => all free funds are paid out as a partial payment, update the item in the queue
             amountDataWei = balanceDataWei;
-            amountPoolTokens = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                amountDataWei, 0)
-            );
+            // amountPoolTokens = moduleCall(address(yieldPolicy),
+            //     abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
+            //     amountDataWei, 0)
+            // );
+            amountPoolTokens = dataToPooltoken(amountDataWei, 0);
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
@@ -695,19 +698,19 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        require(indexOfSponsorships[sponsorship] > 0, "notMyStakedSponsorship");
         totalValueInSponsorshipsWei -= amountSlashed;
         emit PoolValueUpdate(totalValueInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        require(indexOfSponsorships[sponsorship] > 0, "notMyStakedSponsorship");
         _removeSponsorship(sponsorship, receivedPayoutWei);
     }
 
     function onReviewRequest(address targetOperator) external {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "error_onlySponsorship");
+        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "onlySponsorship");
         Sponsorship sponsorship = Sponsorship(_msgSender());
         emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
     }
@@ -721,10 +724,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     //     moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
     // }
 
-    function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
-    }
+    // function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     yieldPolicy = policy;
+    //     moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
+    // }
 
     // function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
     //     undelegationPolicy = policy;
@@ -742,7 +745,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     // fallback(bytes calldata args) external returns (bytes memory) {
-    //     require(_msgSender() == address(this), "error_mustBeThis");
+    //     require(_msgSender() == address(this), "mustBeThis");
 
     //     // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
     //     uint len = args.length; // 4 byte selector + 32 bytes per argument
@@ -758,16 +761,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
-        (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
-        if (!success) {
-            if (returndata.length == 0) { revert(); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-        // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
-        // for the function that return nothing, the returnValue will just be garbage
-        assembly { returnValue := mload(add(returndata, 32)) }
-    }
+    // function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
+    //     (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
+    //     if (!success) {
+    //         if (returndata.length == 0) { revert(); }
+    //         assembly { revert(add(32, returndata), mload(returndata)) }
+    //     }
+    //     // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
+    //     // for the function that return nothing, the returnValue will just be garbage
+    //     assembly { returnValue := mload(add(returndata, 32)) }
+    // }
 
     // /** Call a module's view function via staticcall to local fallback */
     // function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
@@ -826,4 +829,24 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     //         poolValue += getEarningsFromSponsorship(sponsorships[i]);
     //     }
     // }
+    function pooltokenToData(uint poolTokenWei, uint subtractFromPoolvalue) public view returns (uint dataWei) {
+        if (this.totalSupply() == 0) {
+            return poolTokenWei;
+        }
+        uint poolValueData = getApproximatePoolValue() - subtractFromPoolvalue;
+        return poolTokenWei * poolValueData / this.totalSupply();
+    }
+
+    function dataToPooltoken(uint dataWei, uint subtractFromPoolvalue) public view returns (uint poolTokenWei) {
+        // in the beginning, the pool is empty => we set 1:1 exchange rate
+        if (this.totalSupply() == 0) {
+            return dataWei;
+        }
+        uint poolValue = getApproximatePoolValue();
+        assert(subtractFromPoolvalue < poolValue);
+        uint poolValueData = poolValue - subtractFromPoolvalue;
+        // uint poolValueData = this.calculatePoolValueInData(subtractFromPoolvalue);
+
+        return dataWei * this.totalSupply() / poolValueData;
+    }
 }

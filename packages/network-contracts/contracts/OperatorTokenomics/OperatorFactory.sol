@@ -139,9 +139,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         // if (policies[0] != address(0)) {
         //     newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         // }
-        if (policies[1] != address(0)) {
-            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), policyParams[1]);
-        }
+        // if (policies[1] != address(0)) {
+        //     newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), policyParams[1]);
+        // }
         // if (policies[2] != address(0)) {
         //     newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
         // }

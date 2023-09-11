@@ -5,7 +5,7 @@ pragma solidity ^0.8.13;
 import "./IPoolYieldPolicy.sol";
 import "../Operator.sol";
 
-contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
+contract DefaultPoolYieldPolicy {
 
     //struct LocalStorage {
     //}
@@ -18,23 +18,23 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
     }
 
     function pooltokenToData(uint poolTokenWei, uint subtractFromPoolvalue) public view returns (uint dataWei) {
-        if (this.totalSupply() == 0) {
-            return poolTokenWei;
-        }
-        uint poolValueData = getApproximatePoolValue() - subtractFromPoolvalue;
-        return poolTokenWei * poolValueData / this.totalSupply();
+        // if (this.totalSupply() == 0) {
+        //     return poolTokenWei;
+        // }
+        // uint poolValueData = getApproximatePoolValue() - subtractFromPoolvalue;
+        // return poolTokenWei * poolValueData / this.totalSupply();
     }
 
     function dataToPooltoken(uint dataWei, uint subtractFromPoolvalue) public view returns (uint poolTokenWei) {
         // in the beginning, the pool is empty => we set 1:1 exchange rate
-        if (this.totalSupply() == 0) {
-            return dataWei;
-        }
-        uint poolValue = getApproximatePoolValue();
-        assert(subtractFromPoolvalue < poolValue);
-        uint poolValueData = poolValue - subtractFromPoolvalue;
-        // uint poolValueData = this.calculatePoolValueInData(subtractFromPoolvalue);
+        // if (this.totalSupply() == 0) {
+        //     return dataWei;
+        // }
+        // uint poolValue = getApproximatePoolValue();
+        // assert(subtractFromPoolvalue < poolValue);
+        // uint poolValueData = poolValue - subtractFromPoolvalue;
+        // // uint poolValueData = this.calculatePoolValueInData(subtractFromPoolvalue);
 
-        return dataWei * this.totalSupply() / poolValueData;
+        // return dataWei * this.totalSupply() / poolValueData;
     }
 }
