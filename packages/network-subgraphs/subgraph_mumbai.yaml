@@ -1,0 +1,291 @@
+# if you recreate the docker image to autodeploy in the dev env this file is used directly
+# if you deploy locally use the npm task or scripts/generateYaml.sh to re-generate/update this file
+
+specVersion: 0.0.4
+description: Subgraph definitions for the stream permission registry
+repository:
+schema:
+  file: ./schema.graphql
+features:
+  - fullTextSearch
+dataSources:
+  - kind: ethereum/contract
+    name: StreamRegistry
+    network: mumbai
+    source:
+      address: "0xf28d173f3820280708C2F091355400838b9Fa32A"
+      abi: StreamRegistry
+      startBlock: 40005543 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stream
+      abis:
+        - name: StreamRegistry
+          file: ./abis/StreamRegistry.json
+      eventHandlers:
+        - event: StreamCreated(string,string)
+          handler: handleStreamCreation
+        - event: StreamDeleted(string)
+          handler: handleStreamDeletion
+        - event: StreamUpdated(string,string)
+          handler: handleStreamUpdate
+        - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdate
+      file: ./src/streamRegistry.ts
+  - kind: ethereum/contract
+    name: NodeRegistry
+    network: mumbai
+    source:
+      address: "0xa354dCE2CA5d00CEd02E675F0Bb40ACbb7531031"
+      abi: NodeRegistry
+      startBlock: 40005543 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Node
+      abis:
+        - name: NodeRegistry
+          file: ./abis/NodeRegistry.json
+      eventHandlers:
+        - event: NodeUpdated(indexed address,string,indexed uint256,uint256)
+          handler: handleNodeUpdate
+        - event: NodeRemoved(indexed address)
+          handler: handleNodeRemoved
+        # - event: NodeWhitelistApproved(indexed address)
+        #   handler: handleNodeWhitelisted
+        # - event: NodeWhitelistRejected(indexed address)
+        #   handler: handleNodeUnWhitelisted
+      file: ./src/nodeRegistry.ts
+  - kind: ethereum/contract
+    name: StreamStorageRegistry
+    network: mumbai
+    source:
+      address: "0x48d25dd5731AD644613b67E4281C505Ef392Dd70"
+      abi: StreamStorageRegistry
+      startBlock: 40005543 #TODO
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Node
+        # - Stream
+      abis:
+        - name: StreamStorageRegistry
+          file: ./abis/StreamStorageRegistry.json
+      eventHandlers:
+        - event: Added(string,indexed address)
+          handler: handleStorageNodeAddedToStream
+        - event: Removed(string,indexed address)
+          handler: handleStorageNodeRemovedFromStream
+      file: ./src/streamStorageRegistry.ts
+  - kind: ethereum/contract
+    name: ProjectRegistryV1
+    network: mumbai # xDai means dev1
+    source:
+      address: "0xD2D07b9F64202b0AB999700398cE1486f6F99BF7"
+      abi: ProjectRegistryV1
+      startBlock: 40005543
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Project
+      abis:
+        - name: ProjectRegistryV1
+          file: ./abis/ProjectRegistryV1.json
+      eventHandlers:
+        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectCreation
+        - event: ProjectDeleted(indexed bytes32)
+          handler: handleProjectDeletion
+        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectUpdate
+        - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
+          handler: handlePaymentDetailsByChainUpdate
+        - event: StreamAdded(bytes32,string)
+          handler: handleStreamAddition
+        - event: StreamRemoved(bytes32,string)
+          handler: handleStreamRemoval
+        - event: PermissionUpdated(bytes32,address,bool,bool,bool,bool)
+          handler: handlePermissionUpdate
+        - event: Subscribed(indexed bytes32,indexed address,uint256)
+          handler: handleSubscriptionUpdate
+      file: ./src/projectRegistry.ts
+  - kind: ethereum/contract
+    name: MarketplaceV4
+    network: mumbai
+    source:
+      address: "0x76c250798634D46959e5437EdA8Bf4E133791627"
+      abi: MarketplaceV4
+      startBlock: 40005543
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - ProjectPurchase
+      abis:
+        - name: MarketplaceV4
+          file: ./abis/MarketplaceV4.json
+      eventHandlers:
+        - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
+          handler: handleProjectPurchase
+      file: ./src/marketplaceV4.ts
+  - kind: ethereum/contract
+    name: ProjectStakingV1
+    network: mumbai
+    source:
+      address: "0xD2D07b9F64202b0AB999700398cE1486f6F99BF7"
+      abi: ProjectStakingV1
+      startBlock: 40005543
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stake
+        - Unstake
+      abis:
+        - name: ProjectStakingV1
+          file: ./abis/ProjectStakingV1.json
+      eventHandlers:
+        - event: Stake(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleStake
+        - event: Unstake(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleUnstake
+      file: ./src/projectStaking.ts
+  - kind: ethereum/contract
+    name: SponsorshipFactory
+    network: mumbai
+    source:
+      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0x2719de44a5D83866D2b28238426C0eb83C65AD89'
+      abi: SponsorshipFactory
+      startBlock: 40005543
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/sponsorshipFactory.ts
+      entities:
+        - Sponsorship
+      abis:
+        - name: SponsorshipFactory
+          file: ./abis/SponsorshipFactory.json
+      eventHandlers:
+        - event: NewSponsorship(indexed address,string,string,uint256,indexed address)
+          handler: handleNewSponsorship
+  - kind: ethereum/contract
+    name: OperatorFactory
+    network: mumbai
+    source:
+      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0x0131026C7D81d4f49Cfa6d3946430C783a314dA1'
+      abi: OperatorFactory
+      startBlock: 40005543
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/operatorFactory.ts
+      entities:
+        - Operator
+        - Delegation
+      abis:
+        - name: OperatorFactory
+          file: ./abis/OperatorFactory.json
+      eventHandlers:
+        - event: NewOperator(address,address)
+          handler: handleNewOperator
+
+templates:
+  - name: Sponsorship
+    kind: ethereum/contract
+    network: mumbai
+    source:
+      abi: Sponsorship
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/sponsorship.ts
+      entities:
+        - Sponsorship
+        - Stake
+        - StakeEvent
+        - SlashingEvent
+        - Flag
+      abis:
+        - name: Sponsorship
+          file: ./abis/Sponsorship.json
+      eventHandlers:
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+          - event: SponsorshipUpdate(uint256,uint256,uint32,bool)
+            handler: handleSponsorshipUpdated
+          - event: FlagUpdate(indexed address,address,uint256,uint256,string)
+            handler: handleFlagUpdate
+          - event: ProjectedInsolvencyUpdate(uint256)
+            handler: handleProjectedInsolvencyUpdate
+          - event: OperatorSlashed(indexed address,uint256)
+            handler: handleOperatorSlashed
+
+        # - event: StakeAdded(indexed address,uint256,uint256)
+        #   handler: handleStakeAdded
+          - event: SponsorshipReceived(indexed address,uint256)
+            handler: handleSponsorshipReceived
+        # - event: OperatorJoined(indexed address)
+        #   handler: handleOperatorJoined
+        # - event: OperatorLeft(indexed address,uint256)
+        #   handler: handleOperatorLeft
+  - name: Operator
+    kind: ethereum/contract
+    network: mumbai
+    source:
+      abi: Operator
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/operator.ts
+      entities:
+        - Operator
+        - QueueEntry
+        - Delegation
+        - OperatorDailyBucket
+      abis:
+        - name: Operator
+          file: ./abis/Operator.json
+      eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
+          - event: Undelegated(indexed address,uint256)
+            handler: handleUndelegated
+          # - event: BalanceUpdate(address,uint256,uint256)
+          #   handler: handleBalanceUpdate
+          # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
+          # - event: StakeUpdate(indexed address,uint256)
+          #   handler: handleStakeUpdated
+          - event: PoolValueUpdate(uint256,uint256)
+            handler: handlePoolValueUpdate
+          - event: Profit(uint256,uint256)
+            handler: handleProfit
+          - event: Loss(uint256)
+            handler: handleLoss
+          - event: QueuedDataPayout(address,uint256,uint256)
+            handler: handleQueuedDataPayout
+          - event: QueueUpdated(address,uint256,uint256)
+            handler: handleQueueUpdated
+          - event: NodesSet(address[])
+            handler: handleNodesSet
+          - event: Heartbeat(indexed address,string)
+            handler: handleHeartbeat
+          - event: MetadataUpdated(string,indexed address,uint256)
+            handler: handleMetadataUpdate
