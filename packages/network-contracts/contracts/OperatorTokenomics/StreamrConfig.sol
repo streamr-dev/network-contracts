@@ -65,6 +65,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      */
     uint public poolValueDriftPenaltyFraction;
 
+    /** Protocol fee is collected when earnings arrive to Operator, fraction expressed as fixed-point decimal between 0.0 ~ 1.0, like ether: 1e18 ~= 100% */
+    uint public protocolFeeFraction;
+
+    /** Address where the protocol fee is sent */
+    address public protocolFeeBeneficiary;
+
     /** How many reviewers we ideally (=usually) select to review a Sponsorship flag, see VoteKickPolicy.sol */
     uint public flagReviewerCount;
 
@@ -147,7 +153,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
@@ -165,6 +171,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
         poolValueDriftLimitFraction = 0.05 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
+
+        // protocol fee
+        protocolFeeFraction = 0.05 ether;
+        protocolFeeBeneficiary = _msgSender();
 
         // flagging + voting
         flagReviewerCount = 5;
@@ -211,6 +221,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setPoolValueDriftPenaltyFraction(uint newPoolValueDriftPenaltyFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
         poolValueDriftPenaltyFraction = newPoolValueDriftPenaltyFraction;
+    }
+
+    function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newProtocolFeeFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        protocolFeeFraction = newProtocolFeeFraction;
+    }
+
+    function setProtocolFeeBeneficiary(address newProtocolFeeBeneficiary) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
     /**
