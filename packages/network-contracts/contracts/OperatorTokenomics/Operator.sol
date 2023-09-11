@@ -190,13 +190,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return totalValueInSponsorshipsWei + token.balanceOf(address(this));
     }
 
-    function getMyBalanceInData() public view returns (uint amountDataWei) {
-        // console.log("## getMyBalanceInData");
-        uint poolTokenBalance = balanceOf(_msgSender());
-        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
-        // console.log("getMyBalanceInData dataWei", dataWei);
-        return dataWei;
-    }
+    // function getMyBalanceInData() public view returns (uint amountDataWei) {
+    //     // console.log("## getMyBalanceInData");
+    //     uint poolTokenBalance = balanceOf(_msgSender());
+    //     (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
+    //     // console.log("getMyBalanceInData dataWei", dataWei);
+    //     return dataWei;
+    // }
 
     /*
      * Override openzeppelin's ERC2771ContextUpgradeable function
@@ -732,18 +732,18 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev instead, success is determined by the length of returndata: too long means it was a revert
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
-    fallback(bytes calldata args) external returns (bytes memory) {
-        require(_msgSender() == address(this), "error_mustBeThis");
+    // fallback(bytes calldata args) external returns (bytes memory) {
+    //     require(_msgSender() == address(this), "error_mustBeThis");
 
-        // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
-        uint len = args.length; // 4 byte selector + 32 bytes per argument
-        address target = address(bytes20(args[len - 20 : len])); // grab the address
-        bytes memory data = args[0 : len - 32]; // drop extra argument
+    //     // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
+    //     uint len = args.length; // 4 byte selector + 32 bytes per argument
+    //     address target = address(bytes20(args[len - 20 : len])); // grab the address
+    //     bytes memory data = args[0 : len - 32]; // drop extra argument
 
-        (bool success, bytes memory returndata) = target.delegatecall(data);
-        if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
-        return returndata;
-    }
+    //     (bool success, bytes memory returndata) = target.delegatecall(data);
+    //     if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
+    //     return returndata;
+    // }
 
     /**
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
@@ -760,17 +760,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         assembly { returnValue := mload(add(returndata, 32)) }
     }
 
-    /** Call a module's view function via staticcall to local fallback */
-    function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
-        // trampoline through the above callback
-        (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
-        if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
-            assembly { revert(add(32, returndata), mload(returndata)) }
-        }
-        // assume a successful call returns precisely one uint256, so take that out and drop the rest
-        assembly { returnValue := mload(add(returndata, 32)) }
-    }
+    // /** Call a module's view function via staticcall to local fallback */
+    // function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
+    //     // trampoline through the above callback
+    //     (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
+    //     if (!success) {
+    //         if (returndata.length == 0) { revert(defaultReason); }
+    //         assembly { revert(add(32, returndata), mload(returndata)) }
+    //     }
+    //     // assume a successful call returns precisely one uint256, so take that out and drop the rest
+    //     assembly { returnValue := mload(add(returndata, 32)) }
+    // }
 
     /* solhint-enable */
 
@@ -782,7 +782,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Unwithdrawn earnings in the Sponsorship, minus operator's share of the earnings
      * This is the part the belongs to the pool, and will be used in calculating the update penalty threshold
      **/
-    function getEarningsFromSponsorship(Sponsorship sponsorship) public view returns (uint earnings) {
+    function(Sponsorship sponsorship) public view returns (uint earnings) {
         uint alloc = sponsorship.getEarnings(address(this));
         uint operatorsCutWei = operatorsCutFraction * alloc / 1 ether;
         return alloc - operatorsCutWei;
@@ -806,15 +806,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
     }
 
-    /**
-     * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
-     * If the difference is too large, call withdrawEarningsFromSponsorships to get a small reward
-     * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     */
-    function calculatePoolValueInData() external view returns (uint poolValue) {
-        poolValue = getApproximatePoolValue();
-        for (uint i = 0; i < sponsorships.length; i++) {
-            poolValue += getEarningsFromSponsorship(sponsorships[i]);
-        }
-    }
+    // /**
+    //  * Get the accurate total pool value; can be compared off-chain against getApproximatePoolValue
+    //  * If the difference is too large, call withdrawEarningsFromSponsorships to get a small reward
+    //  * @dev Don't call from other smart contracts in a transaction, could be expensive!
+    //  */
+    // function calculatePoolValueInData() external view returns (uint poolValue) {
+    //     poolValue = getApproximatePoolValue();
+    //     for (uint i = 0; i < sponsorships.length; i++) {
+    //         poolValue += getEarningsFromSponsorship(sponsorships[i]);
+    //     }
+    // }
 }
