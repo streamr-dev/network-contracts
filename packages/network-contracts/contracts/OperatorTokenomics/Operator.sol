@@ -329,6 +329,41 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         payOutQueueWithFreeFunds(0);
     }
 
+    /////////////////////////////////////////
+    // OPERATOR FUNCTIONS: STAKE MANAGEMENT
+    /////////////////////////////////////////
+
+    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.stake.selector, sponsorship, amountWei), "error_stakeFailed");
+    }
+    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.reduceStakeTo.selector, sponsorship, targetStakeWei), "error_reduceStakeToFailed");
+    }
+    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei), "error_reduceStakeWithoutQueueFailed");
+    }
+    function unstake(Sponsorship sponsorship) public onlyOperator virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.unstake.selector, sponsorship), "error_unstakeFailed");
+    }
+    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.unstakeWithoutQueue.selector, sponsorship), "error_unstakeWithoutQueueFailed");
+    }
+    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.forceUnstake.selector, sponsorship, maxQueuePayoutIterations), "error_forceUnstakeFailed");
+    }
+    // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
+    function onKick(uint, uint receivedPayoutWei) external virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.onKick.selector, receivedPayoutWei), "error_onKickFailed");
+    }
+
+    // function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) external;
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.withdrawEarningsFromSponsorships.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsFailed");
+    }
+    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsWithoutQueueFailed");
+    }
+
     //////////////////////////////////////////////////////////////////////////////////
     // OPERATOR/NODE FUNCTIONS: WITHDRAWING AND PROFIT SHARING
     // Withdrawing functions are not guarded because they "cannot harm" the Operator or delegators.
