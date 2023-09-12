@@ -23,6 +23,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public operatorTemplate;
+    address public nodeModuleTemplate;
+    address public queueModuleTemplate;
+    address public stakeModuleTemplate;
     address public configAddress;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
@@ -37,12 +40,16 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress,
+    address nodeModuleAddress, address queueModuleAddress, address stakeModuleAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -134,7 +141,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             operatorAddress,
             poolTokenName,
             operatorMetadataJson,
-            operatorsCutFraction
+            operatorsCutFraction,
+            [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
         );
         if (policies[0] != address(0)) {
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);

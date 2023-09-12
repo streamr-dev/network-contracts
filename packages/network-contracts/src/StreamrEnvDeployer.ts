@@ -397,7 +397,8 @@ export class StreamrEnvDeployer {
         await (await operatorFactory.initialize(
             operatorTemplate.address,
             this.addresses.DATA,
-            this.addresses.StreamrConfig)).wait()
+            this.addresses.StreamrConfig,
+            )).wait()
         log("Deployed Operator contract factory " + operatorFactory.address)
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory

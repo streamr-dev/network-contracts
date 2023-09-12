@@ -16,6 +16,10 @@ import "./OperatorPolicies/IDelegationPolicy.sol";
 import "./OperatorPolicies/IPoolYieldPolicy.sol";
 import "./OperatorPolicies/IUndelegationPolicy.sol";
 
+import "./OperatorPolicies/INodeModule.sol";
+import "./OperatorPolicies/IQueueModule.sol";
+import "./OperatorPolicies/IStakeModule.sol";
+
 import "./StreamrConfig.sol";
 import "./Sponsorship.sol";
 import "./SponsorshipFactory.sol";
@@ -76,6 +80,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     IDelegationPolicy public delegationPolicy;
     IPoolYieldPolicy public yieldPolicy;
     IUndelegationPolicy public undelegationPolicy;
+
+    INodeModule public nodeModule;
+    IQueueModule public queueModule;
+    IStakeModule public stakeModule;
 
     StreamrConfig public streamrConfig;
 
@@ -143,7 +151,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         address ownerAddress,
         string memory poolTokenName,
         string memory operatorMetadataJson,
-        uint operatorsCut
+        uint operatorsCut,
+        address[3] memory modules
     ) public initializer {
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
@@ -153,6 +162,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         token = IERC677(tokenAddress);
         streamrConfig = StreamrConfig(streamrConfigAddress);
+        
+        nodeModule = INodeModule(modules[0]);
+        queueModule = IQueueModule(modules[1]);
+        stakeModule = IStakeModule(modules[2]);
+
         owner = ownerAddress;
         operatorsCutFraction = operatorsCut;
 
