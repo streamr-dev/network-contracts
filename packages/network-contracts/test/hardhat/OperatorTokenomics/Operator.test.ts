@@ -414,7 +414,7 @@ describe("Operator contract", (): void => {
             await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
                 .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.2"))
             await expect(operator2.connect(operatorWallet).updateOperatorsCutFraction(parseEther("0.2")))
-                .to.be.revertedWith("error_onlyOperator")
+                .to.be.revertedWith("error_accessDeniedOperatorOnly")
         })
 
         it("can NOT update the operator cut fraction if it's staked in any sponsorships", async function(): Promise<void> {
@@ -643,7 +643,7 @@ describe("Operator contract", (): void => {
             await operator.connect(delegator).undelegate(parseEther("100"))
 
             await advanceToTimestamp(timeAtStart + gracePeriod, "Force unstaking attempt")
-            await expect(operator.connect(delegator).forceUnstake(sponsorship.address, 10)).to.be.revertedWith("error_onlyOperator")
+            await expect(operator.connect(delegator).forceUnstake(sponsorship.address, 10)).to.be.revertedWith("error_accessDeniedOperatorOnly")
 
             // after gracePeriod, anyone can trigger the unstake and payout of the queue
             // earnings are 1000, minus protocol fee 5% = 50 DATA => 950 DATA remains
@@ -760,7 +760,7 @@ describe("Operator contract", (): void => {
         await operator.connect(delegator2).undelegate(parseEther("100"))
 
         await advanceToTimestamp(timeAtStart + 29*days, "Delegator 1 wants to force-unstake too early")
-        await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 100)).to.be.revertedWith("error_onlyOperator")
+        await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 100)).to.be.revertedWith("error_accessDeniedOperatorOnly")
 
         await advanceToTimestamp(timeAtStart + 31*days, "Operator unstakes 5 data from sponsorship1")
         await operator.reduceStakeTo(sponsorship1.address, parseEther("150"))
@@ -931,7 +931,7 @@ describe("Operator contract", (): void => {
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
         await expect(operator.connect(admin).stake(sponsorship.address, parseEther("1000")))
-            .to.be.revertedWith("error_onlyOperator")
+            .to.be.revertedWith("error_accessDeniedOperatorOnly")
         await expect(operator.stake(sponsorship.address, parseEther("1000")))
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
     })
@@ -1068,9 +1068,9 @@ describe("Operator contract", (): void => {
         it("can ONLY be updated by the operator", async function(): Promise<void> {
             const operator = await deployOperator(operatorWallet)
             await expect(operator.connect(admin).setNodeAddresses([admin.address]))
-                .to.be.revertedWith("error_onlyOperator")
+                .to.be.revertedWith("error_accessDeniedOperatorOnly")
             await expect(operator.connect(admin).updateNodeAddresses([], [admin.address]))
-                .to.be.revertedWith("error_onlyOperator")
+                .to.be.revertedWith("error_accessDeniedOperatorOnly")
             await expect(operator.setNodeAddresses([admin.address]))
                 .to.emit(operator, "NodesSet").withArgs([admin.address])
             await expect(operator.getNodeAddresses()).to.eventually.deep.equal([admin.address])
@@ -1122,7 +1122,7 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(start, "Flag starts")
             await (await flagger.setNodeAddresses([])).wait()
             await expect(flagger.flag(sponsorship.address, target.address))
-                .to.be.revertedWith("error_onlyNodes")
+                .to.be.revertedWith("error_accessDeniedNodesOnly")
 
             await (await flagger.setNodeAddresses([await flagger.owner()])).wait()
             await expect(flagger.flag(sponsorship.address, target.address))
@@ -1131,7 +1131,7 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(start + VOTE_START, "Voting starts")
             await (await voter.setNodeAddresses([])).wait()
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
-                .to.be.revertedWith("error_onlyNodes")
+                .to.be.revertedWith("error_accessDeniedNodesOnly")
 
             await (await voter.setNodeAddresses([await voter.owner()])).wait()
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
@@ -1140,7 +1140,7 @@ describe("Operator contract", (): void => {
 
         it("can call heartbeat", async function(): Promise<void> {
             const operator = await deployOperator(operatorWallet)
-            await expect(operator.heartbeat("{}")).to.be.rejectedWith("error_onlyNodes")
+            await expect(operator.heartbeat("{}")).to.be.rejectedWith("error_accessDeniedNodesOnly")
             await (await operator.setNodeAddresses([delegator2.address])).wait()
             await expect(operator.connect(delegator2).heartbeat("{}"))
                 .to.emit(operator, "Heartbeat").withArgs(delegator2.address, "{}")
@@ -1149,7 +1149,7 @@ describe("Operator contract", (): void => {
 
     it("allows controllers to act on behalf of the operator", async function(): Promise<void> {
         const operator = await deployOperator(operatorWallet)
-        await expect(operator.connect(controller).setNodeAddresses([controller.address])).to.be.revertedWith("error_onlyOperator")
+        await expect(operator.connect(controller).setNodeAddresses([controller.address])).to.be.revertedWith("error_accessDeniedOperatorOnly")
         await (await operator.grantRole(await operator.CONTROLLER_ROLE(), controller.address)).wait()
         await operator.connect(controller).setNodeAddresses([controller.address])
     })
