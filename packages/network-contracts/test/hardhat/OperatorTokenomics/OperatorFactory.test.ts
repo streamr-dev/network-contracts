@@ -59,4 +59,25 @@ describe("OperatorFactory", function(): void {
         expect(newOperatorEvent.args.operatorAddress).to.equal(deployer.address)
         expect(newOperatorEvent.args.operatorContractAddress).to.equal(newOperatorAddress)
     })
+
+    it("transferAndCall revets for missing / incomplete data encoded", async function(): Promise<void> {
+        const { operatorFactory, token } = sharedContracts
+
+        // missing encoded data
+        await expect(token.connect(deployer).transferAndCall(operatorFactory.address, parseEther("10"), "0x"))
+            .to.be.reverted
+
+        // missing encoded policies and policies params
+        const operatorSharePercent = 10
+        const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
+        const data = defaultAbiCoder.encode(["uint", "string", "string"],
+            [
+                operatorsCutFraction,
+                "PoolTokenName",
+                "{}"
+            ]
+        )
+        await expect(token.connect(deployer).transferAndCall(operatorFactory.address, parseEther("10"), data))
+            .to.be.reverted
+    })
 })
