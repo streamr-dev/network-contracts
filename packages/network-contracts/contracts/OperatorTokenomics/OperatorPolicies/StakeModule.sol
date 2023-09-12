@@ -6,6 +6,6 @@ import "./IStakeModule.sol";
 import "../StreamrConfig.sol";
 import "../Operator.sol";
 
-contract NodeModule is IStakeModule, Operator {
+contract StakeModule is IStakeModule, Operator {
 
 }

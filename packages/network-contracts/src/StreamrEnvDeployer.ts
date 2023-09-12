@@ -9,9 +9,11 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, De
     defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
     defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
     fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
-    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
-    sponsorshipFactoryBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
+    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode, 
+    nodeModuleABI, nodeModuleBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
+    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, queueModuleABI, queueModuleBytecode, 
+    sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
+    sponsorshipFactoryBytecode, stakeModuleABI, stakeModuleBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 import { parseEther } from "ethers/lib/utils"
@@ -390,6 +392,26 @@ export class StreamrEnvDeployer {
         this.addresses.OperatorDefaultUndelegationPolicy = defaultUndelegationPolicy.address
         log("Deployed default Operator contract undelegation policy " + defaultUndelegationPolicy.address)
 
+        log("Deploying operator node module")
+        const operatorNodeModuleFactory = new ContractFactory(nodeModuleABI, nodeModuleBytecode,
+            this.adminWallet)
+        const operatorNodeModule = await operatorNodeModuleFactory.deploy() as Contract
+        await operatorNodeModule.deployed()
+        log("Deployed operator node module " + operatorNodeModule.address)
+        log("Deploying operator queue module")
+        const operatorQueueModuleFactory = new ContractFactory(queueModuleABI, queueModuleBytecode,
+            this.adminWallet)
+        const operatorQueueModule = await operatorQueueModuleFactory.deploy() as Contract
+        await operatorQueueModule.deployed()
+        log("Deployed operator queue module " + operatorQueueModule.address)
+        log("Deploying operator stake module")
+        const operatorStakeModuleFactory = new ContractFactory(stakeModuleABI, stakeModuleBytecode,
+            this.adminWallet)
+        const operatorStakeModule = await operatorStakeModuleFactory.deploy() as Contract
+        await operatorStakeModule.deployed()
+        log("Deployed operator stake module " + operatorStakeModule.address)
+
+        log("Deploying Operator contract factory")
         const operatorFactoryFactory = new ContractFactory(operatorFactoryABI, operatorFactoryBytecode,
             this.adminWallet)
         const operatorFactory = await operatorFactoryFactory.deploy() as OperatorFactory
@@ -397,8 +419,11 @@ export class StreamrEnvDeployer {
         await (await operatorFactory.initialize(
             operatorTemplate.address,
             this.addresses.DATA,
-            this.addresses.StreamrConfig,
-            )).wait()
+            this.addresses.StreamrConfig, 
+            operatorNodeModule.address,
+            operatorQueueModule.address,
+            operatorStakeModule.address
+        )).wait()
         log("Deployed Operator contract factory " + operatorFactory.address)
         this.addresses.OperatorFactory = operatorFactory.address
         this.contracts.operatorFactory = operatorFactory
