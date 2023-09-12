@@ -103,7 +103,7 @@ contract StakeModule is IStakeModule, Operator {
      * Earnings were mixed together with stake in the unstaking process; only earnings on top of what has been staked is emitted in Profit event.
      * This means whatever was slashed gets also deducted from the operator's share
      */
-    function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
+    function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) public {
         totalStakedIntoSponsorshipsWei -= stakedInto[sponsorship];
         totalSlashedInSponsorshipsWei -= slashedIn[sponsorship];
 
@@ -132,12 +132,6 @@ contract StakeModule is IStakeModule, Operator {
         slashedIn[sponsorship] = 0;
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
-    }
-
-    function onKick(uint, uint receivedPayoutWei) external override(Operator, IStakeModule) {
-        Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
-        _removeSponsorship(sponsorship, receivedPayoutWei);
     }
 
         /**

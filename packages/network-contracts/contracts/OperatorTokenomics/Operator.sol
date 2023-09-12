@@ -352,10 +352,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.forceUnstake.selector, sponsorship, maxQueuePayoutIterations), "error_forceUnstakeFailed");
     }
     // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-    function onKick(uint, uint receivedPayoutWei) external virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.onKick.selector, receivedPayoutWei), "error_onKickFailed");
-    }
-
     // function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) external;
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.withdrawEarningsFromSponsorships.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsFailed");
@@ -637,6 +633,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
+    function onKick(uint, uint receivedPayoutWei) external {
+        Sponsorship sponsorship = Sponsorship(_msgSender());
+        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        // _removeSponsorship(sponsorship, receivedPayoutWei);
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._removeSponsorship.selector, sponsorship, receivedPayoutWei), "error_removeSponsorshipFailed");
+    }
 
     function onReviewRequest(address targetOperator) external {
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "error_onlySponsorship");
