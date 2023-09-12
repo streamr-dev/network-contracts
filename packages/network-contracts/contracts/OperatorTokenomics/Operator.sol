@@ -179,11 +179,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         metadata = operatorMetadataJson;
         emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
 
-        streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
-        streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
-        streamRegistry.createStream("/operator/coordination", "{\"partitions\":1}");
-        streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector), "error_createCoordinationStreamFailed");
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -271,17 +267,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
         }
 
-        // "gifted" tokens aren't delegated at all, but instead count as Profit
-        if (delegator == address(this)) {
-            // _handleProfit(amount, 0, address(0));
-            moduleCall(address(stakeModule),
-            abi.encodeWithSelector(stakeModule._handleProfit.selector, amount, 0, address(0)),
-            "error_dataToPooltokenFailed"
-        );
-        } else {
-            _mintPoolTokensFor(delegator, amount);
-            emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-        }
+        _mintPoolTokensFor(delegator, amount);
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
@@ -334,30 +321,30 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /////////////////////////////////////////
 
     function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.stake.selector, sponsorship, amountWei), "error_stakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._stake.selector, sponsorship, amountWei), "error_stakeFailed");
     }
     function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.reduceStakeTo.selector, sponsorship, targetStakeWei), "error_reduceStakeToFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei), "error_reduceStakeToFailed");
     }
     function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei), "error_reduceStakeWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei), "error_reduceStakeWithoutQueueFailed");
     }
     function unstake(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.unstake.selector, sponsorship), "error_unstakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstake.selector, sponsorship), "error_unstakeFailed");
     }
     function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.unstakeWithoutQueue.selector, sponsorship), "error_unstakeWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship), "error_unstakeWithoutQueueFailed");
     }
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.forceUnstake.selector, sponsorship, maxQueuePayoutIterations), "error_forceUnstakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations), "error_forceUnstakeFailed");
     }
     // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
     // function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) external;
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.withdrawEarningsFromSponsorships.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsFailed");
     }
     function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule.withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsWithoutQueueFailed");
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -464,64 +451,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
     function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
-        // add new nodes on top
-        for (uint i = 0; i < newNodes.length; i++) {
-            address node = newNodes[i];
-            if (nodeIndex[node] == 0) {
-                _addNode(node);
-            }
-            isInNewNodes[node] = true;
-        }
-        // remove from old nodes
-        for (uint i = 0; i < nodes.length;) {
-            address node = nodes[i];
-            if (!isInNewNodes[node]) {
-                _removeNode(node);
-            } else {
-                i++;
-            }
-        }
-        // reset lookup (TODO: replace with transient storage once https://eips.ethereum.org/EIPS/eip-1153 is available)
-        for (uint i = 0; i < newNodes.length; i++) {
-            address node = newNodes[i];
-            delete isInNewNodes[node];
-        }
-        emit NodesSet(nodes);
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._setNodeAddresses.selector, newNodes), "error_setNodeAddressesFailed");
     }
 
     /** First add then remove addresses (if in both lists, ends up removed!) */
     function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
-        for (uint i = 0; i < addNodes.length; i++) {
-            address node = addNodes[i];
-            if (nodeIndex[node] == 0) {
-                _addNode(node);
-            }
-        }
-        for (uint i = 0; i < removeNodes.length; i++) {
-            address node = removeNodes[i];
-            if (nodeIndex[node] > 0) {
-                _removeNode(node);
-            }
-        }
-        emit NodesSet(nodes);
-    }
-
-    function _addNode(address node) internal {
-        nodes.push(node);
-        nodeIndex[node] = nodes.length; // will be +1
-
-        streamRegistry.grantPermission(streamId, node, IStreamRegistryV4.PermissionType.Publish);
-    }
-
-    function _removeNode(address node) internal {
-        uint index = nodeIndex[node] - 1;
-        address lastNode = nodes[nodes.length - 1];
-        nodes[index] = lastNode;
-        nodes.pop();
-        nodeIndex[lastNode] = index + 1;
-        delete nodeIndex[node];
-
-        streamRegistry.revokePermission(streamId, node, IStreamRegistryV4.PermissionType.Publish);
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._updateNodeAddresses.selector, addNodes, removeNodes), "error_updateNodeAddressesFailed");
     }
 
     function getNodeAddresses() external view returns (address[] memory) {
@@ -543,22 +478,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
-            }
-        }
-        return queueLastIndex - queueCurrentIndex + 1;
+        return moduleGet(abi.encodeWithSelector(queueModule._queuePositionOf.selector, delegator), "error_queuePositionOfFailed");
     }
 
     /** Pay out up to maxIterations items in the queue */
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        if (maxIterations == 0) { maxIterations = 1 ether; }
-        for (uint i = 0; i < maxIterations; i++) {
-            if (payOutFirstInQueue()) {
-                break;
-            }
-        }
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueueWithFreeFunds.selector, maxIterations), "error_payOutQueueWithFreeFundsFailed");
     }
 
     /**
@@ -567,57 +492,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
     function payOutFirstInQueue() public returns (bool payoutComplete) {
-        uint balanceDataWei = token.balanceOf(address(this));
-        if (balanceDataWei == 0 || queueIsEmpty()) {
-            return true;
-        }
-
-        // Take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has,
-        //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
-        // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
-        address delegator = undelegationQueue[queueCurrentIndex].delegator;
-        uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
-        if (balanceOf(delegator) < amountPoolTokens + streamrConfig.minimumDelegationWei()) {
-            amountPoolTokens = balanceOf(delegator);
-        }
-
-        // nothing to pay => pop the queue item
-        if (amountPoolTokens == 0) {
-            delete undelegationQueue[queueCurrentIndex];
-            emit QueueUpdated(delegator, 0, queueCurrentIndex);
-            queueCurrentIndex++;
-            return false;
-        }
-
-        // convert to DATA and see if we have enough free funds to pay out the queue item in full
-        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
-        if (balanceDataWei >= amountDataWei) {
-            // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
-            delete undelegationQueue[queueCurrentIndex];
-            emit QueueUpdated(delegator, 0, queueCurrentIndex);
-            queueCurrentIndex++;
-        } else {
-            // not enough DATA for full payout => all free funds are paid out as a partial payment, update the item in the queue
-            amountDataWei = balanceDataWei;
-            amountPoolTokens = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                amountDataWei, 0), "error_dataToPooltokenFailed"
-            );
-            UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
-            uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
-            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
-            emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
-        }
-
-        // console.log("payOutFirstInQueue: pool tokens", amountPoolTokens, "DATA", amountDataWei);
-        _burn(delegator, amountPoolTokens);
-        token.transfer(delegator, amountDataWei);
-        emit Undelegated(delegator, amountDataWei);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-
-        return token.balanceOf(address(this)) == 0 || queueIsEmpty();
+        return moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutFirstInQueue.selector), "error_payOutFirstInQueueFailed") != 0;
     }
 
     /////////////////////////////////////////

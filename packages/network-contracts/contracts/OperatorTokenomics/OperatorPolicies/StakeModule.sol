@@ -17,7 +17,7 @@ contract StakeModule is IStakeModule, Operator {
      * Can only happen if all the delegators who want to undelegate have been paid out first.
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
-    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator override(Operator, IStakeModule) {
+    function _stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
         require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "error_badSponsorship");
         require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
         token.approve(address(sponsorship), amountWei);
@@ -41,14 +41,14 @@ contract StakeModule is IStakeModule, Operator {
      * Take out some of the stake from a sponsorship without completely unstaking
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
-    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator override(Operator, IStakeModule) {
+    function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
         // console.log("## reduceStake amountWei", amountWei);
         reduceStakeWithoutQueue(sponsorship, targetStakeWei);
         payOutQueueWithFreeFunds(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator override(Operator, IStakeModule) {
+    function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         if (targetStakeWei == 0) {
             unstakeWithoutQueue(sponsorship);
             return;
@@ -65,13 +65,13 @@ contract StakeModule is IStakeModule, Operator {
      * Unstake from a sponsorship
      * Throws if some of the stake is committed to a flag (being flagged or flagging others)
      **/
-    function unstake(Sponsorship sponsorship) public onlyOperator override(Operator, IStakeModule) {
+    function _unstake(Sponsorship sponsorship) public onlyOperator {
         unstakeWithoutQueue(sponsorship);
         payOutQueueWithFreeFunds(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator override(Operator, IStakeModule) {
+    function _unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
@@ -85,7 +85,7 @@ contract StakeModule is IStakeModule, Operator {
      * @param sponsorship the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
-    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external override(Operator, IStakeModule) {
+    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
         if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_accessDeniedOperatorOnly");
@@ -169,13 +169,13 @@ contract StakeModule is IStakeModule, Operator {
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
      * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public override(Operator, IStakeModule) {
+    function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
         payOutQueueWithFreeFunds(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public override(Operator, IStakeModule) {
+    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
         uint poolValueBeforeWithdraw = getApproximatePoolValue();
 
         uint sumEarnings = 0;
