@@ -5,6 +5,7 @@ import "hardhat-ignore-warnings"
 import "solidity-coverage"
 import "hardhat-dependency-compiler"
 import "@nomiclabs/hardhat-etherscan"
+import "hardhat-contract-sizer"
 // import "hardhat-gas-reporter"
 
 import { HardhatUserConfig } from "hardhat/types"
@@ -151,6 +152,12 @@ const config: HardhatUserConfig = {
     },
     mocha: {
         timeout: 100000000
+    },
+    contractSizer: {
+        alphaSort: true,
+        disambiguatePaths: false,
+        runOnCompile: true,
+        strict: false,
     }
 }
 export default config
