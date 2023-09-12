@@ -11,11 +11,11 @@ features:
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
-    network: xDai
+    network: mumbai
     source:
-      address: "0x231b810D98702782963472e1D60a25496999E75D"
+      address: "0xf28d173f3820280708C2F091355400838b9Fa32A"
       abi: StreamRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 40005543 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -37,11 +37,11 @@ dataSources:
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
-    network: xDai
+    network: mumbai
     source:
-      address: "0x642D2B84A32A9A92FEc78CeAA9488388b3704898"
+      address: "0xa354dCE2CA5d00CEd02E675F0Bb40ACbb7531031"
       abi: NodeRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 40005543 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -63,11 +63,11 @@ dataSources:
       file: ./src/nodeRegistry.ts
   - kind: ethereum/contract
     name: StreamStorageRegistry
-    network: xDai
+    network: mumbai
     source:
-      address: "0xCcc2CD65bbF6B2f62cEc8116A4d36CE043f13352"
+      address: "0x48d25dd5731AD644613b67E4281C505Ef392Dd70"
       abi: StreamStorageRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 40005543 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -86,11 +86,11 @@ dataSources:
       file: ./src/streamStorageRegistry.ts
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: xDai # xDai means dev1
+    network: mumbai # xDai means dev1
     source:
-      address: "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2"
+      address: "0xD2D07b9F64202b0AB999700398cE1486f6F99BF7"
       abi: ProjectRegistryV1
-      startBlock: 0
+      startBlock: 40005543
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -120,11 +120,11 @@ dataSources:
       file: ./src/projectRegistry.ts
   - kind: ethereum/contract
     name: MarketplaceV4
-    network: xDai
+    network: mumbai
     source:
-      address: "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5"
+      address: "0x76c250798634D46959e5437EdA8Bf4E133791627"
       abi: MarketplaceV4
-      startBlock: 0
+      startBlock: 40005543
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -140,11 +140,11 @@ dataSources:
       file: ./src/marketplaceV4.ts
   - kind: ethereum/contract
     name: ProjectStakingV1
-    network: xDai
+    network: mumbai
     source:
-      address: "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794"
+      address: "0xD2D07b9F64202b0AB999700398cE1486f6F99BF7"
       abi: ProjectStakingV1
-      startBlock: 0
+      startBlock: 40005543
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -163,12 +163,12 @@ dataSources:
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
     name: SponsorshipFactory
-    network: xDai
+    network: mumbai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x57B81a9442805f88c4617B506206531e72d96290'
+      address: '0x2719de44a5D83866D2b28238426C0eb83C65AD89'
       abi: SponsorshipFactory
-      startBlock: 0
+      startBlock: 40005543
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -184,12 +184,12 @@ dataSources:
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
-    network: xDai
+    network: mumbai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xfC31c70FafCbFe399195C789602ae2455B247fD2'
+      address: '0x0131026C7D81d4f49Cfa6d3946430C783a314dA1'
       abi: OperatorFactory
-      startBlock: 0
+      startBlock: 40005543
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -208,7 +208,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: xDai
+    network: mumbai
     source:
       abi: Sponsorship
     mapping:
@@ -247,7 +247,7 @@ templates:
         #   handler: handleOperatorLeft
   - name: Operator
     kind: ethereum/contract
-    network: xDai
+    network: mumbai
     source:
       abi: Operator
     mapping:
@@ -268,14 +268,14 @@ templates:
             handler: handleDelegated
           - event: Undelegated(indexed address,uint256)
             handler: handleUndelegated
-          - event: BalanceUpdate(address,uint256,uint256)
-            handler: handleBalanceUpdate
+          # - event: BalanceUpdate(address,uint256,uint256)
+          #   handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)
           #   handler: handleStakeUpdated
           - event: PoolValueUpdate(uint256,uint256)
             handler: handlePoolValueUpdate
-          - event: Profit(uint256,uint256,uint256)
+          - event: Profit(uint256,uint256)
             handler: handleProfit
           - event: Loss(uint256)
             handler: handleLoss
