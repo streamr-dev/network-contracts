@@ -866,7 +866,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1950"))
 
-        await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
+        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1940"))
     })
 
@@ -886,7 +886,7 @@ describe("Operator contract", (): void => {
         const totalStakeInSponsorshipsAfterStake = await operator.totalStakedIntoSponsorshipsWei()
         const approxPoolValueAfterStake = await operator.getApproximatePoolValue()
 
-        await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
+        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
         const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
         const approxPoolValueAfterSlashing = await operator.getApproximatePoolValue()
 
@@ -1121,11 +1121,11 @@ describe("Operator contract", (): void => {
 
             await advanceToTimestamp(start, "Flag starts")
             await (await flagger.setNodeAddresses([])).wait()
-            await expect(flagger.flag(sponsorship.address, target.address))
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.be.revertedWith("error_accessDeniedNodesOnly")
 
             await (await flagger.setNodeAddresses([await flagger.owner()])).wait()
-            await expect(flagger.flag(sponsorship.address, target.address))
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
 
             await advanceToTimestamp(start + VOTE_START, "Voting starts")
