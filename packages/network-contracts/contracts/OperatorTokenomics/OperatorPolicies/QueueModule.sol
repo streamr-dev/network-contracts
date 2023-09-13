@@ -8,21 +8,6 @@ import "../Operator.sol";
 
 contract QueueModule is IQueueModule, Operator {
 
-    /**
-     * Get the position of the LAST undelegation request in the queue for the given delegator.
-     * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
-     * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
-     */
-    function _queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
-            }
-        }
-        return queueLastIndex - queueCurrentIndex + 1;
-    }
-
     /** Pay out up to maxIterations items in the queue */
     function _payOutQueueWithFreeFunds(uint maxIterations) public {
         if (maxIterations == 0) { maxIterations = 1 ether; }
@@ -38,10 +23,10 @@ contract QueueModule is IQueueModule, Operator {
      * If free funds run out, only pay the first item partially and leave it in front of the queue.
      * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
-    function _payOutFirstInQueue() public returns (bool payoutComplete) {
+    function _payOutFirstInQueue() public returns (uint payoutComplete) {
         uint balanceDataWei = token.balanceOf(address(this));
         if (balanceDataWei == 0 || queueIsEmpty()) {
-            return true;
+            return 1;
         }
 
         // Take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has,
@@ -58,7 +43,7 @@ contract QueueModule is IQueueModule, Operator {
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
-            return false;
+            return 0;
         }
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
@@ -89,6 +74,6 @@ contract QueueModule is IQueueModule, Operator {
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
-        return token.balanceOf(address(this)) == 0 || queueIsEmpty();
+        return token.balanceOf(address(this)) == 0 || queueIsEmpty() ? 1 : 0;
     }
 }
