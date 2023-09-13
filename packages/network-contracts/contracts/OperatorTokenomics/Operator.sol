@@ -299,21 +299,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Add the request to undelegate into the undelegation queue */
     function undelegate(uint amountPoolTokenWei) public {
-        // console.log("## undelegate");
-        require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
-
-        address undelegator = _msgSender();
-
-        // check if the undelegation policy allows this undelegation
-        // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
-        if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei), "error_undelegationPolicyFailed");
-        }
-
-        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        emit QueuedDataPayout(undelegator, amountPoolTokenWei, queueLastIndex);
-        queueLastIndex++;
-        payOutQueueWithFreeFunds(0);
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountPoolTokenWei), "error_undelegateFailed");
     }
 
     /////////////////////////////////////////
@@ -371,38 +357,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
-        uint balanceBeforeWei = token.balanceOf(address(this));
-        other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
-        uint balanceAfterWei = token.balanceOf(address(this));
-        uint earnings = balanceAfterWei - balanceBeforeWei;
-        require(earnings > 0, "error_didNotReceiveReward");
-        // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
-        _mintPoolTokensFor(owner, earnings);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._triggerAnotherOperatorWithdraw.selector, other, sponsorshipAddresses), "error_triggerAnotherOperatorWithdrawFailed");
     }
 
     /**
-     * Convenience method to get all sponsorship values
-     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
-     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
-     * @dev Don't call from other smart contracts in a transaction, could be expensive!
-     **/
-    function getEarningsFromSponsorships() external view returns (
-        address[] memory sponsorshipAddresses,
-        uint[] memory earnings,
-        uint rewardLimit
-    ) {
-        sponsorshipAddresses = new address[](sponsorships.length);
-        earnings = new uint[](sponsorships.length);
-        for (uint i = 0; i < sponsorships.length; i++) {
-            Sponsorship sponsorship = sponsorships[i];
-            sponsorshipAddresses[i] = address(sponsorship);
-            earnings[i] = sponsorship.getEarnings(address(this));
-        }
-        rewardLimit = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
-    }
-
-       /**
      * Convenience method to get all sponsorships and their outstanding earnings
      * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
      * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward

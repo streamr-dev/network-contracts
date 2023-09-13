@@ -8,6 +8,24 @@ import "../Operator.sol";
 
 contract QueueModule is IQueueModule, Operator {
 
+    /** Add the request to undelegate into the undelegation queue */
+    function _undelegate(uint amountPoolTokenWei) public {
+        // console.log("## undelegate");
+        require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
+
+        address undelegator = _msgSender();
+
+        // check if the undelegation policy allows this undelegation
+        // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
+        if (address(undelegationPolicy) != address(0)) {
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei), "error_undelegationPolicyFailed");
+        }
+
+        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(undelegator, amountPoolTokenWei, queueLastIndex);
+        queueLastIndex++;
+        payOutQueueWithFreeFunds(0);
+    }
     /** Pay out up to maxIterations items in the queue */
     function _payOutQueueWithFreeFunds(uint maxIterations) public {
         if (maxIterations == 0) { maxIterations = 1 ether; }
@@ -75,5 +93,21 @@ contract QueueModule is IQueueModule, Operator {
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty() ? 1 : 0;
+    }
+
+    /**
+     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * The reward will be re-delegated for the owner (same way as withdrawn earnings)
+     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
+     **/
+    function _triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+        uint balanceBeforeWei = token.balanceOf(address(this));
+        other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        uint balanceAfterWei = token.balanceOf(address(this));
+        uint earnings = balanceAfterWei - balanceBeforeWei;
+        require(earnings > 0, "error_didNotReceiveReward");
+        // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
+        _mintPoolTokensFor(owner, earnings);
+        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
     }
 }
