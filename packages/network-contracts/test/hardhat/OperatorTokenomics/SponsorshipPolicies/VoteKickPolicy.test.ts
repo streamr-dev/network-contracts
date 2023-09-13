@@ -572,5 +572,95 @@ describe("VoteKickPolicy", (): void => {
 
             expect(await sponsorship.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
         })
+
+        it("flagger can open flags up to the staked amount minus the slashing amount if kicked", async function(): Promise<void> {
+            const { streamrConfig } = contracts
+            const minimumStakeWei = await streamrConfig.minimumStakeWei() // 60 tokens
+            const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [8], "max-flags", {
+                stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
+            })
+            
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
+            await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[1].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[2].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[3].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[4].address)).wait()
+            await expect(flagger.flag(sponsorship.address, targets[5].address))
+                .to.be.revertedWith("error_notEnoughStake")
+        })
+
+        it("ensures a flagger that opens flags maximally can still be flagged", async function(): Promise<void> {
+            const { streamrConfig } = contracts
+            
+            const minimumStakeWei = await streamrConfig.minimumStakeWei() // 60 tokens
+            const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagged", {
+                stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
+            })
+            
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
+            await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[1].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[2].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[3].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[4].address)).wait()
+            // flagger would still have 10 tokens left to flag (stakeWei - committedStakeWei)
+            // but forbitted to do so since there must be enough tokens to pay for a potential penalty kick as well
+            await expect(flagger.flag(sponsorship.address, targets[5].address))
+                .to.be.revertedWith("error_notEnoughStake")
+
+            expect(await sponsorship.committedStakeWei(flagger.address))
+                .to.equal(parseEther("50")) // flagsCount * flagStakeWei => 5 * 10 = 50
+
+            await advanceToTimestamp(start + 1000, `${addr(targets[0])} flags ${addr(flagger)}`)
+            await expect(targets[0].flag(sponsorship.address, flagger.address))
+                .to.emit(targets[1], "ReviewRequest").withArgs(sponsorship.address, flagger.address, "")
+            
+            expect(await sponsorship.committedStakeWei(flagger.address))
+                .to.equal(parseEther("56")) // flagsCount * flagStakeWei - stakedWei * slashingFraction => 5 * 10 + 60 * 0.1 = 56
+            await expect(flagger.flag(sponsorship.address, targets[5].address))
+                .to.be.revertedWith("error_notEnoughStake")
+        })
+
+        it("ensures a flagger that opens flags maximally can still pay the early leave penalty", async function(): Promise<void> {
+            const { token, streamrConfig } = contracts
+            
+            const minimumStakeWei = await streamrConfig.minimumStakeWei() // 60 tokens
+            const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagged", {
+                stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
+                sponsorshipSettings: { penaltyPeriodSeconds: await streamrConfig.maxPenaltyPeriodSeconds() }
+            })
+            
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
+            await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[1].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[2].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[3].address)).wait()
+            await (await flagger.flag(sponsorship.address, targets[4].address)).wait()
+            // flagger would still have 10 tokens left to flag (stakeWei - committedStakeWei)
+            // but forbitted to do so since there must be enough tokens to pay for a potential early leave penalty (e.g. stake * slashingFraction)
+            await expect(flagger.flag(sponsorship.address, targets[5].address))
+                .to.be.revertedWith("error_notEnoughStake")
+
+            expect(await token.balanceOf(flagger.address))
+                .to.equal(parseEther("0"))
+            expect(await sponsorship.stakedWei(flagger.address))
+                .to.equal(parseEther("60"))
+            expect(await sponsorship.committedStakeWei(flagger.address))
+                .to.equal(parseEther("50")) // flagsCount * flagStakeWei => 5 * 10 = 50
+
+            await advanceToTimestamp(start + 1000, `${addr(targets[0])} flags ${addr(flagger)}`)
+            await flagger.forceUnstake(sponsorship.address, 0)
+
+            expect(await token.balanceOf(flagger.address))
+                .to.equal(parseEther("4")) // staked - forfeited flag-stakes - leave penalty => 60 - 5 * 10 - 6
+            expect(await sponsorship.stakedWei(flagger.address))
+                .to.equal(parseEther("0")) // left the sponsorship => remaining stake was withdrawn
+            expect(await sponsorship.committedStakeWei(flagger.address))
+                .to.equal(parseEther("0")) // left the sponsorship => committedStakeWei is resetted
+        })
     })
 })
