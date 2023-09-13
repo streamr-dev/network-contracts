@@ -64,11 +64,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedOperatorOnly();
     error AccessDeniedNodesOnly();
     error DelegationBelowMinimum();
-    error OnlyDATAToken();
+    error AccessDeniedDATATokenOnly();
     error NotMyStakedSponsorship();
-    error NotStreamrSponsorship();
-    error ModuleCallErr();
-    error MustBeThis();
+    error AccessDeniedStreamrSponsorshipOnly();
+    error ModuleCallError();
+    error AccessDenied();
     error StakedInSponsorships();
     error NoEarnings();
     error FirstEmptyQueueThenStake();
@@ -76,7 +76,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error DidNotReceiveReward();
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
-    // bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -264,7 +263,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         if (_msgSender() != address(token)) {
-            revert OnlyDATAToken();
+            revert AccessDeniedDATATokenOnly();
         }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
@@ -341,8 +340,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
     }
-    // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
-    // function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) external;
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
     }
@@ -503,7 +500,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function onReviewRequest(address targetOperator) external {
         if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) == 0) {
-            revert NotStreamrSponsorship();
+            revert AccessDeniedStreamrSponsorshipOnly();
         }
         Sponsorship sponsorship = Sponsorship(_msgSender());
         emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
@@ -540,7 +537,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     fallback(bytes calldata args) external returns (bytes memory) {
         if (_msgSender() != address(this)) {
-            revert MustBeThis();
+            revert AccessDenied();
         }
 
         // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
@@ -560,7 +557,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallErr(); }
+            if (returndata.length == 0) { revert ModuleCallError(); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest

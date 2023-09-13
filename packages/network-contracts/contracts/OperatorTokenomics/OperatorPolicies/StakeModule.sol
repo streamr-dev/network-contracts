@@ -19,7 +19,7 @@ contract StakeModule is IStakeModule, Operator {
      **/
     function _stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
         if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
-            revert NotStreamrSponsorship();
+            revert AccessDeniedStreamrSponsorshipOnly();
         }
         if (!queueIsEmpty()) {
             revert FirstEmptyQueueThenStake();

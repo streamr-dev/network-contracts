@@ -942,7 +942,7 @@ describe("Operator contract", (): void => {
         const operator = await deployOperator(operatorWallet)
         await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
         await expect(operator.stake(sharedContracts.token.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "NotStreamrSponsorship")
+            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
     })
 
     it("will NOT allow staking to Sponsorships that were not created using the correct SponsorshipFactory", async function(): Promise<void> {
@@ -951,7 +951,7 @@ describe("Operator contract", (): void => {
         const badSponsorship = sharedContracts.sponsorshipTemplate
         await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
         await expect(operator.stake(badSponsorship.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "NotStreamrSponsorship")
+            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
         await expect(operator.stake(sponsorship.address, parseEther("1000")))
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
     })
@@ -991,7 +991,7 @@ describe("Operator contract", (): void => {
         await (await newToken.mint(admin.address, parseEther("1000"))).wait()
         const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 25 })
         await expect(newToken.transferAndCall(operator.address, parseEther("100"), "0x"))
-            .to.be.revertedWithCustomError(operator, "OnlyDATAToken")
+            .to.be.revertedWithCustomError(operator, "AccessDeniedDATATokenOnly")
 
         await (await token.mint(admin.address, parseEther("1000"))).wait()
         await expect(token.transferAndCall(operator.address, parseEther("100"), "0x"))
