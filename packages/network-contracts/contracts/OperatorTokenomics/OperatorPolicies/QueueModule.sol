@@ -10,15 +10,16 @@ contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
     function _undelegate(uint amountPoolTokenWei) public {
-        // console.log("## undelegate");
-        require(amountPoolTokenWei > 0, "error_zeroUndelegation"); // TODO: should there be minimum undelegation amount?
+        if (amountPoolTokenWei == 0) { // TODO: should there be minimum undelegation amount?
+            revert ZeroUndelegation();
+        }
 
         address undelegator = _msgSender();
 
         // check if the undelegation policy allows this undelegation
         // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
         if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei), "error_undelegationPolicyFailed");
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
         }
 
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
@@ -66,7 +67,7 @@ contract QueueModule is IQueueModule, Operator {
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
         uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokens, 0), "error_yieldPolicy_pooltokenToData_Failed");
+            amountPoolTokens, 0));
         if (balanceDataWei >= amountDataWei) {
             // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
@@ -77,8 +78,7 @@ contract QueueModule is IQueueModule, Operator {
             amountDataWei = balanceDataWei;
             amountPoolTokens = moduleCall(address(yieldPolicy),
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
-                amountDataWei, 0), "error_dataToPooltokenFailed"
-            );
+                amountDataWei, 0));
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
@@ -105,7 +105,9 @@ contract QueueModule is IQueueModule, Operator {
         other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
-        require(earnings > 0, "error_didNotReceiveReward");
+        if (earnings == 0) {
+            revert DidNotReceiveReward();
+        }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);

@@ -18,8 +18,12 @@ contract StakeModule is IStakeModule, Operator {
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
     function _stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) > 0, "error_badSponsorship");
-        require(queueIsEmpty(), "error_firstEmptyQueueThenStake");
+        if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
+            revert NotStreamrSponsorship();
+        }
+        if (!queueIsEmpty()) {
+            revert FirstEmptyQueueThenStake();
+        }
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
@@ -87,8 +91,8 @@ contract StakeModule is IStakeModule, Operator {
      */
     function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
-            require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_accessDeniedOperatorOnly");
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() && !hasRole(CONTROLLER_ROLE, _msgSender())) { // solhint-disable-line not-rely-on-time
+            revert AccessDeniedOperatorOnly();
         }
 
         uint balanceBeforeWei = token.balanceOf(address(this));
@@ -182,7 +186,9 @@ contract StakeModule is IStakeModule, Operator {
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
-        require(sumEarnings > 0, "error_noEarnings");
+        if (sumEarnings == 0) {
+            revert NoEarnings();
+        }
 
         // if the caller is an outsider, and if sum of earnings are more than allowed, then give part of the operator's cut to the caller as a reward
         address penaltyRecipient = address(0);

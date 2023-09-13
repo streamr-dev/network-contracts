@@ -61,7 +61,22 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event NodesSet(address[] nodes);
     event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsCutFraction); // = owner() of this contract
 
+    error AccessDeniedOperatorOnly();
+    error AccessDeniedNodesOnly();
+    error DelegationBelowMinimum();
+    error OnlyDATAToken();
+    error NotMyStakedSponsorship();
+    error NotStreamrSponsorship();
+    error ModuleCallErr();
+    error MustBeThis();
+    error StakedInSponsorships();
+    error NoEarnings();
+    error FirstEmptyQueueThenStake();
+    error ZeroUndelegation();
+    error DidNotReceiveReward();
+
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    // bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -123,12 +138,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     string public metadata;
 
     modifier onlyOperator() {
-        require(hasRole(CONTROLLER_ROLE, _msgSender()), "error_accessDeniedOperatorOnly");
+        if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
+            revert AccessDeniedOperatorOnly();
+        }
         _;
     }
 
     modifier onlyNodes() {
-        require(nodeIndex[_msgSender()] > 0, "error_accessDeniedNodesOnly");
+        if (nodeIndex[_msgSender()] == 0) {
+            revert AccessDeniedNodesOnly();
+        }
         _;
     }
 
@@ -179,7 +198,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         metadata = operatorMetadataJson;
         emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
 
-        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector), "error_createCoordinationStreamFailed");
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector));
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
@@ -193,10 +212,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _transfer(address from, address to, uint amount) internal override {
         // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
         uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        require(balanceOf(to) + amount >= minimumDelegationWei &&
-            (balanceOf(from) >= amount + minimumDelegationWei || balanceOf(from) == amount),
-            "error_delegationBelowMinimum"
-        );
+        if (balanceOf(to) + amount < minimumDelegationWei ||
+            (balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)) {
+            revert DelegationBelowMinimum();
+        }
         super._transfer(from, to, amount);
         emit BalanceUpdate(from, balanceOf(from), totalSupply());
         emit BalanceUpdate(to, balanceOf(to), totalSupply());
@@ -210,7 +229,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
         // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
-        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)), "error_pooltokenToData_Failed");
+        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)));
         // console.log("getMyBalanceInData dataWei", dataWei);
         return dataWei;
     }
@@ -244,9 +263,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *    Those tokens are "gifted" to the Operator contract, and won't be delegated for anyone, but instead count as Profit.
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        // console.log("## onTokenTransfer from", sender);
-        // console.log("onTokenTransfer amount", amount);
-        require(_msgSender() == address(token), "error_onlyDATAToken");
+        if (_msgSender() != address(token)) {
+            revert OnlyDATAToken();
+        }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -283,14 +302,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
         uint amountPoolToken = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei),
-            "error_dataToPooltokenFailed"
-        );
+            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountPoolToken);
 
         // check if the delegation policy allows this delegation
         if (address(delegationPolicy) != address(0)) {
-            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator), "error_delegationPolicyFailed");
+            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
         }
 
         emit Delegated(delegator, amountDataWei);
@@ -299,7 +316,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Add the request to undelegate into the undelegation queue */
     function undelegate(uint amountPoolTokenWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountPoolTokenWei), "error_undelegateFailed");
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountPoolTokenWei));
     }
 
     /////////////////////////////////////////
@@ -307,30 +324,30 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /////////////////////////////////////////
 
     function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._stake.selector, sponsorship, amountWei), "error_stakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._stake.selector, sponsorship, amountWei));
     }
     function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei), "error_reduceStakeToFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei));
     }
     function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei), "error_reduceStakeWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei));
     }
     function unstake(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstake.selector, sponsorship), "error_unstakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstake.selector, sponsorship));
     }
     function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship), "error_unstakeWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
     }
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations), "error_forceUnstakeFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
     }
     // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
     // function _handleProfit(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) external;
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
     }
     function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses), "error_withdrawEarningsFromSponsorshipsWithoutQueueFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -345,7 +362,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Operator can update it's cut if it isn't staked into any Sponsorships
      */
     function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
-        require(totalStakedIntoSponsorshipsWei == 0, "error_stakedInSponsorships");
+        if (totalStakedIntoSponsorshipsWei > 0) {
+            revert StakedInSponsorships();
+        }
 
         operatorsCutFraction = newOperatorsCutFraction;
         emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
@@ -357,7 +376,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._triggerAnotherOperatorWithdraw.selector, other, sponsorshipAddresses), "error_triggerAnotherOperatorWithdrawFailed");
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._triggerAnotherOperatorWithdraw.selector, other, sponsorshipAddresses));
     }
 
     /**
@@ -409,12 +428,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
     function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
-        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._setNodeAddresses.selector, newNodes), "error_setNodeAddressesFailed");
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._setNodeAddresses.selector, newNodes));
     }
 
     /** First add then remove addresses (if in both lists, ends up removed!) */
     function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
-        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._updateNodeAddresses.selector, addNodes, removeNodes), "error_updateNodeAddressesFailed");
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._updateNodeAddresses.selector, addNodes, removeNodes));
     }
 
     function getNodeAddresses() external view returns (address[] memory) {
@@ -446,7 +465,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** Pay out up to maxIterations items in the queue */
     function payOutQueueWithFreeFunds(uint maxIterations) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueueWithFreeFunds.selector, maxIterations), "error_payOutQueueWithFreeFundsFailed");
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueueWithFreeFunds.selector, maxIterations));
     }
 
     /**
@@ -455,7 +474,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
     function payOutFirstInQueue() public returns (bool payoutComplete) {
-        return moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutFirstInQueue.selector), "error_payOutFirstInQueueFailed") != 0;
+        return moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutFirstInQueue.selector)) != 0;
     }
 
     /////////////////////////////////////////
@@ -464,7 +483,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        if (indexOfSponsorships[sponsorship] == 0) {
+            revert NotMyStakedSponsorship();
+        }
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
@@ -473,13 +494,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function onKick(uint, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(_msgSender());
-        require(indexOfSponsorships[sponsorship] > 0, "error_notMyStakedSponsorship");
+        if (indexOfSponsorships[sponsorship] == 0) {
+            revert NotMyStakedSponsorship();
+        }
         // _removeSponsorship(sponsorship, receivedPayoutWei);
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._removeSponsorship.selector, sponsorship, receivedPayoutWei), "error_removeSponsorshipFailed");
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._removeSponsorship.selector, sponsorship, receivedPayoutWei));
     }
 
     function onReviewRequest(address targetOperator) external {
-        require(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) > 0, "error_onlySponsorship");
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) == 0) {
+            revert NotStreamrSponsorship();
+        }
         Sponsorship sponsorship = Sponsorship(_msgSender());
         emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
     }
@@ -490,17 +515,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function setDelegationPolicy(IDelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         delegationPolicy = policy;
-        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param), "error_setDelegationPolicyFailed");
+        moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
     }
 
     function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param), "error_setYieldPolicyFailed");
+        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
     }
 
     function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         undelegationPolicy = policy;
-        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param), "error_setUndelegationPolicyFailed");
+        moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.setParam.selector, param));
     }
 
     /* solhint-disable */
@@ -514,7 +539,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        require(_msgSender() == address(this), "error_mustBeThis");
+        if (_msgSender() != address(this)) {
+            revert MustBeThis();
+        }
 
         // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
         uint len = args.length; // 4 byte selector + 32 bytes per argument
@@ -530,10 +557,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
+    function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
+            if (returndata.length == 0) { revert ModuleCallErr(); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -542,11 +569,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /** Call a module's view function via staticcall to local fallback */
-    function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
+    function moduleGet(bytes memory callBytes) internal view returns (uint returnValue) {
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
+            if (returndata.length == 0) { revert(); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
