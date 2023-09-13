@@ -10,7 +10,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "test:fast"
+                "streamrEnvDeployer"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
@@ -111,7 +111,7 @@
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}/packages/network-contracts"
         },
         {
             "type": "node",

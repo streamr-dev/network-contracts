@@ -37,6 +37,10 @@ query {
 1. [Set up docker multi architecture builds with buildx](https://www.docker.com/blog/how-to-rapidly-build-multi-architecture-images-with-buildx/)
     * `docker buildx create --name mybuilder --use --bootstrap`
     * Check mybuilder is in `docker buildx ls`
+1. Clean up
+    * Stop and remove all containers: `streamr-docker-dev stop`
+    * Remove images: `docker rmi streamr/dev-chain-fast:dev streamr/deploy-network-subgraphs:dev-fastchain`
+    * Clear the volumes: `streamr-docker-dev wipe`
 1. Build and push the images
     * `cd packages/dev-chain-fast && npm run buildMultiArchAndPush`
     * `cd packages/network-subgraphs && npm run docker:buildAndPushMultiArch`
