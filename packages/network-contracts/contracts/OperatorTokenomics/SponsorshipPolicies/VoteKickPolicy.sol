@@ -84,7 +84,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
         committedStakeWei[flagger] += flagStakeWei[target];
-        require(committedStakeWei[flagger] <= stakedWei[flagger], "error_notEnoughStake");
+        require(committedStakeWei[flagger]  <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()) / 1 ether, "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
         Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
