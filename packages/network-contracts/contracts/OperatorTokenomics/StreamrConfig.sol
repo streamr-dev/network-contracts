@@ -207,6 +207,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         operatorLivenessRegistry = operatorFactoryAddress;
     }
 
+    function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newSlashingFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        slashingFraction = newSlashingFraction;
+    }
+
     function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         operatorContractOnlyJoinPolicy = operatorContractOnlyJoinPolicyAddress;
     }
