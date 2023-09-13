@@ -20,7 +20,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
      */
     function minimumStakeWei() public view returns (uint) {
-        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 100 * slashingFraction / 1 ether;
+        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
     }
 
     /**
@@ -68,7 +68,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      *   this is the fraction of the operator's cut that is sent out to the caller.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      * E.g. if poolValueDriftPenaltyFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
-     *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA. 
+     *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA.
      */
     uint public poolValueDriftPenaltyFraction;
 
@@ -120,8 +120,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
      *      The total committed stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + slashing percent of stake that's left into the sponsorship (= committed)
-     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing percent of total committed stake
+     *        flag stakes >= reviewer fees + slashing from stake that's left into the sponsorship (= committed)
+     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total committed stake
      *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes committed stake)
      *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
      */

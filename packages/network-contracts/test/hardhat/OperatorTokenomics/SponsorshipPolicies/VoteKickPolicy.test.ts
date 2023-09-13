@@ -579,7 +579,7 @@ describe("VoteKickPolicy", (): void => {
             const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [8], "max-flags", {
                 stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
             })
-            
+
             const start = await getBlockTimestamp()
             await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
             await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
@@ -593,12 +593,12 @@ describe("VoteKickPolicy", (): void => {
 
         it("ensures a flagger that opens flags maximally can still be flagged", async function(): Promise<void> {
             const { streamrConfig } = contracts
-            
+
             const minimumStakeWei = await streamrConfig.minimumStakeWei() // 60 tokens
             const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagged", {
                 stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
             })
-            
+
             const start = await getBlockTimestamp()
             await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
             await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
@@ -617,7 +617,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start + 1000, `${addr(targets[0])} flags ${addr(flagger)}`)
             await expect(targets[0].flag(sponsorship.address, flagger.address))
                 .to.emit(targets[1], "ReviewRequest").withArgs(sponsorship.address, flagger.address, "")
-            
+
             expect(await sponsorship.committedStakeWei(flagger.address))
                 .to.equal(parseEther("56")) // flagsCount * flagStakeWei - stakedWei * slashingFraction => 5 * 10 + 60 * 0.1 = 56
             await expect(flagger.flag(sponsorship.address, targets[5].address))
@@ -626,13 +626,13 @@ describe("VoteKickPolicy", (): void => {
 
         it("ensures a flagger that opens flags maximally can still pay the early leave penalty", async function(): Promise<void> {
             const { token, streamrConfig } = contracts
-            
+
             const minimumStakeWei = await streamrConfig.minimumStakeWei() // 60 tokens
             const { sponsorships: [ sponsorship ], operators: [ flagger, ...targets ] } = await setupSponsorships(contracts, [7], "extreme-flagged", {
                 stakeAmountWei: minimumStakeWei, // flag-stake is 10 tokens
                 sponsorshipSettings: { penaltyPeriodSeconds: await streamrConfig.maxPenaltyPeriodSeconds() }
             })
-            
+
             const start = await getBlockTimestamp()
             await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
             await (await flagger.flag(sponsorship.address, targets[0].address)).wait()
