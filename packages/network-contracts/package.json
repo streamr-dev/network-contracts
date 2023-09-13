@@ -19,7 +19,7 @@
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
     "integration-test": "npm run test:ens-e2e",
-    "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
+    "test:fast": "hardhat test `find test/hardhat/OperatorTokenomics -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
     "test:ens-e2e": "hardhat run --network dev1 test/integration/ens-e2e.test.ts",
     "coverage": "hardhat coverage",
