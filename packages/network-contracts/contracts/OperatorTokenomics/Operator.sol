@@ -451,7 +451,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
-     function queuePositionOf(address delegator) external view returns (uint) {
+    function queuePositionOf(address delegator) external view returns (uint) {
         for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
             if (undelegationQueue[i].delegator == delegator) {
                 return i - queueCurrentIndex + 1;
