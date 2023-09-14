@@ -29,12 +29,12 @@
     "@openzeppelin/contracts": "~4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",
     "@streamr/network-contracts": "3.0.0",
-    "@streamr/config": "latest",
-    "@uniswap/v2-core": "^1.0.1",
-    "@uniswap/v2-periphery": "^1.1.0-beta.0",
-    "node-fetch": "2.6.6"
+    "@streamr/config": "latest"
   },
   "devDependencies": {
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "node-fetch": "2.6.6",
     "streamr-client": "^6.0.9",
     "@hyperlane-xyz/core": "1.2.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
