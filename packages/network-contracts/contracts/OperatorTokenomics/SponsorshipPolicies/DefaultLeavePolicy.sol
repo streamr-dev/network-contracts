@@ -23,8 +23,8 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
         uint stake = stakedWei[operator];
         // console.log("getLeavePenaltyWei, stake =", stake, isRunning() ? "[running]" : "[NOT running]", isFunded() ? "[funded]" : "[NOT funded]");
         if (isRunning() && isFunded()) {
-            // console.log("Leaving a running sponsorship too early, lose 10% of stake");
-            return stake / 10;
+            // console.log("Leaving a running sponsorship too early, lose slashingFraction of stake");
+            return stake * streamrConfig.slashingFraction() / 1 ether;
         }
         // console.log("Sponsorship not running, get stake back");
         return 0;

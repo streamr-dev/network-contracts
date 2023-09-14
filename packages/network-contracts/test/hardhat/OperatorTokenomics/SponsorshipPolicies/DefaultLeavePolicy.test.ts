@@ -59,7 +59,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(sponsorship.connect(operator).unstake())
             .to.be.revertedWith("error_leavePenalty")
 
-        // lose 10% = 10 DATA because leaving a "running" sponsorship too early
+        // lose slashingFraction = 10 DATA because leaving a "running" sponsorship too early
         await (await sponsorship.connect(operator).forceUnstake()).wait()
         const tokensAfterLeaving = await token.balanceOf(operator.address)
 
@@ -102,7 +102,7 @@ describe("DefaultLeavePolicy", (): void => {
             .to.be.revertedWith("error_leavePenalty")
 
         // TODO: for some reason advanceToTimestamp goes to 300 when I set 299?! So next tx is at 301, which would be correct
-        await advanceToTimestamp(timeAtStart + 299, "operator 1 forceUnstakes while sponsorship is running, loses 10% of 1000 = 100")
+        await advanceToTimestamp(timeAtStart + 299, "operator 1 forceUnstakes while sponsorship is running, loses slashingFraction * 1000 = 100")
         await (await sponsorship.connect(operator).forceUnstake()).wait()
         expect(!await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
@@ -112,7 +112,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(!await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
-        // operator loses 10% of 1000 = 100, gets 900 back + 100 earnings = 1000 same as staked
+        // operator loses slashingFraction * 1000 = 100, gets 900 back + 100 earnings = 1000 same as staked
         expect(await token.balanceOf(operator.address)).to.equal(parseEther("1000"))
         // operator2 keeps stake, gets 1000 back + 100 earnings = 1100
         expect(await token.balanceOf(operator2.address)).to.equal(parseEther("1100"))
