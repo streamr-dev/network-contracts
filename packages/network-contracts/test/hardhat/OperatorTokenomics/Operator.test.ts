@@ -237,6 +237,69 @@ describe("Operator contract", (): void => {
     })
 
     describe("Withdrawing and profit sharing", () => {
+
+        // corresponds to a test in network repo / broker subsystem / operator plugin:
+        // https://github.com/streamr-dev/network/blob/streamr-1.0/packages/broker/test/integration/plugins/operator/maintainOperatorPoolValue.test.ts
+        it("can withdraw from sponsorship (happy path)", async function(): Promise<void> {
+            const STAKE_AMOUNT = "100"
+            const STAKE_AMOUNT_WEI = parseEther(STAKE_AMOUNT)
+            const operatorsCutFraction = parseEther("0.1") // 10%
+            const triggerWithdrawLimitSeconds = 50
+
+            //  We stake 100 tokens and start a sponsorship which generates 1 token of earnings per second. Then we wait
+            //  until we've earned enough tokens so that the pool value has drifted at least for 2.5 tokens.
+            //  The default drift limit is 5 token (5% of 100 staked  tokens, see StreamrConfig.sol#poolValueDriftLimitFraction
+            //  in network-contracts), and the configured safe limit in this test is 50%, i.e. 2.5 tokens.
+            // const { operatorWallet, operatorContract, operatorServiceConfig, nodeWallets } = await setupOperatorContract({
+            //     nodeCount: 1,
+            //     operatorConfig: {
+            //         operatorsCutPercent: 10
+            //     }
+            // })
+            // const sponsorer = await generateWalletWithGasAndTokens()
+            // const sponsorship = await deploySponsorshipContract({ earningsPerSecond: parseEther('1'), streamId, deployer: operatorWallet })
+            // await sponsor(sponsorer, sponsorship.address, 250)
+            // await delegate(operatorWallet, operatorContract.address, STAKE_AMOUNT)
+            // await stake(operatorContract, sponsorship.address, STAKE_AMOUNT)
+            // const helper = new MaintainOperatorPoolValueHelper({ ...operatorServiceConfig, signer: nodeWallets[0] })
+            // const { rewardThresholdDataWei } = await helper.getMyUnwithdrawnEarnings()
+            // const triggerWithdrawLimitDataWei = multiply(rewardThresholdDataWei, 1 - SAFETY_FRACTION)
+
+            const { token } = sharedContracts
+
+            const operatorWallet = Wallet.createRandom().connect(admin.provider)
+            admin.sendTransaction({ to: operatorWallet.address, value: parseEther("1") })
+            await setTokens(operatorWallet, STAKE_AMOUNT)
+
+            await setTokens(sponsor, "250")
+            const operatorContract = await deployOperatorContract(sharedContracts, operatorWallet, operatorsCutFraction)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("250"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, STAKE_AMOUNT_WEI, "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await (await operatorContract.stake(sponsorship.address, STAKE_AMOUNT_WEI)).wait()
+
+            // await waitForCondition(async () => {
+            //     const { sumDataWei } = await helper.getMyUnwithdrawnEarnings()
+            //     const unwithdrawnEarnings = sumDataWei
+            //     return unwithdrawnEarnings > triggerWithdrawLimitDataWei
+            // }, 10000, 1000)
+            // const poolValueBeforeWithdraw = await operatorContract.getApproximatePoolValue()
+
+            await advanceToTimestamp(timeAtStart + 1 + triggerWithdrawLimitSeconds, "Withdraw")
+            const sponsorshipsBeforeWithdraw = await operatorContract.getSponsorshipsAndEarnings()
+            const poolValueBeforeWithdraw = await operatorContract.getApproximatePoolValue()
+            await (await operatorContract.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
+            const sponsorshipsAfterWithdraw = await operatorContract.getSponsorshipsAndEarnings()
+            const poolValueAfterWithdraw = await operatorContract.getApproximatePoolValue()
+
+            expect(poolValueAfterWithdraw).to.be.greaterThan(poolValueBeforeWithdraw)
+            expect(sponsorshipsBeforeWithdraw.earnings[0]).to.equal(parseEther("1").mul(triggerWithdrawLimitSeconds))
+            expect(sponsorshipsAfterWithdraw.earnings[0]).to.equal(0)
+        })
+
         it("withdraws sponsorships earnings when withdrawEarningsFromSponsorships is called", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(sponsor, "1000")
