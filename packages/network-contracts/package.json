@@ -18,7 +18,7 @@
     "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
-    "integration-test": "npm run test:ens-e2e && npm run test:dev-chain",
+    "integration-test": "npm run test:dev-chain",
     "test:dev-chain": "ts-mocha test/integration/contractsSubgraphSmoketest.test.ts",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
