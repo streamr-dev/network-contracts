@@ -9,6 +9,11 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
 
     uint public penaltyPeriodSeconds = 0;
 
+    function setParam(uint penaltyPeriod) external {
+        require (penaltyPeriod <= streamrConfig.maxPenaltyPeriodSeconds(), "error_penaltyPeriodTooLong");
+        penaltyPeriodSeconds = penaltyPeriod;
+    }
+
     /**
      * After penaltyPeriod, leaving is always okay
      * During penaltyPeriod, leaving is only okay if sponsorship is not running
@@ -28,10 +33,5 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
         }
         // console.log("Sponsorship not running, get stake back");
         return 0;
-    }
-
-    function setParam(uint256 penaltyPeriod) external {
-        require (penaltyPeriod <= streamrConfig.maxPenaltyPeriodSeconds(), "error_penaltyPeriodTooLong");
-        penaltyPeriodSeconds = penaltyPeriod;
     }
 }

@@ -43,7 +43,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     // can't be flagged again right after a no-kick result
     mapping (address => uint) public protectionEndTimestamp;
 
-    function setParam(uint256) external {
+    function setParam(uint) external {
+
     }
 
     function getFlagData(address operator) override external view returns (uint flagData) {

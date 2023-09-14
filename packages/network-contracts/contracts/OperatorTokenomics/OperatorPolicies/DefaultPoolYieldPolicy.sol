@@ -7,14 +7,8 @@ import "../Operator.sol";
 
 contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
 
-    //struct LocalStorage {
-    //}
-    //function localData() internal view returns(LocalStorage storage data) {
-    //    bytes32 storagePosition = keccak256(abi.encodePacked("operator.storage.DefaultPoolYieldPolicy", address(this)));
-    //    assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
-    //}
-
     function setParam(uint) external {
+
     }
 
     function pooltokenToData(uint poolTokenWei, uint subtractFromPoolvalue) public view returns (uint dataWei) {
