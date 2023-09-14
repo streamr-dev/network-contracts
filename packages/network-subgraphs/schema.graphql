@@ -343,7 +343,7 @@ type Sponsorship @entity {
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!
-  minimumStakingPeriodSeconds: BigInt!
+  minimumStakingPeriodSeconds: BigInt
 }
 
 type SponsorshipDailyBucket @entity {
