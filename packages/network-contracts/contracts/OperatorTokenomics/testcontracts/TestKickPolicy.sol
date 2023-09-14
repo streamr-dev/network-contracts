@@ -9,7 +9,8 @@ import "../Sponsorship.sol";
 
 contract TestKickPolicy is IKickPolicy, Sponsorship {
 
-    function setParam(uint256 _param) external {
+    function setParam(uint _param) external {
+
     }
 
     function onFlag(address operator) external {
