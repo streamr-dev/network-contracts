@@ -363,19 +363,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
     }
 
-    /** Start the flagging process to kick an abusive operator */
-    function flag(address target) public {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
-    }
-
     /**
      * Start the flagging process to kick an abusive operator and pass arbitrary metadata object along with the flag
      * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
     */
-    function flagWithMetadata(address target, string memory metadataJsonString) external {
+    function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
-        flag(target);
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */

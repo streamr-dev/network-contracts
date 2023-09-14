@@ -49,7 +49,7 @@ describe("AdminKickPolicy", (): void => {
         // event OperatorKicked(address indexed operator, uint slashedWei);
         const operatorCountBeforeKick = await sponsorship.operatorCount()
         await advanceToTimestamp(timeAtStart + 200, "operator 1 is kicked out")
-        expect (await sponsorship.connect(admin).flag(await operator.getAddress()))
+        expect (await sponsorship.connect(admin).flag(await operator.getAddress(), ""))
             .to.emit(sponsorship, "OperatorKicked")
             .withArgs(await operator.getAddress(), "0")
         const operatorCountAfterKick = await sponsorship.operatorCount()
@@ -70,7 +70,7 @@ describe("AdminKickPolicy", (): void => {
         await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), await operator.getAddress())).wait()
 
         const operatorCountBeforeReport = await sponsorship.operatorCount()
-        expect(sponsorship.connect(operator2).flag(await operator.getAddress()))
+        expect(sponsorship.connect(operator2).flag(await operator.getAddress(), ""))
             .to.emit(sponsorship, "OperatorKicked").withArgs(await operator.getAddress())
         const operatorCountAfterReport = await sponsorship.operatorCount()
 
