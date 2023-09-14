@@ -8,7 +8,7 @@ import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
 const { parseEther, formatEther } = utils
 
-describe.only("StakeWeightedAllocationPolicy", (): void => {
+describe("StakeWeightedAllocationPolicy", (): void => {
     let admin: Wallet
     let operator: Wallet
     let operator2: Wallet
