@@ -61,7 +61,7 @@ jobs:
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           npm ci --no-audit
-          # npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
       - name: Build all packages
         run: npm run build
       - name: Build fastchain image

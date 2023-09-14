@@ -23,6 +23,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public operatorTemplate;
+    address public nodeModuleTemplate;
+    address public queueModuleTemplate;
+    address public stakeModuleTemplate;
     address public configAddress;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
@@ -37,12 +40,16 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress,
+    address nodeModuleAddress, address queueModuleAddress, address stakeModuleAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -74,21 +81,25 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         return trustedPolicies[policyAddress];
     }
 
-    // function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
-    //     (
-    //     ) = abi.decode(param,
-    //         ()
-    //     );
-    //     address newOperatorAddress = _deployOperator(
-    //         _msgSender(),
-    //         operatorsCutFraction,
-    //         poolTokenName,
-    //         operatorMetadataJson,
-    //         policies,
-    //         policyParams
-    //     );
-    //     IERC677(tokenAddress).transferAndCall(newOperatorAddress, amount, "");
-    // }
+    function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        (
+            uint operatorsCutFraction,
+            string memory poolTokenName,
+            string memory operatorMetadataJson,
+            address[3] memory policies,
+            uint[3] memory policyParams
+        ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
+        address operatorContractAddress = _deployOperator(
+            from,
+            operatorsCutFraction,
+            poolTokenName,
+            operatorMetadataJson,
+            policies,
+            policyParams
+        );
+        emit NewOperator(from, operatorContractAddress);
+        IERC677(tokenAddress).transferAndCall(operatorContractAddress, amount, abi.encodePacked(from));
+    }
 
     /**
      * @param operatorsCutFraction as a fraction of 10^18, like ether
@@ -99,8 +110,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         uint operatorsCutFraction,
         string memory poolTokenName,
         string memory operatorMetadataJson,
-        address[3] calldata policies,  // [0] delegation, [1] yield, [2] undelegation policy
-        uint[3] calldata policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
+        address[3] memory policies,  // [0] delegation, [1] yield, [2] undelegation policy
+        uint[3] memory policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
     ) public returns (address) {
         return _deployOperator(
             _msgSender(),
@@ -117,8 +128,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         uint operatorsCutFraction,
         string memory poolTokenName,
         string memory operatorMetadataJson,
-        address[3] calldata policies,
-        uint[3] calldata policyParams
+        address[3] memory policies,
+        uint[3] memory policyParams
     ) private returns (address) {
         require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCut");
         for (uint i = 0; i < policies.length; i++) {
@@ -134,7 +145,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             operatorAddress,
             poolTokenName,
             operatorMetadataJson,
-            operatorsCutFraction
+            operatorsCutFraction,
+            [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
         );
         if (policies[0] != address(0)) {
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);

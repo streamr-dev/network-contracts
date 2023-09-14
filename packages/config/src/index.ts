@@ -235,5 +235,41 @@ export const config = {
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         }
+    },
+    "mumbai": {
+        "id": 80001,
+        "name": "mumbai",
+        "rpcEndpoints": [
+            {
+                "url": "https://rpc-mumbai.maticvigil.com"
+            }
+        ],
+        "contracts": {
+            "ENS": "0x7589c7AE5076Fb0c105945c64Df7890193C9d102",
+            "FIFSRegistrar": "0xC6Cc1599E21926880C3491545681f22Dd8f94bef",
+            "PublicResolver": "0x8bAb7b9cF3C490Ff7709aE3B585828e4be90361A",
+            "TrackerRegistry": "0x0840AFEF0119eAbae5bc859dE702E18F0c453BA8",
+            "StorageNodeRegistry": "0x16845c1083a30AB3888ADd92629e61673eC67B06",
+            "StreamRegistry": "0x760ddf22B89bD0e5E798DE265112185C019838F3",
+            "ENSCacheV2": "0x3c2d5840995613AF1593dC2e3D1761B46772E71e",
+            "StreamStorageRegistry": "0x81BFC6ec149854Aec656C531C41a758D2999d9EB",
+            "StreamrConfig": "0xAa0A2ecfdA3F69F9dB0f634A863bdEaa7017174b",
+            "DATA": "0xB1461Ece804Be7Fad83520eA737249EB5008e509",
+            "SponsorshipMaxOperatorsJoinPolicy": "0xD6822Be288024eA396A9145a9ed37C687Eea5Bef",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x86d748A37e4C3Dd26c27841BC43e2d740Afe739B",
+            "SponsorshipDefaultLeavePolicy": "0x206807b9d83CaB100dD3292b401962BC15A318f2",
+            "SponsorshipVoteKickPolicy": "0x8299cc5Fc43a5F3B52a6f111926f7479b9C82571",
+            "SponsorshipFactory": "0x67ecf83e800d20dC932C2A099421Ebc21E7Df1BE",
+            "OperatorDefaultDelegationPolicy": "0x6F5ba50c31E6C0E4D06600BD41D02f4dAb83eCe1",
+            "OperatorDefaultPoolYieldPolicy": "0xcA44d4941dDF8982973955469881107385543FaC",
+            "OperatorDefaultUndelegationPolicy": "0x30B09A8BCF22fABA8Afa7a1E0a74bc49e22414F1",
+            "OperatorFactory": "0x1d1C3c278F515490e49685d6cc9be1B1993F72F6",
+            "ProjectRegistryV1": "0x3dB5E750E4f6185eE61891C458bB5C25cB6e8677",
+            "MarketplaceV4": "0x5e3Ccd8933f9ac13bf5C3c46A17034C6c7578b35",
+            "ProjectStakingV1": "0x8496Afa53Da256299EFf71a6F97729fa4Fadc2ef",
+            "DataUnionFactory": "0x6F5e5fc28c79F7d9cf413093ceDb774B483F14D1",
+            "DataUnionTemplate": "0x08E7113EEE9B0F6D6b20427e8fA32Fd17c3D2a7A"
+        },
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs"
     }
 }

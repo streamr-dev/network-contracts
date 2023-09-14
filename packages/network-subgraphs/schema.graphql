@@ -233,11 +233,11 @@ type Operator @entity {
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
 
-  "DATA staked, earned and held by the Operator contract = totalValueInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
+  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
   poolValue: BigInt!
 
   "DATA staked and earned in sponsorship contracts. Updated by PoolValueUpdate event, so it will be out of date by the amount of earnings."
-  totalValueInSponsorshipsWei: BigInt!
+  totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked. Updated by PoolValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
   freeFundsWei: BigInt!
@@ -280,11 +280,11 @@ type OperatorDailyBucket @entity {
   "The day of the bucket. This is a timestamp in seconds"
   date: BigInt!
 
-  "DATA staked, earned and held by the Operator contract = totalValueInSponsorshipsWei + freeFundsWei (first event in bucket)"
+  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
   poolValue: BigInt!
 
-  "DATA staked and earned in sponsorship contracts (first event in bucket)"
-  totalValueInSponsorshipsWei: BigInt!
+  "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
+  totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked (first event in bucket)"
   freeFundsWei: BigInt!
