@@ -71,12 +71,12 @@ jobs:
       - name: Start docker stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'deploy-network-subgraphs-fastchain'
+          services-to-start: 'deploy-network-subgraphs-fastchain ens-sync-script-fastchain'
       - name: Integration Test (with locally built images)
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
-        run: npm run integration-subgraph-smoke-test -w packages/network-contracts
+        run: npm run integration-test
 
       # - name: Build & Push
       #   uses: docker/build-push-action@v4.1.1
