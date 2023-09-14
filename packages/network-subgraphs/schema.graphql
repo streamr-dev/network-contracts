@@ -333,6 +333,7 @@ type Sponsorship @entity {
   metadata: String
   isRunning: Boolean!
   totalPayoutWeiPerSec: BigInt!
+  minimumStakingPeriodSeconds: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
@@ -345,7 +346,6 @@ type Sponsorship @entity {
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!
-  minimumStakingPeriodSeconds: BigInt
 }
 
 type SponsorshipDailyBucket @entity {

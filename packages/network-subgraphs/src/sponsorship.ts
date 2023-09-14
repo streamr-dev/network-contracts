@@ -6,8 +6,7 @@ import {
     FlagUpdate,
     ProjectedInsolvencyUpdate,
     OperatorSlashed,
-    SponsorshipReceived,
-    LeavePolicyParameter
+    SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
 import { loadOrCreateSponsorshipDailyBucket } from './helpers'
@@ -75,13 +74,6 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.spotAPY = spotAPY
     bucket.save()
-}
-
-export function handleLeavePolicyParameter(event: LeavePolicyParameter): void {
-    log.info('handleLeavePolicyParameter: minimumStakingPeriodSeconds={}', [event.params.minimumStakingPeriodSeconds.toHexString()])
-    let sponsorship = Sponsorship.load(event.address.toHexString())
-    sponsorship!.minimumStakingPeriodSeconds = event.params.minimumStakingPeriodSeconds
-    sponsorship!.save()
 }
 
 export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {

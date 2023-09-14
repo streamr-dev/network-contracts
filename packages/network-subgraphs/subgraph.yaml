@@ -180,7 +180,7 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(indexed address,string,string,uint256,indexed address)
+        - event: NewSponsorship(indexed address,string,string,uint256,uint256,indexed address)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
@@ -230,8 +230,6 @@ templates:
             handler: handleStakeUpdated
           - event: SponsorshipUpdate(uint256,uint256,uint32,bool)
             handler: handleSponsorshipUpdated
-          - event: LeavePolicyParameter(uint256)
-            handler: handleLeavePolicyParameter
           - event: FlagUpdate(indexed address,address,uint256,uint256,string)
             handler: handleFlagUpdate
           - event: ProjectedInsolvencyUpdate(uint256)
