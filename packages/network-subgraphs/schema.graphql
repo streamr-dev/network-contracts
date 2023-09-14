@@ -396,6 +396,7 @@ type Stake @entity {
   allocatedWei: BigInt!
   date: BigInt
   sponsorship: Sponsorship
+  joinDate: BigInt!
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work

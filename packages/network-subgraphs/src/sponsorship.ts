@@ -23,6 +23,7 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress.toHexString()
         stake.operator = operatorAddress.toHexString()
+        stake.joinDate = event.block.timestamp
     }
     stake.date = event.block.timestamp
     stake.amount = event.params.stakedWei
