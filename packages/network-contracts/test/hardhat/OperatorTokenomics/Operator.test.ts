@@ -246,27 +246,9 @@ describe("Operator contract", (): void => {
             const operatorsCutFraction = parseEther("0.1") // 10%
             const triggerWithdrawLimitSeconds = 50
 
-            //  We stake 100 tokens and start a sponsorship which generates 1 token of earnings per second. Then we wait
-            //  until we've earned enough tokens so that the pool value has drifted at least for 2.5 tokens.
-            //  The default drift limit is 5 token (5% of 100 staked  tokens, see StreamrConfig.sol#poolValueDriftLimitFraction
-            //  in network-contracts), and the configured safe limit in this test is 50%, i.e. 2.5 tokens.
-            // const { operatorWallet, operatorContract, operatorServiceConfig, nodeWallets } = await setupOperatorContract({
-            //     nodeCount: 1,
-            //     operatorConfig: {
-            //         operatorsCutPercent: 10
-            //     }
-            // })
-            // const sponsorer = await generateWalletWithGasAndTokens()
-            // const sponsorship = await deploySponsorshipContract({ earningsPerSecond: parseEther('1'), streamId, deployer: operatorWallet })
-            // await sponsor(sponsorer, sponsorship.address, 250)
-            // await delegate(operatorWallet, operatorContract.address, STAKE_AMOUNT)
-            // await stake(operatorContract, sponsorship.address, STAKE_AMOUNT)
-            // const helper = new MaintainOperatorPoolValueHelper({ ...operatorServiceConfig, signer: nodeWallets[0] })
-            // const { rewardThresholdDataWei } = await helper.getMyUnwithdrawnEarnings()
-            // const triggerWithdrawLimitDataWei = multiply(rewardThresholdDataWei, 1 - SAFETY_FRACTION)
-
             const { token } = sharedContracts
 
+            // "generateWalletWithGasAndTokens", fund a fresh random wallet
             const operatorWallet = Wallet.createRandom().connect(admin.provider)
             admin.sendTransaction({ to: operatorWallet.address, value: parseEther("1") })
             await setTokens(operatorWallet, STAKE_AMOUNT)
@@ -281,23 +263,16 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
             await (await operatorContract.stake(sponsorship.address, STAKE_AMOUNT_WEI)).wait()
 
-            // await waitForCondition(async () => {
-            //     const { sumDataWei } = await helper.getMyUnwithdrawnEarnings()
-            //     const unwithdrawnEarnings = sumDataWei
-            //     return unwithdrawnEarnings > triggerWithdrawLimitDataWei
-            // }, 10000, 1000)
-            // const poolValueBeforeWithdraw = await operatorContract.getApproximatePoolValue()
-
             await advanceToTimestamp(timeAtStart + 1 + triggerWithdrawLimitSeconds, "Withdraw")
-            const sponsorshipsBeforeWithdraw = await operatorContract.getSponsorshipsAndEarnings()
+            const earningsBeforeWithdraw = (await operatorContract.getSponsorshipsAndEarnings()).earnings[0]
             const poolValueBeforeWithdraw = await operatorContract.getApproximatePoolValue()
             await (await operatorContract.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
-            const sponsorshipsAfterWithdraw = await operatorContract.getSponsorshipsAndEarnings()
+            const earningsAfterWithdraw = (await operatorContract.getSponsorshipsAndEarnings()).earnings[0]
             const poolValueAfterWithdraw = await operatorContract.getApproximatePoolValue()
 
             expect(poolValueAfterWithdraw).to.be.greaterThan(poolValueBeforeWithdraw)
-            expect(sponsorshipsBeforeWithdraw.earnings[0]).to.equal(parseEther("1").mul(triggerWithdrawLimitSeconds))
-            expect(sponsorshipsAfterWithdraw.earnings[0]).to.equal(0)
+            expect(earningsBeforeWithdraw).to.equal(parseEther("1").mul(triggerWithdrawLimitSeconds))
+            expect(earningsAfterWithdraw).to.equal(0)
         })
 
         it("withdraws sponsorships earnings when withdrawEarningsFromSponsorships is called", async function(): Promise<void> {
