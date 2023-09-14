@@ -270,6 +270,8 @@ type Operator @entity {
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
 
 type OperatorDailyBucket @entity {
