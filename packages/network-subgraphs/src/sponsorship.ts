@@ -12,8 +12,8 @@ import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent,
 import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
-    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
-        event.params.stakedWei.toString(), event.params.allocatedWei.toString()])
+    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}, joinDate={}', [event.params.operator.toHexString(),
+        event.params.stakedWei.toString(), event.params.allocatedWei.toString(), event.block.timestamp.toString()])
     let sponsorshipAddress = event.address
     let operatorAddress = event.params.operator
 
@@ -25,7 +25,6 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake.operator = operatorAddress.toHexString()
         stake.joinDate = event.block.timestamp
     }
-    stake.date = event.block.timestamp
     stake.amount = event.params.stakedWei
     stake.allocatedWei = event.params.allocatedWei
 

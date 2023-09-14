@@ -397,7 +397,6 @@ type Stake @entity {
   operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!
-  date: BigInt
   sponsorship: Sponsorship
   joinDate: BigInt!
 }
