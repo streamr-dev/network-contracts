@@ -3,7 +3,8 @@ import { Wallet, utils} from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy, StreamrConfig } from "../../../typechain"
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy,
+    StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -23,6 +24,9 @@ export type TestContracts = {
     defaultDelegationPolicy: IDelegationPolicy;
     defaultPoolYieldPolicy: IPoolYieldPolicy;
     defaultUndelegationPolicy: IUndelegationPolicy;
+    nodeModule: NodeModule;
+    queueModule: QueueModule;
+    stakeModule: StakeModule;
     deployer: Wallet;
     streamRegistry: StreamRegistryV4;
 }
@@ -36,12 +40,15 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
-    const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy()
+    const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy() as OperatorFactory
     await operatorFactory.deployed()
     await (await operatorFactory.initialize(
         operatorTemplate!.address,
         token!.address,
         streamrConfig!.address,
+        contracts.nodeModule!.address,
+        contracts.queueModule!.address,
+        contracts.stakeModule!.address,
         { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
     )).wait()
     await (await operatorFactory.addTrustedPolicies([
@@ -102,9 +109,14 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
     const defaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
 
+    const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
+    const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
+    const stakeModule = await (await getContractFactory("StakeModule", { signer })).deploy() as StakeModule
+
     const { operatorFactory, operatorTemplate } = await deployOperatorFactory({
         token, streamrConfig,
         defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
+        nodeModule, queueModule, stakeModule
     }, signer)
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
@@ -117,7 +129,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         token, streamrConfig, streamRegistry,
         sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
-        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
+        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
         deployer: signer
     }
 }

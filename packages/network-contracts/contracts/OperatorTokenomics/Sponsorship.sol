@@ -248,7 +248,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             _slash(operator, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        payoutWei =_removeOperator(operator); // forfeits committed stake
+        payoutWei = _removeOperator(operator); // forfeits committed stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
@@ -326,7 +326,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         // send out both allocations and stake
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
-        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
         operatorCount -= 1;
         totalStakedWei -= paidOutStakeWei;
@@ -337,6 +336,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
+
+        // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with error_operatorNotStaked)
+        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
         return paidOutEarningsWei + paidOutStakeWei;
     }
@@ -361,19 +363,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
     }
 
-    /** Start the flagging process to kick an abusive operator */
-    function flag(address target) public {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
-    }
-
     /**
      * Start the flagging process to kick an abusive operator and pass arbitrary metadata object along with the flag
      * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
     */
-    function flagWithMetadata(address target, string memory metadataJsonString) external {
+    function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
-        flag(target);
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */

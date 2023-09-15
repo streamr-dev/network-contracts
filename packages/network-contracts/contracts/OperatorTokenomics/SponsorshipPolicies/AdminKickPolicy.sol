@@ -15,7 +15,7 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
         assembly {data.slot := storagePosition}
     }
 
-    function setParam(uint256 adminAdress) external {
+    function setParam(uint adminAdress) external {
         localData().admin = address(uint160(adminAdress));
     }
 

@@ -13,11 +13,12 @@ interface IFactory {
  * Only Operator contracts that were deployed using the official OperatorFactory are allowed to join
  */
 contract OperatorContractOnlyJoinPolicy is IJoinPolicy, Sponsorship {
-    function setParam(uint256) external {
+    function setParam(uint) external {
+
     }
 
     // solc-ignore-next-line func-mutability
-    function onJoin(address operator, uint256) external {
+    function onJoin(address operator, uint) external {
         require(IFactory(streamrConfig.operatorFactory()).deploymentTimestamp(operator) > 0, "error_onlyOperators");
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@streamr/network-contracts",
-  "version": "4.3.3",
+  "version": "6.1.0",
   "description": "Smart contracts for Streamr Network",
   "author": "Streamr Network AG",
   "license": "ISC",
@@ -18,7 +18,8 @@
     "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
-    "integration-test": "npm run test:ens-e2e",
+    "integration-test": "npm run test:dev-chain",
+    "test:dev-chain": "ts-mocha test/integration/contractsSubgraphSmoketest.test.ts",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
     "test:ens-e2e": "hardhat run --network dev1 test/integration/ens-e2e.test.ts",
@@ -46,21 +47,24 @@
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
-    "@streamr/config": "latest",
     "@chainsafe/as-sha256": "^0.3.1",
     "@metamask/eth-sig-util": "4.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
     "@opengsn/provider": "2.2.6",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
+    "@streamr/config": "^4.0.1",
+    "@streamr/utils": "8.5.5",
     "@types/debug": "4.1.7",
     "debug": "4.3.3",
     "ethers": "5.7.0",
     "hardhat": "2.14.0",
+    "hardhat-contract-sizer": "2.10.0",
     "hardhat-dependency-compiler": "1.1.3",
     "hardhat-gas-reporter": "1.0.9",
     "hardhat-ignore-warnings": "0.2.8",
     "solhint": "3.4.1",
+    "ts-mocha": "10.0.0",
     "web3-providers-http": "1.8.0"
   }
 }

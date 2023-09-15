@@ -1,4 +1,4 @@
 npx hardhat node &
-npm run deploy &
+node deploy.js &
 # keep container running
 tail -f /dev/null

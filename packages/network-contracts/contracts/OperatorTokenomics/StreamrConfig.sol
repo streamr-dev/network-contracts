@@ -11,11 +11,16 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 
     /**
-     * 10% of minimumStakeWei must be enough to pay reviewers+flagger
-     * That is: minimumStakeWei >= 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei)
+     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship, or if they unstake from a sponsorship prematurely
+     */
+    uint public slashingFraction;
+
+    /**
+     * Minimum amount to pay reviewers+flagger
+     * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
      */
     function minimumStakeWei() public view returns (uint) {
-        return 10 * (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei);
+        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
     }
 
     /**
@@ -51,19 +56,27 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the difference between the actual "pool-value sum" and the updated pool-value sum is more than poolValueDriftLimitFraction,
-     *   the operator is slashed a little when updateApproximatePoolvalueOfSponsorships is called.
-     * This means operator should call updateApproximatePoolvalueOfSponsorships often enough to not get slashed.
+     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
+     *   part of the operator's cut is sent to the withdrawEarningsFromSponsorships caller, which can be anyone.
+     * This means operator should call withdrawEarningsFromSponsorships often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public poolValueDriftLimitFraction;
 
     /**
-     * In case "pool-value sum" of updateApproximatePoolvalueOfSponsorships is above poolValueDriftLimitFraction,
-     *   this is the fraction of the operator's stake that is slashed.
+     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
+     *   this is the fraction of the operator's cut that is sent out to the caller.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
+     * E.g. if poolValueDriftPenaltyFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
+     *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA.
      */
     uint public poolValueDriftPenaltyFraction;
+
+    /** Protocol fee is collected when earnings arrive to Operator, fraction expressed as fixed-point decimal between 0.0 ~ 1.0, like ether: 1e18 ~= 100% */
+    uint public protocolFeeFraction;
+
+    /** Address where the protocol fee is sent */
+    address public protocolFeeBeneficiary;
 
     /** How many reviewers we ideally (=usually) select to review a Sponsorship flag, see VoteKickPolicy.sol */
     uint public flagReviewerCount;
@@ -102,15 +115,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     /**
      * How much the flagger must stake to flag another Operator in a Sponsorship.
-     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed 10% of the total stake).
+     * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
+     * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
+     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
      *      The total committed stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + 10% of stake that's left into the sponsorship (= committed)
-     *      After n flags: n * flagStakeWei >= n * reviewer fees + 10% of total committed stake
-     *        =>  n * flagStakeWei >= n * (flagReviewerCount * flagReviewerRewardWei) + 10% of (n * flagStakeWei) (assuming only flagging causes committed stake)
-     *        =>  flagStakeWei * 9/10 >= flagReviewerCount * flagReviewerRewardWei
-     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 10/9
-     *      That is where the 10/9 comes from. TODO: not sure if this reasoning is necessary anymore, now that we always take at least 10% of minimumStake
+     *        flag stakes >= reviewer fees + slashing from stake that's left into the sponsorship (= committed)
+     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total committed stake
+     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes committed stake)
+     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
      */
     uint public flagStakeWei;
 
@@ -147,8 +160,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+
+        slashingFraction = 0.1 ether;
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         minimumSelfDelegationFraction = 0.1 ether;
@@ -165,6 +180,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
         poolValueDriftLimitFraction = 0.05 ether;
         poolValueDriftPenaltyFraction = 0.5 ether;
+
+        // protocol fee
+        protocolFeeFraction = 0.05 ether;
+        protocolFeeBeneficiary = _msgSender();
 
         // flagging + voting
         flagReviewerCount = 5;
@@ -186,6 +205,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         operatorFactory = operatorFactoryAddress;
         operatorLivenessRegistry = operatorFactoryAddress;
+    }
+
+    function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newSlashingFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        slashingFraction = newSlashingFraction;
     }
 
     function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -211,6 +235,15 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setPoolValueDriftPenaltyFraction(uint newPoolValueDriftPenaltyFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
         poolValueDriftPenaltyFraction = newPoolValueDriftPenaltyFraction;
+    }
+
+    function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newProtocolFeeFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        protocolFeeFraction = newProtocolFeeFraction;
+    }
+
+    function setProtocolFeeBeneficiary(address newProtocolFeeBeneficiary) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
     /**
@@ -243,7 +276,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagStakeWei * 9 >= 10 * flagReviewerCount * flagReviewerRewardWei, "error_tooLow");
+        require(newFlagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction), "error_tooLow");
         flagStakeWei = newFlagStakeWei;
     }
 
