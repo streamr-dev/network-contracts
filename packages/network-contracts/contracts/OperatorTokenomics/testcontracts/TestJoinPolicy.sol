@@ -8,7 +8,7 @@ import "../Sponsorship.sol";
 
 contract TestJoinPolicy is IJoinPolicy, Sponsorship {
 
-    function setParam(uint256 minimumStake) external pure {
+    function setParam(uint minimumStake) external pure {
         if (minimumStake == 1) {
             require(false, "test-error: setting param join policy");
         } else if (minimumStake == 2) {
@@ -17,7 +17,7 @@ contract TestJoinPolicy is IJoinPolicy, Sponsorship {
     }
 
     // solc-ignore-next-line func-mutability
-    function onJoin(address, uint256 amount) external {
+    function onJoin(address, uint amount) external {
         if (amount == 100 ether) {
             require(false, "test-error: onJoin join policy");
         } else if (amount == 200 ether) {

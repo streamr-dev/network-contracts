@@ -79,4 +79,13 @@ export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
 export { abi as publicResolverABI, bytecode as publicResolverBytecode }
     from "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json"
 
+export { abi as nodeModuleABI, bytecode as nodeModuleBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/NodeModule.sol/NodeModule.json"
+export type { NodeModule } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/NodeModule"
+export { abi as queueModuleABI, bytecode as queueModuleBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/QueueModule.sol/QueueModule.json"
+export type { QueueModule } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/QueueModule"
+export { abi as stakeModuleABI, bytecode as stakeModuleBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/StakeModule.sol/StakeModule.json"
+export type { StakeModule } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/StakeModule"
 export * from "./StreamrEnvDeployer"

@@ -27,7 +27,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     mapping (address => address) public flaggerAddress;
     mapping (address => uint) public voteStartTimestamp;
     mapping (address => uint) public voteEndTimestamp;
-    mapping (address => uint) public targetStakeAtRiskWei; // 10% of the target's stake that is in the risk of being slashed upon kick
+    mapping (address => uint) public targetStakeAtRiskWei; // slashingFraction of the target's stake that is in the risk of being slashed upon kick
 
     // voting
     mapping (address => Operator[]) public reviewers; // list of reviewers, for rewarding
@@ -43,7 +43,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     // can't be flagged again right after a no-kick result
     mapping (address => uint) public protectionEndTimestamp;
 
-    function setParam(uint256) external {
+    function setParam(uint) external {
+
     }
 
     function getFlagData(address operator) override external view returns (uint flagData) {
@@ -73,9 +74,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
         voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds(); // solhint-disable-line not-rely-on-time
 
-        // the flag target risks to lose 10% if the flag resolves to KICK
-        // take at least 10% of minimumStakeWei to ensure everyone can get paid!
-        targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) / 10;
+        // the flag target risks to lose a slashingFraction if the flag resolves to KICK
+        // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid!
+        targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) * streamrConfig.slashingFraction() / 1 ether;
         committedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // cache these just in case the config changes during the flag
@@ -83,11 +84,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         reviewerRewardWei[target] = streamrConfig.flagReviewerRewardWei();
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
-        // TODO: after taking at least minimumStake, all 9/10s here are probably overthinking; it's enough that flagStakeWei is 10/9 of the total reviewer reward
-        //       the limit for flagging is 9/10s of the stake so that there's still room to get flagged and lose the remaining 10% of minimumStake
-        // TODO: try to find the "extreme case" by writing more tests and see if the 10/9 can safely be removed
         committedStakeWei[flagger] += flagStakeWei[target];
-        require(committedStakeWei[flagger] * 10 <= 9 * stakedWei[flagger], "error_notEnoughStake");
+        require(committedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
         Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
@@ -141,7 +139,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_notEnoughReviewers");
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0);
+        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
     }
 
     /**
@@ -186,21 +184,21 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint reviewerCount = reviewers[target].length;
 
         // release stake commitments before vote resolution so that slashings and kickings during resolution aren't affected
-        // if either the flagger or the target has forceUnstaked or been kicked, the committed stake was moved to committedFundsWei
+        // if either the flagger or the target has forceUnstaked or been kicked, the committed stake was moved to committedForfeitedStakeWei
         if (flaggerIsGone) {
-            committedFundsWei -= flagStakeWei[target];
+            committedForfeitedStakeWei -= flagStakeWei[target];
         } else {
             committedStakeWei[flagger] -= flagStakeWei[target];
         }
         if (targetIsGone) {
-            committedFundsWei -= targetStakeAtRiskWei[target];
+            committedForfeitedStakeWei -= targetStakeAtRiskWei[target];
         } else {
             committedStakeWei[target] -= targetStakeAtRiskWei[target];
         }
 
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
-            // if targetIsGone: the tokens are still in Sponsorship, accounted in committedFundsWei (which will be subtracted in cleanup, so no need to _slash)
+            // if targetIsGone: the tokens are still in Sponsorship, accounted in committedForfeitedStakeWei (which will be subtracted in cleanup, so no need to _slash)
             if (!targetIsGone) {
                 _kick(target, slashingWei);
             }

@@ -1,8 +1,9 @@
 import { ethers as hardhatEthers } from "hardhat"
 const { provider: hardhatProvider } = hardhatEthers
+import Debug from "debug"
 
-export const log = (..._: unknown[]): void => { /* skip logging */ }
-
+// export const log = (..._: unknown[]): void => { /* skip logging */ }
+export const log = Debug("Streamr::test")
 // export const { log } = console // TODO: use pino for logging?
 
 /** Block timestamp, rounded up to nearest million for test log readability */

@@ -25,7 +25,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    event NewSponsorship(address sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, address creator);
+    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, uint minimumStakingPeriodSeconds, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -69,27 +69,21 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
         (
-            uint initialMinimumStakeWei,
-            ,
-            uint32 initialMinOperatorCount,
+            uint minOperatorCount,
             string memory streamId,
             string memory metadata,
             address[] memory policies,
-            uint[] memory initParams
-        ) = abi.decode(param,
-            (uint,uint32,uint32,string,string,address[],uint[])
-        );
+            uint[] memory policyParams
+        ) = abi.decode(param, (uint, string, string, address[], uint[]));
         address sponsorshipAddress = _deploySponsorship(
-            initialMinimumStakeWei,
-            0,
-            initialMinOperatorCount,
+            minOperatorCount,
             streamId,
             metadata,
             policies,
-            initParams
+            policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], from);
-        IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, "");
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], from);
+        IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, ""); // empty extra-data => sponsor
     }
 
     /**
@@ -101,47 +95,42 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
      * @param policies smart contract addresses found in the trustedPolicies
      */
     function deploySponsorship(
-        uint initialMinimumStakeWei,
-        uint32 initialMinHorizonSeconds,
-        uint32 initialMinOperatorCount,
-        string memory streamId,
-        string memory metadata,
-        address[] memory policies,
-        uint[] memory initParams
-    ) public returns (address) {
+        uint minOperatorCount,
+        string calldata streamId,
+        string calldata metadata,
+        address[] calldata policies,
+        uint[] calldata policyParams
+    ) external returns (address) {
         IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
         require(streamRegistry.exists(streamId), "error_streamNotFound");
         address sponsorshipAddress = _deploySponsorship(
-            initialMinimumStakeWei,
-            initialMinHorizonSeconds,
-            initialMinOperatorCount,
+            minOperatorCount,
             streamId,
             metadata,
             policies,
-            initParams
+            policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, initParams[0], _msgSender());
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], _msgSender());
+        return sponsorshipAddress;
     }
 
     function _deploySponsorship(
-        uint initialMinimumStakeWei,
-        uint initialMinHorizonSeconds,
-        uint initialMinOperatorCount,
+        uint minOperatorCount,
         string memory streamId,
         string memory metadata,
         address[] memory policies,
-        uint[] memory initParams
+        uint[] memory policyParams
     ) private returns (address) {
-        require(policies.length == initParams.length, "error_badArguments");
+        require(policies.length == policyParams.length, "error_badArguments");
         require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
-        require(initialMinimumStakeWei >= streamrConfig.minimumStakeWei(), "error_minimumStakeTooLow");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
         address sponsorshipAddress = ClonesUpgradeable.clone(sponsorshipContractTemplate);
         Sponsorship sponsorship = Sponsorship(sponsorshipAddress);
-        uint[4] memory sponsorshipParams = [initialMinimumStakeWei, initialMinHorizonSeconds, initialMinOperatorCount, initParams[0]];
+        // disable the minHorizonSeconds feature for now, set to zero
+        uint[3] memory sponsorshipParams = [0, minOperatorCount, policyParams[0]];
         sponsorship.initialize(
             streamId,
             metadata,
@@ -151,20 +140,19 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             IAllocationPolicy(policies[0])
         );
         if (policies.length > 1 && policies[1] != address(0)) { // TODO: add tests for short policies arrays
-            sponsorship.setLeavePolicy(ILeavePolicy(policies[1]), initParams[1]);
+            sponsorship.setLeavePolicy(ILeavePolicy(policies[1]), policyParams[1]);
         }
         if (policies.length > 2 && policies[2] != address(0)) { // TODO: add tests for short policies arrays
-            sponsorship.setKickPolicy(IKickPolicy(policies[2]), initParams[2]);
+            sponsorship.setKickPolicy(IKickPolicy(policies[2]), policyParams[2]);
         }
         for (uint i = 3; i < policies.length; i++) {
             if (policies[i] != address(0)) {
-                sponsorship.addJoinPolicy(IJoinPolicy(policies[i]), initParams[i]);
+                sponsorship.addJoinPolicy(IJoinPolicy(policies[i]), policyParams[i]);
             }
         }
         sponsorship.addJoinPolicy(IJoinPolicy(streamrConfig.operatorContractOnlyJoinPolicy()), 0);
         sponsorship.renounceRole(sponsorship.DEFAULT_ADMIN_ROLE(), address(this));
-        // solhint-disable-next-line not-rely-on-time
-        deploymentTimestamp[sponsorshipAddress] = block.timestamp;
+        deploymentTimestamp[sponsorshipAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         return sponsorshipAddress;
     }
 

@@ -84,9 +84,9 @@ export const config = {
         ],
         "adminPrivateKey": "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
         "contracts": {
-            "ENS": "0xEcB44c01B8D17E07C289533e6674b24c3C913183",
-            "FIFSRegistrar": "0x5c08f6Fb7B820ac73e83b4BdaCF5099231494f07",
-            "PublicResolver": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789",
+            "ENS": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789",
+            "FIFSRegistrar": "0x92958708A4E696A85C8282c946A89B20E4Ca308D",
+            "PublicResolver": "0x916FE6b8DB2C0D01FB96F37550CE8ff41F4Ed470",
             "TrackerRegistry": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
             "StorageNodeRegistry": "0x642D2B84A32A9A92FEc78CeAA9488388b3704898",
             "StreamRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
@@ -102,12 +102,12 @@ export const config = {
             "OperatorDefaultDelegationPolicy": "0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873",
             "OperatorDefaultPoolYieldPolicy": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
             "OperatorDefaultUndelegationPolicy": "0x5159FBF2e0Ff63e35b17293416fdf7a0909a0cDA",
-            "OperatorFactory": "0xfC31c70FafCbFe399195C789602ae2455B247fD2",
-            "ProjectRegistryV1": "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2",
-            "MarketplaceV4": "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5",
-            "ProjectStakingV1": "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794",
-            "DataUnionFactory": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13",
-            "DataUnionTemplate": "0x8c1032014E7f14dECAD2b06f01215280C858c3Fe"
+            "OperatorFactory": "0x122E9ee63Fa5e4F2710b7BB66E9a1FF0013Cec15",
+            "ProjectRegistryV1": "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253",
+            "MarketplaceV4": "0xBaD604cd8C38E970b5285D34CA5d146268e2b84A",
+            "ProjectStakingV1": "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018",
+            "DataUnionFactory": "0xb8678223183d560280a7BEF68daAbB0E3daBd97D",
+            "DataUnionTemplate": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13"
         },
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs"
     },
@@ -235,5 +235,41 @@ export const config = {
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         }
+    },
+    "mumbai": {
+        "id": 80001,
+        "name": "mumbai",
+        "rpcEndpoints": [
+            {
+                "url": "https://rpc-mumbai.maticvigil.com"
+            }
+        ],
+        "contracts": {
+            "ENS": "0x7589c7AE5076Fb0c105945c64Df7890193C9d102",
+            "FIFSRegistrar": "0xC6Cc1599E21926880C3491545681f22Dd8f94bef",
+            "PublicResolver": "0x8bAb7b9cF3C490Ff7709aE3B585828e4be90361A",
+            "TrackerRegistry": "0x0840AFEF0119eAbae5bc859dE702E18F0c453BA8",
+            "StorageNodeRegistry": "0x16845c1083a30AB3888ADd92629e61673eC67B06",
+            "StreamRegistry": "0x760ddf22B89bD0e5E798DE265112185C019838F3",
+            "ENSCacheV2": "0x3c2d5840995613AF1593dC2e3D1761B46772E71e",
+            "StreamStorageRegistry": "0x81BFC6ec149854Aec656C531C41a758D2999d9EB",
+            "StreamrConfig": "0xAa0A2ecfdA3F69F9dB0f634A863bdEaa7017174b",
+            "DATA": "0xB1461Ece804Be7Fad83520eA737249EB5008e509",
+            "SponsorshipMaxOperatorsJoinPolicy": "0xD6822Be288024eA396A9145a9ed37C687Eea5Bef",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x86d748A37e4C3Dd26c27841BC43e2d740Afe739B",
+            "SponsorshipDefaultLeavePolicy": "0x206807b9d83CaB100dD3292b401962BC15A318f2",
+            "SponsorshipVoteKickPolicy": "0x8299cc5Fc43a5F3B52a6f111926f7479b9C82571",
+            "SponsorshipFactory": "0x67ecf83e800d20dC932C2A099421Ebc21E7Df1BE",
+            "OperatorDefaultDelegationPolicy": "0x6F5ba50c31E6C0E4D06600BD41D02f4dAb83eCe1",
+            "OperatorDefaultPoolYieldPolicy": "0xcA44d4941dDF8982973955469881107385543FaC",
+            "OperatorDefaultUndelegationPolicy": "0x30B09A8BCF22fABA8Afa7a1E0a74bc49e22414F1",
+            "OperatorFactory": "0x1d1C3c278F515490e49685d6cc9be1B1993F72F6",
+            "ProjectRegistryV1": "0x3dB5E750E4f6185eE61891C458bB5C25cB6e8677",
+            "MarketplaceV4": "0x5e3Ccd8933f9ac13bf5C3c46A17034C6c7578b35",
+            "ProjectStakingV1": "0x8496Afa53Da256299EFf71a6F97729fa4Fadc2ef",
+            "DataUnionFactory": "0x6F5e5fc28c79F7d9cf413093ceDb774B483F14D1",
+            "DataUnionTemplate": "0x08E7113EEE9B0F6D6b20427e8fA32Fd17c3D2a7A"
+        },
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs"
     }
 }

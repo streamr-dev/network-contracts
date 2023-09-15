@@ -277,10 +277,12 @@ export class StreamrEnvDeployerHardhat {
     async deployOperatorContract(): Promise<void> {
         log("Deploying pool")
         const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
-            [`Pool-${Date.now()}`, "{}"],
+            ethers.utils.parseEther("0.1"),
+            `Pool-${Date.now()}`,
+            "{}",
             [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
-            [0, 0, 0, 0, 0, 10]
+            [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress

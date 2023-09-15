@@ -23,6 +23,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public operatorTemplate;
+    address public nodeModuleTemplate;
+    address public queueModuleTemplate;
+    address public stakeModuleTemplate;
     address public configAddress;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
@@ -37,12 +40,16 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress,
+    address nodeModuleAddress, address queueModuleAddress, address stakeModuleAddress) public initializer {
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
     }
 
     function _authorizeUpgrade(address) internal override {}
@@ -74,73 +81,81 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         return trustedPolicies[policyAddress];
     }
 
-    // function onTokenTransfer(address sender, uint amount, bytes calldata param) external {
-    //     (
-    //         uint32 initialMinHorizonSeconds,
-    //         uint32 initialMinOperatorCount,
-    //         string memory sponsorshipName,
-    //         address[] memory policies,
-    //         uint[] memory initParams
-    //     ) = abi.decode(param,
-    //         (uint32,uint32,string,address[],uint[])
-    //     );
-    //     address sponsorshipAddress = _deploySponsorship(
-    //         sender,
-    //         initialMinHorizonSeconds,
-    //         initialMinOperatorCount,
-    //         sponsorshipName,
-    //         policies,
-    //         initParams
-    //     );
-    //     IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, "");
-    // }
+    function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        (
+            uint operatorsCutFraction,
+            string memory poolTokenName,
+            string memory operatorMetadataJson,
+            address[3] memory policies,
+            uint[3] memory policyParams
+        ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
+        address operatorContractAddress = _deployOperator(
+            from,
+            operatorsCutFraction,
+            poolTokenName,
+            operatorMetadataJson,
+            policies,
+            policyParams
+        );
+        emit NewOperator(from, operatorContractAddress);
+        IERC677(tokenAddress).transferAndCall(operatorContractAddress, amount, abi.encodePacked(from));
+    }
 
     /**
-     * [0] initialMargin, [1] minimumMarginFraction, [2] yieldPolicyParam, [3] undelegationPolicyParam, [4] initialMinimumDelegationWei, [5] operatorsShareFraction
-     * @param policies smart contract addresses, must be in the trustedPolicies
+     * @param operatorsCutFraction as a fraction of 10^18, like ether
+     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] yield, [2] undelegation policy
+     * @param policyParams not used for default policies: [0] delegation, [1] yield, [2] undelegation policy param
      */
     function deployOperator(
-        string[2] calldata stringArgs, // [0] poolTokenName, [1] streamMetadata
-        address[3] calldata policies, // [0] delegation, [1] yield, [2] undelegation policy
-        uint[6] calldata initParams
+        uint operatorsCutFraction,
+        string memory poolTokenName,
+        string memory operatorMetadataJson,
+        address[3] memory policies,  // [0] delegation, [1] yield, [2] undelegation policy
+        uint[3] memory policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
     ) public returns (address) {
         return _deployOperator(
             _msgSender(),
-            stringArgs,
+            operatorsCutFraction,
+            poolTokenName,
+            operatorMetadataJson,
             policies,
-            initParams
+            policyParams
         );
     }
 
     function _deployOperator(
         address operatorAddress,
-        string[2] calldata stringArgs,
-        address[3] calldata policies,
-        uint[6] calldata initParams
+        uint operatorsCutFraction,
+        string memory poolTokenName,
+        string memory operatorMetadataJson,
+        address[3] memory policies,
+        uint[3] memory policyParams
     ) private returns (address) {
+        require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCut");
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(bytes(stringArgs[0]), operatorAddress));
+        bytes32 salt = keccak256(abi.encode(poolTokenName, operatorAddress));
         address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
         Operator newOperatorContract = Operator(newContractAddress);
         newOperatorContract.initialize(
             tokenAddress,
             configAddress,
             operatorAddress,
-            stringArgs,
-            initParams[4], // minimumDelegationWei
-            initParams[5]
+            poolTokenName,
+            operatorMetadataJson,
+            operatorsCutFraction,
+            [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
         );
         if (policies[0] != address(0)) {
-            newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), initParams[0], initParams[1]);
+            newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         }
         if (policies[1] != address(0)) {
-            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), initParams[2]);
+            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), policyParams[1]);
         }
         if (policies[2] != address(0)) {
-            newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), initParams[3]);
+            newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time

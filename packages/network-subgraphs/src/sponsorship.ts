@@ -12,8 +12,8 @@ import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent,
 import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
-    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}', [event.params.operator.toHexString(),
-        event.params.stakedWei.toString(), event.params.allocatedWei.toString()])
+    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}, joinDate={}', [event.params.operator.toHexString(),
+        event.params.stakedWei.toString(), event.params.allocatedWei.toString(), event.block.timestamp.toString()])
     let sponsorshipAddress = event.address
     let operatorAddress = event.params.operator
 
@@ -23,8 +23,8 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress.toHexString()
         stake.operator = operatorAddress.toHexString()
+        stake.joinDate = event.block.timestamp
     }
-    stake.date = event.block.timestamp
     stake.amount = event.params.stakedWei
     stake.allocatedWei = event.params.allocatedWei
 
@@ -90,11 +90,13 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
-    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}',
+    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}, flagMetadata={}',
         [event.params.flagger.toHexString(),
             event.params.target.toHexString(),
             event.params.targetCommittedStake.toString(),
-            event.params.result.toString()])
+            event.params.result.toString(),
+            event.params.flagMetadata // not indexed as there is no use case for it yet, but could be useful
+        ])
     let sponsorshipAddress = event.address
     let flagID = sponsorshipAddress.toHexString() + "-" + event.params.target.toHexString()
     let flag = Flag.load(flagID)

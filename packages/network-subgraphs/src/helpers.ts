@@ -114,16 +114,16 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator = new Operator(operatorId)
         operator.delegatorCount = 0
         operator.poolValue = BigInt.zero()
-        operator.totalValueInSponsorshipsWei = BigInt.zero()
+        operator.totalStakeInSponsorshipsWei = BigInt.zero()
         operator.freeFundsWei = BigInt.zero()
         operator.poolValueTimestamp = BigInt.zero()
         operator.poolValueBlockNumber = BigInt.zero()
         operator.poolTokenTotalSupplyWei = BigInt.zero()
         operator.cumulativeProfitsWei = BigInt.zero()
-        operator.cumulativeOperatorsShareWei = BigInt.zero()
+        operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
-        operator.operatorsShareFraction = BigInt.zero()
+        operator.operatorsCutFraction = BigInt.zero()
         operator.nodes = []
 
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
@@ -146,7 +146,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         // populate with current absolute values from Operator entity
         let operator = loadOrCreateOperator(contractAddress)
         bucket.poolValue = operator.poolValue
-        bucket.totalValueInSponsorshipsWei = operator.totalValueInSponsorshipsWei
+        bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.freeFundsWei = operator.freeFundsWei
         bucket.spotAPY = BigInt.zero() // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
@@ -157,7 +157,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.totalUndelegatedWei = BigInt.zero()
         bucket.profitsWei = BigInt.zero()
         bucket.lossesWei = BigInt.zero()
-        bucket.operatorsShareWei = BigInt.zero()
+        bucket.operatorsCutWei = BigInt.zero()
     }
     return bucket
 }

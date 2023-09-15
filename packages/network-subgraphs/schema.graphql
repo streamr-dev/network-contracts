@@ -1,5 +1,6 @@
 # TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
 # scalar Date
+# for now, use BigInt because that's what the events return
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes
@@ -232,11 +233,11 @@ type Operator @entity {
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
 
-  "DATA staked, earned and held by the Operator contract = totalValueInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
+  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
   poolValue: BigInt!
 
   "DATA staked and earned in sponsorship contracts. Updated by PoolValueUpdate event, so it will be out of date by the amount of earnings."
-  totalValueInSponsorshipsWei: BigInt!
+  totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked. Updated by PoolValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
   freeFundsWei: BigInt!
@@ -259,16 +260,18 @@ type Operator @entity {
 
   "Total earnings excluding brokers shrare"
   cumulativeProfitsWei: BigInt!
-  cumulativeOperatorsShareWei: BigInt!
+  cumulativeOperatorsCutWei: BigInt!
 
   metadataJsonString: String! # TODO: unpack metadata to fields
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
-  operatorsShareFraction: BigInt!
+  operatorsCutFraction: BigInt!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
 
 type OperatorDailyBucket @entity {
@@ -279,11 +282,11 @@ type OperatorDailyBucket @entity {
   "The day of the bucket. This is a timestamp in seconds"
   date: BigInt!
 
-  "DATA staked, earned and held by the Operator contract = totalValueInSponsorshipsWei + freeFundsWei (first event in bucket)"
+  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
   poolValue: BigInt!
 
-  "DATA staked and earned in sponsorship contracts (first event in bucket)"
-  totalValueInSponsorshipsWei: BigInt!
+  "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
+  totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked (first event in bucket)"
   freeFundsWei: BigInt!
@@ -311,7 +314,7 @@ type OperatorDailyBucket @entity {
   lossesWei: BigInt!
 
   "Sum of operator's share of earnings during the bucket"
-  operatorsShareWei: BigInt!
+  operatorsCutWei: BigInt!
 }
 
 # Delegation in an Operator contract signals trust in the operator
@@ -330,6 +333,7 @@ type Sponsorship @entity {
   metadata: String
   isRunning: Boolean!
   totalPayoutWeiPerSec: BigInt!
+  minimumStakingPeriodSeconds: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
@@ -393,8 +397,8 @@ type Stake @entity {
   operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!
-  date: BigInt
   sponsorship: Sponsorship
+  joinDate: BigInt!
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work

@@ -31,7 +31,7 @@ import "./StreamrConfig.sol";
  *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
  * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
- * - committedFundsWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
+ * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
@@ -41,7 +41,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
     event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
-    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result);
+    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
@@ -63,11 +63,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     IKickPolicy public kickPolicy;
     string public streamId;
     string public metadata;
+    mapping(address => string) public flagMetadataJson;
 
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
     mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
-    uint public committedFundsWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    uint public committedForfeitedStakeWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
     uint public totalStakedWei;
     uint public operatorCount;
     uint public minOperatorCount;
@@ -108,19 +109,22 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
-     * @param initParams array of: [0] initialMinimumStakeWei, [1] initialMinHorizonSeconds, [2] initialMinOperatorCount, [3] weiPerSecond
+     * @param initParams uint arguments packed into an array to avoid the "stack too deep" error
+     *  [0] minHorizonSeconds: if there's less than this much sponsorship left, Operators can leave without penalty (not used for now)
+     *  [1] minOperatorCount: when will the Sponsorship start paying (or stop paying if Operator count goes below this)
+     *  [2] weiPerSecond (parameter sent to the allocation policy)
      */
     function initialize(
         string calldata streamId_,
         string calldata metadata_,
         StreamrConfig globalStreamrConfig,
         address tokenAddress,
-        uint[4] calldata initParams,
+        uint[3] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
     ) public initializer {
-        minHorizonSeconds = uint32(initParams[1]);
-        minOperatorCount = uint32(initParams[2]);
-        uint allocationPerSecond = initParams[3];
+        minHorizonSeconds = uint32(initParams[0]);
+        minOperatorCount = uint32(initParams[1]);
+        uint allocationPerSecond = initParams[2];
 
         require(minOperatorCount > 0, "error_minOperatorCountZero");
         token = IERC677(tokenAddress);
@@ -170,12 +174,17 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         _addSponsorship(_msgSender(), amountWei);
     }
 
-    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using ERC20.transfer */
+    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor` */
     function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        uint newTokensWei = token.balanceOf(address(this)) - totalStakedWei - committedFundsWei;
-        uint unknownTokensWei = newTokensWei - amountWei; // newTokens > amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        uint unallocatedWeiBefore = unallocatedWei;
+        uint unallocatedWeiAfter = token.balanceOf(address(this)) - totalStakedWei - committedForfeitedStakeWei;
+        uint newTokensWei = unallocatedWeiAfter - unallocatedWeiBefore;
+
+        // newTokens >= amount: tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly
+        uint unknownTokensWei = newTokensWei - amountWei;
+
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
-        unallocatedWei += newTokensWei;
+        unallocatedWei = unallocatedWeiAfter;
         emit SponsorshipReceived(sponsorAddress, amountWei);
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
@@ -239,7 +248,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             _slash(operator, penaltyWei);
             _addSponsorship(address(this), penaltyWei);
         }
-        payoutWei =_removeOperator(operator); // forfeits committed stake
+        payoutWei = _removeOperator(operator); // forfeits committed stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
@@ -302,7 +311,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Operator stops servicing the stream and withdraws their stake + earnings.
      * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
-     * If operator had any committed stake, it is forfeited and accounted as committedFundsWei, under control of e.g. the VoteKickPolicy.
+     * If operator had any committed stake, it is forfeited and accounted as committedForfeitedStakeWei, under control of e.g. the VoteKickPolicy.
      */
     function _removeOperator(address operator) internal returns (uint payoutWei) {
         require(stakedWei[operator] > 0, "error_operatorNotStaked");
@@ -310,14 +319,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         if (committedStakeWei[operator] > 0) {
             _slash(operator, committedStakeWei[operator]);
-            committedFundsWei += committedStakeWei[operator];
+            committedForfeitedStakeWei += committedStakeWei[operator];
             committedStakeWei[operator] = 0;
         }
 
         // send out both allocations and stake
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
-        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
         operatorCount -= 1;
         totalStakedWei -= paidOutStakeWei;
@@ -328,6 +336,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
+
+        // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with error_operatorNotStaked)
+        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
 
         return paidOutEarningsWei + paidOutStakeWei;
     }
@@ -352,8 +363,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
     }
 
-    /** Start the flagging process to kick an abusive operator */
-    function flag(address target) external {
+    /**
+     * Start the flagging process to kick an abusive operator and pass arbitrary metadata object along with the flag
+     * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
+    */
+    function flag(address target, string memory metadataJsonString) external {
+        flagMetadataJson[target] = metadataJsonString;
         require(address(kickPolicy) != address(0), "error_notSupported");
         moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
@@ -365,9 +380,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */
-    function getFlag(address target) external view returns (uint flagData) {
+    function getFlag(address target) external view returns (uint flagData, string memory flagMetadata) {
         require(address(kickPolicy) != address(0), "error_notSupported");
-        return moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");
+        flagData = moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");
+        flagMetadata = flagMetadataJson[target];
     }
 
     /////////////////////////////////////////
@@ -451,15 +467,15 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /* solhint-enable */
 
-    function solventUntilTimestamp() public view returns(uint256 horizon) {
+    function solventUntilTimestamp() public view returns(uint horizon) {
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
     }
 
-    function getEarnings(address operator) public view returns(uint256 allocation) {
+    function getEarnings(address operator) public view returns(uint allocation) {
         return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, operator, address(allocationPolicy)), "error_getEarningsFailed");
     }
 
-    function getLeavePenalty(address operator) public view returns(uint256 leavePenalty) {
+    function getLeavePenalty(address operator) public view returns(uint leavePenalty) {
         if (address(leavePolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)), "error_getLeavePenaltyFailed");
     }
