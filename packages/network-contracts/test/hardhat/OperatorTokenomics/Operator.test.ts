@@ -238,7 +238,7 @@ describe("Operator contract", (): void => {
 
     describe("Withdrawing and profit sharing", () => {
 
-        // corresponds to a test in network repo / broker subsystem / operator plugin:
+        // Corresponds to a test in network repo / broker subsystem / operator plugin:
         // https://github.com/streamr-dev/network/blob/streamr-1.0/packages/broker/test/integration/plugins/operator/maintainOperatorPoolValue.test.ts
         it("can withdraw from sponsorship (happy path)", async function(): Promise<void> {
             const STAKE_AMOUNT = "100"
