@@ -90,10 +90,12 @@ async function main() {
 
     // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
     setTimeout(() => {
+        log("sending initial heartbeat")
         fs.writeFileSync("heartbeat", "")
     }, 5 * 1000)
     // thereafter send heartbeat every 2 minutes
     setInterval(() => {
+        log("sending heartbeat")
         fs.writeFileSync("heartbeat", "")
     }, 2 * 60 * 1000)
 }
