@@ -496,7 +496,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     function min(uint a, uint b) internal pure returns (uint) {
-        return a > b ? a : b;
+        return a < b ? a : b;
     }
     function max(uint a, uint b) internal pure returns (uint) {
         return a > b ? a : b;
