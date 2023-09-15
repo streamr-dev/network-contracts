@@ -10,8 +10,8 @@ import { StreamRegistry } from "../../typechain"
 import { abi as ensAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
 import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 
-const mainnetConfig = config.dev0
-const sidechainConfig = config.dev1
+const mainnetConfig = config.dev2
+const sidechainConfig = config.dev2
 const mainnetProvider = new providers.JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
 const sideChainProvider = new providers.JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
 
@@ -26,11 +26,12 @@ if (keyidparam == "0") {
 }
 
 // ens on mainnet
-const ENSADDRESS = "0x92E8435EB56fD01BF4C79B66d47AC1A94338BB03"
-const FIFSADDRESS = "0x57B81a9442805f88c4617B506206531e72d96290"
-const RESOLVERADDRESS = "0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c"
+const ENSADDRESS = mainnetConfig.contracts.ENS
+const FIFSADDRESS = mainnetConfig.contracts.FIFSRegistrar
+const RESOLVERADDRESS = mainnetConfig.contracts.PublicResolver
+const STREAMREGISTRY = sidechainConfig.contracts.StreamRegistry
 
-const ENSCacheV1 = "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3"
+// const ENSCacheV1 = "0xE4eA76e830a659282368cA2e7E4d18C4AE52D8B3"
 
 const domainOwner = new Wallet(DEFAULTPRIVATEKEY, mainnetProvider)
 const domainOwnerSidechain = new Wallet(DEFAULTPRIVATEKEY, sideChainProvider)
@@ -49,15 +50,14 @@ const connectToAllContracts = async () => {
     await (await domainOwnerSidechain.sendTransaction({ to: subdomainOwner.address, value: ethers.utils.parseEther("1") })).wait()
 
     const streamregistryFactory = await ethers.getContractFactory("StreamRegistry", domainOwnerSidechain)
-    const registry = await streamregistryFactory.attach(sidechainConfig.contracts.StreamRegistry)
-    const registryContract = await registry.deployed()
-    registryFromUser = await registryContract.connect(domainOwnerSidechain) as StreamRegistry
+    const registry = await streamregistryFactory.attach(STREAMREGISTRY)
+    registryFromUser = await registry.connect(domainOwnerSidechain).deployed() as StreamRegistry
 
     const ensContract = new Contract(ENSADDRESS, ensAbi, mainnetProvider)
-    ensFromAdmin = await ensContract.connect(domainOwner)
+    ensFromAdmin = await ensContract.connect(domainOwner).deployed()
 
     const fifsContract = new Contract(FIFSADDRESS, fifsAbi, mainnetProvider)
-    fifsFromAdmin = await fifsContract.connect(domainOwner)
+    fifsFromAdmin = await fifsContract.connect(domainOwner).deployed()
 }
 
 const getRandomPath = () => {
