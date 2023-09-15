@@ -50,6 +50,11 @@ describe("Operator contract", (): void => {
         return deployOperatorContract(newContracts, deployer, operatorsCutFraction)
     }
 
+    // fix up after deployOperator->deployOperatorFactory messes up the OperatorFactory address of the sharedContracts.streamrConfig
+    afterEach(async function(): Promise<void> {
+        await (await sharedContracts.streamrConfig!.setOperatorFactory(sharedContracts.operatorFactory.address)).wait()
+    })
+
     before(async (): Promise<void> => {
         [
             admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller, protocolFeeBeneficiary
