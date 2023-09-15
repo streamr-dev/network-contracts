@@ -88,10 +88,14 @@ async function main() {
     //     log("Got StreamCreated event params: ", streamId, metadataJsonString)
     // })
 
-    // send heartbeat every 10 minutes
+    // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
+    setTimeout(() => {
+        fs.writeFileSync("heartbeat", "")
+    }, 5 * 1000)
+    // thereafter send heartbeat every 2 minutes
     setInterval(() => {
         fs.writeFileSync("heartbeat", "")
-    }, 1000 * 10)
+    }, 2 * 60 * 1000)
 }
 
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
