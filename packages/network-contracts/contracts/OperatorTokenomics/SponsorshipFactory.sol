@@ -25,7 +25,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
-    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, address indexed creator);
+    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, uint minimumStakingPeriodSeconds, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -82,7 +82,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             policies,
             policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], from);
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], from);
         IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, ""); // empty extra-data => sponsor
     }
 
@@ -110,7 +110,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             policies,
             policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], _msgSender());
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], _msgSender());
         return sponsorshipAddress;
     }
 

@@ -8,8 +8,8 @@ import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 export function handleNewSponsorship(event: NewSponsorship): void {
     let sponsorshipContractAddress = event.params.sponsorshipContract.toHexString()
     let creator = event.params.creator.toHexString()
-    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} creator={}',
-        [event.block.number.toString(), sponsorshipContractAddress, creator]
+    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} minimumStakingPeriodSeconds={} creator={}',
+        [event.block.number.toString(), sponsorshipContractAddress, event.params.minimumStakingPeriodSeconds.toString(), creator]
     )
 
     let sponsorship = new Sponsorship(sponsorshipContractAddress)
@@ -21,6 +21,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
     sponsorship.totalPayoutWeiPerSec = event.params.totalPayoutWeiPerSec
+    sponsorship.minimumStakingPeriodSeconds = event.params.minimumStakingPeriodSeconds
     sponsorship.creator = creator
     sponsorship.cumulativeSponsoring = BigInt.zero()
     sponsorship.save()
