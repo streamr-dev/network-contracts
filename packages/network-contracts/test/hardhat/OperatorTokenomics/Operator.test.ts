@@ -81,6 +81,31 @@ describe("Operator contract", (): void => {
         expect(await operator.getStreamMetadata()).to.equal("new stream metadata")
     })
 
+    it("token transfers must meet the minimumDelegationWei to be successful", async function(): Promise<void> {
+        const { token, streamrConfig } = sharedContracts
+        await setTokens(delegator, "100")
+        const operator1 = await deployOperator(operatorWallet)
+        const operator2 = await deployOperator(operator2Wallet)
+        await (await token.connect(delegator).approve(operator1.address, parseEther("100"))).wait()
+        await expect(operator1.connect(delegator).delegate(parseEther("100")))
+            .to.emit(operator1, "Delegated").withArgs(delegator.address, parseEther("100"))
+
+        const minimumDelegationWei = await streamrConfig.minimumDelegationWei()
+        expect(minimumDelegationWei).to.equal(parseEther("1"))
+        
+        // sender would have 0.5 tokens left which is less than the minimumDelegationWei
+        await expect(operator1.connect(delegator).transfer(operator2.address, parseEther("99.5")))
+            .to.be.revertedWithCustomError(operator1, "DelegationBelowMinimum")
+
+        // recipinet would have 0.5 tokens which is less than the minimumDelegationWei
+        await expect(operator1.connect(delegator).transfer(operator2.address, parseEther("0.5")))
+            .to.be.revertedWithCustomError(operator1, "DelegationBelowMinimum")
+
+        // transfer is successful if the minimumDelegationWei is met for both sender and recipient
+        await expect(operator1.connect(delegator).transfer(operator2.address, parseEther("99")))
+            .to.emit(operator1, "Transfer").withArgs(delegator.address, operator2.address, parseEther("99"))
+    })
+
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
     it("revenue sharing scenarios 1..6: happy path operator life cycle", async function(): Promise<void> {
         const { token: dataToken } = sharedContracts
