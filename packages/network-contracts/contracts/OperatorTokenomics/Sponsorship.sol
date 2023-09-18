@@ -35,6 +35,8 @@ import "./StreamrConfig.sol";
  *  -> governed by the `IAllocationPolicy`
  * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
+ * @dev We track both allocatedWei and unallocatedWei because one difference are the 'ghost tokens' that can be sent to the sponsorship
+ *  with a standard ERC20 transfer without transferAndCall
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
  *  either via _stake/_slash (to/from stake) or _addSponsorship (to unallocatedWei)
