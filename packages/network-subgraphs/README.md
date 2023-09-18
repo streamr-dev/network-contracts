@@ -8,8 +8,8 @@ Run `streamr-docker-dev start deploy-network-subgraphs`
 
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile. To do so:
-- build image: `npm run docker:build` OR `docker buildx build --platform linux/AMD64 . -t streamr/deploy-network-subgraphs:dev`
-- publish image: `npm run docker:publish` OR `docker push streamr/deploy-network-subgraphs:dev`
+- build image: `docker:buildLocalArch`
+- publish image: `docker:buildAndPushMultiArch`
 
 ## Prod deployment to the hosted service
 Follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev

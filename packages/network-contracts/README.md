@@ -54,3 +54,17 @@ npm run localUpgradeImpl
 # Changelog
 
 4.2.0 export ERC677 ABI and type
+
+
+## Publish package
+
+- `npm version [major/minor]`
+- `npm run clean`
+- `npm run build`
+- `npm publish --dry-run`
+- `npm publish`
+- `git add .`
+- `git commit -m"release(network-contracts): vx.x.x"`
+- `git tag network-contracts/vx.x.x`
+- `git push`
+- `git push --tags`

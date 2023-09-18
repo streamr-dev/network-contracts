@@ -71,7 +71,7 @@ jobs:
       - name: Start docker stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'deploy-network-subgraphs-fastchain'
+          services-to-start: 'ens-sync-script-fastchain deploy-network-subgraphs-fastchain'
       - name: Integration Test (with locally built images)
         env:
           TEST_TIMEOUT: '600000'
