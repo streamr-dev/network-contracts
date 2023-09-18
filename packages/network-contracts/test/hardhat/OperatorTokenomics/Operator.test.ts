@@ -63,6 +63,19 @@ describe("Operator contract", (): void => {
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
     })
 
+    it("can update metadata", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await expect(operator.updateMetadata("new metadata"))
+            .to.emit(operator, "MetadataUpdated").withArgs("new metadata", operatorWallet.address, parseEther("0.0"))
+        expect(await operator.metadata()).to.equal("new metadata")
+    })
+
+    it("can update the stream metadata", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await (await operator.updateStreamMetadata("new stream metadata")).wait()
+        expect(await operator.getStreamMetadata()).to.equal("new stream metadata")
+    })
+
     // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
     it("revenue sharing scenarios 1..6: happy path operator life cycle", async function(): Promise<void> {
         const { token: dataToken } = sharedContracts
