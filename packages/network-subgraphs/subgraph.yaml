@@ -15,7 +15,7 @@ dataSources:
     source:
       address: "0x760ddf22B89bD0e5E798DE265112185C019838F3"
       abi: StreamRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40070000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -41,7 +41,7 @@ dataSources:
     source:
       address: "0x16845c1083a30AB3888ADd92629e61673eC67B06"
       abi: NodeRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40070000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -67,7 +67,7 @@ dataSources:
     source:
       address: "0x81BFC6ec149854Aec656C531C41a758D2999d9EB"
       abi: StreamStorageRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40070000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -90,7 +90,7 @@ dataSources:
     source:
       address: "0x3dB5E750E4f6185eE61891C458bB5C25cB6e8677"
       abi: ProjectRegistryV1
-      startBlock: 40073228
+      startBlock: 40070000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -124,7 +124,7 @@ dataSources:
     source:
       address: "0x5e3Ccd8933f9ac13bf5C3c46A17034C6c7578b35"
       abi: MarketplaceV4
-      startBlock: 40073228
+      startBlock: 40070000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -144,7 +144,7 @@ dataSources:
     source:
       address: "0x8496Afa53Da256299EFf71a6F97729fa4Fadc2ef"
       abi: ProjectStakingV1
-      startBlock: 40073228
+      startBlock: 40070000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -168,7 +168,7 @@ dataSources:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0x67ecf83e800d20dC932C2A099421Ebc21E7Df1BE'
       abi: SponsorshipFactory
-      startBlock: 40073228
+      startBlock: 40070000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -189,7 +189,7 @@ dataSources:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0x1d1C3c278F515490e49685d6cc9be1B1993F72F6'
       abi: OperatorFactory
-      startBlock: 40073228
+      startBlock: 40070000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
