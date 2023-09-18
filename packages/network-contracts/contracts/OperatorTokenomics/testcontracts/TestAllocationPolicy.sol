@@ -20,7 +20,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
-    function setParam(uint256 testCase) external {
+    function setParam(uint testCase) external {
         if (testCase == 1) {
             require(false, "test_setParam");
         } else if (testCase == 2) {
@@ -59,7 +59,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
-    function getInsolvencyTimestamp() public override pure returns (uint256 horizonSeconds) {
+    function getInsolvencyTimestamp() public override pure returns (uint horizonSeconds) {
         return 2**255; // indefinitely solvent
     }
 
@@ -79,7 +79,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     /** Calculate the cumulative earnings per unit (full token stake) right now */
-    function getCumulativeEarnings() internal view returns(uint256) {
+    function getCumulativeEarnings() internal view returns(uint) {
     }
 
     function onSponsor(address, uint) external {
@@ -88,6 +88,6 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     function getEarningsWei(address) public view returns (uint earningsWei) {
     }
 
-    function calculatePenaltyOnStake(address) external view returns (uint256 stake) {
+    function calculatePenaltyOnStake(address) external view returns (uint stake) {
     }
 }

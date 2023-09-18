@@ -3,4 +3,3 @@ mkdir -p network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr
 cp ../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json ./network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol
 cp -r ../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json ./network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol
 
-docker build --platform linux/AMD64 -t streamr/ens-sync-script:dev .

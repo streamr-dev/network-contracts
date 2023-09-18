@@ -50,6 +50,11 @@ describe("Operator contract", (): void => {
         return deployOperatorContract(newContracts, deployer, operatorsCutFraction)
     }
 
+    // fix up after deployOperator->deployOperatorFactory messes up the OperatorFactory address of the sharedContracts.streamrConfig
+    afterEach(async function(): Promise<void> {
+        await (await sharedContracts.streamrConfig!.setOperatorFactory(sharedContracts.operatorFactory.address)).wait()
+    })
+
     before(async (): Promise<void> => {
         [
             admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller, protocolFeeBeneficiary
@@ -237,6 +242,44 @@ describe("Operator contract", (): void => {
     })
 
     describe("Withdrawing and profit sharing", () => {
+
+        // Corresponds to a test in network repo / broker subsystem / operator plugin:
+        // https://github.com/streamr-dev/network/blob/streamr-1.0/packages/broker/test/integration/plugins/operator/maintainOperatorPoolValue.test.ts
+        it("can withdraw from sponsorship (happy path)", async function(): Promise<void> {
+            const STAKE_AMOUNT = "100"
+            const STAKE_AMOUNT_WEI = parseEther(STAKE_AMOUNT)
+            const operatorsCutFraction = parseEther("0.1") // 10%
+            const triggerWithdrawLimitSeconds = 50
+
+            const { token } = sharedContracts
+
+            // "generateWalletWithGasAndTokens", fund a fresh random wallet
+            const operatorWallet = Wallet.createRandom().connect(admin.provider)
+            admin.sendTransaction({ to: operatorWallet.address, value: parseEther("1") })
+            await setTokens(operatorWallet, STAKE_AMOUNT)
+
+            await setTokens(sponsor, "250")
+            const operatorContract = await deployOperatorContract(sharedContracts, operatorWallet, operatorsCutFraction)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("250"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, STAKE_AMOUNT_WEI, "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await (await operatorContract.stake(sponsorship.address, STAKE_AMOUNT_WEI)).wait()
+
+            await advanceToTimestamp(timeAtStart + 1 + triggerWithdrawLimitSeconds, "Withdraw")
+            const earningsBeforeWithdraw = (await operatorContract.getSponsorshipsAndEarnings()).earnings[0]
+            const poolValueBeforeWithdraw = await operatorContract.getApproximatePoolValue()
+            await (await operatorContract.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
+            const earningsAfterWithdraw = (await operatorContract.getSponsorshipsAndEarnings()).earnings[0]
+            const poolValueAfterWithdraw = await operatorContract.getApproximatePoolValue()
+
+            expect(poolValueAfterWithdraw).to.be.greaterThan(poolValueBeforeWithdraw)
+            expect(earningsBeforeWithdraw).to.equal(parseEther("1").mul(triggerWithdrawLimitSeconds))
+            expect(earningsAfterWithdraw).to.equal(0)
+        })
+
         it("withdraws sponsorships earnings when withdrawEarningsFromSponsorships is called", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(sponsor, "1000")
@@ -868,7 +911,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1950"))
 
-        await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
+        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
         expect(await operator.getApproximatePoolValue()).to.equal(parseEther("1940"))
     })
 
@@ -888,7 +931,7 @@ describe("Operator contract", (): void => {
         const totalStakeInSponsorshipsAfterStake = await operator.totalStakedIntoSponsorshipsWei()
         const approxPoolValueAfterStake = await operator.getApproximatePoolValue()
 
-        await (await sponsorship.connect(admin).flag(operator.address)).wait() // TestKickPolicy actually slashes 10 ether without kicking
+        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
         const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
         const approxPoolValueAfterSlashing = await operator.getApproximatePoolValue()
 
@@ -1124,11 +1167,11 @@ describe("Operator contract", (): void => {
 
             await advanceToTimestamp(start, "Flag starts")
             await (await flagger.setNodeAddresses([])).wait()
-            await expect(flagger.flag(sponsorship.address, target.address))
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.be.revertedWithCustomError(flagger, "AccessDeniedNodesOnly")
 
             await (await flagger.setNodeAddresses([await flagger.owner()])).wait()
-            await expect(flagger.flag(sponsorship.address, target.address))
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
 
             await advanceToTimestamp(start + VOTE_START, "Voting starts")

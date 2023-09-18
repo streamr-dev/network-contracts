@@ -12,7 +12,7 @@ Test the images manually before pushing to Docker Hub:
 1. Check that you don't have a container that uses the images `streamr/dev-chain-fast:dev` or `streamr/deploy-network-subgraphs:dev-fastchain`
     * if you do, delete the containers (or just delete all streamr-docker-dev related containers)
     * clear the volumes (delete all streamr-docker-dev related volumes)
-1. `cd packages/dev-chain-fast && npm run build`
+1. `cd packages/dev-chain-fast && npm run docker:buildLocalArch`
     * this will build the contracts, pack them, and unpack in this directory for Dockerizing; then build the Docker image
 1. `cd packages/network-subgraphs && npm run docker:buildLocalArch`
 

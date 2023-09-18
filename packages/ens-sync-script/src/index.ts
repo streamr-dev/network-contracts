@@ -6,6 +6,7 @@ import { Wallet } from "@ethersproject/wallet"
 import { config } from "@streamr/config"
 import { createRequire } from "module"
 import fetch from "node-fetch"
+import fs from "fs"
 
 // TODO: use import?
 const require = createRequire(import.meta.url)
@@ -52,8 +53,8 @@ async function main() {
         sidechainProvider = new JsonRpcProvider(RPC_URL)
         privateKey = PRIVATE_KEY
     } else {
-        mainnetConfig = config.dev0
-        sidechainConfig = config.dev1
+        mainnetConfig = config.dev2
+        sidechainConfig = config.dev2
         mainnetProvider = new JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
         sidechainProvider = new JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
         privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
@@ -86,6 +87,17 @@ async function main() {
     // streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
     //     log("Got StreamCreated event params: ", streamId, metadataJsonString)
     // })
+
+    // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
+    setTimeout(() => {
+        log("sending initial heartbeat")
+        fs.writeFileSync("heartbeat", "")
+    }, 5 * 1000)
+    // thereafter send heartbeat every 2 minutes
+    setInterval(() => {
+        log("sending heartbeat")
+        fs.writeFileSync("heartbeat", "")
+    }, 2 * 60 * 1000)
 }
 
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {

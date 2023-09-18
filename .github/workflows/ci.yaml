@@ -30,18 +30,18 @@ jobs:
             packages/*/node_modules
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
+        run: npm ci --no-audit
+      - name: Install linux x64 specific package
+        run: npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu solidity-comments-linux-x64-gnu
       - name: Build and lint
         run: npm run build && npm run lint
       - name: Unit tests
         run: npm run test
-  integration-tests:
+  fastchain-docker-image:
     timeout-minutes: 20
+    runs-on: ubuntu-20.04
     needs:
       - lint-and-unit-test
-    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3.0.2
       - uses: actions/setup-node@v3
@@ -59,17 +59,42 @@ jobs:
             packages/*/node_modules
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          npm ci --no-audit
-          npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu
-      - name: Build packages
-        run: npm run build -w packages/network-contracts -w packages/config
-      - name: Start Streamr Docker Stack
+        run: npm ci --no-audit
+      - name: Install linux x64 specific package
+        run: npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu solidity-comments-linux-x64-gnu
+      - name: Build all packages
+        run: npm run build
+      - name: Build fastchain image
+        run: npm run docker:buildLocalArch -w packages/dev-chain-fast
+      - name: Build subgraph image
+        run: npm run docker:buildLocalArch -w packages/network-subgraphs
+      - name: Start docker stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'ens-sync-script deploy-network-subgraphs'
-      - name: Integration Test (with dev-docker environment)
+          services-to-start: 'ens-sync-script-fastchain deploy-network-subgraphs-fastchain'
+      - name: Integration Test (with locally built images)
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
         run: npm run integration-test
+
+      # - name: Build & Push
+      #   uses: docker/build-push-action@v4.1.1
+      #   with:
+      #     context: .
+      #     file: ./packages/dev-chain-fast/Dockerfile
+      #     platforms: linux/amd64
+      #     push: true
+      #     load: false
+      #     build-args: |
+      #       NODE_ENV=production
+      #     tags: streamr/broker-node:dev
+      #     labels: |
+      #       org.opencontainers.image.source=
+    # uses: ./.github/workflows/docker-build.yml
+    # with:
+    #   docker_file: ./packages/dev-chain-fast/Dockerfile
+    #   image_name: streamr/broker-node
+    #   test_services_to_start: cassandra init-keyspace dev-chain-fast deploy-network-subgraphs-fastchain broker-node-storage-1
+    #   build_platforms: linux/amd64
+    #   test_script: bash ./.github/healthcheck.sh http://localhost:8891/info streamr-dev-broker-node-storage-1

@@ -6,7 +6,9 @@
   "main": "index.ts",
   "scripts": {
     "start": "tsx ./src/index.ts",
-    "docker": "./buildDockerImage.sh"
+    "prepareArtifacts": "./prepare.sh",
+    "buildlocalArch": "npm run prepareArtifacts && docker build -t streamr/ens-sync-script:dev-fastchain .",
+    "buildMultiarchAndPush": "npm run prepareArtifacts && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/ens-sync-script:dev-fastchain --push ."
   },
   "author": "Streamr Network AG <contact@streamr.network>",
   "license": "Apache-2.0",
@@ -16,7 +18,7 @@
     "@ethersproject/providers": "^5.7.2",
     "@ethersproject/units": "^5.7.0",
     "@ethersproject/wallet": "^5.7.0",
-    "@streamr/config": "latest",
+    "@streamr/config": "^4.0.5",
     "debug": "^4.3.4",
     "eth-ens-namehash": "^2.0.8",
     "node-fetch": "2.6.7",

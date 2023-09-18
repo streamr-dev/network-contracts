@@ -245,8 +245,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
-            _slash(operator, penaltyWei);
-            _addSponsorship(address(this), penaltyWei);
+            uint slashedWei = _slash(operator, penaltyWei);
+            _addSponsorship(address(this), slashedWei);
         }
         payoutWei = _removeOperator(operator); // forfeits committed stake
     }
@@ -257,8 +257,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         require(targetStakeWei < stakedWei[operator], "error_cannotIncreaseStake");
         require(targetStakeWei >= minimumStakeOf(operator), "error_minimumStake");
 
-        payoutWei = stakedWei[operator] - targetStakeWei;
-        _reduceStakeBy(operator, payoutWei);
+        payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
         token.transfer(operator, payoutWei);
 
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
@@ -270,11 +269,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      **/
-    function _slash(address operator, uint amountWei) internal {
-        _reduceStakeBy(operator, amountWei);
-        emit OperatorSlashed(operator, amountWei);
+    function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
+        actualSlashingWei = _reduceStakeBy(operator, amountWei);
+        emit OperatorSlashed(operator, actualSlashingWei);
         if (operator.code.length > 0) {
-            try IOperator(operator).onSlash(amountWei) {} catch {}
+            try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
     }
@@ -286,7 +285,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      */
     function _kick(address operator, uint slashingWei) internal {
         if (slashingWei > 0) {
-            _reduceStakeBy(operator, slashingWei);
+            slashingWei = _reduceStakeBy(operator, slashingWei);
             emit OperatorSlashed(operator, slashingWei);
         }
         uint payoutWei = _removeOperator(operator);
@@ -299,13 +298,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Moves tokens from an operator's stake to "free funds" (that are not in unallocatedWei!)
      * Does not actually send out tokens!
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei via _addSponsorship
      **/
-    function _reduceStakeBy(address operator, uint amountWei) private {
-        assert(amountWei <= stakedWei[operator]); // should never happen! _slashing must be designed to not slash more than the whole stake
-        stakedWei[operator] -= amountWei;
-        totalStakedWei -= amountWei;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(amountWei)), "error_stakeChangeHandlerFailed");
+    function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
+        actualReductionWei = min(amountWei, stakedWei[operator]);
+        stakedWei[operator] -= actualReductionWei;
+        totalStakedWei -= actualReductionWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)), "error_stakeChangeHandlerFailed");
     }
 
     /**
@@ -318,8 +317,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         // console.log("_removeOperator", operator);
 
         if (committedStakeWei[operator] > 0) {
-            _slash(operator, committedStakeWei[operator]);
-            committedForfeitedStakeWei += committedStakeWei[operator];
+            uint slashedWei = _slash(operator, committedStakeWei[operator]);
+            committedForfeitedStakeWei += slashedWei;
             committedStakeWei[operator] = 0;
         }
 
@@ -363,19 +362,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
     }
 
-    /** Start the flagging process to kick an abusive operator */
-    function flag(address target) public {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
-    }
-
     /**
      * Start the flagging process to kick an abusive operator and pass arbitrary metadata object along with the flag
      * The intended use for the metadata is to communicate the partition number and/or other conditions relevant to the failed inspection. The passed metadata is only used off-chain.
     */
-    function flagWithMetadata(address target, string memory metadataJsonString) external {
+    function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
-        flag(target);
+        require(address(kickPolicy) != address(0), "error_notSupported");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
     }
 
     /** Peer reviewers vote on the flag */
@@ -501,6 +495,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
     }
 
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
+    }
     function max(uint a, uint b) internal pure returns (uint) {
         return a > b ? a : b;
     }

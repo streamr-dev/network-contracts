@@ -270,6 +270,8 @@ type Operator @entity {
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
 
 type OperatorDailyBucket @entity {
@@ -331,6 +333,7 @@ type Sponsorship @entity {
   metadata: String
   isRunning: Boolean!
   totalPayoutWeiPerSec: BigInt!
+  minimumStakingPeriodSeconds: BigInt!
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
@@ -394,8 +397,8 @@ type Stake @entity {
   operator: Operator!
   amount: BigInt!
   allocatedWei: BigInt!
-  date: BigInt
   sponsorship: Sponsorship
+  joinDate: BigInt!
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work
