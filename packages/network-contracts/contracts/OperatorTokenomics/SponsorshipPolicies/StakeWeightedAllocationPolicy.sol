@@ -29,14 +29,14 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         /**
          * The per-stake-unit allocation (wei / full token stake) of each operator is calculated as
          *   cumulativeWeiPerStake (common to all operators) minus cumulativeReference (for this operator)
-         * This reference point will be RESET when stake changes because that's when the operator-specific allocation velocity changes
+         * This reference point will be updated when stake changes because that's when the operator-specific allocation velocity changes
          * The earnings, then, are simply stake * allocation
          */
         mapping(address => uint) cumulativeReference;
-        /** At each RESET, remember how much earnings there were before */
-        mapping(address => uint) earningsBeforeResetWei;
+        /** At each reference point update, remember how much earnings there were before */
+        mapping(address => uint) earningsBeforeRPU; // RPU = Reference Point Update
 
-        // when the current unallocated funds will run out if more sponsorship is not added; OR when insolvency started
+        // the current unallocated funds will run out if more sponsorship is not added
         uint defaultedWei; // lost income during the current insolvency; reported in InsolvencyEnded event, not used in allocations
         uint defaultedWeiPerStake; // lost cumulativeWeiPerStake during the current insolvency; reported in InsolvencyEnded event, not used in allocations
 
@@ -62,9 +62,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
 
     /** @return earningsWei the current earnings of the given operator (since last withdraw) */
     function getEarningsWei(address operator) public view returns (uint earningsWei) {
-        // console.log("Calculate earnings for", operator);
         if (stakedWei[operator] == 0) { return 0; }
-        return localData().earningsBeforeResetWei[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
+        return localData().earningsBeforeRPU[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
     }
 
     /**
@@ -76,7 +75,6 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
 
         uint cumulativeWeiPerStake = local.cumulativeWeiPerStake + newAllocationsWei * 1e18 / local.lastUpdateTotalStake;
         uint allocationWeiPerStake = cumulativeWeiPerStake - referenceWeiPerStake;
-        // console.log("  alloc / full token", allocationWeiPerStake);
         return stakeWei * allocationWeiPerStake / 1e18; // full token = 1e18 wei
     }
 
@@ -131,11 +129,9 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
 
         if (newAllocationsWei > 0) {
             // move funds from unallocated to allocated
-            // NOTE: this should be the only place where the allocatedWei is modified!
             allocatedWei += newAllocationsWei;
             unallocatedWei -= newAllocationsWei;
             localVars.cumulativeWeiPerStake += newAllocationsWei * 1e18 / localVars.lastUpdateTotalStake;
-            // console.log("    newAllocationsWei", newAllocationsWei, "cumulativeWeiPerStake", localVars.cumulativeWeiPerStake);
         }
 
         // save values for next update: adjust income velocity for a possibly changed number of operators
@@ -155,60 +151,49 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
 
     /** When operator joins, the current reference point is reset, and later the operator's allocation can be measured from the accumulated difference */
     function onJoin(address operator) external {
-        // console.log("onJoin update", operator);
         update();
         localData().cumulativeReference[operator] = localData().cumulativeWeiPerStake;
-        // console.log("  cumulative reference <-", localData().cumulativeReference[operator]);
     }
 
     /** When operator leaves, its state is cleared as if it had never joined */
     function onLeave(address operator) external {
-        // console.log("onLeave update", operator);
         update();
-        delete localData().earningsBeforeResetWei[operator];
+        delete localData().earningsBeforeRPU[operator];
         delete localData().cumulativeReference[operator];
     }
 
     /**
-     * When stake changes, reset the reference point
+     * When stake changes, update the reference point
      */
     function onStakeChange(address operator, int stakeChangeWei) external {
         LocalStorage storage local = localData();
-        // console.log("onStakeChange", operator, stakedWei[operator]);
-        // console.logInt(stakeChangeWei);
         update();
 
         // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
         uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
-        // reset reference point: move new earnings to earningsBeforeResetWei
-        local.earningsBeforeResetWei[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
+        // update reference point: move new earnings to earningsBeforeRPU
+        local.earningsBeforeRPU[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
         local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
-
-        // console.log("  pre-reset allocation <-", local.earningsBeforeResetWei[operator]);
-        // console.log("  cumulative reference <-", local.cumulativeReference[operator]);
     }
 
     /** @return payoutWei how many tokens to send out from Sponsorship */
     function onWithdraw(address operator) external returns (uint payoutWei) {
-        // console.log("onWithdraw", operator);
         update();
 
-        // calculate payout FIRST, before zeroing the allocation onReferenceReset
+        // calculate payout FIRST, before zeroing earningsBeforeRPU
         payoutWei = getEarningsWei(operator);
         allocatedWei -= payoutWei;
 
-        // reset reference point, also zero the "unpaid earnings" because they will be paid out
+        // update reference point, also zero the "unpaid earnings" because they will be paid out
         LocalStorage storage local = localData();
         local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
-        local.earningsBeforeResetWei[operator] = 0;
+        local.earningsBeforeRPU[operator] = 0;
     }
 
     function onSponsor(address, uint amount) external {
         if (amount == 0) { return; }
 
-        // console.log("onSponsor: had before", unallocatedWei);
-        // console.log("           got more  ", amount);
         update();
 
         // has been insolvent but now has funds again => back to normal
