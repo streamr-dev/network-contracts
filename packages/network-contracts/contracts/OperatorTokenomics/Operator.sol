@@ -246,6 +246,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit MetadataUpdated(metadataJsonString, owner, operatorsCutFraction);
     }
 
+    function getStreamMetadata() external view returns (string memory) {
+        return streamRegistry.getStreamMetadata(streamId);
+    }
+
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
