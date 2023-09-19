@@ -230,6 +230,17 @@ describe("Operator contract", (): void => {
             expect(formatEther(freeFundsAfterdelegate)).to.equal("1000.0")
             expect(formatEther(freeFundsAfterUndelegate)).to.equal("0.0")
         })
+
+        it("allows delegate via transferAndCall by passing a bytes32 data param", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            const operator = await deployOperator(operatorWallet)
+            // assume the address was encoded by converting address -> uint256 -> bytes32 -> bytes
+            const data = hexZeroPad(delegator.address, 32)
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), data))
+                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+        })
     })
 
     describe("Stake management", (): void => {
