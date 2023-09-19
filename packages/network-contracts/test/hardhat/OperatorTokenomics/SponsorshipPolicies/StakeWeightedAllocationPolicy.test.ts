@@ -8,7 +8,7 @@ import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
 const { parseEther, formatEther } = utils
 
-describe("StakeWeightedAllocationPolicy", (): void => {
+describe.only("StakeWeightedAllocationPolicy", (): void => {
     let admin: Wallet
     let operator: Wallet
     let operator2: Wallet
@@ -74,7 +74,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.transferAndCall(sponsorship.address, parseEther("10000"), "0x")).wait() // sponsor using ERC677
         const tokensOperator1Before = await token.balanceOf(operator.address)
         const tokensOperator2Before = await token.balanceOf(operator2.address)
-        const unallocatedWeiBefore = await sponsorship.unallocatedWei()
+        const remainingWeiBefore = await sponsorship.remainingWei()
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "operator1 joins")
@@ -91,12 +91,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         const newTokens1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
         const newTokens2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
-        const unallocatedWeiAfter = await sponsorship.unallocatedWei()
+        const remainingWeiAfter = await sponsorship.remainingWei()
 
         expect(formatEther(newTokens1)).to.equal("3000.0")
         expect(formatEther(newTokens2)).to.equal("1000.0")
-        expect(formatEther(unallocatedWeiBefore)).to.equal("10000.0")
-        expect(formatEther(unallocatedWeiAfter)).to.equal("6000.0")
+        expect(formatEther(remainingWeiBefore)).to.equal("10000.0")
+        expect(formatEther(remainingWeiAfter)).to.equal("6000.0")
     })
 
     it("allocates correctly for two operators, different weight, different join, leave times (positive test)", async function(): Promise<void> {
@@ -186,18 +186,23 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // operator should have 2000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-        await (await sponsorship.sponsor(parseEther("10008"))).wait()
+        await (await sponsorship.sponsor(parseEther("12345"))).wait()
         const tokensOperator1Before = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Operator joins")
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("400"), operator.address)).wait()
+        await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("400"), operator.address))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("400"), parseEther("0"))
+            .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("400"), parseEther("12345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 1000, "Operator adds 100 stake 400 -> 500")
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+        await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("500"), parseEther("1000"))
+            .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("500"), parseEther("11345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 2000, "Operator leaves")
-        await (await sponsorship.connect(operator).unstake()).wait()
+        await expect(sponsorship.connect(operator).unstake())
+            .to.emit(sponsorship, "OperatorLeft").withArgs(operator.address, parseEther("500"))
 
         const newTokens = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
         expect(formatEther(newTokens)).to.equal("2000.0")
@@ -210,7 +215,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // operator should have 2000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-        await (await sponsorship.sponsor(parseEther("10008"))).wait()
+        await (await sponsorship.sponsor(parseEther("12345"))).wait()
         const tokensOperator1Before = await token.balanceOf(operator.address)
         const timeAtStart = await getBlockTimestamp()
 

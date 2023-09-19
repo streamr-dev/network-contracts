@@ -46,7 +46,6 @@ contract StakeModule is IStakeModule, Operator {
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
-        // console.log("## reduceStake amountWei", amountWei);
         reduceStakeWithoutQueue(sponsorship, targetStakeWei);
         payOutQueueWithFreeFunds(0);
     }

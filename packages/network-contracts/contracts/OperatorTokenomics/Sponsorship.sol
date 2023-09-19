@@ -29,23 +29,24 @@ import "./StreamrConfig.sol";
  * The tokens held by `Sponsorship` are tracked in four accounts:
  * - totalStakedWei: total amount of tokens staked by all operators
  *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
- * - unallocatedWei: part of the sponsorship that hasn't been paid out yet
+ * - remainingWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
- * - allocatedWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
+ * - earningsWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
  *  -> governed by the `IAllocationPolicy`
  * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
- * @dev We track both allocatedWei and unallocatedWei because one difference are the 'ghost tokens' that can be sent to the sponsorship
+ * @dev We track both earningsWei and remainingWei because one difference are the 'ghost tokens' that can be sent to the sponsorship
  *  with a standard ERC20 transfer without transferAndCall
  *
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
- *  either via _stake/_slash (to/from stake) or _addSponsorship (to unallocatedWei)
+ *  either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
-    event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei); // TODO change: allocatedWei -> earningsWei
-    event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning); // TODO: change uint32 -> uint, stake -> staked
-    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
+    // TODO change: allocatedWei -> earningsWei
+    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
+    // TODO: change uint32 -> uint, stake -> staked, unallocated -> amountLeft
+    event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
@@ -56,6 +57,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+
+    // Emitted from VoteKickPolicy
+    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -77,8 +81,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public operatorCount;
     uint public minOperatorCount;
     uint public minHorizonSeconds;
-    uint public unallocatedWei;
-    uint public allocatedWei;
+    uint public remainingWei;
+    uint public earningsWei; // only the IAllocationPolicy should modify this!
 
     function getMyStake() public view returns (uint) {
         return stakedWei[_msgSender()];
@@ -179,21 +183,21 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         _addSponsorship(_msgSender(), amountWei);
     }
 
-    /** Sweep all non-staked tokens into "unallocated" bin. This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor` */
-    function _addSponsorship(address sponsorAddress, uint amountWei) internal {
-        uint unallocatedWeiBefore = unallocatedWei;
-        unallocatedWei = token.balanceOf(address(this)) - allocatedWei - totalStakedWei - committedForfeitedStakeWei;
-        uint newTokensWei = unallocatedWei - unallocatedWeiBefore;
+    function _addSponsorship(address sponsorAddress, uint tokensFromSponsorWei) internal {
+        // weep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
+        uint remainingWeiBefore = remainingWei;
+        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - committedForfeitedStakeWei;
+        uint newTokensWei = remainingWei - remainingWeiBefore;
 
         // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
-        uint unknownTokensWei = newTokensWei - amountWei;
+        uint unknownTokensWei = newTokensWei - tokensFromSponsorWei;
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
-        emit SponsorshipReceived(sponsorAddress, amountWei);
+        emit SponsorshipReceived(sponsorAddress, tokensFromSponsorWei);
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
         }
-        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
     /**
@@ -229,7 +233,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         }
 
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
-        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
     /**
@@ -266,12 +270,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         token.transfer(operator, payoutWei);
 
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
-        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
     /**
-     * Slashing moves tokens from an operator's stake to "free funds" (that are not in unallocatedWei!)
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
+     * Slashing moves tokens from an operator's stake to "free funds" (that are not in remainingWei!)
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      **/
     function _slash(address operator, uint amountWei) internal {
@@ -285,7 +289,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Kicking does what slashing does, plus removes the operator
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      * @dev do not slash more than the whole stake!
      */
     function _kick(address operator, uint slashingWei) internal {
@@ -301,9 +305,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Moves tokens from an operator's stake to "free funds" (that are not in unallocatedWei!)
+     * Moves tokens from an operator's stake to "free funds" (that are not in remainingWei!)
      * Does not actually send out tokens!
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. unallocatedWei, via _addSponsorship
+     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _reduceStakeBy(address operator, uint amountWei) private {
         assert(amountWei <= stakedWei[operator]); // should never happen! _slashing must be designed to not slash more than the whole stake
@@ -338,7 +342,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator), "error_leaveHandlerFailed");
         emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
-        emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
 
         // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with error_operatorNotStaked)
@@ -355,7 +359,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
             emit StakeUpdate(operator, stakedWei[operator], 0); // earnings will be zero after withdraw (see test)
-            emit SponsorshipUpdate(totalStakedWei, unallocatedWei, uint32(operatorCount), isRunning());
+            emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         }
     }
 

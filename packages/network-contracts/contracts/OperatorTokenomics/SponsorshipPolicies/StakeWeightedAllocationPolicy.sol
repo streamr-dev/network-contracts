@@ -23,18 +23,18 @@ import "../Sponsorship.sol";
  */
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     struct LocalStorage {
-        uint incomePerSecond; // wei, total income velocity, distributed to operators
-        uint cumulativeWeiPerStake; // cumulative time-income per stake FULL TOKEN unit (wei x 1e18)
+        uint incomePerSecond;       // wei, total income velocity, distributed to operators, decided by sponsor upon creation
+        uint cumulativeWeiPerStake; // cumulative income over time, per stake FULL TOKEN unit (wei x 1e18)
 
         /**
-         * The per-stake-unit allocation (wei / full token stake) of each operator is calculated as
-         *   cumulativeWeiPerStake (common to all operators) minus cumulativeReference (for this operator)
-         * This reference point will be updated when stake changes because that's when the operator-specific allocation velocity changes
-         * The earnings, then, are simply stake * allocation
+         * The per-stake-unit allocation (wei / full token stake) of each operator is the integral over time of incomePerSecond (divided by total stake),
+         *   calculated as cumulativeWeiPerStake (upper limit, common to all operators) minus cumulativeReference (lower limit, just for this operator)
+         * This reference point will be updated when stake changes because that's when the operator-specific allocation weight changes,
+         *   so we save the result of the integral up to that point and continue integrating from there with the new weight.
          */
         mapping(address => uint) cumulativeReference;
-        /** At each reference point update, remember how much earnings there were before */
-        mapping(address => uint) earningsBeforeRPU; // RPU = Reference Point Update
+        /** Remember how much earnings there were before the last cumulativeReference update */
+        mapping(address => uint) earningsBeforeReferenceUpdate;
 
         // the current unallocated funds will run out if more sponsorship is not added
         uint defaultedWei; // lost income during the current insolvency; reported in InsolvencyEnded event, not used in allocations
@@ -45,7 +45,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         // it's important to call the update() when things that affect allocation change (like incomePerSecond or stakedWei)
         uint lastUpdateTimestamp;
         uint lastUpdateTotalStake;
-        uint lastUpdateUnallocatedWei;
+        uint lastUpdateRemainingWei;
         bool lastUpdateWasRunning;
     }
 
@@ -63,13 +63,13 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     /** @return earningsWei the current earnings of the given operator (since last withdraw) */
     function getEarningsWei(address operator) public view returns (uint earningsWei) {
         if (stakedWei[operator] == 0) { return 0; }
-        return localData().earningsBeforeRPU[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
+        return localData().earningsBeforeReferenceUpdate[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
     }
 
     /**
      * Calculate an operator's earnings since the last reset of the per-operator reference point (cumulativeReference)
      */
-    function calculateNewEarnings(uint referenceWeiPerStake, uint stakeWei) internal view returns (uint allocation) {
+    function calculateNewEarnings(uint referenceWeiPerStake, uint stakeWei) private view returns (uint allocation) {
         LocalStorage storage local = localData();
         (uint newAllocationsWei,) = calculateSinceLastUpdate();
 
@@ -78,35 +78,29 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         return stakeWei * allocationWeiPerStake / 1e18; // full token = 1e18 wei
     }
 
+    /**
+     * Figure out the allocations since last time update() was called
+     * This is used for updating but also for "real-time" earnings and insolvency projection
+     * @param newAllocationsWei how many tokens have been allocated to operators since last time update() was called
+     * @param newDefaultsWei how many tokens have been lost to insolvency since last time update() was called
+     **/
     function calculateSinceLastUpdate() private view returns (uint newAllocationsWei, uint newDefaultsWei) {
-        newAllocationsWei = 0;
-        newDefaultsWei = 0;
         LocalStorage storage localVars = localData();
-        if (localVars.lastUpdateWasRunning) {
-            uint deltaTime = block.timestamp - localVars.lastUpdateTimestamp;
-            uint owedWei = localVars.incomePerSecond * deltaTime;
-            if (owedWei > 0) {
-                // console.log("    lastUpdateTimestamp", localVars.lastUpdateTimestamp, "block.timestamp", block.timestamp);
-                // was solvent in the start => calculate the past update period (until insolvency, if went insolvent)
-                if (localVars.defaultedWei == 0) {
-                    // default: allocate what is owed
-                    newAllocationsWei = owedWei;
 
-                    // in case of insolvency: allocate all remaining funds (according to weights) up to the start of insolvency
-                    // NOTE: Insolvency won't start if unallocatedWei goes to exactly zero. This is to give a "benefit of doubt" to the sponsorship:
-                    //   perhaps in the same block, a top-up still arrives, and then emitting insolvency events would be spurious.
-                    // The insolvency only starts once update is called when there's non-zero allocations that aren't covered.
-                    if (localVars.lastUpdateUnallocatedWei < owedWei) {
-                        newAllocationsWei = localVars.lastUpdateUnallocatedWei;
-                        newDefaultsWei = owedWei - newAllocationsWei;
+        // not enough operators: don't allocate at all
+        if (!localVars.lastUpdateWasRunning) { return (0, 0); }
 
-                    }
-                } else {
-                    // state of insolvency continued throughout the update period, default on all owed tokens
-                    newDefaultsWei = owedWei;
-                }
-            }
+        uint deltaTime = block.timestamp - localVars.lastUpdateTimestamp;
+        uint owedWei = localVars.incomePerSecond * deltaTime;
+
+        // tokens run out: allocate all remaining funds
+        uint tokensLeft = localVars.lastUpdateRemainingWei;
+        if (tokensLeft < owedWei) {
+            return (tokensLeft, owedWei - tokensLeft);
         }
+
+        // happy path: we have enough tokens => allocate what is owed, nothing defaulted
+        return (owedWei, 0);
     }
 
     /**
@@ -118,35 +112,38 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         LocalStorage storage localVars = localData();
         (uint newAllocationsWei, uint newDefaultsWei) = calculateSinceLastUpdate();
 
+        // in case of insolvency: allocate all remaining funds (according to weights) up to the start of insolvency
+        // NOTE: Insolvency won't start if remainingWei goes to exactly zero. This is to give a "benefit of doubt" to the sponsorship:
+        //   perhaps in the same block, a top-up still arrives, and then emitting insolvency events would be spurious.
+        // The insolvency only starts once update is called when there's non-zero allocations that aren't covered.
         if (newDefaultsWei > 0) {
             if (localVars.defaultedWei == 0) { // was previously still solvent (had not defaulted yet)
-                uint insolvencyStartTime = localVars.lastUpdateTimestamp + newAllocationsWei / localVars.incomePerSecond;
-                emit InsolvencyStarted(insolvencyStartTime);
+                emit InsolvencyStarted(getInsolvencyTimestamp());
             }
             localVars.defaultedWei += newDefaultsWei;
             localVars.defaultedWeiPerStake += newDefaultsWei * 1e18 / localVars.lastUpdateTotalStake;
         }
 
         if (newAllocationsWei > 0) {
-            // move funds from unallocated to allocated
-            allocatedWei += newAllocationsWei;
-            unallocatedWei -= newAllocationsWei;
+            // move funds from sponsorship to earnings, add to the cumulativeWeiPerStake integral
+            earningsWei += newAllocationsWei;
+            remainingWei -= newAllocationsWei;
             localVars.cumulativeWeiPerStake += newAllocationsWei * 1e18 / localVars.lastUpdateTotalStake;
         }
 
         // save values for next update: adjust income velocity for a possibly changed number of operators
         localVars.lastUpdateTimestamp = block.timestamp;
-        localVars.lastUpdateUnallocatedWei = unallocatedWei;
+        localVars.lastUpdateRemainingWei = remainingWei;
         localVars.lastUpdateTotalStake = totalStakedWei;
         localVars.lastUpdateWasRunning = isRunning();
     }
 
-    /** @return insolvencyTimestamp when the (unallocated) funds would run out */
+    /** @return insolvencyTimestamp when the sponsorship would run out */
     function getInsolvencyTimestamp() public override(IAllocationPolicy) view returns (uint insolvencyTimestamp) {
-        uint incomePerSecond = localData().incomePerSecond;
-        if (incomePerSecond == 0) { return 2**255; } // indefinitely solvent
+        LocalStorage storage localVars = localData();
+        if (localVars.incomePerSecond == 0) { return 2**255; } // indefinitely solvent
 
-        return localData().lastUpdateTimestamp + unallocatedWei / incomePerSecond;
+        return localVars.lastUpdateTimestamp + localVars.lastUpdateRemainingWei / localVars.incomePerSecond;
     }
 
     /** When operator joins, the current reference point is reset, and later the operator's allocation can be measured from the accumulated difference */
@@ -158,12 +155,12 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     /** When operator leaves, its state is cleared as if it had never joined */
     function onLeave(address operator) external {
         update();
-        delete localData().earningsBeforeRPU[operator];
+        delete localData().earningsBeforeReferenceUpdate[operator];
         delete localData().cumulativeReference[operator];
     }
 
     /**
-     * When stake changes, update the reference point
+     * When stake changes, update the cumulativeReference per-operator reference point
      */
     function onStakeChange(address operator, int stakeChangeWei) external {
         LocalStorage storage local = localData();
@@ -172,23 +169,23 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
         uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
-        // update reference point: move new earnings to earningsBeforeRPU
-        local.earningsBeforeRPU[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
-        local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
+        // Reference Point Update => move new earnings since last reference update to earningsBeforeReferenceUpdate
+        local.cumulativeReference[operator] = local.cumulativeWeiPerStake; // <- this is the reference update
+        local.earningsBeforeReferenceUpdate[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
     }
 
     /** @return payoutWei how many tokens to send out from Sponsorship */
     function onWithdraw(address operator) external returns (uint payoutWei) {
         update();
 
-        // calculate payout FIRST, before zeroing earningsBeforeRPU
+        // calculate payout FIRST, before zeroing earningsBeforeReferenceUpdate
         payoutWei = getEarningsWei(operator);
-        allocatedWei -= payoutWei;
+        earningsWei -= payoutWei;
 
         // update reference point, also zero the "unpaid earnings" because they will be paid out
         LocalStorage storage local = localData();
         local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
-        local.earningsBeforeRPU[operator] = 0;
+        local.earningsBeforeReferenceUpdate[operator] = 0;
     }
 
     function onSponsor(address, uint amount) external {

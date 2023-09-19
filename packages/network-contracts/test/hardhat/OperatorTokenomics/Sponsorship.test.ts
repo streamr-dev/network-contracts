@@ -55,27 +55,27 @@ describe("Sponsorship contract", (): void => {
             await expect(defaultSponsorship.connect(operator).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
         })
 
-        it("adds to unallocatedWei with just ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
+        it("adds to remainingWei with just ERC20.transfer, after calling sponsor with zero", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.transfer(sponsorship.address, parseEther("100"))).wait()
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
             await expect(sponsorship.sponsor(parseEther("0")))
                 .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, "0")
                 .to.emit(sponsorship, "SponsorshipReceived").withArgs("0x0000000000000000000000000000000000000000", parseEther("100"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("100"), 0, false)
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("100"))
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("100"))
         })
 
-        it("adds to unallocatedWei with just ERC20.transfer, after a second sponsoring", async function(): Promise<void> {
+        it("adds to remainingWei with just ERC20.transfer, after a second sponsoring", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.transfer(sponsorship.address, parseEther("100"))).wait()
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("0")) // ERC20 transfer doesn't call onTokenTransfer
             await (await token.approve(sponsorship.address, parseEther("100"))).wait()
             await expect(sponsorship.sponsor(parseEther("100")))
                 .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("100"))
                 .to.emit(sponsorship, "SponsorshipReceived").withArgs("0x0000000000000000000000000000000000000000", parseEther("100"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("200"))
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("200"))
         })
 
         it("works for top-up before old sponsorship runs out", async function(): Promise<void> {
@@ -95,7 +95,7 @@ describe("Sponsorship contract", (): void => {
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), "0x"))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("250"), 1, true)
 
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("250"))
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("250"))
         })
 
         it("works for top-up after old sponsorship runs out", async function(): Promise<void> {
@@ -115,7 +115,7 @@ describe("Sponsorship contract", (): void => {
                 .to.emit(sponsorship, "InsolvencyStarted").withArgs(start + 201) // the transactions happen at timestamp + 1
                 .to.emit(sponsorship, "InsolvencyEnded").withArgs(start + 301, parseEther("1"), parseEther("100"))
 
-            expect(await sponsorship.unallocatedWei()).to.equal(parseEther("100"))
+            expect(await sponsorship.remainingWei()).to.equal(parseEther("100"))
         })
     })
 
