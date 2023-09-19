@@ -190,8 +190,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
 
-        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
+        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules and policies
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        // DEFAULT_ADMIN_ROLE is needed (by the contract owner) for setting policies
+        _setupRole(DEFAULT_ADMIN_ROLE, ownerAddress);
 
         // can't call updateMetadata because it has the onlyOperator guard
         metadata = operatorMetadataJson;
