@@ -241,6 +241,16 @@ describe("Operator contract", (): void => {
             await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), data))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
         })
+    
+        it("allows delegate without delegation policy being set", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            const operator = await deployOperator(operatorWallet)
+            await (await operator.connect(operatorWallet).setDelegationPolicy(hardhatEthers.constants.AddressZero, 0)).wait()
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await expect(operator.connect(delegator).delegate(parseEther("1000")))
+                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+        })
     })
 
     describe("Stake management", (): void => {
