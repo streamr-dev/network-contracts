@@ -496,6 +496,57 @@ describe("Operator contract", (): void => {
     })
 
     describe("Undelegation queue", function(): void {
+        it("empties the whole Operator of DATA when everyone undelegates all (infinity)", async function(): Promise<void> {
+            const { token } = sharedContracts
+
+            await setTokens(operatorWallet, "100")
+            await setTokens(delegator, "200")
+            await setTokens(sponsor, "600")
+
+            const sponsorship = await deploySponsorship(sharedContracts, { allocationWeiPerSecond: parseEther("20") })
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("600"), "0x")).wait()
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 10 })
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("200"), "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("300")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            // earnings = the whole sponsorship = 600 DATA
+            // protocol fee = 600 * 0.05 = 30 DATA
+            // operator's cut = (600 - 30) * 0.1 = 57 DATA
+            // profit = 600 - 30 - 57 = 513 DATA
+            await advanceToTimestamp(timeAtStart + 31, "Unstake after Sponsorship is empty")
+            expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("900.0") // stake + earnings
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+                .to.emit(operator, "Profit").withArgs(parseEther("513"), parseEther("57"), parseEther("30"))
+            expect(await token.balanceOf(sponsorship.address)).to.equal(0)
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("870.0") // stake + earnings - protocol fee
+
+            // operator contract value = 300 stake + 513 profits = 813 DATA
+            // delegator has 2/3 of operator tokens, and should receive 2/3 * 813 = 542 DATA
+            await advanceToTimestamp(timeAtStart + 40, "Undelegate all")
+            expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("200.0")
+            await expect(operator.connect(delegator).undelegate(parseEther("200")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("200"), 0)
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("542"))
+            expect(await operator.balanceOf(delegator.address)).to.equal(0)
+            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("542.0")
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("328.0") // 870 - 542 sent out
+
+            // operator had 1/3 of operator tokens, and should receive 1/3 * 813 = 271 DATA for their self-delegation
+            // additionally it received the operator's cut of 57 DATA, so total 328 DATA
+            await expect(operator.undelegate(parseEther("100000"))) // infinity = undelegate all
+                .to.emit(operator, "QueuedDataPayout").withArgs(operatorWallet.address, parseEther("100000"), 1)
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("328"))
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(0)
+            expect(formatEther(await token.balanceOf(operatorWallet.address))).to.equal("328.0")
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
+        })
+
         it("pays out 1 queue entry fully using earnings withdrawn from sponsorship", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
