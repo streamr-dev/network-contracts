@@ -27,6 +27,7 @@ contract QueueModule is IQueueModule, Operator {
         queueLastIndex++;
         payOutQueueWithFreeFunds(0);
     }
+
     /** Pay out up to maxIterations items in the queue */
     function _payOutQueueWithFreeFunds(uint maxIterations) public {
         if (maxIterations == 0) { maxIterations = 1 ether; }
