@@ -84,9 +84,9 @@ export const config = {
         ],
         "adminPrivateKey": "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
         "contracts": {
-            "ENS": "0xEcB44c01B8D17E07C289533e6674b24c3C913183",
-            "FIFSRegistrar": "0x5c08f6Fb7B820ac73e83b4BdaCF5099231494f07",
-            "PublicResolver": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789",
+            "ENS": "0x5Aa81fB577a1765bb61E4841d958bDA75b5fa789",
+            "FIFSRegistrar": "0x92958708A4E696A85C8282c946A89B20E4Ca308D",
+            "PublicResolver": "0x916FE6b8DB2C0D01FB96F37550CE8ff41F4Ed470",
             "TrackerRegistry": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
             "StorageNodeRegistry": "0x642D2B84A32A9A92FEc78CeAA9488388b3704898",
             "StreamRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
@@ -102,12 +102,12 @@ export const config = {
             "OperatorDefaultDelegationPolicy": "0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873",
             "OperatorDefaultPoolYieldPolicy": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
             "OperatorDefaultUndelegationPolicy": "0x5159FBF2e0Ff63e35b17293416fdf7a0909a0cDA",
-            "OperatorFactory": "0xfC31c70FafCbFe399195C789602ae2455B247fD2",
-            "ProjectRegistryV1": "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2",
-            "MarketplaceV4": "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5",
-            "ProjectStakingV1": "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794",
-            "DataUnionFactory": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13",
-            "DataUnionTemplate": "0x8c1032014E7f14dECAD2b06f01215280C858c3Fe"
+            "OperatorFactory": "0x122E9ee63Fa5e4F2710b7BB66E9a1FF0013Cec15",
+            "ProjectRegistryV1": "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253",
+            "MarketplaceV4": "0xBaD604cd8C38E970b5285D34CA5d146268e2b84A",
+            "ProjectStakingV1": "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018",
+            "DataUnionFactory": "0xb8678223183d560280a7BEF68daAbB0E3daBd97D",
+            "DataUnionTemplate": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13"
         },
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs"
     },

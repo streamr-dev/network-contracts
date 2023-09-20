@@ -8,6 +8,8 @@ import { parseEther } from "@ethersproject/units"
 
 import { deployDataUnionContracts, deployDataUnion } from "./deployDataUnionContracts"
 
+import { projects } from "./projects"
+
 // hardhat node mockchain (first private key from testrpc mnemonic)
 const key = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
 const url = "http://127.0.0.1:8545"
@@ -61,6 +63,20 @@ async function deploy() {
 
     console.log("\n\n")
     console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
+    
+    console.log(`Adding ${projects.length} projects to ProjectRegistryV1`)
+    for (const p of projects) {
+        await hubDeployer.contracts.projectRegistryV1.createProject(
+            p.id,
+            p.chainIds,
+            p.paymentDetails,
+            p.streams,
+            p.minimumSubscriptionSeconds,
+            p.isPublicPurchable,
+            p.metadata
+        )
+        console.log('Project created (id: %s)', p.id)
+    }
 
     console.log("Wallets with preloaded DATA:")
     for (const wallet of streamrEnvDeployer.preloadedDATAWallets) {

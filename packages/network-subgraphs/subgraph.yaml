@@ -88,7 +88,7 @@ dataSources:
     name: ProjectRegistryV1
     network: xDai # xDai means dev1
     source:
-      address: "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2"
+      address: "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253"
       abi: ProjectRegistryV1
       startBlock: 0
     mapping:
@@ -122,7 +122,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0x31fd21Fa58D0cE7D16f0e037EaA1BD5df77C58c5"
+      address: "0xBaD604cd8C38E970b5285D34CA5d146268e2b84A"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
@@ -142,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: xDai
     source:
-      address: "0xeBB974eeCB225B3A87C1939a5204AB9b5f2Ca794"
+      address: "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018"
       abi: ProjectStakingV1
       startBlock: 0
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: xDai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xfC31c70FafCbFe399195C789602ae2455B247fD2'
+      address: '0x122E9ee63Fa5e4F2710b7BB66E9a1FF0013Cec15'
       abi: OperatorFactory
       startBlock: 0
     mapping:
