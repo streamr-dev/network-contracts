@@ -6,6 +6,7 @@ import { expect } from "chai"
 describe("docker image integration test", () => {
 
     let graphClient: TheGraphClient
+    let duGraphClient: TheGraphClient
 
     before(async () => {
         graphClient = new TheGraphClient({
@@ -13,10 +14,15 @@ describe("docker image integration test", () => {
             fetch,
             logger: new Logger(module)
         })
+        duGraphClient = new TheGraphClient({
+            serverUrl: config.dev2.theGraphUrl.replace("network-subgraphs", "dataunion"),
+            fetch,
+            logger: new Logger(module)
+        })
     })
 
     it("can get all the indexed example data from thegraph", async () => {
-        const resultDynamicIds = await graphClient.queryEntity<{ 
+        const resultDynamicIds = await graphClient.queryEntity<{
         operatorDailyBuckets: [],
         sponsorshipDailyBuckets: [],
         stakingEvents: [],
@@ -69,5 +75,27 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.stakes.length).to.equal(1)
         expect(resultDynamicIds.streamPermissions.length).to.equal(5)
         expect(resultDynamicIds.streams.length).to.equal(3)
+    })
+
+    it("can get all the indexed example data from thegraph", async () => {
+        const resultDynamicIds = await duGraphClient.queryEntity<{
+            dataUnionStatsBuckets: [],
+            dataUnions: [],
+            members: [],
+        }>({ query: `{
+                dataUnionStatsBuckets {
+                    id
+                }
+                dataUnions {
+                    id
+                }
+                members {
+                    id
+                }
+            }`}
+        )
+        expect(resultDynamicIds.dataUnionStatsBuckets.length).to.equal(2)
+        expect(resultDynamicIds.dataUnions.length).to.equal(1)
+        expect(resultDynamicIds.members.length).to.equal(2)
     })
 })
