@@ -53,6 +53,7 @@ describe("Operator contract", (): void => {
     // fix up after deployOperator->deployOperatorFactory messes up the OperatorFactory address of the sharedContracts.streamrConfig
     afterEach(async function(): Promise<void> {
         await (await sharedContracts.streamrConfig!.setOperatorFactory(sharedContracts.operatorFactory.address)).wait()
+        await (await sharedContracts.streamrConfig!.setMinimumSelfDelegationFraction("0")).wait()
     })
 
     before(async (): Promise<void> => {
@@ -497,7 +498,9 @@ describe("Operator contract", (): void => {
 
     describe("Undelegation queue", function(): void {
         it("empties the whole Operator of DATA when everyone undelegates all (infinity)", async function(): Promise<void> {
-            const { token } = sharedContracts
+            const { token, streamrConfig } = sharedContracts
+
+            await (await streamrConfig.setMinimumSelfDelegationFraction("1")).wait()
 
             await setTokens(operatorWallet, "100")
             await setTokens(delegator, "200")
@@ -525,6 +528,10 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Profit").withArgs(parseEther("513"), parseEther("57"), parseEther("30"))
             expect(await token.balanceOf(sponsorship.address)).to.equal(0)
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("870.0") // stake + earnings - protocol fee
+
+            // operator can't undelegate-all yet, since there's still another delegator
+            await expect(operator.undelegate(parseEther("100000")))
+                .to.be.revertedWith("error_selfDelegationTooLow")
 
             // operator contract value = 300 stake + 513 profits = 813 DATA
             // delegator has 2/3 of operator tokens, and should receive 2/3 * 813 = 542 DATA
