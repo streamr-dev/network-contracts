@@ -16,12 +16,7 @@ describe("docker image integration test", () => {
     })
 
     it("can get all the indexed example data from thegraph", async () => {
-        const resultDynamicIds = await graphClient.queryEntity<{ 
-        operatorDailyBuckets: [],
-        sponsorshipDailyBuckets: [],
-        stakingEvents: [],
-        sponsoringEvents: []
-     }>({ query: `
+        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `
         {
             operatorDailyBuckets {
                 id
@@ -69,5 +64,18 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.stakes.length).to.equal(1)
         expect(resultDynamicIds.streamPermissions.length).to.equal(5)
         expect(resultDynamicIds.streams.length).to.equal(3)
+    })
+
+    it("can get all the projects from thegraph", async () => {
+        const resultDynamicIds = await graphClient.queryEntity<{ 
+        projects: []
+     }>({ query: `
+        {
+            projects {
+                id
+            }
+        }
+        `})
+        expect(resultDynamicIds.projects.length).to.equal(5)
     })
 })
