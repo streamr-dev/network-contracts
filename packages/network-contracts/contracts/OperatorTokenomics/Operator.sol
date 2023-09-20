@@ -180,7 +180,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         token = IERC677(tokenAddress);
         streamrConfig = StreamrConfig(streamrConfigAddress);
-        
+
         nodeModule = INodeModule(modules[0]);
         queueModule = IQueueModule(modules[1]);
         stakeModule = IStakeModule(modules[2]);
@@ -303,7 +303,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** DATA token transfer must have happened before calling this function, give back the correct amount of pool tokens */
+    /**
+     * This function must be called *AFTER* the DATA tokens have already been transferred
+     * @param delegator who receives the new operator tokens
+     * @param amountDataWei how many DATA tokens were transferred
+     **/
     function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
         // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
         uint amountPoolToken = moduleCall(address(yieldPolicy),
@@ -319,7 +323,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
     }
 
-    /** Add the request to undelegate into the undelegation queue */
+    /**
+     * Add the request to undelegate into the undelegation queue
+     * @param amountPoolTokenWei amount of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
+     **/
     function undelegate(uint amountPoolTokenWei) public {
         moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountPoolTokenWei));
     }
