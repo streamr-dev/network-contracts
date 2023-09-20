@@ -184,7 +184,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     function _addSponsorship(address sponsorAddress, uint tokensFromSponsorWei) internal {
-        // weep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
+        // sweep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
         uint remainingWeiBefore = remainingWei;
         remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - committedForfeitedStakeWei;
         uint newTokensWei = remainingWei - remainingWeiBefore;
