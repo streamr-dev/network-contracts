@@ -44,8 +44,8 @@ import "./StreamrConfig.sol";
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
 
     // TODO change: allocatedWei -> earningsWei
-    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
-    // TODO: change uint32 -> uint, stake -> staked, unallocated -> amountLeft
+    event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei);
+    // TODO: change uint32 -> uint, stake -> staked, unallocatedWei -> remainingWei
     event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
