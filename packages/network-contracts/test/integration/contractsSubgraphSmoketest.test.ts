@@ -6,10 +6,16 @@ import { expect } from "chai"
 describe("docker image integration test", () => {
 
     let graphClient: TheGraphClient
+    let duGraphClient: TheGraphClient
 
     before(async () => {
         graphClient = new TheGraphClient({
             serverUrl: config.dev2.theGraphUrl,
+            fetch,
+            logger: new Logger(module)
+        })
+        duGraphClient = new TheGraphClient({
+            serverUrl: config.dev2.theGraphUrl.replace("network-subgraphs", "dataunion"),
             fetch,
             logger: new Logger(module)
         })
@@ -77,5 +83,27 @@ describe("docker image integration test", () => {
         }
         `})
         expect(resultDynamicIds.projects.length).to.equal(5)
+    })
+    
+    it("can get all the indexed example data from thegraph", async () => {
+        const resultDynamicIds = await duGraphClient.queryEntity<{
+            dataUnionStatsBuckets: [],
+            dataUnions: [],
+            members: [],
+        }>({ query: `{
+                dataUnionStatsBuckets {
+                    id
+                }
+                dataUnions {
+                    id
+                }
+                members {
+                    id
+                }
+            }`}
+        )
+        expect(resultDynamicIds.dataUnionStatsBuckets.length).to.equal(2)
+        expect(resultDynamicIds.dataUnions.length).to.equal(1)
+        expect(resultDynamicIds.members.length).to.equal(2)
     })
 })
