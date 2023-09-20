@@ -170,8 +170,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
         // Reference Point Update => move new earnings since last reference update to earningsBeforeReferenceUpdate
-        local.cumulativeReference[operator] = local.cumulativeWeiPerStake; // <- this is the reference update
         local.earningsBeforeReferenceUpdate[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
+        local.cumulativeReference[operator] = local.cumulativeWeiPerStake; // <- this is the reference update
     }
 
     /** @return payoutWei how many tokens to send out from Sponsorship */
