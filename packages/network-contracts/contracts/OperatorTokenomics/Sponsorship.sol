@@ -15,7 +15,6 @@ import "./SponsorshipPolicies/ILeavePolicy.sol";
 import "./SponsorshipPolicies/IKickPolicy.sol";
 import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
-// import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
 // import "hardhat/console.sol";
 
@@ -24,29 +23,27 @@ import "./StreamrConfig.sol";
  * Those tokens are the *sponsorship* that the *sponsor* puts on servicing the stream
  * *Operators* that have `stake`d on the Sponsorship and receive *earnings* specified by the `IAllocationPolicy`
  * Operators can also `unstake` and stop earning, signalling to stop servicing the stream.
- *  NB: If there's a flag on you (or by you) then some of your stake is committed on that flag, which prevents unstaking.
- *      If you really want to stop servicing the stream and are willing to lose the committed stake, you can `forceUnstake`
+ *  NB: If there's a flag on you (or by you) then some of your stake is locked on that flag, which prevents unstaking.
+ *      If you really want to stop servicing the stream and are willing to lose the locked stake, you can `forceUnstake`
+ *
  * The tokens held by `Sponsorship` are tracked in four accounts:
  * - totalStakedWei: total amount of tokens staked by all operators
- *  -> each operator has their `stakedWei`, part of which can be `committedStakeWei` if there are flags on/by them
+ *  -> each operator has their `stakedWei`, part of which can be `lockedStakeWei` if there are flags on/by them
  * - remainingWei: part of the sponsorship that hasn't been paid out yet
  *  -> decides the `solventUntilTimestamp()`: more unallocated funds left means the `Sponsorship` is solvent for a longer time
  * - earningsWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
  *  -> governed by the `IAllocationPolicy`
- * - committedForfeitedStakeWei: forfeited stakes that were committed to a flag by a past operator who `forceUnstake`d (or was kicked)
+ * - lockedForfeitedStakeWei: forfeited stakes that were locked to pay for a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
- * @dev We track both earningsWei and remainingWei because one difference are the 'ghost tokens' that can be sent to the sponsorship
- *  with a standard ERC20 transfer without transferAndCall
  *
+ * @dev We track both earningsWei and remainingWei because there can be 'ghost tokens' from plain ERC20 transfers (instead of transferAndCall)
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
- *  either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
+ * @dev   either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
  */
-contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable { //}, ERC2771Context {
+contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
-    // TODO change: allocatedWei -> earningsWei
-    event StakeUpdate(address indexed operator, uint stakedWei, uint allocatedWei);
-    // TODO: change uint32 -> uint, stake -> staked, unallocatedWei -> remainingWei
-    event SponsorshipUpdate(uint totalStakeWei, uint unallocatedWei, uint32 operatorCount, bool isRunning);
+    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
+    event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
@@ -59,7 +56,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
 
     // Emitted from VoteKickPolicy
-    event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
+    event FlagUpdate(address indexed flagger, address target, uint targetLockedStake, uint result, string flagMetadata);
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -75,8 +72,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
-    mapping(address => uint) public committedStakeWei; // how much can not be unstaked (during e.g. flagging)
-    uint public committedForfeitedStakeWei; // committedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
+    mapping(address => uint) public lockedStakeWei; // how much can not be unstaked (during e.g. flagging)
+    uint public lockedForfeitedStakeWei; // lockedStakeWei that has been forfeited but still needs to be tracked to e.g. pay the flag reviewers
     uint public totalStakedWei;
     uint public operatorCount;
     uint public minOperatorCount;
@@ -89,13 +86,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * You can't unstake the committed part or go below the minimum stake (by cashing out your stake),
+     * You can't unstake the locked part or go below the minimum stake (by cashing out your stake),
      *   hence there is an individual limit for reduceStakeTo.
-     * When joining, committed stake is zero, so the it's the same minimumStakeWei for everyone.
+     * When joining, locked stake is zero, so the it's the same minimumStakeWei for everyone.
      */
     function minimumStakeOf(address operator) public view returns (uint) {
         uint minimumStakeWei = streamrConfig.minimumStakeWei();
-        return max(committedStakeWei[operator], minimumStakeWei);
+        return max(lockedStakeWei[operator], minimumStakeWei);
     }
 
     /**
@@ -186,7 +183,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _addSponsorship(address sponsorAddress, uint tokensFromSponsorWei) internal {
         // sweep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
         uint remainingWeiBefore = remainingWei;
-        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - committedForfeitedStakeWei;
+        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - lockedForfeitedStakeWei;
         uint newTokensWei = remainingWei - remainingWeiBefore;
 
         // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
@@ -244,11 +241,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         require(penaltyWei == 0, "error_leavePenalty");
-        require(committedStakeWei[operator] == 0, "error_activeFlag");
+        require(lockedStakeWei[operator] == 0, "error_activeFlag");
         payoutWei = _removeOperator(operator);
     }
 
-    /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is committed to flags */
+    /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is locked to pay for flags */
     function forceUnstake() public returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
@@ -256,7 +253,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             uint slashedWei = _slash(operator, penaltyWei);
             _addSponsorship(address(this), slashedWei);
         }
-        payoutWei = _removeOperator(operator); // forfeits committed stake
+        payoutWei = _removeOperator(operator); // forfeits locked stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
@@ -318,16 +315,16 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Operator stops servicing the stream and withdraws their stake + earnings.
      * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
-     * If operator had any committed stake, it is forfeited and accounted as committedForfeitedStakeWei, under control of e.g. the VoteKickPolicy.
+     * If operator had any locked stake, it is forfeited and accounted as lockedForfeitedStakeWei, controlled by the VoteKickPolicy.
      */
     function _removeOperator(address operator) internal returns (uint payoutWei) {
         require(stakedWei[operator] > 0, "error_operatorNotStaked");
         // console.log("_removeOperator", operator);
 
-        if (committedStakeWei[operator] > 0) {
-            uint slashedWei = _slash(operator, committedStakeWei[operator]);
-            committedForfeitedStakeWei += slashedWei;
-            committedStakeWei[operator] = 0;
+        if (lockedStakeWei[operator] > 0) {
+            uint slashedWei = _slash(operator, lockedStakeWei[operator]);
+            lockedForfeitedStakeWei += slashedWei;
+            lockedStakeWei[operator] = 0;
         }
 
         // send out both allocations and stake

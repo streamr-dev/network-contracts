@@ -56,21 +56,21 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
      * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
-     *   part of the operator's cut is sent to the withdrawEarningsFromSponsorships caller, which can be anyone.
+     * If the the withdrawn earnings are more than maxAllowedEarningsFraction * (stake + free funds before withdraw),
+     *   then part of the operator's cut is sent to the withdrawEarningsFromSponsorships caller, which can be anyone.
      * This means operator should call withdrawEarningsFromSponsorships often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
-    uint public poolValueDriftLimitFraction;
+    uint public maxAllowedEarningsFraction;
 
     /**
-     * If the the withdrawn earnings are more than poolValueDriftLimitFraction * (stake + free funds before withdraw),
-     *   this is the fraction of the operator's cut that is sent out to the caller.
+     * If the the withdrawn earnings are more than maxAllowedEarningsFraction * (stake + free funds before withdraw),
+     *   then this is the fraction of the operator's cut that is sent out to the caller.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
-     * E.g. if poolValueDriftPenaltyFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
+     * E.g. if fishermanRewardFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
      *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA.
      */
-    uint public poolValueDriftPenaltyFraction;
+    uint public fishermanRewardFraction;
 
     /** Protocol fee is collected when earnings arrive to Operator, fraction expressed as fixed-point decimal between 0.0 ~ 1.0, like ether: 1e18 ~= 100% */
     uint public protocolFeeFraction;
@@ -118,11 +118,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
      * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
-     *      If the operator decides to reduceStake, committed stake is the limit how much stake must be left into Sponsorship.
-     *      The total committed stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + slashing from stake that's left into the sponsorship (= committed)
-     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total committed stake
-     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes committed stake)
+     *      If the operator decides to reduceStake, locked stake is the limit how much stake must be left into Sponsorship.
+     *      The total locked stake must be enough to pay the reviewers of all flags.
+     *        flag stakes >= reviewer fees + slashing from stake that's left into the sponsorship (= locked)
+     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
+     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
      *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
      */
     uint public flagStakeWei;
@@ -140,7 +140,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public votingPeriodSeconds;
 
     /**
-     * When a flag-target is not kicked, their stake is uncommitted, and they can unstake their whole stake if they so wish.
+     * When a flag-target is not kicked, their stake is unlocked, and they can unstake their whole stake if they so wish.
      * To make it harder to grief by repeatedly flagging, the flag-target gets a short flag-protection after a no-kick vote.
      */
     uint public flagProtectionSeconds;
@@ -178,8 +178,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         maxQueueSeconds = 30 days;
 
         // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
-        poolValueDriftLimitFraction = 0.05 ether;
-        poolValueDriftPenaltyFraction = 0.5 ether;
+        maxAllowedEarningsFraction = 0.05 ether;
+        fishermanRewardFraction = 0.5 ether;
 
         // protocol fee
         protocolFeeFraction = 0.05 ether;
@@ -229,12 +229,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         maxPenaltyPeriodSeconds = newMaxPenaltyPeriodSeconds;
     }
 
-    function setPoolValueDriftLimitFraction(uint newPoolValueDriftLimitFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        poolValueDriftLimitFraction = newPoolValueDriftLimitFraction;
+    function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        maxAllowedEarningsFraction = newMaxAllowedEarningsFraction;
     }
 
-    function setPoolValueDriftPenaltyFraction(uint newPoolValueDriftPenaltyFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        poolValueDriftPenaltyFraction = newPoolValueDriftPenaltyFraction;
+    function setFishermanRewardFraction(uint newFishermanRewardFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        fishermanRewardFraction = newFishermanRewardFraction;
     }
 
     function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {

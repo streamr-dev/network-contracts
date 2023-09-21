@@ -228,7 +228,7 @@ templates:
       eventHandlers:
           - event: StakeUpdate(indexed address,uint256,uint256)
             handler: handleStakeUpdated
-          - event: SponsorshipUpdate(uint256,uint256,uint32,bool)
+          - event: SponsorshipUpdate(uint256,uint256,uint256,bool)
             handler: handleSponsorshipUpdated
           - event: FlagUpdate(indexed address,address,uint256,uint256,string)
             handler: handleFlagUpdate
@@ -273,8 +273,8 @@ templates:
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)
           #   handler: handleStakeUpdated
-          - event: PoolValueUpdate(uint256,uint256)
-            handler: handlePoolValueUpdate
+          - event: OperatorValueUpdate(uint256,uint256)
+            handler: handleOperatorValueUpdate
           - event: Profit(uint256,uint256,uint256)
             handler: handleProfit
           - event: Loss(uint256)

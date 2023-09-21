@@ -15,7 +15,7 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
         if (this.totalSupply() == 0) {
             return poolTokenWei;
         }
-        uint poolValueData = getApproximatePoolValue() - subtractFromPoolvalue;
+        uint poolValueData = valueWithoutEarnings() - subtractFromPoolvalue;
         return poolTokenWei * poolValueData / this.totalSupply();
     }
 
@@ -24,9 +24,9 @@ contract DefaultPoolYieldPolicy is IPoolYieldPolicy, Operator {
         if (this.totalSupply() == 0) {
             return dataWei;
         }
-        uint poolValue = getApproximatePoolValue();
-        assert(subtractFromPoolvalue < poolValue);
-        uint poolValueData = poolValue - subtractFromPoolvalue;
+        uint valueWithoutEarnings = valueWithoutEarnings();
+        assert(subtractFromPoolvalue < valueWithoutEarnings);
+        uint poolValueData = valueWithoutEarnings - subtractFromPoolvalue;
 
         return dataWei * this.totalSupply() / poolValueData;
     }

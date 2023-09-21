@@ -9,8 +9,8 @@ import "../Operator.sol";
 contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
-    function _undelegate(uint amountPoolTokenWei) public {
-        if (amountPoolTokenWei == 0) { // TODO: should there be minimum undelegation amount?
+    function _undelegate(uint amountWei) public {
+        if (amountWei == 0) { // TODO: should there be minimum undelegation amount?
             revert ZeroUndelegation();
         }
 
@@ -19,11 +19,11 @@ contract QueueModule is IQueueModule, Operator {
         // check if the undelegation policy allows this undelegation
         // this check must happen before payOutQueueWithFreeFunds because we can't know how much gets paid out
         if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountPoolTokenWei));
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountWei));
         }
 
-        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountPoolTokenWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        emit QueuedDataPayout(undelegator, amountPoolTokenWei, queueLastIndex);
+        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(undelegator, amountWei, queueLastIndex);
         queueLastIndex++;
         payOutQueueWithFreeFunds(0);
     }
@@ -53,7 +53,7 @@ contract QueueModule is IQueueModule, Operator {
         //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
         // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
-        uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountPoolTokenWei;
+        uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountWei;
         if (balanceOf(delegator) < amountPoolTokens + streamrConfig.minimumDelegationWei()) {
             amountPoolTokens = balanceOf(delegator);
         }
@@ -81,7 +81,7 @@ contract QueueModule is IQueueModule, Operator {
                 abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
                 amountDataWei, 0));
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
-            uint poolTokensLeftInQueue = oldEntry.amountPoolTokenWei - amountPoolTokens;
+            uint poolTokensLeftInQueue = oldEntry.amountWei - amountPoolTokens;
             undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
             emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
         }
@@ -91,7 +91,7 @@ contract QueueModule is IQueueModule, Operator {
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty() ? 1 : 0;
     }
@@ -111,6 +111,6 @@ contract QueueModule is IQueueModule, Operator {
         }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintPoolTokensFor(owner, earnings);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
     }
 }

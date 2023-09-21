@@ -101,7 +101,7 @@ export function loadOrCreateSponsorshipDailyBucket(
         bucket.date = date
         bucket.projectedInsolvency = sponsorship!.projectedInsolvency
         bucket.totalStakedWei = sponsorship!.totalStakedWei
-        bucket.unallocatedWei = sponsorship!.unallocatedWei
+        bucket.remainingWei = sponsorship!.remainingWei
         bucket.spotAPY = sponsorship!.spotAPY
         bucket.operatorCount = sponsorship!.operatorCount
     }
@@ -113,12 +113,12 @@ export function loadOrCreateOperator(operatorId: string): Operator {
     if (operator == null) {
         operator = new Operator(operatorId)
         operator.delegatorCount = 0
-        operator.poolValue = BigInt.zero()
+        operator.valueWithoutEarnings = BigInt.zero()
         operator.totalStakeInSponsorshipsWei = BigInt.zero()
         operator.freeFundsWei = BigInt.zero()
-        operator.poolValueTimestamp = BigInt.zero()
-        operator.poolValueBlockNumber = BigInt.zero()
-        operator.poolTokenTotalSupplyWei = BigInt.zero()
+        operator.valueUpdateTimestamp = BigInt.zero()
+        operator.valueUpdateBlockNumber = BigInt.zero()
+        operator.operatorTokenTotalSupplyWei = BigInt.zero()
         operator.cumulativeProfitsWei = BigInt.zero()
         operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
@@ -145,7 +145,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
 
         // populate with current absolute values from Operator entity
         let operator = loadOrCreateOperator(contractAddress)
-        bucket.poolValue = operator.poolValue
+        bucket.valueWithoutEarnings = operator.valueWithoutEarnings
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.freeFundsWei = operator.freeFundsWei
         bucket.spotAPY = BigInt.zero() // TODO

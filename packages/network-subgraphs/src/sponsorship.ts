@@ -13,7 +13,7 @@ import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleStakeUpdated(event: StakeUpdate): void {
     log.info('handleStakeUpdated: operator={} totalStake={} allocation={}, joinDate={}', [event.params.operator.toHexString(),
-        event.params.stakedWei.toString(), event.params.allocatedWei.toString(), event.block.timestamp.toString()])
+        event.params.stakedWei.toString(), event.params.earningsWei.toString(), event.block.timestamp.toString()])
     let sponsorshipAddress = event.address
     let operatorAddress = event.params.operator
 
@@ -26,7 +26,7 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         stake.joinDate = event.block.timestamp
     }
     stake.amount = event.params.stakedWei
-    stake.allocatedWei = event.params.allocatedWei
+    stake.earningsWei = event.params.earningsWei
 
     // link to operator
     // let operator = Operator.load(event.params.operator.toHexString())
@@ -46,8 +46,8 @@ export function handleStakeUpdated(event: StakeUpdate): void {
 }
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
-    log.info('handleSponsorshipUpdated: totalStakeWei={} unallocatedWei={} operatorCount={} isRunning={}', [
-        event.params.totalStakeWei.toString(), event.params.unallocatedWei.toString(),
+    log.info('handleSponsorshipUpdated: totalStakedWei={} remainingWei={} operatorCount={} isRunning={}', [
+        event.params.totalStakedWei.toString(), event.params.remainingWei.toString(),
         event.params.operatorCount.toString(), event.params.isRunning.toString()
     ])
 
@@ -60,16 +60,16 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
         spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship.totalStakedWei)
     }
 
-    sponsorship.totalStakedWei = event.params.totalStakeWei
-    sponsorship.unallocatedWei = event.params.unallocatedWei
+    sponsorship.totalStakedWei = event.params.totalStakedWei
+    sponsorship.remainingWei = event.params.remainingWei
     sponsorship.operatorCount = event.params.operatorCount.toI32()
     sponsorship.isRunning = event.params.isRunning
     sponsorship.spotAPY = spotAPY
     sponsorship.save()
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    bucket.totalStakedWei = event.params.totalStakeWei
-    bucket.unallocatedWei = event.params.unallocatedWei
+    bucket.totalStakedWei = event.params.totalStakedWei
+    bucket.remainingWei = event.params.remainingWei
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.spotAPY = spotAPY
     bucket.save()
@@ -90,10 +90,10 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
-    log.info('handleFlagUpdate: flagger={} target={} targetCommittedStake={} result={}, flagMetadata={}',
+    log.info('handleFlagUpdate: flagger={} target={} targetLockedStake={} result={}, flagMetadata={}',
         [event.params.flagger.toHexString(),
             event.params.target.toHexString(),
-            event.params.targetCommittedStake.toString(),
+            event.params.targetLockedStake.toString(),
             event.params.result.toString(),
             event.params.flagMetadata // not indexed as there is no use case for it yet, but could be useful
         ])
@@ -106,7 +106,7 @@ export function handleFlagUpdate(event: FlagUpdate): void {
         flag.target = event.params.target.toHexString()
     }
     flag.flagger = event.params.flagger.toHexString()
-    flag.targetSlashAmount = event.params.targetCommittedStake
+    flag.targetSlashAmount = event.params.targetLockedStake
     flag.result = event.params.result
     flag.save()
 }

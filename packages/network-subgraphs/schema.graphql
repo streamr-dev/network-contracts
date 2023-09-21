@@ -233,25 +233,25 @@ type Operator @entity {
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
 
-  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
-  poolValue: BigInt!
+  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by OperatorValueUpdate event, so might be out of date."
+  valueWithoutEarnings: BigInt!
 
-  "DATA staked and earned in sponsorship contracts. Updated by PoolValueUpdate event, so it will be out of date by the amount of earnings."
+  "DATA staked and earned in sponsorship contracts. Updated by OperatorValueUpdate event, so it will be out of date by the amount of earnings."
   totalStakeInSponsorshipsWei: BigInt!
 
-  "DATA held by the operator, not yet staked. Updated by PoolValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
+  "DATA held by the operator, not yet staked. Updated by OperatorValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
   freeFundsWei: BigInt!
 
-  "Timestamp in seconds when poolValue was the best approximation of total DATA staked, earned and held by the Operator contract. Shows how much the poolValue is out of date."
-  poolValueTimestamp: BigInt!
+  "Timestamp in seconds when valueWithoutEarnings was updated. Shows how much the valueWithoutEarnings is out of date."
+  valueUpdateTimestamp: BigInt!
 
-  "Block number after which poolValue was the best approximation of total DATA staked, earned and held by the Operator contract."
-  poolValueBlockNumber: BigInt!
+  "Block number when valueWithoutEarnings was updated."
+  valueUpdateBlockNumber: BigInt!
 
   "Total number of pool tokens in existence"
-  poolTokenTotalSupplyWei: BigInt!
+  operatorTokenTotalSupplyWei: BigInt!
 
-  "DATA/pooltoken exchange rate, equal to poolValue / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
+  "DATA/pooltoken exchange rate, equal to valueWithoutEarnings / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
   exchangeRate: BigDecimal!
 
   "Connection metadata, to be able to find a node in the Operator's fleet"
@@ -283,7 +283,7 @@ type OperatorDailyBucket @entity {
   date: BigInt!
 
   "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
-  poolValue: BigInt!
+  valueWithoutEarnings: BigInt!
 
   "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
   totalStakeInSponsorshipsWei: BigInt!
@@ -341,7 +341,7 @@ type Sponsorship @entity {
   cumulativeSponsoring: BigInt!
   operatorCount: Int!
   totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
+  remainingWei: BigInt!
   spotAPY: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
@@ -353,7 +353,7 @@ type SponsorshipDailyBucket @entity {
   sponsorship: Sponsorship!
   date: BigInt!
   totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
+  remainingWei: BigInt!
   projectedInsolvency: BigInt!
   spotAPY: BigInt!
   operatorCount: Int!
@@ -396,7 +396,7 @@ type Stake @entity {
   id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   operator: Operator!
   amount: BigInt!
-  allocatedWei: BigInt!
+  earningsWei: BigInt!
   sponsorship: Sponsorship
   joinDate: BigInt!
 }

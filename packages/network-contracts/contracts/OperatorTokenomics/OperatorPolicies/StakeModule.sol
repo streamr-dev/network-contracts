@@ -28,7 +28,7 @@ contract StakeModule is IStakeModule, Operator {
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
         totalStakedIntoSponsorshipsWei += amountWei;
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         if (indexOfSponsorships[sponsorship] == 0) { // initial staking in a new sponsorship
             sponsorships.push(sponsorship);
@@ -60,13 +60,13 @@ contract StakeModule is IStakeModule, Operator {
         stakedInto[sponsorship] -= cashoutWei;
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         totalStakedIntoSponsorshipsWei -= cashoutWei;
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
 
     /**
      * Unstake from a sponsorship
-     * Throws if some of the stake is committed to a flag (being flagged or flagging others)
+     * Throws if some of the stake is locked to pay for flags (being flagged or flagging others)
      **/
     function _unstake(Sponsorship sponsorship) public onlyOperator {
         unstakeWithoutQueue(sponsorship);
@@ -84,7 +84,7 @@ contract StakeModule is IStakeModule, Operator {
      * Self-service undelegation queue handling.
      * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
-     * Operator can also call this, if they want to forfeit the stake committed to flagging in a sponsorship (normal unstake would revert for safety)
+     * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
@@ -113,7 +113,7 @@ contract StakeModule is IStakeModule, Operator {
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(lossWei);
-            emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+            emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         } else {
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
             _splitEarnings(profitDataWei, 0, address(0));
@@ -167,14 +167,14 @@ contract StakeModule is IStakeModule, Operator {
 
         // the rest is added to free funds, inflating the pool token value, and counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - operatorPenaltyDataWei, protocolFee);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
 
     /**
      * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
-     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to poolValueDriftLimitFraction.
-     * Caller gets poolValueDriftPenaltyFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
+     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
+     * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
     function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
@@ -183,7 +183,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
-        uint poolValueBeforeWithdraw = getApproximatePoolValue();
+        uint poolValueBeforeWithdraw = valueWithoutEarnings();
 
         uint sumEarnings = 0;
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
@@ -197,10 +197,10 @@ contract StakeModule is IStakeModule, Operator {
         address penaltyRecipient = address(0);
         uint penaltyFraction = 0;
         if (!hasRole(CONTROLLER_ROLE, _msgSender()) && nodeIndex[_msgSender()] == 0) {
-            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
+            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 penaltyRecipient = _msgSender();
-                penaltyFraction = streamrConfig.poolValueDriftPenaltyFraction();
+                penaltyFraction = streamrConfig.fishermanRewardFraction();
             }
         }
         _splitEarnings(sumEarnings, penaltyFraction, penaltyRecipient);

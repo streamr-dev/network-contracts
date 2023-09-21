@@ -6,7 +6,7 @@ import {
     Loss,
     MetadataUpdated,
     NodesSet,
-    PoolValueUpdate,
+    OperatorValueUpdate,
     Profit,
     QueueUpdated,
     QueuedDataPayout,
@@ -19,14 +19,14 @@ import { QueueEntry } from '../generated/schema'
 export function handleBalanceUpdate(event: BalanceUpdate): void {
     let operatorContractAddress = event.address.toHexString()
     let delegator = event.params.delegator.toHexString()
-    let newBalance = event.params.totalPoolTokenWei
-    let totalSupply = event.params.totalSupplyPoolTokenWei
+    let newBalance = event.params.balanceWei
+    let totalSupply = event.params.totalSupplyWei
     log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
-    log.info('handleBalanceUpdate: delegator={} totalPoolTokenWei={}', [delegator, newBalance.toString()])
+    log.info('handleBalanceUpdate: delegator={} balanceWei={}', [delegator, newBalance.toString()])
 
     let operator = loadOrCreateOperator(operatorContractAddress)
-    operator.poolTokenTotalSupplyWei = totalSupply
-    operator.exchangeRate = operator.poolValue.toBigDecimal().div(totalSupply.toBigDecimal())
+    operator.operatorTokenTotalSupplyWei = totalSupply
+    operator.exchangeRate = operator.valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
 
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
     delegation.poolTokenWei = newBalance
@@ -105,16 +105,16 @@ export function handleUndelegated(event: Undelegated): void {
 }
 
 /** event emits DATA values in sponsorships */
-export function handlePoolValueUpdate(event: PoolValueUpdate): void {
+export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     let operatorContractAddress = event.address.toHexString()
-    log.info('handlePoolValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
+    log.info('handleOperatorValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
         [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
     operator.freeFundsWei = event.params.freeFundsWei
-    operator.poolValue = event.params.totalStakeInSponsorshipsWei.plus(event.params.freeFundsWei)
-    operator.poolValueTimestamp = event.block.timestamp
-    operator.poolValueBlockNumber = event.block.number
+    operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.freeFundsWei)
+    operator.valueUpdateTimestamp = event.block.timestamp
+    operator.valueUpdateBlockNumber = event.block.number
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
@@ -169,7 +169,7 @@ export function handleLoss(event: Loss): void {
 
 export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     let operatorContractAddress = event.address.toHexString()
-    let amountPT = event.params.amountPoolTokenWei
+    let amountPT = event.params.amountWei
     log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
         operatorContractAddress, event.block.number.toString(), amountPT.toString()
     ])
@@ -194,10 +194,10 @@ export function handleQueueUpdated(event: QueueUpdated): void {
             operatorContractAddress, event.params.queueIndex.toString()])
         return
     }
-    if (event.params.amountPoolTokenWei.equals(BigInt.fromI32(0))) {
+    if (event.params.amountWei.equals(BigInt.fromI32(0))) {
         store.remove('QueueEntry', queueEntry.id)
     }  else {
-        queueEntry.amount = event.params.amountPoolTokenWei
+        queueEntry.amount = event.params.amountWei
         queueEntry.save()
     }
 }
