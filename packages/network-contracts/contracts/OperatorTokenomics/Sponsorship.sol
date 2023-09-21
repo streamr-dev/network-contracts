@@ -61,6 +61,15 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     // Emitted from VoteKickPolicy
     event FlagUpdate(address indexed flagger, address target, uint targetCommittedStake, uint result, string flagMetadata);
 
+    error MinOperatorCountZero();
+    error OnlyDATAToken();
+    error MinimumStake();
+    error OperatorNotStaked();
+    // error OperatorAlreadyJoined();
+    error LeavePenalty();
+
+
+
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     StreamrConfig public streamrConfig;
@@ -135,7 +144,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         minOperatorCount = uint32(initParams[1]);
         uint allocationPerSecond = initParams[2];
 
-        require(minOperatorCount > 0, "error_minOperatorCountZero");
+        if (minOperatorCount == 0) { revert MinOperatorCountZero(); }
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
@@ -150,7 +159,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If the data bytes contains an address, the incoming tokens are staked for that operator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        require(_msgSender() == address(token), "error_onlyDATAToken");
+        if (_msgSender() != address(token)) { revert OnlyDATAToken(); }
         if (data.length == 20) {
             // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -215,7 +224,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         bool newStaker = stakedWei[operator] == 0;
         stakedWei[operator] += amountWei;
         totalStakedWei += amountWei;
-        require(stakedWei[operator] >= streamrConfig.minimumStakeWei(), "error_minimumStake");
+        if (stakedWei[operator] < streamrConfig.minimumStakeWei()) { revert MinimumStake(); }
 
         if (newStaker) {
             // console.log("Operator joins and stakes", operator, amountWei);
@@ -242,8 +251,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      */
     function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
-        uint penaltyWei = getLeavePenalty(operator);
-        require(penaltyWei == 0, "error_leavePenalty");
+        // uint penaltyWei = getLeavePenalty(operator);
+        // require(penaltyWei == 0, "error_leavePenalty");
+        if (getLeavePenalty(operator) > 0) { revert LeavePenalty(); }
         require(committedStakeWei[operator] == 0, "error_activeFlag");
         payoutWei = _removeOperator(operator);
     }
