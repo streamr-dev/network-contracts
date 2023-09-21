@@ -109,7 +109,17 @@ export const config = {
             "DataUnionFactory": "0xb8678223183d560280a7BEF68daAbB0E3daBd97D",
             "DataUnionTemplate": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13"
         },
-        "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs"
+        "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs",
+        "entryPoints": [
+            {
+                "id": "eeeeeeeeee",
+                "websocket": {
+                    "host": "127.0.0.1",
+                    "port": 40500,
+                    "tls": false
+                }
+            }
+        ]
     },
     "alfajores": {
         "id": 44787,
@@ -270,6 +280,24 @@ export const config = {
             "DataUnionFactory": "0xD2fB2dDc1186Fdb776E73402560F3A539171A8E4",
             "DataUnionTemplate": "0x0cBF56ec95b01E2EE54e1344dEaAaae15050Cb9B"
         },
-        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs"
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs",
+        "entryPoints": [
+            {
+                "id": "e1",
+                "websocket": {
+                    "host": "entrypoint-1.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            },
+            {
+                "id": "e2",
+                "websocket": {
+                    "host": "entrypoint-2.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            }
+        ]
     }
 }
