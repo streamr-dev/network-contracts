@@ -441,7 +441,7 @@ describe("Operator contract", (): void => {
             expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1380"))
 
             // operator1's 380 DATA was added to operator1 pool value as self-delegation (not Profit)
-            //  => operatorWallet1 received 380 / 1.57 ~= 242.03 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
+            //  => operatorWallet1 received 380 / 1.57 ~= 242.03 operator tokens, in addition to the 1000 from the initial self-delegation
             // operator2's 380 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
             //  => operatorWallet2 received 380 / 1 = 380 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
             expect(await operator1.balanceOf(operatorWallet.address)).to.equal("1242038216560509554140") // TODO: find nicer numbers!

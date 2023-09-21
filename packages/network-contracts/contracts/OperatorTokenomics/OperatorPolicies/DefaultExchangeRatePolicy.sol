@@ -37,7 +37,7 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
         }
 
         uint operatorValue = valueWithoutEarnings();
-        require(alreadyTransferredWei < operatorValue, "error_badArgument_alreadyTransferredWei");
+        require(alreadyTransferredWei < operatorValue, "error_badArgument");
 
         return dataWei * this.totalSupply() / (operatorValue - alreadyTransferredWei);
     }
