@@ -103,15 +103,15 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
      * @param operatorsCutFraction as a fraction of 10^18, like ether
-     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] yield, [2] undelegation policy
-     * @param policyParams not used for default policies: [0] delegation, [1] yield, [2] undelegation policy param
+     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] exchange rate, [2] undelegation policy
+     * @param policyParams not used for default policies: [0] delegation, [1] exchange rate, [2] undelegation policy param
      */
     function deployOperator(
         uint operatorsCutFraction,
         string memory operatorTokenName,
         string memory operatorMetadataJson,
-        address[3] memory policies,  // [0] delegation, [1] yield, [2] undelegation policy
-        uint[3] memory policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
+        address[3] memory policies,  // [0] delegation, [1] exchange rate, [2] undelegation policy
+        uint[3] memory policyParams  // [0] delegation, [1] exchange rate, [2] undelegation policy param
     ) public returns (address) {
         return _deployOperator(
             _msgSender(),
@@ -152,7 +152,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         }
         if (policies[1] != address(0)) {
-            newOperatorContract.setYieldPolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
+            newOperatorContract.setExchangeRatePolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
         }
         if (policies[2] != address(0)) {
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);

@@ -113,7 +113,7 @@ describe("Operator contract", (): void => {
         expect(await sponsorship.getEarnings(operator.address)).to.equal(parseEther("0"))
 
         // 3: Yield Allocated to Accounts
-        // Skip this: there is no yield allocation policy that sends incoming earnings directly to delegators
+        // Skip this: there is no "yield allocation policy" that sends incoming earnings directly to delegators
 
         // 4: Yield Allocated to Operator value
         // Sponsorship only had 2000 DATA unallocated, so that's what it will allocate

@@ -385,7 +385,7 @@ export class StreamrEnvDeployer {
             this.adminWallet)).deploy() as DefaultExchangeRatePolicy
         await defaultExchangeRatePolicy.deployed()
         this.addresses.OperatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy.address
-        log("Deployed default Operator contract yield policy " + defaultExchangeRatePolicy.address)
+        log("Deployed defaultExchangeRatePolicy " + defaultExchangeRatePolicy.address)
         const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
             this.adminWallet)).deploy() as DefaultUndelegationPolicy
         await defaultUndelegationPolicy.deployed()

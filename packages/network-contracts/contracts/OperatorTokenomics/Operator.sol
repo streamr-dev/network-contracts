@@ -87,7 +87,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     uint public totalSlashedInSponsorshipsWei;
 
     IDelegationPolicy public delegationPolicy;
-    IExchangeRatePolicy public yieldPolicy;
+    IExchangeRatePolicy public exchangeRatePolicy;
     IUndelegationPolicy public undelegationPolicy;
 
     INodeModule public nodeModule;
@@ -232,8 +232,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
      **/
     function balanceInData(address delegator) public view returns (uint amountDataWei) {
-        return moduleGet(abi.encodeWithSelector(yieldPolicy.undelegationRate.selector, balanceOf(delegator), 0, address(yieldPolicy)));
         if (balanceOf(delegator) == 0) { return 0; }
+        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.undelegationRate.selector, balanceOf(delegator), address(exchangeRatePolicy)));
     }
 
     /*
@@ -305,7 +305,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountDataWei how many DATA tokens were transferred
      **/
     function _delegate(address delegator, uint amountDataWei) internal {
-        uint amountOperatorToken = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.delegationRate.selector, amountDataWei, amountDataWei));
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.delegationRate.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountOperatorToken);
 
         // check if the delegation policy allows this delegation
@@ -529,9 +529,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
     }
 
-    function setYieldPolicy(IExchangeRatePolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
+    function setExchangeRatePolicy(IExchangeRatePolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        exchangeRatePolicy = policy;
+        moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.setParam.selector, param));
     }
 
     function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {

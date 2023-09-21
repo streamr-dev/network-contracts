@@ -243,7 +243,7 @@ export class StreamrEnvDeployerHardhat {
             { signer: this.adminWallet })).deploy() as IExchangeRatePolicy
         await defaultExchangeRatePolicy.deployed()
         this.addresses.OperatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy.address
-        log("Deployed default Operator contract yield policy " + defaultExchangeRatePolicy.address)
+        log("Deployed defaultExchangeRatePolicy " + defaultExchangeRatePolicy.address)
         const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
             { signer: this.adminWallet })).deploy() as IUndelegationPolicy
         await defaultUndelegationPolicy.deployed()

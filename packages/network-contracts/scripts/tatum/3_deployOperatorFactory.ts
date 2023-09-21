@@ -28,7 +28,7 @@ async function deployOperatorFactory() {
         { signer: deploymentOwner })).deploy() as IExchangeRatePolicy
     await defaultExchangeRatePolicy.deployed()
     localConfig.defaultExchangeRatePolicy = defaultExchangeRatePolicy.address
-    log("Deployed default Operator contract yield policy", defaultExchangeRatePolicy.address)
+    log("Deployed defaultExchangeRatePolicy", defaultExchangeRatePolicy.address)
     const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
         { signer: deploymentOwner })).deploy() as IUndelegationPolicy
     await defaultUndelegationPolicy.deployed()

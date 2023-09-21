@@ -67,8 +67,7 @@ contract QueueModule is IQueueModule, Operator {
         }
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
-        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.undelegationRate.selector,
-            amountOperatorTokens, 0));
+        uint amountDataWei = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.undelegationRate.selector, amountOperatorTokens));
         if (balanceDataWei >= amountDataWei) {
             // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
@@ -77,8 +76,8 @@ contract QueueModule is IQueueModule, Operator {
         } else {
             // not enough DATA for full payout => all free funds are paid out as a partial payment, update the item in the queue
             amountDataWei = balanceDataWei;
-            amountOperatorTokens = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.delegationRate.selector, // TODO: replace with undelegationRateInverse
+            amountOperatorTokens = moduleCall(address(exchangeRatePolicy),
+                abi.encodeWithSelector(exchangeRatePolicy.delegationRate.selector, // TODO: replace with undelegationRateInverse
                 amountDataWei, 0));
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
             uint operatorTokensLeftInQueue = oldEntry.amountWei - amountOperatorTokens;

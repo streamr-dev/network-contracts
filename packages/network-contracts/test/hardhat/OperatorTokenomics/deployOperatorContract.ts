@@ -27,8 +27,8 @@ export async function deployOperatorContract(
     /**
      * @param operatorsCutFraction as a fraction of 10^18, like ether (use parseEther)
      * @param stringArgs [0] operatorTokenName, [1] streamMetadata
-     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] yield, [2] undelegation policy
-     * @param policyParams not used for default policies: [0] delegation, [1] yield, [2] undelegation policy param
+     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] exchange rate, [2] undelegation policy
+     * @param policyParams not used for default policies: [0] delegation, [1] exchange rate, [2] undelegation policy param
      */
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
         operatorsCutFraction,

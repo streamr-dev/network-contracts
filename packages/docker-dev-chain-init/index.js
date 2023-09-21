@@ -448,7 +448,7 @@ async function deploySponsorshipFactory() {
     const defaultExchangeRatePolicy = await (await ethers.getContractFactory("DefaultExchangeRatePolicy",
         { signer: adminWallet })).deploy()
     await defaultExchangeRatePolicy.deployed()
-    log("Deployed default operator yield policy", defaultExchangeRatePolicy.address)
+    log("Deployed defaultExchangeRatePolicy", defaultExchangeRatePolicy.address)
     const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
         { signer: adminWallet })).deploy()
     await defaultUndelegationPolicy.deployed()

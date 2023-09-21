@@ -17,7 +17,7 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
      * @param operatorTokenWei Amount of Operator's internal token
      */
     function undelegationRate(uint operatorTokenWei) external view returns (uint dataWei) {
-        // don't guard against this.totalSupply() == 0 because: no tokens in supply => nothing to undelegate => ?!
+        // don't guard here against this.totalSupply() == 0 because: no tokens in supply => nothing to undelegate => ?!
         return operatorTokenWei * valueWithoutEarnings() / this.totalSupply();
     }
 
