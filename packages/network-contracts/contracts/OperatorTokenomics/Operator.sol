@@ -461,9 +461,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
+        for (uint i = queueLastIndex; i > queueCurrentIndex; i--) {
+            if (undelegationQueue[i - 1].delegator == delegator) {
+                return i - queueCurrentIndex;
             }
         }
         return queueLastIndex - queueCurrentIndex + 1;
