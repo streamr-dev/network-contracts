@@ -1,7 +1,7 @@
 import { Contract, Wallet, providers } from "ethers"
 import { ethers, upgrades } from "hardhat"
 import { ENSCache, IAllocationPolicy, IDelegationPolicy, IJoinPolicy,
-    IKickPolicy, ILeavePolicy, IPoolYieldPolicy, IUndelegationPolicy, NodeRegistry,
+    IKickPolicy, ILeavePolicy, IExchangeRatePolicy, IUndelegationPolicy, NodeRegistry,
     Operator,
     OperatorFactory, Sponsorship, SponsorshipFactory, StreamRegistryV4,
     StreamStorageRegistry, StreamrConfig, TestToken } from "../../typechain"
@@ -28,7 +28,7 @@ export type EnvContracAddresses = {
     "StreamrConfig": string,
     "SponsorshipFactory": string,
     "SponsorshipDefaultDelegationPolicy": string,
-    // "SponsorshipDefaultPoolYieldPolicy": string,
+    // "SponsorshipDefaultExchangeRatePolicy": string,
     "SponsorshipDefaultUndelegationPolicy": string,
     "SponsorshipMaxOperatorsJoinPolicy": string,
     "SponsorshipStakeWeightedAllocationPolicy": string,
@@ -38,7 +38,7 @@ export type EnvContracAddresses = {
     "OperatorFactory": string,
     "OperatorDefaultDelegationPolicy": string,
     "OperatorDefaultUndelegationPolicy": string,
-    "OperatorDefaultPoolYieldPolicy": string,
+    "OperatorDefaultExchangeRatePolicy": string,
     "OperatorContractOnlyJoinPolicy": string,
 
     // Data Unions:
@@ -71,7 +71,7 @@ export type EnvContracts = {
     "operatorFactory": OperatorFactory,
     "operatorDefaultDelegationPolicy": IDelegationPolicy,
     "operatorDefaultUndelegationPolicy": IUndelegationPolicy,
-    "operatorDefaultPoolYieldPolicy": IAllocationPolicy,
+    "operatorDefaultExchangeRatePolicy": IAllocationPolicy,
     "operatorContractOnlyJoinPolicy": IJoinPolicy,
     "dataUnionFactory": Contract,
     "dataUnionTemplate": Contract,
@@ -239,11 +239,11 @@ export class StreamrEnvDeployerHardhat {
         await defaultDelegationPolicy.deployed()
         this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
         log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
-        const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy",
-            { signer: this.adminWallet })).deploy() as IPoolYieldPolicy
-        await defaultPoolYieldPolicy.deployed()
-        this.addresses.OperatorDefaultPoolYieldPolicy = defaultPoolYieldPolicy.address
-        log("Deployed default Operator contract yield policy " + defaultPoolYieldPolicy.address)
+        const defaultExchangeRatePolicy = await (await ethers.getContractFactory("DefaultExchangeRatePolicy",
+            { signer: this.adminWallet })).deploy() as IExchangeRatePolicy
+        await defaultExchangeRatePolicy.deployed()
+        this.addresses.OperatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy.address
+        log("Deployed default Operator contract yield policy " + defaultExchangeRatePolicy.address)
         const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
             { signer: this.adminWallet })).deploy() as IUndelegationPolicy
         await defaultUndelegationPolicy.deployed()
@@ -263,7 +263,7 @@ export class StreamrEnvDeployerHardhat {
         this.contracts.operatorFactory = operatorFactory
         await (await operatorFactory.addTrustedPolicies([
             defaultDelegationPolicy.address,
-            defaultPoolYieldPolicy.address,
+            defaultExchangeRatePolicy.address,
             defaultUndelegationPolicy.address,
         ])).wait()
         log("Added trusted policies")
@@ -280,7 +280,7 @@ export class StreamrEnvDeployerHardhat {
             ethers.utils.parseEther("0.1"),
             `Pool-${Date.now()}`,
             "{}",
-            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
+            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultExchangeRatePolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
             [0, 0, 0]
         )

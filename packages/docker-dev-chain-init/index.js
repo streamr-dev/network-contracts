@@ -393,7 +393,7 @@ async function deploySponsorshipFactory() {
 
     // stream registry must be set in config before sponsorship is deployed because it checks if stream exists
     await (await streamrConfig.setStreamRegistryAddress(streamRegistryAddress)).wait()
-    
+
     const agreementtx = await sponsorshipFactory.deploySponsorship(ethers.utils.parseEther("100"), 0, 1, streamId,
         '{ "metadata": "test"}',
         [
@@ -445,10 +445,10 @@ async function deploySponsorshipFactory() {
         { signer: adminWallet })).deploy()
     await defaultDelegationPolicy.deployed()
     log("Deployed default operator join policy", defaultDelegationPolicy.address)
-    const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy",
+    const defaultExchangeRatePolicy = await (await ethers.getContractFactory("DefaultExchangeRatePolicy",
         { signer: adminWallet })).deploy()
-    await defaultPoolYieldPolicy.deployed()
-    log("Deployed default operator yield policy", defaultPoolYieldPolicy.address)
+    await defaultExchangeRatePolicy.deployed()
+    log("Deployed default operator yield policy", defaultExchangeRatePolicy.address)
     const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
         { signer: adminWallet })).deploy()
     await defaultUndelegationPolicy.deployed()
@@ -468,7 +468,7 @@ async function deploySponsorshipFactory() {
     // eslint-disable-next-line require-atomic-updates
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy.address,
-        defaultPoolYieldPolicy.address,
+        defaultExchangeRatePolicy.address,
         defaultUndelegationPolicy.address,
     ])).wait()
     log("Added trusted policies")
@@ -478,7 +478,7 @@ async function deploySponsorshipFactory() {
     const operatortx = await operatorFactory.connect(adminWallet).deployOperator(
         [`Operator-${Date.now()}`, "{}"],
         [defaultDelegationPolicy.address,
-            defaultPoolYieldPolicy.address,
+            defaultExchangeRatePolicy.address,
             defaultUndelegationPolicy.address],
         [0, 0, 0, 0, 0, parseEther("0.1")]
     )

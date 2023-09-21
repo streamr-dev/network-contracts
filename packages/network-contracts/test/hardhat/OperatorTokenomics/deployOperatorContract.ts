@@ -20,21 +20,21 @@ export async function deployOperatorContract(
 ): Promise<Operator> {
     const {
         operatorFactory, operatorTemplate,
-        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy
     } = contracts
-    const poolTokenName = salt ?? `Pool-${Date.now()}-${poolindex++}`
+    const operatorTokenName = salt ?? `Pool-${Date.now()}-${poolindex++}`
 
     /**
      * @param operatorsCutFraction as a fraction of 10^18, like ether (use parseEther)
-     * @param stringArgs [0] poolTokenName, [1] streamMetadata
+     * @param stringArgs [0] operatorTokenName, [1] streamMetadata
      * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] yield, [2] undelegation policy
      * @param policyParams not used for default policies: [0] delegation, [1] yield, [2] undelegation policy param
      */
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
         operatorsCutFraction,
-        poolTokenName,
+        operatorTokenName,
         operatorMetadata,
-        [ defaultDelegationPolicy.address, defaultPoolYieldPolicy.address, defaultUndelegationPolicy.address ],
+        [ defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address ],
         [ 0, 0, 0 ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress

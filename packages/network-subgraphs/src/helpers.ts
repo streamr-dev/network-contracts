@@ -169,7 +169,9 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation = new Delegation(delegationId)
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
-        delegation.poolTokenWei = BigInt.zero()
+        delegation.delegatedDataWei = BigInt.zero()
+        delegation.undelegatedDataWei = BigInt.zero()
+        delegation.operatorTokenBalanceWei = BigInt.zero()
 
         // creating a Delegation means a new delegator has joined the operator => increase delegator count
         let operator = loadOrCreateOperator(operatorContractAddress)

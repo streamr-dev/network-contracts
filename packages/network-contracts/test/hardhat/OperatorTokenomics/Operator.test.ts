@@ -87,9 +87,9 @@ describe("Operator contract", (): void => {
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
         // delegator sends 500 DATA to operator => both have 500 DATA
         // delegator has 500 DATA
-        // delegator has 500 pooltoken
+        // delegator has 500 operatortoken
         // OperatorContract has 500 DATA
-        expect(await operator.connect(delegator).getMyBalanceInData()).to.equal(parseEther("500"))
+        expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("500"))
         expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("500"))
         expect(await operator.totalSupply()).to.equal(parseEther("500"))
 
@@ -115,19 +115,19 @@ describe("Operator contract", (): void => {
         // 3: Yield Allocated to Accounts
         // Skip this: there is no yield allocation policy that sends incoming earnings directly to delegators
 
-        // 4: Yield Allocated to Operator pool value
+        // 4: Yield Allocated to Operator value
         // Sponsorship only had 2000 DATA unallocated, so that's what it will allocate
         // Operator withdraws the 2000 DATA, but
         //   protocol fee is 5% = 2000 * 0.05 = 100 => 2000 - 100 = 1900 DATA left
         //   the operator's cut 20% = 1900 * 0.2 = 380 DATA is added to self-delegation
         // Profit is 2000 - 100 - 380 = 1520 DATA
-        // Exchange rate for operator's cut is (stake 500 + funds 1520) / 500 ~= 4.04 DATA / pool token
-        //   so the operator's self-delegation increases by 380 / 4.04 = 9500/101 ~= 94.05940594059406 pool tokens
+        // Exchange rate for operator's cut is (stake 500 + funds 1520) / 500 ~= 4.04 DATA / operator token
+        //   so the operator's self-delegation increases by 380 / 4.04 = 9500/101 ~= 94.05940594059406 operator tokens
         await advanceToTimestamp(timeAtStart + 10000, "Withdraw from sponsorship")
         await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
             .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
 
-        // valueWithoutEarnings = DATA balance + stake(s) in sponsorship(s) + earnings in sponsorship(s) = 1900 + 500 + 0 = 2400 DATA
+        // total value = DATA balance + stake(s) in sponsorship(s) + earnings in sponsorship(s) = 1900 + 500 + 0 = 2400 DATA
         expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("1900.0")
         expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("500.0")
         expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("500.0")
@@ -135,7 +135,7 @@ describe("Operator contract", (): void => {
         expect(formatEther(await operator.totalSupply())).to.equal("594.059405940594059405") // TODO: find nicer numbers!
 
         // 5: Withdraw
-        // Because the pool value is 2400 and the token supply is 300000/505, the exchange rate is 4.04 DATA / pool token
+        // Because the pool value is 2400 and the token supply is 300000/505, the exchange rate is 4.04 DATA / operator token
         // Because free funds are at 1900 DATA, that is the amount of DATA which will be paid out.
         // 1900 DATA / 4.04 Exchange Rate ~= 470.3 Operator Tokens are burned, ~29.7 operator token payout is put into the queue.
         await expect(operator.connect(delegator).undelegate(parseEther("500")))
@@ -175,7 +175,7 @@ describe("Operator contract", (): void => {
             expect(formatEther(freeFundsAfterUndelegate)).to.equal("0.0")
         })
 
-        it("allows delegate, transfer of poolTokens, and undelegate by another delegator", async function(): Promise<void> {
+        it("allows delegate, transfer of operatorTokens, and undelegate by another delegator", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
             const operator = await deployOperator(operatorWallet)
@@ -435,15 +435,15 @@ describe("Operator contract", (): void => {
                 .to.emit(operator1, "OperatorValueUpdate").withArgs(parseEther("2000"), parseEther("1520"))
                 .to.emit(operator2, "OperatorValueUpdate").withArgs(0, parseEther("1380")) // 0 == not staked anywhere
 
-            // operator1 pool value after profit is 2000 + 1140 = 3140 => exchange rate for operator's cut is 3140 / 2000 = 1.57 DATA / pool token
-            // operator2 pool value was 1000 DATA => exchange rate for operator's reward is 1000 / 1000 = 1 DATA / pool token
+            // operator1 pool value after profit is 2000 + 1140 = 3140 => exchange rate for operator's cut is 3140 / 2000 = 1.57 DATA / operator token
+            // operator2 pool value was 1000 DATA => exchange rate for operator's reward is 1000 / 1000 = 1 DATA / operator token
             expect(await operator1.valueWithoutEarnings()).to.equal(parseEther("3520"))
             expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1380"))
 
             // operator1's 380 DATA was added to operator1 pool value as self-delegation (not Profit)
-            //  => operatorWallet1 received 380 / 1.57 ~= 242.03 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
-            // operator2's 380 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / pool token
-            //  => operatorWallet2 received 380 / 1 = 380 pool tokens, in addition to the 1000 pool tokens from the initial self-delegation
+            //  => operatorWallet1 received 380 / 1.57 ~= 242.03 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
+            // operator2's 380 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
+            //  => operatorWallet2 received 380 / 1 = 380 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
             expect(await operator1.balanceOf(operatorWallet.address)).to.equal("1242038216560509554140") // TODO: find nicer numbers!
             expect(await operator2.balanceOf(operator2Wallet.address)).to.equal(parseEther("1380"))
 
@@ -577,8 +577,8 @@ describe("Operator contract", (): void => {
             //  operator's cut is 20% = 950 * 0.2 = 190 DATA
             //  pool value profit shared among all delegators is 950 - 190 = 760 DATA
             // valueWithoutEarnings before operator's cut is 1000 stake + 760 profit = 1760 DATA
-            // There are 1000 PoolTokens => exchange rate is 1760 / 1000 = 1.76 DATA/PoolToken
-            // delegator should receive a payout: 100 PoolTokens * 1.76 DATA = 176 DATA
+            // There are 1000 OperatorTokens => exchange rate is 1760 / 1000 = 1.76 DATA/OperatorToken
+            // delegator should receive a payout: 100 OperatorTokens * 1.76 DATA = 176 DATA
             // left into contract: 950 - 176 = 774 DATA
 
             await advanceToTimestamp(timeAtStart + 1000, "Withdraw earnings from sponsorship")
@@ -612,10 +612,10 @@ describe("Operator contract", (): void => {
             //  operator's cut is 20% = 1900 * 0.2 = 380 DATA
             //  pool value profit shared among all delegators is 1900 - 380 = 1520 DATA
             // valueWithoutEarnings before operator's cut is 1000 stake + 1520 profit = 2520 DATA
-            // There are 1000 PoolTokens => exchange rate is 2520 / 1000 = 2.52 DATA/PoolToken
-            // Delegator has requested a payout: 1000 PoolTokens * 2.52 DATA = 2520 DATA
+            // There are 1000 OperatorTokens => exchange rate is 2520 / 1000 = 2.52 DATA/OperatorToken
+            // Delegator has requested a payout: 1000 OperatorTokens * 2.52 DATA = 2520 DATA
             //  all of 1900 DATA is used to pay out the queue entry
-            //  => left in queue: 2520 - 1900 = 620 DATA = 620 / 2.52 ~= 246.03 PoolTokens
+            //  => left in queue: 2520 - 1900 = 620 DATA = 620 / 2.52 ~= 246.03 OperatorTokens
 
             await advanceToTimestamp(timeAtStart + 2000, "withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
@@ -681,8 +681,8 @@ describe("Operator contract", (): void => {
             // earnings are 1000, minus protocol fee 5% = 50 DATA => 950 DATA remains
             // operator's cut is 20% = 950 * 0.2 = 190 DATA => profit shared by delegators is 950 - 190 = 760 DATA
             // pool value before self-delegation is 1000 stake + 760 profit = 1760 DATA
-            // There are 1000 PoolTokens => exchange rate is 1760 / 1000 = 1.76 DATA/PoolToken
-            // delegator should receive a payout: 100 PoolTokens * 1.76 DATA = 176 DATA
+            // There are 1000 OperatorTokens => exchange rate is 1760 / 1000 = 1.76 DATA/OperatorToken
+            // delegator should receive a payout: 100 OperatorTokens * 1.76 DATA = 176 DATA
             await advanceToTimestamp(timeAtStart + 1000, "Withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
@@ -751,8 +751,8 @@ describe("Operator contract", (): void => {
             // earnings are 1000, minus protocol fee 5% = 50 DATA => 950 DATA remains
             // operator's cut is 20% = 950 * 0.2 = 190 DATA => profit shared by delegators is 950 - 190 = 760 DATA
             // pool value before self-delegation is 1000 stake + 760 profit = 1760 DATA
-            // There are 1000 PoolTokens => exchange rate is 1760 / 1000 = 1.76 DATA/PoolToken
-            // delegator should receive a payout: 100 PoolTokens * 1.76 DATA = 176 DATA
+            // There are 1000 OperatorTokens => exchange rate is 1760 / 1000 = 1.76 DATA/OperatorToken
+            // delegator should receive a payout: 100 OperatorTokens * 1.76 DATA = 176 DATA
             await advanceToTimestamp(timeAtStart + 2000 + gracePeriod, "Force unstaking")
             await expect(operator.connect(delegator).forceUnstake(sponsorship.address, 10))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("176"))
@@ -786,13 +786,13 @@ describe("Operator contract", (): void => {
 
             // earnings are 1000, minus protocol fee 5% = 50 DATA => 950 DATA remains
             // operator's cut is 0% => pool value becomes 1000 stake + 950 profit = 1950 DATA
-            // There are 1000 PoolTokens => exchange rate is 1950 / 1000 = 1.95 DATA/PoolToken
-            // delegator should receive a payout: 100 PoolTokens * 1.95 DATA = 195 DATA
+            // There are 1000 OperatorTokens => exchange rate is 1950 / 1000 = 1.95 DATA/OperatorToken
+            // delegator should receive a payout: 100 OperatorTokens * 1.95 DATA = 195 DATA
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("950"), parseEther("0"), parseEther("50"))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("195"))
 
-            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("900")) // 100 PT are burned
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("900")) // 100 Operator tokens are burned
             expect(await token.balanceOf(delegator.address)).to.equal(parseEther("195"))
             expect(await token.balanceOf(operator.address)).to.equal(parseEther("755"))
         })
@@ -1144,7 +1144,7 @@ describe("Operator contract", (): void => {
     })
 
     // streamrConfig.minimumDelegationWei = 1 DATA
-    it("enforce delegator to keep the minimum delegation amount on pooltoken transfer", async function(): Promise<void> {
+    it("enforce delegator to keep the minimum delegation amount on operatortoken transfer", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(delegator, "100")
         const operator = await deployOperator(operatorWallet)

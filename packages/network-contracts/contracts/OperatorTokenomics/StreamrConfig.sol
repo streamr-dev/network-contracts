@@ -48,27 +48,25 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * maxPenaltyPeriodSeconds is the global maximum value that MIN_JOIN_TIME can have across all sponsorships.
      * This garuantees that every operator can get the money back from any and all sponsorships
      * without being slashed (provided it does the work) in a fixed maximum time.
-     *
-     * TODO: is this actually used/needed? It's only used when setting penaltyperiod, but what's the other constraint where it should be used?
      */
     uint public maxPenaltyPeriodSeconds;
 
     /**
-     * The real-time precise pool value can not be kept track of, since it would mean looping through all sponsorships in each transaction.
-     * Everyone can update the "pool-value" of a list of Sponsorships.
-     * If the the withdrawn earnings are more than maxAllowedEarningsFraction * (stake + free funds before withdraw),
-     *   then part of the operator's cut is sent to the withdrawEarningsFromSponsorships caller, which can be anyone.
-     * This means operator should call withdrawEarningsFromSponsorships often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
+     * The real-time precise operator value can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
+     * However, if `withdrawEarningsFromSponsorships` is called often enough, the `valueWithoutEarnings` is a good approximation.
+     * If the the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
+     *   then `fishermanRewardFraction` of the operator's cut is sent to the `withdrawEarningsFromSponsorships` caller, which can be anyone.
+     * This means operator should call `withdrawEarningsFromSponsorships` often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public maxAllowedEarningsFraction;
 
     /**
-     * If the the withdrawn earnings are more than maxAllowedEarningsFraction * (stake + free funds before withdraw),
-     *   then this is the fraction of the operator's cut that is sent out to the caller.
+     * If the the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
+     *   then `fishermanRewardFraction` is the fraction of the operator's cut that is sent out to the caller.
+     * E.g. if `fishermanRewardFraction = 0.5`, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
+     *   then the operator only receives 50 DATA, and whoever called the `withdrawEarningsFromSponsorships` will receive 50 DATA.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
-     * E.g. if fishermanRewardFraction = 0.5, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
-     *   then the operator only receives 50 DATA, and whoever called the withdrawEarningsFromSponsorships will receive 50 DATA.
      */
     uint public fishermanRewardFraction;
 
@@ -120,7 +118,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      *      If the operator decides to reduceStake, locked stake is the limit how much stake must be left into Sponsorship.
      *      The total locked stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + slashing from stake that's left into the sponsorship (= locked)
+     *        flag stakes >= reviewer fees + slashing from the locked stake
      *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
      *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
      *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
@@ -177,7 +175,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         // Undelegation escape hatch: self-service available after maxQueueSeconds
         maxQueueSeconds = 30 days;
 
-        // pool value maintenance (limit outstanding unwithdrawn earnings in Sponsorships)
+        // Withdraw incentivization
         maxAllowedEarningsFraction = 0.05 ether;
         fishermanRewardFraction = 0.5 ether;
 

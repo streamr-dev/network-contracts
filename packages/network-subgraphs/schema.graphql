@@ -248,10 +248,10 @@ type Operator @entity {
   "Block number when valueWithoutEarnings was updated."
   valueUpdateBlockNumber: BigInt!
 
-  "Total number of pool tokens in existence"
+  "Total number of operator tokens in existence"
   operatorTokenTotalSupplyWei: BigInt!
 
-  "DATA/pooltoken exchange rate, equal to valueWithoutEarnings / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
+  "DATA/operatortoken exchange rate, equal to valueWithoutEarnings / totalSupply. Operator tokens are worth (exchangeRate * amount) DATA when undelegating."
   exchangeRate: BigDecimal!
 
   "Connection metadata, to be able to find a node in the Operator's fleet"
@@ -317,13 +317,17 @@ type OperatorDailyBucket @entity {
   operatorsCutWei: BigInt!
 }
 
-# Delegation in an Operator contract signals trust in the operator
+# Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
-  "Pool tokens held by a delegator in this Operator contract"
-  poolTokenWei: BigInt!
+  "Amount of internal Operator tokens this delegator holds"
+  operatorTokenBalanceWei: BigInt!
+  "Amount of DATA tokens this delegator has moved into the Operator contract"
+  delegatedDataWei: BigInt!
+  "Amount of DATA tokens this delegator has moved out of the Operator contract"
+  undelegatedDataWei: BigInt!
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract

@@ -1,17 +1,17 @@
 import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
 
 import debug from "debug"
-import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultPoolYieldPolicy, DefaultUndelegationPolicy,
+import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy, DefaultUndelegationPolicy,
     ENSCacheV2, ENSCacheV2ABI, ENSCacheV2Bytecode, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
     OperatorFactory, Sponsorship, SponsorshipFactory, StakeWeightedAllocationPolicy, StreamRegistry,
     StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
     defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
-    defaultLeavePolicyBytecode, defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
+    defaultLeavePolicyBytecode, defaultExchangeRatePolicyABI, defaultExchangeRatePolicyBytecode,
     defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
     fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
-    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode, 
+    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode,
     nodeModuleABI, nodeModuleBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, queueModuleABI, queueModuleBytecode, 
+    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, queueModuleABI, queueModuleBytecode,
     sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeModuleABI, stakeModuleBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
@@ -47,7 +47,7 @@ export type StreamrContractAddresses = {
     "OperatorFactory": string,
     "OperatorDefaultDelegationPolicy": string,
     "OperatorDefaultUndelegationPolicy": string,
-    "OperatorDefaultPoolYieldPolicy": string,
+    "OperatorDefaultExchangeRatePolicy": string,
 
     // Data Unions: // TODO: remove, these are deployed elsewhere
     // "DataUnionFactory": string,
@@ -79,7 +79,7 @@ export type StreamrContracts = {
     "operatorFactory": OperatorFactory,
     "operatorDefaultDelegationPolicy": DefaultDelegationPolicy,
     "operatorDefaultUndelegationPolicy": DefaultUndelegationPolicy,
-    "operatorDefaultPoolYieldPolicy": DefaultPoolYieldPolicy,
+    "operatorDefaultExchangeRatePolicy": DefaultExchangeRatePolicy,
     // "dataUnionFactory": Contract,
     // "dataUnionTemplate": Contract,
     // "defaultFeeOracle": Contract
@@ -381,11 +381,11 @@ export class StreamrEnvDeployer {
         await defaultDelegationPolicy.deployed()
         this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
         log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
-        const defaultPoolYieldPolicy = await (new ContractFactory(defaultPoolYieldPolicyABI, defaultPoolYieldPolicyBytecode,
-            this.adminWallet)).deploy() as DefaultPoolYieldPolicy
-        await defaultPoolYieldPolicy.deployed()
-        this.addresses.OperatorDefaultPoolYieldPolicy = defaultPoolYieldPolicy.address
-        log("Deployed default Operator contract yield policy " + defaultPoolYieldPolicy.address)
+        const defaultExchangeRatePolicy = await (new ContractFactory(defaultExchangeRatePolicyABI, defaultExchangeRatePolicyBytecode,
+            this.adminWallet)).deploy() as DefaultExchangeRatePolicy
+        await defaultExchangeRatePolicy.deployed()
+        this.addresses.OperatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy.address
+        log("Deployed default Operator contract yield policy " + defaultExchangeRatePolicy.address)
         const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
             this.adminWallet)).deploy() as DefaultUndelegationPolicy
         await defaultUndelegationPolicy.deployed()
@@ -419,7 +419,7 @@ export class StreamrEnvDeployer {
         await (await operatorFactory.initialize(
             operatorTemplate.address,
             this.addresses.DATA,
-            this.addresses.StreamrConfig, 
+            this.addresses.StreamrConfig,
             operatorNodeModule.address,
             operatorQueueModule.address,
             operatorStakeModule.address
@@ -429,7 +429,7 @@ export class StreamrEnvDeployer {
         this.contracts.operatorFactory = operatorFactory
         await (await operatorFactory.addTrustedPolicies([
             defaultDelegationPolicy.address,
-            defaultPoolYieldPolicy.address,
+            defaultExchangeRatePolicy.address,
             defaultUndelegationPolicy.address,
         ])).wait()
         log("Added trusted policies")
@@ -444,7 +444,7 @@ export class StreamrEnvDeployer {
             parseEther("0.1"),
             "TestPool1",
             "{}",
-            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultPoolYieldPolicy,
+            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultExchangeRatePolicy,
                 this.addresses.OperatorDefaultUndelegationPolicy],
             [0, 0, 0]
         )

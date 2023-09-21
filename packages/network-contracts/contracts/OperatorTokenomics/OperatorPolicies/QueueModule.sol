@@ -49,17 +49,17 @@ contract QueueModule is IQueueModule, Operator {
             return 1;
         }
 
-        // Take the first element from the queue, and silently cap it to the amount of pool tokens the exiting delegator has,
+        // Take the first element from the queue, and silently cap it to the amount of operator tokens the exiting delegator has,
         //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
         // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
-        uint amountPoolTokens = undelegationQueue[queueCurrentIndex].amountWei;
-        if (balanceOf(delegator) < amountPoolTokens + streamrConfig.minimumDelegationWei()) {
-            amountPoolTokens = balanceOf(delegator);
+        uint amountOperatorTokens = undelegationQueue[queueCurrentIndex].amountWei;
+        if (balanceOf(delegator) < amountOperatorTokens + streamrConfig.minimumDelegationWei()) {
+            amountOperatorTokens = balanceOf(delegator);
         }
 
         // nothing to pay => pop the queue item
-        if (amountPoolTokens == 0) {
+        if (amountOperatorTokens == 0) {
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
@@ -67,8 +67,8 @@ contract QueueModule is IQueueModule, Operator {
         }
 
         // convert to DATA and see if we have enough free funds to pay out the queue item in full
-        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector,
-            amountPoolTokens, 0));
+        uint amountDataWei = moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.undelegationRate.selector,
+            amountOperatorTokens, 0));
         if (balanceDataWei >= amountDataWei) {
             // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
@@ -77,17 +77,17 @@ contract QueueModule is IQueueModule, Operator {
         } else {
             // not enough DATA for full payout => all free funds are paid out as a partial payment, update the item in the queue
             amountDataWei = balanceDataWei;
-            amountPoolTokens = moduleCall(address(yieldPolicy),
-                abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector,
+            amountOperatorTokens = moduleCall(address(yieldPolicy),
+                abi.encodeWithSelector(yieldPolicy.delegationRate.selector, // TODO: replace with undelegationRateInverse
                 amountDataWei, 0));
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
-            uint poolTokensLeftInQueue = oldEntry.amountWei - amountPoolTokens;
-            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, poolTokensLeftInQueue, oldEntry.timestamp);
-            emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
+            uint operatorTokensLeftInQueue = oldEntry.amountWei - amountOperatorTokens;
+            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, operatorTokensLeftInQueue, oldEntry.timestamp);
+            emit QueueUpdated(delegator, operatorTokensLeftInQueue, queueCurrentIndex);
         }
 
-        // console.log("payOutFirstInQueue: pool tokens", amountPoolTokens, "DATA", amountDataWei);
-        _burn(delegator, amountPoolTokens);
+        // console.log("payOutFirstInQueue: operator tokens", amountOperatorTokens, "DATA", amountDataWei);
+        _burn(delegator, amountOperatorTokens);
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
@@ -110,7 +110,6 @@ contract QueueModule is IQueueModule, Operator {
             revert DidNotReceiveReward();
         }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
-        _mintPoolTokensFor(owner, earnings);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, balanceAfterWei);
+        _delegate(owner, earnings);
     }
 }

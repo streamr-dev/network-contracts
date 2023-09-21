@@ -140,8 +140,8 @@ contract StakeModule is IStakeModule, Operator {
     /**
      * Whenever earnings from Sponsorships come in, split them as follows:
      *  1) to protocol:   pay protocolFeeFraction * earnings as protocol fee, and then
-     *  2) to delegators: add (earnings - protocol fee - operator's cut) to free funds as profit, inflating the pool token value, and finally
-     *  3) to operator:   add operatorsCutFraction * (earnings - protocol fee) to free funds as operator's cut, paid in self-delegation (by minting pool tokens to Operator)
+     *  2) to delegators: add (earnings - protocol fee - operator's cut) to free funds as profit, inflating the operator token value, and finally
+     *  3) to operator:   add operatorsCutFraction * (earnings - protocol fee) to free funds as operator's cut, paid in self-delegation (by minting operator tokens to Operator)
      * If the operator is penalized for too much unwithdrawn earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
      * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
@@ -159,15 +159,14 @@ contract StakeModule is IStakeModule, Operator {
             token.transfer(operatorsCutSplitRecipient, operatorPenaltyDataWei);
         }
 
-        // "self-delegate" the operator's share === mint new pooltokens
-        // because _mintPoolTokensFor is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
+        // "self-delegate" the operator's share === mint new operatortokens
+        // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
         //  1) send operator's cut in DATA tokens to the operator (removed from free funds, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to free funds, minting new tokens)
-        _mintPoolTokensFor(owner, operatorsCutDataWei - operatorPenaltyDataWei);
+        _delegate(owner, operatorsCutDataWei - operatorPenaltyDataWei);
 
-        // the rest is added to free funds, inflating the pool token value, and counted as Profit
+        // the rest is added to free funds, inflating the operator token value, and counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - operatorPenaltyDataWei, protocolFee);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
 
@@ -183,7 +182,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
-        uint poolValueBeforeWithdraw = valueWithoutEarnings();
+        uint valueBeforeWithdraw = valueWithoutEarnings();
 
         uint sumEarnings = 0;
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
@@ -197,7 +196,7 @@ contract StakeModule is IStakeModule, Operator {
         address penaltyRecipient = address(0);
         uint penaltyFraction = 0;
         if (!hasRole(CONTROLLER_ROLE, _msgSender()) && nodeIndex[_msgSender()] == 0) {
-            uint allowedDifference = poolValueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
+            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
                 penaltyRecipient = _msgSender();
                 penaltyFraction = streamrConfig.fishermanRewardFraction();
