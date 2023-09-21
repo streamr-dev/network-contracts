@@ -23,12 +23,12 @@ import { projects } from "./projects"
 // const url = "http://10.200.10.1:8546"
 
 // mumbai testnet
-// const key = process.env.MUMBAI_PRIVATE_KEY || ""
-// const url = "https://rpc-mumbai.maticvigil.com"
+const key = process.env.MUMBAI_PRIVATE_KEY || ""
+const url = "https://rpc-mumbai.maticvigil.com"
 
 // goerli testnet
-const key = process.env.GOERLI_PRIVATE_KEY || ""
-const url = "https://ethereum-goerli.publicnode.com"
+// const key = process.env.GOERLI_PRIVATE_KEY || ""
+// const url = "https://ethereum-goerli.publicnode.com"
 
 const provider = new JsonRpcProvider(url)
 
