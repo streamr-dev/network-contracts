@@ -114,7 +114,7 @@ export const config = {
             {
                 "id": "eeeeeeeeee",
                 "websocket": {
-                    "host": "127.0.0.1",
+                    "host": "10.200.10.1",
                     "port": 40500,
                     "tls": false
                 }
