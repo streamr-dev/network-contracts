@@ -78,7 +78,7 @@ module.exports = {
             '@streamr/network-contracts/contracts/OperatorTokenomics/SponsorshipPolicies/StakeWeightedAllocationPolicy.sol',
             '@streamr/network-contracts/contracts/OperatorTokenomics/SponsorshipPolicies/VoteKickPolicy.sol',
             '@streamr/network-contracts/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy.sol',
-            '@streamr/network-contracts/contracts/OperatorTokenomics/OperatorPolicies/DefaultExchangeRatePolicy.sol',
+            '@streamr/network-contracts/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy.sol',
             '@streamr/network-contracts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol',
             '@streamr/network-contracts/contracts/OperatorTokenomics/Sponsorship.sol',
             '@streamr/network-contracts/contracts/OperatorTokenomics/SponsorshipFactory.sol',
