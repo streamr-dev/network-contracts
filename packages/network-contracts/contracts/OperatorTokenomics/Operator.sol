@@ -233,6 +233,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      **/
     function balanceInData(address delegator) public view returns (uint amountDataWei) {
         return moduleGet(abi.encodeWithSelector(yieldPolicy.undelegationRate.selector, balanceOf(delegator), 0, address(yieldPolicy)));
+        if (balanceOf(delegator) == 0) { return 0; }
     }
 
     /*
