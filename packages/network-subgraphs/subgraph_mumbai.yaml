@@ -13,9 +13,9 @@ dataSources:
     name: StreamRegistry
     network: mumbai
     source:
-      address: "0x760ddf22B89bD0e5E798DE265112185C019838F3"
+      address: "0xdD6f4bcc2A450131775AdE05F1c7Ca12802D05D3"
       abi: StreamRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40346000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -39,9 +39,9 @@ dataSources:
     name: NodeRegistry
     network: mumbai
     source:
-      address: "0x16845c1083a30AB3888ADd92629e61673eC67B06"
+      address: "0x1bE4b2b970a9646373BAc8C859a7A327671d865B"
       abi: NodeRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40346000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -65,9 +65,9 @@ dataSources:
     name: StreamStorageRegistry
     network: mumbai
     source:
-      address: "0x81BFC6ec149854Aec656C531C41a758D2999d9EB"
+      address: "0x92e090e27067537e1974105ccc609Cf5A35f98F2"
       abi: StreamStorageRegistry
-      startBlock: 40073228 #TODO
+      startBlock: 40346000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -88,9 +88,9 @@ dataSources:
     name: ProjectRegistryV1
     network: mumbai # xDai means dev1
     source:
-      address: "0x3dB5E750E4f6185eE61891C458bB5C25cB6e8677"
+      address: "0x2F20D0C62179D0E3440De924515c3b2f608F67cD"
       abi: ProjectRegistryV1
-      startBlock: 40073228
+      startBlock: 40346000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -122,9 +122,9 @@ dataSources:
     name: MarketplaceV4
     network: mumbai
     source:
-      address: "0x5e3Ccd8933f9ac13bf5C3c46A17034C6c7578b35"
+      address: "0xa8ec67fbe58b7c035Ae378A5e266f4AA1DaaB22E"
       abi: MarketplaceV4
-      startBlock: 40073228
+      startBlock: 40346000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -142,9 +142,9 @@ dataSources:
     name: ProjectStakingV1
     network: mumbai
     source:
-      address: "0x8496Afa53Da256299EFf71a6F97729fa4Fadc2ef"
+      address: "0x03b2E964D011B5b9407494393175BDB89D3b3F47"
       abi: ProjectStakingV1
-      startBlock: 40073228
+      startBlock: 40346000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -166,9 +166,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x67ecf83e800d20dC932C2A099421Ebc21E7Df1BE'
+      address: '0x13C288cD94733e0bE6fcfc2a0008913fec88aF8A'
       abi: SponsorshipFactory
-      startBlock: 40073228
+      startBlock: 40346000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -180,16 +180,16 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(indexed address,string,string,uint256,indexed address)
+        - event: NewSponsorship(indexed address,string,string,uint256,uint256,indexed address)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
     network: mumbai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x1d1C3c278F515490e49685d6cc9be1B1993F72F6'
+      address: '0x30f3614d9c4A4f263696A4037CaaA3609710fCBB'
       abi: OperatorFactory
-      startBlock: 40073228
+      startBlock: 40346000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -275,7 +275,7 @@ templates:
           #   handler: handleStakeUpdated
           - event: PoolValueUpdate(uint256,uint256)
             handler: handlePoolValueUpdate
-          - event: Profit(uint256,uint256)
+          - event: Profit(uint256,uint256,uint256)
             handler: handleProfit
           - event: Loss(uint256)
             handler: handleLoss
