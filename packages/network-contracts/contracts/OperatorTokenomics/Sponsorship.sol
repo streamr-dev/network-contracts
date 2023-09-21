@@ -17,7 +17,6 @@ import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
 // import "../../StreamRegistry/ERC2771ContextUpgradeable.sol";
 
-// import "hardhat/console.sol";
 
 /**
  * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
@@ -64,11 +63,15 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error MinOperatorCountZero();
     error OnlyDATAToken();
     error MinimumStake();
+    error CannotIncreaseStake();
     error OperatorNotStaked();
     // error OperatorAlreadyJoined();
     error LeavePenalty();
-
-
+    error ModuleCallError(address moduleAddress);
+    error ActiveFlag();
+    error TransferError();
+    error FlaggingNotSupported();
+    error AccessDenied();
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -150,7 +153,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); // factory needs this to set policies, (self-)revoke after policies are set!
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
 
@@ -201,7 +204,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
         uint unknownTokensWei = newTokensWei - tokensFromSponsorWei;
 
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei), "error_allocationPolicyOnSponsor");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onSponsor.selector, sponsorAddress, newTokensWei));
         emit SponsorshipReceived(sponsorAddress, tokensFromSponsorWei);
         if (unknownTokensWei > 0) {
             emit SponsorshipReceived(address(0), unknownTokensWei);
@@ -220,25 +223,22 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     function _stake(address operator, uint amountWei) internal {
-        // console.log("join/stake at ", block.timestamp, operator, amountWei);
         bool newStaker = stakedWei[operator] == 0;
         stakedWei[operator] += amountWei;
         totalStakedWei += amountWei;
         if (stakedWei[operator] < streamrConfig.minimumStakeWei()) { revert MinimumStake(); }
 
         if (newStaker) {
-            // console.log("Operator joins and stakes", operator, amountWei);
             operatorCount += 1;
             joinTimeOfOperator[operator] = block.timestamp; // solhint-disable-line not-rely-on-time
             for (uint i = 0; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
-                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, operator, amountWei), "error_joinPolicyOnJoin");
+                moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, operator, amountWei));
             }
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, operator), "error_allocationPolicyOnJoin");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onJoin.selector, operator));
             emit OperatorJoined(operator);
         } else {
-            // console.log("Operator already joined, increasing stake", operator, amountWei);
-            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)), "error_stakeIncreaseFailed");
+            moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)));
         }
 
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
@@ -252,9 +252,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
         // uint penaltyWei = getLeavePenalty(operator);
-        // require(penaltyWei == 0, "error_leavePenalty");
         if (getLeavePenalty(operator) > 0) { revert LeavePenalty(); }
-        require(committedStakeWei[operator] == 0, "error_activeFlag");
+        if (committedStakeWei[operator] > 0) { revert ActiveFlag(); }
         payoutWei = _removeOperator(operator);
     }
 
@@ -272,8 +271,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Reduce your stake in the sponsorship without leaving */
     function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
         address operator = _msgSender();
-        require(targetStakeWei < stakedWei[operator], "error_cannotIncreaseStake");
-        require(targetStakeWei >= minimumStakeOf(operator), "error_minimumStake");
+        if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStake(); }
+        if (targetStakeWei < minimumStakeOf(operator)) { revert MinimumStake(); }
 
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
         token.transfer(operator, payoutWei);
@@ -322,7 +321,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         actualReductionWei = min(amountWei, stakedWei[operator]);
         stakedWei[operator] -= actualReductionWei;
         totalStakedWei -= actualReductionWei;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)), "error_stakeChangeHandlerFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)));
     }
 
     /**
@@ -331,8 +330,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If operator had any committed stake, it is forfeited and accounted as committedForfeitedStakeWei, under control of e.g. the VoteKickPolicy.
      */
     function _removeOperator(address operator) internal returns (uint payoutWei) {
-        require(stakedWei[operator] > 0, "error_operatorNotStaked");
-        // console.log("_removeOperator", operator);
+        if (stakedWei[operator] == 0) { revert OperatorNotStaked(); }
 
         if (committedStakeWei[operator] > 0) {
             uint slashedWei = _slash(operator, committedStakeWei[operator]);
@@ -349,13 +347,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         delete stakedWei[operator];
         delete joinTimeOfOperator[operator];
 
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator), "error_leaveHandlerFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator));
         emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
 
-        // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with error_operatorNotStaked)
-        require(token.transferAndCall(operator, paidOutStakeWei, "stake"), "error_transfer");
+        // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with TransferError
+        if (!token.transferAndCall(operator, paidOutStakeWei, "stake")) { revert TransferError(); }
 
         return paidOutEarningsWei + paidOutStakeWei;
     }
@@ -363,7 +361,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Get earnings out, leave stake in */
     function withdraw() external returns (uint payoutWei) {
         address operator = _msgSender();
-        require(stakedWei[operator] > 0, "error_operatorNotStaked");
+        if (stakedWei[operator] == 0) { revert OperatorNotStaked(); }
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
@@ -373,10 +371,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     function _withdraw(address operator) internal returns (uint payoutWei) {
-        payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator), "error_withdrawFailed");
-        // console.log("withdraw ->", operator, payoutWei);
+        payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator));
         if (payoutWei > 0) {
-            require(token.transferAndCall(operator, payoutWei, "allocation"), "error_transfer");
+            if (!token.transferAndCall(operator, payoutWei, "allocation")) { revert TransferError(); }
         }
     }
 
@@ -386,20 +383,20 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     */
     function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target), "error_kickPolicyFailed");
+        if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target));
     }
 
     /** Peer reviewers vote on the flag */
     function voteOnFlag(address target, bytes32 voteData) external {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData), "error_kickPolicyFailed");
+        if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData));
     }
 
     /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */
     function getFlag(address target) external view returns (uint flagData, string memory flagMetadata) {
-        require(address(kickPolicy) != address(0), "error_notSupported");
-        flagData = moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)), "error_kickPolicyFailed");
+        if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
+        flagData = moduleGet(abi.encodeWithSelector(kickPolicy.getFlagData.selector, target, address(kickPolicy)));
         flagMetadata = flagMetadataJson[target];
     }
 
@@ -410,22 +407,22 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     function setAllocationPolicy(IAllocationPolicy newAllocationPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         allocationPolicy = newAllocationPolicy;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param), "error_setAllocationPolicyFailed");
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.setParam.selector, param));
     }
 
     function setLeavePolicy(ILeavePolicy newLeavePolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         leavePolicy = newLeavePolicy;
-        moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param), "error_setLeavePolicyFailed");
+        moduleCall(address(leavePolicy), abi.encodeWithSelector(leavePolicy.setParam.selector, param));
     }
 
     function setKickPolicy(IKickPolicy newKickPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         kickPolicy = newKickPolicy;
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param), "error_setKickPolicyFailed");
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.setParam.selector, param));
     }
 
     function addJoinPolicy(IJoinPolicy newJoinPolicy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
         joinPolicies.push(newJoinPolicy);
-        moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param), "error_addJoinPolicyFailed");
+        moduleCall(address(newJoinPolicy), abi.encodeWithSelector(newJoinPolicy.setParam.selector, param));
     }
 
     /////////////////////////////////////////
@@ -438,10 +435,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes, string memory defaultReason) internal returns (uint returnValue) {
+    function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
+            if (returndata.length == 0) { revert ModuleCallError(moduleAddress); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -458,7 +455,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        require(msg.sender == address(this), "error_mustBeThis");
+        if (msg.sender != address(this)) {
+            revert AccessDenied();
+        }
 
         // extra argument is 32 bytes per abi encoding; low 20 bytes are the module address
         uint len = args.length; // 4 byte selector + 32 bytes per argument
@@ -471,11 +470,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Call a module's view function (staticcall) */
-    function moduleGet(bytes memory callBytes, string memory defaultReason) internal view returns (uint returnValue) {
+    function moduleGet(bytes memory callBytes) internal view returns (uint returnValue) {
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(defaultReason); }
+            if (returndata.length == 0) { revert ModuleCallError(address(this)); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
@@ -485,16 +484,16 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /* solhint-enable */
 
     function solventUntilTimestamp() public view returns(uint horizon) {
-        return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)), "error_getInsolvencyTimestampFailed");
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getInsolvencyTimestamp.selector, address(allocationPolicy)));
     }
 
     function getEarnings(address operator) public view returns(uint allocation) {
-        return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, operator, address(allocationPolicy)), "error_getEarningsFailed");
+        return moduleGet(abi.encodeWithSelector(allocationPolicy.getEarningsWei.selector, operator, address(allocationPolicy)));
     }
 
     function getLeavePenalty(address operator) public view returns(uint leavePenalty) {
         if (address(leavePolicy) == address(0)) { return 0; }
-        return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)), "error_getLeavePenaltyFailed");
+        return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)));
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {

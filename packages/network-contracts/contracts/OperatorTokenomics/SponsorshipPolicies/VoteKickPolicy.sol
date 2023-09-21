@@ -104,7 +104,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             uint index = uint(randomBytes) % operatorCount;
             Operator peer = factory.liveOperators(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", address(peer));
                 continue;
             }
             if (stakedWei[address(peer)] > 0) {
@@ -112,10 +111,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                     sameSponsorshipPeers[sameSponsorshipPeerCount++] = peer;
                     reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same sponsorship", address(peer));
                 continue;
             }
-            // console.log(index, "selecting", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -125,15 +122,12 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i = 0; i < sameSponsorshipPeerCount; i++) {
             Operator peer = sameSponsorshipPeers[i];
             if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
-                // console.log("already selected", address(peer));
                 continue;
             }
             if (reviewers[target].length >= maxReviewerCount) {
                 reviewerState[target][peer] = Reviewer.NOT_SELECTED;
-                // console.log("not selecting", address(peer));
                 continue;
             }
-            // console.log("selecting from same sponsorship", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -147,7 +141,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
     function onVote(address target, bytes32 voteData) external {
-        // console.log("onVote", msg.sender, target);
         require(voteStartTimestamp[target] > 0, "error_notFlagged");
         require(block.timestamp > voteStartTimestamp[target], "error_votingNotStarted"); // solhint-disable-line not-rely-on-time
         if (block.timestamp > voteEndTimestamp[target]) { // solhint-disable-line not-rely-on-time
@@ -171,13 +164,11 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
-            // console.log("Everyone voted", target);
             _endVote(target);
         }
     }
 
     function _endVote(address target) internal {
-        // console.log("endVote", target);
         address flagger = flaggerAddress[target];
         bool flaggerIsGone = stakedWei[flagger] == 0;
         bool targetIsGone = stakedWei[target] == 0;

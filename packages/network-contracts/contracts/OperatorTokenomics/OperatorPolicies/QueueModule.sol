@@ -86,7 +86,6 @@ contract QueueModule is IQueueModule, Operator {
             emit QueueUpdated(delegator, poolTokensLeftInQueue, queueCurrentIndex);
         }
 
-        // console.log("payOutFirstInQueue: pool tokens", amountPoolTokens, "DATA", amountDataWei);
         _burn(delegator, amountPoolTokens);
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);

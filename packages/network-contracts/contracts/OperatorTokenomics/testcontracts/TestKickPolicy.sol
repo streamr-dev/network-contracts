@@ -14,12 +14,10 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
     }
 
     function onFlag(address operator) external {
-        // console.log("onflag");
         _slash(operator, 10 ether);
     }
 
     function onVote(address operator, bytes32 voteData) external {
-        // console.log("onvote");
         _kick(operator, uint(voteData));
     }
 

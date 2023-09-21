@@ -191,7 +191,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         // can't call updateMetadata because it has the onlyOperator guard
         metadata = operatorMetadataJson;
@@ -226,10 +226,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
-        // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
         (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)));
-        // console.log("getMyBalanceInData dataWei", dataWei);
         return dataWei;
     }
 
@@ -291,7 +289,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) public payable {
-        // console.log("## delegate");
         token.transferFrom(_msgSender(), address(this), amountWei);
         _mintPoolTokensFor(_msgSender(), amountWei);
         emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
@@ -539,7 +536,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        if (_msgSender() != address(this)) {
+        if (msg.sender != address(this)) {
             revert AccessDenied();
         }
 
