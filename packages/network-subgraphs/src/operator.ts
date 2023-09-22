@@ -111,8 +111,8 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
         [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
-    operator.freeFundsWei = event.params.freeFundsWei
-    operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.freeFundsWei)
+    operator.dataTokenBalanceWei = event.params.dataTokenBalanceWei
+    operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
     operator.valueUpdateTimestamp = event.block.timestamp
     operator.valueUpdateBlockNumber = event.block.number
     operator.save()

@@ -13,7 +13,7 @@ contract StakeModule is IStakeModule, Operator {
     /////////////////////////////////////////
 
     /**
-     * Stake DATA tokens from free funds into Sponsorships.
+     * Stake DATA tokens from this contract's DATA balance into Sponsorships.
      * Can only happen if all the delegators who want to undelegate have been paid out first.
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
@@ -47,7 +47,7 @@ contract StakeModule is IStakeModule, Operator {
      **/
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
         reduceStakeWithoutQueue(sponsorship, targetStakeWei);
-        payOutQueueWithFreeFunds(0);
+        payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
@@ -70,7 +70,7 @@ contract StakeModule is IStakeModule, Operator {
      **/
     function _unstake(Sponsorship sponsorship) public onlyOperator {
         unstakeWithoutQueue(sponsorship);
-        payOutQueueWithFreeFunds(0);
+        payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
@@ -97,7 +97,7 @@ contract StakeModule is IStakeModule, Operator {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.forceUnstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
-        payOutQueueWithFreeFunds(maxQueuePayoutIterations);
+        payOutQueue(maxQueuePayoutIterations);
     }
 
     /**
@@ -139,9 +139,10 @@ contract StakeModule is IStakeModule, Operator {
 
     /**
      * Whenever earnings from Sponsorships come in, split them as follows:
-     *  1) to protocol:   pay protocolFeeFraction * earnings as protocol fee, and then
-     *  2) to delegators: add (earnings - protocol fee - operator's cut) to free funds as profit, inflating the operator token value, and finally
-     *  3) to operator:   add operatorsCutFraction * (earnings - protocol fee) to free funds as operator's cut, paid in self-delegation (by minting operator tokens to Operator)
+     *  1) to protocol: send out protocolFeeFraction * earnings as protocol fee, and then
+     *  2) to delegators: leave (earnings - protocol fee - operator's cut) to this contract's DATA balance as profit, inflating the operator token value, and finally
+     *  3) to operator: leave operatorsCutFraction * (earnings - protocol fee) to this contract's DATA balance as operator's cut,
+     *                  paid in self-delegation (by minting operator tokens to Operator)
      * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
      * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
@@ -161,11 +162,11 @@ contract StakeModule is IStakeModule, Operator {
 
         // "self-delegate" the operator's share === mint new operator tokens
         // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
-        //  1) send operator's cut in DATA tokens to the operator (removed from free funds, NO burning of tokens)
-        //  2) the operator delegates them back to the contract (added back to free funds, minting new tokens)
+        //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
+        //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
         _delegate(owner, operatorsCutDataWei - operatorPenaltyDataWei);
 
-        // the rest is added to free funds, inflating the operator token value, and counted as Profit
+        // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - operatorPenaltyDataWei, protocolFee);
     }
 
@@ -177,7 +178,7 @@ contract StakeModule is IStakeModule, Operator {
      */
     function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
-        payOutQueueWithFreeFunds(0);
+        payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */

@@ -233,16 +233,16 @@ type Operator @entity {
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
 
-  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by OperatorValueUpdate event, so might be out of date."
+  "DATA staked + held by the Operator contract = totalStakeInSponsorshipsWei + dataTokenBalanceWei. Last updated at valueUpdateBlockNumber/Timestamp."
   valueWithoutEarnings: BigInt!
 
-  "DATA staked and earned in sponsorship contracts. Updated by OperatorValueUpdate event, so it will be out of date by the amount of earnings."
+  "DATA staked into Sponsorship contracts. Last updated at valueUpdateBlockNumber/Timestamp."
   totalStakeInSponsorshipsWei: BigInt!
 
-  "DATA held by the operator, not yet staked. Updated by OperatorValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
-  freeFundsWei: BigInt!
+  "DATA held by the operator, not yet staked. Last updated at valueUpdateBlockNumber/Timestamp, might be out of date if new DATA is sent via `ERC20.transfer`."
+  dataTokenBalanceWei: BigInt!
 
-  "Timestamp in seconds when valueWithoutEarnings was updated. Shows how much the valueWithoutEarnings is out of date."
+  "Timestamp in seconds when valueWithoutEarnings was updated. Shows how much the valueWithoutEarnings might be out of date."
   valueUpdateTimestamp: BigInt!
 
   "Block number when valueWithoutEarnings was updated."
@@ -258,11 +258,13 @@ type Operator @entity {
   latestHeartbeatMetadata: String
   latestHeartbeatTimestamp: BigInt
 
-  "Total earnings excluding brokers shrare"
+  "Increase in the Operator's value (cumulative, after fees)"
   cumulativeProfitsWei: BigInt!
+
+  "Operator's share of the earnings (cumulative)"
   cumulativeOperatorsCutWei: BigInt!
 
-  metadataJsonString: String! # TODO: unpack metadata to fields
+  metadataJsonString: String!
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
@@ -275,21 +277,23 @@ type Operator @entity {
 }
 
 type OperatorDailyBucket @entity {
-  # absolute values, set at bucket creation time, so they represent the state after the first event in bucket
+  ##############################
+  ## absolute values, set at bucket creation time, so they represent the state after the first event in bucket
+  ##############################
   id: ID! # operator address + date
   operator: Operator!
 
   "The day of the bucket. This is a timestamp in seconds"
   date: BigInt!
 
-  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
+  "DATA staked + held by the Operator contract = totalStakeInSponsorshipsWei + dataTokenBalanceWei (first event in bucket)"
   valueWithoutEarnings: BigInt!
 
-  "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
+  "DATA staked into Sponsorship contracts (first event in bucket)"
   totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked (first event in bucket)"
-  freeFundsWei: BigInt!
+  dataTokenBalanceWei: BigInt!
 
   "Momentary APY. Currently not used. TODO: calculate and add to subgraph"
   spotAPY: BigInt!
@@ -297,23 +301,25 @@ type OperatorDailyBucket @entity {
   "All delegators joining this operator. Initialized from operator.delegatorCount"
   delegatorCountAtStart: Int!
 
-  # accumulated values, updated when events are fired
-  "Delegators joining this operator on this day. Updated when Delegation entity is created"
+  ##############################
+  ## accumulated values, updated when events are fired
+  ##############################
+  "Delegators that joined today. Updated when Delegation entity is created"
   delegatorCountChange: Int!
 
-  "All DATA tokens delegated to this operator, by all delegators. Updated when Delegated event is fired"
+  "Sum of DATA tokens delegated to this operator today, by all delegators. Updated when Delegated event is fired"
   totalDelegatedWei: BigInt!
 
-  "Total DATA tokens undelegated from this operator, by all delegators. Updated when Undelegated event is fired"
+  "Sum of DATA tokens undelegated from this operator today, by all delegators. Updated when Undelegated event is fired"
   totalUndelegatedWei: BigInt!
 
-  "Sum of earnings during the bucket, less operator's share"
+  "Sum of earnings today, less operator's share"
   profitsWei: BigInt!
 
-  "Sum of losses during the bucket"
+  "Sum of losses today"
   lossesWei: BigInt!
 
-  "Sum of operator's share of earnings during the bucket"
+  "Sum of operator's share of earnings today"
   operatorsCutWei: BigInt!
 }
 

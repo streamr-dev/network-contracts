@@ -115,7 +115,7 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.delegatorCount = 0
         operator.valueWithoutEarnings = BigInt.zero()
         operator.totalStakeInSponsorshipsWei = BigInt.zero()
-        operator.freeFundsWei = BigInt.zero()
+        operator.dataTokenBalanceWei = BigInt.zero()
         operator.valueUpdateTimestamp = BigInt.zero()
         operator.valueUpdateBlockNumber = BigInt.zero()
         operator.operatorTokenTotalSupplyWei = BigInt.zero()
@@ -147,7 +147,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         let operator = loadOrCreateOperator(contractAddress)
         bucket.valueWithoutEarnings = operator.valueWithoutEarnings
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
-        bucket.freeFundsWei = operator.freeFundsWei
+        bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
         bucket.spotAPY = BigInt.zero() // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
 

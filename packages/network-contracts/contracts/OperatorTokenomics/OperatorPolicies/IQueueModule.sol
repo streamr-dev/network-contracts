@@ -7,7 +7,7 @@ import "../Sponsorship.sol";
 
 interface IQueueModule {
     function _undelegate(uint amountWei) external;
-    function _payOutQueueWithFreeFunds(uint maxIterations) external;
+    function _payOutQueue(uint maxIterations) external;
     function _payOutFirstInQueue() external returns (uint payoutComplete);
     function _triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) external;
 }

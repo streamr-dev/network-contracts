@@ -49,7 +49,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
-    event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event (staked - slashed)
+    event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
     event Profit(uint valueIncreaseWei, uint operatorsCutDataWei, uint protocolFeeDataWei);
     event Loss(uint valueDecreaseWei);
 
@@ -81,7 +81,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
-     * DATA value = DATA in contract (free funds) + DATA staked + DATA earnings in sponsorships
+     * DATA value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
      */
     uint public totalStakedIntoSponsorshipsWei;
     uint public totalSlashedInSponsorshipsWei;
@@ -217,11 +217,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Get an "on-chain estimate" for the DATA value of this Operator contract. This is used for the exchange rate calculation.
-     * Operator value = DATA in contract (free funds) + DATA staked + DATA earnings in sponsorships
+     * Operator value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
      * The complete value can be queried and calculated in different ways:
      * 1. accurate, available off-chain: getSponsorshipsAndEarnings() returns all sponsorships and their outstanding earnings
-     * 2. approximate, always available: valueWithoutEarnings() that only returns the free funds + staked DATA
-     * @return uint Operator value - earnings = free funds + staked DATA
+     * 2. approximate, always available: valueWithoutEarnings() that only returns the DATA balance + DATA staked
+     * @return uint Operator value - earnings = DATA balance + DATA staked
      **/
     function valueWithoutEarnings() public view returns (uint) {
         return token.balanceOf(address(this)) + totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei;
@@ -233,7 +233,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      **/
     function balanceInData(address delegator) public view returns (uint amountDataWei) {
         if (balanceOf(delegator) == 0) { return 0; }
-        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.undelegationRate.selector, balanceOf(delegator), address(exchangeRatePolicy)));
+        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
     }
 
     /*
@@ -261,8 +261,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are delegated on behalf of that delegator
      * If not, the token sender is the delegator
-     * If the address is this contract, then add tokens to free funds (don't delegate at all)
-     *    Those tokens are "gifted" to the Operator contract, and won't be delegated for anyone, but instead count as Profit.
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         if (_msgSender() != address(token)) {
@@ -305,7 +303,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountDataWei how many DATA tokens were transferred
      **/
     function _delegate(address delegator, uint amountDataWei) internal {
-        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.delegationRate.selector, amountDataWei, amountDataWei));
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountOperatorToken);
 
         // check if the delegation policy allows this delegation
@@ -462,7 +460,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Get the position of the LAST undelegation request in the queue for the given delegator.
      * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
+     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueue)
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
@@ -474,14 +472,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return queueLastIndex - queueCurrentIndex + 1;
     }
 
-    /** Pay out up to maxIterations items in the queue */
-    function payOutQueueWithFreeFunds(uint maxIterations) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueueWithFreeFunds.selector, maxIterations));
+    /** Pay out up to maxIterations items in the queue, or until this contract's DATA balance runs out */
+    function payOutQueue(uint maxIterations) public {
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueue.selector, maxIterations));
     }
 
     /**
      * Pay out the first item in the undelegation queue.
-     * If free funds run out, only pay the first item partially and leave it in front of the queue.
+     * If this contract's DATA balance runs out, only pay the first item partially and leave it in front of the queue.
      * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
     function payOutFirstInQueue() public returns (bool payoutComplete) {

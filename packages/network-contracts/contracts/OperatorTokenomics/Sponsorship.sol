@@ -270,9 +270,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Slashing moves tokens from an operator's stake to "free funds" (that are not in remainingWei!)
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
-     * @dev do not slash more than the whole stake!
+     * Slashing removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
+     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
@@ -285,8 +284,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Kicking does what slashing does, plus removes the operator
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
-     * @dev do not slash more than the whole stake!
+     * NOTE: The caller MUST ensure that slashed tokens (if any) are added to some other account, e.g. remainingWei, via _addSponsorship
      */
     function _kick(address operator, uint slashingWei) internal {
         if (slashingWei > 0) {
@@ -301,9 +299,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Moves tokens from an operator's stake to "free funds" (that are not in remainingWei!)
-     * Does not actually send out tokens!
-     * @dev The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
+     * Removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
+     * NOTE: Does not actually send out tokens, only does the accounting!
+     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
         actualReductionWei = min(amountWei, stakedWei[operator]);
