@@ -159,7 +159,7 @@ contract StakeModule is IStakeModule, Operator {
             token.transfer(operatorsCutSplitRecipient, operatorPenaltyDataWei);
         }
 
-        // "self-delegate" the operator's share === mint new operatortokens
+        // "self-delegate" the operator's share === mint new operator tokens
         // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
         //  1) send operator's cut in DATA tokens to the operator (removed from free funds, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to free funds, minting new tokens)
