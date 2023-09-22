@@ -183,7 +183,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         bool targetIsGone = stakedWei[target] == 0;
         uint reviewerCount = reviewers[target].length;
 
-        // release stake commitments before vote resolution so that slashings and kickings during resolution aren't affected
+        // release stake locks before vote resolution so that slashings and kickings during resolution aren't affected
         // if either the flagger or the target has forceUnstaked or been kicked, the locked stake was moved to lockedForfeitedStakeWei
         if (flaggerIsGone) {
             lockedForfeitedStakeWei -= flagStakeWei[target];
