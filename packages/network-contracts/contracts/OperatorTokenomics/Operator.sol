@@ -228,10 +228,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     function getMyBalanceInData() public view returns (uint amountDataWei) {
-        // console.log("## getMyBalanceInData");
         uint poolTokenBalance = balanceOf(_msgSender());
         (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)));
-        // console.log("getMyBalanceInData dataWei", dataWei);
         return dataWei;
     }
 

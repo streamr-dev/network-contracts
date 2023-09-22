@@ -1156,6 +1156,32 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
     })
 
+    it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await expect(operator.onSlash(parseEther("10")))
+            .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+    })
+
+    it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await expect(operator.onKick(parseEther("10"), parseEther("10")))
+            .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+    })
+
+    it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        const operator2 = await deployOperator(operator2Wallet)
+        await expect(operator.onReviewRequest(operator2.address))
+            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+    })
+
+    it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        const operator2 = await deployOperator(operator2Wallet)
+        await expect(operator.onReviewRequest(operator2.address))
+            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+    })
+
     it("will NOT allow staking if there are delegators queueing to exit", async function(): Promise<void> {
         const { token } = sharedContracts
         await setTokens(delegator, "1000")
