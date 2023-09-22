@@ -294,7 +294,7 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
             await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
 
-            // some time passes => approx valueWithoutEarnings differs from real valueWithoutEarnings
+            // some time passes => valueWithoutEarnings differs from real operator value
             await advanceToTimestamp(timeAtStart + 1001, "Read the earnings back to Operator")
 
             const valueBefore = await operator.valueWithoutEarnings()
