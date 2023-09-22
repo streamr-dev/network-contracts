@@ -52,11 +52,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     uint public maxPenaltyPeriodSeconds;
 
     /**
-     * The real-time precise operator value can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
+     * The real-time precise operator value (that includes earnings) can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
      * However, if `withdrawEarningsFromSponsorships` is called often enough, the `valueWithoutEarnings` is a good approximation.
      * If the the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
      *   then `fishermanRewardFraction` of the operator's cut is sent to the `withdrawEarningsFromSponsorships` caller, which can be anyone.
-     * This means operator should call `withdrawEarningsFromSponsorships` often enough to not accumulate too much unwithdrawn earnings, so they can keep all of the cut.
+     * This means operator should call `withdrawEarningsFromSponsorships` often enough to not accumulate too much earnings, so they can keep all of the cut.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */
     uint public maxAllowedEarningsFraction;
@@ -64,7 +64,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /**
      * If the the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
      *   then `fishermanRewardFraction` is the fraction of the operator's cut that is sent out to the caller.
-     * E.g. if `fishermanRewardFraction = 0.5`, and the operator's cut of the incoming earnings is 100 DATA, and if the penalty is applied,
+     * E.g. if `fishermanRewardFraction = 0.5`, and the operator's cut of the incoming earnings are 100 DATA, and if the penalty is applied,
      *   then the operator only receives 50 DATA, and whoever called the `withdrawEarningsFromSponsorships` will receive 50 DATA.
      * Fraction means this value is between 0.0 ~ 1.0, expressed as multiple of 1e18, like ETH or tokens.
      */

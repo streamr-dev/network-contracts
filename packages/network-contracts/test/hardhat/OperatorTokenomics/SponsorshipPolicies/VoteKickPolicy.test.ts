@@ -353,7 +353,7 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Locked stake", (): void => {
-        it("allows the target to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
+        it("allows the target to reduce stake the correct amount DURING the flag period (to amount stake locked)", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
@@ -391,7 +391,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(sponsorship, "OperatorLeft").withArgs(target.address, parseEther("1000"))
         })
 
-        it("allows the flagger to reduce stake the correct amount DURING the flag period (stake-commited)", async function(): Promise<void> {
+        it("allows the flagger to reduce stake the correct amount DURING the flag period (to amount stake locked)", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, ...targets], [voter] ]
@@ -434,7 +434,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(sponsorship, "OperatorLeft").withArgs(flagger.address, parseEther("999"))
         })
 
-        it("does NOT allow the flagger to flag if he has not enough unlocked stake", async function(): Promise<void> {
+        it("does NOT allow the flagger to flag if he has not enough (unlocked) stake", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, ...targets], [voter] ]

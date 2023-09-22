@@ -383,9 +383,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
+     * This function can only be called if there really are too many earnings in the other Operator.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
         // this was put into queue module because that module was still small enough, and it could've been put into any module (no dependent functions)
@@ -395,7 +395,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Convenience method to get all sponsorships and their outstanding earnings
      * The operator needs to keep an eye on the accumulated earnings at all times, so that `valueWithoutEarnings` won't be too far off from the true Operator value.
-     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
+     * If someone else notices that there's too much earnings, they can call withdrawEarningsFromSponsorships to get a small reward
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
     function getSponsorshipsAndEarnings() external view returns (

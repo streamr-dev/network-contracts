@@ -184,21 +184,21 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint reviewerCount = reviewers[target].length;
 
         // release stake locks before vote resolution so that slashings and kickings during resolution aren't affected
-        // if either the flagger or the target has forceUnstaked or been kicked, the locked stake was moved to lockedForfeitedStakeWei
+        // if either the flagger or the target has forceUnstaked or been kicked, the lockedStakeWei was moved to forfeitedStakeWei
         if (flaggerIsGone) {
-            lockedForfeitedStakeWei -= flagStakeWei[target];
+            forfeitedStakeWei -= flagStakeWei[target];
         } else {
             lockedStakeWei[flagger] -= flagStakeWei[target];
         }
         if (targetIsGone) {
-            lockedForfeitedStakeWei -= targetStakeAtRiskWei[target];
+            forfeitedStakeWei -= targetStakeAtRiskWei[target];
         } else {
             lockedStakeWei[target] -= targetStakeAtRiskWei[target];
         }
 
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
-            // if targetIsGone: the tokens are still in Sponsorship, accounted in lockedForfeitedStakeWei (which will be subtracted in cleanup, so no need to _slash)
+            // if targetIsGone: the tokens are still in Sponsorship, accounted in forfeitedStakeWei (so "slashing" was already done)
             if (!targetIsGone) {
                 _kick(target, slashingWei);
             }

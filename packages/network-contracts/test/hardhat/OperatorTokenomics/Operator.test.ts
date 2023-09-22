@@ -363,7 +363,7 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // TODO: find nice numbers!
         })
 
-        it("pays part of operator's cut from withdraw to caller if too much unwithdrawn earnings", async function(): Promise<void> {
+        it("pays part of operator's cut from withdraw to caller if too much earnings", async function(): Promise<void> {
             // deploy two operators using deployOperatorContract.
             // It's important they come from same factory, hence can't use deployOperator helper as-is
             const contracts = {
@@ -396,7 +396,7 @@ describe("Operator contract", (): void => {
             await expect(operator1.stake(sponsorship2.address, parseEther("1000")))
                 .to.emit(operator1, "Staked").withArgs(sponsorship2.address)
 
-            // total unwithdrawn earnings is 10 < 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should fail
+            // total earnings are 10 < 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should fail
             const sponsorshipsBefore = await operator1.getSponsorshipsAndEarnings()
             expect(sponsorshipsBefore.addresses).to.deep.equal([sponsorship1.address, sponsorship2.address])
             expect(sponsorshipsBefore.earnings.map(formatEther)).to.deep.equal(["10.0", "0.0"])
@@ -416,7 +416,7 @@ describe("Operator contract", (): void => {
             expect(await token.balanceOf(operator2.address)).to.equal(parseEther("1000"))
             expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1000"))
 
-            // unwithdrawn earnings is 2000 > 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should work
+            // earnings are 2000 > 100 == 5% of 2000 (pool value), so triggerAnotherOperatorWithdraw should work
             const sponsorshipsAfter = await operator1.getSponsorshipsAndEarnings()
             expect(sponsorshipsAfter.addresses).to.deep.equal([sponsorship1.address, sponsorship2.address])
             expect(sponsorshipsAfter.earnings.map(formatEther)).to.deep.equal(["1000.0", "1000.0"])
@@ -872,8 +872,6 @@ describe("Operator contract", (): void => {
         expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("50"))
 
         // now anyone can trigger the unstake and payout of the queue
-        // await (await operator.updateApproximatevalueOfSponsorship(sponsorship2.address)).wait()
-        // await (await operator.updateApproximatevalueOfSponsorship(sponsorship1.address)).wait()
         await expect(operator.connect(delegator2).forceUnstake(sponsorship1.address, 10))
             .to.emit(operator, "Unstaked").withArgs(sponsorship1.address)
 

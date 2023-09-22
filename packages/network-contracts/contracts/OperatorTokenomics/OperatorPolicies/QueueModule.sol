@@ -96,9 +96,9 @@ contract QueueModule is IQueueModule, Operator {
     }
 
     /**
-     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
+     * This function can only be called if there really are too many earnings in the other Operator.
      **/
     function _triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
         uint balanceBeforeWei = token.balanceOf(address(this));

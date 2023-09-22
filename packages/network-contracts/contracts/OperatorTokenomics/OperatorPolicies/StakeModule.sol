@@ -145,7 +145,7 @@ contract StakeModule is IStakeModule, Operator {
      * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
      * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
-     * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much unwithdrawn earnings, otherwise `address(0)`
+     * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much earnings, otherwise `address(0)`
      **/
     function _splitEarnings(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) public {
         uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
