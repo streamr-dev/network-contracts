@@ -245,7 +245,7 @@ describe("Operator contract", (): void => {
     describe("Withdrawing and profit sharing", () => {
 
         // Corresponds to a test in network repo / broker subsystem / operator plugin:
-        // https://github.com/streamr-dev/network/blob/streamr-1.0/packages/broker/test/integration/plugins/operator/maintainOperatorvalue.test.ts
+        // https://github.com/streamr-dev/network/blob/streamr-1.0/packages/broker/test/integration/plugins/operator/maintainOperatorValue.test.ts
         it("can withdraw from sponsorship (happy path)", async function(): Promise<void> {
             const STAKE_AMOUNT = "100"
             const STAKE_AMOUNT_WEI = parseEther(STAKE_AMOUNT)
