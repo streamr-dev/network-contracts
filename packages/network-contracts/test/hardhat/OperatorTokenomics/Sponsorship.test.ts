@@ -177,6 +177,33 @@ describe("Sponsorship contract", (): void => {
             await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("50")))
                 .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
         })
+
+        it("won't let unstake if you would be slashed", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).unstake())
+                .to.be.revertedWithCustomError(defaultSponsorship, "LeavePenalty")
+        })
+
+        it("lets you unstake when you unstake after the penalty period", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await advanceToTimestamp((await getBlockTimestamp()) + 101, "Unstake after penalty period")
+            await (await sponsorship.connect(operator).unstake()).wait()
+        })
+
+        it("lets you unstake(without being slashed) within penalty period if unfunded", async function(): Promise<void> {
+            const blocktime = await getBlockTimestamp()
+            await advanceToTimestamp(blocktime + 1, "Sponsorship")
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
+            await (await sponsorship.sponsor(parseEther("10"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await advanceToTimestamp(blocktime + 20)
+            await (await sponsorship.connect(operator).unstake()).wait()
+        })
+
     })
 
     describe("Querying", (): void => {
@@ -238,6 +265,26 @@ describe("Sponsorship contract", (): void => {
             await expect(defaultSponsorship.setAllocationPolicy(testAllocPolicy.address, "2"))
                 .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
                 + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
+        })
+
+        it("will fail if setting penalty period longer than 14 days", async function(): Promise<void> {
+            const sponsorship = await (await getContractFactory("Sponsorship", { signer: admin })).deploy()
+            await sponsorship.deployed()
+            await sponsorship.initialize(
+                "streamId",
+                "metadata",
+                contracts.streamrConfig.address,
+                token.address,
+                [
+                    0,
+                    1,
+                    parseEther("1").toString()
+                ],
+                testAllocationPolicy.address,
+            )
+
+            await expect(sponsorship.setLeavePolicy(contracts.leavePolicy.address, 14 * 24 * 60 * 60 + 1))
+                .to.be.revertedWith("error_penaltyPeriodTooLong")
         })
     })
 
