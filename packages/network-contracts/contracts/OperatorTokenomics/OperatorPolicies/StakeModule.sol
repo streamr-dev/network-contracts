@@ -142,7 +142,7 @@ contract StakeModule is IStakeModule, Operator {
      *  1) to protocol:   pay protocolFeeFraction * earnings as protocol fee, and then
      *  2) to delegators: add (earnings - protocol fee - operator's cut) to free funds as profit, inflating the operator token value, and finally
      *  3) to operator:   add operatorsCutFraction * (earnings - protocol fee) to free funds as operator's cut, paid in self-delegation (by minting operator tokens to Operator)
-     * If the operator is penalized for too much unwithdrawn earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
+     * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
      * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
      * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much unwithdrawn earnings, otherwise `address(0)`
