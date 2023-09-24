@@ -7,11 +7,6 @@ import "../StreamrConfig.sol";
 import "../Operator.sol";
 
 contract StakeModule is IStakeModule, Operator {
-
-    /////////////////////////////////////////
-    // OPERATOR FUNCTIONS: STAKE MANAGEMENT
-    /////////////////////////////////////////
-
     /**
      * Stake DATA tokens from this contract's DATA balance into Sponsorships.
      * Can only happen if all the delegators who want to undelegate have been paid out first.

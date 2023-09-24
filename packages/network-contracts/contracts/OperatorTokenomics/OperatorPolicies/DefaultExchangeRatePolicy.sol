@@ -23,6 +23,16 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
     }
 
     /**
+     * Conversion from DATA to Operator's internal token when undelegating
+     * We calculate using valueWithoutEarnings() because smart contract's can't check the outstanding earnings of arbitrary number of Sponsorships
+     * @param dataWei Amount of DATA we want from undelegating
+     * @return operatorTokenWei Amount of Operator's internal token to undelegate to receive the given amount of DATA
+     */
+    function operatorTokenToDataInverse(uint dataWei) external view returns (uint operatorTokenWei) {
+        return dataWei * this.totalSupply() / valueWithoutEarnings();
+    }
+
+    /**
      * Conversion from DATA to Operator's internal token when delegating
      * We calculate using valueWithoutEarnings() because smart contract's can't check the outstanding earnings of arbitrary number of Sponsorships
      * First delegation should be the operator's self-delegation. For that, use 1:1 exchange rate.
