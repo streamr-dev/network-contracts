@@ -7,7 +7,7 @@ import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./
 import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { IKickPolicy } from "../../../typechain"
+import { IKickPolicy, IPoolYieldPolicy } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 const { parseEther, formatEther, hexZeroPad } = utils
@@ -27,6 +27,7 @@ describe("Operator contract", (): void => {
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
     let testKickPolicy: IKickPolicy
+    let testYieldPolicy: IPoolYieldPolicy
 
     // burn all tokens then mint the corrent amount of new ones
     async function setTokens(account: Wallet, amount: string) {
@@ -64,6 +65,9 @@ describe("Operator contract", (): void => {
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
+
+        testYieldPolicy = await (await (await getContractFactory("TestYieldPolicy", admin)).deploy()).deployed() as unknown as IPoolYieldPolicy
+        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testYieldPolicy.address])).wait()
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
@@ -193,6 +197,13 @@ describe("Operator contract", (): void => {
         expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("0"))
 
         expect(await operator.queueIsEmpty()).to.equal(true)
+    })
+
+    it("moduyleGet reverts for broken yield policy", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await (await operator.setYieldPolicy(testYieldPolicy.address, 0)).wait()
+        await expect(operator.connect(delegator).getMyBalanceInData())
+            .to.be.reverted
     })
 
     describe("Delegator functionality", (): void => {
