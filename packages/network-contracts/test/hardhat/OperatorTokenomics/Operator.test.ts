@@ -199,6 +199,19 @@ describe("Operator contract", (): void => {
     })
 
     describe("Delegator functionality", (): void => {
+        it("balanceInData returns 0 if delegator is not delegated or has 0 balance", async function(): Promise<void> {
+            const { token: dataToken } = sharedContracts
+            await setTokens(delegator, "1000")
+            const operator = await deployOperator(operatorWallet)
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+
+            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
+            
+            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+        })
+
         it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
