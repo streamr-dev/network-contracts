@@ -53,7 +53,7 @@ describe("Operator", (): void => {
         // doing it in one go with 1000 slots in the queue will fail...
         await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
 
-        // "reasonable gas limit" that is enough for await payOutQueueWithFreeFunds(10) which needs 486278 gas
+        // "reasonable gas limit" that is enough for await payOutQueue(10) which needs 486278 gas
         const gasLimit = 600000
         // log("gas: %s", (await operator.estimateGas.unstake(sponsorship.address)).toString())
         await expect(operator.unstake(sponsorship.address, { gasLimit })).to.be.reverted
@@ -62,8 +62,8 @@ describe("Operator", (): void => {
         log("unstakeWithoutQueue, gas limit %s", gasLimit.toString())
         await (await operator.unstakeWithoutQueue(sponsorship.address, { gasLimit })).wait()
         for (let i = 0; i < queueLength; i += 10) {
-            log("payOutQueueWithFreeFunds %d / %d", i, queueLength)
-            await (await operator.payOutQueueWithFreeFunds(10, { gasLimit })).wait()
+            log("payOutQueue %d / %d", i, queueLength)
+            await (await operator.payOutQueue(10, { gasLimit })).wait()
         }
 
         // got everything back

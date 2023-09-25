@@ -77,15 +77,15 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // the flag target risks to lose a slashingFraction if the flag resolves to KICK
         // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid!
         targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) * streamrConfig.slashingFraction() / 1 ether;
-        committedStakeWei[target] += targetStakeAtRiskWei[target];
+        lockedStakeWei[target] += targetStakeAtRiskWei[target];
 
         // cache these just in case the config changes during the flag
         flagStakeWei[target] = streamrConfig.flagStakeWei();
         reviewerRewardWei[target] = streamrConfig.flagReviewerRewardWei();
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
-        committedStakeWei[flagger] += flagStakeWei[target];
-        require(committedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
+        lockedStakeWei[flagger] += flagStakeWei[target];
+        require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
         // only secondarily select peers that are in the same sponsorship as the flagging target
         Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
@@ -104,7 +104,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             uint index = uint(randomBytes) % operatorCount;
             Operator peer = factory.liveOperators(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
-                // console.log(index, "skipping", address(peer));
                 continue;
             }
             if (stakedWei[address(peer)] > 0) {
@@ -112,28 +111,16 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                     sameSponsorshipPeers[sameSponsorshipPeerCount++] = peer;
                     reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
                 }
-                // console.log(index, "in same sponsorship", address(peer));
                 continue;
             }
-            // console.log(index, "selecting", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
         }
 
         // secondary selection: peers from the same sponsorship
-        for (uint i = 0; i < sameSponsorshipPeerCount; i++) {
+        for (uint i = 0; i < sameSponsorshipPeerCount && reviewers[target].length < maxReviewerCount; i++) {
             Operator peer = sameSponsorshipPeers[i];
-            if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
-                // console.log("already selected", address(peer));
-                continue;
-            }
-            if (reviewers[target].length >= maxReviewerCount) {
-                reviewerState[target][peer] = Reviewer.NOT_SELECTED;
-                // console.log("not selecting", address(peer));
-                continue;
-            }
-            // console.log("selecting from same sponsorship", address(peer));
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
@@ -147,7 +134,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
     function onVote(address target, bytes32 voteData) external {
-        // console.log("onVote", msg.sender, target);
         require(voteStartTimestamp[target] > 0, "error_notFlagged");
         require(block.timestamp > voteStartTimestamp[target], "error_votingNotStarted"); // solhint-disable-line not-rely-on-time
         if (block.timestamp > voteEndTimestamp[target]) { // solhint-disable-line not-rely-on-time
@@ -171,34 +157,32 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
-            // console.log("Everyone voted", target);
             _endVote(target);
         }
     }
 
     function _endVote(address target) internal {
-        // console.log("endVote", target);
         address flagger = flaggerAddress[target];
         bool flaggerIsGone = stakedWei[flagger] == 0;
         bool targetIsGone = stakedWei[target] == 0;
         uint reviewerCount = reviewers[target].length;
 
-        // release stake commitments before vote resolution so that slashings and kickings during resolution aren't affected
-        // if either the flagger or the target has forceUnstaked or been kicked, the committed stake was moved to committedForfeitedStakeWei
+        // release stake locks before vote resolution so that slashings and kickings during resolution aren't affected
+        // if either the flagger or the target has forceUnstaked or been kicked, the lockedStakeWei was moved to forfeitedStakeWei
         if (flaggerIsGone) {
-            committedForfeitedStakeWei -= flagStakeWei[target];
+            forfeitedStakeWei -= flagStakeWei[target];
         } else {
-            committedStakeWei[flagger] -= flagStakeWei[target];
+            lockedStakeWei[flagger] -= flagStakeWei[target];
         }
         if (targetIsGone) {
-            committedForfeitedStakeWei -= targetStakeAtRiskWei[target];
+            forfeitedStakeWei -= targetStakeAtRiskWei[target];
         } else {
-            committedStakeWei[target] -= targetStakeAtRiskWei[target];
+            lockedStakeWei[target] -= targetStakeAtRiskWei[target];
         }
 
         if (votesForKick[target] > votesAgainstKick[target]) {
             uint slashingWei = targetStakeAtRiskWei[target];
-            // if targetIsGone: the tokens are still in Sponsorship, accounted in committedForfeitedStakeWei (which will be subtracted in cleanup, so no need to _slash)
+            // if targetIsGone: the tokens are still in Sponsorship, accounted in forfeitedStakeWei (so "slashing" was already done)
             if (!targetIsGone) {
                 _kick(target, slashingWei);
             }
@@ -233,7 +217,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                 uint leftoverWei = flagStakeWei[target] - rewardsWei;
                 _addSponsorship(address(this), leftoverWei); // flagger forfeited its flagstake, so the leftovers go to sponsorship
             } else {
-                _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be uncommitted = released
+                _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
         }
 

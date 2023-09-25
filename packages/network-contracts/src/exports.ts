@@ -56,9 +56,9 @@ export { abi as defaultDelegationPolicyABI, bytecode as defaultDelegationPolicyB
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy.sol/DefaultDelegationPolicy.json"
 export type { DefaultDelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultDelegationPolicy"
 
-export { abi as defaultPoolYieldPolicyABI, bytecode as defaultPoolYieldPolicyBytecode }
-    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy.sol/DefaultPoolYieldPolicy.json"
-export type { DefaultPoolYieldPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultPoolYieldPolicy"
+export { abi as defaultExchangeRatePolicyABI, bytecode as defaultExchangeRatePolicyBytecode }
+    from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultExchangeRatePolicy.sol/DefaultExchangeRatePolicy.json"
+export type { DefaultExchangeRatePolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultExchangeRatePolicy"
 
 export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPolicyBytecode }
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
