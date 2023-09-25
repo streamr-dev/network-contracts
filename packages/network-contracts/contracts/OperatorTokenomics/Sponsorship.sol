@@ -348,7 +348,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         emit OperatorLeft(operator, paidOutStakeWei);
 
         // do the transferAndCall in the end of the function to avoid reentrancy (stakedWei[operator] == 0 now, so re-entry would fail with OperatorNotStaked)
-        try { token.transferAndCall(operator, paidOutStakeWei, "stake") } catch {}
+        try token.transferAndCall(operator, paidOutStakeWei, "stake") {} catch {}
 
         return paidOutEarningsWei + paidOutStakeWei;
     }
