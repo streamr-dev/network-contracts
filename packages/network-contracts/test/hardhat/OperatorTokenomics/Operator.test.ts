@@ -833,7 +833,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
 
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1000.0")
-            expect(await operator.balanceInData(delegator.address)).to.be.approximately(parseEther("760"), parseEther("0.00001"))
+            expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("760.000000000000000001")
         })
 
     })
