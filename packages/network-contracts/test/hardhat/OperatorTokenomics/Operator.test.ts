@@ -352,7 +352,7 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // TODO: find nice numbers!
         })
 
-        it("pays part of operator's cut from withdraw to caller if too much earnings", async function(): Promise<void> {
+        it("pays part of operator's cut from withdraw to caller (fisherman) if too much earnings", async function(): Promise<void> {
             // deploy two operators using deployOperatorContract.
             // It's important they come from same factory, hence can't use deployOperator helper as-is
             const contracts = {
@@ -478,6 +478,72 @@ describe("Operator contract", (): void => {
             await (await operator.unstake(sponsorship2.address)).wait()
             await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
                 .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.3"))
+        })
+
+        it("will deduct slashing from the operator's cut", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "3000")
+
+            // this test is set up to easily compare two sponsorships: get slashed in the first one, unstake normally from the second one
+            // sponsor the 1st sponsorship more to keep it running, so that operator can be slashed for leaving while it's running
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 })
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > 1000 so slashing will happen
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship2.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorships")
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 900, "Check that unstaking would give correct penalty")
+            await expect(operator.unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100")) // 10% of the 1000 DATA stake
+
+            // notice: all of 100 DATA slashing is taken from the operator's cut
+            await advanceToTimestamp(timeAtStart + 1000, "Unstake from sponsorships")
+            await expect(operator.forceUnstake(sponsorship.address, 0))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("90"), parseEther("50"))
+            await expect(operator.unstake(sponsorship2.address))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
+        })
+
+        it("will take all of operator's cut if cut isn't enough to cover slashed stake", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "3000")
+
+            // this test is set up to easily compare two sponsorships: get slashed in the first one, unstake normally from the second one
+            // sponsor the 1st sponsorship more to keep it running, so that operator can be slashed for leaving while it's running
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 })
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > 1000 so slashing will happen
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship2.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorships")
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 150, "Check that unstaking would give correct penalty")
+            await expect(operator.unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100")) // 10% of the 1000 DATA stake
+
+            // notice: 100 DATA slashing is taken from the operator's cut (38 DATA), and the remaining 62 DATA reduces the Profit
+            await advanceToTimestamp(timeAtStart + 200, "Unstake from sponsorships")
+            await expect(operator.forceUnstake(sponsorship.address, 0))
+                .to.emit(operator, "Profit").withArgs(parseEther("90"), parseEther("0"), parseEther("10"))
+            await expect(operator.unstake(sponsorship2.address))
+                .to.emit(operator, "Profit").withArgs(parseEther("152"), parseEther("38"), parseEther("10"))
         })
 
         it("operator withdraws all of its stake, operator value goes to zero, no one can join anymore", async function(): Promise<void> {

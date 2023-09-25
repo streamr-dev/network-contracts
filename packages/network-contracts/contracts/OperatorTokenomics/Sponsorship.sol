@@ -16,7 +16,6 @@ import "./SponsorshipPolicies/IKickPolicy.sol";
 import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
 
-
 /**
  * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
  * Those tokens are the *sponsorship* that the *sponsor* puts on servicing the stream
@@ -62,7 +61,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error MinimumStake();
     error CannotIncreaseStake();
     error OperatorNotStaked();
-    error LeavePenalty();
+    error LeavePenalty(uint penaltyWei);
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
     error ActiveFlag();
@@ -248,7 +247,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      */
     function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
-        if (getLeavePenalty(operator) > 0) { revert LeavePenalty(); }
+        uint penaltyWei = getLeavePenalty(operator);
+        if (penaltyWei > 0) { revert LeavePenalty(penaltyWei); }
         if (lockedStakeWei[operator] > 0) { revert ActiveFlag(); }
         payoutWei = _removeOperator(operator);
     }

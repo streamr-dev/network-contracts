@@ -111,7 +111,7 @@ contract StakeModule is IStakeModule, Operator {
             emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         } else {
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
-            _splitEarnings(profitDataWei, 0, address(0));
+            _splitEarnings(profitDataWei, slashedIn[sponsorship], 0, address(0)); // 0 = no fisherman who would claim part of the operator's cut
         }
 
         // remove from array: replace with the last element
@@ -137,32 +137,38 @@ contract StakeModule is IStakeModule, Operator {
      *  1) to protocol: send out protocolFeeFraction * earnings as protocol fee, and then
      *  2) to delegators: leave (earnings - protocol fee - operator's cut) to this contract's DATA balance as profit, inflating the operator token value, and finally
      *  3) to operator: leave operatorsCutFraction * (earnings - protocol fee) to this contract's DATA balance as operator's cut,
-     *                  paid in self-delegation (by minting operator tokens to Operator)
-     * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
+     *     paid in self-delegation (by minting operator tokens to Operator); EXCEPT if Operator got slashed, in which case operator's cut is first depleted to pay for it.
+     * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to the fisherman
      * @param earningsDataWei income to be processed, in DATA
-     * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
-     * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much earnings, otherwise `address(0)`
+     * @param fishermansFraction fraction of the operator's cut that is sent NOT to the operator but to the fisherman
+     * @param fisherman address is non-zero if the operator is penalized for too much earnings, otherwise `address(0)`
      **/
-    function _splitEarnings(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) public {
-        uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
+    function _splitEarnings(uint earningsDataWei, uint slashedDataWei, uint fishermansFraction, address fisherman) public {
+        uint earningsWithoutSlashing = earningsDataWei + slashedDataWei;
+        uint protocolFee = earningsWithoutSlashing * streamrConfig.protocolFeeFraction() / 1 ether;
         token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
 
-        uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
+        uint operatorsCutDataWei = 0;
+        uint fishermansRewardDataWei = 0;
 
-        uint operatorPenaltyDataWei = 0;
-        if (operatorsCutSplitFraction > 0) {
-            operatorPenaltyDataWei = operatorsCutDataWei * operatorsCutSplitFraction / 1 ether;
-            token.transfer(operatorsCutSplitRecipient, operatorPenaltyDataWei);
+        // operator only gets their cut if slashings don't exceed it
+        uint operatorsCutWithoutSlashing = (earningsWithoutSlashing - protocolFee) * operatorsCutFraction / 1 ether;
+        if (operatorsCutWithoutSlashing > slashedDataWei) {
+            operatorsCutDataWei = operatorsCutWithoutSlashing - slashedDataWei;
+            if (fishermansFraction > 0) {
+                fishermansRewardDataWei = operatorsCutDataWei * fishermansFraction / 1 ether;
+                token.transfer(fisherman, fishermansRewardDataWei);
+            }
+
+            // "self-delegate" the operator's share === mint new operator tokens
+            // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
+            //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
+            //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
+            _delegate(owner, operatorsCutDataWei - fishermansRewardDataWei);
         }
 
-        // "self-delegate" the operator's share === mint new operator tokens
-        // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
-        //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
-        //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
-        _delegate(owner, operatorsCutDataWei - operatorPenaltyDataWei);
-
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
-        emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - operatorPenaltyDataWei, protocolFee);
+        emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - fishermansRewardDataWei, protocolFee);
     }
 
 
@@ -188,16 +194,16 @@ contract StakeModule is IStakeModule, Operator {
             revert NoEarnings();
         }
 
-        // if the caller is an outsider, and if sum of earnings are more than allowed, then give part of the operator's cut to the caller as a reward
-        address penaltyRecipient = address(0);
-        uint penaltyFraction = 0;
+        // if the caller is an outsider ("fisherman"), and if sum of earnings are more than allowed, then give part of the operator's cut to them as a reward
+        address fisherman = address(0);
+        uint fishermansFraction = 0;
         if (!hasRole(CONTROLLER_ROLE, _msgSender()) && nodeIndex[_msgSender()] == 0) {
             uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
-                penaltyRecipient = _msgSender();
-                penaltyFraction = streamrConfig.fishermanRewardFraction();
+                fisherman = _msgSender();
+                fishermansFraction = streamrConfig.fishermanRewardFraction();
             }
         }
-        _splitEarnings(sumEarnings, penaltyFraction, penaltyRecipient);
+        _splitEarnings(sumEarnings, 0, fishermansFraction, fisherman); // 0 = no slashing can happen during withdraw
     }
 }
