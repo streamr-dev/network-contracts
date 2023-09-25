@@ -67,7 +67,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedDATATokenOnly();
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
-    error ModuleCallError();
+    error ModuleCallError(address module, bytes data);
+    error ModuleGetError(bytes data);
     error AccessDenied();
     error StakedInSponsorships();
     error NoEarnings();
@@ -564,7 +565,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallError(); }
+            if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -577,7 +578,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(); }
+            if (returndata.length == 0) { revert ModuleGetError(callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
