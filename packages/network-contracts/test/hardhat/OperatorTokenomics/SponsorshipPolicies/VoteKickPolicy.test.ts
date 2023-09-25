@@ -274,7 +274,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + 10, `${addr(flagger)} forceUnstakes`)
             const flaggerBalanceBefore = await token.balanceOf(flagger.address)
-            await expect(flagger.unstake(sponsorship.address)).to.be.revertedWith("error_activeFlag")
+            await expect(flagger.unstake(sponsorship.address)).to.be.revertedWithCustomError(sponsorship, "ActiveFlag")
             await (await flagger.forceUnstake(sponsorship.address, "1")).wait()
             const flaggerBalanceAfter = await token.balanceOf(flagger.address)
 
@@ -310,7 +310,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + 10, `${addr(target)} forceUnstakes`)
             const targetBalanceBefore = await token.balanceOf(target.address)
-            await expect(target.unstake(sponsorship.address)).to.be.revertedWith("error_activeFlag")
+            await expect(target.unstake(sponsorship.address)).to.be.revertedWithCustomError(sponsorship, "ActiveFlag")
             await (await target.forceUnstake(sponsorship.address, "1")).wait()
             const targetBalanceAfter = await token.balanceOf(target.address)
 
@@ -364,8 +364,8 @@ describe("VoteKickPolicy", (): void => {
 
             const minimumStake = await sponsorship.minimumStakeOf(target.address)
             expect(minimumStake).to.equal(parseEther("100"))
-            await expect(flagger.unstake(sponsorship.address)).to.be.rejectedWith("error_activeFlag")
-            await expect(target.reduceStakeTo(sponsorship.address, parseEther("99"))).to.be.revertedWith("error_minimumStake")
+            await expect(flagger.unstake(sponsorship.address)).to.be.revertedWithCustomError(sponsorship, "ActiveFlag")
+            await expect(target.reduceStakeTo(sponsorship.address, parseEther("99"))).to.be.revertedWithCustomError(sponsorship, "MinimumStake")
             await expect(target.reduceStakeTo(sponsorship.address, parseEther("100")))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, parseEther("100"), parseEther("0"))
         })
@@ -407,8 +407,8 @@ describe("VoteKickPolicy", (): void => {
 
             const minimumStake = await sponsorship.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(parseEther("70"))
-            await expect(flagger.unstake(sponsorship.address)).to.be.rejectedWith("error_activeFlag")
-            await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("69"))).to.be.revertedWith("error_minimumStake")
+            await expect(flagger.unstake(sponsorship.address)).to.be.revertedWithCustomError(sponsorship, "ActiveFlag")
+            await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("69"))).to.be.revertedWithCustomError(sponsorship, "MinimumStake")
             await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("70")))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("70"), parseEther("0"))
         })

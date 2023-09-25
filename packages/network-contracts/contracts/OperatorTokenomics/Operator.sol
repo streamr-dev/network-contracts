@@ -291,7 +291,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) public payable {
-        // console.log("## delegate");
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
     }
@@ -548,7 +547,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        if (_msgSender() != address(this)) {
+        if (msg.sender != address(this)) {
             revert AccessDenied();
         }
 

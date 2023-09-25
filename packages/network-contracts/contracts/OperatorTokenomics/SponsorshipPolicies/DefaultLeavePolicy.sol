@@ -21,17 +21,13 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
     function getLeavePenaltyWei(address operator) public override view returns (uint leavePenaltyWei) {
         uint joinTimestamp = joinTimeOfOperator[operator];
         if (block.timestamp >= joinTimestamp + penaltyPeriodSeconds) { // solhint-disable-line not-rely-on-time
-            // console.log("Penalty period over, get stake back");
             return 0;
         }
 
         uint stake = stakedWei[operator];
-        // console.log("getLeavePenaltyWei, stake =", stake, isRunning() ? "[running]" : "[NOT running]", isFunded() ? "[funded]" : "[NOT funded]");
         if (isRunning() && isFunded()) {
-            // console.log("Leaving a running sponsorship too early, lose slashingFraction of stake");
             return stake * streamrConfig.slashingFraction() / 1 ether;
         }
-        // console.log("Sponsorship not running, get stake back");
         return 0;
     }
 }

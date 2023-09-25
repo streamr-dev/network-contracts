@@ -91,7 +91,7 @@ describe("SponsorshipFactory", () => {
             ]]
         )
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
-            .to.be.revertedWith("error_minOperatorCountZero")
+            .to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "MinOperatorCountZero")
     })
 
     it("will NOT create a Sponsorship with untrusted policies", async function(): Promise<void> {
