@@ -70,7 +70,7 @@ const deployOperatorContracts = async (amount: number) => {
             parseEther("0.1"),
             `Pool-${Date.now()}`,
             "{}",
-            [localConfig.defaultDelegationPolicy, localConfig.defaultPoolYieldPolicy, localConfig.defaultUndelegationPolicy],
+            [localConfig.defaultDelegationPolicy, localConfig.defaultExchangeRatePolicy, localConfig.defaultUndelegationPolicy],
             [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()

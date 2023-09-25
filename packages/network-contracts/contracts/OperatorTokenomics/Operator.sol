@@ -13,7 +13,7 @@ import "./IERC677Receiver.sol";
 import "./IOperator.sol";
 import "./IOperatorLivenessRegistry.sol";
 import "./OperatorPolicies/IDelegationPolicy.sol";
-import "./OperatorPolicies/IPoolYieldPolicy.sol";
+import "./OperatorPolicies/IExchangeRatePolicy.sol";
 import "./OperatorPolicies/IUndelegationPolicy.sol";
 
 import "./OperatorPolicies/INodeModule.sol";
@@ -30,28 +30,28 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
 
 /**
  * Operator contract receives and holds the delegators' tokens.
- * The operator (owner()) stakes them to Sponsorships of the streams that the operator's nodes relay.
+ * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
  * Operator contract also is an ERC20 token that each delegator receives, and can swap back to DATA when they undelegate.
  *
- * @dev DATA token balance of the pool === the "free funds" available for staking,
+ * @dev DATA token balance of the contract === the "free funds" available for staking,
  * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from "unallocated tokens")
  */
-contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator { //}, ERC2771Context {
+contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator {
 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint totalPoolTokenWei, uint totalSupplyPoolTokenWei); // Pool token tracking event
-    event QueuedDataPayout(address delegator, uint amountPoolTokenWei, uint queueIndex);
-    event QueueUpdated(address delegator, uint amountPoolTokenWei, uint queueIndex);
+    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei); // Operator token tracking event
+    event QueuedDataPayout(address delegator, uint amountWei, uint queueIndex);
+    event QueueUpdated(address delegator, uint amountWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
-    event PoolValueUpdate(uint totalStakeInSponsorshipsWei, uint freeFundsWei); // DATA token tracking event (staked - slashed)
-    event Profit(uint poolIncreaseWei, uint operatorsCutDataWei, uint protocolFeeDataWei);
-    event Loss(uint poolDecreaseWei);
+    event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
+    event Profit(uint valueIncreaseWei, uint operatorsCutDataWei, uint protocolFeeDataWei);
+    event Loss(uint valueDecreaseWei);
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
@@ -80,19 +80,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     /**
-     * totalStakedIntoSponsorshipsWei is used for tracking the pool value in DATA
-     *
-     * Pool value = DATA value of all stake + earnings in sponsorships - operator's share of those earnings
-     * It can be queried / calculated in different ways:
-     * 1. accurate but expensive: calculatePoolValueInData() (loops over sponsorships)
-     * 2. approximate but always available: getApproximatePoolValue() (tracks only the stake+funds, does not include accumulated earnings)
-     *      getApproximatePoolValue = totalStakedIntoSponsorshipsWei + DATA.balanceOf(this) - totalSlashedInSponsorshipsWei
+     * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
+     * DATA value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
      */
     uint public totalStakedIntoSponsorshipsWei;
     uint public totalSlashedInSponsorshipsWei;
 
     IDelegationPolicy public delegationPolicy;
-    IPoolYieldPolicy public yieldPolicy;
+    IExchangeRatePolicy public exchangeRatePolicy;
     IUndelegationPolicy public undelegationPolicy;
 
     INodeModule public nodeModule;
@@ -122,7 +117,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     struct UndelegationQueueEntry {
         address delegator;
-        uint amountPoolTokenWei;
+        uint amountWei;
         uint timestamp;
     }
     mapping(uint => UndelegationQueueEntry) public undelegationQueue;
@@ -159,7 +154,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param tokenAddress default from OperatorFactory: DATA
      * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
      * @param ownerAddress controller/owner of this Operator contract
-     * @param poolTokenName name of the pool token (e.g. "Operator 1")
+     * @param operatorTokenName name of the Operator's internal token (e.g. "Operator 1")
      * @param operatorMetadataJson metadata for the operator (e.g. "https://streamr.network/operators/1")
      * @param operatorsCut fraction of the earnings that the operator gets from withdrawn earnings, as a fraction of 10^18 (use parseEther)
      */
@@ -167,7 +162,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         address tokenAddress,
         address streamrConfigAddress,
         address ownerAddress,
-        string memory poolTokenName,
+        string memory operatorTokenName,
         string memory operatorMetadataJson,
         uint operatorsCut,
         address[3] memory modules
@@ -188,7 +183,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         owner = ownerAddress;
         operatorsCutFraction = operatorsCut;
 
-        ERC20Upgradeable.__ERC20_init(poolTokenName, poolTokenName);
+        ERC20Upgradeable.__ERC20_init(operatorTokenName, operatorTokenName);
 
         // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -220,15 +215,25 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit BalanceUpdate(to, balanceOf(to), totalSupply());
     }
 
-    /** Pool value (DATA) = staked in sponsorships + free funds, does not include unwithdrawn earnings */
-    function getApproximatePoolValue() public view returns (uint) {
-        return totalStakedIntoSponsorshipsWei + token.balanceOf(address(this)) - totalSlashedInSponsorshipsWei;
+    /**
+     * Get an "on-chain estimate" for the DATA value of this Operator contract. This is used for the exchange rate calculation.
+     * Operator value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
+     * The complete value can be queried and calculated in different ways:
+     * 1. accurate, available off-chain: getSponsorshipsAndEarnings() returns all sponsorships and their outstanding earnings
+     * 2. approximate, always available: valueWithoutEarnings() that only returns the DATA balance + DATA staked
+     * @return uint Operator value - earnings = DATA balance + DATA staked
+     **/
+    function valueWithoutEarnings() public view returns (uint) {
+        return token.balanceOf(address(this)) + totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei;
     }
 
-    function getMyBalanceInData() public view returns (uint amountDataWei) {
-        uint poolTokenBalance = balanceOf(_msgSender());
-        (uint dataWei) = moduleGet(abi.encodeWithSelector(yieldPolicy.pooltokenToData.selector, poolTokenBalance, 0, address(yieldPolicy)));
-        return dataWei;
+    /**
+     * Return the value of delegations, if they were to undelegate right now
+     * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
+     **/
+    function balanceInData(address delegator) public view returns (uint amountDataWei) {
+        if (balanceOf(delegator) == 0) { return 0; }
+        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
     }
 
     /*
@@ -256,8 +261,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * ERC677 token callback
      * If the data bytes contains an address, the incoming tokens are delegated on behalf of that delegator
      * If not, the token sender is the delegator
-     * If the address is this contract, then add tokens to free funds (don't delegate at all)
-     *    Those tokens are "gifted" to the Operator contract, and won't be delegated for anyone, but instead count as Profit.
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         if (_msgSender() != address(token)) {
@@ -283,27 +286,24 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             assembly { delegator := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
         }
 
-        _mintPoolTokensFor(delegator, amount);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        _delegate(delegator, amount);
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) public payable {
         token.transferFrom(_msgSender(), address(this), amountWei);
-        _mintPoolTokensFor(_msgSender(), amountWei);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        _delegate(_msgSender(), amountWei);
     }
 
     /**
-     * This function must be called *AFTER* the DATA tokens have already been transferred
+     * Final step of delegation: mint new Operator tokens
+     * NOTE: This function must be called *AFTER* the DATA tokens have already been transferred
      * @param delegator who receives the new operator tokens
      * @param amountDataWei how many DATA tokens were transferred
      **/
-    function _mintPoolTokensFor(address delegator, uint amountDataWei) internal {
-        // remove amountDataWei from pool value to get the "Pool Tokens before transfer" for the exchange rate calculation
-        uint amountPoolToken = moduleCall(address(yieldPolicy),
-            abi.encodeWithSelector(yieldPolicy.dataToPooltoken.selector, amountDataWei, amountDataWei));
-        _mint(delegator, amountPoolToken);
+    function _delegate(address delegator, uint amountDataWei) internal {
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
+        _mint(delegator, amountOperatorToken);
 
         // check if the delegation policy allows this delegation
         if (address(delegationPolicy) != address(0)) {
@@ -312,18 +312,23 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
-     * Add the request to undelegate into the undelegation queue
-     * @param amountPoolTokenWei amount of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
+     * Add the request to undelegate into the undelegation queue. When new earnings arrive, they will be used to pay out the queue in order.
+     * It's all call `undelegate` with any `amountWei`, the actual amount is decided when it's your turn, and will be capped to the actual balance at the time.
+     * NOTE: "Undelegate all" request can be made by calling this function e.g. like so: `operator.undelegate(maxUint256)`,
+     *       where `maxUint256 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` (or `2**256 - 1`).
+     * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
      **/
-    function undelegate(uint amountPoolTokenWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountPoolTokenWei));
+    function undelegate(uint amountWei) public {
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei));
     }
 
     /////////////////////////////////////////
     // OPERATOR FUNCTIONS: STAKE MANAGEMENT
+    // Implementations found in StakeModule.sol
     /////////////////////////////////////////
 
     function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
@@ -344,18 +349,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
     }
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
-    }
-    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
-    }
 
     //////////////////////////////////////////////////////////////////////////////////
     // OPERATOR/NODE FUNCTIONS: WITHDRAWING AND PROFIT SHARING
     // Withdrawing functions are not guarded because they "cannot harm" the Operator or delegators.
-    // In fact, they should ideally be called as often as is feasible, to keep the pool value approximation accurate.
-    // The only incentivized function is withdrawEarningsFromSponsorships, others are expected to be used by the operator or nodes only.
+    // In fact, they should ideally be called as often as is feasible, to maintain the Operator value approximation `valueWithoutEarnings()`.
+    // The only incentivized function is `withdrawEarningsFromSponsorships`, others are expected to be used by the operator or nodes only.
     //////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -371,25 +370,35 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
     }
 
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
+        // this is in stakeModule because it calls _handleProfit
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
+    }
+    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
+        // this is in stakeModule because it calls _handleProfit
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
+    }
+
     /**
-     * Fisherman function: if there are too many unwithdrawn earnings in another Operator, call them out and receive a reward
+     * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many unwithdrawn earnings in the other Operator.
+     * This function can only be called if there really are too many earnings in the other Operator.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+        // this was put into queue module because that module was still small enough, and it could've been put into any module (no dependent functions)
         moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._triggerAnotherOperatorWithdraw.selector, other, sponsorshipAddresses));
     }
 
     /**
      * Convenience method to get all sponsorships and their outstanding earnings
-     * The operator needs to keep an eye on the accumulated earnings at all times, so that the pool value approximation is not too far off.
-     * If someone else notices that there's too much unwithdrawn earnings, they can call withdrawEarningsFromSponsorships to get a small reward
+     * The operator needs to keep an eye on the accumulated earnings at all times, so that `valueWithoutEarnings` won't be too far off from the true Operator value.
+     * If someone else notices that there's too much earnings, they can call withdrawEarningsFromSponsorships to get a small reward
      * @dev Don't call from other smart contracts in a transaction, could be expensive!
      **/
     function getSponsorshipsAndEarnings() external view returns (
         address[] memory addresses,
         uint[] memory earnings,
-        uint rewardThreshold
+        uint maxAllowedEarnings
     ) {
         addresses = new address[](sponsorships.length);
         earnings = new uint[](sponsorships.length);
@@ -398,7 +407,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             addresses[i] = address(sponsorship);
             earnings[i] = sponsorship.getEarnings(address(this));
         }
-        rewardThreshold = getApproximatePoolValue() * streamrConfig.poolValueDriftLimitFraction() / 1 ether;
+        maxAllowedEarnings = valueWithoutEarnings() * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
     }
 
 
@@ -421,6 +430,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     ////////////////////////////////////////
     // OPERATOR FUNCTIONS: NODE MANAGEMENT
+    // Implementations found in NodeModule.sol
     ////////////////////////////////////////
 
     mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
@@ -439,6 +449,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     ////////////////////////////////////////
     // UNDELEGATION QUEUE
+    // Implementations found in QueueModule.sol
     ////////////////////////////////////////
 
     function queueIsEmpty() public view returns (bool) {
@@ -448,7 +459,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Get the position of the LAST undelegation request in the queue for the given delegator.
      * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueueWithFreeFunds)
+     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueue)
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
@@ -460,14 +471,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return queueLastIndex - queueCurrentIndex + 1;
     }
 
-    /** Pay out up to maxIterations items in the queue */
-    function payOutQueueWithFreeFunds(uint maxIterations) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueueWithFreeFunds.selector, maxIterations));
+    /** Pay out up to maxIterations items in the queue, or until this contract's DATA balance runs out */
+    function payOutQueue(uint maxIterations) public {
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._payOutQueue.selector, maxIterations));
     }
 
     /**
      * Pay out the first item in the undelegation queue.
-     * If free funds run out, only pay the first item partially and leave it in front of the queue.
+     * If this contract's DATA balance runs out, only pay the first item partially and leave it in front of the queue.
      * @return payoutComplete true if the queue is empty afterwards or funds have run out
      */
     function payOutFirstInQueue() public returns (bool payoutComplete) {
@@ -486,7 +497,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
-        emit PoolValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
@@ -515,9 +526,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.setParam.selector, param));
     }
 
-    function setYieldPolicy(IPoolYieldPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        yieldPolicy = policy;
-        moduleCall(address(yieldPolicy), abi.encodeWithSelector(yieldPolicy.setParam.selector, param));
+    function setExchangeRatePolicy(IExchangeRatePolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        exchangeRatePolicy = policy;
+        moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.setParam.selector, param));
     }
 
     function setUndelegationPolicy(IUndelegationPolicy policy, uint param) public onlyRole(DEFAULT_ADMIN_ROLE) {

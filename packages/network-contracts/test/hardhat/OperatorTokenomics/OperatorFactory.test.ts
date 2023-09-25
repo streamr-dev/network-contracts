@@ -27,17 +27,17 @@ describe("OperatorFactory", function(): void {
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
-        const { operatorFactory, token, defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy } = sharedContracts
+        const { operatorFactory, token, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         const operatorSharePercent = 10
         const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
             [
                 operatorsCutFraction,
-                "PoolTokenName",
+                "OperatorTokenName",
                 "{}",
                 [
                     defaultDelegationPolicy.address,
-                    defaultPoolYieldPolicy.address,
+                    defaultExchangeRatePolicy.address,
                     defaultUndelegationPolicy.address
                 ],
                 [
@@ -73,7 +73,7 @@ describe("OperatorFactory", function(): void {
         const data = defaultAbiCoder.encode(["uint", "string", "string"],
             [
                 operatorsCutFraction,
-                "PoolTokenName",
+                "OperatorTokenName",
                 "{}"
             ]
         )

@@ -84,7 +84,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
         (
             uint operatorsCutFraction,
-            string memory poolTokenName,
+            string memory operatorTokenName,
             string memory operatorMetadataJson,
             address[3] memory policies,
             uint[3] memory policyParams
@@ -92,7 +92,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
-            poolTokenName,
+            operatorTokenName,
             operatorMetadataJson,
             policies,
             policyParams
@@ -103,20 +103,20 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     /**
      * @param operatorsCutFraction as a fraction of 10^18, like ether
-     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] yield, [2] undelegation policy
-     * @param policyParams not used for default policies: [0] delegation, [1] yield, [2] undelegation policy param
+     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] exchange rate, [2] undelegation policy
+     * @param policyParams not used for default policies: [0] delegation, [1] exchange rate, [2] undelegation policy param
      */
     function deployOperator(
         uint operatorsCutFraction,
-        string memory poolTokenName,
+        string memory operatorTokenName,
         string memory operatorMetadataJson,
-        address[3] memory policies,  // [0] delegation, [1] yield, [2] undelegation policy
-        uint[3] memory policyParams  // [0] delegation, [1] yield, [2] undelegation policy param
+        address[3] memory policies,  // [0] delegation, [1] exchange rate, [2] undelegation policy
+        uint[3] memory policyParams  // [0] delegation, [1] exchange rate, [2] undelegation policy param
     ) public returns (address) {
         return _deployOperator(
             _msgSender(),
             operatorsCutFraction,
-            poolTokenName,
+            operatorTokenName,
             operatorMetadataJson,
             policies,
             policyParams
@@ -126,7 +126,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     function _deployOperator(
         address operatorAddress,
         uint operatorsCutFraction,
-        string memory poolTokenName,
+        string memory operatorTokenName,
         string memory operatorMetadataJson,
         address[3] memory policies,
         uint[3] memory policyParams
@@ -136,14 +136,14 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             address policyAddress = policies[i];
             require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
         }
-        bytes32 salt = keccak256(abi.encode(poolTokenName, operatorAddress));
+        bytes32 salt = keccak256(abi.encode(operatorTokenName, operatorAddress));
         address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
         Operator newOperatorContract = Operator(newContractAddress);
         newOperatorContract.initialize(
             tokenAddress,
             configAddress,
             operatorAddress,
-            poolTokenName,
+            operatorTokenName,
             operatorMetadataJson,
             operatorsCutFraction,
             [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
@@ -152,7 +152,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         }
         if (policies[1] != address(0)) {
-            newOperatorContract.setYieldPolicy(IPoolYieldPolicy(policies[1]), policyParams[1]);
+            newOperatorContract.setExchangeRatePolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
         }
         if (policies[2] != address(0)) {
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
@@ -167,8 +167,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         return newContractAddress;
     }
 
-    function predictAddress(string calldata poolTokenName) public view returns (address) {
-        bytes32 salt = keccak256(abi.encode(bytes(poolTokenName), _msgSender()));
+    function predictAddress(string calldata operatorTokenName) public view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), _msgSender()));
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 

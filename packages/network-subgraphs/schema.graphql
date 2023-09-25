@@ -233,36 +233,38 @@ type Operator @entity {
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
 
-  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei. Updated by PoolValueUpdate event, so might be out of date."
-  poolValue: BigInt!
+  "DATA staked + held by the Operator contract = totalStakeInSponsorshipsWei + dataTokenBalanceWei. Last updated at valueUpdateBlockNumber/Timestamp."
+  valueWithoutEarnings: BigInt!
 
-  "DATA staked and earned in sponsorship contracts. Updated by PoolValueUpdate event, so it will be out of date by the amount of earnings."
+  "DATA staked into Sponsorship contracts. Last updated at valueUpdateBlockNumber/Timestamp."
   totalStakeInSponsorshipsWei: BigInt!
 
-  "DATA held by the operator, not yet staked. Updated by PoolValueUpdate event, so might be out of date if new DATA is sent via `ERC20.transfer`."
-  freeFundsWei: BigInt!
+  "DATA held by the operator, not yet staked. Last updated at valueUpdateBlockNumber/Timestamp, might be out of date if new DATA is sent via `ERC20.transfer`."
+  dataTokenBalanceWei: BigInt!
 
-  "Timestamp in seconds when poolValue was the best approximation of total DATA staked, earned and held by the Operator contract. Shows how much the poolValue is out of date."
-  poolValueTimestamp: BigInt!
+  "Timestamp in seconds when valueWithoutEarnings was updated. Shows how much the valueWithoutEarnings might be out of date."
+  valueUpdateTimestamp: BigInt!
 
-  "Block number after which poolValue was the best approximation of total DATA staked, earned and held by the Operator contract."
-  poolValueBlockNumber: BigInt!
+  "Block number when valueWithoutEarnings was updated."
+  valueUpdateBlockNumber: BigInt!
 
-  "Total number of pool tokens in existence"
-  poolTokenTotalSupplyWei: BigInt!
+  "Total number of operator tokens in existence"
+  operatorTokenTotalSupplyWei: BigInt!
 
-  "DATA/pooltoken exchange rate, equal to poolValue / totalSupply. Pool tokens are worth (exchangeRate * amount) DATA when undelegating."
+  "DATA/operatortoken exchange rate, equal to valueWithoutEarnings / totalSupply. Operator tokens are worth (exchangeRate * amount) DATA when undelegating."
   exchangeRate: BigDecimal!
 
   "Connection metadata, to be able to find a node in the Operator's fleet"
   latestHeartbeatMetadata: String
   latestHeartbeatTimestamp: BigInt
 
-  "Total earnings excluding brokers shrare"
+  "Increase in the Operator's value (cumulative, after fees)"
   cumulativeProfitsWei: BigInt!
+
+  "Operator's share of the earnings (cumulative)"
   cumulativeOperatorsCutWei: BigInt!
 
-  metadataJsonString: String! # TODO: unpack metadata to fields
+  metadataJsonString: String!
   owner: String!
   slashingsCount: Int!
   nodes: [String!]!
@@ -275,21 +277,23 @@ type Operator @entity {
 }
 
 type OperatorDailyBucket @entity {
-  # absolute values, set at bucket creation time, so they represent the state after the first event in bucket
+  ##############################
+  ## absolute values, set at bucket creation time, so they represent the state after the first event in bucket
+  ##############################
   id: ID! # operator address + date
   operator: Operator!
 
   "The day of the bucket. This is a timestamp in seconds"
   date: BigInt!
 
-  "DATA staked, earned and held by the Operator contract = totalStakeInSponsorshipsWei + freeFundsWei (first event in bucket)"
-  poolValue: BigInt!
+  "DATA staked + held by the Operator contract = totalStakeInSponsorshipsWei + dataTokenBalanceWei (first event in bucket)"
+  valueWithoutEarnings: BigInt!
 
-  "DATA staked (slashed tokens are subtracted before the event is fired) in sponsorship contracts (first event in bucket)"
+  "DATA staked into Sponsorship contracts (first event in bucket)"
   totalStakeInSponsorshipsWei: BigInt!
 
   "DATA held by the operator, not yet staked (first event in bucket)"
-  freeFundsWei: BigInt!
+  dataTokenBalanceWei: BigInt!
 
   "Momentary APY. Currently not used. TODO: calculate and add to subgraph"
   spotAPY: BigInt!
@@ -297,33 +301,39 @@ type OperatorDailyBucket @entity {
   "All delegators joining this operator. Initialized from operator.delegatorCount"
   delegatorCountAtStart: Int!
 
-  # accumulated values, updated when events are fired
-  "Delegators joining this operator on this day. Updated when Delegation entity is created"
+  ##############################
+  ## accumulated values, updated when events are fired
+  ##############################
+  "Delegators that joined today. Updated when Delegation entity is created"
   delegatorCountChange: Int!
 
-  "All DATA tokens delegated to this operator, by all delegators. Updated when Delegated event is fired"
+  "Sum of DATA tokens delegated to this operator today, by all delegators. Updated when Delegated event is fired"
   totalDelegatedWei: BigInt!
 
-  "Total DATA tokens undelegated from this operator, by all delegators. Updated when Undelegated event is fired"
+  "Sum of DATA tokens undelegated from this operator today, by all delegators. Updated when Undelegated event is fired"
   totalUndelegatedWei: BigInt!
 
-  "Sum of earnings during the bucket, less operator's share"
+  "Sum of earnings today, less operator's share"
   profitsWei: BigInt!
 
-  "Sum of losses during the bucket"
+  "Sum of losses today"
   lossesWei: BigInt!
 
-  "Sum of operator's share of earnings during the bucket"
+  "Sum of operator's share of earnings today"
   operatorsCutWei: BigInt!
 }
 
-# Delegation in an Operator contract signals trust in the operator
+# Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
-  "Pool tokens held by a delegator in this Operator contract"
-  poolTokenWei: BigInt!
+  "Amount of internal Operator tokens this delegator holds"
+  operatorTokenBalanceWei: BigInt!
+  "Amount of DATA tokens this delegator has moved into the Operator contract"
+  delegatedDataWei: BigInt!
+  "Amount of DATA tokens this delegator has moved out of the Operator contract"
+  undelegatedDataWei: BigInt!
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
@@ -341,7 +351,7 @@ type Sponsorship @entity {
   cumulativeSponsoring: BigInt!
   operatorCount: Int!
   totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
+  remainingWei: BigInt!
   spotAPY: BigInt!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
@@ -353,7 +363,7 @@ type SponsorshipDailyBucket @entity {
   sponsorship: Sponsorship!
   date: BigInt!
   totalStakedWei: BigInt!
-  unallocatedWei: BigInt!
+  remainingWei: BigInt!
   projectedInsolvency: BigInt!
   spotAPY: BigInt!
   operatorCount: Int!
@@ -396,7 +406,7 @@ type Stake @entity {
   id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   operator: Operator!
   amount: BigInt!
-  allocatedWei: BigInt!
+  earningsWei: BigInt!
   sponsorship: Sponsorship
   joinDate: BigInt!
 }

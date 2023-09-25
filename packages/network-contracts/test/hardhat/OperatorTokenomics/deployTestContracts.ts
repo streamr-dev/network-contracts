@@ -3,7 +3,7 @@ import { Wallet, utils} from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IPoolYieldPolicy, IUndelegationPolicy,
+    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
     StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
@@ -22,7 +22,7 @@ export type TestContracts = {
     operatorFactory: OperatorFactory;
     operatorTemplate: Operator;
     defaultDelegationPolicy: IDelegationPolicy;
-    defaultPoolYieldPolicy: IPoolYieldPolicy;
+    defaultExchangeRatePolicy: IExchangeRatePolicy;
     defaultUndelegationPolicy: IUndelegationPolicy;
     nodeModule: NodeModule;
     queueModule: QueueModule;
@@ -37,7 +37,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
 }> {
     const {
         token, streamrConfig,
-        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
     const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy() as OperatorFactory
@@ -53,7 +53,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     )).wait()
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy!.address,
-        defaultPoolYieldPolicy!.address,
+        defaultExchangeRatePolicy!.address,
         defaultUndelegationPolicy!.address
     ], { gasLimit: 500000 })).wait()
     await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
@@ -106,7 +106,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     // operator contract and policies
     const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
-    const defaultPoolYieldPolicy = await (await getContractFactory("DefaultPoolYieldPolicy", { signer })).deploy()
+    const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
     const defaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
 
     const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
@@ -115,7 +115,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     const { operatorFactory, operatorTemplate } = await deployOperatorFactory({
         token, streamrConfig,
-        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy,
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
         nodeModule, queueModule, stakeModule
     }, signer)
 
@@ -129,7 +129,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         token, streamrConfig, streamRegistry,
         sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
-        defaultDelegationPolicy, defaultPoolYieldPolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
         deployer: signer
     }
 }

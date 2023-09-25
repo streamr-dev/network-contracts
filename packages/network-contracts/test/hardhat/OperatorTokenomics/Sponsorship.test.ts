@@ -225,7 +225,7 @@ describe("Sponsorship contract", (): void => {
             expect(allocationAfterWithdraw).to.equal(0)
         })
 
-        it("shows zero allocation and zero stake after unstaking (no committed stake)", async function(): Promise<void> {
+        it("shows zero allocation and zero stake after unstaking (no locked stake)", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             const start = await getBlockTimestamp()

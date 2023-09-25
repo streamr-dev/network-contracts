@@ -101,7 +101,7 @@ export function loadOrCreateSponsorshipDailyBucket(
         bucket.date = date
         bucket.projectedInsolvency = sponsorship!.projectedInsolvency
         bucket.totalStakedWei = sponsorship!.totalStakedWei
-        bucket.unallocatedWei = sponsorship!.unallocatedWei
+        bucket.remainingWei = sponsorship!.remainingWei
         bucket.spotAPY = sponsorship!.spotAPY
         bucket.operatorCount = sponsorship!.operatorCount
     }
@@ -113,12 +113,12 @@ export function loadOrCreateOperator(operatorId: string): Operator {
     if (operator == null) {
         operator = new Operator(operatorId)
         operator.delegatorCount = 0
-        operator.poolValue = BigInt.zero()
+        operator.valueWithoutEarnings = BigInt.zero()
         operator.totalStakeInSponsorshipsWei = BigInt.zero()
-        operator.freeFundsWei = BigInt.zero()
-        operator.poolValueTimestamp = BigInt.zero()
-        operator.poolValueBlockNumber = BigInt.zero()
-        operator.poolTokenTotalSupplyWei = BigInt.zero()
+        operator.dataTokenBalanceWei = BigInt.zero()
+        operator.valueUpdateTimestamp = BigInt.zero()
+        operator.valueUpdateBlockNumber = BigInt.zero()
+        operator.operatorTokenTotalSupplyWei = BigInt.zero()
         operator.cumulativeProfitsWei = BigInt.zero()
         operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
@@ -145,9 +145,9 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
 
         // populate with current absolute values from Operator entity
         let operator = loadOrCreateOperator(contractAddress)
-        bucket.poolValue = operator.poolValue
+        bucket.valueWithoutEarnings = operator.valueWithoutEarnings
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
-        bucket.freeFundsWei = operator.freeFundsWei
+        bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
         bucket.spotAPY = BigInt.zero() // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
 
@@ -169,7 +169,9 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation = new Delegation(delegationId)
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
-        delegation.poolTokenWei = BigInt.zero()
+        delegation.delegatedDataWei = BigInt.zero()
+        delegation.undelegatedDataWei = BigInt.zero()
+        delegation.operatorTokenBalanceWei = BigInt.zero()
 
         // creating a Delegation means a new delegator has joined the operator => increase delegator count
         let operator = loadOrCreateOperator(operatorContractAddress)
