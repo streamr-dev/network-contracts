@@ -15,7 +15,6 @@ import {
 } from "./deployTestContracts"
 
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
-import { sponsorshipABI } from "../../../src/exports"
 
 describe("Sponsorship contract", (): void => {
     let admin: Wallet
