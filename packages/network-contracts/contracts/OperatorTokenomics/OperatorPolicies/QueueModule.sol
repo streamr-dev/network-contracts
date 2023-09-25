@@ -17,7 +17,7 @@ contract QueueModule is IQueueModule, Operator {
         address undelegator = _msgSender();
 
         // check if the undelegation policy allows this undelegation
-        // this check must happen before payOutQueue because we can't know how much gets paid out
+        // this check must happen here because payOutQueue can't be allowed to fail
         if (address(undelegationPolicy) != address(0)) {
             moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountWei));
         }
@@ -25,14 +25,14 @@ contract QueueModule is IQueueModule, Operator {
         undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountWei, block.timestamp); // solhint-disable-line not-rely-on-time
         emit QueuedDataPayout(undelegator, amountWei, queueLastIndex);
         queueLastIndex++;
-        payOutQueue(0);
+        _payOutQueue(0);
     }
 
     /** Pay out up to maxIterations items in the queue */
     function _payOutQueue(uint maxIterations) public {
         if (maxIterations == 0) { maxIterations = 1 ether; }
         for (uint i = 0; i < maxIterations; i++) {
-            if (payOutFirstInQueue()) {
+            if (_payOutFirstInQueue() == 1) {
                 break;
             }
         }
@@ -49,40 +49,39 @@ contract QueueModule is IQueueModule, Operator {
             return 1;
         }
 
-        // Take the first element from the queue, and silently cap it to the amount of operator tokens the exiting delegator has,
+        address delegator = undelegationQueue[queueCurrentIndex].delegator;
+        uint amountDataWei = undelegationQueue[queueCurrentIndex].amountWei;
+
+        // Silently cap the undelegation to the amount of operator tokens the exiting delegator has,
         //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
         // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
-        address delegator = undelegationQueue[queueCurrentIndex].delegator;
-        uint amountOperatorTokens = undelegationQueue[queueCurrentIndex].amountWei;
+        uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
         if (balanceOf(delegator) < amountOperatorTokens + streamrConfig.minimumDelegationWei()) {
             amountOperatorTokens = balanceOf(delegator);
+            amountDataWei = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, amountOperatorTokens));
         }
 
         // nothing to pay => pop the queue item
-        if (amountOperatorTokens == 0) {
+        if (amountDataWei == 0) {
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
             return 0;
         }
 
-        // convert to DATA and see if we have enough DATA tokens to pay out the queue item in full
-        uint amountDataWei = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, amountOperatorTokens));
+        // Pay out the whole amountDataWei if there's enough DATA, then pop the queue item
         if (balanceDataWei >= amountDataWei) {
-            // enough DATA for payout => whole amountDataWei is paid out => pop the queue item
             delete undelegationQueue[queueCurrentIndex];
             emit QueueUpdated(delegator, 0, queueCurrentIndex);
             queueCurrentIndex++;
         } else {
             // not enough DATA for full payout => all DATA tokens are paid out as a partial payment, update the item in the queue
             amountDataWei = balanceDataWei;
-            amountOperatorTokens = moduleCall(address(exchangeRatePolicy),
-                abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, // TODO: replace with operatorTokenToDataInverse
-                amountDataWei, 0));
+            amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
             UndelegationQueueEntry memory oldEntry = undelegationQueue[queueCurrentIndex];
-            uint operatorTokensLeftInQueue = oldEntry.amountWei - amountOperatorTokens;
-            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, operatorTokensLeftInQueue, oldEntry.timestamp);
-            emit QueueUpdated(delegator, operatorTokensLeftInQueue, queueCurrentIndex);
+            uint remainingWei = oldEntry.amountWei - amountDataWei;
+            undelegationQueue[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, remainingWei, oldEntry.timestamp);
+            emit QueueUpdated(delegator, remainingWei, queueCurrentIndex);
         }
 
         // console.log("payOutFirstInQueue: operator tokens", amountOperatorTokens, "DATA", amountDataWei);

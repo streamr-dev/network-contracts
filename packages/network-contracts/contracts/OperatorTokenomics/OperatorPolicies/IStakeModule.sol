@@ -11,9 +11,7 @@ interface IStakeModule {
     function _unstake(Sponsorship sponsorship) external;
     function _unstakeWithoutQueue(Sponsorship sponsorship) external;
     function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external;
-    // function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) private {
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) external;
     function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external;
     function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) external;
-
 }

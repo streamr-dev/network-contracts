@@ -85,10 +85,8 @@ describe("Operator contract", (): void => {
         // "There is a maximum allocation policy of 500 DATA in this system." not implemented => simulate by only delegating 5 DATA
         await advanceToTimestamp(timeAtStart, "Delegate")
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
-        // delegator sends 500 DATA to operator => both have 500 DATA
-        // delegator has 500 DATA
-        // delegator has 500 operatortoken
-        // OperatorContract has 500 DATA
+
+        // delegator sent 500 DATA to operator contract => both have 500 DATA
         expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("500"))
         expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("500"))
         expect(await operator.totalSupply()).to.equal(parseEther("500"))
@@ -97,15 +95,13 @@ describe("Operator contract", (): void => {
         const sponsorship = await deploySponsorship(sharedContracts)
         await (await dataToken.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
 
-        // sponsor has 0 DATA
-        // sponsorship has 2000 DATA
+        expect(formatEther(await dataToken.balanceOf(sponsor.address))).to.equal("0.0")
+        expect(formatEther(await dataToken.balanceOf(sponsorship.address))).to.equal("2000.0")
 
         // 2: Simple Staking
         await advanceToTimestamp(timeAtStart + 1000, "Stake to sponsorship")
         await expect(operator.stake(sponsorship.address, parseEther("500")))
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
-        // operatorContract has 0 DATA
-        // sponsorship has 2500 DATA, but only 2000 DATA is unallocated
 
         expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("0"))
         expect(await dataToken.balanceOf(sponsorship.address)).to.equal(parseEther("2500")) // 2000 sponsorship + 500 stake
@@ -121,8 +117,6 @@ describe("Operator contract", (): void => {
         //   protocol fee is 5% = 2000 * 0.05 = 100 => 2000 - 100 = 1900 DATA left
         //   the operator's cut 20% = 1900 * 0.2 = 380 DATA is added to self-delegation
         // Profit is 2000 - 100 - 380 = 1520 DATA
-        // Exchange rate for operator's cut is (stake 500 + funds 1520) / 500 ~= 4.04 DATA / operator token
-        //   so the operator's self-delegation increases by 380 / 4.04 = 9500/101 ~= 94.05940594059406 operator tokens
         await advanceToTimestamp(timeAtStart + 10000, "Withdraw from sponsorship")
         await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
             .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
@@ -132,27 +126,22 @@ describe("Operator contract", (): void => {
         expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("500.0")
         expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("500.0")
         expect(formatEther(await dataToken.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
-        expect(formatEther(await operator.totalSupply())).to.equal("594.059405940594059405") // TODO: find nicer numbers!
 
-        // 5: Withdraw
-        // Because the pool value is 2400 and the token supply is 300000/505, the exchange rate is 4.04 DATA / operator token
-        // Because the contract's balance is at 1900 DATA, that is the amount of DATA which will be paid out.
-        // 1900 DATA / 4.04 Exchange Rate ~= 470.3 Operator Tokens are burned, ~29.7 operator token payout is put into the queue.
-        await expect(operator.connect(delegator).undelegate(parseEther("500")))
-            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"), 0)
+        // 5: Withdraw/Undelegate
+        // Because the contract's balance is at 1900 DATA, that is the amount of DATA which will be paid out. Remaining amount remains in the queue.
+        await expect(operator.connect(delegator).undelegate(parseEther("2000")))
+            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("2000"), 0)
             .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1900"))
-        expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("0")) // all sent out
+            .to.emit(operator, "QueueUpdated").withArgs(delegator.address, parseEther("100"), 0)
 
-        expect(await dataToken.balanceOf(delegator.address)).to.equal(parseEther("2400"))
-        expect(await operator.balanceOf(delegator.address)).to.equal("29702970297029702972") // TODO: find nicer numbers!
+        expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("0.0") // all sent out
+        expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("2400.0")
 
         // 6: Pay out the queue by unstaking
         await expect(operator.unstake(sponsorship.address))
             .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
 
-        // TODO: find nice even numbers to avoid rounding errors!
-        expect(await dataToken.balanceOf(delegator.address)).to.equal("2520000000000000000006") // +1200
-        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("0"))
+        expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("2500.0")
 
         expect(await operator.queueIsEmpty()).to.equal(true)
     })
@@ -165,14 +154,14 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            const dataTokensAfterDelegate = await token.balanceOf(operator.address)
+            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
             await expect(operator.connect(delegator).undelegate(parseEther("1000")))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
-            const dataTokensAfterUndelegate = await token.balanceOf(operator.address)
+            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-            expect(formatEther(dataTokensAfterDelegate)).to.equal("1000.0")
-            expect(formatEther(dataTokensAfterUndelegate)).to.equal("0.0")
+            expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
+            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
         })
 
         it("allows delegate, transfer of operatorTokens, and undelegate by another delegator", async function(): Promise<void> {
@@ -182,16 +171,16 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            const dataTokensAfterDelegate = await token.balanceOf(operator.address)
+            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
             await (await operator.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
 
             await expect(operator.connect(delegator2).undelegate(parseEther("1000")))
                 .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
-            const dataTokensAfterUndelegate = await token.balanceOf(operator.address)
+            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-            expect(formatEther(dataTokensAfterDelegate)).to.equal("1000.0")
-            expect(formatEther(dataTokensAfterUndelegate)).to.equal("0.0")
+            expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
+            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
         })
     })
 
@@ -537,8 +526,8 @@ describe("Operator contract", (): void => {
             // delegator has 2/3 of operator tokens, and should receive 2/3 * 813 = 542 DATA
             await advanceToTimestamp(timeAtStart + 40, "Undelegate all")
             expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("200.0")
-            await expect(operator.connect(delegator).undelegate(parseEther("200")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("200"), 0)
+            await expect(operator.connect(delegator).undelegate(parseEther("542")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("542"), 0)
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("542"))
             expect(await operator.balanceOf(delegator.address)).to.equal(0)
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("542.0")
@@ -568,26 +557,22 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship + queue the payout") // no DATA in the operator => no payout
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
-            await expect(operator.connect(delegator).undelegate(parseEther("100")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"), 0)
+            await expect(operator.connect(delegator).undelegate(parseEther("200")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("200"), 0)
             expect(await operator.queuePositionOf(delegator.address)).to.equal(1)
 
             // earnings are 1 token/second * 1000 seconds = 1000
             //  minus protocol fee 5% = 50 DATA => 950 DATA remains
             //  operator's cut is 20% = 950 * 0.2 = 190 DATA
             //  pool value profit shared among all delegators is 950 - 190 = 760 DATA
-            // valueWithoutEarnings before operator's cut is 1000 stake + 760 profit = 1760 DATA
-            // There are 1000 OperatorTokens => exchange rate is 1760 / 1000 = 1.76 DATA/OperatorToken
-            // delegator should receive a payout: 100 OperatorTokens * 1.76 DATA = 176 DATA
-            // left into contract: 950 - 176 = 774 DATA
-
             await advanceToTimestamp(timeAtStart + 1000, "Withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("176"))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("200"))
+                .to.emit(operator, "QueueUpdated").withArgs(delegator.address, 0, 0)
 
-            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("176.0")
-            expect(formatEther(await token.balanceOf(operator.address))).to.equal("774.0")
+            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("200.0")
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("750.0")
         })
 
         it("pays out 1 queue entry partially using earnings withdrawn from sponsorship", async function(): Promise<void> {
@@ -604,23 +589,19 @@ describe("Operator contract", (): void => {
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship + queue the payout") // no DATA in the operator => no payout
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
-            await expect(operator.connect(delegator).undelegate(parseEther("1000")))
-                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"), 0)
+            await expect(operator.connect(delegator).undelegate(parseEther("2000")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("2000"), 0)
 
             // earnings are 1 token/second * 2000 seconds = 2000
             //  minus protocol fee 5% = 100 DATA => 1900 DATA remains
             //  operator's cut is 20% = 1900 * 0.2 = 380 DATA
             //  pool value profit shared among all delegators is 1900 - 380 = 1520 DATA
-            // valueWithoutEarnings before operator's cut is 1000 stake + 1520 profit = 2520 DATA
-            // There are 1000 OperatorTokens => exchange rate is 2520 / 1000 = 2.52 DATA/OperatorToken
-            // Delegator has requested a payout: 1000 OperatorTokens * 2.52 DATA = 2520 DATA
-            //  all of 1900 DATA is used to pay out the queue entry
-            //  => left in queue: 2520 - 1900 = 620 DATA = 620 / 2.52 ~= 246.03 OperatorTokens
-
             await advanceToTimestamp(timeAtStart + 2000, "withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1900"))
+                .to.emit(operator, "QueueUpdated").withArgs(delegator.address, parseEther("100"), 0)
+
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1900.0")
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
         })
@@ -741,7 +722,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
             await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
-            await operator.connect(delegator).undelegate(parseEther("100"))
+            await operator.connect(delegator).undelegate(parseEther("176"))
 
             await advanceToTimestamp(timeAtStart + gracePeriod, "Force unstaking attempt")
             await expect(operator.connect(delegator).forceUnstake(sponsorship.address, 10))
@@ -778,7 +759,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
             await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
-            await(await operator.connect(delegator).undelegate(parseEther("100"))).wait()
+            await(await operator.connect(delegator).undelegate(parseEther("195"))).wait()
 
             // delegator is queued, but no funds were moved yet
             expect(await token.balanceOf(delegator.address)).to.equal(parseEther("0"))
@@ -824,6 +805,37 @@ describe("Operator contract", (): void => {
             const balanceAfter = await token.balanceOf(delegator.address)
             expect(balanceAfter).to.equal(expectedBalance)
         })
+
+        it("pays out exactly the requested DATA amount, if the whole balance was queued and new earnings are added while in the queue", async () => {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "1000")
+
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 })
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
+
+            await expect(operator.connect(delegator).undelegate(parseEther("1000")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"), 0)
+
+            await advanceToTimestamp(timeAtStart + 1000, "Withdraw earnings from sponsorship")
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
+
+            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1000.0")
+            expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("760.000000000000000001")
+        })
+
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
@@ -1105,16 +1117,16 @@ describe("Operator contract", (): void => {
         await (await token.connect(delegator).approve(operator.address, parseEther("100.5"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("100.5")))
             .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100.5"))
-        const dataTokensAfterDelegate = await token.balanceOf(operator.address)
+        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
         // undelegating 100 will send 100.5 to delegator to meet the minimum-delegation-or-nothing requirement
         await expect(operator.connect(delegator).undelegate(parseEther("100")))
             // undelegates the entire stake (100.5) since the amount left would be less than the minimumDelegationWei (1.0)
             .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100.5"))
-        const dataTokensAfterUndelegate = await token.balanceOf(operator.address)
+        const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-        expect(formatEther(dataTokensAfterDelegate)).to.equal("100.5")
-        expect(formatEther(dataTokensAfterUndelegate)).to.equal("0.0")
+        expect(formatEther(contractBalanceAfterDelegate)).to.equal("100.5")
+        expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
     })
 
     it("undelegate less than the minimum delegation amount if more is staked into sponsorship", async function(): Promise<void> {
@@ -1125,7 +1137,7 @@ describe("Operator contract", (): void => {
         await (await token.connect(delegator).approve(operator.address, parseEther("101"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("101")))
             .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("101"))
-        const dataTokensAfterDelegate = await token.balanceOf(operator.address)
+        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
         // stake 60 into sponsorship => 51 DATA remains in operator contract
         const sponsorship = await deploySponsorship(sharedContracts)
@@ -1135,10 +1147,10 @@ describe("Operator contract", (): void => {
         // undelegating 100 will send 41 to delegator => minimum delegation amount does NOT matter since more tokens (60) are staked in sponsorship
         await expect(operator.connect(delegator).undelegate(parseEther("100")))
             .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("41"))
-        const dataTokensAfterUndelegate = await token.balanceOf(operator.address)
+        const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-        expect(formatEther(dataTokensAfterDelegate)).to.equal("101.0")
-        expect(formatEther(dataTokensAfterUndelegate)).to.equal("0.0")
+        expect(formatEther(contractBalanceAfterDelegate)).to.equal("101.0")
+        expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
     })
 
     // streamrConfig.minimumDelegationWei = 1 DATA
@@ -1149,17 +1161,18 @@ describe("Operator contract", (): void => {
         await (await token.connect(delegator).approve(operator.address, parseEther("100"))).wait()
         await expect(operator.connect(delegator).delegate(parseEther("100")))
             .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100"))
-        const dataTokensAfterDelegate = await token.balanceOf(operator.address)
-        expect(dataTokensAfterDelegate).to.equal(parseEther("100"))
+        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
         // delegator can send tokens to another address if the minimum delegation amount is left after transfer
         await operator.connect(delegator).transfer(delegator2.address, parseEther("50"))
-        const delegationLeft = await operator.balanceOf(delegator.address)
-        expect(delegationLeft).to.equal(parseEther("50"))
+        const delegationRemaining = await operator.balanceOf(delegator.address)
 
         // delegator can NOT send tokens to another address if the minimum delegation amount is NOT left after transfer
         await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("49.5")))
             .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
+
+        expect(contractBalanceAfterDelegate).to.equal(parseEther("100"))
+        expect(delegationRemaining).to.equal(parseEther("50"))
     })
 
     describe("Node addresses", function(): void {
