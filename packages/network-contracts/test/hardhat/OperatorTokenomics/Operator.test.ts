@@ -256,7 +256,7 @@ describe("Operator contract", (): void => {
 
             // "generateWalletWithGasAndTokens", fund a fresh random wallet
             const operatorWallet = Wallet.createRandom().connect(admin.provider)
-            admin.sendTransaction({ to: operatorWallet.address, value: parseEther("1") })
+            admin.sendTransaction({ to: operatorWallet.address, value: parseEther("5000") })
             await setTokens(operatorWallet, STAKE_AMOUNT)
 
             await setTokens(sponsor, "250")

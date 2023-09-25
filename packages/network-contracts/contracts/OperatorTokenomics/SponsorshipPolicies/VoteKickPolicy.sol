@@ -119,15 +119,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         }
 
         // secondary selection: peers from the same sponsorship
-        for (uint i = 0; i < sameSponsorshipPeerCount; i++) {
+        for (uint i = 0; i < sameSponsorshipPeerCount && reviewers[target].length < maxReviewerCount; i++) {
             Operator peer = sameSponsorshipPeers[i];
-            if (reviewerState[target][peer] == Reviewer.IS_SELECTED) {
-                continue;
-            }
-            if (reviewers[target].length >= maxReviewerCount) {
-                reviewerState[target][peer] = Reviewer.NOT_SELECTED;
-                continue;
-            }
             reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);

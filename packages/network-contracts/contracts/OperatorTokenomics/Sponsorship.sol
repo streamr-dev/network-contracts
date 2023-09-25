@@ -67,7 +67,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error OperatorNotStaked();
     // error OperatorAlreadyJoined();
     error LeavePenalty();
-    error ModuleCallError(address moduleAddress);
+    error ModuleCallError(address moduleAddress, bytes callBytes);
+    error ModuleGetError(bytes callBytes);
     error ActiveFlag();
     error TransferError();
     error FlaggingNotSupported();
@@ -288,10 +289,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
-        emit OperatorSlashed(operator, actualSlashingWei);
         if (operator.code.length > 0) {
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
+        emit OperatorSlashed(operator, actualSlashingWei);
         emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
     }
 
@@ -306,10 +307,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             emit OperatorSlashed(operator, slashingWei);
         }
         uint payoutWei = _removeOperator(operator);
-        emit OperatorKicked(operator);
         if (operator.code.length > 0) {
             try IOperator(operator).onKick(slashingWei, payoutWei) {} catch {}
         }
+        emit OperatorKicked(operator);
     }
 
     /**
@@ -438,7 +439,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallError(moduleAddress); }
+            if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -474,7 +475,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallError(address(this)); }
+            if (returndata.length == 0) { revert ModuleGetError(callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
