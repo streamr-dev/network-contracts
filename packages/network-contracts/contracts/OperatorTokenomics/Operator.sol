@@ -331,23 +331,29 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // Implementations found in StakeModule.sol
     /////////////////////////////////////////
 
-    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
+    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._stake.selector, sponsorship, amountWei));
     }
-    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator virtual {
+    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei));
     }
-    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator virtual {
+    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei));
     }
-    function unstake(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstake.selector, sponsorship));
-    }
-    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator virtual {
+    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
     }
-    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
+    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
+    }
+
+    /**
+     * Unstake from a sponsorship
+     * Throws if some of the stake is locked to pay for flags (being flagged or flagging others)
+     **/
+    function unstake(Sponsorship sponsorship) public onlyOperator {
+        unstakeWithoutQueue(sponsorship);
+        payOutQueue(0);
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -370,11 +376,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
     }
 
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
         // this is in stakeModule because it calls _handleProfit
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
     }
-    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
+    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
         // this is in stakeModule because it calls _handleProfit
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
     }
