@@ -134,6 +134,7 @@ describe("Operator contract", (): void => {
             .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1900"))
             .to.emit(operator, "QueueUpdated").withArgs(delegator.address, parseEther("100"), 0)
 
+        expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("0.0") // all sent out
         expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("2400.0")
 
         // 6: Pay out the queue by unstaking
@@ -805,7 +806,7 @@ describe("Operator contract", (): void => {
             expect(balanceAfter).to.equal(expectedBalance)
         })
 
-        it("only pays out what was requested even if new earnings are added while in the queue", async function(): Promise<void> {
+        it("pays out exactly the requested DATA amount, if the whole balance was queued and new earnings are added while in the queue", async () => {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
@@ -823,17 +824,16 @@ describe("Operator contract", (): void => {
 
             expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
 
-            await advanceToTimestamp(timeAtStart + 1000, "Queue for undelegation")
             await expect(operator.connect(delegator).undelegate(parseEther("1000")))
                 .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("1000"), 0)
 
-            await advanceToTimestamp(timeAtStart + 2000, "Withdraw earnings from sponsorship")
+            await advanceToTimestamp(timeAtStart + 1000, "Withdraw earnings from sponsorship")
             await expect(operator.unstake(sponsorship.address))
                 .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
 
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1000.0")
-            expect(formatEther(await token.balanceOf(operator.address))).to.equal("950.0")
+            expect(await operator.balanceInData(delegator.address)).to.be.approximately(parseEther("760"), parseEther("0.00001"))
         })
 
     })
