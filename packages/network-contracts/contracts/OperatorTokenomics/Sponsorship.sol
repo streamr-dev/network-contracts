@@ -151,7 +151,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); // factory needs this to set policies, (self-)revoke after policies are set!
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
 
@@ -160,7 +160,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If the data bytes contains an address, the incoming tokens are staked for that operator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (_msgSender() != address(token)) { revert OnlyDATAToken(); }
+        if (msg.sender != address(token)) { revert OnlyDATAToken(); } // trusted forwarder should NOT be able to set this
         if (data.length == 20) {
             // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -450,7 +450,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        if (msg.sender != address(this)) {
+        if (msg.sender != address(this)) { // trusted forwarder should NOT be able to set this
             revert AccessDenied();
         }
 
