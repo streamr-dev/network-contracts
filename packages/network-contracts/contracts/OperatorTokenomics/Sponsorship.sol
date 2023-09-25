@@ -62,7 +62,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error MinimumStake();
     error CannotIncreaseStake();
     error OperatorNotStaked();
-    // error OperatorAlreadyJoined();
     error LeavePenalty();
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
