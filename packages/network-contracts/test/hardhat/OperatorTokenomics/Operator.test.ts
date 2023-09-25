@@ -479,10 +479,6 @@ describe("Operator contract", (): void => {
             await expect(operator.updateOperatorsCutFraction(parseEther("0.3")))
                 .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.3"))
         })
-
-        it("operator withdraws all of its stake, operator value goes to zero, no one can join anymore", async function(): Promise<void> {
-            // TODO
-        })
     })
 
     describe("Undelegation queue", function(): void {
@@ -904,6 +900,10 @@ describe("Operator contract", (): void => {
         })
         afterEach(async () => {
             await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
+        })
+
+        it("prevents delegations after operator withdraws all of its stake (operator value goes to zero)", async function(): Promise<void> {
+            // TODO
         })
 
         it("negativetest minimumSelfDelegationFraction, cannot join when operators stake too small", async function(): Promise<void> {
