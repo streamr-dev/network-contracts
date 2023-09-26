@@ -177,12 +177,26 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
         })
 
+        it("won't let increase stake with reduceStakeTo", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("150")))
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+        })
+
         it("won't let unstake if you would be slashed", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).unstake())
                 .to.be.revertedWithCustomError(defaultSponsorship, "LeavePenalty")
+        })
+
+        it("won't let you remove unstake from an operator that is not staked", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await expect(sponsorship.connect(operator).unstake())
+                .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
         })
 
         it("lets you unstake when you unstake after the penalty period", async function(): Promise<void> {
@@ -222,6 +236,33 @@ describe("Sponsorship contract", (): void => {
 
             expect(allocationBeforeWithdraw).to.equal(parseEther("100"))
             expect(allocationAfterWithdraw).to.equal(0)
+        })
+
+        it("won't let you withdraw if you have no stake", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            const start = await getBlockTimestamp()
+
+            // join tx actually happens at timeAtStart + 1
+            await advanceToTimestamp(start, "Stake to sponsorship")
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+
+            await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
+            await (await sponsorship.connect(operator).unstake()).wait()
+            await expect(sponsorship.connect(operator).withdraw())
+                .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
+        })
+
+        it("will let you withdraw 0 token if you have no earnings", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("100"))).wait()
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start, "Stake to sponsorship")
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await advanceToTimestamp(start + 100, "Withdraw from sponsorship")
+            await (await sponsorship.connect(operator).withdraw()).wait()
+            await advanceToTimestamp(start + 110, "Withdraw from sponsorship")
+            await (await sponsorship.connect(operator).withdraw()).wait()
         })
 
         it("shows zero allocation and zero stake after unstaking (no locked stake)", async function(): Promise<void> {
