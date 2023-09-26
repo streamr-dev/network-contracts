@@ -80,7 +80,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
 
     /**
      * Figure out the allocations since last time update() was called
-     * This is used for updating but also for "real-time" earnings and insolvency projection
+     * This is used for updating but also for "real-time" earnings queries and insolvency projection
      * @param newAllocationsWei how many tokens have been allocated to operators since last time update() was called
      * @param newDefaultsWei how many tokens have been lost to insolvency since last time update() was called
      **/

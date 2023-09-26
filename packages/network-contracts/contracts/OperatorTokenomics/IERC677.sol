@@ -11,7 +11,8 @@ interface IERC677 is IERC20 {
         bytes calldata data
     ) external returns (bool success);
 
-    event Transfer(
+    // renamed to avoid `Duplicate definition of Transfer (Transfer(address,address,uint256,bytes), Transfer(address,address,uint256))`
+    event TransferAndCall(
         address indexed from,
         address indexed to,
         uint value,

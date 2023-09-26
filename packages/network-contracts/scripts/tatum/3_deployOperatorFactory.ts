@@ -5,7 +5,7 @@ import { ethers, upgrades } from "hardhat"
 import { Wallet } from "ethers"
 import { config } from "@streamr/config"
 
-import { Operator, OperatorFactory, IUndelegationPolicy, IDelegationPolicy, IPoolYieldPolicy, StreamrConfig } from "../../typechain"
+import { Operator, OperatorFactory, IUndelegationPolicy, IDelegationPolicy, IExchangeRatePolicy, StreamrConfig } from "../../typechain"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const log = require("debug")("streamr:deploy-tatum")
@@ -24,11 +24,11 @@ async function deployOperatorFactory() {
     await defaultDelegationPolicy.deployed()
     localConfig.defaultDelegationPolicy = defaultDelegationPolicy.address
     log("Deployed default Operator contract delegation policy", defaultDelegationPolicy.address)
-    const defaultPoolYieldPolicy = await (await ethers.getContractFactory("DefaultPoolYieldPolicy",
-        { signer: deploymentOwner })).deploy() as IPoolYieldPolicy
-    await defaultPoolYieldPolicy.deployed()
-    localConfig.defaultPoolYieldPolicy = defaultPoolYieldPolicy.address
-    log("Deployed default Operator contract yield policy", defaultPoolYieldPolicy.address)
+    const defaultExchangeRatePolicy = await (await ethers.getContractFactory("DefaultExchangeRatePolicy",
+        { signer: deploymentOwner })).deploy() as IExchangeRatePolicy
+    await defaultExchangeRatePolicy.deployed()
+    localConfig.defaultExchangeRatePolicy = defaultExchangeRatePolicy.address
+    log("Deployed defaultExchangeRatePolicy", defaultExchangeRatePolicy.address)
     const defaultUndelegationPolicy = await (await ethers.getContractFactory("DefaultUndelegationPolicy",
         { signer: deploymentOwner })).deploy() as IUndelegationPolicy
     await defaultUndelegationPolicy.deployed()
@@ -50,7 +50,7 @@ async function deployOperatorFactory() {
     localConfig.operatorFactory = operatorFactory.address
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy.address,
-        defaultPoolYieldPolicy.address,
+        defaultExchangeRatePolicy.address,
         defaultUndelegationPolicy.address,
     ])).wait()
     log("Added trusted policies")
