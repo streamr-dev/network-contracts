@@ -287,6 +287,18 @@ describe("Sponsorship contract", (): void => {
             expect(allocationAfterUnstake).to.equal(0)
             expect(stakeAfterUnstake).to.equal(0)
         })
+
+        it("throws correctly when error happens in policy in a view call with data", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "9")
+            await expect(sponsorship.solventUntilTimestamp())
+                .to.be.revertedWith("test_getInsolvencyTimestamp")
+        })
+
+        it("throws correctly when error happens in policy in a view call without data", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "10")
+            await expect(sponsorship.solventUntilTimestamp())
+                .to.be.revertedWithCustomError(sponsorship, "ModuleGetError")
+        })
     })
 
     describe("Adding policies", (): void => {
