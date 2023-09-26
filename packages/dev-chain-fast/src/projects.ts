@@ -12,7 +12,7 @@ export const projects = [
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"isDataUnion\": true}, \"description\": \"payable with TestToken\"}"
+        "metadata": "{\"isDataUnion\": true, \"name\": \"Test Project 1\", \"description\": \"payable with TestToken\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000002",
@@ -27,7 +27,7 @@ export const projects = [
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"isDataUnion\": false}, \"description\": \"payable with DATA\"}"
+        "metadata": "{\"isDataUnion\": false}, \"name\": \"Test Project 2\", \"description\": \"payable with DATA\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000003",
@@ -42,7 +42,7 @@ export const projects = [
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"description\": \"payable with DATA\"}"
+        "metadata": "{\"name\": \"Test Project 3\", \"description\": \"payable with DATA\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000004",
@@ -72,6 +72,6 @@ export const projects = [
         ],
         "streams": [],
         "isPublicPurchable": false,
-        "metadata": "{\"description\": \"payable with DATA\"}"
+        "metadata": "{\"name\": \"Test Project 5\", \"description\": \"payable with DATA\"}"
     }
 ]
