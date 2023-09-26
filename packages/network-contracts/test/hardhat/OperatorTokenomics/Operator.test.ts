@@ -74,6 +74,14 @@ describe("Operator contract", (): void => {
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
     })
 
+    it("denies access to fallback function if sending from external address", async function(): Promise<void> {
+        const operator = await deployOperator(operatorWallet)
+        await expect(operatorWallet.sendTransaction({ to: operator.address, value: 0 }))
+            .to.be.revertedWithCustomError(operator, "AccessDenied")
+        await expect(operatorWallet.sendTransaction({ to: operator.address, value: parseEther("1") }))
+            .to.be.reverted
+    })
+
     it("can update metadata", async function(): Promise<void> {
         const operator = await deployOperator(operatorWallet)
         await expect(operator.updateMetadata("new metadata"))
