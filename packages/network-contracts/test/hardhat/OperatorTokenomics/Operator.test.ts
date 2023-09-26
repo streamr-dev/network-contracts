@@ -28,6 +28,7 @@ describe("Operator contract", (): void => {
     let sharedContracts: TestContracts
     let testKickPolicy: IKickPolicy
     let testExchangeRatePolicy: IExchangeRatePolicy
+    let testExchangeRatePolicy2: IExchangeRatePolicy
 
     // burn all tokens then mint the corrent amount of new ones
     async function setTokens(account: Wallet, amount: string) {
@@ -69,6 +70,9 @@ describe("Operator contract", (): void => {
         testExchangeRatePolicy = 
             await (await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testExchangeRatePolicy.address])).wait()
+        testExchangeRatePolicy2 = 
+            await (await (await getContractFactory("TestExchangeRatePolicy2", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
+        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testExchangeRatePolicy2.address])).wait()
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
@@ -197,14 +201,27 @@ describe("Operator contract", (): void => {
         expect(await operator.queueIsEmpty()).to.equal(true)
     })
 
-    it("moduyleGet reverts for broken yield policy", async function(): Promise<void> {
+    it("moduleGet reverts for broken yield policies", async function(): Promise<void> {
         const { token: dataToken } = sharedContracts
         await setTokens(delegator, "1000")
         const operator = await deployOperator(operatorWallet)
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await (await operator.setExchangeRatePolicy(testExchangeRatePolicy.address, 0)).wait()
         await expect(operator.connect(delegator).balanceInData(delegator.address))
-            .to.be.revertedWithCustomError(operator, "ModuleGetError")
+            .to.be.revertedWithCustomError(operator, "ModuleGetError") // delegatecall returns (0, 0)
+        
+        await (await operator.setExchangeRatePolicy(testExchangeRatePolicy2.address, 0)).wait()
+        await expect(operator.connect(delegator).balanceInData(delegator.address))
+            .to.be.reverted // delegatecall returns (0, data)
+    })
+
+    it("moduleCall reverts for broken yield policy", async function(): Promise<void> {
+        const { token: dataToken } = sharedContracts
+        await setTokens(delegator, "1000")
+        const operator = await deployOperator(operatorWallet)
+        await (await operator.setExchangeRatePolicy(testExchangeRatePolicy.address, 0)).wait()
+        await expect(dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
+            .to.be.reverted // delegatecall returns (0, data)
     })
 
     describe("Delegator functionality", (): void => {
