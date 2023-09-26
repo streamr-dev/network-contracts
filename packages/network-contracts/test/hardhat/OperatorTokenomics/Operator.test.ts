@@ -963,6 +963,29 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("760.000000000000000001")
         })
 
+        it("pays out the first in queue on payOutFirstInQueue", async () => {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(delegator2, "1000")
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const operator = await deployOperator(operatorWallet) // zero operator's share
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            expect(await operator.queueIsEmpty()).to.equal(true)
+            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait() // 1000 DATA in queue
+            expect(await operator.queueIsEmpty()).to.equal(false)
+            await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
+
+            await (await operator.payOutFirstInQueue()).wait() // 500 DATA in queue
+            expect(await operator.queueIsEmpty()).to.equal(false)
+
+            await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
+            await (await operator.payOutFirstInQueue()).wait() // 0 DATA in queue
+            expect(await operator.queueIsEmpty()).to.equal(true)
+        })
+
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
