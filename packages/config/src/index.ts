@@ -70,7 +70,7 @@ export const config = {
             "OperatorFactory": "0xcb5bCb343218044C547AFdcBa2e50Ac728D0DcA3",
             "OperatorDefaultDelegationPolicy": "0x03CF38C75BFb9F4466fBA0aEd95f2613B0D1bCA0",
             "OperatorDefaultUndelegationPolicy": "0x67A0E9C9c21d11dB4eBAe420aBf705626a3a2561",
-            "OperatorDefaultPoolYieldPolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d"
+            "OperatorDefaultExchangeRatePolicy": "0x252743660fACD52e7CEF851CEB1c133B58Fb526d"
         },
         "theGraphUrl": "http://10.200.10.1:8000/subgraphs/name/streamr-dev/network-subgraphs"
     },
@@ -100,7 +100,7 @@ export const config = {
             "SponsorshipVoteKickPolicy": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF",
             "SponsorshipFactory": "0x57B81a9442805f88c4617B506206531e72d96290",
             "OperatorDefaultDelegationPolicy": "0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873",
-            "OperatorDefaultPoolYieldPolicy": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
+            "OperatorDefaultExchangeRatePolicy": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
             "OperatorDefaultUndelegationPolicy": "0x5159FBF2e0Ff63e35b17293416fdf7a0909a0cDA",
             "OperatorFactory": "0x122E9ee63Fa5e4F2710b7BB66E9a1FF0013Cec15",
             "ProjectRegistryV1": "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253",
@@ -261,7 +261,7 @@ export const config = {
             "SponsorshipVoteKickPolicy": "0x386BB7E960Fbf5101fedcedDa8608357788D0F24",
             "SponsorshipFactory": "0x13C288cD94733e0bE6fcfc2a0008913fec88aF8A",
             "OperatorDefaultDelegationPolicy": "0x88146e78CC12E3a8683D91De88CE3A31A94f6914",
-            "OperatorDefaultPoolYieldPolicy": "0xaBe8B7D2164Bd30021FF838bb741f7566b4f441a",
+            "OperatorDefaultExchangeRatePolicy": "0xaBe8B7D2164Bd30021FF838bb741f7566b4f441a",
             "OperatorDefaultUndelegationPolicy": "0x12E122a40D6948a94082d901d12512eFcf4525E1",
             "OperatorFactory": "0x30f3614d9c4A4f263696A4037CaaA3609710fCBB",
             "ProjectRegistryV1": "0x2F20D0C62179D0E3440De924515c3b2f608F67cD",
