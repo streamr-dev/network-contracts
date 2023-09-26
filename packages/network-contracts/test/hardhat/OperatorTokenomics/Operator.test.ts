@@ -66,7 +66,8 @@ describe("Operator contract", (): void => {
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
 
-        testExchangeRatePolicy = await (await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
+        testExchangeRatePolicy = 
+            await (await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testExchangeRatePolicy.address])).wait()
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
