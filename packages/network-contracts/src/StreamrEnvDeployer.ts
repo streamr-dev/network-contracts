@@ -54,7 +54,6 @@ export type StreamrContractAddresses = {
     // "DataUnionTemplate": string,
     // "DefaultFeeOracle": string,
 }
-export type EnvContracAddresses = StreamrContractAddresses // TODO: remove
 
 export type StreamrContracts = {
     "DATA": TestToken,
@@ -380,16 +379,19 @@ export class StreamrEnvDeployer {
             this.adminWallet)).deploy() as DefaultDelegationPolicy
         await defaultDelegationPolicy.deployed()
         this.addresses.OperatorDefaultDelegationPolicy = defaultDelegationPolicy.address
+        this.contracts.operatorDefaultDelegationPolicy = defaultDelegationPolicy
         log("Deployed default Operator contract delegation policy " + defaultDelegationPolicy.address)
         const defaultExchangeRatePolicy = await (new ContractFactory(defaultExchangeRatePolicyABI, defaultExchangeRatePolicyBytecode,
             this.adminWallet)).deploy() as DefaultExchangeRatePolicy
         await defaultExchangeRatePolicy.deployed()
         this.addresses.OperatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy.address
+        this.contracts.operatorDefaultExchangeRatePolicy = defaultExchangeRatePolicy
         log("Deployed defaultExchangeRatePolicy " + defaultExchangeRatePolicy.address)
         const defaultUndelegationPolicy = await (new ContractFactory(defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode,
             this.adminWallet)).deploy() as DefaultUndelegationPolicy
         await defaultUndelegationPolicy.deployed()
         this.addresses.OperatorDefaultUndelegationPolicy = defaultUndelegationPolicy.address
+        this.contracts.operatorDefaultUndelegationPolicy = defaultUndelegationPolicy
         log("Deployed default Operator contract undelegation policy " + defaultUndelegationPolicy.address)
 
         log("Deploying operator node module")
@@ -444,8 +446,11 @@ export class StreamrEnvDeployer {
             parseEther("0.1"),
             "TestPool1",
             "{}",
-            [this.addresses.OperatorDefaultDelegationPolicy, this.addresses.OperatorDefaultExchangeRatePolicy,
-                this.addresses.OperatorDefaultUndelegationPolicy],
+            [
+                this.addresses.OperatorDefaultDelegationPolicy,
+                this.addresses.OperatorDefaultExchangeRatePolicy,
+                this.addresses.OperatorDefaultUndelegationPolicy
+            ],
             [0, 0, 0]
         )
         const poolReceipt = await pooltx.wait()
