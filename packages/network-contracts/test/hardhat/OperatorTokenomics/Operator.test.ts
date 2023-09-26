@@ -50,6 +50,20 @@ describe("Operator contract", (): void => {
         return deployOperatorContract(newContracts, deployer, operatorsCutFraction)
     }
 
+    async function deploy2Operators(deployer: Wallet, deployer2: Wallet, cutFraction1 = parseEther("0"), cutFraction2 = parseEther("0")) {
+        // we want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)
+        // so that same operatorWallet can create a clean contract (OperatorFactory prevents several contracts from same deployer)
+        const newContracts = {
+            ...sharedContracts,
+            ...await deployOperatorFactory(sharedContracts, deployer)
+        }
+
+        return [
+            await deployOperatorContract(newContracts, deployer, cutFraction1),
+            await deployOperatorContract(newContracts, deployer2, cutFraction2)
+        ]
+    }
+
     // fix up after deployOperator->deployOperatorFactory messes up the OperatorFactory address of the sharedContracts.streamrConfig
     afterEach(async function(): Promise<void> {
         await (await sharedContracts.streamrConfig!.setOperatorFactory(sharedContracts.operatorFactory.address)).wait()
@@ -353,16 +367,9 @@ describe("Operator contract", (): void => {
         })
 
         it("pays part of operator's cut from withdraw to caller (fisherman) if too much earnings", async function(): Promise<void> {
-            // deploy two operators using deployOperatorContract.
-            // It's important they come from same factory, hence can't use deployOperator helper as-is
-            const contracts = {
-                ...sharedContracts,
-                ...await deployOperatorFactory(sharedContracts, admin)
-            }
-            const operator1 = await deployOperatorContract(contracts, operatorWallet, parseEther("0.4"))
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet, parseEther("0.123")) // doesn't affect calculations
-            const sponsorship1 = await deploySponsorship(contracts)
-            const sponsorship2 = await deploySponsorship(contracts)
+            const [ operator1, operator2 ] = await deploy2Operators(operatorWallet, operator2Wallet, parseEther("0.4"), parseEther("0.123"))
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
 
             const { token } = sharedContracts
             await setTokens(operatorWallet, "1000")
@@ -489,7 +496,7 @@ describe("Operator contract", (): void => {
             // this test is set up to easily compare two sponsorships: get slashed in the first one, unstake normally from the second one
             // sponsor the 1st sponsorship more to keep it running, so that operator can be slashed for leaving while it's running
             const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 })
-            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > 1000 so slashing will happen
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > unstaking time so slashing will happen
             const sponsorship2 = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship2.address, parseEther("1000"), "0x")).wait()
@@ -517,33 +524,111 @@ describe("Operator contract", (): void => {
             const { token } = sharedContracts
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")
-            await setTokens(sponsor, "3000")
+            await setTokens(sponsor, "2000")
 
-            // this test is set up to easily compare two sponsorships: get slashed in the first one, unstake normally from the second one
+            // this test is set up to easily compare two sponsorships: unstake normally from the first one, get slashed in the second one
             // sponsor the 1st sponsorship more to keep it running, so that operator can be slashed for leaving while it's running
             const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 })
-            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > 1000 so slashing will happen
-            const sponsorship2 = await deploySponsorship(sharedContracts)
-            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > unstaking time so slashing will happen
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship2.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const timeAtStart = await getBlockTimestamp()
 
-            await advanceToTimestamp(timeAtStart, "Stake to sponsorships")
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship1")
             await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 50, "Stake to sponsorship2")
             await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
 
             await advanceToTimestamp(timeAtStart + 150, "Check that unstaking would give correct penalty")
+            await expect(operator.unstake(sponsorship2.address))
+                .to.be.revertedWithCustomError(sponsorship2, "LeavePenalty").withArgs(parseEther("100")) // 10% of the 1000 DATA stake
+
+            // normal unstake, 200 DATA earnings are split as follows:
+            // * protocol takes 5% = 10 DATA
+            // * operator's cut is 20% of the remaining 190 DATA = 38 DATA
+            // * the remaining 152 DATA is shared among delegators (Profit)
+            await advanceToTimestamp(timeAtStart + 200, "Unstake from sponsorship1")
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Profit").withArgs(parseEther("152"), parseEther("38"), parseEther("10"))
+
+            // compare with above: 100 DATA slashing is taken from the operator's cut (38 DATA), and the remaining 62 DATA reduces the Profit
+            await advanceToTimestamp(timeAtStart + 250, "ForceUnstake from sponsorship2")
+            await expect(operator.forceUnstake(sponsorship2.address, 0))
+                .to.emit(operator, "Profit").withArgs(parseEther("90"), parseEther("0"), parseEther("10"))
+        })
+
+        it("pays the operator the same cuts whether they forceUnstake or withdraw first, in the long run", async function(): Promise<void> {
+            // idea here is to confirm that the operator can't avoid paying for slashings by withdrawing before they happen
+            // the slashings will be paid from future cuts
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(operator2Wallet, "1000")
+            await setTokens(sponsor, "8000")
+
+            // this test is set up to easily compare two operators: first forceUnstakes, second anticipates the slashing and withdraws
+            const [ operator, operator2 ] = await deploy2Operators(operatorWallet, operator2Wallet, parseEther("0.2"), parseEther("0.2"))
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 2000 }) // > unstaking time so slashing will happen
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("8000"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(operator2Wallet).transferAndCall(operator2.address, parseEther("1000"), "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Operator1 stakes to sponsorship")
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 900, "Check that unstaking would give correct penalty")
             await expect(operator.unstake(sponsorship.address))
                 .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100")) // 10% of the 1000 DATA stake
 
-            // notice: 100 DATA slashing is taken from the operator's cut (38 DATA), and the remaining 62 DATA reduces the Profit
-            await advanceToTimestamp(timeAtStart + 200, "Unstake from sponsorships")
+            // direct forceUnstake: all of 100 DATA slashing is taken from the operator's cut
+            await advanceToTimestamp(timeAtStart + 1000, "Operator1 forceUnstakes")
             await expect(operator.forceUnstake(sponsorship.address, 0))
-                .to.emit(operator, "Profit").withArgs(parseEther("90"), parseEther("0"), parseEther("10"))
-            await expect(operator.unstake(sponsorship2.address))
-                .to.emit(operator, "Profit").withArgs(parseEther("152"), parseEther("38"), parseEther("10"))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("90"), parseEther("50"))
+            expect(await operator.unpaidSlashings()).to.equal(0)
+
+            await advanceToTimestamp(timeAtStart + 2000, "Operator2 stakes to sponsorship")
+            await (await operator2.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            // withdrawing doesn't cause slashing of course, so operator2 gets the full 190 DATA cut,
+            //   and forceUnstake won't have anything to take the cut from.
+            // This way operator2 will avoid paying for the slashing from the cut, for now.
+            await advanceToTimestamp(timeAtStart + 3000, "Operator2 withdraws")
+            await expect(operator2.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator2, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
+
+            await advanceToTimestamp(timeAtStart + 3010, "Operator1 forceUnstakes after the withdraw")
+            await expect(operator2.forceUnstake(sponsorship.address, 0))
+                .to.emit(operator2, "Loss").withArgs(parseEther("90"))
+            expect(await operator2.unpaidSlashings()).to.equal(parseEther("100"))
+
+            await advanceToTimestamp(timeAtStart + 4000, "Operator1 stakes again")
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            // no unpaid slashings, so operator1 gets the full 190 DATA cut
+            await advanceToTimestamp(timeAtStart + 5000, "Operator1 withdraws")
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
+
+            await advanceToTimestamp(timeAtStart + 6000, "Operator1 unstakes")
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
+
+            await advanceToTimestamp(timeAtStart + 7000, "Operator2 stakes again")
+            await (await operator2.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            // now operator2 has to pay for the slashing from its cut, the delegators get the "debt" back
+            await advanceToTimestamp(timeAtStart + 8000, "Operator2 withdraws")
+            await expect(operator2.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator2, "Profit").withArgs(parseEther("860"), parseEther("90"), parseEther("50"))
+
+            // after paying off the slashings, resume earning normal cuts
+            await advanceToTimestamp(timeAtStart + 9000, "Operator2 unstakes")
+            await expect(operator2.unstake(sponsorship.address))
+                .to.emit(operator2, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
         })
     })
 
@@ -897,7 +982,6 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("1000.0")
             expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("760.000000000000000001")
         })
-
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg

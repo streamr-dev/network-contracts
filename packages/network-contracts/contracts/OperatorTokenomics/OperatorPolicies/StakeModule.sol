@@ -139,7 +139,7 @@ contract StakeModule is IStakeModule, Operator {
      *  3) to operator: leave operatorsCutFraction * (earnings - protocol fee) to this contract's DATA balance as operator's cut,
      *     paid in self-delegation (by minting operator tokens to Operator); EXCEPT if Operator got slashed, in which case operator's cut is first depleted to pay for it.
      * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to the fisherman
-     * @param earningsDataWei income to be processed, in DATA
+     * @param earningsDataWei received DATA tokens to be processed
      * @param fishermansFraction fraction of the operator's cut that is sent NOT to the operator but to the fisherman
      * @param fisherman address is non-zero if the operator is penalized for too much earnings, otherwise `address(0)`
      **/
@@ -148,27 +148,33 @@ contract StakeModule is IStakeModule, Operator {
         uint protocolFee = earningsWithoutSlashing * streamrConfig.protocolFeeFraction() / 1 ether;
         token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
 
-        uint operatorsCutDataWei = 0;
-        uint fishermansRewardDataWei = 0;
+        uint operatorsCut = (earningsWithoutSlashing - protocolFee) * operatorsCutFraction / 1 ether;
 
-        // operator only gets their cut if slashings don't exceed it
-        uint operatorsCutWithoutSlashing = (earningsWithoutSlashing - protocolFee) * operatorsCutFraction / 1 ether;
-        if (operatorsCutWithoutSlashing > slashedDataWei) {
-            operatorsCutDataWei = operatorsCutWithoutSlashing - slashedDataWei;
-            if (fishermansFraction > 0) {
-                fishermansRewardDataWei = operatorsCutDataWei * fishermansFraction / 1 ether;
-                token.transfer(fisherman, fishermansRewardDataWei);
-            }
+        // send out part of the operator's cut as a reward for withdrawing the overdue earnings
+        uint fishermansReward = 0;
+        if (fishermansFraction > 0) {
+            fishermansReward = operatorsCut * fishermansFraction / 1 ether;
+            token.transfer(fisherman, fishermansReward);
+            operatorsCut -= fishermansReward;
+        }
+
+        // operator only gets their cut after they first pay for all the past slashings
+        if (operatorsCut > unpaidSlashings) {
+            operatorsCut -= unpaidSlashings;
+            unpaidSlashings = 0;
 
             // "self-delegate" the operator's share === mint new operator tokens
             // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
             //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
             //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
-            _delegate(owner, operatorsCutDataWei - fishermansRewardDataWei);
+            _delegate(owner, operatorsCut);
+        } else {
+            unpaidSlashings -= operatorsCut;
+            operatorsCut = 0;
         }
 
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
-        emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - fishermansRewardDataWei, protocolFee);
+        emit Profit(earningsDataWei - protocolFee - fishermansReward - operatorsCut, operatorsCut, protocolFee);
     }
 
 
@@ -177,18 +183,18 @@ contract StakeModule is IStakeModule, Operator {
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
-    function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
-        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+    function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorships) public {
+        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorships);
         payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
+    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorships) public {
         uint valueBeforeWithdraw = valueWithoutEarnings();
 
         uint sumEarnings = 0;
-        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
-            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
+        for (uint i = 0; i < sponsorships.length; i++) {
+            sumEarnings += sponsorships[i].withdraw(); // this contract receives DATA tokens
         }
         if (sumEarnings == 0) {
             revert NoEarnings();

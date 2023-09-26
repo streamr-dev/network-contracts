@@ -85,6 +85,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     uint public totalStakedIntoSponsorshipsWei;
     uint public totalSlashedInSponsorshipsWei;
+    uint public unpaidSlashings; // operator's cut must pay all slashings, only then operator gets their cut again
 
     IDelegationPolicy public delegationPolicy;
     IExchangeRatePolicy public exchangeRatePolicy;
@@ -496,6 +497,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
+        unpaidSlashings += amountSlashed;
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
