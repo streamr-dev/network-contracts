@@ -2,11 +2,13 @@
     "name": "@streamr-contracts/chat-contracts",
     "version": "2.4.0",
     "description": "Smart contracts for thechat.eth",
+    "author": "Streamr Network AG <contact@streamr.network>",
+    "license": "STREAMR NETWORK OPEN SOURCE LICENSE",
+    "private": false,
     "files": [
         "contracts",
         ".openzeppelin"
     ],
-    "private": false,
     "publishConfig": {
         "access": "public"
     },
@@ -24,8 +26,6 @@
         "deployTokenGateFactoriesProd": "source ./.env && hardhat run --network polygon scripts/3_deployTokenGateFactories.ts",
         "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon"
     },
-    "author": "Streamr Network AG",
-    "license": "ISC",
     "dependencies": {
         "@chainlink/contracts": "0.3.1",
         "@opengsn/contracts": "2.2.6",
