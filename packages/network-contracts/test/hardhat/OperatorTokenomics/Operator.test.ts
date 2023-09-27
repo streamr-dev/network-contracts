@@ -384,6 +384,19 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "StakeUpdate").withArgs(sponsorship.address, parseEther("2000"))
                 .to.not.emit(operator, "Staked")
         })
+
+        it("reduce stake to zero", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "2000")
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
+            await (await operator.reduceStakeWithoutQueue(sponsorship.address, 0)).wait()
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
+        })
     })
 
     describe("Withdrawing and profit sharing", () => {
@@ -461,6 +474,19 @@ describe("Operator contract", (): void => {
             expect(formatEther(sponsorshipsAfter.earnings[0])).to.equal("0.0") // it's zero because we withdrew all earnings
             expect(sponsorshipsAfter.addresses[0]).to.equal(sponsorship.address)
             expect(formatEther(totalStakedIntoSponsorshipsWeiAfter)).to.equal("1000.0") // doesn't include DATA in Operator, or earnings => no change
+        })
+
+        it("reverts when withdrawEarningsFromSponsorships is called and no earnings have accumulated", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            const operator = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NoEarnings")
         })
 
         it("self-delegates all of operator's cut during withdraw", async function(): Promise<void> {
