@@ -161,10 +161,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
-        slashingFraction = 0.1 ether;
+        slashingFraction = 0.1 ether; // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        minimumSelfDelegationFraction = 0.1 ether;
+        minimumSelfDelegationFraction = 0.1 ether; // 10% of the operator tokens must be held by the operator, or else new delegations are prevented
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
         minimumDelegationWei = 1 ether;
@@ -176,11 +176,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         maxQueueSeconds = 30 days;
 
         // Withdraw incentivization
-        maxAllowedEarningsFraction = 0.05 ether;
-        fishermanRewardFraction = 0.5 ether;
+        maxAllowedEarningsFraction = 0.05 ether; // 5% of valueWithoutEarnings is when fisherman can poach part of the operator's cut
+        fishermanRewardFraction = 0.5 ether; // 50% of operator's cut goes to fisherman
 
         // protocol fee
-        protocolFeeFraction = 0.05 ether;
+        protocolFeeFraction = 0.05 ether; // 5% of earnings go to protocol fee
         protocolFeeBeneficiary = _msgSender();
 
         // flagging + voting

@@ -146,7 +146,7 @@ describe("Operator contract", (): void => {
         expect(await operator.queueIsEmpty()).to.equal(true)
     })
 
-    describe("Delegator functionality", (): void => {
+    describe("Delegation management", (): void => {
         it("allows delegate and undelegate", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
@@ -167,20 +167,66 @@ describe("Operator contract", (): void => {
         it("allows delegate, transfer of operatorTokens, and undelegate by another delegator", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
+            await setTokens(delegator2, "0")
             const operator = await deployOperator(operatorWallet)
+
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
             await (await operator.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
 
             await expect(operator.connect(delegator2).undelegate(parseEther("1000")))
                 .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
-            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-            expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
-            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
+            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("0.0")
+            expect(formatEther(await token.balanceOf(delegator2.address))).to.equal("1000.0")
+        })
+
+        it("will NOT allow creating a new delegator by transfer if normal delegation wouldn't be allowed", async function(): Promise<void> {
+            const { token, streamrConfig } = sharedContracts
+            await (await streamrConfig.setMinimumSelfDelegationFraction(parseEther("0.6"))).wait()
+            await setTokens(operatorWallet, "1000")
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            // after the transfer, operator should have 600 operator tokens, but has only 500
+            await expect(operator.transfer(delegator.address, parseEther("500")))
+                .to.be.revertedWith("error_selfDelegationTooLow")
+
+            // equivalent action in 3 parts: undelegate, transfer DATA, then delegator delegates it
+            await expect(operator.undelegate(parseEther("500")))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
+            await expect(token.connect(operatorWallet).transfer(delegator.address, parseEther("500")))
+            await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x"))
+                .to.be.revertedWith("error_selfDelegationTooLow")
+        })
+
+        it("will NOT allow (self-)undelegation by transfer if normal undelegation wouldn't be allowed", async function(): Promise<void> {
+            const { token, streamrConfig } = sharedContracts
+            await (await streamrConfig.setMinimumSelfDelegationFraction(parseEther("0.1"))).wait()
+
+            await setTokens(operatorWallet, "100")
+            await setTokens(delegator, "200")
+
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 10 })
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("200"), "0x")).wait()
+
+            // operator can't self-undelegate-all, since there's still another delegator
+            await expect(operator.undelegate(parseEther("100"))).to.be.revertedWith("error_selfDelegationTooLow")
+            await expect(operator.transfer(delegator.address, parseEther("100"))).to.be.revertedWith("error_selfDelegationTooLow")
+
+            // operator can't self-undelegate under 10% of ~200, since there's still another delegator
+            await expect(operator.undelegate(parseEther("80"))).to.be.revertedWith("error_selfDelegationTooLow")
+            await expect(operator.transfer(delegator.address, parseEther("80"))).to.be.revertedWith("error_selfDelegationTooLow")
+
+            await expect(operator.undelegate(parseEther("10")))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("10"))
+            await expect(operator.transfer(delegator.address, parseEther("10")))
+                .to.emit(operator, "BalanceUpdate").withArgs(operatorWallet.address, parseEther("80"), parseEther("290"))
+                .to.emit(operator, "BalanceUpdate").withArgs(delegator.address, parseEther("210"), parseEther("290"))
         })
     })
 
