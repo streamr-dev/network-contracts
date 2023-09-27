@@ -5,6 +5,7 @@ import { expect } from "chai"
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { setupSponsorships, SponsorshipTestSetup } from "../setupSponsorships"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END } from "../utils"
+import { IKickPolicy } from "../../../../typechain"
 
 const { parseEther, getAddress, hexZeroPad } = utils
 
@@ -110,7 +111,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.not.emit(sponsorship, "OperatorKicked")
             await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
                 .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
-                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("100"))
+                .to.emit(sponsorship, "Operatored").withArgs(target.address, parseEther("100"))
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(voter1.address)).to.equal(parseEther("1"))
@@ -360,6 +361,31 @@ describe("VoteKickPolicy", (): void => {
 
             expect(targetBalanceBefore).to.equal("0")
             expect(targetBalanceAfter).to.equal(parseEther("900")) // slashingFraction of stake was forfeited
+        })
+
+        it.only("is not possible to get slashed more than you have staked", async function(): Promise<void> {
+            const sponsorship = await (await ethers.getContractFactory("Sponsorship", { signer: wallets[0] })).deploy()
+            await sponsorship.deployed()
+            await sponsorship.initialize(
+                "streamId",
+                "metadata",
+                contracts.streamrConfig.address,
+                defaultSetup.token.address,
+                [
+                    0,
+                    1,
+                    parseEther("1").toString()
+                ],
+                contracts.allocationPolicy.address
+            )
+            const testKickPolicyFactory = await ethers.getContractFactory("TestKickPolicy", { signer: wallets[0] })
+            let testKickPolicy = await testKickPolicyFactory.deploy()
+            testKickPolicy = await testKickPolicy.connect(wallets[0]).deployed() as IKickPolicy
+            await sponsorship.setKickPolicy(testKickPolicy.address, "0")
+            await (await defaultSetup.token.transferAndCall(sponsorship.address, parseEther("70"), wallets[0].address)).wait()
+            // await(await sponsorship.flag(wallets[0].address, "")).wait()
+            await expect(await sponsorship.flag(wallets[0].address, ""))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(wallets[0].address, parseEther("10"))    
         })
     })
 

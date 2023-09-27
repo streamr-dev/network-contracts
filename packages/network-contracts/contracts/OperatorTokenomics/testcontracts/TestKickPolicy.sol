@@ -14,7 +14,7 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
     }
 
     function onFlag(address operator) external {
-        _slash(operator, 10 ether);
+        _slash(operator, 100 ether);
         _addSponsorship(address(this), 10 ether);
     }
 
