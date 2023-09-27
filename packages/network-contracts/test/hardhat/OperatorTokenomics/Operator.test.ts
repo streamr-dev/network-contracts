@@ -49,7 +49,7 @@ describe("Operator contract", (): void => {
         }
 
         const operatorsCutFraction = parseEther("1").mul(opts?.operatorsCutPercent ?? 0).div(100)
-        return deployOperatorContract(newContracts, deployer, operatorsCutFraction)
+        return deployOperatorContract(newContracts, deployer, operatorsCutFraction, opts)
     }
 
     // fix up after deployOperator->deployOperatorFactory messes up the OperatorFactory address of the sharedContracts.streamrConfig
