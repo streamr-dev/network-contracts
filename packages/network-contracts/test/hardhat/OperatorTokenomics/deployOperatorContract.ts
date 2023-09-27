@@ -16,11 +16,11 @@ export async function deployOperatorContract(
     deployer: Wallet,
     operatorsCutFraction = parseEther("0"),
     opts: {
-        metadata: string,
+        metadata?: string,
         overrideDelegationPolicy?: string,
         overrideExchangeRatePolicy?: string,
         overrideUndelegationPolicy?: string
-    },
+    } = {},
     salt?: string
 ): Promise<Operator> {
     const {

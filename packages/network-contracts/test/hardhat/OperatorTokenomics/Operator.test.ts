@@ -68,9 +68,9 @@ describe("Operator contract", (): void => {
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
 
-        testExchangeRatePolicy = 
+        testExchangeRatePolicy =
             await (await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
-        testExchangeRatePolicy2 = 
+        testExchangeRatePolicy2 =
             await (await (await getContractFactory("TestExchangeRatePolicy2", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
@@ -109,7 +109,7 @@ describe("Operator contract", (): void => {
 
         const minimumDelegationWei = await streamrConfig.minimumDelegationWei()
         expect(minimumDelegationWei).to.equal(parseEther("1"))
-        
+
         // sender would have 0.5 tokens left which is less than the minimumDelegationWei
         await expect(operator1.connect(delegator).transfer(operator2.address, parseEther("99.5")))
             .to.be.revertedWithCustomError(operator1, "DelegationBelowMinimum")
@@ -213,7 +213,7 @@ describe("Operator contract", (): void => {
         const { token: dataToken } = sharedContracts
         await setTokens(delegator, "1000")
         const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy2.address })
-        await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()        
+        await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
         await expect(operator.connect(delegator).balanceInData(delegator.address))
             .to.be.reverted // delegatecall returns (0, data)
     })
@@ -236,7 +236,7 @@ describe("Operator contract", (): void => {
 
             await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
-            
+
             await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
             expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
         })
@@ -269,7 +269,7 @@ describe("Operator contract", (): void => {
             expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // first in queue
             expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
             expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
-            
+
             // undelegate some more => move down into the queue
             await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
             await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
@@ -283,38 +283,216 @@ describe("Operator contract", (): void => {
 
         it("allows delegate and undelegate", async function(): Promise<void> {
             const { token } = sharedContracts
+    describe("Scenarios", (): void => {
+
+        // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
+        it("revenue sharing scenarios 1..6: happy path operator life cycle", async function(): Promise<void> {
+            const { token: dataToken } = sharedContracts
+
+            // Setup:
+            // - There is one single delegator with funds of 1000 DATA and no delegations.
             await setTokens(delegator, "1000")
-            const operator = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
-            await expect(operator.connect(delegator).delegate(parseEther("1000")))
-                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
+            await setTokens(sponsor, "2000")
+            await setTokens(operatorWallet, "0")
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 20 }) // policy needed in part 4
+            const timeAtStart = await getBlockTimestamp()
 
-            await expect(operator.connect(delegator).undelegate(parseEther("1000")))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
-            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
+            // 1: Simple Join/Delegate
+            // "There is a maximum allocation policy of 500 DATA in this system." not implemented => simulate by only delegating 5 DATA
+            await advanceToTimestamp(timeAtStart, "Delegate")
+            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
 
-            expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
-            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+            // delegator sent 500 DATA to operator contract => both have 500 DATA
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("500"))
+            expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("500"))
+            expect(await operator.totalSupply()).to.equal(parseEther("500"))
+
+            // Setup for 2: sponsorship must be only 25 so at #6, Unstaked returns earnings=0
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await dataToken.connect(sponsor).transferAndCall(sponsorship.address, parseEther("2000"), "0x")).wait()
+
+            expect(formatEther(await dataToken.balanceOf(sponsor.address))).to.equal("0.0")
+            expect(formatEther(await dataToken.balanceOf(sponsorship.address))).to.equal("2000.0")
+
+            // 2: Simple Staking
+            await advanceToTimestamp(timeAtStart + 1000, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("500")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            expect(await dataToken.balanceOf(operator.address)).to.equal(parseEther("0"))
+            expect(await dataToken.balanceOf(sponsorship.address)).to.equal(parseEther("2500")) // 2000 sponsorship + 500 stake
+            expect(await sponsorship.stakedWei(operator.address)).to.equal(parseEther("500"))
+            expect(await sponsorship.getEarnings(operator.address)).to.equal(parseEther("0"))
+
+            // 3: Yield Allocated to Accounts
+            // Skip this: there is no "yield allocation policy" that sends incoming earnings directly to delegators
+
+            // 4: Yield Allocated to Operator value
+            // Sponsorship only had 2000 DATA unallocated, so that's what it will allocate
+            // Operator withdraws the 2000 DATA, but
+            //   protocol fee is 5% = 2000 * 0.05 = 100 => 2000 - 100 = 1900 DATA left
+            //   the operator's cut 20% = 1900 * 0.2 = 380 DATA is added to self-delegation
+            // Profit is 2000 - 100 - 380 = 1520 DATA
+            await advanceToTimestamp(timeAtStart + 10000, "Withdraw from sponsorship")
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator, "Profit").withArgs(parseEther("1520"), parseEther("380"), parseEther("100"))
+
+            // total value = DATA balance + stake(s) in sponsorship(s) + earnings in sponsorship(s) = 1900 + 500 + 0 = 2400 DATA
+            expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("1900.0")
+            expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("500.0")
+            expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("500.0")
+            expect(formatEther(await dataToken.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
+
+            // 5: Withdraw/Undelegate
+            // Because the contract's balance is at 1900 DATA, that is the amount of DATA which will be paid out.
+            // Leftover amount remains in the queue.
+            await expect(operator.connect(delegator).undelegate(parseEther("2000")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("2000"), 0)
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1900"))
+                .to.emit(operator, "QueueUpdated").withArgs(delegator.address, parseEther("100"), 0)
+
+            expect(formatEther(await dataToken.balanceOf(operator.address))).to.equal("0.0") // all sent out
+            expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("2400.0")
+
+            // 6: Pay out the queue by unstaking
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+
+            expect(formatEther(await dataToken.balanceOf(delegator.address))).to.equal("2500.0")
+
+            expect(await operator.queueIsEmpty()).to.equal(true)
         })
 
-        it("allows delegate, transfer of operatorTokens, and undelegate by another delegator", async function(): Promise<void> {
+        // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
+        it("forced example scenario", async function(): Promise<void> {
             const { token } = sharedContracts
-            await setTokens(delegator, "1000")
+            await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
+            await (await token.connect(delegator2).transfer(admin.address, await token.balanceOf(delegator2.address))).wait() // burn all tokens
+            await (await token.mint(delegator.address, parseEther("100"))).wait()
+            await (await token.mint(delegator2.address, parseEther("100"))).wait()
+            await (await token.mint(delegator3.address, parseEther("100"))).wait()
+
+            const days = 24 * 60 * 60
             const operator = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
-            await expect(operator.connect(delegator).delegate(parseEther("1000")))
-                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            await (await token.connect(delegator3).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
 
-            await (await operator.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship1.address, parseEther("200"))
+            await operator.stake(sponsorship2.address, parseEther("100"))
 
-            await expect(operator.connect(delegator2).undelegate(parseEther("1000")))
-                .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
-            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
+            const timeAtStart = await getBlockTimestamp()
 
-            expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
-            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+            // Starting state
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("100"))
+            expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("100"))
+            expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
+            expect(await operator.queueIsEmpty()).to.equal(true)
+
+            await advanceToTimestamp(timeAtStart + 0*days, "Delegator 1 enters the exit queue")
+            await operator.connect(delegator).undelegate(parseEther("100"))
+
+            await advanceToTimestamp(timeAtStart + 5*days, "Delegator 2 enters the exit queue")
+            await operator.connect(delegator2).undelegate(parseEther("100"))
+
+            await advanceToTimestamp(timeAtStart + 29*days, "Delegator 1 wants to force-unstake too early")
+            await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 100))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+
+            await advanceToTimestamp(timeAtStart + 31*days, "Operator unstakes 5 data from sponsorship1")
+            await operator.reduceStakeTo(sponsorship1.address, parseEther("150"))
+
+            // sponsorship1 has 15 stake left, sponsorship2 has 10 stake left
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("50"))
+
+            // now anyone can trigger the unstake and payout of the queue
+            await expect(operator.connect(delegator2).forceUnstake(sponsorship1.address, 10))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship1.address)
+
+            expect(await token.balanceOf(delegator.address)).to.equal(parseEther("100"))
+            expect(await token.balanceOf(delegator2.address)).to.equal(parseEther("100"))
+            expect(await token.balanceOf(delegator3.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
+            expect(await operator.queueIsEmpty()).to.equal(true)
+        })
+
+        describe("Delegation management", (): void => {
+            it("allows delegate and undelegate", async function(): Promise<void> {
+                const { token } = sharedContracts
+                await setTokens(delegator, "1000")
+                const operator = await deployOperator(operatorWallet)
+                await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+                await expect(operator.connect(delegator).delegate(parseEther("1000")))
+                    .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+                const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
+
+                await expect(operator.connect(delegator).undelegate(parseEther("1000")))
+                    .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("1000"))
+                const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
+
+                expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
+                expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+            })
+
+            it("allows delegate, transfer of operatorTokens, and undelegate by another delegator", async function(): Promise<void> {
+                const { token } = sharedContracts
+                await setTokens(delegator, "1000")
+                const operator = await deployOperator(operatorWallet)
+                await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+                await expect(operator.connect(delegator).delegate(parseEther("1000")))
+                    .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+                const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
+
+                await (await operator.connect(delegator).transfer(delegator2.address, parseEther("1000"))).wait()
+
+                await expect(operator.connect(delegator2).undelegate(parseEther("1000")))
+                    .to.emit(operator, "Undelegated").withArgs(delegator2.address, parseEther("1000"))
+                const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
+
+                expect(formatEther(contractBalanceAfterDelegate)).to.equal("1000.0")
+                expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+            })
+
+            // streamrConfig.minimumDelegationWei = 1 DATA
+            it("enforces that delegator keep the minimum delegation amount on operatortoken transfer", async function(): Promise<void> {
+                const { token } = sharedContracts
+                await setTokens(delegator, "100")
+                const operator = await deployOperator(operatorWallet)
+                await (await token.connect(delegator).approve(operator.address, parseEther("100"))).wait()
+                await expect(operator.connect(delegator).delegate(parseEther("100")))
+                    .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100"))
+                const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
+
+                // delegator can send tokens to another address if the minimum delegation amount is left after transfer
+                await operator.connect(delegator).transfer(delegator2.address, parseEther("50"))
+                const delegationRemaining = await operator.balanceOf(delegator.address)
+
+                // delegator can NOT send tokens to another address if the minimum delegation amount is NOT left after transfer
+                await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("49.5")))
+                    .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
+
+                expect(contractBalanceAfterDelegate).to.equal(parseEther("100"))
+                expect(delegationRemaining).to.equal(parseEther("50"))
+            })
+
+            it("will NOT allow delegating using wrong token", async function(): Promise<void> {
+                const { token } = sharedContracts
+                const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
+
+                await (await newToken.mint(admin.address, parseEther("1000"))).wait()
+                const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 25 })
+                await expect(newToken.transferAndCall(operator.address, parseEther("100"), "0x"))
+                    .to.be.revertedWithCustomError(operator, "AccessDeniedDATATokenOnly")
+
+                await (await token.mint(admin.address, parseEther("1000"))).wait()
+                await expect(token.transferAndCall(operator.address, parseEther("100"), "0x"))
+                    .to.emit(operator, "Delegated").withArgs(admin.address, parseEther("100"))
+            })
         })
 
         it("allows delegate via transferAndCall by passing a bytes32 data param", async function(): Promise<void> {
@@ -327,7 +505,7 @@ describe("Operator contract", (): void => {
             await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), data))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
         })
-    
+
         it("allows delegate without delegation policy being set", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
@@ -384,17 +562,76 @@ describe("Operator contract", (): void => {
                 .to.not.emit(operator, "Staked")
         })
 
-        it("reduce stake to zero", async function(): Promise<void> {
-            const { token } = sharedContracts
+        it.only("lets reduce stake to zero (unstake from all sponsorships, become 'inactive')", async function(): Promise<void> {
+            const { token, operatorFactory } = sharedContracts
             await setTokens(delegator, "2000")
             const sponsorship = await deploySponsorship(sharedContracts)
             const operator = await deployOperator(operatorWallet)
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
 
-            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, true)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
-            await (await operator.reduceStakeWithoutQueue(sponsorship.address, 0)).wait()
+
+            await expect(operator.reduceStakeWithoutQueue(sponsorship.address, 0))
+                .to.emit(operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
+        })
+
+        it("will NOT let anyone else to stake except the owner of the Operator contract", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
+            await expect(operator.connect(admin).stake(sponsorship.address, parseEther("1000")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+        })
+
+        it("will NOT allow staking to non-Sponsorships", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
+            await expect(operator.stake(sharedContracts.token.address, parseEther("1000")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+        })
+
+        it("will NOT allow staking to Sponsorships that were not created using the correct SponsorshipFactory", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const badSponsorship = sharedContracts.sponsorshipTemplate
+            await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
+            await expect(operator.stake(badSponsorship.address, parseEther("1000")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+        })
+
+        it("will NOT allow staking if there are delegators queueing to exit", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "5000")
+
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("5000"), "0x")).wait()
+            const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 25 })
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+
+            await expect(operator.connect(delegator).undelegate(parseEther("100")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"), 0)
+
+            expect(await operator.queueIsEmpty()).to.be.false
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.be.revertedWithCustomError(operator, "FirstEmptyQueueThenStake")
+
+            await expect(operator.unstake(sponsorship.address))
+                .to.emit(operator, "Unstaked")
+
+            expect(await operator.queueIsEmpty()).to.be.true
+            await expect(operator.stake(sponsorship.address, parseEther("500")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
         })
     })
 
@@ -693,10 +930,6 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Profit").withArgs(parseEther("513"), parseEther("57"), parseEther("30"))
             expect(await token.balanceOf(sponsorship.address)).to.equal(0)
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("870.0") // stake + earnings - protocol fee
-
-            // operator can't undelegate-all yet, since there's still another delegator
-            await expect(operator.undelegate(parseEther("100000")))
-                .to.be.revertedWith("error_selfDelegationTooLow")
 
             // operator contract value = 300 stake + 513 profits = 813 DATA
             // delegator has 2/3 of operator tokens, and should receive 2/3 * 813 = 542 DATA
@@ -1053,7 +1286,7 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
-            
+
             await expect(operator.connect(delegator).undelegate(parseEther("500")))
                 .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"), 0)
         })
@@ -1066,69 +1299,30 @@ describe("Operator contract", (): void => {
             await (await token.connect(operatorWallet).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(operatorWallet).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(operatorWallet.address, parseEther("1000"))
-            
+
             await expect(operator.connect(operatorWallet).undelegate(parseEther("500")))
                 .to.emit(operator, "QueuedDataPayout").withArgs(operatorWallet.address, parseEther("500"), 0)
         })
 
-    })
+        // streamrConfig.minimumDelegationWei = 1 DATA
+        it("undelegate completely if the amount left would be less than the minimum delegation amount", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "101")
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).approve(operator.address, parseEther("100.5"))).wait()
+            await expect(operator.connect(delegator).delegate(parseEther("100.5")))
+                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100.5"))
+            const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
 
-    // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
-    it("forced example scenario", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-        await (await token.connect(delegator2).transfer(admin.address, await token.balanceOf(delegator2.address))).wait() // burn all tokens
-        await (await token.mint(delegator.address, parseEther("100"))).wait()
-        await (await token.mint(delegator2.address, parseEther("100"))).wait()
-        await (await token.mint(delegator3.address, parseEther("100"))).wait()
+            // undelegating 100 will send 100.5 to delegator to meet the minimum-delegation-or-nothing requirement
+            await expect(operator.connect(delegator).undelegate(parseEther("100")))
+                // undelegates the entire stake (100.5) since the amount left would be less than the minimumDelegationWei (1.0)
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100.5"))
+            const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
 
-        const days = 24 * 60 * 60
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-        await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-        await (await token.connect(delegator3).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-
-        const sponsorship1 = await deploySponsorship(sharedContracts)
-        const sponsorship2 = await deploySponsorship(sharedContracts)
-        await operator.stake(sponsorship1.address, parseEther("200"))
-        await operator.stake(sponsorship2.address, parseEther("100"))
-
-        const timeAtStart = await getBlockTimestamp()
-
-        // Starting state
-        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("100"))
-        expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("100"))
-        expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
-        expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
-        expect(await operator.queueIsEmpty()).to.equal(true)
-
-        await advanceToTimestamp(timeAtStart + 0*days, "Delegator 1 enters the exit queue")
-        await operator.connect(delegator).undelegate(parseEther("100"))
-
-        await advanceToTimestamp(timeAtStart + 5*days, "Delegator 2 enters the exit queue")
-        await operator.connect(delegator2).undelegate(parseEther("100"))
-
-        await advanceToTimestamp(timeAtStart + 29*days, "Delegator 1 wants to force-unstake too early")
-        await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 100))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
-
-        await advanceToTimestamp(timeAtStart + 31*days, "Operator unstakes 5 data from sponsorship1")
-        await operator.reduceStakeTo(sponsorship1.address, parseEther("150"))
-
-        // sponsorship1 has 15 stake left, sponsorship2 has 10 stake left
-        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("50"))
-
-        // now anyone can trigger the unstake and payout of the queue
-        await expect(operator.connect(delegator2).forceUnstake(sponsorship1.address, 10))
-            .to.emit(operator, "Unstaked").withArgs(sponsorship1.address)
-
-        expect(await token.balanceOf(delegator.address)).to.equal(parseEther("100"))
-        expect(await token.balanceOf(delegator2.address)).to.equal(parseEther("100"))
-        expect(await token.balanceOf(delegator3.address)).to.equal(parseEther("0"))
-        expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("0"))
-        expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("0"))
-        expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
-        expect(await operator.queueIsEmpty()).to.equal(true)
+            expect(formatEther(contractBalanceAfterDelegate)).to.equal("100.5")
+            expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
+        })
     })
 
     describe("DefaultDelegationPolicy", () => {
@@ -1170,274 +1364,141 @@ describe("Operator contract", (): void => {
         })
     })
 
-    it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(operatorWallet, "1000")
-        await setTokens(sponsor, "1000")
+    describe("Kick/slash handler", () => {
 
-        const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-        await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+        it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(sponsor, "1000")
 
-        const timeAtStart = await getBlockTimestamp()
-        await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1000"))
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
-        await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
-        await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
-            .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
+            const timeAtStart = await getBlockTimestamp()
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1000"))
 
-        // TestKickPolicy actually kicks and slashes given amount (here, 10)
-        await expect(sponsorship.connect(admin).voteOnFlag(operator.address, hexZeroPad(parseEther("10").toHexString(), 32)))
-            .to.emit(sponsorship, "OperatorKicked").withArgs(operator.address)
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
-    })
+            await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
 
-    it("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(operatorWallet, "1000")
-        await setTokens(sponsor, "1000")
+            // TestKickPolicy actually kicks and slashes given amount (here, 10)
+            await expect(sponsorship.connect(admin).voteOnFlag(operator.address, hexZeroPad(parseEther("10").toHexString(), 32)))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(operator.address)
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
+        })
 
-        const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-        await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+        it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            await expect(operator.onSlash(parseEther("10")))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+        })
 
-        const timeAtStart = await getBlockTimestamp()
-        await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
+        it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            await expect(operator.onKick(parseEther("10"), parseEther("10")))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+        })
 
-        // update valueWithoutEarnings
-        await advanceToTimestamp(timeAtStart + 1000, "slash")
-        await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
-            .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
+        it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            const operator2 = await deployOperator(operator2Wallet)
+            await expect(operator.onReviewRequest(operator2.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+        })
 
-        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
-    })
+        it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            const operator2 = await deployOperator(operator2Wallet)
+            await expect(operator.onReviewRequest(operator2.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+        })
 
-    it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after flagging+slashing", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(operatorWallet, "2000")
+        it("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(sponsor, "1000")
 
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
-        const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
-        const sponsorship2 = await deploySponsorship(sharedContracts)
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
 
-        const totalStakeInSponsorshipsBeforeStake = await operator.totalStakedIntoSponsorshipsWei()
-        const valueBeforeStake = await operator.valueWithoutEarnings()
-        await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
-        await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
-        const totalStakeInSponsorshipsAfterStake = await operator.totalStakedIntoSponsorshipsWei()
-        const valueAfterStake = await operator.valueWithoutEarnings()
+            const timeAtStart = await getBlockTimestamp()
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
-        await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
-        const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
-        const valueAfterSlashing = await operator.valueWithoutEarnings()
+            // update valueWithoutEarnings
+            await advanceToTimestamp(timeAtStart + 1000, "slash")
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
 
-        expect(totalStakeInSponsorshipsBeforeStake).to.equal(parseEther("0"))
-        expect(valueBeforeStake).to.equal(parseEther("2000"))
-        expect(totalStakeInSponsorshipsAfterStake).to.equal(parseEther("2000"))
-        expect(valueAfterStake).to.equal(parseEther("2000"))
-        expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("2000"))
-        expect(valueAfterSlashing).to.equal(parseEther("1990"))
-    })
+            await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
+        })
 
-    it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after slashing+unstake", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(operatorWallet, "2000")
-        await setTokens(sponsor, "60")
+        it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after flagging+slashing", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "2000")
 
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
-        const penaltyPeriodSeconds = 60 // trigger penalty check e.g. `block.timestamp >= joinTimestamp + penaltyPeriodSeconds`
-        const allocationWeiPerSecond = parseEther("0") // avoind earnings additions
-        const sponsorship1 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds, allocationWeiPerSecond })
-        await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("60"), "0x")).wait()
-        const sponsorship2 = await deploySponsorship(sharedContracts)
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
 
-        await (await operator.stake(sponsorship1.address, parseEther("1000"))).wait()
-        await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
-        const totalStakeInSponsorshipsBeforeSlashing = await operator.totalStakedIntoSponsorshipsWei()
-        const valueBeforeSlashing = await operator.valueWithoutEarnings()
+            const totalStakeInSponsorshipsBeforeStake = await operator.totalStakedIntoSponsorshipsWei()
+            const valueBeforeStake = await operator.valueWithoutEarnings()
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
+            const totalStakeInSponsorshipsAfterStake = await operator.totalStakedIntoSponsorshipsWei()
+            const valueAfterStake = await operator.valueWithoutEarnings()
 
-        await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
-        const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
-        const valueAfterSlashing = await operator.valueWithoutEarnings()
+            await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
+            const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
+            const valueAfterSlashing = await operator.valueWithoutEarnings()
 
-        expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
-        expect(valueBeforeSlashing).to.equal(parseEther("2000"))
-        expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
-        expect(valueAfterSlashing).to.equal(parseEther("1900"))
-    })
+            expect(totalStakeInSponsorshipsBeforeStake).to.equal(parseEther("0"))
+            expect(valueBeforeStake).to.equal(parseEther("2000"))
+            expect(totalStakeInSponsorshipsAfterStake).to.equal(parseEther("2000"))
+            expect(valueAfterStake).to.equal(parseEther("2000"))
+            expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("2000"))
+            expect(valueAfterSlashing).to.equal(parseEther("1990"))
+        })
 
-    it("will NOT let anyone else to stake except the operator of the Operator", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        const sponsorship = await deploySponsorship(sharedContracts)
-        await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
-        await expect(operator.connect(admin).stake(sponsorship.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-    })
+        it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after slashing+unstake", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "2000")
+            await setTokens(sponsor, "60")
 
-    it("will NOT allow staking to non-Sponsorships", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
-        await expect(operator.stake(sharedContracts.token.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-    })
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+            const penaltyPeriodSeconds = 60 // trigger penalty check e.g. `block.timestamp >= joinTimestamp + penaltyPeriodSeconds`
+            const allocationWeiPerSecond = parseEther("0") // avoind earnings additions
+            const sponsorship1 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds, allocationWeiPerSecond })
+            await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("60"), "0x")).wait()
+            const sponsorship2 = await deploySponsorship(sharedContracts)
 
-    it("will NOT allow staking to Sponsorships that were not created using the correct SponsorshipFactory", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        const sponsorship = await deploySponsorship(sharedContracts)
-        const badSponsorship = sharedContracts.sponsorshipTemplate
-        await (await sharedContracts.token.mint(operator.address, parseEther("1000"))).wait()
-        await expect(operator.stake(badSponsorship.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-    })
+            await (await operator.stake(sponsorship1.address, parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship2.address, parseEther("1000"))).wait()
+            const totalStakeInSponsorshipsBeforeSlashing = await operator.totalStakedIntoSponsorshipsWei()
+            const valueBeforeSlashing = await operator.valueWithoutEarnings()
 
-    it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        await expect(operator.onSlash(parseEther("10")))
-            .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
-    })
+            await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
+            const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
+            const valueAfterSlashing = await operator.valueWithoutEarnings()
 
-    it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        await expect(operator.onKick(parseEther("10"), parseEther("10")))
-            .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
-    })
-
-    it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        const operator2 = await deployOperator(operator2Wallet)
-        await expect(operator.onReviewRequest(operator2.address))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-    })
-
-    it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        const operator2 = await deployOperator(operator2Wallet)
-        await expect(operator.onReviewRequest(operator2.address))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-    })
-
-    it("will NOT allow staking if there are delegators queueing to exit", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "1000")
-        await setTokens(sponsor, "5000")
-
-        const sponsorship = await deploySponsorship(sharedContracts)
-        await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("5000"), "0x")).wait()
-        const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 25 })
-        await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-
-        await expect(operator.connect(delegator).undelegate(parseEther("100")))
-            .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("100"), 0)
-
-        expect(await operator.queueIsEmpty()).to.be.false
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
-            .to.be.revertedWithCustomError(operator, "FirstEmptyQueueThenStake")
-
-        await expect(operator.unstake(sponsorship.address))
-            .to.emit(operator, "Unstaked")
-
-        expect(await operator.queueIsEmpty()).to.be.true
-        await expect(operator.stake(sponsorship.address, parseEther("500")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-    })
-
-    it("will NOT allow delegating using wrong token", async function(): Promise<void> {
-        const { token } = sharedContracts
-        const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
-
-        await (await newToken.mint(admin.address, parseEther("1000"))).wait()
-        const operator = await deployOperator(operatorWallet, { operatorsCutPercent: 25 })
-        await expect(newToken.transferAndCall(operator.address, parseEther("100"), "0x"))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedDATATokenOnly")
-
-        await (await token.mint(admin.address, parseEther("1000"))).wait()
-        await expect(token.transferAndCall(operator.address, parseEther("100"), "0x"))
-            .to.emit(operator, "Delegated").withArgs(admin.address, parseEther("100"))
-    })
-
-    // streamrConfig.minimumDelegationWei = 1 DATA
-    it("undelegate completely if the amount left would be less than the minimum delegation amount", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "101")
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(delegator).approve(operator.address, parseEther("100.5"))).wait()
-        await expect(operator.connect(delegator).delegate(parseEther("100.5")))
-            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100.5"))
-        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
-
-        // undelegating 100 will send 100.5 to delegator to meet the minimum-delegation-or-nothing requirement
-        await expect(operator.connect(delegator).undelegate(parseEther("100")))
-            // undelegates the entire stake (100.5) since the amount left would be less than the minimumDelegationWei (1.0)
-            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100.5"))
-        const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
-
-        expect(formatEther(contractBalanceAfterDelegate)).to.equal("100.5")
-        expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
-    })
-
-    it("undelegate less than the minimum delegation amount if more is staked into sponsorship", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "101")
-        const minimumDelegationWei = parseEther("10")
-        const operator = await deployOperator(operatorWallet, { minimumDelegationWei })
-        await (await token.connect(delegator).approve(operator.address, parseEther("101"))).wait()
-        await expect(operator.connect(delegator).delegate(parseEther("101")))
-            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("101"))
-        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
-
-        // stake 60 into sponsorship => 51 DATA remains in operator contract
-        const sponsorship = await deploySponsorship(sharedContracts)
-        await expect(operator.stake(sponsorship.address, parseEther("60")))
-            .to.emit(operator, "Staked").withArgs(sponsorship.address)
-
-        // undelegating 100 will send 41 to delegator => minimum delegation amount does NOT matter since more tokens (60) are staked in sponsorship
-        await expect(operator.connect(delegator).undelegate(parseEther("100")))
-            .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("41"))
-        const contractBalanceAfterUndelegate = await token.balanceOf(operator.address)
-
-        expect(formatEther(contractBalanceAfterDelegate)).to.equal("101.0")
-        expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
-    })
-
-    // streamrConfig.minimumDelegationWei = 1 DATA
-    it("enforce delegator to keep the minimum delegation amount on operatortoken transfer", async function(): Promise<void> {
-        const { token } = sharedContracts
-        await setTokens(delegator, "100")
-        const operator = await deployOperator(operatorWallet)
-        await (await token.connect(delegator).approve(operator.address, parseEther("100"))).wait()
-        await expect(operator.connect(delegator).delegate(parseEther("100")))
-            .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("100"))
-        const contractBalanceAfterDelegate = await token.balanceOf(operator.address)
-
-        // delegator can send tokens to another address if the minimum delegation amount is left after transfer
-        await operator.connect(delegator).transfer(delegator2.address, parseEther("50"))
-        const delegationRemaining = await operator.balanceOf(delegator.address)
-
-        // delegator can NOT send tokens to another address if the minimum delegation amount is NOT left after transfer
-        await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("49.5")))
-            .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
-
-        expect(contractBalanceAfterDelegate).to.equal(parseEther("100"))
-        expect(delegationRemaining).to.equal(parseEther("50"))
+            expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
+            expect(valueBeforeSlashing).to.equal(parseEther("2000"))
+            expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
+            expect(valueAfterSlashing).to.equal(parseEther("1900"))
+        })
     })
 
     describe("Node addresses", function(): void {
@@ -1527,12 +1588,13 @@ describe("Operator contract", (): void => {
         })
     })
 
-    it("allows controllers to act on behalf of the operator", async function(): Promise<void> {
-        const operator = await deployOperator(operatorWallet)
-        await expect(operator.connect(controller).setNodeAddresses([controller.address]))
-            .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
-        await (await operator.grantRole(await operator.CONTROLLER_ROLE(), controller.address)).wait()
-        await operator.connect(controller).setNodeAddresses([controller.address])
+    describe("Controller role", () => {
+        it("allows controllers to act on behalf of the operator", async function(): Promise<void> {
+            const operator = await deployOperator(operatorWallet)
+            await expect(operator.connect(controller).setNodeAddresses([controller.address]))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await (await operator.grantRole(await operator.CONTROLLER_ROLE(), controller.address)).wait()
+            await operator.connect(controller).setNodeAddresses([controller.address])
+        })
     })
-
 })
