@@ -63,19 +63,12 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     /** @return earningsWei the current earnings of the given operator (since last withdraw) */
     function getEarningsWei(address operator) public view returns (uint earningsWei) {
         if (stakedWei[operator] == 0) { return 0; }
-        return localData().earningsBeforeReferenceUpdate[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
-    }
-
-    /**
-     * Calculate an operator's earnings since the last reset of the per-operator reference point (cumulativeReference)
-     */
-    function calculateNewEarnings(uint referenceWeiPerStake, uint stakeWei) private view returns (uint allocation) {
         LocalStorage storage local = localData();
         (uint newAllocationsWei,) = calculateSinceLastUpdate();
 
         uint cumulativeWeiPerStake = local.cumulativeWeiPerStake + newAllocationsWei * 1e18 / local.lastUpdateTotalStake;
-        uint allocationWeiPerStake = cumulativeWeiPerStake - referenceWeiPerStake;
-        return stakeWei * allocationWeiPerStake / 1e18; // full token = 1e18 wei
+        uint newEarningsPerStakeInFullTokens = cumulativeWeiPerStake - localData().cumulativeReference[operator];
+        return localData().earningsBeforeReferenceUpdate[operator] + stakedWei[operator] * newEarningsPerStakeInFullTokens / 1e18;
     }
 
     /**
@@ -170,7 +163,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
         // Reference Point Update => move new earnings since last reference update to earningsBeforeReferenceUpdate
-        local.earningsBeforeReferenceUpdate[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
+        uint newEarningsPerStakeInFullTokens = local.cumulativeWeiPerStake - local.cumulativeReference[operator];
+        local.earningsBeforeReferenceUpdate[operator] += oldStakeWei * newEarningsPerStakeInFullTokens / 1e18;
         local.cumulativeReference[operator] = local.cumulativeWeiPerStake; // <- this is the reference update
     }
 
