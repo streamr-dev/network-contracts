@@ -111,7 +111,7 @@ describe("VoteKickPolicy", (): void => {
                 .to.not.emit(sponsorship, "OperatorKicked")
             await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
                 .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
-                .to.emit(sponsorship, "Operatored").withArgs(target.address, parseEther("100"))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("100"))
             expect(await token.balanceOf(target.address)).to.equal(parseEther("900"))
 
             expect (await token.balanceOf(voter1.address)).to.equal(parseEther("1"))
@@ -363,7 +363,7 @@ describe("VoteKickPolicy", (): void => {
             expect(targetBalanceAfter).to.equal(parseEther("900")) // slashingFraction of stake was forfeited
         })
 
-        it.only("is not possible to get slashed more than you have staked", async function(): Promise<void> {
+        it("is not possible to get slashed more than you have staked", async function(): Promise<void> {
             const sponsorship = await (await ethers.getContractFactory("Sponsorship", { signer: wallets[0] })).deploy()
             await sponsorship.deployed()
             await sponsorship.initialize(

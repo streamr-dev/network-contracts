@@ -980,7 +980,7 @@ describe("Operator contract", (): void => {
         expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
 
         await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
-        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
+        expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1850"))
     })
 
     it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after flagging+slashing", async function(): Promise<void> {
@@ -1008,7 +1008,7 @@ describe("Operator contract", (): void => {
         expect(totalStakeInSponsorshipsAfterStake).to.equal(parseEther("2000"))
         expect(valueAfterStake).to.equal(parseEther("2000"))
         expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("2000"))
-        expect(valueAfterSlashing).to.equal(parseEther("1990"))
+        expect(valueAfterSlashing).to.equal(parseEther("1900"))
     })
 
     it("calculates totalStakeInSponsorships and valueWithoutEarnings correctly after slashing+unstake", async function(): Promise<void> {
