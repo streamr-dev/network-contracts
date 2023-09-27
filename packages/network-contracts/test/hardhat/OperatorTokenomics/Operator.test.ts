@@ -1062,6 +1062,19 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"), 0)
         })
 
+        it("operator wallet can be a delegator as well", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(operatorWallet, "1000")
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).approve(operator.address, parseEther("1000"))).wait()
+            await expect(operator.connect(operatorWallet).delegate(parseEther("1000")))
+                .to.emit(operator, "Delegated").withArgs(operatorWallet.address, parseEther("1000"))
+            
+            await expect(operator.connect(operatorWallet).undelegate(parseEther("500")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(operatorWallet.address, parseEther("500"), 0)
+        })
+
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
