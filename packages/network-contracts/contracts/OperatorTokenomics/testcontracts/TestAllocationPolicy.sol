@@ -67,7 +67,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         if (localData().sendDataWithFailInGetInsolvencyTimestamp) {
             require(false, "test_getInsolvencyTimestamp");
         }
-        require(false);
+        require(false); // solhint-disable-line reason-string
     }
 
     /**
