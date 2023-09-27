@@ -1040,6 +1040,29 @@ describe("Operator contract", (): void => {
             expect(await operator.queueIsEmpty()).to.equal(true)
         })
 
+        it("undelegate reverts if the amount is zero", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            const operator = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await expect(operator.connect(delegator).delegate(parseEther("1000")))
+                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+            await expect(operator.connect(delegator).undelegate(0))
+                .to.revertedWithCustomError(operator, "ZeroUndelegation")
+        })
+
+        it("can undelegate even if undelegation policy is not set", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            const operator = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await expect(operator.connect(delegator).delegate(parseEther("1000")))
+                .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+            
+            await expect(operator.connect(delegator).undelegate(parseEther("500")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("500"), 0)
+        })
+
     })
 
     // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
