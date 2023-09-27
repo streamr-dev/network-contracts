@@ -68,7 +68,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(sponsorship.getFlag(defaultSetup.sponsorships[0].address))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
         })
-    })                
+    })
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
         it("with one flagger, one target and one voter", async function(): Promise<void> {
@@ -385,7 +385,7 @@ describe("VoteKickPolicy", (): void => {
             await (await defaultSetup.token.transferAndCall(sponsorship.address, parseEther("70"), wallets[0].address)).wait()
             // await(await sponsorship.flag(wallets[0].address, "")).wait()
             await expect(await sponsorship.flag(wallets[0].address, ""))
-                .to.emit(sponsorship, "OperatorSlashed").withArgs(wallets[0].address, parseEther("10"))    
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(wallets[0].address, parseEther("70"))
         })
     })
 
