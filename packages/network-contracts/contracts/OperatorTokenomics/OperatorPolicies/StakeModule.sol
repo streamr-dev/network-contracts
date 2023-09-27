@@ -41,14 +41,14 @@ contract StakeModule is IStakeModule, Operator {
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
-        reduceStakeWithoutQueue(sponsorship, targetStakeWei);
+        _reduceStakeWithoutQueue(sponsorship, targetStakeWei);
         payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         if (targetStakeWei == 0) {
-            unstakeWithoutQueue(sponsorship);
+            _unstakeWithoutQueue(sponsorship);
             return;
         }
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
@@ -56,16 +56,6 @@ contract StakeModule is IStakeModule, Operator {
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         totalStakedIntoSponsorshipsWei -= cashoutWei;
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-    }
-
-
-    /**
-     * Unstake from a sponsorship
-     * Throws if some of the stake is locked to pay for flags (being flagged or flagging others)
-     **/
-    function _unstake(Sponsorship sponsorship) public onlyOperator {
-        unstakeWithoutQueue(sponsorship);
-        payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
