@@ -14,5 +14,7 @@ contract TestExchangeRatePolicy2 is IExchangeRatePolicy {
 
     function operatorTokenToDataInverse(uint dataWei) external view returns (uint) {}
 
-    function dataToOperatorToken(uint, uint) external view returns (uint) {}
+    function dataToOperatorToken(uint, uint) external view returns (uint) {
+        return 100;
+    }
 }

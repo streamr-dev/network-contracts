@@ -202,26 +202,30 @@ describe("Operator contract", (): void => {
     })
 
     it("moduleGet reverts for broken yield policies", async function(): Promise<void> {
-        const { token: dataToken } = sharedContracts
+        const { token: dataToken, testExchangeRatePolicy } = sharedContracts
         await setTokens(delegator, "1000")
-        const operator = await deployOperator(operatorWallet)
+        const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-        await (await operator.setExchangeRatePolicy(testExchangeRatePolicy.address, 0)).wait()
         await expect(operator.connect(delegator).balanceInData(delegator.address))
             .to.be.revertedWithCustomError(operator, "ModuleGetError") // delegatecall returns (0, 0)
-        
-        await (await operator.setExchangeRatePolicy(testExchangeRatePolicy2.address, 0)).wait()
+    })
+
+    it("moduleGet reverts for broken yield policies 2", async function(): Promise<void> {
+        const { token: dataToken, testExchangeRatePolicy2 } = sharedContracts
+        await setTokens(delegator, "1000")
+        const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy2.address })
+        await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()        
         await expect(operator.connect(delegator).balanceInData(delegator.address))
             .to.be.reverted // delegatecall returns (0, data)
     })
 
     it("moduleCall reverts for broken yield policy", async function(): Promise<void> {
-        const { token: dataToken } = sharedContracts
+        const { token: dataToken, testExchangeRatePolicy } = sharedContracts
         await setTokens(delegator, "1000")
-        const operator = await deployOperator(operatorWallet)
-        await (await operator.setExchangeRatePolicy(testExchangeRatePolicy.address, 0)).wait()
-        await expect(dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
-            .to.be.reverted // delegatecall returns (0, data)
+        const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
+        await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+        await expect(operator.connect(delegator).undelegate(parseEther("1000")))
+            .to.be.revertedWithCustomError(operator, "ModuleCallError") // delegatecall returns (0, 0)
     })
 
     describe("Delegator functionality", (): void => {
@@ -328,8 +332,7 @@ describe("Operator contract", (): void => {
         it("allows delegate without delegation policy being set", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
-            const operator = await deployOperator(operatorWallet)
-            await (await operator.connect(operatorWallet).setDelegationPolicy(hardhatEthers.constants.AddressZero, 0)).wait()
+            const operator = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))

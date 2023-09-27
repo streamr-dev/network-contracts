@@ -60,10 +60,10 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         defaultUndelegationPolicy!.address
     ], { gasLimit: 500000 })).wait()
     if (testExchangeRatePolicy) {
-        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy.address])).wait()
+        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy.address], { gasLimit: 500000 })).wait()
     }
     if (testExchangeRatePolicy2) {
-        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy2.address])).wait()
+        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy2.address], { gasLimit: 500000 })).wait()
     }
     await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
     return { operatorFactory, operatorTemplate }
