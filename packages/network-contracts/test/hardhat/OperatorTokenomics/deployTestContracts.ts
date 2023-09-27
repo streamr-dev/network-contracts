@@ -24,8 +24,6 @@ export type TestContracts = {
     defaultDelegationPolicy: IDelegationPolicy;
     defaultExchangeRatePolicy: IExchangeRatePolicy;
     defaultUndelegationPolicy: IUndelegationPolicy;
-    testExchangeRatePolicy: IExchangeRatePolicy;
-    testExchangeRatePolicy2: IExchangeRatePolicy;
     nodeModule: NodeModule;
     queueModule: QueueModule;
     stakeModule: StakeModule;
@@ -40,7 +38,6 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     const {
         token, streamrConfig,
         defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
-        testExchangeRatePolicy, testExchangeRatePolicy2,
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
     const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy() as OperatorFactory
@@ -59,12 +56,6 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         defaultExchangeRatePolicy!.address,
         defaultUndelegationPolicy!.address
     ], { gasLimit: 500000 })).wait()
-    if (testExchangeRatePolicy) {
-        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy.address], { gasLimit: 500000 })).wait()
-    }
-    if (testExchangeRatePolicy2) {
-        await (await operatorFactory.addTrustedPolicies([testExchangeRatePolicy2.address], { gasLimit: 500000 })).wait()
-    }
     await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
     return { operatorFactory, operatorTemplate }
 }
@@ -118,10 +109,6 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
     const defaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
 
-    // test policies
-    const testExchangeRatePolicy = await (await getContractFactory("TestExchangeRatePolicy", { signer })).deploy()
-    const testExchangeRatePolicy2 = await (await getContractFactory("TestExchangeRatePolicy2", { signer })).deploy()
-
     const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
     const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
     const stakeModule = await (await getContractFactory("StakeModule", { signer })).deploy() as StakeModule
@@ -143,7 +130,6 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
         defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
-        testExchangeRatePolicy, testExchangeRatePolicy2,
         deployer: signer
     }
 }

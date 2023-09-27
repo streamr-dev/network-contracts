@@ -49,6 +49,7 @@ describe("Operator contract", (): void => {
         }
 
         const operatorsCutFraction = parseEther("1").mul(opts?.operatorsCutPercent ?? 0).div(100)
+        await (await newContracts.operatorFactory.addTrustedPolicies([ testExchangeRatePolicy.address, testExchangeRatePolicy2.address])).wait()
         return deployOperatorContract(newContracts, deployer, operatorsCutFraction, opts)
     }
 
@@ -69,10 +70,8 @@ describe("Operator contract", (): void => {
 
         testExchangeRatePolicy = 
             await (await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
-        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testExchangeRatePolicy.address])).wait()
         testExchangeRatePolicy2 = 
             await (await (await getContractFactory("TestExchangeRatePolicy2", admin)).deploy()).deployed() as unknown as IExchangeRatePolicy
-        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testExchangeRatePolicy2.address])).wait()
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
@@ -202,7 +201,7 @@ describe("Operator contract", (): void => {
     })
 
     it("moduleGet reverts for broken yield policies", async function(): Promise<void> {
-        const { token: dataToken, testExchangeRatePolicy } = sharedContracts
+        const { token: dataToken } = sharedContracts
         await setTokens(delegator, "1000")
         const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -211,7 +210,7 @@ describe("Operator contract", (): void => {
     })
 
     it("moduleGet reverts for broken yield policies 2", async function(): Promise<void> {
-        const { token: dataToken, testExchangeRatePolicy2 } = sharedContracts
+        const { token: dataToken } = sharedContracts
         await setTokens(delegator, "1000")
         const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy2.address })
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()        
@@ -220,7 +219,7 @@ describe("Operator contract", (): void => {
     })
 
     it("moduleCall reverts for broken yield policy", async function(): Promise<void> {
-        const { token: dataToken, testExchangeRatePolicy } = sharedContracts
+        const { token: dataToken } = sharedContracts
         await setTokens(delegator, "1000")
         const operator = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
         await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
