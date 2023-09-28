@@ -14,6 +14,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         bool failOnIncrease;
         bool failEmptyOnIncrease;
         bool sendDataWithFailInGetInsolvencyTimestamp;
+        bool failInGetInsolvencyTimestamp;
     }
 
     function localData() internal view returns(LocalStorage storage data) {
@@ -40,6 +41,8 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
             localData().failEmptyOnIncrease = true;
         } else if (testCase == 9) {
             localData().sendDataWithFailInGetInsolvencyTimestamp = true;
+        } else if (testCase == 10) {
+            localData().failInGetInsolvencyTimestamp = true;
         }
     }
 
@@ -62,12 +65,14 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     /** Horizon means how long time the (unallocated) funds are going to still last */
-    function getInsolvencyTimestamp() public override view returns (uint horizonSeconds) {
+    function getInsolvencyTimestamp() public override view returns (uint) {
         // return 2**255; // indefinitely solvent
         if (localData().sendDataWithFailInGetInsolvencyTimestamp) {
             require(false, "test_getInsolvencyTimestamp");
+        } else if (localData().failInGetInsolvencyTimestamp) {
+            require(false); // solhint-disable-line reason-string
         }
-        require(false); // solhint-disable-line reason-string
+        return 0;
     }
 
     /**

@@ -1,10 +1,10 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { Contract, utils as ethersUtils, Wallet } from "ethers"
+import { utils as ethersUtils, Wallet } from "ethers"
 
-import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken } from "../../../typechain"
+import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
 
-const { defaultAbiCoder, parseEther, formatEther } = ethersUtils
+const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = ethersUtils
 const { getSigners, getContractFactory } = hardhatEthers
 
 import { advanceToTimestamp, getBlockTimestamp } from "./utils"
@@ -23,6 +23,7 @@ describe("Sponsorship contract", (): void => {
 
     let token: TestToken
 
+    let testKickPolicy: IKickPolicy
     let testJoinPolicy: IJoinPolicy
     let testAllocationPolicy: IAllocationPolicy
 
@@ -35,10 +36,10 @@ describe("Sponsorship contract", (): void => {
         [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
-        // TODO: fix type incompatibility, if at all possible
         const { sponsorshipFactory } = contracts
-        testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as unknown as IAllocationPolicy
-        testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as unknown as IJoinPolicy
+        testKickPolicy = await (await getContractFactory("TestKickPolicy", admin)).deploy() as IKickPolicy
+        testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as IAllocationPolicy
+        testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as IJoinPolicy
         await (await sponsorshipFactory.addTrustedPolicies([testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         token = contracts.token
@@ -282,16 +283,28 @@ describe("Sponsorship contract", (): void => {
             expect(stakeAfterUnstake).to.equal(0)
         })
 
-        it("throws correctly when error happens in policy in a view call with data", async function(): Promise<void> {
+        it("forwards the reason when view call to policy reverts", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "9")
             await expect(sponsorship.solventUntilTimestamp())
                 .to.be.revertedWith("test_getInsolvencyTimestamp")
         })
 
-        it("throws correctly when error happens in policy in a view call without data", async function(): Promise<void> {
+        it("throws ModuleGetError when view call to policy reverts without reason", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "10")
             await expect(sponsorship.solventUntilTimestamp())
                 .to.be.revertedWithCustomError(sponsorship, "ModuleGetError")
+        })
+    })
+
+    describe("Kicking/slasing", (): void => {
+        it("can not slash more than you have staked", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, testKickPolicy)
+            await expect(token.transferAndCall(sponsorship.address, parseEther("70"), operator.address))
+                .to.emit(sponsorship, "OperatorJoined").withArgs(operator.address)
+
+            // TestKickPolicy actually kicks and slashes given amount (here, 100)
+            await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("100").toHexString(), 32)))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(operator.address, parseEther("70"))
         })
     })
 
@@ -301,16 +314,6 @@ describe("Sponsorship contract", (): void => {
             const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
             await expect(defaultSponsorship.connect(operator).addJoinPolicy(maxOperatorsJoinPolicy.address, "2000000000000000000"))
                 .to.be.revertedWith(`AccessControl: account ${operator.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
-        })
-
-        // TODO: is this a feature or a bug?
-        it("silently fails when receives empty errors from policies", async function(): Promise<void> {
-            const jpMS = await getContractFactory("TestAllocationPolicy", admin)
-            const jpMSC = await jpMS.deploy() as Contract
-            const testAllocPolicy = await jpMSC.connect(admin).deployed() as IAllocationPolicy
-            await expect(defaultSponsorship.setAllocationPolicy(testAllocPolicy.address, "2"))
-                .to.be.revertedWith("AccessControl: account 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266 is missing "
-                + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
         })
 
         it("will fail if setting penalty period longer than 14 days", async function(): Promise<void> {
@@ -379,35 +382,41 @@ describe("Sponsorship contract", (): void => {
 
     describe("IAllocationPolicy negative tests", (): void => {
         it("error setting param on allocationPolicy", async function(): Promise<void> {
-            await expect(deploySponsorshipWithoutFactory(contracts, {},
-                [], [], testAllocationPolicy, "1")) // 1 => will revert in setParam
+            // 1 => will revert in setParam
+            await expect(deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "1"))
                 .to.be.revertedWith("test_setParam")
         })
 
+        it("error setting param on allocationPolicy, empty error", async function(): Promise<void> {
+            // 2 => will revert without reason in setParam
+            await expect(deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "2"))
+                .to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "ModuleCallError")
+        })
+
         it("error onJoin on allocationPolicy", async function(): Promise<void> {
-            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
-                [], [], testAllocationPolicy, "3") // 3 => onJoin will revert
+            // 3 => onJoin will revert
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "3")
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), admin.address))
                 .to.be.revertedWith("test_onJoin")
         })
 
         it("error onJoin on allocationPolicy, empty error", async function(): Promise<void> {
-            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
-                [], [], testAllocationPolicy, "4") // 4 => onJoin will revert without reason
+            // 4 => onJoin will revert without reason
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "4")
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), admin.address))
                 .to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "ModuleCallError")
         })
 
         it("error onleave on allocationPolicy", async function(): Promise<void> {
-            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
-                [], [], testAllocationPolicy, "5") // 5 => onLeave will revert
+            // 5 => onLeave will revert
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "5")
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).unstake()).to.be.revertedWith("test_onLeave")
         })
 
         it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
-            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {},
-                [], [], testAllocationPolicy, "6") // 6 => onLeave will revert without reason
+            // 6 => onLeave will revert without reason
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "6")
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).unstake()).to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "ModuleCallError")
         })

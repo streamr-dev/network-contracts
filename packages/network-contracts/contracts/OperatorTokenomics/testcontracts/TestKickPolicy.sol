@@ -14,13 +14,13 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
     }
 
     function onFlag(address operator) external {
-        _slash(operator, 100 ether);
-        _addSponsorship(address(this), 10 ether);
+        uint actualSlashingWei = _slash(operator, 10 ether);
+        _addSponsorship(address(this), actualSlashingWei);
     }
 
     function onVote(address operator, bytes32 voteData) external {
-        _kick(operator, uint(voteData));
-        _addSponsorship(address(this), uint(voteData));
+        uint actualSlashingWei = _kick(operator, uint(voteData));
+        _addSponsorship(address(this), actualSlashingWei);
     }
 
     function getFlagData(address operator) override external view returns (uint flagData) {
