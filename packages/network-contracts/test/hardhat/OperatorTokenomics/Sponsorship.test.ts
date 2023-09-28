@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { Contract, utils as ethersUtils, Wallet } from "ethers"
+import { utils as ethersUtils, Wallet } from "ethers"
 
 import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
 
