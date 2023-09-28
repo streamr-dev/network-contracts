@@ -12,7 +12,7 @@ contract StakeModule is IStakeModule, Operator {
      * Can only happen if all the delegators who want to undelegate have been paid out first.
      * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
      **/
-    function _stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
+    function _stake(Sponsorship sponsorship, uint amountWei) external {
         if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
             revert AccessDeniedStreamrSponsorshipOnly();
         }
@@ -40,13 +40,13 @@ contract StakeModule is IStakeModule, Operator {
      * Take out some of the stake from a sponsorship without completely unstaking
      * Except if you call this with targetStakeWei == 0, then it will actually call unstake
      **/
-    function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
+    function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external {
         _reduceStakeWithoutQueue(sponsorship, targetStakeWei);
         payOutQueue(0);
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
+    function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public {
         if (targetStakeWei == 0) {
             _unstakeWithoutQueue(sponsorship);
             return;
@@ -59,7 +59,7 @@ contract StakeModule is IStakeModule, Operator {
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
+    function _unstakeWithoutQueue(Sponsorship sponsorship) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);

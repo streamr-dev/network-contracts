@@ -387,7 +387,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
         })
 
-        describe("DefaultDelegationPolicy", () => {
+        describe("DefaultDelegationPolicy / DefaltUndelegationPolicy", () => {
             beforeEach(async () => {
                 await setTokens(operatorWallet, "3000")
                 await setTokens(delegator, "15000")
@@ -395,6 +395,18 @@ describe("Operator contract", (): void => {
             })
             afterEach(async () => {
                 await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
+            })
+
+            it("will NOT let operator's self-delegation go under the limit", async function(): Promise<void> {
+                const { token } = sharedContracts
+                setTokens(operatorWallet, "1000")
+                setTokens(delegator, "1000")
+                const { operator } = await deployOperator(operatorWallet)
+                await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+                await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+                await expect(operator.undelegate(parseEther("1000")))
+                    .to.be.revertedWith("error_selfDelegationTooLow")
             })
 
             it("will NOT allow delegations after operator unstakes and undelegates all (operator value -> zero)", async function(): Promise<void> {
