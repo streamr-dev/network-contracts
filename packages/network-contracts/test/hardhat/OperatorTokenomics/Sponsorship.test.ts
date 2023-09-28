@@ -36,7 +36,6 @@ describe("Sponsorship contract", (): void => {
         [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
-        // TODO: fix type incompatibility, if at all possible
         const { sponsorshipFactory } = contracts
         testKickPolicy = await (await getContractFactory("TestKickPolicy", admin)).deploy() as IKickPolicy
         testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as IAllocationPolicy
