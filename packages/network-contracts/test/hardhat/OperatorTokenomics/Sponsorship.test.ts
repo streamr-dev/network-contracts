@@ -2,9 +2,9 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { Contract, utils as ethersUtils, Wallet } from "ethers"
 
-import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken } from "../../../typechain"
+import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
 
-const { defaultAbiCoder, parseEther, formatEther } = ethersUtils
+const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = ethersUtils
 const { getSigners, getContractFactory } = hardhatEthers
 
 import { advanceToTimestamp, getBlockTimestamp } from "./utils"
@@ -23,6 +23,7 @@ describe("Sponsorship contract", (): void => {
 
     let token: TestToken
 
+    let testKickPolicy: IKickPolicy
     let testJoinPolicy: IJoinPolicy
     let testAllocationPolicy: IAllocationPolicy
 
@@ -37,8 +38,9 @@ describe("Sponsorship contract", (): void => {
 
         // TODO: fix type incompatibility, if at all possible
         const { sponsorshipFactory } = contracts
-        testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as unknown as IAllocationPolicy
-        testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as unknown as IJoinPolicy
+        testKickPolicy = await (await getContractFactory("TestKickPolicy", admin)).deploy() as IKickPolicy
+        testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as IAllocationPolicy
+        testJoinPolicy = await (await (await getContractFactory("TestJoinPolicy", admin)).deploy()).deployed() as IJoinPolicy
         await (await sponsorshipFactory.addTrustedPolicies([testJoinPolicy.address, testAllocationPolicy.address])).wait()
 
         token = contracts.token
@@ -292,6 +294,18 @@ describe("Sponsorship contract", (): void => {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "10")
             await expect(sponsorship.solventUntilTimestamp())
                 .to.be.revertedWithCustomError(sponsorship, "ModuleGetError")
+        })
+    })
+
+    describe("Kicking/slasing", (): void => {
+        it("can not slash more than you have staked", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, testKickPolicy)
+            await expect(token.transferAndCall(sponsorship.address, parseEther("70"), operator.address))
+                .to.emit(sponsorship, "OperatorJoined").withArgs(operator.address)
+
+            // TestKickPolicy actually kicks and slashes given amount (here, 100)
+            await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("100").toHexString(), 32)))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(operator.address, parseEther("70"))
         })
     })
 
