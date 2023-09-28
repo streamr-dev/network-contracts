@@ -56,6 +56,7 @@ export function handleDelegated(event: Delegated): void {
 
     let delegation = loadOrCreateDelegation(operatorContractAddress, event.params.delegator.toHexString(), event.block.timestamp)
     delegation.delegatedDataWei = delegation.delegatedDataWei.plus(amountDataWei)
+    delegation.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.totalDelegatedWei = bucket.totalDelegatedWei.plus(amountDataWei)
@@ -71,6 +72,7 @@ export function handleUndelegated(event: Undelegated): void {
 
     let delegation = loadOrCreateDelegation(operatorContractAddress, event.params.delegator.toHexString(), event.block.timestamp)
     delegation.undelegatedDataWei = delegation.undelegatedDataWei.plus(amountUndelegatedWei)
+    delegation.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.totalUndelegatedWei = bucket.totalUndelegatedWei.plus(amountUndelegatedWei)
