@@ -177,12 +177,26 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
         })
 
+        it("won't let increase stake with reduceStakeTo", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("150")))
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+        })
+
         it("won't let unstake if you would be slashed", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).unstake())
                 .to.be.revertedWithCustomError(defaultSponsorship, "LeavePenalty")
+        })
+
+        it("won't let you unstake if you're not staked", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await expect(sponsorship.connect(operator).unstake())
+                .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
         })
 
         it("lets you unstake when you unstake after the penalty period", async function(): Promise<void> {
@@ -224,6 +238,27 @@ describe("Sponsorship contract", (): void => {
             expect(allocationAfterWithdraw).to.equal(0)
         })
 
+        it("won't let you withdraw if you have no stake", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await sponsorship.sponsor(parseEther("10000"))).wait()
+            const start = await getBlockTimestamp()
+
+            // join tx actually happens at timeAtStart + 1
+            await advanceToTimestamp(start, "Stake to sponsorship")
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+
+            await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
+            await (await sponsorship.connect(operator).unstake()).wait()
+            await expect(sponsorship.connect(operator).withdraw())
+                .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
+        })
+
+        it("will let you withdraw 0 token if you have no earnings", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(sponsorship.connect(operator).withdraw()).to.not.emit(sponsorship, "StakeUpdate")
+        })
+
         it("shows zero allocation and zero stake after unstaking (no locked stake)", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
@@ -245,6 +280,18 @@ describe("Sponsorship contract", (): void => {
             expect(formatEther(stakeBeforeUnstake)).to.equal("100.0")
             expect(allocationAfterUnstake).to.equal(0)
             expect(stakeAfterUnstake).to.equal(0)
+        })
+
+        it("throws correctly when error happens in policy in a view call with data", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "9")
+            await expect(sponsorship.solventUntilTimestamp())
+                .to.be.revertedWith("test_getInsolvencyTimestamp")
+        })
+
+        it("throws correctly when error happens in policy in a view call without data", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "10")
+            await expect(sponsorship.solventUntilTimestamp())
+                .to.be.revertedWithCustomError(sponsorship, "ModuleGetError")
         })
     })
 
