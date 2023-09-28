@@ -32,19 +32,19 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
 
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegator, event.block.timestamp)
     delegation.operatorTokenBalanceWei = newBalance
-
-    // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
-    if (newBalance == BigInt.fromU32(0)) {
+    if (newBalance.gt(BigInt.zero())) {
+        delegation.save()
+        log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
+    } else {
+        // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
         store.remove('Delegation', delegation.id)
         operator.delegatorCount = operator.delegatorCount - 1
         let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
         bucket.delegatorCountChange = bucket.delegatorCountChange - 1
         bucket.save()
         log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
-    } else {
-        delegation.save()
-        log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
     }
+
     operator.save()
 }
 
