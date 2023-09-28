@@ -21,10 +21,11 @@ async function createStream(deployerAddress: string, streamRegistry: StreamRegis
 
 describe("SponsorshipFactory", () => {
     let admin: Wallet
+    let notAdmin: Wallet
     let contracts: TestContracts
 
     before(async (): Promise<void> => {
-        [admin] = await getSigners() as unknown as Wallet[]
+        [admin, notAdmin] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
@@ -143,6 +144,32 @@ describe("SponsorshipFactory", () => {
             ["0", "0", "0", "0"])).to.be.revertedWith("error_streamNotFound")
     })
 
+    it("will NOT create a Sponsorship without an allocation policy", async function(): Promise<void> {
+        const { sponsorshipFactory, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [],
+            [])).to.be.revertedWith("error_allocationPolicyRequired")
+    })
+
+    it("will not create a Sponsorship with a zero allocation policy", async function(): Promise<void> {
+        const { sponsorshipFactory, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [hardhatEthers.constants.AddressZero],
+            ["0"])).to.be.revertedWith("error_allocationPolicyRequired")
+    })
+
+    it("is possible to have multilpe join policies", async function(): Promise<void> {
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
+            operatorContractOnlyJoinPolicy, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address,
+                maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, hardhatEthers.constants.AddressZero],
+            ["0", "0", "0", "0", "0", "0"])
+    })
+
     // must be last test, will remove all policies in the sponsorshipFactory
     it("positivetest remove trusted policies", async function(): Promise<void> {
         const { sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy, leavePolicy } = contracts
@@ -158,5 +185,33 @@ describe("SponsorshipFactory", () => {
         expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.false
+    })
+
+    describe("SponsorshipFactory access control", () => {
+        it("non admin role can't add trusted policies", async function(): Promise<void> {
+            const { sponsorshipFactory, maxOperatorsJoinPolicy, allocationPolicy } = contracts
+            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicy(maxOperatorsJoinPolicy.address))
+                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " + 
+                "missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([maxOperatorsJoinPolicy.address, allocationPolicy.address]))
+                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " + 
+                "missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+        })
+
+        it("non admin role can't remove trusted policies", async function(): Promise<void> {
+            const { sponsorshipFactory, maxOperatorsJoinPolicy } = contracts
+            await expect(sponsorshipFactory.connect(notAdmin).removeTrustedPolicy(maxOperatorsJoinPolicy.address))
+                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " +
+                "missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+        })
+
+        it("initializer can't be called twice", async function(): Promise<void> {
+            const { sponsorshipFactory } = contracts
+            await expect(sponsorshipFactory.initialize(
+                hardhatEthers.constants.AddressZero,
+                hardhatEthers.constants.AddressZero,
+                hardhatEthers.constants.AddressZero,
+            )).to.be.revertedWith("Initializable: contract is already initialized")
+        })
     })
 })
