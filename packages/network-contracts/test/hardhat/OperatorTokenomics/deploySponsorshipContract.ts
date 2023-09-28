@@ -89,17 +89,17 @@ export async function deploySponsorshipWithoutFactory(
         maxOperatorCount = -1,
         allocationWeiPerSecond = parseEther("1"),
         operatorOnly = false,
-        adminKickInsteadOfVoteKick = false,
     } = {},
     extraJoinPolicies?: IJoinPolicy[],
     extraJoinPolicyParams?: string[],
     overrideAllocationPolicy?: IAllocationPolicy,
     overrideAllocationPolicyParam?: string,
+    overrideKickPolicy?: IKickPolicy,
 ): Promise<Sponsorship> {
     const {
         token, deployer,
         maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy,
-        allocationPolicy, leavePolicy, adminKickPolicy, voteKickPolicy,
+        allocationPolicy, leavePolicy, voteKickPolicy,
         streamRegistry,
     } = contracts
 
@@ -119,7 +119,7 @@ export async function deploySponsorshipWithoutFactory(
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
     )
 
-    await sponsorship.setKickPolicy(adminKickInsteadOfVoteKick ? adminKickPolicy.address : voteKickPolicy.address, deployer.address)
+    await sponsorship.setKickPolicy(overrideKickPolicy?.address ?? voteKickPolicy.address, deployer.address)
     if (penaltyPeriodSeconds > -1) {
         await sponsorship.setLeavePolicy(leavePolicy.address, penaltyPeriodSeconds.toString())
     }

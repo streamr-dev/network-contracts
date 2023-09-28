@@ -98,9 +98,9 @@ contract QueueModule is IQueueModule, Operator {
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
      * This function can only be called if there really are too many earnings in the other Operator.
      **/
-    function _triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+    function _triggerAnotherOperatorWithdraw(address otherOperatorAddress, Sponsorship[] memory sponsorshipAddresses) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
-        other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        Operator(otherOperatorAddress).withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
         if (earnings == 0) {

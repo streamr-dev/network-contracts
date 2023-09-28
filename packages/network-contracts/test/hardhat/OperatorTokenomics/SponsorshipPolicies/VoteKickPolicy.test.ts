@@ -32,13 +32,41 @@ describe("VoteKickPolicy", (): void => {
     // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
     let defaultSetup: SponsorshipTestSetup
     let contracts: TestContracts
+    let wallets: Wallet[]
     before(async (): Promise<void> => {
         const signers = await ethers.getSigners() as unknown as Wallet[]
+        wallets = signers
         contracts = await deployTestContracts(signers[0])
         for (const { address } of signers) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
         }
         defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
+    })
+
+    describe("Flagging not possible if feature is not supported", (): void => {
+        it("FAILS to flag if feature is not supported", async function(): Promise<void> {
+            const sponsorship = await (await ethers.getContractFactory("Sponsorship", { signer: wallets[0] })).deploy()
+            await sponsorship.deployed()
+            await sponsorship.initialize(
+                "streamId",
+                "metadata",
+                contracts.streamrConfig.address,
+                defaultSetup.token.address,
+                [
+                    0,
+                    1,
+                    parseEther("1").toString()
+                ],
+                contracts.allocationPolicy.address
+            )
+
+            await expect(sponsorship.flag(defaultSetup.sponsorships[0].address, ""))
+                .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
+            await expect(sponsorship.voteOnFlag(defaultSetup.sponsorships[0].address, VOTE_KICK))
+                .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
+            await expect(sponsorship.getFlag(defaultSetup.sponsorships[0].address))
+                .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
+        })
     })
 
     describe("Flagging + voting + resolution (happy path)", (): void => {
@@ -349,6 +377,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("voting resolution can be triggered by anyone after the voting period is over", async function(): Promise<void> {
+            // TODO
         })
     })
 
