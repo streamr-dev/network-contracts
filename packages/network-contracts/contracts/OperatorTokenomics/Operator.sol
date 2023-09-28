@@ -102,7 +102,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     IERC677 public token;
 
     /**
-     * How much the operator gets from every withdraw
+     * How much the operator gets from every withdraw (after protocol fee)
      * 1 ether == 100%, like in tokens
      **/
     uint public operatorsCutFraction;
