@@ -66,7 +66,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
     error ActiveFlag();
-    error TransferError();
     error FlaggingNotSupported();
     error AccessDenied();
 
@@ -367,7 +366,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _withdraw(address operator) internal returns (uint payoutWei) {
         payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator));
         if (payoutWei > 0) {
-            if (!token.transferAndCall(operator, payoutWei, "allocation")) { revert TransferError(); }
+            token.transferAndCall(operator, payoutWei, "allocation");
         }
     }
 

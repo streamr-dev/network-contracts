@@ -215,11 +215,9 @@ describe("Operator contract", (): void => {
         // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
         it("forced example scenario", async function(): Promise<void> {
             const { token } = sharedContracts
-            await (await token.connect(delegator).transfer(admin.address, await token.balanceOf(delegator.address))).wait() // burn all tokens
-            await (await token.connect(delegator2).transfer(admin.address, await token.balanceOf(delegator2.address))).wait() // burn all tokens
-            await (await token.mint(delegator.address, parseEther("100"))).wait()
-            await (await token.mint(delegator2.address, parseEther("100"))).wait()
-            await (await token.mint(delegator3.address, parseEther("100"))).wait()
+            setTokens(delegator, "100")
+            setTokens(delegator2, "100")
+            setTokens(delegator3, "100")
 
             const days = 24 * 60 * 60
             const { operator } = await deployOperator(operatorWallet)
@@ -1249,59 +1247,6 @@ describe("Operator contract", (): void => {
 
     describe("Kick/slash handler", () => {
 
-        it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
-            const { token } = sharedContracts
-            await setTokens(operatorWallet, "1000")
-            await setTokens(sponsor, "1000")
-
-            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
-
-            const timeAtStart = await getBlockTimestamp()
-            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
-            await expect(operator.stake(sponsorship.address, parseEther("1000")))
-                .to.emit(operator, "Staked").withArgs(sponsorship.address)
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1000"))
-
-            await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
-            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
-                .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
-
-            // TestKickPolicy actually kicks and slashes given amount (here, 10)
-            await expect(sponsorship.connect(admin).voteOnFlag(operator.address, hexZeroPad(parseEther("10").toHexString(), 32)))
-                .to.emit(sponsorship, "OperatorKicked").withArgs(operator.address)
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
-        })
-
-        it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-            const { operator } = await deployOperator(operatorWallet)
-            await expect(operator.onSlash(parseEther("10")))
-                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
-        })
-
-        it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-            const { operator } = await deployOperator(operatorWallet)
-            await expect(operator.onKick(parseEther("10"), parseEther("10")))
-                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
-        })
-
-        it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-            const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
-            await expect(operator.onReviewRequest(operator2.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-        })
-
-        it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
-            const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
-            await expect(operator.onReviewRequest(operator2.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-        })
-
         it("reduces operator value when it gets slashed without kicking (IOperator interface)", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(operatorWallet, "1000")
@@ -1311,6 +1256,7 @@ describe("Operator contract", (): void => {
             const { operator } = await deployOperator(operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            await (await operator.setNodeAddresses([operatorWallet.address])).wait()
 
             const timeAtStart = await getBlockTimestamp()
             await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
@@ -1323,7 +1269,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
             expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
 
-            await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
+            await (await sponsorship.flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
             expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
         })
 
@@ -1335,6 +1281,7 @@ describe("Operator contract", (): void => {
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
             const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
             const sponsorship2 = await deploySponsorship(sharedContracts)
+            await (await operator.setNodeAddresses([operatorWallet.address])).wait()
 
             const totalStakeInSponsorshipsBeforeStake = await operator.totalStakedIntoSponsorshipsWei()
             const valueBeforeStake = await operator.valueWithoutEarnings()
@@ -1343,7 +1290,7 @@ describe("Operator contract", (): void => {
             const totalStakeInSponsorshipsAfterStake = await operator.totalStakedIntoSponsorshipsWei()
             const valueAfterStake = await operator.valueWithoutEarnings()
 
-            await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
+            await (await sponsorship.flag(operator.address, "")).wait() // TestKickPolicy actually slashes 10 ether without kicking
             const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
             const valueAfterSlashing = await operator.valueWithoutEarnings()
 
@@ -1381,6 +1328,60 @@ describe("Operator contract", (): void => {
             expect(valueBeforeSlashing).to.equal(parseEther("2000"))
             expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
             expect(valueAfterSlashing).to.equal(parseEther("1900"))
+        })
+
+        it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(sponsor, "1000")
+
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            await (await operator.setNodeAddresses([operatorWallet.address])).wait()
+
+            const timeAtStart = await getBlockTimestamp()
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1000"))
+
+            await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
+            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
+                .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
+
+            // TestKickPolicy actually kicks and slashes given amount (here, 10)
+            await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("10").toHexString(), 32)))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(operator.address)
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
+        })
+
+        it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.onSlash(parseEther("10")))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+        })
+
+        it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.onKick(parseEther("10"), parseEther("10")))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+        })
+
+        it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+            const { operator, contracts } = await deployOperator(operatorWallet)
+            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            await expect(operator.onReviewRequest(operator2.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
+        })
+
+        it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
+            const { operator, contracts } = await deployOperator(operatorWallet)
+            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            await expect(operator.onReviewRequest(operator2.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
         })
     })
 

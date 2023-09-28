@@ -57,6 +57,10 @@ describe("docker image integration test", () => {
             streams {
                 id
             }
+            delegations {
+                delegatedDataWei
+                operatorTokenBalanceWei
+            }
         }
         `})
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(1)
@@ -70,10 +74,12 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.stakes.length).to.equal(1)
         expect(resultDynamicIds.streamPermissions.length).to.equal(5)
         expect(resultDynamicIds.streams.length).to.equal(3)
+        expect(resultDynamicIds.delegations[0].delegatedDataWei).to.equal("1000000000000000000000")
+        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("1000000000000000000000")
     })
 
     it("can get all the projects from thegraph", async () => {
-        const resultDynamicIds = await graphClient.queryEntity<{ 
+        const resultDynamicIds = await graphClient.queryEntity<{
         projects: []
      }>({ query: `
         {
@@ -84,7 +90,7 @@ describe("docker image integration test", () => {
         `})
         expect(resultDynamicIds.projects.length).to.equal(5)
     })
-    
+
     it("can get all the indexed example data from thegraph", async () => {
         const resultDynamicIds = await duGraphClient.queryEntity<{
             dataUnionStatsBuckets: [],
