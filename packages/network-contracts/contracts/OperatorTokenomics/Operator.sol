@@ -67,7 +67,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedDATATokenOnly();
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
-    error ModuleCallError();
+    error ModuleCallError(address module, bytes data);
+    error ModuleGetError(bytes data);
     error AccessDenied();
     error StakedInSponsorships();
     error NoEarnings();
@@ -185,7 +186,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         ERC20Upgradeable.__ERC20_init(operatorTokenName, operatorTokenName);
 
-        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
+        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules and policies
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         // can't call updateMetadata because it has the onlyOperator guard
@@ -247,6 +248,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, owner, operatorsCutFraction);
+    }
+
+    function getStreamMetadata() external view returns (string memory) {
+        return streamRegistry.getStreamMetadata(streamId);
     }
 
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
@@ -469,9 +474,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
+        for (uint i = queueLastIndex; i > queueCurrentIndex; i--) {
+            if (undelegationQueue[i - 1].delegator == delegator) {
+                return i - queueCurrentIndex;
             }
         }
         return queueLastIndex - queueCurrentIndex + 1;
@@ -574,7 +579,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallError(); }
+            if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -587,7 +592,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(); }
+            if (returndata.length == 0) { revert ModuleGetError(callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
