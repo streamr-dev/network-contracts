@@ -66,7 +66,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
     error ActiveFlag();
-    error TransferError();
     error FlaggingNotSupported();
     error AccessDenied();
 
@@ -294,14 +293,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Kicking does what slashing does, plus removes the operator
      * NOTE: The caller MUST ensure that slashed tokens (if any) are added to some other account, e.g. remainingWei, via _addSponsorship
      */
-    function _kick(address operator, uint slashingWei) internal {
+    function _kick(address operator, uint slashingWei) internal returns (uint actualSlashingWei) {
         if (slashingWei > 0) {
-            slashingWei = _reduceStakeBy(operator, slashingWei);
-            emit OperatorSlashed(operator, slashingWei);
+            actualSlashingWei = _reduceStakeBy(operator, slashingWei);
+            emit OperatorSlashed(operator, actualSlashingWei);
         }
         uint payoutWei = _removeOperator(operator);
         if (operator.code.length > 0) {
-            try IOperator(operator).onKick(slashingWei, payoutWei) {} catch {}
+            try IOperator(operator).onKick(actualSlashingWei, payoutWei) {} catch {}
         }
         emit OperatorKicked(operator);
     }
@@ -324,7 +323,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If operator had any locked stake, it is accounted as "forfeited stake" and will henceforth be controlled by the VoteKickPolicy.
      */
     function _removeOperator(address operator) internal returns (uint payoutWei) {
-        if (stakedWei[operator] == 0) { revert OperatorNotStaked(); }
+        if (joinTimeOfOperator[operator] == 0) { revert OperatorNotStaked(); }
 
         if (lockedStakeWei[operator] > 0) {
             uint slashedWei = _slash(operator, lockedStakeWei[operator]);
@@ -355,7 +354,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Get earnings out, leave stake in */
     function withdraw() external returns (uint payoutWei) {
         address operator = _msgSender();
-        if (stakedWei[operator] == 0) { revert OperatorNotStaked(); }
+        if (joinTimeOfOperator[operator] == 0) { revert OperatorNotStaked(); }
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
@@ -367,7 +366,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _withdraw(address operator) internal returns (uint payoutWei) {
         payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator));
         if (payoutWei > 0) {
-            if (!token.transferAndCall(operator, payoutWei, "allocation")) { revert TransferError(); }
+            token.transferAndCall(operator, payoutWei, "allocation");
         }
     }
 
