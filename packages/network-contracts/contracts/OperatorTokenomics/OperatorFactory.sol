@@ -153,6 +153,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         }
         if (policies[1] != address(0)) {
             newOperatorContract.setExchangeRatePolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
+        } else {
+            revert("error_exchangeRatePolicyRequired");
         }
         if (policies[2] != address(0)) {
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
