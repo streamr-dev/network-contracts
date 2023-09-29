@@ -1,7 +1,10 @@
 import { ethers } from "hardhat"
-import { utils, Wallet } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from "@metamask/eth-sig-util"
 import { MinimalForwarder } from "../../../typechain"
+
+import type { Wallet } from "ethers"
+
+const { arrayify } = ethers.utils
 
 interface EIP2771MetaTx {
     request: {
@@ -53,7 +56,7 @@ export async function getEIP2771MetaTx(to: string, data: string, forwarder: Mini
     }
     const options = {
         data: d,
-        privateKey: utils.arrayify(signer.privateKey) as Buffer,
+        privateKey: arrayify(signer.privateKey) as Buffer,
         version: SignTypedDataVersion.V4,
     }
     const signature = signTypedData(options)

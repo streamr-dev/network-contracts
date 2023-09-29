@@ -1,13 +1,13 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { BigNumber, utils, Wallet } from "ethers"
 
 import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 
+import type { BigNumber, Wallet } from "ethers"
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
 
-const { parseEther, id } = utils
+const { parseEther, id } = hardhatEthers.utils
 
 export interface SponsorshipTestSetup {
     token: TestToken
@@ -65,7 +65,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
-    const operators = await Promise.all(signers.map((signer) => 
+    const operators = await Promise.all(signers.map((signer) =>
         deployOperatorContract(newContracts, signer, operatorsCutFraction, { metadata: "{}" }, saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
