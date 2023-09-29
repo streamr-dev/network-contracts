@@ -1,13 +1,14 @@
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { utils, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
-const { parseEther, formatEther } = utils
+import type { Wallet } from "ethers"
+
+const { parseEther, formatEther } = ethers.utils
 
 describe("AdminKickPolicy", (): void => {
     let admin: Wallet

@@ -1,5 +1,5 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
-import { Wallet, utils} from "ethers"
+import type { Wallet } from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
@@ -68,7 +68,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
  */
 export async function deployTestContracts(signer: Wallet): Promise<TestContracts> {
     const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
-    await (await token.mint(signer.address, utils.parseEther("1000000"))).wait()
+    await (await token.mint(signer.address, "1000000000000000000000000")).wait() // 1M tokens
 
     const streamrConfig = await (await getContractFactory("StreamrConfig", { signer })).deploy()
     await streamrConfig.deployed()

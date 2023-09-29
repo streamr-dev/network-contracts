@@ -3,10 +3,11 @@ import { ethers as hardhatEthers } from "hardhat"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deployOperatorContract } from "./deployOperatorContract"
-import { Wallet } from "ethers"
-import { defaultAbiCoder, parseEther } from "ethers/lib/utils"
+
+import type { Wallet } from "ethers"
 
 const { getSigners } = hardhatEthers
+const { defaultAbiCoder, parseEther } = hardhatEthers.utils
 
 describe("OperatorFactory", function(): void {
     let deployer: Wallet        // deploys all test contracts

@@ -1,10 +1,10 @@
 import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, Wallet } from "ethers"
 import Debug from "debug"
 
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
+import type { BigNumber, Wallet } from "ethers"
 import type { MinimalForwarder, StreamRegistry, StreamRegistryV4 } from "../../../typechain"
 
 import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
