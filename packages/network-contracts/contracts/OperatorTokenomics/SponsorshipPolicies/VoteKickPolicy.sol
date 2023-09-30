@@ -93,15 +93,22 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
         uint operatorCount = factory.liveOperatorCount();
-        // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
-        bytes32 randomBytes = keccak256(abi.encode(target, operatorCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
+
+        // set the seed to only depend on target (until an operator [un]stakes), so that attacker who simulates transactions
+        //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every [un]stake
+        streamrConfig.setPseudorandomSeed(bytes32((operatorCount << 160) | uint160(target)));
 
         // primary selection: live peers that are not in the same sponsorship
         uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
+        bytes32 randomBytes32;
         for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
-            randomBytes >>= 8; // if flagReviewerCount > 20, replace this with keccak256(randomBytes) or smth
-            uint index = uint(randomBytes) % operatorCount;
+            if (i % 32 == 0) {
+                randomBytes32 = streamrConfig.bestEffortRandomBytes32();
+            } else {
+                randomBytes32 >>= 8;
+            }
+            uint index = uint(randomBytes32) % operatorCount;
             Operator peer = factory.liveOperators(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 continue;

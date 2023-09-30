@@ -1,12 +1,11 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
-import type { Wallet } from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
     StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
 
-const { getContractFactory } = hardhatEthers
+const { getContractFactory, Wallet } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
