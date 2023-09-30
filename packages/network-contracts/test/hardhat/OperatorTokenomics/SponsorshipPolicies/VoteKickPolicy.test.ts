@@ -396,7 +396,7 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(voters[3].address))).to.equal("1.0")
             expect(formatEther(await token.balanceOf(voters[4].address))).to.equal("1.0")
 
-            expect(formatEther(flaggerBalanceBefore)).to.equal("0")
+            expect(formatEther(flaggerBalanceBefore)).to.equal("0.0")
             expect(formatEther(flaggerBalanceAfter)).to.equal("990.0") // flag-stake was forfeited
         })
 
