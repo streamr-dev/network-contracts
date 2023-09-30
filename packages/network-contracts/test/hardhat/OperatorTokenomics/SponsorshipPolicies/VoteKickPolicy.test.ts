@@ -509,7 +509,6 @@ describe("VoteKickPolicy", (): void => {
             const reviewerCount = +await contracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
             const flagStakeWei = await contracts.streamrConfig.flagStakeWei()
-            const oneEther = BigNumber.from("1000000000000000000")
             const slashingFraction = (await contracts.streamrConfig.slashingFraction())
             // const flagReviewerRewardWei = parseEther("1")
             // const flaggerRewardWei = parseEther("1")
@@ -529,7 +528,7 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await sponsorship.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
             // can't flag unless stake is slashingFraction of flagStakeWei
-            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(oneEther).add(1))
+            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(parseEther("1")).add(1))
             await expect(flagger.reduceStakeTo(sponsorship.address, flaggerStakeWei))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
