@@ -158,7 +158,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /** if there's good randomness available in the network, plug in a random oracle here. Zero by default, give back cheap pseudorandom numbers. */
     IRandomOracle public randomOracle;
 
-    /** In place of proper randomness, give back repeated keccak hashes */
+    /** The latest random number from the pseudorandom generator */
     bytes32 pseudorandomState;
 
     // TODO: initializer arguments?
@@ -251,19 +251,26 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
-    /**
-     * @dev For higher flagReviewerCount, VoteKickPolicy.onFlag needs more random bytes; keccak gives 256 bits of "randomness".
-     * @dev It's also possible to tweak the >>= in the primary selection to something less than 8 (spend the randomness more slowly)
-     * @dev   or even replace >>= with randomness source (though that's of course more expensive)
-     */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(flagReviewerCount >= 1, "error_tooLow");
-        require(flagReviewerCount <= 32, "error_tooHigh");
         flagReviewerCount = newFlagReviewerCount;
+        // we can't select more than 1 reviewer per iteration, so we have to try at least as many times
+        if (flagReviewerSelectionIterations < flagReviewerCount) {
+            flagReviewerSelectionIterations = flagReviewerCount;
+        }
+    }
+
+    /**
+     * If we set this higher, we might spend more gas (if it's hard to find reviewers that aren't in the same sponsorship)
+     * If this is too low, we might not find a full reviewer set
+     **/
+    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newFlagReviewerSelectionIterations >= flagReviewerCount, "error_tooLow"); // we can't select more than 1 reviewer per iteration
+        flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
     }
 
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooLow");
+        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooHigh");
         maxQueueSeconds = newMaxQueueSeconds;
     }
 
@@ -273,11 +280,6 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
         flaggerRewardWei = newFlaggerRewardWei;
-    }
-
-    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagReviewerSelectionIterations >= flagReviewerCount, "error_tooLow"); // we can't select more than 1 reviewer per iteration
-        flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
     }
 
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
