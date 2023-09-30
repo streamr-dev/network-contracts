@@ -52,7 +52,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     const signers = hardhatSigners.slice(0, totalOperatorCount)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
-    const deployer = new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
+    const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
     await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
     // console.log("deployer: %s", addr(deployer))
 
@@ -81,7 +81,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     for (let i = 0; i < sponsorshipCount; i++) {
         const staked = operatorsPerSponsorship[i]
         const sponsorship = await deploySponsorship(contracts, {
-            allocationWeiPerSecond: BigNumber.from(0),
+            allocationWeiPerSecond: parseEther("0"),
             penaltyPeriodSeconds: 0,
             ...sponsorshipSettings
         })
