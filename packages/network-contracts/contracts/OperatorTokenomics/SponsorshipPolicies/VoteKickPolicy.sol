@@ -66,6 +66,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      */
     function onFlag(address target) external {
         address flagger = _msgSender();
+        require(flagger != target, "error_cannotFlagSelf");
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
         require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
         require(stakedWei[target] > 0, "error_flagTargetNotStaked");

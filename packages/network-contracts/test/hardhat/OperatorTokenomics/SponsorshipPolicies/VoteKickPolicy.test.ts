@@ -238,6 +238,12 @@ describe("VoteKickPolicy", (): void => {
             await expect(sponsorship.getFlag(defaultSetup.sponsorships[0].address))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
         })
+
+        it("FAILS to flag self", async function(): Promise<void> {
+            const { sponsorships: [ sponsorship ], operatorsPerSponsorship: [ [flagger] ] } = await defaultSetup
+            await expect(flagger.flag(sponsorship.address, flagger.address, ""))
+                .to.be.revertedWith("error_cannotFlagSelf")
+        })
     })
 
     describe("Flag resolution", function(): void {
