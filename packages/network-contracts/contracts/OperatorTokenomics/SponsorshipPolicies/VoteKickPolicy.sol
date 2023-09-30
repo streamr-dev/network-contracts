@@ -192,11 +192,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             uint slashingWei = targetStakeAtRiskWei[target];
             // if targetIsGone: the tokens are still in Sponsorship, accounted in forfeitedStakeWei (so "slashing" was already done)
             if (!targetIsGone) {
-                _kick(target, slashingWei);
+                slashingWei = _kick(target, slashingWei);
             }
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
-            if (!flaggerIsGone) {
+            if (flaggerIsGone) {
+                // ...unless the flagger left and forfeited its flag-stake. Add the forfeited stake on top of "slashing" that will go to sponsorship
+                slashingWei += flagStakeWei[target];
+            } else {
                 token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
                 slashingWei -= flaggerRewardWei[target];
             }
