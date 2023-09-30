@@ -171,9 +171,6 @@ describe("VoteKickPolicy", (): void => {
                 flagger, target, voter, nonStaked
             ] } = await setupSponsorships(contracts, [2, 2], "pick-only-live-reviewers")
 
-            // produces 1, 0, 0, 2, 2, 1, 1, 0
-            await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100010001" ])).wait()
-
             await expect(nonStaked.unstake(sponsorships[1].address))
                 .to.emit(operatorFactory, "OperatorLivenessChanged").withArgs(nonStaked.address, false)
             await expect(flagger.flag(sponsorships[0].address, target.address, ""))
@@ -183,12 +180,11 @@ describe("VoteKickPolicy", (): void => {
     })
 
     describe("Flagging", function(): void {
-        it("FAILS if not enough stake", async function(): Promise<void> {
-            // TODO: error_notEnoughStake
-        })
-
         it("FAILS for a target that is already flagged", async function(): Promise<void> {
-            // TODO:
+            const { sponsorships: [ sponsorship ], operatorsPerSponsorship: [ [flagger, target] ] } = await defaultSetup
+            await (await flagger.flag(sponsorship.address, target.address, "")).wait()
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
+                .to.be.revertedWith("error_cannotFlagAgain")
         })
 
         it("FAILS for a target that is not in the sponsorship", async function(): Promise<void> {
@@ -203,9 +199,6 @@ describe("VoteKickPolicy", (): void => {
                 operatorsPerSponsorship: [ [flagger, target] ]
             } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
             const start = await getBlockTimestamp()
-
-            // produces 1, 0, 0, 2, 2, 1, 1, 0
-            await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100010001" ])).wait()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await (await flagger.flag(sponsorship.address, target.address, "{foo: true}")).wait()
@@ -243,6 +236,36 @@ describe("VoteKickPolicy", (): void => {
             const { sponsorships: [ sponsorship ], operatorsPerSponsorship: [ [flagger] ] } = await defaultSetup
             await expect(flagger.flag(sponsorship.address, flagger.address, ""))
                 .to.be.revertedWith("error_cannotFlagSelf")
+        })
+
+        it("FAILS if it can't find any live reviewers", async function(): Promise<void> {
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target ],
+            } = await setupSponsorships(contracts, [2], "no-reviewers")
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
+                .to.be.revertedWith("error_failedToFindReviewers")
+        })
+
+        it("FAILS if the target is under protection after NO_KICK vote", async function(): Promise<void> {
+            const start = await getBlockTimestamp()
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "protection-after-no-kick")
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
+                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
+            await expect(voter.voteOnFlag(sponsorship. address, target.address, VOTE_NO_KICK))
+                .to.not.emit(sponsorship, "OperatorKicked")
+
+            expect((await sponsorship.getFlag(target.address)).flagData).to.equal("0") // flag is resolved
+
+            await expect(flagger.flag(sponsorship.address, target.address, ""))
+                .to.be.revertedWith("error_cannotFlagAgain")
         })
     })
 
@@ -394,8 +417,6 @@ describe("VoteKickPolicy", (): void => {
                 operators: [ flagger, target, voter ]
             } = await setupSponsorships(contracts, [2, 1], "voting-timeline")
 
-            await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100030002" ])).wait()
-
             await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
@@ -407,7 +428,7 @@ describe("VoteKickPolicy", (): void => {
         })
     })
 
-    describe("Locked stake", (): void => {
+    describe("Stake locking", (): void => {
         it("allows the target to reduce stake the correct amount DURING the flag period (to amount stake locked)", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
@@ -600,7 +621,6 @@ describe("VoteKickPolicy", (): void => {
             // flagger flags everyone else
             // reset the random oracle for each flag to get full reviewer sets every time
             await advanceToTimestamp(start, `${addr(flagger)} flags ${targets.map(addr).join(", ")}`)
-            await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100030002" ])).wait()
             await (await flagger.flag(sponsorship.address, targets[0].address, "")).wait()
             await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100030002" ])).wait()
             await (await flagger.flag(sponsorship.address, targets[1].address, "")).wait()
