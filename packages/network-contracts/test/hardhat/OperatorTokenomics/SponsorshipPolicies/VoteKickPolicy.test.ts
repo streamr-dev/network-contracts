@@ -5,7 +5,6 @@ import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { setupSponsorships, SponsorshipTestSetup } from "../setupSponsorships"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END } from "../utils"
 
-import type { MockRandomOracle } from "../../../../typechain"
 import type { BigNumber, Wallet } from "ethers"
 
 const { parseEther, getAddress, hexZeroPad } = ethers.utils

@@ -9,7 +9,7 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 import { IKickPolicy, IExchangeRatePolicy } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
-import type { BigNumber, Wallet } from "ethers"
+import type { Wallet } from "ethers"
 
 const {
     getSigners,
