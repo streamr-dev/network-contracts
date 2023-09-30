@@ -275,7 +275,10 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("results in NO_KICK if no one voted", async function(): Promise<void> {
-            const { sponsorships: [ sponsorship ], operators: [ flagger, target ] } = defaultSetup
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target ]
+            } = await setupSponsorships(contracts, [2, 1], "no-one-votes")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
