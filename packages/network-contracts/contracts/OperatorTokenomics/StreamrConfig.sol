@@ -136,7 +136,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         setMinimumSelfDelegationFraction(0.1 ether);
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
-        setMinimumSelfDelegationFraction(1 ether);
+        setMinimumDelegationWei(1 ether);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
@@ -189,6 +189,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         streamRegistryAddress = streamRegistryAddress_;
+    }
+
+    function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        minimumDelegationWei = newMinimumDelegationWei;
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
