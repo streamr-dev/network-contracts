@@ -7,10 +7,10 @@ import { deployOperatorContract } from "../hardhat/OperatorTokenomics/deployOper
 import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorshipContract"
 
 import type { TestToken } from "../../typechain"
-import type { BigNumber, Wallet } from "ethers"
+import type { Wallet } from "ethers"
 
 const { parseEther, formatEther } = hardhatEthers.utils
-const { getSigners } = hardhatEthers
+const { getSigners, BigNumber } = hardhatEthers
 
 describe("Operator", (): void => {
     let admin: Wallet
