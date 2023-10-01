@@ -7,7 +7,7 @@ import { parseEther } from "ethers/lib/utils"
 
 const { getSigners, getContractFactory } = hardhatEthers
 
-describe.only("StreamrConfig", (): void => {
+describe("StreamrConfig", (): void => {
     let admin: Wallet
     let notAdmin: Wallet
     let streamrConfig: StreamrConfig
