@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-/* solhint-disable reason-string */
-
 pragma solidity ^0.8.13;
 
 import "../IRandomOracle.sol";
 
 contract MockRandomOracle is IRandomOracle {
-    bytes32[] outcomes = [ bytes32(0x1234567812345678123456781234567812345678123456781234567812345678) ];
-    uint index = 0;
+    bytes32[] public outcomes = [ bytes32(0x1234567812345678123456781234567812345678123456781234567812345678) ];
+    uint public index = 0;
 
     function getRandomBytes32() external returns (bytes32 outcome) {
         outcome = outcomes[index];

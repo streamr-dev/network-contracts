@@ -159,7 +159,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     IRandomOracle public randomOracle;
 
     /** The latest random number from the pseudorandom generator */
-    bytes32 pseudorandomState;
+    bytes32 public pseudorandomState;
 
     // TODO: initializer arguments?
     function initialize() public initializer {
