@@ -1,11 +1,12 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
+import type { Wallet } from "ethers"
 
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
     StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
 
-const { getContractFactory, Wallet } = hardhatEthers
+const { getContractFactory } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
@@ -120,7 +121,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     const streamRegistryFactory = await getContractFactory("StreamRegistryV4", { signer })
     const streamRegistry = await upgrades.deployProxy(streamRegistryFactory,
-        [hardhatEthers.constants.AddressZero, Wallet.createRandom().address], { kind: "uups" }) as StreamRegistryV4
+        [hardhatEthers.constants.AddressZero, hardhatEthers.Wallet.createRandom().address], { kind: "uups" }) as StreamRegistryV4
 
     await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
