@@ -87,6 +87,8 @@ describe("StreamrConfig", (): void => {
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
             await expect(streamrConfig.connect(notAdmin).setStreamRegistryAddress(admin.address))
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
+            await expect(streamrConfig.connect(notAdmin).setMinimumDelegationWei("0"))
+                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
             await expect(streamrConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0"))
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
             await expect(streamrConfig.connect(notAdmin).setMaxPenaltyPeriodSeconds("0"))
