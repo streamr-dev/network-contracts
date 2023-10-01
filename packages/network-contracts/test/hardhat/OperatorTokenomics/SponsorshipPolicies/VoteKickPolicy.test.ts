@@ -37,10 +37,11 @@ describe("VoteKickPolicy", (): void => {
     // default setup for test cases that don't need a clean set of contracts
     // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
     let defaultSetup: SponsorshipTestSetup
+    let signers: Wallet[]
 
     before(async (): Promise<void> => {
-        const signers = await ethers.getSigners() as Wallet[]
-        [ admin ] = signers
+        signers = await ethers.getSigners()
+        admin = signers[0]
         contracts = await deployTestContracts(admin)
         for (const { address } of signers) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
@@ -248,11 +249,11 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS if the target is under protection after NO_KICK vote", async function(): Promise<void> {
-            const start = await getBlockTimestamp()
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
             } = await setupSponsorships(contracts, [2, 1], "protection-after-no-kick")
+            const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
@@ -820,6 +821,49 @@ describe("VoteKickPolicy", (): void => {
 
             // left the sponsorship => lockedStakeWei is reset
             expect(formatEther(await sponsorship.lockedStakeWei(flagger.address))).to.equal("0.0")
+        })
+    })
+
+    describe("Access control", (): void => {
+        describe("Non-staked (non-)operator", (): void => {
+            it("cannot flag", async function(): Promise<void> {
+                const {
+                    sponsorships: [ sponsorship ],
+                    operators
+                } = defaultSetup
+                await expect(sponsorship.connect(signers[6]).flag(operators[0].address, ""))
+                    .to.be.revertedWith("error_notEnoughStake")
+            })
+            it("cannot voteOnFlag", async function(): Promise<void> {
+                const {
+                    sponsorships: [ sponsorship ],
+                    operatorsPerSponsorship: [ [flagger, target], [voter] ]
+                } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
+                const start = await getBlockTimestamp()
+                const outsider = signers[5]
+
+                // ...not before flagging
+                await expect(sponsorship.connect(outsider).voteOnFlag(target.address, VOTE_KICK))
+                    .to.be.revertedWith("error_notFlagged")
+
+                // ...not after flagging
+                await advanceToTimestamp(start, "Flagging")
+                await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                    .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "{}")
+                await expect(sponsorship.connect(outsider).voteOnFlag(target.address, VOTE_KICK))
+                    .to.be.revertedWith("error_votingNotStarted")
+
+                // ...not after voting has started
+                await advanceToTimestamp(start + VOTE_START, "Voting starts")
+                await expect(sponsorship.connect(outsider).voteOnFlag(target.address, VOTE_KICK))
+                    .to.be.revertedWith("error_reviewersOnly")
+
+                // ...and not after voting has ended
+                await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
+                    .to.not.emit(sponsorship, "OperatorKicked")
+                await expect(sponsorship.connect(outsider).voteOnFlag(target.address, VOTE_KICK))
+                    .to.be.revertedWith("error_notFlagged")
+            })
         })
     })
 })
