@@ -10,6 +10,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  */
 contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
 
+    error TooHigh(uint value, uint limit);
+    error TooLow(uint value, uint limit);
+
     /**
      * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship, or if they unstake from a sponsorship prematurely
      */
@@ -29,7 +32,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      **/
     uint public minimumSelfDelegationFraction;
 
-    /** Prevent "sand delegations" */
+    /** Prevent "sand delegations" that could mess with rounding errors */
     uint public minimumDelegationWei;
 
     /**
@@ -85,44 +88,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     /** How much we pay the flagger if the flagging-target gets kicked (a valid flag) */
     uint public flaggerRewardWei;
 
-    /**
-     * How many times we try to select a reviewer for a flagging.
-     * Higher number makes it more likely we select a full flagReviewerCount, but may cost more gas.
-     *
-     * @dev Probability of finding flagReviewerCount peers for the review is: 1 - sum_{N = 0...flagReviewerCount-1} p(pick exactly N),
-     *        and a non-worst-case first-order approximation is
-     *              1 - (flagReviewerCount / peerCount) ^ (flagReviewerSelectionIterations - flagReviewerCount)
-     *        for exact simulation, take a look at scripts/calculateFullReviewProbability.ts; some example values:
-     *          - worst case: select 5 out of 7 (only one correct solution, everyone who can be selected must be selected!)
-     *          => Probability of success after i iterations:  [ 0, 0, 0, 0, 0.0071, 0.0275, 0.0632, 0.1127, 0.1727, 0.2393,
-     *                                       0.3087, 0.3781, 0.4451, 0.5083, 0.5668, 0.6201, 0.6682, 0.7111, 0.7492, 0.7827,
-     *                                        0.812, 0.8377,   0.86, 0.8794, 0.8962, 0.9107, 0.9232,  0.934, 0.9433, 0.9513 ]
-     *          - better case: select 5 out of 20
-     *          => Success rate is 32% with the minimum of 5 iterations, 64% with 6 iterations, >99% after 10 iterations,
-     *          => After 18 iterations, failure rate is less than 1 / 1 000 000
-     *          - super duper worst case: select 32 out of 34
-     *          => Success rate 16.5% after 100 iterations
-     *          => Most likely number of reviewers after i iterations: [ 1,  2,  3,  4,  5,  5,  6,  7,  8,  8,
-     *                           9, 10, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19,
-     *                          19, 20, 20, 20, 21, 21, 21, 22, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25,
-     *                          25, 25, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28,
-     *                          28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30,
-     *                          30, 30, 30, 30, 30, 30, 31, 31, 31, 31 ], i.e. up to half (16), it picks every 1...2nd time, as you would expect
-     */
+    /** How many times we try to select a reviewer for a flagging. */
     uint public flagReviewerSelectionIterations;
 
-    /**
-     * How much the flagger must stake to flag another Operator in a Sponsorship.
-     * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
-     * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
-     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
-     *      If the operator decides to reduceStake, locked stake is the limit how much stake must be left into Sponsorship.
-     *      The total locked stake must be enough to pay the reviewers of all flags.
-     *        flag stakes >= reviewer fees + slashing from the locked stake
-     *      After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
-     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
-     *        =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
-     */
+    /** How much the flagger must stake to flag another Operator in a Sponsorship. */
     uint public flagStakeWei;
 
     /**
@@ -161,37 +130,38 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
-        slashingFraction = 0.1 ether;
+        setSlashingFraction(0.1 ether);
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        minimumSelfDelegationFraction = 0.1 ether;
+        setMinimumSelfDelegationFraction(0.1 ether);
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
-        minimumDelegationWei = 1 ether;
+        setMinimumSelfDelegationFraction(1 ether);
 
         // Sponsorship leave penalty parameter limit
-        maxPenaltyPeriodSeconds = 14 days;
+        setMaxPenaltyPeriodSeconds(14 days);
 
         // Undelegation escape hatch: self-service available after maxQueueSeconds
-        maxQueueSeconds = 30 days;
+        // Must be more than maxPenaltyPeriodSeconds to allow operator to service the queue in all cases
+        setMaxQueueSeconds(30 days);
 
         // Withdraw incentivization
-        maxAllowedEarningsFraction = 0.05 ether;
-        fishermanRewardFraction = 0.5 ether;
+        setMaxAllowedEarningsFraction(0.05 ether);
+        setFishermanRewardFraction(0.5 ether);
 
         // protocol fee
-        protocolFeeFraction = 0.05 ether;
-        protocolFeeBeneficiary = _msgSender();
+        setProtocolFeeFraction(0.05 ether);
+        setProtocolFeeBeneficiary(_msgSender());
 
         // flagging + voting
-        flagReviewerCount = 5;
-        flagReviewerRewardWei = 1 ether;
-        flaggerRewardWei = 1 ether;
-        flagReviewerSelectionIterations = 20;
-        flagStakeWei = 10 ether;
-        reviewPeriodSeconds = 1 days;
-        votingPeriodSeconds = 1 hours;
-        flagProtectionSeconds = 1 hours;
+        setFlagReviewerCount(5);
+        setFlagReviewerRewardWei(1 ether);
+        setFlaggerRewardWei(1 ether);
+        setFlagReviewerSelectionIterations(20);
+        setFlagStakeWei(10 ether);
+        setReviewPeriodSeconds(1 days);
+        setVotingPeriodSeconds(1 hours);
+        setFlagProtectionSeconds(1 hours);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
@@ -206,7 +176,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newSlashingFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        if (newSlashingFraction > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newSlashingFraction, limit: 1 ether });
+        }
         slashingFraction = newSlashingFraction;
     }
 
@@ -219,7 +192,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMinimumSelfDelegationFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        if (newMinimumSelfDelegationFraction > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newMinimumSelfDelegationFraction, limit: 1 ether });
+        }
         minimumSelfDelegationFraction = newMinimumSelfDelegationFraction;
     }
 
@@ -228,15 +204,26 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newMaxAllowedEarningsFraction > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newMaxAllowedEarningsFraction, limit: 1 ether });
+        }
         maxAllowedEarningsFraction = newMaxAllowedEarningsFraction;
     }
 
     function setFishermanRewardFraction(uint newFishermanRewardFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newFishermanRewardFraction > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newFishermanRewardFraction, limit: 1 ether });
+        }
         fishermanRewardFraction = newFishermanRewardFraction;
     }
 
     function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newProtocolFeeFraction <= 1 ether, "error_tooHigh"); // can't be more than 100%
+        if (newProtocolFeeFraction > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newProtocolFeeFraction, limit: 1 ether });
+        }
         protocolFeeFraction = newProtocolFeeFraction;
     }
 
@@ -250,13 +237,18 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * @dev   or even replace >>= with randomness source (though that's of course more expensive)
      */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(flagReviewerCount >= 1, "error_tooLow");
-        require(flagReviewerCount <= 32, "error_tooHigh");
+        if (newFlagReviewerCount < 1) { revert TooLow({ value: newFlagReviewerCount, limit: 1 }); }
+        if (newFlagReviewerCount > 32) { revert TooHigh({ value: newFlagReviewerCount, limit: 32 }); }
         flagReviewerCount = newFlagReviewerCount;
     }
 
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooLow");
+        if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
+            revert TooLow({
+                value: newMaxQueueSeconds,
+                limit: maxPenaltyPeriodSeconds
+            });
+        }
         maxQueueSeconds = newMaxQueueSeconds;
     }
 
@@ -268,13 +260,57 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         flaggerRewardWei = newFlaggerRewardWei;
     }
 
+    /**
+     * @param newFlagReviewerSelectionIterations how many times we try to select a reviewer for a flagging. Higher number makes it more likely we select a full flagReviewerCount, but may cost more gas.
+     * @dev Probability of finding flagReviewerCount peers for the review is: 1 - sum_{N = 0...flagReviewerCount-1} p(pick exactly N),
+     * @dev   and a non-worst-case first-order approximation is
+     * @dev         1 - (flagReviewerCount / peerCount) ^ (flagReviewerSelectionIterations - flagReviewerCount)
+     * @dev   for exact simulation, take a look at scripts/calculateFullReviewProbability.ts; some example values:
+     * @dev     - worst case: select 5 out of 7 (only one correct solution, everyone who can be selected must be selected!)
+     * @dev     => Probability of success after i iterations:  [ 0, 0, 0, 0, 0.0071, 0.0275, 0.0632, 0.1127, 0.1727, 0.2393,
+     * @dev                                  0.3087, 0.3781, 0.4451, 0.5083, 0.5668, 0.6201, 0.6682, 0.7111, 0.7492, 0.7827,
+     * @dev                                   0.812, 0.8377,   0.86, 0.8794, 0.8962, 0.9107, 0.9232,  0.934, 0.9433, 0.9513 ]
+     * @dev     - better case: select 5 out of 20
+     * @dev     => Success rate is 32% with the minimum of 5 iterations, 64% with 6 iterations, >99% after 10 iterations,
+     * @dev     => After 18 iterations, failure rate is less than 1 / 1 000 000
+     * @dev     - super duper worst case: select 32 out of 34
+     * @dev     => Success rate 16.5% after 100 iterations
+     * @dev     => Most likely number of reviewers after i iterations: [ 1,  2,  3,  4,  5,  5,  6,  7,  8,  8,
+     * @dev                      9, 10, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19,
+     * @dev                     19, 20, 20, 20, 21, 21, 21, 22, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25,
+     * @dev                     25, 25, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28,
+     * @dev                     28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30,
+     * @dev                     30, 30, 30, 30, 30, 30, 31, 31, 31, 31 ], i.e. up to half (16), it picks every 1...2nd time, as you would expect
+     */
     function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagReviewerSelectionIterations >= flagReviewerCount, "error_tooLow"); // we can't select more than 1 reviewer per iteration
+        if (newFlagReviewerSelectionIterations < flagReviewerCount) {
+            revert TooLow({
+                value: newFlagReviewerSelectionIterations,
+                limit: flagReviewerCount
+            });
+        }
         flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
     }
 
+    /**
+     * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
+     * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
+     * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
+     * @dev If the operator decides to reduceStake, locked stake is the limit how much stake must be left into Sponsorship.
+     * @dev The total locked stake must be enough to pay the reviewers of all flags.
+     * @dev   flag stakes >= reviewer fees + slashing from the locked stake
+     * @dev After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
+     * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
+     * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
+     */
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagStakeWei >= flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction), "error_tooLow");
+        uint minFlagStakeWei = flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction);
+        if (newFlagStakeWei < minFlagStakeWei) {
+            revert TooLow({
+                value: newFlagStakeWei,
+                limit: minFlagStakeWei
+            });
+        }
         flagStakeWei = newFlagStakeWei;
     }
 
