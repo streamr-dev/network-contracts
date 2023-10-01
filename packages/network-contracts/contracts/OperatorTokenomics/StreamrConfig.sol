@@ -265,7 +265,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     }
 
     /**
-     * @param newFlagReviewerSelectionIterations how many times we try to select a reviewer for a flagging. Higher number makes it more likely we select a full flagReviewerCount, but may cost more gas.
+     * Reviewer selection iterations: higher number makes it more likely we select a full flagReviewerCount, but may cost more gas.
+     * @param newFlagReviewerSelectionIterations how many times we try to select a reviewer for a flagging.
      * @dev Probability of finding flagReviewerCount peers for the review is: 1 - sum_{N = 0...flagReviewerCount-1} p(pick exactly N),
      * @dev   and a non-worst-case first-order approximation is
      * @dev         1 - (flagReviewerCount / peerCount) ^ (flagReviewerSelectionIterations - flagReviewerCount)
