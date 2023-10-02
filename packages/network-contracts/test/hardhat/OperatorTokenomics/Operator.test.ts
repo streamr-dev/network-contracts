@@ -1,6 +1,5 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, utils, Wallet } from "ethers"
 
 import { deployOperatorFactory, deployTestContracts, TestContracts } from "./deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./utils"
@@ -10,8 +9,13 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 import { IKickPolicy, IExchangeRatePolicy } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
-const { parseEther, formatEther, hexZeroPad } = utils
-const { getSigners, getContractFactory } = hardhatEthers
+import type { Wallet } from "ethers"
+
+const {
+    getSigners,
+    getContractFactory,
+    utils: { parseEther, formatEther, hexZeroPad }
+} = hardhatEthers
 
 describe("Operator contract", (): void => {
     let admin: Wallet           // creates the Sponsorship
@@ -586,7 +590,7 @@ describe("Operator contract", (): void => {
             const { token } = sharedContracts
 
             // "generateWalletWithGasAndTokens", fund a fresh random wallet
-            const operatorWallet = Wallet.createRandom().connect(admin.provider)
+            const operatorWallet = hardhatEthers.Wallet.createRandom().connect(admin.provider)
             admin.sendTransaction({ to: operatorWallet.address, value: parseEther("5000") }) // coverage test requires this amount of ETH
             await setTokens(operatorWallet, STAKE_AMOUNT)
 
@@ -1124,7 +1128,7 @@ describe("Operator contract", (): void => {
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
 
-            const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: BigNumber.from("0") })
+            const sponsorship = await deploySponsorship(sharedContracts,  { allocationWeiPerSecond: parseEther("0") })
             const { operator } = await deployOperator(operatorWallet)
             const balanceBefore = await token.balanceOf(delegator.address)
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()

@@ -1,20 +1,15 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { utils as ethersUtils, Wallet } from "ethers"
-
-import { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
-
-const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = ethersUtils
-const { getSigners, getContractFactory } = hardhatEthers
 
 import { advanceToTimestamp, getBlockTimestamp } from "./utils"
-
-import {
-    deployTestContracts,
-    TestContracts,
-} from "./deployTestContracts"
-
+import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
+
+import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
+import type { Wallet } from "ethers"
+
+const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
+const { getSigners, getContractFactory } = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
     let admin: Wallet

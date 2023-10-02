@@ -1,12 +1,13 @@
 import { ethers } from "hardhat"
-import { BigNumber, utils, Wallet } from "ethers"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { setupSponsorships, SponsorshipTestSetup } from "../setupSponsorships"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END } from "../utils"
 
-const { parseEther, getAddress, hexZeroPad } = utils
+import type { BigNumber, Wallet } from "ethers"
+
+const { parseEther, getAddress, hexZeroPad } = ethers.utils
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseFlag(flagData: BigNumber) {
@@ -508,7 +509,6 @@ describe("VoteKickPolicy", (): void => {
             const reviewerCount = +await contracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
             const flagStakeWei = await contracts.streamrConfig.flagStakeWei()
-            const oneEther = BigNumber.from("1000000000000000000")
             const slashingFraction = (await contracts.streamrConfig.slashingFraction())
             // const flagReviewerRewardWei = parseEther("1")
             // const flaggerRewardWei = parseEther("1")
@@ -528,7 +528,7 @@ describe("VoteKickPolicy", (): void => {
             const minimumStake = await sponsorship.minimumStakeOf(flagger.address)
             expect(minimumStake).to.equal(minimumStakeWei)
             // can't flag unless stake is slashingFraction of flagStakeWei
-            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(oneEther).add(1))
+            const flaggerStakeWei = max(minimumStake, flagStakeWei.mul(slashingFraction).div(parseEther("1")).add(1))
             await expect(flagger.reduceStakeTo(sponsorship.address, flaggerStakeWei))
                 .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, flaggerStakeWei, parseEther("0"))
 
