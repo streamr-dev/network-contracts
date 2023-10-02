@@ -207,11 +207,28 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _transfer(address from, address to, uint amount) internal override {
         // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
         uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if (balanceOf(to) + amount < minimumDelegationWei ||
-            (balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)) {
+        if ((balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)
+            || balanceOf(to) + amount < minimumDelegationWei) {
             revert DelegationBelowMinimum();
         }
+
+        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
+        if (balanceOf(to) == 0) {
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
+            }
+        }
+
         super._transfer(from, to, amount);
+
+        // check if the undelegation policy allows this transfer
+        // zero reflects that the "undelegation" (transfer) already happened above.
+        // We can't do a correct check beforehand by passing in the amount because it would have to happen in the middle
+        //   of the transfer "after undelegation but before delegation", so we would actually have to burn then mint. But this works just as well.
+        if (address(undelegationPolicy) != address(0)) {
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
+        }
+
         emit BalanceUpdate(from, balanceOf(from), totalSupply());
         emit BalanceUpdate(to, balanceOf(to), totalSupply());
     }
