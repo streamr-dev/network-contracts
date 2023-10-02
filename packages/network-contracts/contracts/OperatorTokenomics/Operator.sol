@@ -505,10 +505,22 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (indexOfSponsorships[sponsorship] == 0) {
             revert NotMyStakedSponsorship();
         }
+
+        // operator pays for slashing by undelegating worth slashing
+        uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountSlashed));
+        _burn(owner, min(balanceOf(owner), amountOperatorTokens));
+        emit BalanceUpdate(owner, balanceOf(owner), totalSupply());
+
+        // operator value is decreased by the slashed amount => exchange rate doesn't change (unless the operator ran out of tokens)
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
+
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+    }
+
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
