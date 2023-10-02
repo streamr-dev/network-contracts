@@ -6,6 +6,7 @@ import "./IKickPolicy.sol";
 import "../Sponsorship.sol";
 import "../OperatorFactory.sol";
 import "../Operator.sol";
+import "../IRandomOracle.sol";
 
 // import "hardhat/console.sol";
 
@@ -20,8 +21,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         VOTED_NO_KICK,
         IS_SELECTED_SECONDARY
     }
-
-    uint public constant MAX_REVIEWER_COUNT = 32; // enforced in StreamrConfig.setFlagReviewerCount
 
     // flag
     mapping (address => address) public flaggerAddress;
@@ -88,24 +87,28 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         lockedStakeWei[flagger] += flagStakeWei[target];
         require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
-        // only secondarily select peers that are in the same sponsorship as the flagging target
-        Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
-        uint sameSponsorshipPeerCount = 0;
-
         OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
         uint operatorCount = factory.liveOperatorCount();
+        uint maxReviewerCount = streamrConfig.flagReviewerCount();
+        uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
 
-        // set the seed to only depend on target (until an operator [un]stakes), so that attacker who simulates transactions
+        // If we don't have a good randomness source set in streamrConfig, we generate the outcome from a seed deterministically.
+        // Set the seed to only depend on target (until an operator [un]stakes), so that attacker who simulates transactions
         //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every [un]stake
-        streamrConfig.setPseudorandomSeed(bytes32((operatorCount << 160) | uint160(target)));
+        bytes32 randomBytes32 = bytes32((operatorCount << 160) | uint160(target));
+
+        // save peers that are in the same sponsorship as the flagging target for the secondary selection
+        Operator[] memory sameSponsorshipPeers = new Operator[](maxReviewerCount);
+        uint sameSponsorshipPeerCount = 0;
 
         // primary selection: live peers that are not in the same sponsorship
-        uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
-        uint maxReviewerCount = streamrConfig.flagReviewerCount();
-        bytes32 randomBytes32;
         for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
             if (i % 32 == 0) {
-                randomBytes32 = streamrConfig.bestEffortRandomBytes32();
+                if (streamrConfig.randomOracle() != address(0)) {
+                    randomBytes32 = IRandomOracle(streamrConfig.randomOracle()).getRandomBytes32();
+                } else {
+                    randomBytes32 = keccak256(abi.encode(randomBytes32));
+                }
             } else {
                 randomBytes32 >>= 8;
             }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./IRandomOracle.sol";
 
 /**
  * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, Operator)
@@ -156,7 +155,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     address public streamRegistryAddress;
 
     /** if there's good randomness available in the network, plug in a random oracle here. Zero by default, give back cheap pseudorandom numbers. */
-    IRandomOracle public randomOracle;
+    address public randomOracle;
 
     /** The latest random number from the pseudorandom generator */
     bytes32 public pseudorandomState;
@@ -304,24 +303,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      * For instance, in Ethereum mainnet, block.difficulty would be such, see https://github.com/ethereum/solidity/pull/13759
      * Important criterion is: it's not possible to know the outcome by simulating the transaction (e.g. using estimateGas)
      **/
-    function setRandomOracle(IRandomOracle newRandomOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRandomOracle(address newRandomOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
         randomOracle = newRandomOracle;
-    }
-
-    /**
-     * Use randomOracle if it's set, otherwise give back a deterministically knowable pseudorandom number.
-     * Use `setPseudorandomSeed` to seed the pseudorandomness before use (at least if you're not 100% sure to have an oracle)
-     */
-    function bestEffortRandomBytes32() public returns (bytes32) {
-        if (address(randomOracle) != address(0)) {
-            return randomOracle.getRandomBytes32();
-        }
-        pseudorandomState = keccak256(abi.encode(pseudorandomState));
-        return pseudorandomState;
-    }
-
-    /** Probably best call this before getting a `bestEffortRandomBytes32`, so no one else gets to choose the seed */
-    function setPseudorandomSeed(bytes32 seed) public {
-        pseudorandomState = seed;
     }
 }
