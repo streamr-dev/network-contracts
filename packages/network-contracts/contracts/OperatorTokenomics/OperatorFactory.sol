@@ -20,6 +20,13 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
 
+    error InvalidOperatorsCut();
+    error PolicyNotTrusted();
+    error operatorAlreadyDeployed();
+    error onlyOperators();
+    error alreadyLive();
+    error notLive();
+
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     address public operatorTemplate;
@@ -131,10 +138,10 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address[3] memory policies,
         uint[3] memory policyParams
     ) private returns (address) {
-        require(operatorsCutFraction <= 1 ether, "error_invalidOperatorsCut");
+        if (operatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
-            require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
+            if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }
         bytes32 salt = keccak256(abi.encode(operatorTokenName, operatorAddress));
         address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
@@ -161,7 +168,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewOperator(operatorAddress, newContractAddress);
 
-        require(operators[operatorAddress] == address(0), "error_operatorAlreadyDeployed");
+        if (operators[operatorAddress] != address(0)) { revert operatorAlreadyDeployed(); }
         operators[operatorAddress] = newContractAddress;
 
         return newContractAddress;
@@ -183,9 +190,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /** Operators MUST call this function when they stake to their first Sponsorship */
     function registerAsLive() public {
         address operatorContractAddress = _msgSender();
-        require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
+        if (deploymentTimestamp[operatorContractAddress] == 0) { revert onlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] == 0, "error_alreadyLive");
+        if (liveOperatorsIndex[operator] != 0) { revert alreadyLive(); }
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -196,9 +203,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /** Operators MUST call this function when they unstake from their last Sponsorship */
     function registerAsNotLive() public {
         address operatorContractAddress = _msgSender();
-        require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
+        if (deploymentTimestamp[operatorContractAddress] == 0) { revert onlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] > 0, "error_notLive");
+        if (liveOperatorsIndex[operator] == 0) { revert notLive(); }
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];

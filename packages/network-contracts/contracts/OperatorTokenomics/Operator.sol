@@ -74,7 +74,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error NoEarnings();
     error FirstEmptyQueueThenStake();
     error ZeroUndelegation();
-    error DidNotReceiveReward();
+    error DidNotReceiveReward(); //0xb1c5c787
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
