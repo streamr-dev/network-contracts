@@ -154,11 +154,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     address public streamRegistryAddress;
 
-    /** if there's good randomness available in the network, plug in a random oracle here. Zero by default, give back cheap pseudorandom numbers. */
+    /**
+     * If there's good randomness available in the network, plug in a random oracle here.
+     * Zero by default; in the case, use fallback to give back cheap pseudorandom numbers.
+     **/
     address public randomOracle;
-
-    /** The latest random number from the pseudorandom generator */
-    bytes32 public pseudorandomState;
 
     // TODO: initializer arguments?
     function initialize() public initializer {
