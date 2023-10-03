@@ -110,6 +110,27 @@ describe("OperatorFactory", function(): void {
         expect(await operatorFactory.isTrustedPolicy(randomAddress)).to.be.false
     })
     
+    it("only the factory can add a trusted policy", async function(): Promise<void> {
+        const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
+        await expect(operatorFactory.connect(operatorWallet).addTrustedPolicy(defaultExchangeRatePolicy.address))
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+                " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+    })
+    
+    it("only the factory can add trusted policies", async function(): Promise<void> {
+        const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
+        await expect(operatorFactory.connect(operatorWallet).addTrustedPolicies([defaultExchangeRatePolicy.address]))
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+                " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+    })
+    
+    it("only the factory can remove a trusted policy", async function(): Promise<void> {
+        const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
+        await expect(operatorFactory.connect(operatorWallet).removeTrustedPolicy(defaultExchangeRatePolicy.address))
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+                " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+    })
+
     it("DelegationPolicy can be the zero address", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = await deployTestContracts(deployer)
         await expect(operatorFactory.deployOperator(
