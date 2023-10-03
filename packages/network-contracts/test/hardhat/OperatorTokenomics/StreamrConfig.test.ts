@@ -72,6 +72,10 @@ describe("StreamrConfig", (): void => {
             await expect(streamrConfig.setFlagReviewerCount(0))
                 .to.be.revertedWithCustomError(streamrConfig, "TooLow")
             await expect(streamrConfig.setFlagReviewerCount(1)).to.not.be.reverted
+
+            // setting flag reviewer count also bumps up iterations, otherwise we couldn't get so many reviewers
+            await (await streamrConfig.setFlagReviewerCount(10)).wait()
+            expect(await streamrConfig.flagReviewerSelectionIterations()).to.equal(10)
         })
     })
 
@@ -120,6 +124,8 @@ describe("StreamrConfig", (): void => {
             await expect(streamrConfig.connect(notAdmin).setFlagProtectionSeconds("0"))
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
             await expect(streamrConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0"))
+                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
+            await expect(streamrConfig.connect(notAdmin).setRandomOracle(admin.address))
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
         })
 
