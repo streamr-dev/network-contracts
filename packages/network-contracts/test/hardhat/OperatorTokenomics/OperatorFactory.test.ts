@@ -152,7 +152,7 @@ describe("OperatorFactory", function(): void {
             [defaultDelegationPolicy.address, hardhatEthers.constants.AddressZero, defaultUndelegationPolicy.address],
             [0, 0, 0]
         ))
-            .to.be.revertedWith("error_exchangeRatePolicyRequired")
+            .to.be.revertedWithCustomError(operatorFactory, "ExchangeRatePolicyRequired")
     })
 
     it("UnelegationPolicy can be the zero address", async function(): Promise<void> {
@@ -176,7 +176,7 @@ describe("OperatorFactory", function(): void {
             [defaultExchangeRatePolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
         ))
-            .to.be.revertedWith("error_notDelegationPolicy")
+            .to.be.revertedWithCustomError(operatorFactory, "NotDelegationPolicy")
     })
 
     it("reverts if incorrect exchange rate policy is provided", async function(): Promise<void> {
@@ -188,7 +188,7 @@ describe("OperatorFactory", function(): void {
             [defaultDelegationPolicy.address, defaultDelegationPolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
         ))
-            .to.be.revertedWith("error_notExchangeRatePolicy")
+            .to.be.revertedWithCustomError(operatorFactory, "NotExchangeRatePolicy")
     })
 
     it("reverts if incorrect undelegation policy is provided", async function(): Promise<void> {
@@ -200,7 +200,7 @@ describe("OperatorFactory", function(): void {
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultDelegationPolicy.address],
             [0, 0, 0]
         ))
-            .to.be.revertedWith("error_notUndelegationPolicy")
+            .to.be.revertedWithCustomError(operatorFactory, "NotUndelegationPolicy")
     })
 
     it("reverts on operator deploy if any of the policies are not trusted", async function(): Promise<void> {
