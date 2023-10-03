@@ -147,6 +147,8 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
     address public operatorFactory;
     address public operatorLivenessRegistry; // same as OperatorFactory, for now
 
+    address public trustedForwarder;
+
     /**
      * A mandatory joinpolicy for Sponsorships from SponsorshipFactory. Ensures only contracts deployed by this.operatorFactory() can join.
      */
@@ -288,5 +290,9 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setFlagProtectionSeconds(uint newFlagProtectionSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
         flagProtectionSeconds = newFlagProtectionSeconds;
+    }
+
+    function setTrustedForwarder(address newTrustedForwarder) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        trustedForwarder = newTrustedForwarder;
     }
 }

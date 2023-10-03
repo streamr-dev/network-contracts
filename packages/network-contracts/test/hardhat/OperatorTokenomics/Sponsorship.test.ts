@@ -5,8 +5,9 @@ import { advanceToTimestamp, getBlockTimestamp } from "./utils"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
-import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
+import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy, MinimalForwarder } from "../../../typechain"
 import type { Wallet } from "ethers"
+import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
 const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
 const { getSigners, getContractFactory } = hardhatEthers
@@ -15,6 +16,7 @@ describe("Sponsorship contract", (): void => {
     let admin: Wallet
     let operator: Wallet
     let operator2: Wallet
+    let metaSigner: Wallet
 
     let token: TestToken
 
@@ -28,7 +30,7 @@ describe("Sponsorship contract", (): void => {
     let defaultSponsorship: Sponsorship
 
     before(async (): Promise<void> => {
-        [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
+        [admin, operator, operator2, metaSigner] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { sponsorshipFactory } = contracts
@@ -430,6 +432,44 @@ describe("Sponsorship contract", (): void => {
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), admin.address)).wait()
             await expect(token.transferAndCall(sponsorship.address, parseEther("100"), admin.address))
                 .to.be.revertedWithCustomError(sponsorship, "ModuleCallError")
+        })
+    })
+
+    describe("EIP-2771 meta-transactions feature", () => {
+        
+        it.only("works as expected (happy path)", async (): Promise<void> => {
+            // const { registry, registryFromAdmin, minimalForwarder, minimalForwarderFromUser0 } = await deployTestContracts(admin)
+            const signer = hardhatEthers.Wallet.createRandom()
+                       
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
+            // await (await sponsorship.stake(operator.address, parseEther("100"))).wait()
+            // expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
+
+            const re = await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)
+
+            const data = await sponsorship.interface.encodeFunctionData("stake", [operator.address, parseEther("100")])
+            const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
+            const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
+            await expect(signatureIsValid).to.be.true
+            const receipt = await (await contracts.minimalForwarder.execute(request, signature)).wait()
+
+            // expect(receipt.logs.length).to.equal(2)
+            expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
+
+            // const path = "/path" + Wallet.createRandom().address
+            // const metadata = "metadata"
+            // const data = await registryFromAdmin.interface.encodeFunctionData("createStream", [path, metadata])
+            // const { request, signature } = await getEIP2771MetaTx(registryFromAdmin.address, 
+            //     data, minimalForwarder, hardhatEthers.Wallet.createRandom(), gas)
+
+            // const { request, signature, path, metadata, signer } = await getCreateStreamMetaTx()
+            // const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
+            // await expect(signatureIsValid).to.be.true
+            // const receipt = await (await minimalForwarderFromUser0.execute(request, signature)).wait()
+            // expect(receipt.logs.length).to.equal(2)
+            // const id = signer.address.toLowerCase() + path
+            // expect(await registry.getStreamMetadata(id)).to.equal(metadata)
         })
     })
 })

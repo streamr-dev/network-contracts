@@ -4,7 +4,7 @@ import type { Wallet } from "ethers"
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
-    StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
+    StreamrConfig, NodeModule, QueueModule, StakeModule, MinimalForwarder } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -27,6 +27,7 @@ export type TestContracts = {
     nodeModule: NodeModule;
     queueModule: QueueModule;
     stakeModule: StakeModule;
+    minimalForwarder: MinimalForwarder;
     deployer: Wallet;
     streamRegistry: StreamRegistryV4;
 }
@@ -101,8 +102,12 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         operatorContractOnlyJoinPolicy.address,
     ])).wait()
 
+    const minimalForwarderFactory = await hardhatEthers.getContractFactory("MinimalForwarder", signer)
+    const minimalForwarder = await minimalForwarderFactory.deploy() as MinimalForwarder
+
     await (await streamrConfig!.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
     await (await streamrConfig!.setSponsorshipFactory(sponsorshipFactory.address)).wait()
+    await (await streamrConfig!.setTrustedForwarder(minimalForwarder.address)).wait()
 
     // operator contract and policies
     const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
@@ -129,7 +134,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         token, streamrConfig, streamRegistry,
         sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule, minimalForwarder,
         deployer: signer
     }
 }

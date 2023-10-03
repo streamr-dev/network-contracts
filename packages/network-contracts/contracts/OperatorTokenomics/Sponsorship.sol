@@ -69,8 +69,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error FlaggingNotSupported();
     error AccessDenied();
 
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
-
     StreamrConfig public streamrConfig;
     IERC677 public token;
     IJoinPolicy[] public joinPolicies;
@@ -502,7 +500,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     function min(uint a, uint b) internal pure returns (uint) {
