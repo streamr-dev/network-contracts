@@ -22,7 +22,7 @@ contract DefaultDelegationPolicy is IDelegationPolicy, Operator {
      * @dev - the first delegation must be self-delegation since at first balance(owner) == 0
      * @dev - if minimumSelfDelegationFraction == 0, then any delegations are fine, AS LONG AS the owner has some tokens
      * @param delegator The address of the delegator
-    */
+     */
     function onDelegate(address delegator) external {
         // owner can always add delegation, even if for some reason the self-delegation requirement is violated (possibly the limit was changed)
         if (delegator == owner) { return; }

@@ -1,18 +1,18 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { utils as ethersUtils, Wallet } from "ethers"
 
-import { Operator } from "../../../../typechain"
-
-const { parseEther } = ethersUtils
-const { getSigners, getContractFactory } = hardhatEthers
-
-import {
-    deployTestContracts,
-    TestContracts,
-} from "../deployTestContracts"
+import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { deployOperatorContract } from "../deployOperatorContract"
 import { deploySponsorship } from "../deploySponsorshipContract"
+
+import type { Wallet } from "ethers"
+import type { Operator } from "../../../../typechain"
+
+const {
+    getSigners,
+    getContractFactory,
+    utils: { parseEther }
+} = hardhatEthers
 
 describe("OperatorContractOnlyJoinPolicy", (): void => {
     let admin: Wallet

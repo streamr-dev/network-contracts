@@ -1,16 +1,15 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { utils as ethersUtils, Wallet } from "ethers"
 
-const { parseEther } = ethersUtils
-const { getSigners } = hardhatEthers
-
-import {
-    deployTestContracts,
-    TestContracts,
-} from "../deployTestContracts"
-
+import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
+
+import type { Wallet } from "ethers"
+
+const {
+    getSigners,
+    utils: { parseEther }
+} = hardhatEthers
 
 describe("MaxOperatorsJoinPolicy", (): void => {
     let admin: Wallet
