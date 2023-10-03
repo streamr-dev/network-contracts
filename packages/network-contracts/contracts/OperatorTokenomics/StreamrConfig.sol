@@ -154,6 +154,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     address public streamRegistryAddress;
 
+    /**
+     * If there's good randomness available in the network, plug in a random oracle here.
+     * Zero by default; in the case, use fallback to give back cheap pseudorandom numbers.
+     **/
+    address public randomOracle;
+
     // TODO: initializer arguments?
     function initialize() public initializer {
         __AccessControl_init();
@@ -244,19 +250,26 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
-    /**
-     * @dev For higher flagReviewerCount, VoteKickPolicy.onFlag needs more random bytes; keccak gives 256 bits of "randomness".
-     * @dev It's also possible to tweak the >>= in the primary selection to something less than 8 (spend the randomness more slowly)
-     * @dev   or even replace >>= with randomness source (though that's of course more expensive)
-     */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(flagReviewerCount >= 1, "error_tooLow");
-        require(flagReviewerCount <= 32, "error_tooHigh");
         flagReviewerCount = newFlagReviewerCount;
+        // we can't select more than 1 reviewer per iteration, so we have to try at least as many times
+        if (flagReviewerSelectionIterations < flagReviewerCount) {
+            flagReviewerSelectionIterations = flagReviewerCount;
+        }
+    }
+
+    /**
+     * If we set this higher, we might spend more gas (if it's hard to find reviewers that aren't in the same sponsorship)
+     * If this is too low, we might not find a full reviewer set
+     **/
+    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newFlagReviewerSelectionIterations >= flagReviewerCount, "error_tooLow"); // we can't select more than 1 reviewer per iteration
+        flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
     }
 
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooLow");
+        require(newMaxQueueSeconds <= maxPenaltyPeriodSeconds, "error_tooHigh");
         maxQueueSeconds = newMaxQueueSeconds;
     }
 
@@ -266,11 +279,6 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
         flaggerRewardWei = newFlaggerRewardWei;
-    }
-
-    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagReviewerSelectionIterations >= flagReviewerCount, "error_tooLow"); // we can't select more than 1 reviewer per iteration
-        flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
     }
 
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -288,5 +296,14 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setFlagProtectionSeconds(uint newFlagProtectionSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
         flagProtectionSeconds = newFlagProtectionSeconds;
+    }
+
+    /**
+     * If there's good randomness available in the network, plug in a random oracle here
+     * For instance, in Ethereum mainnet, block.difficulty would be such, see https://github.com/ethereum/solidity/pull/13759
+     * Important criterion is: it's not possible to know the outcome by simulating the transaction (e.g. using estimateGas)
+     **/
+    function setRandomOracle(address newRandomOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        randomOracle = newRandomOracle;
     }
 }
