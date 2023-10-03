@@ -16,8 +16,6 @@ import "./SponsorshipPolicies/IKickPolicy.sol";
 import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
 
-import "hardhat/console.sol";
-
 /**
  * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
  * Those tokens are the *sponsorship* that the *sponsor* puts on servicing the stream
@@ -335,7 +333,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         // send out both allocations and stake
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
-        console.log("  payout", paidOutEarningsWei, paidOutStakeWei);
 
         operatorCount -= 1;
         totalStakedWei -= paidOutStakeWei;
