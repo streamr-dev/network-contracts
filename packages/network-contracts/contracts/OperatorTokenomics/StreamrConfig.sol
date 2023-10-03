@@ -123,6 +123,12 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     address public streamRegistryAddress;
 
+    /**
+     * If there's good randomness available in the network, plug in a random oracle here.
+     * Zero by default; in the case, use fallback to give back cheap pseudorandom numbers.
+     **/
+    address public randomOracle;
+
     // TODO: initializer arguments?
     function initialize() public initializer {
         __AccessControl_init();
@@ -130,10 +136,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
-        setSlashingFraction(0.1 ether);
+        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        setMinimumSelfDelegationFraction(0.1 ether);
+        setMinimumSelfDelegationFraction(0.1 ether); // 10% of the operator tokens must be held by the operator, or else new delegations are prevented
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
         setMinimumDelegationWei(1 ether);
@@ -146,11 +152,11 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         setMaxQueueSeconds(30 days);
 
         // Withdraw incentivization
-        setMaxAllowedEarningsFraction(0.05 ether);
-        setFishermanRewardFraction(0.5 ether);
+        setMaxAllowedEarningsFraction(0.05 ether); // 5% of valueWithoutEarnings is when fisherman can poach part of the operator's cut
+        setFishermanRewardFraction(0.5 ether); // 50% of operator's cut goes to fisherman
 
         // protocol fee
-        setProtocolFeeFraction(0.05 ether);
+        setProtocolFeeFraction(0.05 ether); // 5% of earnings go to protocol fee
         setProtocolFeeBeneficiary(_msgSender());
 
         // flagging + voting
@@ -235,15 +241,13 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
-    /**
-     * @dev For higher flagReviewerCount, VoteKickPolicy.onFlag needs more random bytes; keccak gives 256 bits of "randomness".
-     * @dev It's also possible to tweak the >>= in the primary selection to something less than 8 (spend the randomness more slowly)
-     * @dev   or even replace >>= with randomness source (though that's of course more expensive)
-     */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newFlagReviewerCount < 1) { revert TooLow({ value: newFlagReviewerCount, limit: 1 }); }
-        if (newFlagReviewerCount > 32) { revert TooHigh({ value: newFlagReviewerCount, limit: 32 }); }
         flagReviewerCount = newFlagReviewerCount;
+        // we can't select more than 1 reviewer per iteration, so we have to try at least as many times
+        if (flagReviewerSelectionIterations < flagReviewerCount) {
+            flagReviewerSelectionIterations = flagReviewerCount;
+        }
     }
 
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -329,5 +333,14 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
 
     function setFlagProtectionSeconds(uint newFlagProtectionSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
         flagProtectionSeconds = newFlagProtectionSeconds;
+    }
+
+    /**
+     * If there's good randomness available in the network, plug in a random oracle here
+     * For instance, in Ethereum mainnet, block.difficulty would be such, see https://github.com/ethereum/solidity/pull/13759
+     * Important criterion is: it's not possible to know the outcome by simulating the transaction (e.g. using estimateGas)
+     **/
+    function setRandomOracle(address newRandomOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        randomOracle = newRandomOracle;
     }
 }

@@ -1,16 +1,16 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, utils, Wallet } from "ethers"
 
 import { advanceToTimestamp, getBlockTimestamp, log } from "../hardhat/OperatorTokenomics/utils"
 import { deployTestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
 import { deployOperatorContract } from "../hardhat/OperatorTokenomics/deployOperatorContract"
-
 import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorshipContract"
-import { TestToken } from "../../typechain"
 
-const { parseEther, formatEther } = utils
-const { getSigners } = hardhatEthers
+import type { TestToken } from "../../typechain"
+import type { Wallet } from "ethers"
+
+const { parseEther, formatEther } = hardhatEthers.utils
+const { getSigners, BigNumber } = hardhatEthers
 
 describe("Operator", (): void => {
     let admin: Wallet

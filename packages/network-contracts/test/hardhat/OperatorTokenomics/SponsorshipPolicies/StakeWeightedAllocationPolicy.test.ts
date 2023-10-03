@@ -1,12 +1,13 @@
 import { ethers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
-const { parseEther, formatEther } = utils
+import type { BigNumber, ContractTransaction, Wallet } from "ethers"
+
+const { parseEther, formatEther } = ethers.utils
 
 describe("StakeWeightedAllocationPolicy", (): void => {
     let admin: Wallet
