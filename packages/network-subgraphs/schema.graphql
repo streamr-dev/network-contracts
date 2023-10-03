@@ -356,6 +356,7 @@ type Sponsorship @entity {
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!
+  maxOperators: Int
 }
 
 type SponsorshipDailyBucket @entity {
