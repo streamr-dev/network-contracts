@@ -812,6 +812,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
             // Doing this still breaks it because the sub-wei earnings are discarded while nothing is paid out
             // Not worth fixing since we're never going to have wei-scale stakes. Cool it mostly still works though :)
+            // Fixing it would complicate the withdraw where we couldn't just zero the earningsBeforeReferenceUpdateTimes1e36
+            //   so we could remember the wei-fractions that are left behind. But maybe we can ignore wei-fractions.
             // await advanceToTimestamp(timeAtStart + 7, "Operator 2 does a withdraw")
             // await (await sponsorship.connect(operator2).withdraw()).wait()
 
@@ -850,11 +852,6 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
             await advanceToTimestamp(timeAtStart + 3, "Operator 2 joins")
             await (await token.connect(operator2).transferAndCall(sponsorship.address, "1", operator2.address)).wait()
-
-            // Doing this still breaks it because the sub-wei earnings are discarded while nothing is paid out
-            // Not worth fixing since we're never going to have wei-scale stakes. Cool it mostly still works though :)
-            // await advanceToTimestamp(timeAtStart + 7, "Operator 2 does a withdraw")
-            // await (await sponsorship.connect(operator2).withdraw()).wait()
 
             await advanceToTimestamp(timeAtStart + 13, "Operator 1 leaves")
             await (await sponsorship.connect(operator).unstake()).wait()
