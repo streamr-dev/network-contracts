@@ -127,7 +127,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         uint[] memory policyParams
     ) private returns (address) {
         if (policies.length != policyParams.length) { revert BadArguments(); }
-        if (policies.length > 0 && policies[0] == address(0)) { revert AllocationPolicyRequired(); }
+        if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
