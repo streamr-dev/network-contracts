@@ -187,7 +187,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] == 0, "error_alreadyLive");
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -200,7 +199,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] > 0, "error_notLive");
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];
