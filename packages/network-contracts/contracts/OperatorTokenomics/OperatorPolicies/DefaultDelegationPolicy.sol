@@ -8,6 +8,10 @@ import "../Operator.sol";
 
 contract DefaultDelegationPolicy is IDelegationPolicy, Operator {
 
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDelegationPolicy).interfaceId;
+    }
+
     function setParam(uint param) external {
 
     }
