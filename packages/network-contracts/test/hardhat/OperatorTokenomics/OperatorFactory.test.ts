@@ -102,27 +102,7 @@ describe("OperatorFactory", function(): void {
         await (await operatorFactory.removeTrustedPolicy(randomAddress)).wait()
         expect(await operatorFactory.isTrustedPolicy(randomAddress)).to.be.false
     })
-
-    // TODO: useless once the policy checks are in place
-    // it("can deploy an operator without any policies", async function(): Promise<void> {
-    //     const { operatorFactory } = sharedContracts
-    //     const zeroAddress = hardhatEthers.constants.AddressZero
-    //     await expect(operatorFactory.deployOperator(
-    //         parseEther("0.1"),
-    //         "OperatorTokenName2",
-    //         "{}",
-    //         [zeroAddress, zeroAddress, zeroAddress],
-    //         [0, 0, 0]
-    //     ))
-    //         .to.emit(operatorFactory, "NewOperator")
-    // })
-
-    // it("can't put exchangeRatePolicy in the delegationPolicy's slot", async function(): Promise<void> {})
-
-    // it("should require ExchangeRatePolicy", async function(): Promise<void> {})
-
-    // it("other (than ExchangeRatePolicy) policies can be zero", async function(): Promise<void> {})
-
+    
     it("DelegationPolicy can be the zero address", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = await deployTestContracts(deployer)
         await expect(operatorFactory.deployOperator(
@@ -159,44 +139,41 @@ describe("OperatorFactory", function(): void {
             .to.emit(operatorFactory, "NewOperator")
     })
 
-    // it.only("reverts if incorrect delegation policy is provided", async function(): Promise<void> {
-    //     const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-    //     await expect(operatorFactory.deployOperator(
-    //         parseEther("0.1"),
-    //         "OperatorTokenName",
-    //         "{}",
-    //         [defaultExchangeRatePolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
-    //         [0, 0, 0]
-    //     ))
-    //         .to.be.revertedWith("error_delegationPolicyNotSupported")
-    // })
+    it("reverts if incorrect delegation policy is provided", async function(): Promise<void> {
+        const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
+        await expect(operatorFactory.deployOperator(
+            parseEther("0.1"),
+            "OperatorTokenName1",
+            "{}",
+            [defaultExchangeRatePolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
+            [0, 0, 0]
+        ))
+            .to.be.revertedWith("error_notDelegationPolicy")
+    })
 
-    // it.only("reverts if incorrect exchange rate policy is provided", async function(): Promise<void> {
-    //     const { operatorFactory, defaultDelegationPolicy, defaultUndelegationPolicy } = sharedContracts
-    //     await expect(operatorFactory.deployOperator(
-    //         parseEther("0.1"),
-    //         "OperatorTokenName",
-    //         "{}",
-    //         [defaultDelegationPolicy.address, defaultDelegationPolicy.address, defaultUndelegationPolicy.address],
-    //         [0, 0, 0]
-    //     ))
-    //         .to.be.revertedWith("error_exchangeRatePolicyNotSupported")
-    // })
+    it("reverts if incorrect exchange rate policy is provided", async function(): Promise<void> {
+        const { operatorFactory, defaultDelegationPolicy, defaultUndelegationPolicy } = sharedContracts
+        await expect(operatorFactory.deployOperator(
+            parseEther("0.1"),
+            "OperatorTokenName2",
+            "{}",
+            [defaultDelegationPolicy.address, defaultDelegationPolicy.address, defaultUndelegationPolicy.address],
+            [0, 0, 0]
+        ))
+            .to.be.revertedWith("error_notExchangeRatePolicy")
+    })
 
-    // it.only("reverts if incorrect undelegation policy is provided", async function(): Promise<void> {
-    //     const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-    //     await expect(operatorFactory.deployOperator(
-    //         parseEther("0.1"),
-    //         "OperatorTokenName",
-    //         "{}",
-    //         [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
-    //         [0, 0, 0]
-    //     ))
-    //         .to.be.revertedWith("error_undelegationPolicyNotSupported")
-    // })
-
-    // it("ExchangeRatePolicy must be trusted AND can NOT be zero address", async function(): Promise<void> {})
-    // it("DelegationPolicy must be trusted OR zero address", async function(): Promise<void> {})
+    it("reverts if incorrect undelegation policy is provided", async function(): Promise<void> {
+        const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy } = sharedContracts
+        await expect(operatorFactory.deployOperator(
+            parseEther("0.1"),
+            "OperatorTokenName3",
+            "{}",
+            [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultDelegationPolicy.address],
+            [0, 0, 0]
+        ))
+            .to.be.revertedWith("error_notUndelegationPolicy")
+    })
 
     it("reverts on operator deploy if any of the policies are not trusted", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
