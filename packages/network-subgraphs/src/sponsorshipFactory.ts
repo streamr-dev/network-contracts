@@ -25,9 +25,9 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.creator = creator
     sponsorship.cumulativeSponsoring = BigInt.zero()
 
-    // standard set is allocation-, leave-, kick-, join-policies
-    // oprerator only joinpolicy is always set, so we check for 5 policies
-    // then the 4rth policy is the max operators join policy 
+    // The standard ordering is: allocation, leave, kick, join policies
+    // "Operator-only join policy" is always set, so we check if we have 5 policies,
+    //   and in that case we assume the 4th policy is the "max-operators join policy"
     if (event.params.policies.length == 5) {
         sponsorship.maxOperators = event.params.policyParams[3].toI32()
     }
