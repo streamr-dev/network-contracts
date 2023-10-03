@@ -81,6 +81,13 @@ describe("OperatorFactory", function(): void {
             .to.be.reverted
     })
 
+    it("predicts the correct address for a new operator contract", async function(): Promise<void> {
+        const contracts = await deployTestContracts(deployer)
+        const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("OperatorTokenName")
+        const operator = await deployOperatorContract(contracts, deployer, parseEther("0"), {}, "OperatorTokenName")
+        expect(predictedOperatorAddress).to.equal(operator.address)
+    })
+
     it("can't deploy an operator having a cut over 100%", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
@@ -201,36 +208,4 @@ describe("OperatorFactory", function(): void {
         const { operatorFactory } = sharedContracts
         await expect(operatorFactory.registerAsNotLive()).to.revertedWith("error_onlyOperators")
     })
-
-    // it.only("can't deploy operators having any untrusted policies", async function(): Promise<void> {
-    //     const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-    //     await (await operatorFactory.addTrustedPolicies(
-    //             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address])).wait()
-    //     // const untrustedPolicyAddress = Wallet.createRandom().address
-
-    //     // await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-    //     //     [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0]))
-    //     //     .to.be.revertedWith("error_policyNotTrusted")
-
-    //     // await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-    //     //     [defaultDelegationPolicy.address, untrustedPolicyAddress, defaultUndelegationPolicy.address], [0, 0, 0]))
-    //     //     .to.be.revertedWith("error_policyNotTrusted")
-
-    //     // await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-    //     //     [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, untrustedPolicyAddress], [0, 0, 0]))
-    //     //     .to.be.revertedWith("error_policyNotTrusted")
-        
-    //     await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-    //         [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0]))
-    //         .to.emit(operatorFactory, "NewOperator")
-    // })
-
-    // it("can deploy operators without setting tge policies", async function(): Promise<void> {
-    //     const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-    //     const zeroAddress = hardhatEthers.constants.AddressZero
-
-    //     await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-    //         [defaultDelegationPolicy.address, zeroAddress, defaultUndelegationPolicy.address], [0, 0, 0]))
-    //         .to.emit(operatorFactory, "NewOperator")
-    // })
 })
