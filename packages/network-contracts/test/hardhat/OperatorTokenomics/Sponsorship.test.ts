@@ -438,38 +438,23 @@ describe("Sponsorship contract", (): void => {
     describe("EIP-2771 meta-transactions feature", () => {
         
         it.only("works as expected (happy path)", async (): Promise<void> => {
-            // const { registry, registryFromAdmin, minimalForwarder, minimalForwarderFromUser0 } = await deployTestContracts(admin)
-            const signer = hardhatEthers.Wallet.createRandom()
+            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
                        
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.approve(sponsorship.address, parseEther("100"))).wait()
-            // await (await sponsorship.stake(operator.address, parseEther("100"))).wait()
-            // expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
+            await (await sponsorship.stake(signer.address, parseEther("100"))).wait()
+            expect(await sponsorship.connect(signer).getMyStake()).to.be.equal(parseEther("100"))
 
             const re = await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)
 
-            const data = await sponsorship.interface.encodeFunctionData("stake", [signer.address, parseEther("100")])
+            const data = await sponsorship.interface.encodeFunctionData("unstake", [])
             const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
             const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
             const receipt = await (await contracts.minimalForwarder.execute(request, signature)).wait()
 
-            // expect(receipt.logs.length).to.equal(2)
-            expect(await sponsorship.connect(admin.provider).connect(signer).getMyStake()).to.be.equal(parseEther("100"))
-
-            // const path = "/path" + Wallet.createRandom().address
-            // const metadata = "metadata"
-            // const data = await registryFromAdmin.interface.encodeFunctionData("createStream", [path, metadata])
-            // const { request, signature } = await getEIP2771MetaTx(registryFromAdmin.address, 
-            //     data, minimalForwarder, hardhatEthers.Wallet.createRandom(), gas)
-
-            // const { request, signature, path, metadata, signer } = await getCreateStreamMetaTx()
-            // const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
-            // await expect(signatureIsValid).to.be.true
-            // const receipt = await (await minimalForwarderFromUser0.execute(request, signature)).wait()
-            // expect(receipt.logs.length).to.equal(2)
-            // const id = signer.address.toLowerCase() + path
-            // expect(await registry.getStreamMetadata(id)).to.equal(metadata)
+            expect(await sponsorship.connect(signer.connect(admin.provider)).getMyStake()).to.be.equal(parseEther("0"))
+            expect(await token.balanceOf(signer.address)).to.be.equal(parseEther("100"))
         })
     })
 })
