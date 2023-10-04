@@ -1710,6 +1710,21 @@ describe("Operator contract", (): void => {
     })
 
     describe("Operator/owner", () => {
+        it("reverts if trying to call initialize()", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            const { token, streamrConfig, nodeModule, queueModule, stakeModule } = sharedContracts
+            await expect(operator.initialize(
+                token.address,
+                streamrConfig.address,
+                operatorWallet.address,
+                "OperatorTokenName",
+                "{}",
+                parseEther("0.1"),
+                [nodeModule.address, queueModule.address, stakeModule.address])
+            )
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
+
         it("allows controller role holders to act on its behalf", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
             await expect(operator.connect(controller).setNodeAddresses([controller.address]))
