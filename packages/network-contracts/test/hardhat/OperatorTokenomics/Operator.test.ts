@@ -308,6 +308,20 @@ describe("Operator contract", (): void => {
                 .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
         })
 
+        it("only operators can unstake", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship.address, parseEther("100"))
+
+            await expect(operator.connect(delegator).unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(operator.connect(operator2Wallet).unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
         it("only operators can unstake without queue", async function(): Promise<void> {
             const { token } = sharedContracts
             setTokens(delegator, "100")
