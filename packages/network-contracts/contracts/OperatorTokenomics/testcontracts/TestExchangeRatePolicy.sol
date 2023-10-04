@@ -7,7 +7,7 @@ import "../OperatorPolicies/IExchangeRatePolicy.sol";
 contract TestExchangeRatePolicy is IExchangeRatePolicy {
 
     function supportsInterface(bytes4) public pure returns (bool) {
-        return true;
+        return interfaceId == type(IExchangeRatePolicy).interfaceId;
     }
 
     function setParam(uint) external {}
