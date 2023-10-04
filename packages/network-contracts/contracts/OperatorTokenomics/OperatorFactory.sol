@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "./IOperatorLivenessRegistry.sol";
 import "./Operator.sol";
@@ -19,6 +20,11 @@ import "./IERC677.sol";
 contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
+
+    error ExchangeRatePolicyRequired();
+    error NotDelegationPolicy();
+    error NotExchangeRatePolicy();
+    error NotUndelegationPolicy();
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -149,12 +155,23 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
         );
         if (policies[0] != address(0)) {
+            if (!IERC165(policies[0]).supportsInterface(type(IDelegationPolicy).interfaceId)) {
+                revert NotDelegationPolicy();
+            }
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         }
         if (policies[1] != address(0)) {
+            if (!IERC165(policies[1]).supportsInterface(type(IExchangeRatePolicy).interfaceId)) {
+                revert NotExchangeRatePolicy();
+            }
             newOperatorContract.setExchangeRatePolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
+        } else {
+            revert ExchangeRatePolicyRequired();
         }
         if (policies[2] != address(0)) {
+            if (!IERC165(policies[2]).supportsInterface(type(IUndelegationPolicy).interfaceId)) {
+                revert NotUndelegationPolicy();
+            }
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
@@ -185,7 +202,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] == 0, "error_alreadyLive");
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -198,7 +214,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         require(deploymentTimestamp[operatorContractAddress] > 0, "error_onlyOperators");
         Operator operator = Operator(operatorContractAddress);
-        require(liveOperatorsIndex[operator] > 0, "error_notLive");
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];
