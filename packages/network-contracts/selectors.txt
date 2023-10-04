@@ -381,7 +381,6 @@ ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(addre
 ======= Operator/sol:Sponsorship =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
-00cba943: TRUSTED_FORWARDER_ROLE()
 2b308a56: addJoinPolicy(address,uint256)
 3a1c0aa8: allocationPolicy()
 fa267ddf: earningsWei()
@@ -541,6 +540,7 @@ c2146f66: setFlagReviewerRewardWei(uint256)
 ffb6e4da: setMaxAllowedEarningsFraction(uint256)
 7e8d889a: setMaxPenaltyPeriodSeconds(uint256)
 9739b08c: setMaxQueueSeconds(uint256)
+4d836fd2: setMinimumDelegationWei(uint256)
 62250c67: setMinimumSelfDelegationFraction(uint256)
 a810edd7: setOperatorContractOnlyJoinPolicy(address)
 f94ca551: setOperatorFactory(address)
@@ -551,14 +551,20 @@ f9b2f3c9: setRandomOracle(address)
 af424c8e: setSlashingFraction(uint256)
 4b3fb81b: setSponsorshipFactory(address)
 055d7109: setStreamRegistryAddress(address)
+da742228: setTrustedForwarder(address)
 1cedd51e: setVotingPeriodSeconds(uint256)
 fc1e490f: slashingFraction()
 5efca0a9: sponsorshipFactory()
 7b0c2842: streamRegistryAddress()
 01ffc9a7: supportsInterface(bytes4)
+7da0a877: trustedForwarder()
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 cb85fe35: votingPeriodSeconds()
+
+Error signatures:
+b2a4c036: TooHigh(uint256,uint256)
+7e4b4593: TooLow(uint256,uint256)
 
 Event signatures:
 7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
