@@ -496,6 +496,30 @@ describe("Operator contract", (): void => {
                 await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
             })
 
+            it("reverts on set delegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { operator } = await deployOperator(operatorWallet)
+                const { defaultDelegationPolicy } = sharedContracts
+                await expect(operator.connect(operatorWallet).setDelegationPolicy(defaultDelegationPolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
+            it("reverts on set exchange rate policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { operator } = await deployOperator(operatorWallet)
+                const { defaultExchangeRatePolicy } = sharedContracts
+                await expect(operator.connect(operatorWallet).setExchangeRatePolicy(defaultExchangeRatePolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
+            it("reverts on set undelegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { operator } = await deployOperator(operatorWallet)
+                const { defaultUndelegationPolicy } = sharedContracts
+                await expect(operator.connect(operatorWallet).setUndelegationPolicy(defaultUndelegationPolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
             it("can transfer to operator tokens without having a delegation policy set", async function(): Promise<void> {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
