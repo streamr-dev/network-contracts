@@ -22,10 +22,10 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     error InvalidOperatorsCut();
     error PolicyNotTrusted();
-    error operatorAlreadyDeployed();
-    error onlyOperators();
-    error alreadyLive();
-    error notLive();
+    error OperatorAlreadyDeployed();
+    error OnlyOperators();
+    error AlreadyLive();
+    error NotLive();
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
@@ -168,7 +168,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewOperator(operatorAddress, newContractAddress);
 
-        if (operators[operatorAddress] != address(0)) { revert operatorAlreadyDeployed(); }
+        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
         operators[operatorAddress] = newContractAddress;
 
         return newContractAddress;
@@ -190,9 +190,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /** Operators MUST call this function when they stake to their first Sponsorship */
     function registerAsLive() public {
         address operatorContractAddress = _msgSender();
-        if (deploymentTimestamp[operatorContractAddress] == 0) { revert onlyOperators(); }
+        if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] != 0) { revert alreadyLive(); }
+        if (liveOperatorsIndex[operator] != 0) { revert AlreadyLive(); }
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -203,9 +203,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /** Operators MUST call this function when they unstake from their last Sponsorship */
     function registerAsNotLive() public {
         address operatorContractAddress = _msgSender();
-        if (deploymentTimestamp[operatorContractAddress] == 0) { revert onlyOperators(); }
+        if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] == 0) { revert notLive(); }
+        if (liveOperatorsIndex[operator] == 0) { revert NotLive(); }
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];

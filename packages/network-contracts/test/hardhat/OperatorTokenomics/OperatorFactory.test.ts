@@ -23,7 +23,7 @@ describe("OperatorFactory", function(): void {
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {
         await deployOperatorContract(sharedContracts, operatorWallet)
         await expect(deployOperatorContract(sharedContracts, operatorWallet))
-            .to.be.revertedWithCustomError(sharedContracts.operatorFactory, "operatorAlreadyDeployed")
+            .to.be.revertedWithCustomError(sharedContracts.operatorFactory, "OperatorAlreadyDeployed")
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
