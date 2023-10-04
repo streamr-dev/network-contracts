@@ -271,6 +271,54 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
             expect(await operator.queueIsEmpty()).to.equal(true)
         })
+
+        it("only operators can reduce the stake", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship.address, parseEther("100"))
+
+            await expect(operator.connect(operator2Wallet).reduceStakeTo(sponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can reduce the stake", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship.address, parseEther("100"))
+
+            await expect(operator.connect(operator2Wallet).reduceStakeTo(sponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can reduce the stake without queue", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship.address, parseEther("100"))
+
+            await expect(operator.connect(operator2Wallet).reduceStakeWithoutQueue(sponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can unstake without queue", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship.address, parseEther("100"))
+
+            await expect(operator.connect(operator2Wallet).unstakeWithoutQueue(sponsorship.address))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
     })
 
     describe("Delegation management", (): void => {
@@ -446,6 +494,28 @@ describe("Operator contract", (): void => {
             })
             afterEach(async () => {
                 await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
+            })
+
+            it("can transfer to operator tokens without having a delegation policy set", async function(): Promise<void> {
+                const { token } = sharedContracts
+                const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
+                await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+                
+                await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
+                
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
+                expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
+            })
+
+            it("can transfer to operator tokens without having an undelegation policy set", async function(): Promise<void> {
+                const { token } = sharedContracts
+                const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
+                await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+                
+                await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
+                
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
+                expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
 
             it("will NOT let operator's self-delegation go under the limit", async function(): Promise<void> {
@@ -1617,10 +1687,22 @@ describe("Operator contract", (): void => {
             expect(await operator.metadata()).to.equal("new metadata")
         })
 
+        it("can NOT update metadata for other operators", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.connect(operator2Wallet).updateMetadata("new metadata"))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
         it("can update the stream metadata", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
             await (await operator.updateStreamMetadata("new stream metadata")).wait()
             expect(await operator.getStreamMetadata()).to.equal("new stream metadata")
+        })
+
+        it("can NOT update the stream metadata for other operators", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.connect(operator2Wallet).updateStreamMetadata("new stream metadata"))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
         })
     })
 
