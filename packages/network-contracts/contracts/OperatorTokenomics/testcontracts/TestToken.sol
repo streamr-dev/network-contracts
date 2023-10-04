@@ -25,23 +25,12 @@ contract TestToken is ERC20, IERC677 {
         _mint(recipient, amount);
     }
 
-    function transfer(address to, uint256 amount) public override(IERC20, ERC20) returns (bool) {
-        return amount == 666 ? false : super.transfer(to, amount);
-    }
-
-    function transferFrom(address from, address to, uint256 amount) public override(IERC20, ERC20) returns (bool) {
-        return amount == 666 ? false :
-               amount == 777 ? true : super.transferFrom(from, to, amount);
-    }
-
     function transferAndCall(
         address to,
         uint256 amount,
         bytes calldata data
     ) external override returns (bool) {
-        if (!transfer(to, amount)) {
-            return false;
-        }
+        transfer(to, amount);
 
         uint256 recipientCodeSize;
         assembly { // solhint-disable-line no-inline-assembly

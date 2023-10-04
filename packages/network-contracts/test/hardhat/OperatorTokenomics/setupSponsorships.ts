@@ -4,7 +4,7 @@ import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 
-import type { BigNumber, Wallet } from "ethers"
+import type { Wallet, BigNumber } from "ethers"
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
 
 const { parseEther, id } = hardhatEthers.utils

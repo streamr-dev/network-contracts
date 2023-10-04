@@ -6,6 +6,7 @@ import "./IKickPolicy.sol";
 import "../Sponsorship.sol";
 import "../OperatorFactory.sol";
 import "../Operator.sol";
+import "../IRandomOracle.sol";
 
 // import "hardhat/console.sol";
 
@@ -20,8 +21,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         VOTED_NO_KICK,
         IS_SELECTED_SECONDARY
     }
-
-    uint public constant MAX_REVIEWER_COUNT = 32; // enforced in StreamrConfig.setFlagReviewerCount
 
     // flag
     mapping (address => address) public flaggerAddress;
@@ -66,6 +65,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      */
     function onFlag(address target) external {
         address flagger = _msgSender();
+        require(flagger != target, "error_cannotFlagSelf");
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
         require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
         require(stakedWei[target] > 0, "error_flagTargetNotStaked");
@@ -87,21 +87,32 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         lockedStakeWei[flagger] += flagStakeWei[target];
         require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
-        // only secondarily select peers that are in the same sponsorship as the flagging target
-        Operator[MAX_REVIEWER_COUNT] memory sameSponsorshipPeers;
-        uint sameSponsorshipPeerCount = 0;
-
         OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
         uint operatorCount = factory.liveOperatorCount();
-        // uint randomBytes = block.difficulty; // see https://github.com/ethereum/solidity/pull/13759
-        bytes32 randomBytes = keccak256(abi.encode(target, operatorCount)); // TODO temporary hack; polygon doesn't seem to support PREVRANDAO yet
+        uint maxReviewerCount = streamrConfig.flagReviewerCount();
+        uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
+
+        // If we don't have a good randomness source set in streamrConfig, we generate the outcome from a seed deterministically.
+        // Set the seed to only depend on target (until an operator [un]stakes), so that attacker who simulates transactions
+        //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every [un]stake
+        bytes32 randomBytes32 = bytes32((operatorCount << 160) | uint160(target));
+
+        // save peers that are in the same sponsorship as the flagging target for the secondary selection
+        Operator[] memory sameSponsorshipPeers = new Operator[](maxReviewerCount);
+        uint sameSponsorshipPeerCount = 0;
 
         // primary selection: live peers that are not in the same sponsorship
-        uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
-        uint maxReviewerCount = streamrConfig.flagReviewerCount();
         for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
-            randomBytes >>= 8; // if flagReviewerCount > 20, replace this with keccak256(randomBytes) or smth
-            uint index = uint(randomBytes) % operatorCount;
+            if (i % 32 == 0) {
+                if (streamrConfig.randomOracle() != address(0)) {
+                    randomBytes32 = IRandomOracle(streamrConfig.randomOracle()).getRandomBytes32();
+                } else {
+                    randomBytes32 = keccak256(abi.encode(randomBytes32));
+                }
+            } else {
+                randomBytes32 >>= 8;
+            }
+            uint index = uint(randomBytes32) % operatorCount;
             Operator peer = factory.liveOperators(index);
             if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 continue;
@@ -125,7 +136,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
         }
-        require(reviewers[target].length > 0, "error_notEnoughReviewers");
+        require(reviewers[target].length > 0, "error_failedToFindReviewers");
         emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
     }
 
@@ -184,11 +195,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             uint slashingWei = targetStakeAtRiskWei[target];
             // if targetIsGone: the tokens are still in Sponsorship, accounted in forfeitedStakeWei (so "slashing" was already done)
             if (!targetIsGone) {
-                _kick(target, slashingWei);
+                slashingWei = _kick(target, slashingWei);
             }
 
             // pay the flagger and those reviewers who voted correctly from the slashed stake
-            if (!flaggerIsGone) {
+            if (flaggerIsGone) {
+                // ...unless the flagger left and forfeited its flag-stake. Add the forfeited stake on top of "slashing" that will go to sponsorship
+                slashingWei += flagStakeWei[target];
+            } else {
                 token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
                 slashingWei -= flaggerRewardWei[target];
             }
