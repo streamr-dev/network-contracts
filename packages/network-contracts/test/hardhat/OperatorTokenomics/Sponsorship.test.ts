@@ -6,7 +6,7 @@ import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
 import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy, MinimalForwarder } from "../../../typechain"
-import type { Wallet } from "ethers"
+import { providers, type Wallet } from "ethers"
 import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
 const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
@@ -448,14 +448,14 @@ describe("Sponsorship contract", (): void => {
 
             const re = await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)
 
-            const data = await sponsorship.interface.encodeFunctionData("stake", [operator.address, parseEther("100")])
+            const data = await sponsorship.interface.encodeFunctionData("stake", [signer.address, parseEther("100")])
             const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
             const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
             const receipt = await (await contracts.minimalForwarder.execute(request, signature)).wait()
 
             // expect(receipt.logs.length).to.equal(2)
-            expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
+            expect(await sponsorship.connect(admin.provider).connect(signer).getMyStake()).to.be.equal(parseEther("100"))
 
             // const path = "/path" + Wallet.createRandom().address
             // const metadata = "metadata"
