@@ -6,7 +6,7 @@ import "../OperatorPolicies/IExchangeRatePolicy.sol";
 
 contract TestExchangeRatePolicy is IExchangeRatePolicy {
 
-    function supportsInterface(bytes4) public pure returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
         return interfaceId == type(IExchangeRatePolicy).interfaceId;
     }
 
