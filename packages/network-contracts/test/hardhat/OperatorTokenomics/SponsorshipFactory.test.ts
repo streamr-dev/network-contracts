@@ -1,14 +1,17 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
-import { utils as ethersUtils, Wallet } from "ethers"
-
-const { defaultAbiCoder, parseEther } = ethersUtils
-const { getSigners } = hardhatEthers
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 import { StreamRegistryV4 } from "../../../typechain"
+
+const {
+    getSigners,
+    utils: { defaultAbiCoder, parseEther }
+} = hardhatEthers
+
+import type { Wallet } from "ethers"
 
 let sponsorshipCounter = 0
 
