@@ -260,12 +260,12 @@ describe("Sponsorship contract", (): void => {
         })
 
         it("lets you unstake (without being slashed) within penalty period if unfunded", async function(): Promise<void> {
-            const blocktime = await getBlockTimestamp()
-            await advanceToTimestamp(blocktime + 1, "Sponsorship")
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start + 1, "Sponsorship")
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 100 })
             await (await sponsorship.sponsor(parseEther("10"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
-            await advanceToTimestamp(blocktime + 20)
+            await advanceToTimestamp(start + 20)
             await (await sponsorship.connect(operator).unstake()).wait()
         })
     })
