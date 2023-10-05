@@ -1,14 +1,15 @@
-import { ethers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { setupSponsorships, SponsorshipTestSetup } from "../setupSponsorships"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END, END_PROTECTION } from "../utils"
 
-import type { MockRandomOracle } from "../../../../typechain"
+import type { MockRandomOracle, Sponsorship } from "../../../../typechain"
 import type { BigNumber, Wallet } from "ethers"
 
-const { parseEther, formatEther, getAddress, hexZeroPad } = ethers.utils
+const { parseEther, formatEther, getAddress, hexZeroPad } = hardhatEthers.utils
+const { getSigners, getContractFactory } = hardhatEthers
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseFlag(flagData: BigNumber) {
@@ -40,14 +41,14 @@ describe("VoteKickPolicy", (): void => {
     let signers: Wallet[]
 
     before(async (): Promise<void> => {
-        signers = await ethers.getSigners()
+        signers = await getSigners()
         admin = signers[0]
         contracts = await deployTestContracts(admin)
         for (const { address } of signers) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
         }
         defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
-        mockRandomOracle = await (await ethers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
+        mockRandomOracle = await (await getContractFactory("MockRandomOracle", { signer: admin })).deploy()
         await (await contracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
     })
 
@@ -210,9 +211,8 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS to flag if modules are not set", async function(): Promise<void> {
-            const sponsorship = await (await ethers.getContractFactory("Sponsorship", { signer: admin })).deploy()
-            await sponsorship.deployed()
-            await sponsorship.initialize(
+            const sponsorshipFactory = await getContractFactory("Sponsorship", admin)
+            const sponsorship = await(await upgrades.deployProxy(sponsorshipFactory, [
                 "streamId",
                 "metadata",
                 contracts.streamrConfig.address,
@@ -223,7 +223,7 @@ describe("VoteKickPolicy", (): void => {
                     parseEther("1").toString()
                 ],
                 contracts.allocationPolicy.address
-            )
+            ], { kind: "uups" })).deployed() as Sponsorship
 
             await expect(sponsorship.flag(defaultSetup.sponsorships[0].address, ""))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")

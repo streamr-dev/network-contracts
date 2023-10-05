@@ -1,4 +1,4 @@
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { expect } from "chai"
 
 import { advanceToTimestamp, getBlockTimestamp } from "./utils"
@@ -45,6 +45,54 @@ describe("Sponsorship contract", (): void => {
         await (await token.transfer(operator2.address, parseEther("100000"))).wait()
 
         defaultSponsorship = await deploySponsorshipWithoutFactory(contracts)
+    })
+
+    describe("UUPS upgradeability", () => {
+        it("admin can upgrade", async () => {
+            const newSponsorshipFactory = await getContractFactory("Sponsorship") // this is the upgraded version (e.g. SponsorshipV2)
+            const newSponsorshipTx = await upgrades.upgradeProxy(defaultSponsorship.address, newSponsorshipFactory)
+            const newSponsorship = await newSponsorshipTx.deployed() as Sponsorship
+
+            expect(defaultSponsorship.address)
+                .to.equal(newSponsorship.address)
+        })
+
+        it("notAdmin can NOT upgrade", async () => {
+            const upgraderRole = await defaultSponsorship.UPGRADER_ROLE()
+            const notAdmin = operator
+            const newSponsorshipFactory = await getContractFactory("Sponsorship", notAdmin) // this is the upgraded version (e.g. SponsorshipV2)
+
+            await expect(upgrades.upgradeProxy(defaultSponsorship.address, newSponsorshipFactory))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("storage is preserved after the upgrade", async () => {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+                .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("100"), 0)
+
+            const newSponsorshipFactory = await getContractFactory("Sponsorship") // this is the upgraded version (e.g. SponsorshipV2)
+            const newSponsorshipTx = await upgrades.upgradeProxy(sponsorship.address, newSponsorshipFactory)
+            const newSponsorship = await newSponsorshipTx.deployed() as Sponsorship
+
+            expect(await newSponsorship.stakedWei(operator.address)).to.equal(parseEther("100"))
+        })
+
+        it("reverts if trying to call initialize()", async () => {
+            await expect(defaultSponsorship.initialize(
+                "streamId",
+                "metadata",
+                contracts.streamrConfig.address,
+                token.address,
+                [
+                    0,
+                    0,
+                    0
+                ],
+                hardhatEthers.constants.AddressZero,
+            ))
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
     })
 
     // longer happy path tests
@@ -368,9 +416,8 @@ describe("Sponsorship contract", (): void => {
         })
 
         it("will fail if setting penalty period longer than 14 days", async function(): Promise<void> {
-            const sponsorship = await (await getContractFactory("Sponsorship", { signer: admin })).deploy()
-            await sponsorship.deployed()
-            await sponsorship.initialize(
+            const sponsorshipFactory = await getContractFactory("Sponsorship", admin)
+            const sponsorship = await(await upgrades.deployProxy(sponsorshipFactory, [
                 "streamId",
                 "metadata",
                 contracts.streamrConfig.address,
@@ -381,7 +428,7 @@ describe("Sponsorship contract", (): void => {
                     parseEther("1").toString()
                 ],
                 testAllocationPolicy.address,
-            )
+            ], { kind: "uups" })).deployed() as Sponsorship
 
             await expect(sponsorship.setLeavePolicy(contracts.leavePolicy.address, 14 * 24 * 60 * 60 + 1))
                 .to.be.revertedWith("error_penaltyPeriodTooLong")

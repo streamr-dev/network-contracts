@@ -1,6 +1,6 @@
 import assert from "assert"
 import { utils, ContractReceipt } from "ethers"
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 
 import { Sponsorship, IAllocationPolicy, IJoinPolicy, IKickPolicy, StreamRegistryV4 } from "../../../typechain"
 import type { TestContracts } from "./deployTestContracts"
@@ -103,10 +103,9 @@ export async function deploySponsorshipWithoutFactory(
         streamRegistry,
     } = contracts
 
-    const sponsorship = await (await getContractFactory("Sponsorship", { signer: deployer })).deploy()
-    await sponsorship.deployed()
     const streamId = createStream(deployer.address, streamRegistry)
-    await sponsorship.initialize(
+    const sponsorshipFactory = await getContractFactory("Sponsorship", deployer)
+    const sponsorship = await(await upgrades.deployProxy(sponsorshipFactory, [
         streamId,
         "metadata",
         contracts.streamrConfig.address,
@@ -117,7 +116,7 @@ export async function deploySponsorshipWithoutFactory(
             overrideAllocationPolicyParam ?? allocationWeiPerSecond.toString()
         ],
         overrideAllocationPolicy?.address ?? allocationPolicy.address,
-    )
+    ], { kind: "uups" })).deployed() as Sponsorship
 
     await sponsorship.setKickPolicy(overrideKickPolicy?.address ?? voteKickPolicy.address, deployer.address)
     if (penaltyPeriodSeconds > -1) {

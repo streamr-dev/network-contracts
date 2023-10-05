@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
-// import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
@@ -38,7 +38,7 @@ import "./StreamrConfig.sol";
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
  * @dev   either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
  */
-contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
+contract Sponsorship is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
     event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
     event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
@@ -69,6 +69,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error AccessDenied();
 
     bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     StreamrConfig public streamrConfig;
     IERC677 public token;
@@ -122,7 +123,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return solventUntilTimestamp() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
     }
 
-    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(address(0x0)) { _disableInitializers(); }
 
     /**
      * @param initParams uint arguments packed into an array to avoid the "stack too deep" error
@@ -148,9 +150,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
+        _grantRole(UPGRADER_ROLE, _msgSender());
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     /**
      * ERC677 token callback
@@ -428,6 +434,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * When calling from a view function (staticcall context), use moduleGet instead
      */
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
+        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
@@ -456,6 +463,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         address target = address(bytes20(args[len - 20 : len])); // grab the address
         bytes memory data = args[0 : len - 32]; // drop extra argument
 
+        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = target.delegatecall(data);
         if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
         return returndata;
