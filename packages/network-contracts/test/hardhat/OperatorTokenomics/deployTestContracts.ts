@@ -62,7 +62,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
 
 export async function deployStreamrConfig(deployer: Wallet): Promise<StreamrConfig> {
     const streamrConfigFactory = await getContractFactory("StreamrConfig", deployer)
-    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: 'uups' })).deployed() as StreamrConfig
+    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfig
 }
 
 /**

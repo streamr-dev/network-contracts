@@ -20,7 +20,7 @@ describe("StreamrConfig", (): void => {
 
     describe("UUPS upgradeability", () => {
         it("admin can upgrade", async () => {
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this would be the upgraded version (e.g. StreamrConfigV2)
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this is the upgraded version (e.g. StreamrConfigV2)
             const newStreamrConfigTx = await upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory)
             const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
 
@@ -30,7 +30,7 @@ describe("StreamrConfig", (): void => {
 
         it("notAdmin can NOT upgrade", async () => {
             const upgraderRole = await streamrConfig.UPGRADER_ROLE()
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin) // this would be the upgraded version (e.g. StreamrConfigV2)
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin) // this is the upgraded version (e.g. StreamrConfigV2)
 
             await expect(upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory))
                 .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
@@ -40,7 +40,7 @@ describe("StreamrConfig", (): void => {
             const slashingFractionBeforeUpdate = await streamrConfig.slashingFraction()
             await (await streamrConfig.setSlashingFraction(parseEther("0.2"))).wait()
 
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this would be the upgraded version (e.g. StreamrConfigV2)
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this is the upgraded version (e.g. StreamrConfigV2)
             const newStreamrConfigTx = await upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory)
             const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
 
