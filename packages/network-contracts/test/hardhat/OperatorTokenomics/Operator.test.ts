@@ -501,7 +501,7 @@ describe("Operator contract", (): void => {
                         " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
             })
 
-            it("can transfer to operator tokens without having a delegation policy set", async function(): Promise<void> {
+            it("can transfer operator tokens without having a delegation policy set", async function(): Promise<void> {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -512,7 +512,7 @@ describe("Operator contract", (): void => {
                 expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
 
-            it("can transfer to operator tokens without having an undelegation policy set", async function(): Promise<void> {
+            it("can transfer operator tokens without having an undelegation policy set", async function(): Promise<void> {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
