@@ -7,6 +7,10 @@ import "../Operator.sol";
 
 contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
 
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IExchangeRatePolicy).interfaceId;
+    }
+
     function setParam(uint) external {
 
     }

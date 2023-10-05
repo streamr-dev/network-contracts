@@ -1651,7 +1651,7 @@ describe("Operator contract", (): void => {
                 .to.be.reverted // delegatecall returns (0, data)
         })
 
-        it("moduleCall reverts for broken yield policy", async function(): Promise<void> {
+        it("moduleCall reverts for broken exchange rate policy", async function(): Promise<void> {
             const { token: dataToken } = sharedContracts
             await setTokens(delegator, "1000")
             const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
