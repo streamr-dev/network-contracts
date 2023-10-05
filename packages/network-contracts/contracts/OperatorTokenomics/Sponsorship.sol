@@ -54,8 +54,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
 
     // Emitted from VoteKickPolicy
-    event Flagged(address indexed target, address indexed flagger, uint voteStartTimestamp, uint targetStakeAtRiskWei, string flagMetadata);
-    event FlagUpdate(address indexed target, uint indexed status, uint votesForKick, uint votesAgainstKick, uint totalReviewers);
+    event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
+    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick);
 
     error MinOperatorCountZero();
     error OnlyDATAToken();

@@ -87,13 +87,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         lockedStakeWei[flagger] += flagStakeWei[target];
         require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
-        emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
-        emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
-        emit Flagged(target, flagger, voteStartTimestamp[target], targetStakeAtRiskWei[target], flagMetadataJson[target]);
-
-        ////////////////////////////////////////////////////////////////////
-        // PEER REVIEWER SELECTION: TRY TO FIND maxReviewerCount REVIEWERS
-
         OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
         uint operatorCount = factory.liveOperatorCount();
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
@@ -144,6 +137,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
+
+        emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
+        emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+        emit Flagged(target, flagger, targetStakeAtRiskWei[target], reviewers[target].length, flagMetadataJson[target]);
     }
 
     /**
@@ -178,7 +175,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             return;
         }
 
-        emit FlagUpdate(target, 1, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
+        emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target]);
     }
 
     function _endVote(address target) internal {
@@ -224,7 +221,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                 delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
-            emit FlagUpdate(target, 2, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
+            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target]);
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
@@ -243,7 +240,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
-            emit FlagUpdate(target, 3, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
+            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target]);
             if (!targetIsGone) {
                 emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
             }

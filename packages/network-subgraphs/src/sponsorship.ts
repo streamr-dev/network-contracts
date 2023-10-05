@@ -27,7 +27,7 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     let lockedStakeWei = event.params.lockedStakeWei
     let now = event.block.timestamp.toU32()
     log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, lockedStake={} now={}',
-        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), now.toString()])
+        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), lockedStakeWei.toString(), now.toString()])
 
     let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
     if (stake.joinTimestamp == 0) { stake.joinTimestamp = now }
@@ -94,11 +94,12 @@ export function handleFlagged(event: Flagged): void {
     let sponsorship = event.address.toHexString()
     let target = event.params.target.toHexString()
     let flagger = event.params.flagger.toHexString()
-    let voteStartTimestamp = event.params.voteStartTimestamp
     let targetStakeAtRiskWei = event.params.targetStakeAtRiskWei
+    let reviewerCount = event.params.reviewerCount.toI32()
     let flagMetadata = event.params.flagMetadata
-    log.info('handleFlagged: sponsorship={} flagger={} target={} voteStartTimestamp={} targetStakeAtRiskWei={} flagMetadata={}',
-        [ sponsorship, flagger, target, voteStartTimestamp.toString(), targetStakeAtRiskWei.toString(), flagMetadata ])
+    let now = event.block.timestamp.toI32()
+    log.info('handleFlagged: sponsorship={} flagger={} target={} targetStakeAtRiskWei={} reviewerCount={} flagMetadata={} now={}',
+        [ sponsorship, flagger, target, targetStakeAtRiskWei.toString(), reviewerCount.toString(), flagMetadata, now.toString() ])
 
     let stake = loadOrCreateStake(sponsorship, target)
     let flagIndex = stake.flagCount
@@ -108,8 +109,12 @@ export function handleFlagged(event: Flagged): void {
     let flag = new Flag(sponsorship + "-" + target + "-" + flagIndex.toString())
     flag.sponsorship = sponsorship
     flag.target = target
-    flag.result = "waiting"
     flag.flagger = flagger
+    flag.flaggingTimestamp = now
+    flag.result = "waiting"
+    flag.votesForKick = 0
+    flag.votesAgainstKick = 0
+    flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
     flag.save()
@@ -118,19 +123,17 @@ export function handleFlagged(event: Flagged): void {
 export function handleFlagUpdate(event: FlagUpdate): void {
     let sponsorship = event.address.toHexString()
     let target = event.params.target.toHexString()
-    let statusCode = event.params.status.toU32()
+    let statusCode = event.params.status
     let votesForKick = event.params.votesForKick.toU32()
     let votesAgainstKick = event.params.votesAgainstKick.toU32()
-    let totalReviewers = event.params.totalReviewers.toU32()
-    log.info('handleFlagUpdate: sponsorship={} target={} status={}, votesFor={} votesAgainst={} reviewers={}',
-        [ sponsorship, target, statusCode.toString(), votesForKick.toString(), votesAgainstKick.toString(), totalReviewers.toString() ])
+    log.info('handleFlagUpdate: sponsorship={} target={} status={}, votesFor={} votesAgainst={}',
+        [ sponsorship, target, statusCode.toString(), votesForKick.toString(), votesAgainstKick.toString() ])
 
     let stake = loadOrCreateStake(sponsorship, target)
     let flagIndex = stake.flagCount - 1
 
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
     flag.result = flagResultStrings[statusCode]
-    flag.reviewerCount = totalReviewers
     // to break ties, first voter only gets 1 vote, next ones get 2
     flag.votesForKick = (votesForKick + 1) >> 1
     flag.votesAgainstKick = (votesAgainstKick + 1) >> 1
