@@ -1660,4 +1660,46 @@ describe("Operator contract", (): void => {
                 .to.be.revertedWithCustomError(operator, "ModuleCallError") // delegatecall returns (0, 0)
         })
     })
+
+    describe("EIP-2771 meta-transactions feature", () => {
+        
+        it("unstaking via metaTX through minimalforwarder", async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
+                       
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
+            await (await sponsorship.stake(signer.address, parseEther("100"))).wait()
+            expect(await sponsorship.connect(signer).getMyStake()).to.be.equal(parseEther("100"))
+
+            expect(await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)).to.be.true
+
+            const data = await sponsorship.interface.encodeFunctionData("unstake")
+            const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
+            const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
+            await expect(signatureIsValid).to.be.true
+            await (await contracts.minimalForwarder.execute(request, signature)).wait()
+
+            expect(await sponsorship.connect(signer.connect(admin.provider)).getMyStake()).to.be.equal(parseEther("0"))
+            expect(await token.balanceOf(signer.address)).to.be.equal(parseEther("100"))
+
+
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(delegator2, "1000")
+            await setTokens(delegator3, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship  = await deploySponsorship(sharedContracts)
+
+            // delegator can query his position in the queue without delegating
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // not in queue
+
+            // all delegators delegate to operator
+            // delegator and delegator2 are in the queue => returns position in front of him + himself
+            // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
+            await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
+        })
+    })
 })
