@@ -61,6 +61,11 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     return { operatorFactory, operatorTemplate }
 }
 
+export async function deployStreamrConfig(deployer: Wallet): Promise<StreamrConfig> {
+    const streamrConfigFactory = await getContractFactory("StreamrConfig", deployer)
+    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfig
+}
+
 /**
  * Deploy all contracts needed by tests. This should be called in "before/beforeAll".
  *     see @openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
@@ -71,9 +76,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
     await (await token.mint(signer.address, "1000000000000000000000000")).wait() // 1M tokens
 
-    const streamrConfig = await (await getContractFactory("StreamrConfig", { signer })).deploy() as StreamrConfig
-    await streamrConfig.deployed()
-    await(await streamrConfig.initialize()).wait()
+    const streamrConfig = await deployStreamrConfig(signer)
 
     // sponsorship and policies
     const maxOperatorsJoinPolicy = await (await getContractFactory("MaxOperatorsJoinPolicy", { signer })).deploy()
