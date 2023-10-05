@@ -87,14 +87,12 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
     await sponsorshipTemplate.deployed()
 
-    const sponsorshipFactory = await (await getContractFactory("SponsorshipFactory", { signer })).deploy()
-    await sponsorshipFactory.deployed()
-    await (await sponsorshipFactory.initialize(
+    const contractFactory = await getContractFactory("SponsorshipFactory", signer)
+    const sponsorshipFactory = await(await upgrades.deployProxy(contractFactory, [
         sponsorshipTemplate.address,
         token.address,
         streamrConfig.address
-    )).wait()
-    await sponsorshipFactory.deployed()
+    ], { kind: "uups" })).deployed() as SponsorshipFactory
     await (await sponsorshipFactory.addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,

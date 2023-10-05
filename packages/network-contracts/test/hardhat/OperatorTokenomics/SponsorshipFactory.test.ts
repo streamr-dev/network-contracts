@@ -1,13 +1,14 @@
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
-import { StreamRegistryV4 } from "../../../typechain"
+import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
 
 const {
     getSigners,
+    getContractFactory,
     utils: { defaultAbiCoder, parseEther }
 } = hardhatEthers
 
@@ -33,6 +34,50 @@ describe("SponsorshipFactory", () => {
 
         const { token } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
+    })
+
+    describe("UUPS upgradeability", () => {
+        it("admin can upgrade", async () => {
+            const { sponsorshipFactory } = contracts
+            const newContractFactory = await getContractFactory("SponsorshipFactory") // this is the upgraded version (e.g. SponsorshipFactoryV2)
+            const newSponsorshipFactoryTx = await upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory)
+            const newSponsorshipFactory = await newSponsorshipFactoryTx.deployed() as SponsorshipFactory
+
+            expect(sponsorshipFactory.address)
+                .to.equal(newSponsorshipFactory.address)
+        })
+
+        it("notAdmin can NOT upgrade", async () => {
+            const { sponsorshipFactory } = contracts
+            const upgraderRole = await sponsorshipFactory.UPGRADER_ROLE()
+            const newContractFactory = await getContractFactory("SponsorshipFactory", notAdmin) // this is the upgraded version (e.g. StreamrConfigV2)
+
+            await expect(upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("reverts if trying to call initialize()", async () => {
+            const { streamrConfig, token, sponsorshipTemplate, sponsorshipFactory } = contracts
+            await expect(sponsorshipFactory.initialize(
+                sponsorshipTemplate.address,
+                token.address,
+                streamrConfig.address
+            ))
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
+    })
+
+    // needs to be outside of the describe("UUPS upgradeability") block to be run before trusted policies are removed
+    it("storage is preserved after the upgrade", async () => {
+        const { sponsorshipFactory } = contracts
+        const sponsorship = await deploySponsorship(contracts)
+        const deploymentTimestampBeforeUpgrade = await contracts.sponsorshipFactory.deploymentTimestamp(sponsorship.address)
+
+        const newContractFactory = await getContractFactory("SponsorshipFactory") // this is the upgraded version (e.g. SponsorshipFactoryV2)
+        const newSponsorshipFactoryTx = await upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory)
+        const newSponsorshipFactory = await newSponsorshipFactoryTx.deployed() as SponsorshipFactory
+
+        expect(await newSponsorshipFactory.deploymentTimestamp(sponsorship.address)).to.equal(deploymentTimestampBeforeUpgrade)
     })
 
     it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {

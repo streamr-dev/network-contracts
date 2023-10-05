@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Sponsorship.sol";
 import "./IERC677.sol";
 import "./StreamrConfig.sol";
@@ -16,7 +16,8 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
  * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
  */
-contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable, ERC2771ContextUpgradeable {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     StreamrConfig public streamrConfig;
     address public sponsorshipContractTemplate;
@@ -28,18 +29,19 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, uint minimumStakingPeriodSeconds, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+    constructor() ERC2771ContextUpgradeable(address(0x0)) { _disableInitializers(); }
 
     function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(UPGRADER_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
         streamrConfig = StreamrConfig(streamrConfigAddress);
     }
 
-    function _authorizeUpgrade(address) internal override {}
-
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
