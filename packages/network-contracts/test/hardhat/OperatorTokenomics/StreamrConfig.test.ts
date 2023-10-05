@@ -1,9 +1,10 @@
-import { ethers as hardhatEthers } from "hardhat"
+import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
 import type { Wallet } from "ethers"
 import type { StreamrConfig } from "../../../typechain"
 import { parseEther } from "ethers/lib/utils"
+import { deployStreamrConfig } from "./deployTestContracts"
 
 const { getSigners, getContractFactory } = hardhatEthers
 
@@ -14,15 +15,50 @@ describe("StreamrConfig", (): void => {
 
     before(async (): Promise<void> => {
         [admin, notAdmin] = await getSigners() as Wallet[]
-        streamrConfig = await (await getContractFactory("StreamrConfig", { signer: admin })).deploy() as StreamrConfig
-        await (await streamrConfig.initialize()).wait()
+        await deployStreamrConfig(admin)
+    })
+
+    describe("UUPS upgradeability", () => {
+        it("admin can upgrade", async () => {
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this would be the upgraded version (e.g. StreamrConfigV2)
+            const newStreamrConfigTx = await upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory)
+            const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
+
+            expect(streamrConfig.address)
+                .to.equal(newStreamrConfig.address)
+        })
+
+        it("notAdmin can NOT upgrade", async () => {
+            const upgraderRole = await streamrConfig.UPGRADER_ROLE()
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin) // this would be the upgraded version (e.g. StreamrConfigV2)
+
+            await expect(upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("storage is preserved after the upgrade", async () => {
+            const slashingFractionBeforeUpdate = await streamrConfig.slashingFraction()
+            await (await streamrConfig.setSlashingFraction(parseEther("0.2"))).wait()
+
+            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this would be the upgraded version (e.g. StreamrConfigV2)
+            const newStreamrConfigTx = await upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory)
+            const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
+
+            expect(await newStreamrConfig.slashingFraction()).to.equal(parseEther("0.2"))
+            // restore the slashingFraction modification
+            await (await streamrConfig.setSlashingFraction(slashingFractionBeforeUpdate)).wait()
+        })
+
+        it("reverts if trying to call initialize()", async () => {
+            await expect(streamrConfig.initialize())
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
     })
 
     describe("Limitations of config values", (): void => {
         // restore after these modifications
         after(async (): Promise<void> => {
-            streamrConfig = await (await getContractFactory("StreamrConfig", { signer: admin })).deploy() as StreamrConfig
-            await (await streamrConfig.initialize()).wait()
+            await deployStreamrConfig(admin)
         })
 
         // test order may be important since they all use the same StreamrConfig instance: first test ones that depend on others
