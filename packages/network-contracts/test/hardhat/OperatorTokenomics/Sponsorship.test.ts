@@ -246,6 +246,13 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWithCustomError(sponsorship, "LeavePenalty")
         })
 
+        it("won't let you reduceStake if you're not staked", async function(): Promise<void> {
+            await expect(defaultSponsorship.connect(operator).reduceStakeTo(0))
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+            await expect(defaultSponsorship.connect(operator).reduceStakeTo(parseEther("1")))
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+        })
+
         it("won't let you unstake if you're not staked", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator).unstake())
                 .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
