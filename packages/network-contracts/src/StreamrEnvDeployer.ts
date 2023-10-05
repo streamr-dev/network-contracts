@@ -120,7 +120,6 @@ export class StreamrEnvDeployer {
         await this.createStream("/testStream")
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
-        // await this.stakeOnSponsorship()
         await this.deployOperatorContract()
         await this.delegate()
         await this.stakeIntoSponsorship()
@@ -369,13 +368,6 @@ export class StreamrEnvDeployer {
         log("sponsored through token approval")
     }
 
-    async stakeOnSponsorship(): Promise<void> {
-        const tx = await this.contracts.DATA.transferAndCall(this.sponsorship!.address, ethers.utils.parseEther("100"),
-            this.adminWallet.address)
-        await tx.wait()
-        log("staked in sponsorship with transfer and call")
-    }
-
     async deployOperatorFactory(): Promise<void> {
         const operatorTemplate = await (new ContractFactory(operatorABI, operatorBytecode, this.adminWallet)).deploy() as Operator
         await operatorTemplate.deployed()
@@ -462,9 +454,9 @@ export class StreamrEnvDeployer {
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
         log("    Operator deployed at: ", operatorAddress)
         const operator = new Contract(operatorAddress, operatorABI, deployer) as Operator
-        if (deployer == this.adminWallet) {
+        if (deployer.address == this.adminWallet.address) {
             this.operatorAddress = operatorAddress
-            this.operator = new Contract(operatorAddress, operatorABI, deployer) as Operator
+            this.operator = operator
         } else {
             // add self-delegation
             log("    Adding self-delegation")
