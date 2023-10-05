@@ -81,61 +81,6 @@ describe("Operator contract", (): void => {
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
     })
 
-    describe("Delegator functionality", (): void => {
-        it("balanceInData returns 0 if delegator is not delegated or has 0 balance", async function(): Promise<void> {
-            const { token: dataToken } = sharedContracts
-            await setTokens(delegator, "1000")
-            const { operator } = await deployOperator(operatorWallet)
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
-
-            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
-
-            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
-        })
-
-        it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
-            const { token } = sharedContracts
-            await setTokens(delegator, "1000")
-            await setTokens(delegator2, "1000")
-            await setTokens(delegator3, "1000")
-            const { operator } = await deployOperator(operatorWallet)
-            const sponsorship  = await deploySponsorship(sharedContracts)
-
-            // delegator can query his position in the queue without delegating
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // not in queue
-
-            // all delegators delegate to operator
-            // delegator and delegator2 are in the queue => returns position in front of him + himself
-            // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
-            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
-            await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
-            await (await operator.connect(delegator2).delegate(parseEther("1000"))).wait()
-            await (await operator.connect(delegator3).delegate(parseEther("1000"))).wait()
-            await (await operator.stake(sponsorship.address, parseEther("3000"))).wait()
-
-            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // first in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
-
-            // undelegate some more => move down into the queue
-            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(3) // first aand third in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(4) // second and fourth in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // not in queue
-
-            await (await operator.connect(delegator3).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // in queue (same position as before being in the queue)
-        })
-    })
-
     describe("Scenarios", (): void => {
 
         // https://hackmd.io/QFmCXi8oT_SMeQ111qe6LQ
@@ -436,6 +381,59 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("1000")))
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
+        })
+
+        it("balanceInData returns 0 if delegator is not delegated or has 0 balance", async function(): Promise<void> {
+            const { token: dataToken } = sharedContracts
+            await setTokens(delegator, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+
+            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
+
+            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+        })
+
+        it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(delegator2, "1000")
+            await setTokens(delegator3, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship  = await deploySponsorship(sharedContracts)
+
+            // delegator can query his position in the queue without delegating
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // not in queue
+
+            // all delegators delegate to operator
+            // delegator and delegator2 are in the queue => returns position in front of him + himself
+            // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
+            await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
+            await (await operator.connect(delegator2).delegate(parseEther("1000"))).wait()
+            await (await operator.connect(delegator3).delegate(parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("3000"))).wait()
+
+            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
+
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // first in queue
+            expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
+
+            // undelegate some more => move down into the queue
+            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(3) // first aand third in queue
+            expect(await operator.queuePositionOf(delegator2.address)).to.equal(4) // second and fourth in queue
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // not in queue
+
+            await (await operator.connect(delegator3).undelegate(parseEther("500"))).wait()
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // in queue (same position as before being in the queue)
         })
 
         describe("DefaultDelegationPolicy / DefaltUndelegationPolicy", () => {
@@ -1651,7 +1649,7 @@ describe("Operator contract", (): void => {
                 .to.be.reverted // delegatecall returns (0, data)
         })
 
-        it("moduleCall reverts for broken yield policy", async function(): Promise<void> {
+        it("moduleCall reverts for broken exchange rate policy", async function(): Promise<void> {
             const { token: dataToken } = sharedContracts
             await setTokens(delegator, "1000")
             const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })

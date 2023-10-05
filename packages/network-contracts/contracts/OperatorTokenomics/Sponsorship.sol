@@ -90,7 +90,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public minOperatorCount;
     uint public minHorizonSeconds;
     uint public remainingWei;
-    uint public earningsWei; // only the IAllocationPolicy should modify this!
+    uint public earningsWei; // allocated but not withdrawn tokens; only the IAllocationPolicy should modify this!
 
     function getMyStake() public view returns (uint) {
         return stakedWei[_msgSender()];
