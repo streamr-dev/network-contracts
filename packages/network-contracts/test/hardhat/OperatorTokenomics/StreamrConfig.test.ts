@@ -15,7 +15,7 @@ describe("StreamrConfig", (): void => {
 
     before(async (): Promise<void> => {
         [admin, notAdmin] = await getSigners() as Wallet[]
-        await deployStreamrConfig(admin)
+        streamrConfig = await deployStreamrConfig(admin)
     })
 
     describe("UUPS upgradeability", () => {
