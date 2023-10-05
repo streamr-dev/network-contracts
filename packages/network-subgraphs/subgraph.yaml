@@ -226,7 +226,7 @@ templates:
         - name: Sponsorship
           file: ./abis/Sponsorship.json
       eventHandlers:
-          - event: StakeUpdate(indexed address,uint256,uint256)
+          - event: StakeUpdate(indexed address,uint256,uint256,uint256)
             handler: handleStakeUpdated
           - event: SponsorshipUpdate(uint256,uint256,uint256,bool)
             handler: handleSponsorshipUpdated

@@ -1,6 +1,7 @@
-# TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
+# TODO: how to define dates/timestamps? This was suggested in https://graphql.org/learn/schema/
 # scalar Date
 # for now, use BigInt because that's what the events return
+# TODO: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes
@@ -377,11 +378,13 @@ type SponsorshipDailyBucket @entity {
 # Operators hold Stake in Sponsorships. Stake is the "many-to-many table" between Sponsorship and Operator
 type Stake @entity {
   id: ID! # 0xSponsorshipAddress-0xOperatorAddress
+  sponsorship: Sponsorship!
   operator: Operator!
-  amount: BigInt!
-  earningsWei: BigInt!
-  sponsorship: Sponsorship
-  joinDate: BigInt!
+  amountWei: BigInt!
+  lockedWei: BigInt!
+  earningsWei: BigInt! # momentary earnings at updateTimestamp
+  updateTimestamp: Int! # timestamp when earningsWei (and others) were updated; useful for calculating "real-time" earnings values
+  joinTimestamp: Int!
   flagCount: Int! # how many times this operator has been flagged so far (failed flags + 0 or 1 pending)
 }
 

@@ -24,14 +24,17 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     let operatorAddress = event.params.operator.toHexString()
     let stakedWei = event.params.stakedWei
     let earningsWei = event.params.earningsWei
-    let joinDate = event.block.timestamp
-    log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, joinDate={}',
-        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), joinDate.toString()])
+    let lockedStakeWei = event.params.lockedStakeWei
+    let now = event.block.timestamp.toU32()
+    log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, lockedStake={} now={}',
+        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), now.toString()])
 
     let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
-    stake.joinDate = event.block.timestamp
-    stake.amount = event.params.stakedWei
-    stake.earningsWei = event.params.earningsWei
+    if (stake.joinTimestamp == 0) { stake.joinTimestamp = now }
+    stake.updateTimestamp = now
+    stake.amountWei = stakedWei
+    stake.earningsWei = earningsWei
+    stake.lockedWei = lockedStakeWei
     stake.save()
 
     // also save StakingEvent, TODO: do we need them?
@@ -181,6 +184,8 @@ function loadOrCreateStake(sponsorshipAddress: string, operatorAddress: string):
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress
         stake.operator = operatorAddress
+        stake.flagCount = 0
+        stake.joinTimestamp = 0 // set this in StakeUpdate
     }
     return stake
 }

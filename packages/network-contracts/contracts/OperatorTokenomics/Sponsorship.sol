@@ -40,7 +40,7 @@ import "./StreamrConfig.sol";
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
-    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
+    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei, uint lockedStakeWei);
     event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
@@ -237,7 +237,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)));
         }
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -272,7 +272,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
         token.transfer(operator, payoutWei);
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -286,7 +286,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
         emit OperatorSlashed(operator, actualSlashingWei);
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
     }
 
     /**
@@ -341,7 +341,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         delete joinTimeOfOperator[operator];
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator));
-        emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
+        emit StakeUpdate(operator, 0, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
 
@@ -358,7 +358,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
-            emit StakeUpdate(operator, stakedWei[operator], 0); // earnings will be zero after withdraw (see test)
+            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]); // earnings will be zero after withdraw (see test)
             emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         }
     }
