@@ -488,11 +488,17 @@ d547741f: revokeRole(bytes32,address)
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 
+Error signatures:
+6d75c207: AllocationPolicyRequired()
+1739bb9a: BadArguments()
+2cc6b17b: PolicyNotTrusted()
+13c872ee: StreamNotFound()
+
 Event signatures:
 7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
 1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-1a1b2ede90e01409d61e17560fe1af715f78df094508a91b5157b83939cb5911: NewSponsorship(address,string,string,uint256,uint256,address)
+2f6aee5d8c249b83c278dc774b8923a70ea8df009e1d61e4210856b155dfee53: NewSponsorship(address,string,string,address[],uint256[],address)
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
@@ -541,6 +547,7 @@ c2146f66: setFlagReviewerRewardWei(uint256)
 ffb6e4da: setMaxAllowedEarningsFraction(uint256)
 7e8d889a: setMaxPenaltyPeriodSeconds(uint256)
 9739b08c: setMaxQueueSeconds(uint256)
+4d836fd2: setMinimumDelegationWei(uint256)
 62250c67: setMinimumSelfDelegationFraction(uint256)
 a810edd7: setOperatorContractOnlyJoinPolicy(address)
 f94ca551: setOperatorFactory(address)
@@ -559,6 +566,10 @@ fc1e490f: slashingFraction()
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 cb85fe35: votingPeriodSeconds()
+
+Error signatures:
+b2a4c036: TooHigh(uint256,uint256)
+7e4b4593: TooLow(uint256,uint256)
 
 Event signatures:
 7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)

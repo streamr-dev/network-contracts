@@ -295,9 +295,6 @@ type OperatorDailyBucket @entity {
   "DATA held by the operator, not yet staked (first event in bucket)"
   dataTokenBalanceWei: BigInt!
 
-  "Momentary APY. Currently not used. TODO: calculate and add to subgraph"
-  spotAPY: BigInt!
-
   "All delegators joining this operator. Initialized from operator.delegatorCount"
   delegatorCountAtStart: Int!
 
@@ -352,7 +349,7 @@ type Sponsorship @entity {
   operatorCount: Int!
   totalStakedWei: BigInt!
   remainingWei: BigInt!
-  spotAPY: BigInt!
+  spotAPY: BigDecimal!
   projectedInsolvency: BigInt!
   flags: [Flag!]! @derivedFrom(field: "sponsorship")
   creator: String!
@@ -366,7 +363,7 @@ type SponsorshipDailyBucket @entity {
   totalStakedWei: BigInt!
   remainingWei: BigInt!
   projectedInsolvency: BigInt!
-  spotAPY: BigInt!
+  spotAPY: BigDecimal!
   operatorCount: Int!
 }
 
