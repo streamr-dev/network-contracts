@@ -259,7 +259,6 @@ Function signatures:
 092c5b3b: CONTROLLER_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
 e58378bb: OWNER_ROLE()
-00cba943: TRUSTED_FORWARDER_ROLE()
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
 a63ed2c8: balanceInData(address)

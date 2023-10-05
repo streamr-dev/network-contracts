@@ -26,8 +26,6 @@ import "./SponsorshipFactory.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
-// import "hardhat/console.sol";
-
 /**
  * Operator contract receives and holds the delegators' tokens.
  * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
@@ -78,7 +76,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
@@ -168,14 +165,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint operatorsCut,
         address[3] memory modules
     ) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
         _setupRole(CONTROLLER_ROLE, ownerAddress);
         _setRoleAdmin(CONTROLLER_ROLE, OWNER_ROLE); // owner sets the controllers
-        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, CONTROLLER_ROLE); // controller can set the GSN trusted forwarder
 
         token = IERC677(tokenAddress);
-        streamrConfig = StreamrConfig(streamrConfigAddress);
 
         nodeModule = INodeModule(modules[0]);
         queueModule = IQueueModule(modules[1]);
@@ -259,7 +255,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
      */
     function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {

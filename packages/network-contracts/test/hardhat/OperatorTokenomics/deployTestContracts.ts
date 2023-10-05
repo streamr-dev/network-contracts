@@ -71,7 +71,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
     await (await token.mint(signer.address, "1000000000000000000000000")).wait() // 1M tokens
 
-    const streamrConfig = await (await getContractFactory("StreamrConfig", { signer })).deploy()
+    const streamrConfig = await (await getContractFactory("StreamrConfig", { signer })).deploy() as StreamrConfig
     await streamrConfig.deployed()
     await(await streamrConfig.initialize()).wait()
 
@@ -105,10 +105,9 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const minimalForwarderFactory = await hardhatEthers.getContractFactory("MinimalForwarder", signer)
     const minimalForwarder = await minimalForwarderFactory.deploy() as MinimalForwarder
 
-    await (await streamrConfig!.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
-    await (await streamrConfig!.setSponsorshipFactory(sponsorshipFactory.address)).wait()
-    await (await streamrConfig!.setTrustedForwarder(minimalForwarder.address)).wait()
-
+    await (await streamrConfig.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
+    await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
+    await (await streamrConfig.setTrustedForwarder(minimalForwarder.address)).wait()
     // operator contract and policies
     const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
     const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
