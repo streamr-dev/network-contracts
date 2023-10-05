@@ -227,7 +227,7 @@ describe("Sponsorship contract", (): void => {
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("50")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
+                .to.be.revertedWithCustomError(sponsorship, "MinimumStake")
         })
 
         it("won't let increase stake with reduceStakeTo", async function(): Promise<void> {
@@ -235,7 +235,7 @@ describe("Sponsorship contract", (): void => {
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("150")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(sponsorship, "CannotIncreaseStake")
         })
 
         it("won't let unstake if you would be slashed", async function(): Promise<void> {
@@ -243,12 +243,11 @@ describe("Sponsorship contract", (): void => {
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).unstake())
-                .to.be.revertedWithCustomError(defaultSponsorship, "LeavePenalty")
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty")
         })
 
         it("won't let you unstake if you're not staked", async function(): Promise<void> {
-            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-            await expect(sponsorship.connect(operator).unstake())
+            await expect(defaultSponsorship.connect(operator).unstake())
                 .to.be.revertedWithCustomError(defaultSponsorship, "OperatorNotStaked")
         })
 
