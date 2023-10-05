@@ -6,7 +6,7 @@ import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./
 import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { IKickPolicy, IExchangeRatePolicy } from "../../../typechain"
+import { IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 import type { Wallet } from "ethers"
@@ -30,6 +30,8 @@ describe("Operator contract", (): void => {
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
+    let defaultOperator: Operator
+    let defaultSponsorship: Sponsorship
     let testKickPolicy: IKickPolicy
     let testExchangeRatePolicy: IExchangeRatePolicy
     let testExchangeRatePolicy2: IExchangeRatePolicy
@@ -79,61 +81,9 @@ describe("Operator contract", (): void => {
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
-    })
 
-    describe("Delegator functionality", (): void => {
-        it("balanceInData returns 0 if delegator is not delegated or has 0 balance", async function(): Promise<void> {
-            const { token: dataToken } = sharedContracts
-            await setTokens(delegator, "1000")
-            const { operator } = await deployOperator(operatorWallet)
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
-
-            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
-
-            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
-            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
-        })
-
-        it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
-            const { token } = sharedContracts
-            await setTokens(delegator, "1000")
-            await setTokens(delegator2, "1000")
-            await setTokens(delegator3, "1000")
-            const { operator } = await deployOperator(operatorWallet)
-            const sponsorship  = await deploySponsorship(sharedContracts)
-
-            // delegator can query his position in the queue without delegating
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // not in queue
-
-            // all delegators delegate to operator
-            // delegator and delegator2 are in the queue => returns position in front of him + himself
-            // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
-            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
-            await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
-            await (await operator.connect(delegator2).delegate(parseEther("1000"))).wait()
-            await (await operator.connect(delegator3).delegate(parseEther("1000"))).wait()
-            await (await operator.stake(sponsorship.address, parseEther("3000"))).wait()
-
-            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // first in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
-
-            // undelegate some more => move down into the queue
-            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(3) // first aand third in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(4) // second and fourth in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // not in queue
-
-            await (await operator.connect(delegator3).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // in queue (same position as before being in the queue)
-        })
+        defaultOperator = (await deployOperator(operatorWallet)).operator
+        defaultSponsorship = await deploySponsorship(sharedContracts)
     })
 
     describe("Scenarios", (): void => {
@@ -270,6 +220,33 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("0"))
             expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
             expect(await operator.queueIsEmpty()).to.equal(true)
+        })
+
+        it("only operators can reduce the stake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can reduce the stake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can reduce the stake without queue", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeWithoutQueue(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can unstake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(delegator).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can unstake without queue", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).unstakeWithoutQueue(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
     })
 
@@ -438,6 +415,59 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("1000"))
         })
 
+        it("balanceInData returns 0 if delegator is not delegated or has 0 balance", async function(): Promise<void> {
+            const { token: dataToken } = sharedContracts
+            await setTokens(delegator, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+
+            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(parseEther("1000"))
+
+            await (await operator.connect(delegator).undelegate(parseEther("1000"))).wait()
+            expect(await operator.connect(delegator).balanceInData(delegator.address)).to.equal(0)
+        })
+
+        it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(delegator2, "1000")
+            await setTokens(delegator3, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship  = await deploySponsorship(sharedContracts)
+
+            // delegator can query his position in the queue without delegating
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // not in queue
+
+            // all delegators delegate to operator
+            // delegator and delegator2 are in the queue => returns position in front of him + himself
+            // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
+            await (await token.connect(delegator).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
+            await (await operator.connect(delegator).delegate(parseEther("1000"))).wait()
+            await (await operator.connect(delegator2).delegate(parseEther("1000"))).wait()
+            await (await operator.connect(delegator3).delegate(parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("3000"))).wait()
+
+            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
+
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(1) // first in queue
+            expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
+
+            // undelegate some more => move down into the queue
+            await (await operator.connect(delegator).undelegate(parseEther("500"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
+            expect(await operator.queuePositionOf(delegator.address)).to.equal(3) // first aand third in queue
+            expect(await operator.queuePositionOf(delegator2.address)).to.equal(4) // second and fourth in queue
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // not in queue
+
+            await (await operator.connect(delegator3).undelegate(parseEther("500"))).wait()
+            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // in queue (same position as before being in the queue)
+        })
+
         describe("DefaultDelegationPolicy / DefaltUndelegationPolicy", () => {
             beforeEach(async () => {
                 await setTokens(operatorWallet, "3000")
@@ -446,6 +476,49 @@ describe("Operator contract", (): void => {
             })
             afterEach(async () => {
                 await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
+            })
+
+            it("reverts on set delegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { defaultDelegationPolicy } = sharedContracts
+                await expect(defaultOperator.connect(operatorWallet).setDelegationPolicy(defaultDelegationPolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
+            it("reverts on set exchange rate policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { defaultExchangeRatePolicy } = sharedContracts
+                await expect(defaultOperator.connect(operatorWallet).setExchangeRatePolicy(defaultExchangeRatePolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
+            it("reverts on set undelegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
+                const { defaultUndelegationPolicy } = sharedContracts
+                await expect(defaultOperator.connect(operatorWallet).setUndelegationPolicy(defaultUndelegationPolicy.address, 0))
+                    .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
+                        " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
+            })
+
+            it("can transfer operator tokens without having a delegation policy set", async function(): Promise<void> {
+                const { token } = sharedContracts
+                const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
+                await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+                
+                await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
+                
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
+                expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
+            })
+
+            it("can transfer operator tokens without having an undelegation policy set", async function(): Promise<void> {
+                const { token } = sharedContracts
+                const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
+                await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+                
+                await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
+                
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
+                expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
 
             it("will NOT let operator's self-delegation go under the limit", async function(): Promise<void> {
@@ -1602,6 +1675,20 @@ describe("Operator contract", (): void => {
     })
 
     describe("Operator/owner", () => {
+        it("reverts if trying to call initialize()", async function(): Promise<void> {
+            const { token, streamrConfig, nodeModule, queueModule, stakeModule } = sharedContracts
+            await expect(defaultOperator.initialize(
+                token.address,
+                streamrConfig.address,
+                operatorWallet.address,
+                "OperatorTokenName",
+                "{}",
+                parseEther("0.1"),
+                [nodeModule.address, queueModule.address, stakeModule.address])
+            )
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
+
         it("allows controller role holders to act on its behalf", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
             await expect(operator.connect(controller).setNodeAddresses([controller.address]))
@@ -1617,10 +1704,22 @@ describe("Operator contract", (): void => {
             expect(await operator.metadata()).to.equal("new metadata")
         })
 
+        it("can NOT update metadata for other operators", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.connect(operator2Wallet).updateMetadata("new metadata"))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+        })
+
         it("can update the stream metadata", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
             await (await operator.updateStreamMetadata("new stream metadata")).wait()
             expect(await operator.getStreamMetadata()).to.equal("new stream metadata")
+        })
+
+        it("can NOT update the stream metadata for other operators", async function(): Promise<void> {
+            const { operator } = await deployOperator(operatorWallet)
+            await expect(operator.connect(operator2Wallet).updateStreamMetadata("new stream metadata"))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
         })
     })
 

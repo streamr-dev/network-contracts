@@ -158,22 +158,21 @@ describe("SponsorshipFactory", () => {
         const streamId1 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId1, "{}",
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
-        // leavepolicy
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         const streamId2 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId2, "{}",
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // kickpolicy
         const streamId3 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId3, "{}",
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // joinpolicy
         const streamId4 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId4, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
     })
 
     it("will NOT create a Sponsorship with mismatching number of policies and params", async function(): Promise<void> {
@@ -182,14 +181,14 @@ describe("SponsorshipFactory", () => {
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "BadArguments")
     })
 
     it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy } = contracts
         await expect(sponsorshipFactory.deploySponsorship(1, "0xnonexistingstreamid", "{}",
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_streamNotFound")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
     })
 
     it("will NOT create a Sponsorship without an allocation policy", async function(): Promise<void> {
@@ -197,7 +196,7 @@ describe("SponsorshipFactory", () => {
         const streamId = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
             [],
-            [])).to.be.revertedWith("error_allocationPolicyRequired")
+            [])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
     })
 
     it("will not create a Sponsorship with a zero allocation policy", async function(): Promise<void> {
@@ -205,7 +204,7 @@ describe("SponsorshipFactory", () => {
         const streamId = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
             [hardhatEthers.constants.AddressZero],
-            ["0"])).to.be.revertedWith("error_allocationPolicyRequired")
+            ["0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
     })
 
     it("is possible to have multilpe join policies", async function(): Promise<void> {
