@@ -209,24 +209,24 @@ describe("OperatorFactory", function(): void {
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
             [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])
-        ).to.be.revertedWithCustomError(operatorFactory, "NotTrustedPolicy")
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
             [defaultDelegationPolicy.address, untrustedPolicyAddress, defaultUndelegationPolicy.address], [0, 0, 0])
-        ).to.be.revertedWithCustomError(operatorFactory, "NotTrustedPolicy")
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, untrustedPolicyAddress], [0, 0, 0])
-        ).to.be.revertedWithCustomError(operatorFactory, "NotTrustedPolicy")
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
     })
 
     it("only operators can call registerAsLive", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsLive()).to.revertedWith("error_onlyOperators")
+        await expect(operatorFactory.registerAsLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 
     it("only operators can call registerAsNotLive", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsNotLive()).to.revertedWith("error_onlyOperators")
+        await expect(operatorFactory.registerAsNotLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 })
