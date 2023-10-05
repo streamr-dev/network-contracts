@@ -16,7 +16,6 @@ import "./SponsorshipPolicies/IKickPolicy.sol";
 import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
 
-
 /**
  * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
  * Those tokens are the *sponsorship* that the *sponsor* puts on servicing the stream
@@ -52,10 +51,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     // Emitted from the allocation policy
     event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
     event InsolvencyStarted(uint startTimeStamp);
-    event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+    event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
 
     // Emitted from VoteKickPolicy
-    event FlagUpdate(address indexed flagger, address target, uint targetLockedStake, uint result, string flagMetadata);
+    event Flagged(address indexed target, address indexed flagger, uint voteStartTimestamp, uint targetStakeAtRiskWei, string flagMetadata);
+    event FlagUpdate(address indexed target, uint indexed status, uint votesForKick, uint votesAgainstKick, uint totalReviewers);
 
     error MinOperatorCountZero();
     error OnlyDATAToken();

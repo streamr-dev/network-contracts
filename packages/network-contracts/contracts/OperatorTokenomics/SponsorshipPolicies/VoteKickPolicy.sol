@@ -137,7 +137,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
+        emit Flagged(target, flagger, voteStartTimestamp[target], targetStakeAtRiskWei[target], flagMetadataJson[target]);
     }
 
     /**
@@ -169,7 +169,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
             _endVote(target);
+            return;
         }
+
+        emit FlagUpdate(target, 1, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
     }
 
     function _endVote(address target) internal {
@@ -215,6 +218,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                 delete reviewerState[target][reviewer]; // clean up
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
+            emit FlagUpdate(target, 2, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
@@ -233,6 +237,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
+            emit FlagUpdate(target, 3, votesForKick[target], votesAgainstKick[target], reviewers[target].length);
         }
 
         delete flaggerAddress[target];
