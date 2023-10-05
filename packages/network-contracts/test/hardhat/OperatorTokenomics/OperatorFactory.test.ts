@@ -24,7 +24,7 @@ describe("OperatorFactory", function(): void {
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {
         await deployOperatorContract(sharedContracts, operatorWallet)
         await expect(deployOperatorContract(sharedContracts, operatorWallet))
-            .to.be.revertedWith("error_operatorAlreadyDeployed")
+            .to.be.revertedWithCustomError(sharedContracts.operatorFactory, "OperatorAlreadyDeployed")
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
@@ -97,8 +97,7 @@ describe("OperatorFactory", function(): void {
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.be.revertedWith("error_invalidOperatorsCut")
+        )).to.be.revertedWithCustomError(operatorFactory, "InvalidOperatorsCut")
     })
 
     it("can remove a trusted policy", async function(): Promise<void> {
@@ -110,25 +109,25 @@ describe("OperatorFactory", function(): void {
         await (await operatorFactory.removeTrustedPolicy(randomAddress)).wait()
         expect(await operatorFactory.isTrustedPolicy(randomAddress)).to.be.false
     })
-    
+
     it("only the factory can add a trusted policy", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).addTrustedPolicy(defaultExchangeRatePolicy.address))
-            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                 " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
-    
+
     it("only the factory can add trusted policies", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).addTrustedPolicies([defaultExchangeRatePolicy.address]))
-            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                 " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
-    
+
     it("only the factory can remove a trusted policy", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).removeTrustedPolicy(defaultExchangeRatePolicy.address))
-            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() + 
+            .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                 " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 
@@ -209,25 +208,25 @@ describe("OperatorFactory", function(): void {
         const untrustedPolicyAddress = await operatorFactory.predictAddress("TokenName" + Date.now())
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-            [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0]))
-            .to.be.revertedWith("error_policyNotTrusted")
+            [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-            [defaultDelegationPolicy.address, untrustedPolicyAddress, defaultUndelegationPolicy.address], [0, 0, 0]))
-            .to.be.revertedWith("error_policyNotTrusted")
+            [defaultDelegationPolicy.address, untrustedPolicyAddress, defaultUndelegationPolicy.address], [0, 0, 0])
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
-            [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, untrustedPolicyAddress], [0, 0, 0]))
-            .to.be.revertedWith("error_policyNotTrusted")
+            [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, untrustedPolicyAddress], [0, 0, 0])
+        ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
     })
 
     it("only operators can call registerAsLive", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsLive()).to.revertedWith("error_onlyOperators")
+        await expect(operatorFactory.registerAsLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 
     it("only operators can call registerAsNotLive", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsNotLive()).to.revertedWith("error_onlyOperators")
+        await expect(operatorFactory.registerAsNotLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 })
