@@ -6,7 +6,7 @@ import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START } from "./
 import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { IKickPolicy, IExchangeRatePolicy } from "../../../typechain"
+import { IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 import type { Wallet } from "ethers"
@@ -30,6 +30,8 @@ describe("Operator contract", (): void => {
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
+    let defaultOperator: Operator
+    let defaultSponsorship: Sponsorship
     let testKickPolicy: IKickPolicy
     let testExchangeRatePolicy: IExchangeRatePolicy
     let testExchangeRatePolicy2: IExchangeRatePolicy
@@ -79,6 +81,9 @@ describe("Operator contract", (): void => {
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
+
+        defaultOperator = (await deployOperator(operatorWallet)).operator
+        defaultSponsorship = await deploySponsorship(sharedContracts)
     })
 
     describe("Delegator functionality", (): void => {
@@ -273,65 +278,30 @@ describe("Operator contract", (): void => {
         })
 
         it("only operators can reduce the stake", async function(): Promise<void> {
-            const { token } = sharedContracts
-            setTokens(delegator, "100")
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-            const sponsorship = await deploySponsorship(sharedContracts)
-            await operator.stake(sponsorship.address, parseEther("100"))
-
-            await expect(operator.connect(operator2Wallet).reduceStakeTo(sponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
 
         it("only operators can reduce the stake", async function(): Promise<void> {
-            const { token } = sharedContracts
-            setTokens(delegator, "100")
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-            const sponsorship = await deploySponsorship(sharedContracts)
-            await operator.stake(sponsorship.address, parseEther("100"))
-
-            await expect(operator.connect(operator2Wallet).reduceStakeTo(sponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
 
         it("only operators can reduce the stake without queue", async function(): Promise<void> {
-            const { token } = sharedContracts
-            setTokens(delegator, "100")
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-            const sponsorship = await deploySponsorship(sharedContracts)
-            await operator.stake(sponsorship.address, parseEther("100"))
-
-            await expect(operator.connect(operator2Wallet).reduceStakeWithoutQueue(sponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeWithoutQueue(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
 
         it("only operators can unstake", async function(): Promise<void> {
-            const { token } = sharedContracts
-            setTokens(delegator, "100")
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-            const sponsorship = await deploySponsorship(sharedContracts)
-            await operator.stake(sponsorship.address, parseEther("100"))
-
-            await expect(operator.connect(delegator).unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
-            await expect(operator.connect(operator2Wallet).unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(delegator).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
 
         it("only operators can unstake without queue", async function(): Promise<void> {
-            const { token } = sharedContracts
-            setTokens(delegator, "100")
-            const { operator } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
-            const sponsorship = await deploySponsorship(sharedContracts)
-            await operator.stake(sponsorship.address, parseEther("100"))
-
-            await expect(operator.connect(operator2Wallet).unstakeWithoutQueue(sponsorship.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).unstakeWithoutQueue(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
     })
 
@@ -511,25 +481,22 @@ describe("Operator contract", (): void => {
             })
 
             it("reverts on set delegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
-                const { operator } = await deployOperator(operatorWallet)
                 const { defaultDelegationPolicy } = sharedContracts
-                await expect(operator.connect(operatorWallet).setDelegationPolicy(defaultDelegationPolicy.address, 0))
+                await expect(defaultOperator.connect(operatorWallet).setDelegationPolicy(defaultDelegationPolicy.address, 0))
                     .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                         " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
             })
 
             it("reverts on set exchange rate policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
-                const { operator } = await deployOperator(operatorWallet)
                 const { defaultExchangeRatePolicy } = sharedContracts
-                await expect(operator.connect(operatorWallet).setExchangeRatePolicy(defaultExchangeRatePolicy.address, 0))
+                await expect(defaultOperator.connect(operatorWallet).setExchangeRatePolicy(defaultExchangeRatePolicy.address, 0))
                     .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                         " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
             })
 
             it("reverts on set undelegation policy since only the factory should be able to set it at deploy time", async function(): Promise<void> {
-                const { operator } = await deployOperator(operatorWallet)
                 const { defaultUndelegationPolicy } = sharedContracts
-                await expect(operator.connect(operatorWallet).setUndelegationPolicy(defaultUndelegationPolicy.address, 0))
+                await expect(defaultOperator.connect(operatorWallet).setUndelegationPolicy(defaultUndelegationPolicy.address, 0))
                     .to.be.revertedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                         " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
             })
@@ -1711,9 +1678,8 @@ describe("Operator contract", (): void => {
 
     describe("Operator/owner", () => {
         it("reverts if trying to call initialize()", async function(): Promise<void> {
-            const { operator } = await deployOperator(operatorWallet)
             const { token, streamrConfig, nodeModule, queueModule, stakeModule } = sharedContracts
-            await expect(operator.initialize(
+            await expect(defaultOperator.initialize(
                 token.address,
                 streamrConfig.address,
                 operatorWallet.address,
