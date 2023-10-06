@@ -59,13 +59,11 @@ contract StakeModule is IStakeModule, Operator {
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
      * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
-     * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
-    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
+    function _forceUnstake(Sponsorship sponsorship) external {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.forceUnstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
-        payOutQueue(maxQueuePayoutIterations);
     }
 
     /**

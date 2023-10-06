@@ -405,7 +405,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
                 revert AccessDeniedOperatorOnly();
             }
         }
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship));
+        payOutQueue(maxQueuePayoutIterations);
     }
 
     //////////////////////////////////////////////////////////////////////////////////
