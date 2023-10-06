@@ -57,17 +57,17 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
     event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick);
 
-    error MinOperatorCountZero();
+    error AccessDenied();
     error OnlyDATAToken();
+    error MinOperatorCountZero();
     error MinimumStake();
     error CannotIncreaseStake();
     error OperatorNotStaked();
-    error LeavePenalty();
+    error LeavePenalty(uint penaltyWei); // prevents unstake()
+    error ActiveFlag(uint lockedStakeWei); // prevents unstake()
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
-    error ActiveFlag();
     error FlaggingNotSupported();
-    error AccessDenied();
 
     StreamrConfig public streamrConfig;
     IERC677 public token;
@@ -245,8 +245,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      */
     function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
-        if (getLeavePenalty(operator) > 0) { revert LeavePenalty(); }
-        if (lockedStakeWei[operator] > 0) { revert ActiveFlag(); }
+        uint penaltyWei = getLeavePenalty(operator);
+        if (penaltyWei > 0) { revert LeavePenalty(penaltyWei); }
+        if (lockedStakeWei[operator] > 0) { revert ActiveFlag(lockedStakeWei[operator]); }
         payoutWei = _removeOperator(operator);
     }
 
