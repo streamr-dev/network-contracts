@@ -23,7 +23,6 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, uint minimumStakingPeriodSeconds, address indexed creator);
 
@@ -39,7 +38,6 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     }
 
     function _authorizeUpgrade(address) internal override {}
-
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -156,11 +154,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         return sponsorshipAddress;
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 }

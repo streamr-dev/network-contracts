@@ -150,7 +150,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Initializes the Operator smart contract into a valid state.
      * Also creates a fleet coordination stream upon creation, id = <operatorContractAddress>/operator/coordination
      * @param tokenAddress default from OperatorFactory: DATA
-     * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
+     * @param config default from OperatorFactory: global StreamrConfig
      * @param ownerAddress controller/owner of this Operator contract
      * @param operatorTokenName name of the Operator's internal token (e.g. "Operator 1")
      * @param operatorMetadataJson metadata for the operator (e.g. "https://streamr.network/operators/1")
@@ -158,14 +158,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function initialize(
         address tokenAddress,
-        address streamrConfigAddress,
+        StreamrConfig config,
         address ownerAddress,
         string memory operatorTokenName,
         string memory operatorMetadataJson,
         uint operatorsCut,
         address[3] memory modules
     ) public initializer {
-        streamrConfig = StreamrConfig(streamrConfigAddress);
+        streamrConfig = config;
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
         _setupRole(CONTROLLER_ROLE, ownerAddress);
@@ -250,11 +250,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
