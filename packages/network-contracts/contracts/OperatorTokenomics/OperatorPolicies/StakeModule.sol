@@ -7,11 +7,8 @@ import "../StreamrConfig.sol";
 import "../Operator.sol";
 
 contract StakeModule is IStakeModule, Operator {
-    /**
-     * Stake DATA tokens from this contract's DATA balance into Sponsorships.
-     * Can only happen if all the delegators who want to undelegate have been paid out first.
-     * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
-     **/
+
+    /** Stake DATA tokens from this contract's DATA balance into Sponsorships. */
     function _stake(Sponsorship sponsorship, uint amountWei) external {
         if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
             revert AccessDeniedStreamrSponsorshipOnly();
@@ -36,19 +33,10 @@ contract StakeModule is IStakeModule, Operator {
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
     }
 
-    /**
-     * Take out some of the stake from a sponsorship without completely unstaking
-     * Except if you call this with targetStakeWei == 0, then it will actually call unstake
-     **/
-    function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external {
-        _reduceStakeWithoutQueue(sponsorship, targetStakeWei);
-        payOutQueue(0);
-    }
-
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public {
+    function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) public {
         if (targetStakeWei == 0) {
-            _unstakeWithoutQueue(sponsorship);
+            _unstake(sponsorship);
             return;
         }
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
@@ -59,7 +47,7 @@ contract StakeModule is IStakeModule, Operator {
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _unstakeWithoutQueue(Sponsorship sponsorship) public {
+    function _unstake(Sponsorship sponsorship) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
@@ -96,7 +84,7 @@ contract StakeModule is IStakeModule, Operator {
             emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         } else {
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
-            _splitEarnings(profitDataWei, 0, address(0));
+            _splitEarnings(profitDataWei);
         }
 
         // remove from array: replace with the last element
@@ -117,6 +105,17 @@ contract StakeModule is IStakeModule, Operator {
         emit StakeUpdate(sponsorship, 0);
     }
 
+    /** @dev this is in stakeModule because it calls _splitEarnings */
+    function _withdrawEarnings(Sponsorship[] memory sponsorshipAddresses) public returns (uint sumEarnings) {
+        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
+            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
+        }
+        if (sumEarnings == 0) {
+            revert NoEarnings();
+        }
+        _splitEarnings(sumEarnings);
+    }
+
     /**
      * Whenever earnings from Sponsorships come in, split them as follows:
      *  1) to protocol: send out protocolFeeFraction * earnings as protocol fee, and then
@@ -125,64 +124,19 @@ contract StakeModule is IStakeModule, Operator {
      *                  paid in self-delegation (by minting operator tokens to Operator)
      * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
-     * @param operatorsCutSplitFraction fraction of the operator's cut that is sent NOT to the operator but to the operatorsCutSplitRecipient
-     * @param operatorsCutSplitRecipient non-zero if the operator is penalized for too much earnings, otherwise `address(0)`
      **/
-    function _splitEarnings(uint earningsDataWei, uint operatorsCutSplitFraction, address operatorsCutSplitRecipient) public {
+    function _splitEarnings(uint earningsDataWei) public {
         uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
         token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
-
-        uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
-
-        uint operatorPenaltyDataWei = 0;
-        if (operatorsCutSplitFraction > 0) {
-            operatorPenaltyDataWei = operatorsCutDataWei * operatorsCutSplitFraction / 1 ether;
-            token.transfer(operatorsCutSplitRecipient, operatorPenaltyDataWei);
-        }
 
         // "self-delegate" the operator's share === mint new operator tokens
         // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
         //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
-        _delegate(owner, operatorsCutDataWei - operatorPenaltyDataWei);
+        uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
+        _delegate(owner, operatorsCutDataWei);
 
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
-        emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei - operatorPenaltyDataWei, protocolFee);
-    }
-
-
-    /**
-     * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
-     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
-     * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
-     */
-    function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
-        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
-        payOutQueue(0);
-    }
-
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses, address msgSender) public {
-        uint valueBeforeWithdraw = valueWithoutEarnings();
-
-        uint sumEarnings = 0;
-        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
-            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
-        }
-        if (sumEarnings == 0) {
-            revert NoEarnings();
-        }
-
-        // if the caller is an outsider, and if sum of earnings are more than allowed, then give part of the operator's cut to the caller as a reward
-        address penaltyRecipient = address(0);
-        uint penaltyFraction = 0;
-        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
-            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
-            if (sumEarnings > allowedDifference) {
-                penaltyRecipient = msgSender;
-                penaltyFraction = streamrConfig.fishermanRewardFraction();
-            }
-        }
-        _splitEarnings(sumEarnings, penaltyFraction, penaltyRecipient);
+        emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei, protocolFee);
     }
 }

@@ -504,9 +504,9 @@ describe("Operator contract", (): void => {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-                
+
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
-                
+
                 expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
                 expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
@@ -515,9 +515,9 @@ describe("Operator contract", (): void => {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-                
+
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
-                
+
                 expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
                 expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
@@ -832,7 +832,7 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // TODO: find nice numbers!
         })
 
-        it("pays part of operator's cut from withdraw to caller if too much earnings", async function(): Promise<void> {
+        it("rewards fisherman and slashes operator if too much earnings withdrawn", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet, { operatorsCutPercent: 40 })
             const operator2 = await deployOperatorContract(contracts, operator2Wallet) // operator's cut doesn't affect calculations
             const sponsorship1 = await deploySponsorship(contracts)
@@ -890,28 +890,29 @@ describe("Operator contract", (): void => {
             //  protocol fee 5% = 100
             //  operator's cut 40% of the remaining 1900 = 760
             //  the remaining 1900 - 760 = 1140 will be shared among delegators (Profit)
-            //  reward will be 50% of the operator's cut = 380
-            //  the remaining 50% of the operator's cut = 380 will be added to operator1's self-delegation
-            // operator1's pool value increased by 1900 (earnings after protocol fee) - 380 (reward) = 1520
+            //  operator1 pool value after profit is 2000 + 1140 = 3140
+            //  operator's cut is self-delegated, exchange rate is 3140 / 2000 = 1.57 DATA / operator token
+            //    760 DATA / 1.57 ~= 483.44 operator tokens
+            //  fisherman's reward will be 10% of the earnings = 200 DATA, burned from self-delegation, keeping exchange rate at 1.57
+            const burnAmount = parseEther("200").mul(2000).div(3140) // ~= 127.38 operator tokens
             await expect(operator2.triggerAnotherOperatorWithdraw(operator.address, [sponsorship1.address, sponsorship2.address]))
-                .to.emit(operator, "Profit").withArgs(parseEther("1140"), parseEther("380"), parseEther("100"))
-                .to.emit(operator, "OperatorValueUpdate").withArgs(parseEther("2000"), parseEther("1520"))
-                .to.emit(operator2, "OperatorValueUpdate").withArgs(0, parseEther("1380")) // 0 == not staked anywhere
-
-            // operator1 pool value after profit is 2000 + 1140 = 3140 => exchange rate for operator's cut is 3140 / 2000 = 1.57 DATA / operator token
-            // operator2 pool value was 1000 DATA => exchange rate for operator's reward is 1000 / 1000 = 1 DATA / operator token
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("3520"))
-            expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1380"))
+                .to.emit(operator, "Profit").withArgs(parseEther("1140"), parseEther("760"), parseEther("100"))
+                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("200"), burnAmount, burnAmount)
+                .to.emit(operator, "OperatorValueUpdate").withArgs(parseEther("2000"), parseEther("1700"))
+                .to.emit(operator2, "OperatorValueUpdate").withArgs(0, parseEther("1200")) // 0 == not staked anywhere
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("3700"))
+            expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1200"))
 
             // operator1's 380 DATA was added to operator1 pool value as self-delegation (not Profit)
-            //  => operatorWallet1 received 380 / 1.57 ~= 242.03 operator tokens, in addition to the 1000 from the initial self-delegation
-            // operator2's 380 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
-            //  => operatorWallet2 received 380 / 1 = 380 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
-            expect(await operator.balanceOf(operatorWallet.address)).to.equal("1242038216560509554140") // TODO: find nicer numbers!
-            expect(await operator2.balanceOf(operator2Wallet.address)).to.equal(parseEther("1380"))
+            //  => operatorWallet1 received 560 / 1.57 ~= 356.68 operator tokens, in addition to the 1000 from the initial self-delegation
+            expect(formatEther(await operator.balanceOf(operatorWallet.address)).slice(0, 7)).to.equal("1356.68")
+            // operator2's 200 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
+            //  => operatorWallet2 received 200 / 1 = 200 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
+            expect(formatEther(await operator2.balanceOf(operator2Wallet.address))).to.equal("1200.0")
 
-            // (other) delegators' balances are unchanged
-            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
+            // (other) delegators' balances are unchanged, and exchange rate is still at 1.57
+            expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("1000.0")
+            expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("1569.999999999999999999")
         })
 
         it("can update operator cut fraction for himself, but NOT for others", async function(): Promise<void> {
