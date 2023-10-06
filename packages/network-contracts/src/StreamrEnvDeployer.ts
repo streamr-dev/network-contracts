@@ -120,10 +120,14 @@ export class StreamrEnvDeployer {
         await this.createStream("/testStream")
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
-        // await this.stakeOnSponsorship()
         await this.deployOperatorContract()
-        await this.investToPool()
+        await this.delegate()
         await this.stakeIntoSponsorship()
+
+        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // target
+        await this.deployOperatorContract(this.preloadedDATAWallets[3]) // voter
+
+        await this.flag(operator2, this.operator!)
     }
 
     async deployEns(): Promise<void> {
@@ -364,13 +368,6 @@ export class StreamrEnvDeployer {
         log("sponsored through token approval")
     }
 
-    async stakeOnSponsorship(): Promise<void> {
-        const tx = await this.contracts.DATA.transferAndCall(this.sponsorship!.address, ethers.utils.parseEther("100"),
-            this.adminWallet.address)
-        await tx.wait()
-        log("staked in sponsorship with transfer and call")
-    }
-
     async deployOperatorFactory(): Promise<void> {
         const operatorTemplate = await (new ContractFactory(operatorABI, operatorBytecode, this.adminWallet)).deploy() as Operator
         await operatorTemplate.deployed()
@@ -440,9 +437,9 @@ export class StreamrEnvDeployer {
         log("Operator contract factory is now set in StreamrConfig")
     }
 
-    async deployOperatorContract(): Promise<Operator> {
-        log("Deploying pool")
-        const pooltx = await this.contracts.operatorFactory.connect(this.adminWallet).deployOperator(
+    async deployOperatorContract(deployer = this.adminWallet): Promise<Operator> {
+        log("Deploying Operator contract for " + deployer.address)
+        const pooltx = await this.contracts.operatorFactory.connect(deployer).deployOperator(
             parseEther("0.1"),
             "TestPool1",
             "{}",
@@ -455,23 +452,44 @@ export class StreamrEnvDeployer {
         )
         const poolReceipt = await pooltx.wait()
         const operatorAddress = poolReceipt.events?.find((e: any) => e.event === "NewOperator")?.args?.operatorContractAddress
-        log("Operator deployed at: ", operatorAddress)
-        this.operatorAddress = operatorAddress
-        this.operator = new Contract(operatorAddress, operatorABI, this.adminWallet) as Operator
-        return this.operator
+        log("    Operator deployed at: ", operatorAddress)
+        const operator = new Contract(operatorAddress, operatorABI, deployer) as Operator
+        if (deployer.address == this.adminWallet.address) {
+            this.operatorAddress = operatorAddress
+            this.operator = operator
+        } else {
+            // add self-delegation
+            log("    Adding self-delegation")
+            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("1000"), deployer.address)).wait()
+
+            // stake to the sponsorship
+            log("    Staking into sponsorship")
+            await (await operator.stake(this.sponsorshipAddress, parseEther("1000"))).wait()
+
+            // add self as node
+            log("    Adding self as node")
+            await (await operator.setNodeAddresses([deployer.address])).wait()
+        }
+        return operator
     }
 
-    async investToPool(): Promise<void> {
+    async delegate(): Promise<void> {
+        log("Sending delegation to %s", this.operatorAddress)
         const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("1000"),
             this.adminWallet.address)
         await tx.wait()
-        log("Invested to pool ", this.operatorAddress)
+        log("    Delegation sent")
     }
 
     async stakeIntoSponsorship(): Promise<void> {
         const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("1000"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
+    }
+
+    async flag(flagger: Operator, target: Operator): Promise<void> {
+        await (await flagger.flag(this.sponsorship!.address, target.address, "{\"metadata\":\"asdf\"}")).wait()
+        log(`${flagger.address} flagged ${target.address} in ${this.sponsorship!.address}`)
     }
 
     async preloadDATAToken(): Promise<void> {

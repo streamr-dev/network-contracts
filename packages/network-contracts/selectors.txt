@@ -443,7 +443,8 @@ c27c6c34: MinOperatorCountZero()
 51897574: OperatorNotStaked()
 
 Event signatures:
-f0a8ec5e34ba4097481c6c70380471f7618ec9fd4892b2694a1445821766895f: FlagUpdate(address,address,uint256,uint256,string)
+bd472a400811f9918b708f3c32ed12bd5379ceb9c342451ea19b8d06c0850215: FlagUpdate(address,uint8,uint256,uint256)
+bfc2ea38f654c28196c9b1c7a859115b1d74103c705d851743383e2bcd8f7624: Flagged(address,address,uint256,uint256,string)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 9d584a7e1b19f15c4a9b3fc12662146f10b5739603ce9aaab30d80bab7d8ea2a: InsolvencyEnded(uint256,uint256,uint256)
 6b84b3854e3868de91705a7163cc5cc88f64366b8912900fa377af1f40d6fc1f: InsolvencyStarted(uint256)
@@ -457,7 +458,7 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipReceived(address,uint256)
 38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
-5d179bbeed3396160151c93c13d38566dc1643f25a316cca998cd25f45a8bd3f: StakeUpdate(address,uint256,uint256)
+6bd50b2adbfd6455ea19dde2d7225e43f70fab44edfbac7ed0748d7d9c3f9059: StakeUpdate(address,uint256,uint256,uint256)
 
 ======= Operator/sol:SponsorshipFactory =======
 Function signatures:
@@ -486,11 +487,17 @@ d547741f: revokeRole(bytes32,address)
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 
+Error signatures:
+6d75c207: AllocationPolicyRequired()
+1739bb9a: BadArguments()
+2cc6b17b: PolicyNotTrusted()
+13c872ee: StreamNotFound()
+
 Event signatures:
 7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
 1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-1a1b2ede90e01409d61e17560fe1af715f78df094508a91b5157b83939cb5911: NewSponsorship(address,string,string,uint256,uint256,address)
+2f6aee5d8c249b83c278dc774b8923a70ea8df009e1d61e4210856b155dfee53: NewSponsorship(address,string,string,address[],uint256[],address)
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)

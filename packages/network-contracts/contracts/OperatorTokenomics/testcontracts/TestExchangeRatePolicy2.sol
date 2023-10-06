@@ -6,6 +6,10 @@ import "../OperatorPolicies/IExchangeRatePolicy.sol";
 
 contract TestExchangeRatePolicy2 is IExchangeRatePolicy {
 
+    function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
+        return interfaceId == type(IExchangeRatePolicy).interfaceId;
+    }
+
     function setParam(uint) external {}
 
     function operatorTokenToData(uint) external view returns (uint) {

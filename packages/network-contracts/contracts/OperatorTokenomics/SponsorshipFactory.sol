@@ -18,13 +18,18 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
  */
 contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
+    error StreamNotFound();
+    error BadArguments();
+    error AllocationPolicyRequired();
+    error PolicyNotTrusted();
+
     StreamrConfig public streamrConfig;
     address public sponsorshipContractTemplate;
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
-    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, uint totalPayoutWeiPerSec, uint minimumStakingPeriodSeconds, address indexed creator);
+    event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -80,7 +85,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             policies,
             policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], from);
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policies, policyParams, from);
         IERC677(tokenAddress).transferAndCall(sponsorshipAddress, amount, ""); // empty extra-data => sponsor
     }
 
@@ -100,7 +105,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         uint[] calldata policyParams
     ) external returns (address) {
         IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        require(streamRegistry.exists(streamId), "error_streamNotFound");
+        if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
@@ -108,7 +113,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
             policies,
             policyParams
         );
-        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policyParams[0], policyParams[1], _msgSender());
+        emit NewSponsorship(sponsorshipAddress, streamId, metadata, policies, policyParams, _msgSender());
         return sponsorshipAddress;
     }
 
@@ -119,11 +124,11 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         address[] memory policies,
         uint[] memory policyParams
     ) private returns (address) {
-        require(policies.length == policyParams.length, "error_badArguments");
-        require(policies.length > 0 && policies[0] != address(0), "error_allocationPolicyRequired");
+        if (policies.length != policyParams.length) { revert BadArguments(); }
+        if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
-            require(policyAddress == address(0) || isTrustedPolicy(policyAddress), "error_policyNotTrusted");
+            if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }
         address sponsorshipAddress = ClonesUpgradeable.clone(sponsorshipContractTemplate);
         Sponsorship sponsorship = Sponsorship(sponsorshipAddress);
