@@ -634,6 +634,26 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "OperatorSlashed").withArgs(parseEther("100"), parseEther("100"), parseEther("100"))
         })
 
+        it("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "1000")
+            await setTokens(sponsor, "1000")
+
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 100, allocationWeiPerSecond: parseEther("0") })
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+            await expect(operator.unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+            await expect(operator.forceUnstake(sponsorship.address, 0))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+                .to.emit(operator, "Loss").withArgs(parseEther("100"))
+                .to.not.emit(operator, "OperatorSlashed")
+        })
+
         it("only operators can reduce the stake", async function(): Promise<void> {
             await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
                 .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
