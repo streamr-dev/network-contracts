@@ -73,9 +73,9 @@ contract StakeModule is IStakeModule, Operator {
      * @param sponsorship the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
-    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
+    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations, address msgSender) external {
         // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() && !hasRole(CONTROLLER_ROLE, _msgSender())) { // solhint-disable-line not-rely-on-time
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() && !hasRole(CONTROLLER_ROLE, msgSender)) { // solhint-disable-line not-rely-on-time
             revert AccessDeniedOperatorOnly();
         }
 
@@ -167,7 +167,7 @@ contract StakeModule is IStakeModule, Operator {
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
-    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
+    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses, address msgSender) public {
         uint valueBeforeWithdraw = valueWithoutEarnings();
 
         uint sumEarnings = 0;
@@ -181,10 +181,10 @@ contract StakeModule is IStakeModule, Operator {
         // if the caller is an outsider, and if sum of earnings are more than allowed, then give part of the operator's cut to the caller as a reward
         address penaltyRecipient = address(0);
         uint penaltyFraction = 0;
-        if (!hasRole(CONTROLLER_ROLE, _msgSender()) && nodeIndex[_msgSender()] == 0) {
+        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
             uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
             if (sumEarnings > allowedDifference) {
-                penaltyRecipient = _msgSender();
+                penaltyRecipient = msgSender;
                 penaltyFraction = streamrConfig.fishermanRewardFraction();
             }
         }

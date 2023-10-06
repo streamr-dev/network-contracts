@@ -341,7 +341,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
      **/
     function undelegate(uint amountWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei));
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
     }
 
     /////////////////////////////////////////
@@ -362,7 +362,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
     }
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations, _msgSender()));
     }
 
     /**
@@ -400,7 +400,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
     function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
         // this is in stakeModule because it calls _handleProfit
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses, _msgSender()));
     }
 
     /**

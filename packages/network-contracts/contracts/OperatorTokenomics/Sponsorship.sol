@@ -374,13 +374,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
         if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target));
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target, _msgSender()));
     }
 
     /** Peer reviewers vote on the flag */
     function voteOnFlag(address target, bytes32 voteData) external {
         if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData));
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData, _msgSender()));
     }
 
     /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */

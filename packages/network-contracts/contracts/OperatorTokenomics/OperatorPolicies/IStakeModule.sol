@@ -9,8 +9,8 @@ interface IStakeModule {
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external;
     function _reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) external;
     function _unstakeWithoutQueue(Sponsorship sponsorship) external;
-    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external;
+    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations, address msgSender) external;
     function _removeSponsorship(Sponsorship sponsorship, uint receivedDuringUnstakingWei) external;
     function _withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external;
-    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) external;
+    function _withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses, address msgSender) external;
 }

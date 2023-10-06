@@ -9,12 +9,10 @@ import "../Operator.sol";
 contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
-    function _undelegate(uint amountWei) public {
+    function _undelegate(uint amountWei, address undelegator) public {
         if (amountWei == 0) { // TODO: should there be minimum undelegation amount?
             revert ZeroUndelegation();
         }
-
-        address undelegator = _msgSender();
 
         // check if the undelegation policy allows this undelegation
         // this check must happen here because payOutQueue can't be allowed to fail

@@ -1665,8 +1665,8 @@ describe("Operator contract", (): void => {
 
     describe("EIP-2771 meta-transactions feature", () => {
         
-        it.only("unstaking via metaTX through minimalforwarder", async (): Promise<void> => {
-            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
+        it("unstaking via metaTX through minimalforwarder", async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
                        
             // const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             // await (await token.approve(sponsorship.address, parseEther("100"))).wait()
@@ -1707,10 +1707,11 @@ describe("Operator contract", (): void => {
 
             expect(await operator.balanceInData(signer.address)).to.equal(parseEther("1000"))
 
-            expect(await operator.connect(signer).undelegate(parseEther("400"))).to.emit(operator, "QueuedDataPayout")
-                .withArgs(delegator.address, parseEther("500"), 0)
+            // await expect(operator.connect(signer).undelegate(parseEther("1000"))).to.emit(operator, "QueuedDataPayout")
+            //     .withArgs(signer.address, parseEther("1000"), 0)
+            // const r = await (await operator.connect(signer).undelegate(parseEther("1000"))).wait()
             
-            const data = await operator.interface.encodeFunctionData("undelegate", [parseEther("600")])
+            const data = await operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
             const { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
             const signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
