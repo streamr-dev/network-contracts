@@ -10,6 +10,7 @@ import { IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship } from "../../.
 import { setupSponsorships } from "./setupSponsorships"
 
 import type { Wallet } from "ethers"
+import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
 const {
     getSigners,
@@ -1757,6 +1758,28 @@ describe("Operator contract", (): void => {
             await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await expect(operator.connect(delegator).undelegate(parseEther("1000")))
                 .to.be.revertedWithCustomError(operator, "ModuleCallError") // delegatecall returns (0, 0)
+        })
+    })
+
+    describe("EIP-2771 meta-transactions via minimalforwarder", () => {
+        it("can undelegate on behalf of someone who doesn't hold any native tokens", async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
+
+            const { token } = sharedContracts
+            const { operator } = await deployOperator(operatorWallet)
+            expect(await operator.isTrustedForwarder(sharedContracts.minimalForwarder.address)).to.be.true
+
+            await expect(token.transferAndCall(operator.address, parseEther("1000"), signer.address))
+                .to.emit(operator, "Delegated").withArgs(signer.address, parseEther("1000"))
+            expect(await operator.balanceInData(signer.address)).to.equal(parseEther("1000"))
+
+            const data = operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
+            const { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
+            expect(await sharedContracts.minimalForwarder.verify(request, signature)).to.be.true
+            await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
+
+            expect(await operator.balanceInData(signer.address)).to.equal(parseEther("0"))
+            expect(await token.balanceOf(signer.address)).to.equal(parseEther("1000"))
         })
     })
 })

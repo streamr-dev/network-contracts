@@ -26,8 +26,6 @@ import "./SponsorshipFactory.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
-// import "hardhat/console.sol";
-
 /**
  * Operator contract receives and holds the delegators' tokens.
  * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
@@ -78,7 +76,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
@@ -153,7 +150,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Initializes the Operator smart contract into a valid state.
      * Also creates a fleet coordination stream upon creation, id = <operatorContractAddress>/operator/coordination
      * @param tokenAddress default from OperatorFactory: DATA
-     * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
+     * @param config default from OperatorFactory: global StreamrConfig
      * @param ownerAddress controller/owner of this Operator contract
      * @param operatorTokenName name of the Operator's internal token (e.g. "Operator 1")
      * @param operatorMetadataJson metadata for the operator (e.g. "https://streamr.network/operators/1")
@@ -161,21 +158,20 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function initialize(
         address tokenAddress,
-        address streamrConfigAddress,
+        StreamrConfig config,
         address ownerAddress,
         string memory operatorTokenName,
         string memory operatorMetadataJson,
         uint operatorsCut,
         address[3] memory modules
     ) public initializer {
+        streamrConfig = config;
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
         _setupRole(CONTROLLER_ROLE, ownerAddress);
         _setRoleAdmin(CONTROLLER_ROLE, OWNER_ROLE); // owner sets the controllers
-        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, CONTROLLER_ROLE); // controller can set the GSN trusted forwarder
 
         token = IERC677(tokenAddress);
-        streamrConfig = StreamrConfig(streamrConfigAddress);
 
         nodeModule = INodeModule(modules[0]);
         queueModule = IQueueModule(modules[1]);
@@ -254,12 +250,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
@@ -345,7 +337,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
      **/
     function undelegate(uint amountWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei));
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
     }
 
     /////////////////////////////////////////
@@ -366,6 +358,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
     }
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
+        // onlyOperator check happens only if grace period hasn't passed yet
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() // solhint-disable-line not-rely-on-time
+            && !hasRole(CONTROLLER_ROLE, _msgSender()))
+        {
+            revert AccessDeniedOperatorOnly();
+        }
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
     }
 
@@ -404,7 +402,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
     function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public {
         // this is in stakeModule because it calls _handleProfit
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses, _msgSender()));
     }
 
     /**

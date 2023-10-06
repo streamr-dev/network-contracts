@@ -12,6 +12,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "./IOperatorLivenessRegistry.sol";
 import "./Operator.sol";
 import "./IERC677.sol";
+import "./StreamrConfig.sol";
 
 /**
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
@@ -32,14 +33,12 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     error NotExchangeRatePolicy();
     error NotUndelegationPolicy();
 
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
-
     address public operatorTemplate;
     address public nodeModuleTemplate;
     address public queueModuleTemplate;
     address public stakeModuleTemplate;
-    address public configAddress;
     address public tokenAddress;
+    StreamrConfig public streamrConfig;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
@@ -52,11 +51,17 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress,
-    address nodeModuleAddress, address queueModuleAddress, address stakeModuleAddress) public initializer {
+    function initialize(
+        address templateAddress,
+        address dataTokenAddress,
+        address streamrConfigAddress,
+        address nodeModuleAddress,
+        address queueModuleAddress,
+        address stakeModuleAddress
+    ) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
@@ -153,7 +158,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         Operator newOperatorContract = Operator(newContractAddress);
         newOperatorContract.initialize(
             tokenAddress,
-            configAddress,
+            streamrConfig,
             operatorAddress,
             operatorTokenName,
             operatorMetadataJson,
@@ -195,12 +200,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     /** Operators MUST call this function when they stake to their first Sponsorship */

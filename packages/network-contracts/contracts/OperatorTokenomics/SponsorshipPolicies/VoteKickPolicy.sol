@@ -8,7 +8,6 @@ import "../OperatorFactory.sol";
 import "../Operator.sol";
 import "../IRandomOracle.sol";
 
-// import "hardhat/console.sol";
 
 /**
  * @dev Only Operators can be selected as reviewers, so OperatorContractOnlyJoinPolicy is expected on the Sponsorship!
@@ -63,8 +62,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     /**
      * Start the flagging process: lock some of the flagger's and the target's stake, find reviewers
      */
-    function onFlag(address target) external {
-        address flagger = _msgSender();
+    function onFlag(address target, address flagger) external {
         require(flagger != target, "error_cannotFlagSelf");
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
         require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
@@ -114,7 +112,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             }
             uint index = uint(randomBytes32) % operatorCount;
             Operator peer = factory.liveOperators(index);
-            if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
+            if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 continue;
             }
             if (stakedWei[address(peer)] > 0) {
@@ -147,14 +145,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      * Tally votes and trigger resolution when everyone has voted
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
-    function onVote(address target, bytes32 voteData) external {
+    function onVote(address target, bytes32 voteData, address voterAddress) external {
         require(voteStartTimestamp[target] > 0, "error_notFlagged");
         require(block.timestamp > voteStartTimestamp[target], "error_votingNotStarted"); // solhint-disable-line not-rely-on-time
         if (block.timestamp > voteEndTimestamp[target]) { // solhint-disable-line not-rely-on-time
             _endVote(target);
             return;
         }
-        Operator voter = Operator(_msgSender());
+        Operator voter = Operator(voterAddress);
         require(reviewerState[target][voter] != Reviewer.NOT_SELECTED, "error_reviewersOnly");
         require(reviewerState[target][voter] == Reviewer.IS_SELECTED, "error_alreadyVoted");
         bool votedKick = uint(voteData) & 0x1 == 1;

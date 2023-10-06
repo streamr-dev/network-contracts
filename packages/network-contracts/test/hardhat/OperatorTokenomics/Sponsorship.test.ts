@@ -6,7 +6,8 @@ import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
 import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
-import type { Wallet } from "ethers"
+import { Wallet } from "ethers"
+import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
 const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
 const { getSigners, getContractFactory } = hardhatEthers
@@ -512,6 +513,28 @@ describe("Sponsorship contract", (): void => {
                 await expect(token.transferAndCall(sponsorship.address, parseEther("100"), admin.address))
                     .to.be.revertedWithCustomError(sponsorship, "ModuleCallError")
             })
+        })
+    })
+
+    describe("EIP-2771 meta-transactions via minimalforwarder", () => {
+        it("can unstake on behalf of someone who doesn't hold any native tokens", async (): Promise<void> => {
+            const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
+
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
+            await (await sponsorship.stake(signer.address, parseEther("100"))).wait()
+            expect(await sponsorship.connect(signer).getMyStake()).to.be.equal(parseEther("100"))
+
+            expect(await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)).to.be.true
+
+            const data = await sponsorship.interface.encodeFunctionData("unstake")
+            const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
+            const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
+            await expect(signatureIsValid).to.be.true
+            await (await contracts.minimalForwarder.execute(request, signature)).wait()
+
+            expect(await sponsorship.connect(signer.connect(admin.provider)).getMyStake()).to.be.equal(parseEther("0"))
+            expect(await token.balanceOf(signer.address)).to.be.equal(parseEther("100"))
         })
     })
 })

@@ -127,6 +127,8 @@ describe("StreamrConfig", (): void => {
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
             await expect(streamrConfig.connect(notAdmin).setRandomOracle(admin.address))
                 .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
+            await expect(streamrConfig.connect(notAdmin).setTrustedForwarder(admin.address))
+                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
         })
 
         it("prevents calling initialize", async (): Promise<void> => {
