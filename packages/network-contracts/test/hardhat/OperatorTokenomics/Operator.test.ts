@@ -222,33 +222,6 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
             expect(await operator.queueIsEmpty()).to.equal(true)
         })
-
-        it("only operators can reduce the stake", async function(): Promise<void> {
-            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-        })
-
-        it("only operators can reduce the stake", async function(): Promise<void> {
-            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-        })
-
-        it("only operators can reduce the stake without queue", async function(): Promise<void> {
-            await expect(defaultOperator.connect(operator2Wallet).reduceStakeWithoutQueue(defaultSponsorship.address, parseEther("60")))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-        })
-
-        it("only operators can unstake", async function(): Promise<void> {
-            await expect(defaultOperator.connect(delegator).unstake(defaultSponsorship.address))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-            await expect(defaultOperator.connect(operator2Wallet).unstake(defaultSponsorship.address))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-        })
-
-        it("only operators can unstake without queue", async function(): Promise<void> {
-            await expect(defaultOperator.connect(operator2Wallet).unstakeWithoutQueue(defaultSponsorship.address))
-                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
-        })
     })
 
     describe("Delegation management", (): void => {
@@ -639,6 +612,48 @@ describe("Operator contract", (): void => {
             await expect(operator.reduceStakeWithoutQueue(sponsorship.address, 0))
                 .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
+        })
+
+        it("lets the operator forceUnstake and get slashed for leave penalty", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(operatorWallet, "1000")
+            await setTokens(sponsor, "1000")
+
+            const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 100, allocationWeiPerSecond: parseEther("0") })
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.emit(operator, "Staked").withArgs(sponsorship.address)
+            await expect(operator.unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+            await expect(operator.forceUnstake(sponsorship.address, 0))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+                .to.emit(operator, "Loss").withArgs(parseEther("100"))
+                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("100"), parseEther("100"), parseEther("100"))
+        })
+
+        it("only operators can reduce the stake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeTo(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can call reduceStakeWithoutQueue", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).reduceStakeWithoutQueue(defaultSponsorship.address, parseEther("60")))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can unstake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(delegator).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).unstake(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("only operators can unstake without queue", async function(): Promise<void> {
+            await expect(defaultOperator.connect(operator2Wallet).unstakeWithoutQueue(defaultSponsorship.address))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
         })
 
         it("will NOT let anyone else to stake except the owner of the Operator contract", async function(): Promise<void> {
