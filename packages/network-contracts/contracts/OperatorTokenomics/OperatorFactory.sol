@@ -47,9 +47,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address queueModuleAddress,
         address stakeModuleAddress
     ) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        streamrConfig = StreamrConfig(streamrConfigAddress);
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;

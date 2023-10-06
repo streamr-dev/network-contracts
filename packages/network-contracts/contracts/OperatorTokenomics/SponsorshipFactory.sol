@@ -30,11 +30,11 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
-        streamrConfig = StreamrConfig(streamrConfigAddress);
     }
 
     function _authorizeUpgrade(address) internal override {}
