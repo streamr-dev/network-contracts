@@ -1,24 +1,78 @@
 import { expect } from "chai"
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deployOperatorContract } from "./deployOperatorContract"
 
-import type { Wallet } from "ethers"
+import { Wallet } from "ethers"
+import { OperatorFactory } from "../../../typechain"
 
-const { getSigners } = hardhatEthers
+const { getSigners, getContractFactory } = hardhatEthers
 const { defaultAbiCoder, parseEther } = hardhatEthers.utils
 
 describe("OperatorFactory", function(): void {
     let deployer: Wallet        // deploys all test contracts
     let operatorWallet: Wallet  // creates Operator contract
+    let operator2Wallet: Wallet  // creates Operator contract
 
     // many tests don't need their own clean set of contracts that take time to deploy
     let sharedContracts: TestContracts
 
     before(async (): Promise<void> => {
-        [deployer, operatorWallet] = await getSigners() as unknown as Wallet[]
+        [deployer, operatorWallet, operator2Wallet] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(deployer)
+    })
+
+    describe("UUPS upgradeability", () => {
+        it("admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
+            const { operatorFactory } = sharedContracts
+            const upgraderRole = await operatorFactory.UPGRADER_ROLE()
+            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
+                .to.be.revertedWith(`AccessControl: account ${deployer.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("admin can upgrade after assigning himesf UPGRADER_ROLE", async () => {
+            const { operatorFactory } = sharedContracts
+            await (await operatorFactory.grantRole(await operatorFactory.UPGRADER_ROLE(), deployer.address)).wait()
+
+            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
+            const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
+
+            expect(operatorFactory.address)
+                .to.equal(newOperatorFactory.address)
+        })
+
+        it("notAdmin can NOT upgrade", async () => {
+            const { operatorFactory } = sharedContracts
+            const upgraderRole = await operatorFactory.UPGRADER_ROLE()
+            const newContractFactory = await getContractFactory("OperatorFactory", operatorWallet) // this the upgraded version (e.g. OperatorFactoryV2)
+
+            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
+                .to.be.revertedWith(`AccessControl: account ${operatorWallet.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("storage is preserved after the upgrade", async () => {
+            const { operatorFactory } = sharedContracts
+            const randomAddress = Wallet.createRandom().address
+            await (await operatorFactory.addTrustedPolicy(randomAddress)).wait()
+            const operator = await deployOperatorContract(sharedContracts, operator2Wallet)
+
+            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
+            const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
+
+            expect(await newOperatorFactory.isTrustedPolicy(randomAddress)).to.be.true
+            expect(await newOperatorFactory.deploymentTimestamp(operator.address)).to.not.equal(0)
+        })
+
+        it("reverts if trying to call initialize()", async () => {
+            const { operatorFactory } = sharedContracts
+            const zeroAddress = hardhatEthers.constants.AddressZero
+            await expect(operatorFactory.initialize(zeroAddress, zeroAddress, zeroAddress, zeroAddress, zeroAddress, zeroAddress))
+                .to.be.revertedWith("Initializable: contract is already initialized")
+        })
     })
 
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {

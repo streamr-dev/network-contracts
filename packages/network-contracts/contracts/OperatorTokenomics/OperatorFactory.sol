@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "./IOperatorLivenessRegistry.sol";
@@ -18,7 +18,9 @@ import "./StreamrConfig.sol";
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
-contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
+contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IOperatorLivenessRegistry {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
 
@@ -49,7 +51,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     mapping (address => address) public operators; // operator wallet => Operator contract address
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
+    constructor() ERC2771ContextUpgradeable(address(0x0)) { _disableInitializers(); }
 
     function initialize(
         address templateAddress,
@@ -61,6 +63,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     ) public initializer {
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
@@ -69,8 +72,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         stakeModuleTemplate = stakeModuleAddress;
     }
 
-    function _authorizeUpgrade(address) internal override {}
-
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();

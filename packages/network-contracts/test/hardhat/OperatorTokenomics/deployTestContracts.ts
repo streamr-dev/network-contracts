@@ -41,17 +41,16 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
-    const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy() as OperatorFactory
-    await operatorFactory.deployed()
-    await (await operatorFactory.initialize(
+    const contractFactory = await getContractFactory("OperatorFactory", signer)
+    const operatorFactory = await(await upgrades.deployProxy(contractFactory, [
         operatorTemplate!.address,
         token!.address,
         streamrConfig!.address,
         contracts.nodeModule!.address,
         contracts.queueModule!.address,
         contracts.stakeModule!.address,
-        { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
-    )).wait()
+        // { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
+    ], { kind: "uups" })).deployed() as OperatorFactory
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy!.address,
         defaultExchangeRatePolicy!.address,
