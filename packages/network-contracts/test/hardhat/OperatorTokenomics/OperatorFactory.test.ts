@@ -27,7 +27,7 @@ describe("OperatorFactory", function(): void {
         it("admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
             const { operatorFactory } = sharedContracts
             const upgraderRole = await operatorFactory.UPGRADER_ROLE()
-            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
             await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
                 .to.be.revertedWith(`AccessControl: account ${deployer.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
         })
@@ -36,7 +36,7 @@ describe("OperatorFactory", function(): void {
             const { operatorFactory } = sharedContracts
             await (await operatorFactory.grantRole(await operatorFactory.UPGRADER_ROLE(), deployer.address)).wait()
 
-            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
             const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
             const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
 
@@ -47,7 +47,7 @@ describe("OperatorFactory", function(): void {
         it("notAdmin can NOT upgrade", async () => {
             const { operatorFactory } = sharedContracts
             const upgraderRole = await operatorFactory.UPGRADER_ROLE()
-            const newContractFactory = await getContractFactory("OperatorFactory", operatorWallet) // this the upgraded version (e.g. OperatorFactoryV2)
+            const newContractFactory = await getContractFactory("OperatorFactory", operatorWallet) // e.g. OperatorFactoryV2
 
             await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
                 .to.be.revertedWith(`AccessControl: account ${operatorWallet.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
@@ -59,7 +59,7 @@ describe("OperatorFactory", function(): void {
             await (await operatorFactory.addTrustedPolicy(randomAddress)).wait()
             const operator = await deployOperatorContract(sharedContracts, operator2Wallet)
 
-            const newContractFactory = await getContractFactory("OperatorFactory") // this the upgraded version (e.g. OperatorFactoryV2)
+            const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
             const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
             const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
 
