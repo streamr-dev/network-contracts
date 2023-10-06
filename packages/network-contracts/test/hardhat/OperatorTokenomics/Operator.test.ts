@@ -10,7 +10,6 @@ import { IKickPolicy, IExchangeRatePolicy } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 import type { Wallet } from "ethers"
-import { operatorTokenomics } from "../../../typechain/contracts"
 import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
 const {
@@ -1698,12 +1697,14 @@ describe("Operator contract", (): void => {
 
             await (await token.connect(signer).approve(operator.address, parseEther("1000"))).wait()
             
-            await (await operator.connect(signer).delegate(parseEther("1000"))).wait()
-            // const data = await operator.interface.encodeFunctionData("delegate", [parseEther("1000")])
-            // const { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
-            // const signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
-            // await expect(signatureIsValid).to.be.true
-            // const r = await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
+            // test does this operation as a metatx:
+            // await (await operator.connect(signer).delegate(parseEther("1000"))).wait()
+
+            let data = await operator.interface.encodeFunctionData("delegate", [parseEther("1000")])
+            let { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
+            let signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
+            await expect(signatureIsValid).to.be.true
+            await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
 
             expect(await operator.balanceInData(signer.address)).to.equal(parseEther("1000"))
 
@@ -1711,11 +1712,11 @@ describe("Operator contract", (): void => {
             //     .withArgs(signer.address, parseEther("1000"), 0)
             // const r = await (await operator.connect(signer).undelegate(parseEther("1000"))).wait()
             
-            const data = await operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
-            const { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
-            const signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
+            data = await operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
+            ;({ request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer))
+            signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
-            const s = await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
+            await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
 
             expect(await operator.balanceInData(signer.address)).to.equal(parseEther("0"))
             expect(await token.balanceOf(signer.address)).to.equal(parseEther("1000"))
