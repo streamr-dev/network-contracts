@@ -510,11 +510,10 @@ describe("Sponsorship contract", (): void => {
         })
     })
 
-    describe("EIP-2771 meta-transactions feature", () => {
-        
-        it("unstaking via metaTX through minimalforwarder", async (): Promise<void> => {
+    describe("EIP-2771 meta-transactions via minimalforwarder", () => {
+        it("can unstake on behalf of someone who doesn't hold any native tokens", async (): Promise<void> => {
             const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
-                       
+
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             await (await token.approve(sponsorship.address, parseEther("100"))).wait()
             await (await sponsorship.stake(signer.address, parseEther("100"))).wait()

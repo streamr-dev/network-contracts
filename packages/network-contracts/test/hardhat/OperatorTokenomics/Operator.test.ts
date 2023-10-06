@@ -1662,60 +1662,21 @@ describe("Operator contract", (): void => {
         })
     })
 
-    describe("EIP-2771 meta-transactions feature", () => {
-        
-        it("unstaking via metaTX through minimalforwarder", async (): Promise<void> => {
+    describe("EIP-2771 meta-transactions via minimalforwarder", () => {
+        it("can undelegate on behalf of someone who doesn't hold any native tokens", async (): Promise<void> => {
             const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
-                       
-            // const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-            // await (await token.approve(sponsorship.address, parseEther("100"))).wait()
-            // await (await sponsorship.stake(signer.address, parseEther("100"))).wait()
-            // expect(await sponsorship.connect(signer).getMyStake()).to.be.equal(parseEther("100"))
-
-            // expect(await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)).to.be.true
-
-            // const data = await sponsorship.interface.encodeFunctionData("unstake")
-            // const { request, signature } = await getEIP2771MetaTx(sponsorship.address, data, contracts.minimalForwarder, signer)
-            // const signatureIsValid = await contracts.minimalForwarder.verify(request, signature)
-            // await expect(signatureIsValid).to.be.true
-            // await (await contracts.minimalForwarder.execute(request, signature)).wait()
-
-            // expect(await sponsorship.connect(signer.connect(admin.provider)).getMyStake()).to.be.equal(parseEther("0"))
-            // expect(await token.balanceOf(signer.address)).to.be.equal(parseEther("100"))
 
             const { token } = sharedContracts
-            // await setTokens(delegator, "1000")
-            await (await token.mint(signer.address, parseEther("1000"))).wait()
-            await admin.sendTransaction({ to: signer.address, value: parseEther("1") })
-            await sharedContracts.streamrConfig.trustedForwarder()
             const { operator } = await deployOperator(operatorWallet)
-            // const sponsorship  = await deploySponsorship(sharedContracts)
-
             expect(await operator.isTrustedForwarder(sharedContracts.minimalForwarder.address)).to.be.true
 
-            expect(await operator.queuePositionOf(signer.address)).to.equal(1) // not in queue
-
-            await (await token.connect(signer).approve(operator.address, parseEther("1000"))).wait()
-            
-            // test does this operation as a metatx:
-            // await (await operator.connect(signer).delegate(parseEther("1000"))).wait()
-
-            let data = await operator.interface.encodeFunctionData("delegate", [parseEther("1000")])
-            let { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
-            let signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
-            await expect(signatureIsValid).to.be.true
-            await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
-
+            await expect(token.transferAndCall(operator.address, parseEther("1000"), signer.address))
+                .to.emit(operator, "Delegated").withArgs(signer.address, parseEther("1000"))
             expect(await operator.balanceInData(signer.address)).to.equal(parseEther("1000"))
 
-            // await expect(operator.connect(signer).undelegate(parseEther("1000"))).to.emit(operator, "QueuedDataPayout")
-            //     .withArgs(signer.address, parseEther("1000"), 0)
-            // const r = await (await operator.connect(signer).undelegate(parseEther("1000"))).wait()
-            
-            data = await operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
-            ;({ request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer))
-            signatureIsValid = await sharedContracts.minimalForwarder.verify(request, signature)
-            await expect(signatureIsValid).to.be.true
+            const data = operator.interface.encodeFunctionData("undelegate", [parseEther("1000")])
+            const { request, signature } = await getEIP2771MetaTx(operator.address, data, sharedContracts.minimalForwarder, signer)
+            expect(await sharedContracts.minimalForwarder.verify(request, signature)).to.be.true
             await (await sharedContracts.minimalForwarder.execute(request, signature)).wait()
 
             expect(await operator.balanceInData(signer.address)).to.equal(parseEther("0"))
