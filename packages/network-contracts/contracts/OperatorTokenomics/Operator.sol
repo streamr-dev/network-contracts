@@ -358,7 +358,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
     }
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations, _msgSender()));
+        // onlyOperator check happens only if grace period hasn't passed yet
+        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() // solhint-disable-line not-rely-on-time
+            && !hasRole(CONTROLLER_ROLE, _msgSender()))
+        {
+            revert AccessDeniedOperatorOnly();
+        }
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
     }
 
     /**

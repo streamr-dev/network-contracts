@@ -73,12 +73,7 @@ contract StakeModule is IStakeModule, Operator {
      * @param sponsorship the funds (unstake) to pay out the queue
      * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
      */
-    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations, address msgSender) external {
-        // onlyOperator check happens only if grace period hasn't passed yet
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds() && !hasRole(CONTROLLER_ROLE, msgSender)) { // solhint-disable-line not-rely-on-time
-            revert AccessDeniedOperatorOnly();
-        }
-
+    function _forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.forceUnstake();
         _removeSponsorship(sponsorship, token.balanceOf(address(this)) - balanceBeforeWei);
