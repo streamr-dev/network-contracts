@@ -4,6 +4,7 @@ import {
     StakeUpdate,
     SponsorshipUpdate,
     FlagUpdate,
+    Flagged,
     ProjectedInsolvencyUpdate,
     OperatorSlashed,
     SponsorshipReceived
@@ -11,35 +12,35 @@ import {
 import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
 import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
+let flagResultStrings = [
+    "waiting",
+    "voting",
+    "kicked",
+    "failed"
+]
+
 export function handleStakeUpdated(event: StakeUpdate): void {
-    log.info('handleStakeUpdated: operator={} totalStake={} allocation={}, joinDate={}', [event.params.operator.toHexString(),
-        event.params.stakedWei.toString(), event.params.earningsWei.toString(), event.block.timestamp.toString()])
-    let sponsorshipAddress = event.address
-    let operatorAddress = event.params.operator
+    let sponsorshipAddress = event.address.toHexString()
+    let operatorAddress = event.params.operator.toHexString()
+    let stakedWei = event.params.stakedWei
+    let earningsWei = event.params.earningsWei
+    let lockedStakeWei = event.params.lockedStakeWei
+    let now = event.block.timestamp.toU32()
+    log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, lockedStake={} now={}',
+        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), lockedStakeWei.toString(), now.toString()])
 
-    let stakeID = sponsorshipAddress.toHexString() + "-" + operatorAddress.toHexString()
-    let stake = Stake.load(stakeID)
-    if (stake === null) {
-        stake = new Stake(stakeID)
-        stake.sponsorship = sponsorshipAddress.toHexString()
-        stake.operator = operatorAddress.toHexString()
-        stake.joinDate = event.block.timestamp
-    }
-    stake.amount = event.params.stakedWei
-    stake.earningsWei = event.params.earningsWei
-
-    // link to operator
-    // let operator = Operator.load(event.params.operator.toHexString())
-    // if (operator !== null) {
-    //     log.info('handleStakeUpdated: updating pool pool={} stake={}', [operator.id, stake.id])
-    //     stake.operator = operator.id
-    // }
+    let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
+    if (stake.joinTimestamp == 0) { stake.joinTimestamp = now }
+    stake.updateTimestamp = now
+    stake.amountWei = stakedWei
+    stake.earningsWei = earningsWei
+    stake.lockedWei = lockedStakeWei
     stake.save()
 
-    // also save StakingEvent
-    let stakingEvent = new StakingEvent(sponsorshipAddress.toHexString() + "-" + event.transaction.hash.toHexString())
-    stakingEvent.sponsorship = sponsorshipAddress.toHexString()
-    stakingEvent.operator = operatorAddress.toHexString()
+    // also save StakingEvent, TODO: do we need them?
+    let stakingEvent = new StakingEvent(sponsorshipAddress + "-" + event.transaction.hash.toHexString())
+    stakingEvent.sponsorship = sponsorshipAddress
+    stakingEvent.operator = operatorAddress
     stakingEvent.date = event.block.timestamp
     stakingEvent.amount = event.params.stakedWei
     stakingEvent.save()
@@ -89,46 +90,73 @@ export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate
     bucket.save()
 }
 
+export function handleFlagged(event: Flagged): void {
+    let sponsorship = event.address.toHexString()
+    let target = event.params.target.toHexString()
+    let flagger = event.params.flagger.toHexString()
+    let targetStakeAtRiskWei = event.params.targetStakeAtRiskWei
+    let reviewerCount = event.params.reviewerCount.toI32()
+    let flagMetadata = event.params.flagMetadata
+    let now = event.block.timestamp.toI32()
+    log.info('handleFlagged: sponsorship={} flagger={} target={} targetStakeAtRiskWei={} reviewerCount={} flagMetadata={} now={}',
+        [ sponsorship, flagger, target, targetStakeAtRiskWei.toString(), reviewerCount.toString(), flagMetadata, now.toString() ])
+
+    let stake = loadOrCreateStake(sponsorship, target)
+    let flagIndex = stake.flagCount
+    stake.flagCount = stake.flagCount + 1
+    stake.save()
+
+    let flag = new Flag(sponsorship + "-" + target + "-" + flagIndex.toString())
+    flag.sponsorship = sponsorship
+    flag.target = target
+    flag.flagger = flagger
+    flag.flaggingTimestamp = now
+    flag.result = "waiting"
+    flag.votesForKick = 0
+    flag.votesAgainstKick = 0
+    flag.reviewerCount = reviewerCount
+    flag.targetStakeAtRiskWei = targetStakeAtRiskWei
+    flag.metadata = flagMetadata
+    flag.save()
+}
+
 export function handleFlagUpdate(event: FlagUpdate): void {
-    log.info('handleFlagUpdate: flagger={} target={} targetLockedStake={} result={}, flagMetadata={}',
-        [event.params.flagger.toHexString(),
-            event.params.target.toHexString(),
-            event.params.targetLockedStake.toString(),
-            event.params.result.toString(),
-            event.params.flagMetadata // not indexed as there is no use case for it yet, but could be useful
-        ])
-    let sponsorshipAddress = event.address
-    let flagID = sponsorshipAddress.toHexString() + "-" + event.params.target.toHexString()
-    let flag = Flag.load(flagID)
-    if (flag === null) {
-        flag = new Flag(flagID)
-        flag.sponsorship = sponsorshipAddress.toHexString()
-        flag.target = event.params.target.toHexString()
-    }
-    flag.flagger = event.params.flagger.toHexString()
-    flag.targetSlashAmount = event.params.targetLockedStake
-    flag.result = event.params.result
+    let sponsorship = event.address.toHexString()
+    let target = event.params.target.toHexString()
+    let statusCode = event.params.status
+    let votesForKick = event.params.votesForKick.toU32()
+    let votesAgainstKick = event.params.votesAgainstKick.toU32()
+    log.info('handleFlagUpdate: sponsorship={} target={} status={}, votesFor={} votesAgainst={}',
+        [ sponsorship, target, statusCode.toString(), votesForKick.toString(), votesAgainstKick.toString() ])
+
+    let stake = loadOrCreateStake(sponsorship, target)
+    let flagIndex = stake.flagCount - 1
+
+    let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
+    flag.result = flagResultStrings[statusCode]
+    // to break ties, first voter only gets 1 vote, next ones get 2
+    flag.votesForKick = (votesForKick + 1) >> 1
+    flag.votesAgainstKick = (votesAgainstKick + 1) >> 1
     flag.save()
 }
 
 export function handleOperatorSlashed(event: OperatorSlashed): void {
-    log.info('handleOperatorSlashed: operator={} slashedAmount={}',
-        [event.params.operator.toHexString(),
-            event.params.amountWei.toString()
-        ])
-    let sponsorshipAddress = event.address
-    let operatorAddress = event.params.operator
+    let sponsorshipAddress = event.address.toHexString()
+    let operatorAddress = event.params.operator.toHexString()
+    let slashingAmount = event.params.amountWei
+    log.info('handleOperatorSlashed: sponsorship={} operator={} slashingAmount={}',
+        [ sponsorshipAddress, operatorAddress, slashingAmount.toString() ])
 
-    let slashID = sponsorshipAddress.toHexString() + "-" + event.transaction.hash.toHexString()
+    let slashID = sponsorshipAddress + "-" + event.transaction.hash.toHexString()
     let slashingEvent = new SlashingEvent(slashID)
-    slashingEvent.sponsorship = sponsorshipAddress.toHexString()
-    slashingEvent.operator = operatorAddress.toHexString()
+    slashingEvent.sponsorship = sponsorshipAddress
+    slashingEvent.operator = operatorAddress
     slashingEvent.date = event.block.timestamp
-    slashingEvent.amount = event.params.amountWei
+    slashingEvent.amount = slashingAmount
     slashingEvent.save()
 
     // update Operator
-    let operator = Operator.load(operatorAddress.toHexString())
+    let operator = Operator.load(operatorAddress)
     if (operator !== null) {
         operator.slashingsCount = operator.slashingsCount + 1
         operator.save()
@@ -149,4 +177,18 @@ export function handleSponsorshipReceived(event: SponsorshipReceived): void {
     sponsoringEvent.date = event.block.timestamp
     sponsoringEvent.amount = event.params.amount
     sponsoringEvent.save()
+}
+
+// Stake is the "many-to-many table" between Sponsorship and Operator
+function loadOrCreateStake(sponsorshipAddress: string, operatorAddress: string): Stake {
+    let stakeID = sponsorshipAddress + "-" + operatorAddress
+    let stake = Stake.load(stakeID)
+    if (stake === null) {
+        stake = new Stake(stakeID)
+        stake.sponsorship = sponsorshipAddress
+        stake.operator = operatorAddress
+        stake.flagCount = 0
+        stake.joinTimestamp = 0 // set this in StakeUpdate
+    }
+    return stake
 }

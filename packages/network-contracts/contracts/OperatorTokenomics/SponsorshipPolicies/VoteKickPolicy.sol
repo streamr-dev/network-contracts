@@ -61,7 +61,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     }
 
     /**
-     * Start flagging process
+     * Start the flagging process: lock some of the flagger's and the target's stake, find reviewers
      */
     function onFlag(address target) external {
         address flagger = _msgSender();
@@ -137,7 +137,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
+
+        emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
+        emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+        emit Flagged(target, flagger, targetStakeAtRiskWei[target], reviewers[target].length, flagMetadataJson[target]);
     }
 
     /**
@@ -169,7 +172,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
             _endVote(target);
+            return;
         }
+
+        emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target]);
     }
 
     function _endVote(address target) internal {
@@ -212,9 +218,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     slashingWei -= reviewerRewardWei[target];
                 }
-                delete reviewerState[target][reviewer]; // clean up
+                delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
+            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target]);
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
@@ -233,6 +240,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
+            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target]);
+            if (!targetIsGone) {
+                emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+            }
+        }
+
+        if (!flaggerIsGone) {
+            emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
         }
 
         delete flaggerAddress[target];

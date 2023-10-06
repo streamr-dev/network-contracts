@@ -1,6 +1,7 @@
-# TODO: how to define dates? This was suggested in https://graphql.org/learn/schema/
+# TODO: how to define dates/timestamps? This was suggested in https://graphql.org/learn/schema/
 # scalar Date
 # for now, use BigInt because that's what the events return
+# TODO: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes
@@ -229,6 +230,8 @@ type Operator @entity {
   delegators: [Delegation!]! @derivedFrom(field: "operator")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "operator")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "operator")
+  raisedFlags: [Flag!]! @derivedFrom(field: "flagger")
+  receivedFlags: [Flag!]! @derivedFrom(field: "target")
 
   "All delegators who have delegated to this operator. Increased when Delegation is created and decreased when Delegation is removed"
   delegatorCount: Int!
@@ -277,9 +280,9 @@ type Operator @entity {
 }
 
 type OperatorDailyBucket @entity {
-  ##############################
+
   ## absolute values, set at bucket creation time, so they represent the state after the first event in bucket
-  ##############################
+
   id: ID! # operator address + date
   operator: Operator!
 
@@ -301,9 +304,9 @@ type OperatorDailyBucket @entity {
   "All delegators joining this operator. Initialized from operator.delegatorCount"
   delegatorCountAtStart: Int!
 
-  ##############################
+
   ## accumulated values, updated when events are fired
-  ##############################
+
   "Delegators that joined today. Updated when Delegation entity is created"
   delegatorCountChange: Int!
 
@@ -328,10 +331,13 @@ type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
   operator: Operator
   delegator: String!
+
   "Amount of internal Operator tokens this delegator holds"
   operatorTokenBalanceWei: BigInt!
+
   "Amount of DATA tokens this delegator has moved into the Operator contract"
   delegatedDataWei: BigInt!
+
   "Amount of DATA tokens this delegator has moved out of the Operator contract"
   undelegatedDataWei: BigInt!
 }
@@ -370,21 +376,44 @@ type SponsorshipDailyBucket @entity {
   operatorCount: Int!
 }
 
-type SlashingEvent @entity {
+# Operators hold Stake in Sponsorships. Stake is the "many-to-many table" between Sponsorship and Operator
+type Stake @entity {
   id: ID! # 0xSponsorshipAddress-0xOperatorAddress
-  operator: Operator!
-  amount: BigInt!
-  date: BigInt!
   sponsorship: Sponsorship!
+  operator: Operator!
+  amountWei: BigInt!
+  lockedWei: BigInt!
+  earningsWei: BigInt! # momentary earnings at updateTimestamp
+  updateTimestamp: Int! # timestamp when earningsWei (and others) were updated; useful for calculating "real-time" earnings values
+  joinTimestamp: Int!
+  flagCount: Int! # how many times this operator has been flagged so far (failed flags + 0 or 1 pending)
 }
 
-type StakingEvent @entity {
-  id: ID! # 0xSponsorshipAddress-0xTransactionHash
+# Operators may raise Flags on each other to kick out those who don't do work
+type Flag @entity {
+  id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived from Stake.flagCount)
+  sponsorship: Sponsorship!
+  target: Operator!
+  flagger: Operator!
+  flaggingTimestamp: Int!
+  result: String! # "waiting", "voting", "kicked", or "failed"
+  votesForKick: Int!
+  votesAgainstKick: Int!
+  reviewerCount: Int!
+  targetStakeAtRiskWei: BigInt!
+  metadata: String!
+}
+
+# Undelegation queue: when a delegator wants their DATA back, they are put in the queue to receive their tokens when they arrive
+type QueueEntry @entity {
+  id: ID! # 0xSponsorshipAddress-QueueIndex
   operator: Operator!
   amount: BigInt!
   date: BigInt!
-  sponsorship: Sponsorship!
+  delegator: String!
 }
+
+# Plain events, saved "as-is". TODO: do we need and want them? Will they be expensive in the new decentralized subgraph?
 
 type SponsoringEvent @entity {
   id: ID!
@@ -394,31 +423,18 @@ type SponsoringEvent @entity {
   date: BigInt!
 }
 
-type QueueEntry @entity {
-  id: ID! # 0xSponsorshipAddress-QueueIndex
+type SlashingEvent @entity {
+  id: ID!
   operator: Operator!
   amount: BigInt!
   date: BigInt!
-  delegator: String!
+  sponsorship: Sponsorship!
 }
 
-# Operators hold Stake in Sponsorships
-type Stake @entity {
-  id: ID! # 0xSponsorshipAddress-0xOperatorAddress
+type StakingEvent @entity {
+  id: ID!
   operator: Operator!
   amount: BigInt!
-  earningsWei: BigInt!
-  sponsorship: Sponsorship
-  joinDate: BigInt!
-}
-
-# Operators may raise Flags on each other to kick out those who don't do work
-type Flag @entity {
-  id: ID! # 0xsponsorshipAddress-0xoperatorAddress
-  flagger: Operator!
-  target: Operator!
-  date: BigInt
-  sponsorship: Sponsorship
-  result: BigInt! # 0: pending, 1: target kicked, 2: flag failed
-  targetSlashAmount: BigInt
+  date: BigInt!
+  sponsorship: Sponsorship!
 }
