@@ -139,7 +139,6 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
