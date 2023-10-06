@@ -12,6 +12,8 @@ import "./StreamrConfig.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
+import "hardhat/console.sol";
+
 /**
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
  * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
@@ -138,7 +140,8 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         Sponsorship sponsorship = Sponsorship(sponsorshipAddress);
         // disable the minHorizonSeconds feature for now, set to zero
         uint[3] memory sponsorshipParams = [0, minOperatorCount, policyParams[0]];
-        sponsorship.initialize(
+        console.log("before init");
+        sponsorship.init(
             streamId,
             metadata,
             streamrConfig,

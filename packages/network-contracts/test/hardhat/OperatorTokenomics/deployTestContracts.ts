@@ -18,7 +18,7 @@ export type TestContracts = {
     adminKickPolicy: IKickPolicy;
     voteKickPolicy: IKickPolicy;
     sponsorshipFactory: SponsorshipFactory;
-    sponsorshipTemplate: Sponsorship;
+    sponsorshipBeacon: Sponsorship;
     operatorFactory: OperatorFactory;
     operatorTemplate: Operator;
     defaultDelegationPolicy: IDelegationPolicy;
@@ -84,12 +84,18 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const leavePolicy = await (await getContractFactory("DefaultLeavePolicy", { signer })).deploy()
     const adminKickPolicy = await (await getContractFactory("AdminKickPolicy", { signer })).deploy()
     const voteKickPolicy = await (await getContractFactory("VoteKickPolicy", { signer })).deploy()
-    const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
-    await sponsorshipTemplate.deployed()
+    // const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
+    // await sponsorshipTemplate.deployed()
+
+    const Sponsorship = await getContractFactory("Sponsorship", { signer })
+    const sponsorshipBeacon = await upgrades.deployBeacon(Sponsorship)
+    const sponsorshipProxy = await upgrades.deployBeaconProxy(sponsorshipBeacon, Sponsorship, [])
+    console.log("Sponsorship beacon deployed at", sponsorshipBeacon.address)
+    console.log("Sponsorship proxy deployed at", sponsorshipProxy.address)
 
     const contractFactory = await getContractFactory("SponsorshipFactory", signer)
     const sponsorshipFactory = await(await upgrades.deployProxy(contractFactory, [
-        sponsorshipTemplate.address,
+        sponsorshipProxy.address,
         token.address,
         streamrConfig.address
     ], { kind: "uups" })).deployed() as SponsorshipFactory
@@ -128,7 +134,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     return {
         token, streamrConfig, streamRegistry,
-        sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
+        sponsorshipBeacon, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
         defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
         deployer: signer

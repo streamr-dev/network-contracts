@@ -104,8 +104,7 @@ export async function deploySponsorshipWithoutFactory(
     } = contracts
 
     const streamId = createStream(deployer.address, streamRegistry)
-    const sponsorshipFactory = await getContractFactory("Sponsorship", deployer)
-    const sponsorship = await(await upgrades.deployProxy(sponsorshipFactory, [
+    const sponsorship = await (await upgrades.deployProxy(await getContractFactory("Sponsorship", deployer), [
         streamId,
         "metadata",
         contracts.streamrConfig.address,

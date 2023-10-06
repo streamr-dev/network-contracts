@@ -238,10 +238,10 @@ describe("SponsorshipFactory", () => {
         it("non admin role can't add trusted policies", async function(): Promise<void> {
             const { sponsorshipFactory, maxOperatorsJoinPolicy, allocationPolicy } = contracts
             await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicy(maxOperatorsJoinPolicy.address))
-                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " + 
+                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " +
                 "missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
             await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([maxOperatorsJoinPolicy.address, allocationPolicy.address]))
-                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " + 
+                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is " +
                 "missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
         })
 

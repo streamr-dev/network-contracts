@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 
 import "./IERC677.sol";
@@ -15,6 +14,8 @@ import "./SponsorshipPolicies/ILeavePolicy.sol";
 import "./SponsorshipPolicies/IKickPolicy.sol";
 import "./SponsorshipPolicies/IAllocationPolicy.sol";
 import "./StreamrConfig.sol";
+
+import "hardhat/console.sol";
 
 /**
  * `Sponsorship` ("Stream Agreement") holds the sponsors' tokens and allocates them to operators
@@ -38,7 +39,7 @@ import "./StreamrConfig.sol";
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
  * @dev   either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
  */
-contract Sponsorship is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
+contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
     event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
     event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
@@ -56,6 +57,7 @@ contract Sponsorship is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeabl
     // Emitted from VoteKickPolicy
     event FlagUpdate(address indexed flagger, address target, uint targetLockedStake, uint result, string flagMetadata);
 
+    error AlreadyInitialized();
     error MinOperatorCountZero();
     error OnlyDATAToken();
     error MinimumStake();
@@ -132,31 +134,32 @@ contract Sponsorship is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeabl
      *  [1] minOperatorCount: when will the Sponsorship start paying (or stop paying if Operator count goes below this)
      *  [2] weiPerSecond (parameter sent to the allocation policy)
      */
-    function initialize(
+    function init(
         string calldata streamId_,
         string calldata metadata_,
         StreamrConfig globalStreamrConfig,
         address tokenAddress,
         uint[3] calldata initParams,
         IAllocationPolicy initialAllocationPolicy
-    ) public initializer {
+    ) public {
+        console.log("init");
+        if (address(streamrConfig) != address(0)) { revert AlreadyInitialized(); }
         minHorizonSeconds = uint32(initParams[0]);
         minOperatorCount = uint32(initParams[1]);
         uint allocationPerSecond = initParams[2];
-
+console.log("init");
         if (minOperatorCount == 0) { revert MinOperatorCountZero(); }
         token = IERC677(tokenAddress);
         streamId = streamId_;
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
-        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
         _grantRole(UPGRADER_ROLE, _msgSender());
+        console.log("init");
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
+        console.log("init");
     }
-
-    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     /**
      * ERC677 token callback

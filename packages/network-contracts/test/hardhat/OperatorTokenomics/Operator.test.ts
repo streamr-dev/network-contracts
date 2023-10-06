@@ -17,7 +17,7 @@ const {
     utils: { parseEther, formatEther, hexZeroPad }
 } = hardhatEthers
 
-describe("Operator contract", (): void => {
+describe.only("Operator contract", (): void => {
     let admin: Wallet           // creates the Sponsorship
     let sponsor: Wallet         // sponsors the Sponsorship
     let operatorWallet: Wallet  // creates Operator contract
@@ -503,9 +503,9 @@ describe("Operator contract", (): void => {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-                
+
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
-                
+
                 expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
                 expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
@@ -514,9 +514,9 @@ describe("Operator contract", (): void => {
                 const { token } = sharedContracts
                 const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-                
+
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
-                
+
                 expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("600"))
                 expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
             })
