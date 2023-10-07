@@ -8,7 +8,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 /**
  * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, Operator)
  */
-contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
+contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     error TooHigh(uint value, uint limit);
     error TooLow(uint value, uint limit);
@@ -130,12 +131,10 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
      **/
     address public randomOracle;
 
-    // TODO: initializer arguments?
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
 
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
@@ -171,7 +170,7 @@ contract StreamrConfig is Initializable, UUPSUpgradeable, AccessControlUpgradeab
         setFlagProtectionSeconds(1 hours);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function setSponsorshipFactory(address sponsorshipFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         sponsorshipFactory = sponsorshipFactoryAddress;

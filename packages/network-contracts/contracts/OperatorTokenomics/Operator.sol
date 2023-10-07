@@ -147,7 +147,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**

@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "./IOperatorLivenessRegistry.sol";
@@ -18,9 +18,12 @@ import "./StreamrConfig.sol";
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
-contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
+contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IOperatorLivenessRegistry {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
+    event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
     error InvalidOperatorsCut();
     error PolicyNotTrusted();
@@ -61,16 +64,17 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     ) public initializer {
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
         queueModuleTemplate = queueModuleAddress;
         stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function _authorizeUpgrade(address) internal override {}
-
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -78,6 +82,19 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function updateTemplates(
+        address templateAddress,
+        address nodeModuleAddress,
+        address queueModuleAddress,
+        address stakeModuleAddress
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
     function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
