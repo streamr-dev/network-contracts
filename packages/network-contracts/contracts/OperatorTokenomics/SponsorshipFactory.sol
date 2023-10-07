@@ -33,7 +33,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() ERC2771ContextUpgradeable(address(0x0)) { _disableInitializers(); }
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
         streamrConfig = StreamrConfig(streamrConfigAddress);

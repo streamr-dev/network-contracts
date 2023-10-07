@@ -324,11 +324,15 @@ export class StreamrEnvDeployer {
         await sponsorshipTemplate.deployed()
         log(`sponsorshipTemplate address ${sponsorshipTemplate.address}`)
 
-        const sponsorshipFactoryFactory = await(new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode,
-            this.adminWallet)).deploy() as SponsorshipFactory
-        const sponsorshipFactory = await sponsorshipFactoryFactory.deployed()
-        await ( await sponsorshipFactoryFactory.initialize(sponsorshipTemplate.address,
-            token.address, streamrConfig.address)).wait()
+        const sponsorshipFactoryFactory = new ContractFactory(sponsorshipFactoryABI, sponsorshipFactoryBytecode, this.adminWallet)
+        const sponsorshipFactory = await sponsorshipFactoryFactory.deploy() as SponsorshipFactory
+        await sponsorshipFactory.deployed()
+        await (await sponsorshipFactory.initialize(
+            sponsorshipTemplate.address,
+            token.address,
+            streamrConfig.address
+        )).wait()
+
         await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
@@ -411,8 +415,7 @@ export class StreamrEnvDeployer {
         log("Deployed operator stake module " + operatorStakeModule.address)
 
         log("Deploying Operator contract factory")
-        const operatorFactoryFactory = new ContractFactory(operatorFactoryABI, operatorFactoryBytecode,
-            this.adminWallet)
+        const operatorFactoryFactory = new ContractFactory(operatorFactoryABI, operatorFactoryBytecode, this.adminWallet)
         const operatorFactory = await operatorFactoryFactory.deploy() as OperatorFactory
         await operatorFactory.deployed()
         await (await operatorFactory.initialize(

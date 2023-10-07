@@ -51,7 +51,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     mapping (address => address) public operators; // operator wallet => Operator contract address
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() ERC2771ContextUpgradeable(address(0x0)) { _disableInitializers(); }
+    constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     function initialize(
         address templateAddress,
