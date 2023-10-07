@@ -427,7 +427,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * When calling from a view function (staticcall context), use moduleGet instead
      */
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
-        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
@@ -456,7 +455,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         address target = address(bytes20(args[len - 20 : len])); // grab the address
         bytes memory data = args[0 : len - 32]; // drop extra argument
 
-        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = target.delegatecall(data);
         if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
         return returndata;

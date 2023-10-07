@@ -143,7 +143,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
@@ -594,7 +593,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         address target = address(bytes20(args[len - 20 : len])); // grab the address
         bytes memory data = args[0 : len - 32]; // drop extra argument
 
-        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = target.delegatecall(data);
         if (!success) { assembly { revert(add(32, returndata), mload(returndata)) } } // re-revert the returndata as-is
         return returndata;
@@ -605,7 +603,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * When calling from a view function (staticcall context), use moduleGet instead
      */
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
-        /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }

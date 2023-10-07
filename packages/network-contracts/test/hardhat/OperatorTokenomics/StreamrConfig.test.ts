@@ -33,8 +33,7 @@ describe("StreamrConfig", (): void => {
             const newStreamrConfigTx = await upgrades.upgradeProxy(streamrConfig.address, newStreamrConfigFactory)
             const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
 
-            expect(streamrConfig.address)
-                .to.equal(newStreamrConfig.address)
+            expect(streamrConfig.address).to.equal(newStreamrConfig.address)
         })
 
         it("notAdmin can NOT upgrade", async () => {

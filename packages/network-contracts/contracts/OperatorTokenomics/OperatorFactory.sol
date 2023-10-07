@@ -20,9 +20,10 @@ import "./StreamrConfig.sol";
  */
 contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IOperatorLivenessRegistry {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    
+
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
+    event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
     error InvalidOperatorsCut();
     error PolicyNotTrusted();
@@ -70,6 +71,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         nodeModuleTemplate = nodeModuleAddress;
         queueModuleTemplate = queueModuleAddress;
         stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
     function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
@@ -80,6 +82,19 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function updateTemplates(
+        address templateAddress,
+        address nodeModuleAddress,
+        address queueModuleAddress,
+        address stakeModuleAddress
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
     function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {

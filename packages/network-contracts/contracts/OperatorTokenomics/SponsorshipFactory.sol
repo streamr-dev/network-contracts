@@ -31,6 +31,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
+    event TemplateAddress(address templateAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -42,6 +43,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
+        emit TemplateAddress(templateAddress);
     }
 
     function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
@@ -52,6 +54,11 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function updateTemplate(address templateAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        sponsorshipContractTemplate = templateAddress;
+        emit TemplateAddress(templateAddress);
     }
 
     function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {

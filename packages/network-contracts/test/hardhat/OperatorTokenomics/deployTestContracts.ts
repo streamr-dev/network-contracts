@@ -50,7 +50,7 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         contracts.queueModule!.address,
         contracts.stakeModule!.address,
         // { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
-    ], { kind: "uups" })).deployed() as OperatorFactory
+    ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as OperatorFactory
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy!.address,
         defaultExchangeRatePolicy!.address,
@@ -87,12 +87,13 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
     await sponsorshipTemplate.deployed()
 
+    upgrades.silenceWarnings()
     const contractFactory = await getContractFactory("SponsorshipFactory", signer)
     const sponsorshipFactory = await(await upgrades.deployProxy(contractFactory, [
         sponsorshipTemplate.address,
         token.address,
         streamrConfig.address
-    ], { kind: "uups" })).deployed() as SponsorshipFactory
+    ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as SponsorshipFactory
     await (await sponsorshipFactory.addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,

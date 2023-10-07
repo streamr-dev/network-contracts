@@ -24,33 +24,32 @@ describe("OperatorFactory", function(): void {
     })
 
     describe("UUPS upgradeability", () => {
-        it("admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
+        it("admin can upgrade only after assigning themselves the UPGRADER_ROLE", async () => {
             const { operatorFactory } = sharedContracts
             const upgraderRole = await operatorFactory.UPGRADER_ROLE()
             const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
-            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
+
+            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] }))
                 .to.be.revertedWith(`AccessControl: account ${deployer.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
-        })
 
-        it("admin can upgrade after assigning himesf UPGRADER_ROLE", async () => {
-            const { operatorFactory } = sharedContracts
-            await (await operatorFactory.grantRole(await operatorFactory.UPGRADER_ROLE(), deployer.address)).wait()
+            await (await operatorFactory.grantRole(upgraderRole, deployer.address)).wait()
 
-            const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
-            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
+            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
             const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
 
-            expect(operatorFactory.address)
-                .to.equal(newOperatorFactory.address)
+            expect(operatorFactory.address).to.equal(newOperatorFactory.address)
         })
 
-        it("notAdmin can NOT upgrade", async () => {
+        it("notAdmin can NOT upgrade or assign the UPGRADER_ROLE", async () => {
             const { operatorFactory } = sharedContracts
+            const adminRole = await operatorFactory.DEFAULT_ADMIN_ROLE()
             const upgraderRole = await operatorFactory.UPGRADER_ROLE()
             const newContractFactory = await getContractFactory("OperatorFactory", operatorWallet) // e.g. OperatorFactoryV2
 
-            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory))
+            await expect(upgrades.upgradeProxy(operatorFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] }))
                 .to.be.revertedWith(`AccessControl: account ${operatorWallet.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+            await expect(operatorFactory.connect(operatorWallet).grantRole(upgraderRole, deployer.address))
+                .to.be.revertedWith(`AccessControl: account ${operatorWallet.address.toLowerCase()} is missing role ${adminRole.toLowerCase()}`)
         })
 
         it("storage is preserved after the upgrade", async () => {
@@ -60,7 +59,7 @@ describe("OperatorFactory", function(): void {
             const operator = await deployOperatorContract(sharedContracts, operator2Wallet)
 
             const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
-            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory)
+            const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
             const newOperatorFactory = await newOperatorFactoryTx.deployed() as OperatorFactory
 
             expect(await newOperatorFactory.isTrustedPolicy(randomAddress)).to.be.true
@@ -73,6 +72,22 @@ describe("OperatorFactory", function(): void {
             await expect(operatorFactory.initialize(zeroAddress, zeroAddress, zeroAddress, zeroAddress, zeroAddress, zeroAddress))
                 .to.be.revertedWith("Initializable: contract is already initialized")
         })
+    })
+
+    it("lets only admin change template addresses", async function(): Promise<void> {
+        const { operatorFactory, operatorTemplate, nodeModule, queueModule, stakeModule } = sharedContracts
+        const adminRole = await operatorFactory.DEFAULT_ADMIN_ROLE()
+        const dummyAddress = Wallet.createRandom().address
+
+        await expect(operatorFactory.connect(operatorWallet).updateTemplates(dummyAddress, dummyAddress, dummyAddress, dummyAddress))
+            .to.be.revertedWith(`AccessControl: account ${operatorWallet.address.toLowerCase()} is missing role ${adminRole.toLowerCase()}`)
+        await expect(operatorFactory.updateTemplates(dummyAddress, dummyAddress, dummyAddress, dummyAddress))
+            .to.emit(operatorFactory, "TemplateAddresses").withArgs(dummyAddress, dummyAddress, dummyAddress, dummyAddress)
+
+        // restore the addresses...
+        await expect(operatorFactory.updateTemplates(operatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
+            .to.emit(operatorFactory, "TemplateAddresses")
+            .withArgs(operatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address)
     })
 
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {
@@ -164,21 +179,21 @@ describe("OperatorFactory", function(): void {
         expect(await operatorFactory.isTrustedPolicy(randomAddress)).to.be.false
     })
 
-    it("only the factory can add a trusted policy", async function(): Promise<void> {
+    it("only admin can add a trusted policy", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).addTrustedPolicy(defaultExchangeRatePolicy.address))
             .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                 " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 
-    it("only the factory can add trusted policies", async function(): Promise<void> {
+    it("only admin can add trusted policies", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).addTrustedPolicies([defaultExchangeRatePolicy.address]))
             .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
                 " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000")
     })
 
-    it("only the factory can remove a trusted policy", async function(): Promise<void> {
+    it("only admin can remove a trusted policy", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.connect(operatorWallet).removeTrustedPolicy(defaultExchangeRatePolicy.address))
             .to.be.rejectedWith("AccessControl: account " + operatorWallet.address.toLowerCase() +
