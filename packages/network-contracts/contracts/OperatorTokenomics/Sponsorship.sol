@@ -496,11 +496,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return super._msgData();
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
         return streamrConfig.trustedForwarder() == forwarder;
     }
 

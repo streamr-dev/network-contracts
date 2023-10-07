@@ -129,8 +129,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
-    IStreamRegistryV4 public streamRegistry;
+    /** Every operator has a node coordination stream, and smart contract is a good place to store an authoritative reference to it */
     string public streamId;
+    IStreamRegistryV4 public streamRegistry;
     string public metadata;
 
     modifier onlyOperator() {
@@ -195,51 +196,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector));
     }
 
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
-        return super._msgSender();
-    }
-
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    /**
-     * Trusted gasless meta-transaction forwarder, can set _msgSender() (where used instead of msg.sender)
-     * @dev see ERC-2771: Secure Protocol for Native Meta Transactions (https://eips.ethereum.org/EIPS/eip-2771)
-     **/
-    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
-        return streamrConfig.trustedForwarder() == forwarder;
-    }
-
-    function _transfer(address from, address to, uint amount) internal override {
-        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if ((balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)
-            || balanceOf(to) + amount < minimumDelegationWei) {
-            revert DelegationBelowMinimum();
-        }
-
-        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
-        if (balanceOf(to) == 0) {
-            if (address(delegationPolicy) != address(0)) {
-                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
-            }
-        }
-
-        super._transfer(from, to, amount);
-
-        // check if the undelegation policy allows this transfer
-        // zero reflects that the "undelegation" (transfer) already happened above.
-        // We can't do a correct check beforehand by passing in the amount because it would have to happen in the middle
-        //   of the transfer "after undelegation but before delegation", so we would actually have to burn then mint. But this works just as well.
-        if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
-        }
-
-        emit BalanceUpdate(from, balanceOf(from), totalSupply());
-        emit BalanceUpdate(to, balanceOf(to), totalSupply());
-    }
-
     /**
      * Get an "on-chain estimate" for the DATA value of this Operator contract. This is used for the exchange rate calculation.
      * Operator value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
@@ -252,24 +208,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return token.balanceOf(address(this)) + totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei;
     }
 
-    /**
-     * Return the value of delegations, if they were to undelegate right now
-     * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
-     **/
-    function balanceInData(address delegator) public view returns (uint amountDataWei) {
-        if (balanceOf(delegator) == 0) { return 0; }
-        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
-    }
-
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, owner, operatorsCutFraction);
     }
 
+    /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
     function getStreamMetadata() external view returns (string memory) {
         return streamRegistry.getStreamMetadata(streamId);
     }
 
+    /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
@@ -345,6 +294,52 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      **/
     function undelegate(uint amountWei) public {
         moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
+    }
+
+    /**
+     * Return the value of delegations, if they were to undelegate right now
+     * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
+     **/
+    function balanceInData(address delegator) public view returns (uint amountDataWei) {
+        if (balanceOf(delegator) == 0) { return 0; }
+        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
+    }
+
+    /**
+     * Operator tokens transfer restrictions: operator tokens represent delegations, and so can't be completely freely transferred,
+     *   since there are restrictions to joining and leaving the delegator group.
+     * Transferring tokens between delegators does however make it possible to skip the undelegation queue, if you can find a buyer for your delegations.
+     * @param from delegator that sends operator tokens
+     * @param to recipient who either should be already a delegator, or else normal delegation checks are applied (operator has enough self-delegation)
+     * @param amount operator tokens to transfer
+    */
+    function _transfer(address from, address to, uint amount) internal override {
+        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
+        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+        if ((balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)
+            || balanceOf(to) + amount < minimumDelegationWei) {
+            revert DelegationBelowMinimum();
+        }
+
+        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
+        if (balanceOf(to) == 0) {
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
+            }
+        }
+
+        super._transfer(from, to, amount);
+
+        // check if the undelegation policy allows this transfer
+        // zero reflects that the "undelegation" (transfer) already happened above.
+        // We can't do a correct check beforehand by passing in the amount because it would have to happen in the middle
+        //   of the transfer "after undelegation but before delegation", so we would actually have to burn then mint. But this works just as well.
+        if (address(undelegationPolicy) != address(0)) {
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
+        }
+
+        emit BalanceUpdate(from, balanceOf(from), totalSupply());
+        emit BalanceUpdate(to, balanceOf(to), totalSupply());
     }
 
     /////////////////////////////////////////
@@ -593,10 +588,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    function min(uint a, uint b) internal pure returns (uint) {
-        return a < b ? a : b;
-    }
-
     function onKick(uint, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
@@ -685,4 +676,20 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /* solhint-enable */
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
+    }
+
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
+    }
+
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
+    }
 }
