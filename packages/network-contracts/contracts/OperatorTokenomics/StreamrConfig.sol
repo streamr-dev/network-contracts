@@ -134,7 +134,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
@@ -157,7 +157,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // protocol fee
         setProtocolFeeFraction(0.05 ether); // 5% of earnings go to protocol fee
-        setProtocolFeeBeneficiary(_msgSender());
+        setProtocolFeeBeneficiary(msg.sender);
 
         // flagging + voting
         setFlagReviewerCount(5);
