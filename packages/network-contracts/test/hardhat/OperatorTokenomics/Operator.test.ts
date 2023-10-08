@@ -618,6 +618,7 @@ describe("Operator contract", (): void => {
             const { token } = sharedContracts
             await setTokens(operatorWallet, "1000")
             await setTokens(sponsor, "1000")
+            await setTokens(protocolFeeBeneficiary, "0")
 
             const sponsorship = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds: 100, allocationWeiPerSecond: parseEther("0") })
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -632,6 +633,9 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
                 .to.emit(operator, "Loss").withArgs(parseEther("100"))
                 .to.emit(operator, "OperatorSlashed").withArgs(parseEther("100"), parseEther("100"), parseEther("100"))
+
+            // leave penalty goes to the protocol
+            expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
         })
 
         it("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
