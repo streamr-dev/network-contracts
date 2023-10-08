@@ -1244,6 +1244,31 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("1774.0") // stake = 1000, remaining earnings = 950 - 176 = 774
         })
 
+        it("only operator can forcunstake before queue is too old", async function(): Promise<void> {
+            const { token } = sharedContracts
+            setTokens(delegator, "100")
+
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            await operator.stake(sponsorship1.address, parseEther("100"))
+
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("100"))
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
+            expect(await operator.queueIsEmpty()).to.equal(true)
+
+            await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 0))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+
+            await operator.connect(delegator).undelegate(parseEther("100"))
+            
+            await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 0))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+
+            await (await operator.forceUnstake(sponsorship1.address, 0)).wait()
+        })
+
         it("pays out the queue on withdrawEarningsFromSponsorships", async () => {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")

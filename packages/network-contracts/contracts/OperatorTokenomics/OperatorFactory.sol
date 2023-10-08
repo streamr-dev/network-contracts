@@ -226,7 +226,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address operatorContractAddress = _msgSender();
         if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] != 0) { revert AlreadyLive(); }
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -239,7 +238,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address operatorContractAddress = _msgSender();
         if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] == 0) { revert NotLive(); }
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];

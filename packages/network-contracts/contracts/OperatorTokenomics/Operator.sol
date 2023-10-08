@@ -394,7 +394,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet, after that anyone can call this
-        if (block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
+        if (queueIsEmpty() || block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
                 revert AccessDeniedOperatorOnly();
             }
