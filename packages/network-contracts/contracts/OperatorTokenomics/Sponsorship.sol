@@ -257,7 +257,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
             uint slashedWei = _slash(operator, penaltyWei);
-            _addSponsorship(address(this), slashedWei);
+            // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
+            token.transfer(streamrConfig.protocolFeeBeneficiary(), slashedWei);
         }
         payoutWei = _removeOperator(operator); // forfeits locked stake
     }
