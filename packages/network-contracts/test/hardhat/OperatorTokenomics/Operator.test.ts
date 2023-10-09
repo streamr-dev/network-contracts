@@ -522,6 +522,12 @@ describe("Operator contract", (): void => {
 
                 await (await operator.unstake(sponsorship.address)).wait()
                 await (await operator.undelegate(parseEther("1000"))).wait()
+
+                // contract is empty
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("0"))
+                expect(await operator.totalSupply()).to.equal(parseEther("0"))
+                expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
+
                 await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
                     .to.be.revertedWith("error_selfDelegationTooLow")
             })
