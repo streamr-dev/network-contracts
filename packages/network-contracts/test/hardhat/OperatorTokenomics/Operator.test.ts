@@ -1756,8 +1756,7 @@ describe("Operator contract", (): void => {
                 "{}",
                 parseEther("0.1"),
                 [nodeModule.address, queueModule.address, stakeModule.address])
-            )
-                .to.be.revertedWith("Initializable: contract is already initialized")
+            ).to.be.revertedWith("Initializable: contract is already initialized")
         })
 
         it("allows controller role holders to act on its behalf", async function(): Promise<void> {
