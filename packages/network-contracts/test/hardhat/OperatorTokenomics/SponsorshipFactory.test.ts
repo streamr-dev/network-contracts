@@ -228,7 +228,7 @@ describe("SponsorshipFactory", () => {
             ["0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
     })
 
-    it("is possible to have multilpe join policies", async function(): Promise<void> {
+    it("is possible to have multiple join policies", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
             operatorContractOnlyJoinPolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
@@ -236,6 +236,15 @@ describe("SponsorshipFactory", () => {
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address,
                 maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, hardhatEthers.constants.AddressZero],
             ["0", "0", "0", "0", "0", "0"])
+    })
+
+    it("is ok to leave out policies with shorter arrays", async function(): Promise<void> {
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address, leavePolicy.address], ["0", "0"]))
+            .to.emit(sponsorshipFactory, "NewSponsorship")
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address], ["0"]))
+            .to.emit(sponsorshipFactory, "NewSponsorship")
     })
 
     // must be last test, will remove all policies in the sponsorshipFactory
