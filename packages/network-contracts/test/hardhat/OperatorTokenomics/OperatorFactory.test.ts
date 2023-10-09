@@ -159,14 +159,14 @@ describe("OperatorFactory", function(): void {
     })
 
     it("can't deploy an operator having a cut over 100%", async function(): Promise<void> {
-        const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
+        const { operatorFactory, operatorTemplate, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("1.01"), // 101%
             "OperatorTokenName",
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        )).to.be.revertedWithCustomError(operatorFactory, "InvalidOperatorsCut")
+        )).to.be.revertedWithCustomError(operatorTemplate, "InvalidOperatorsCut")
     })
 
     it("can remove a trusted policy", async function(): Promise<void> {

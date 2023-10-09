@@ -25,7 +25,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
     event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
-    error InvalidOperatorsCut();
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
     error OnlyOperators();
@@ -165,7 +164,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address[3] memory policies,
         uint[3] memory policyParams
     ) private returns (address) {
-        if (operatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
