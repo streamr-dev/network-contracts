@@ -148,7 +148,6 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.valueWithoutEarnings = operator.valueWithoutEarnings
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
-        bucket.spotAPY = BigInt.zero() // TODO
         bucket.delegatorCountAtStart = operator.delegatorCount
 
         // accumulated values, updated when events are fired
