@@ -862,13 +862,20 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("2000.0") // 1000 + 1000
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
 
+            // earnings are 500
+            // protocol fee is 5% * 500 = 25
+            // operator's cut is 20% * 475 = 95
+            // profit is 500 - 25 - 95 = 380
+            // operator value is 1000 + 380 = 1380
+            //  => exchange rate is 1380 / 1000 = 1.38
+            //  => operator's added self-delegation is 95 / 1.38 ~= 68.84
             await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("380"), parseEther("95"), parseEther("25"))
 
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1500.0") // 2000 - 500
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("475.0") // only protocol fee of 25 left the contract
-            expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // TODO: find nice numbers!
+            expect(formatEther(await operator.balanceOf(operatorWallet.address)).slice(0, 6)).to.equal("168.84") // 100 + 68.84
         })
 
         it("rewards fisherman and slashes operator if too much earnings withdrawn", async function(): Promise<void> {

@@ -45,7 +45,7 @@ export async function deployOperatorContract(
             opts?.overrideUndelegationPolicy || defaultUndelegationPolicy.address
         ],
         [ 0, 0, 0 ]
-    )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
+    )).wait()
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
     return operatorTemplate.attach(newOperatorAddress).connect(deployer)
 }
