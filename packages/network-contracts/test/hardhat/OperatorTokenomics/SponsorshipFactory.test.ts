@@ -105,10 +105,10 @@ describe("SponsorshipFactory", () => {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
         const pool = await deployOperatorContract(contracts, admin)
-        await (await token.mint(pool.address, parseEther("400"))).wait()
-        await expect(pool.stake(sponsorship.address, parseEther("200")))
+        await (await token.mint(pool.address, parseEther("10000"))).wait()
+        await expect(pool.stake(sponsorship.address, parseEther("5000")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(pool.address)
-        await expect(pool.stake(sponsorship.address, parseEther("200")))
+        await expect(pool.stake(sponsorship.address, parseEther("5000")))
             .to.not.emit(sponsorship, "OperatorJoined")
     })
 

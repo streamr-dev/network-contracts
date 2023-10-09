@@ -161,10 +161,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // flagging + voting
         setFlagReviewerCount(5);
-        setFlagReviewerRewardWei(1 ether);
-        setFlaggerRewardWei(1 ether);
+        setFlagReviewerRewardWei(20 ether);
+        setFlaggerRewardWei(400 ether);
         setFlagReviewerSelectionIterations(20);
-        setFlagStakeWei(10 ether);
+        setFlagStakeWei(500 ether);
         setReviewPeriodSeconds(1 days);
         setVotingPeriodSeconds(1 hours);
         setFlagProtectionSeconds(1 hours);

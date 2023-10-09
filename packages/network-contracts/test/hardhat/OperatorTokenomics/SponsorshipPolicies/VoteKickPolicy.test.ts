@@ -52,6 +52,12 @@ describe("VoteKickPolicy", (): void => {
         for (const { address } of signers) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
         }
+
+        const { streamrConfig } = contracts // TODO: remove and fix before all & 10 broken tests
+        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlagStakeWei(parseEther("10"))).wait()
+
         defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
         mockRandomOracle = await (await ethers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
         await (await contracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
