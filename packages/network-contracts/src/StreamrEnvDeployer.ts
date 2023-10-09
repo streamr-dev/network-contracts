@@ -93,7 +93,7 @@ export class StreamrEnvDeployer {
     readonly addresses: StreamrContractAddresses
     readonly contracts: StreamrContracts
     readonly preloadedDATAWallets: Wallet[] = []
-    streamId: string
+    streamId = "0xa3d1f77acff0060f7213d7bf3c7fec78df847de1/testStream"
     sponsorshipAddress: any
     sponsorship?: Sponsorship
     operatorAddress: any
@@ -109,10 +109,16 @@ export class StreamrEnvDeployer {
     }
 
     async deployEnvironment(): Promise<void> {
-        this.addresses.StreamRegistry = "0x4F0779292bd0aB33B9EBC1DBE8e0868f3940E3F2"
+        // this.addresses.StreamRegistry = "0x4F0779292bd0aB33B9EBC1DBE8e0868f3940E3F2"
+        this.addresses.StreamRegistry = "0x231b810D98702782963472e1D60a25496999E75D"
         this.contracts.streamRegistry = new Contract(this.addresses.StreamRegistry, streamRegistryABI, this.adminWallet) as StreamRegistry
-        this.addresses.DATA = "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20"
+        await this.contracts.streamRegistry.deployed()
+        log("stream exists: " + await this.contracts.streamRegistry.exists(this.streamId))
+
+        // this.addresses.DATA = "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20"
+        this.addresses.DATA = "0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78"
         this.contracts.DATA = new Contract(this.addresses.DATA, tokenABI, this.adminWallet) as TestToken
+        await this.contracts.DATA.deployed()
 
         // await this.deployEns()
         // await this.deployRegistries()
@@ -122,7 +128,7 @@ export class StreamrEnvDeployer {
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
-        await this.createStream("/testStream")
+        // await this.createStream("/testStream")
         await this.deployNewSponsorship()
         await this.sponsorNewSponsorship()
         await this.deployOperatorContract()
@@ -287,14 +293,16 @@ export class StreamrEnvDeployer {
         this.addresses.StreamrConfig = streamrConfig.address
         this.contracts.streamrConfig = streamrConfig
         log(`streamrConfig address ${streamrConfig.address}`)
+        log(`setting streamRegistry address ${this.addresses.StreamRegistry}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
 
-        const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
-        const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
-        await token.deployed()
-        this.addresses.DATA = token.address
-        this.contracts.DATA = token
-        log(`token address ${token.address}`)
+        // const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
+        // const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
+        // await token.deployed()
+        // this.addresses.DATA = token.address
+        // this.contracts.DATA = token
+        // log(`token address ${token.address}`)
+        const token = this.contracts.DATA
 
         const maxOperatorsJoinPolicy = await (new ContractFactory(maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode,
             this.adminWallet)).deploy() as MaxOperatorsJoinPolicy
