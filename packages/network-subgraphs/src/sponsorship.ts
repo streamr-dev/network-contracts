@@ -1,4 +1,4 @@
-import { log, BigInt } from '@graphprotocol/graph-ts'
+import { log, BigInt, BigDecimal } from '@graphprotocol/graph-ts'
 
 import {
     StakeUpdate,
@@ -56,9 +56,11 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     let sponsorship = Sponsorship.load(sponsorshipAddress)!
 
     // TODO: should !isRunning mean APY is zero?
-    let spotAPY = BigInt.zero()
+    let spotAPY = BigDecimal.zero()
     if (sponsorship.totalPayoutWeiPerSec > BigInt.zero() && sponsorship.totalStakedWei.gt(BigInt.zero())) {
-        spotAPY = sponsorship.totalPayoutWeiPerSec.times(BigInt.fromI32(60 * 60 * 24 * 365)).div(sponsorship.totalStakedWei)
+        spotAPY = sponsorship.totalPayoutWeiPerSec.toBigDecimal()
+            .times((BigInt.fromI32(60 * 60 * 24 * 365)).toBigDecimal())
+            .div(sponsorship.totalStakedWei.toBigDecimal())
     }
 
     sponsorship.totalStakedWei = event.params.totalStakedWei
