@@ -1,13 +1,13 @@
 import { ethers as hardhatEthers } from "hardhat"
-import { BigNumber, utils, Wallet } from "ethers"
 
 import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 
+import type { Wallet, BigNumber } from "ethers"
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
 
-const { parseEther, id } = utils
+const { parseEther, id } = hardhatEthers.utils
 
 export interface SponsorshipTestSetup {
     token: TestToken
@@ -52,7 +52,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     const signers = hardhatSigners.slice(0, totalOperatorCount)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
-    const deployer = new Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
+    const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
     await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
     // console.log("deployer: %s", addr(deployer))
 
@@ -65,7 +65,8 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
-    const operators = await Promise.all(signers.map((signer) => deployOperatorContract(newContracts, signer, operatorsCutFraction, "{}", saltSeed)))
+    const operators = await Promise.all(signers.map((signer) =>
+        deployOperatorContract(newContracts, signer, operatorsCutFraction, { metadata: "{}" }, saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
     // add operator also as the (only) node, so that flag/vote functions Just Work
@@ -80,7 +81,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     for (let i = 0; i < sponsorshipCount; i++) {
         const staked = operatorsPerSponsorship[i]
         const sponsorship = await deploySponsorship(contracts, {
-            allocationWeiPerSecond: BigNumber.from(0),
+            allocationWeiPerSecond: parseEther("0"),
             penaltyPeriodSeconds: 0,
             ...sponsorshipSettings
         })

@@ -1,15 +1,15 @@
 import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, Wallet } from "ethers"
 import Debug from "debug"
 
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-
-import type { MinimalForwarder, StreamRegistry, StreamRegistryV4 } from "../../../typechain"
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
+import type { MinimalForwarder, StreamRegistry, StreamRegistryV4 } from "../../../typechain"
 
 const log = Debug("Streamr::test::StreamRegistryV4")
+
+const { Wallet, BigNumber } = ethers
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
@@ -29,7 +29,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     let registryFromUser1: StreamRegistryV4
     let registryFromMigrator: StreamRegistryV4
     let minimalForwarderFromUser0: MinimalForwarder
-    let MAX_INT: BigNumber
+    let MAX_INT: any
     let blocktime: number
     // let registryFromUser1: StreamRegistry
     let adminAddress: string
@@ -76,10 +76,10 @@ describe("StreamRegistry", async (): Promise<void> => {
         await registryV2FromAdmin.revokeRole(await registryV2FromAdmin.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
         registry = await streamRegistryFactoryV4Tx.deployed() as StreamRegistryV4
-        registryFromAdmin = registry.connect(wallets[0])
-        registryFromUser0 = registry.connect(wallets[1])
-        registryFromUser1 = registry.connect(wallets[2])
-        registryFromMigrator = registry.connect(wallets[3])
+        registryFromAdmin = registry.connect(wallets[0] as any)
+        registryFromUser0 = registry.connect(wallets[1] as any)
+        registryFromUser1 = registry.connect(wallets[2] as any)
+        registryFromMigrator = registry.connect(wallets[3] as any)
         MAX_INT = await registry.MAX_INT()
         await registryFromAdmin.grantRole(await registry.TRUSTED_ROLE(), trustedAddress)
     })
@@ -705,7 +705,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             forwarder = minimalForwarderFromUser0,
             signer = ethers.Wallet.createRandom(),
             gas
-        }: { forwarder?: MinimalForwarder; signer?: Wallet; gas?: string } = {}) {
+        }: { forwarder?: MinimalForwarder; signer?: typeof Wallet; gas?: string } = {}) {
             // signerWallet is creating and signing transaction, user0 is posting it and paying for gas
             // in the positive case signkey is the same as signerWallet.privateKey
             const path = "/path" + Wallet.createRandom().address

@@ -1,13 +1,14 @@
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { utils, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
-const { parseEther, formatEther } = utils
+import type { Wallet } from "ethers"
+
+const { parseEther, formatEther } = ethers.utils
 
 describe("AdminKickPolicy", (): void => {
     let admin: Wallet
@@ -28,13 +29,12 @@ describe("AdminKickPolicy", (): void => {
         // join/leave: +b1    +b2   b1 kick  b2 leave
         // operator1:       100  +  50                = 150
         // operator2:               50   +  100       = 150 - penalty 100  = 50
-        const { token } = contracts
+        const { token, adminKickPolicy } = contracts
         await (await token.mint(operator.address, parseEther("1000"))).wait()
         await (await token.mint(operator2.address, parseEther("1000"))).wait()
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, {
             penaltyPeriodSeconds: 1000,
-            adminKickInsteadOfVoteKick: true
-        })
+        }, [], [], undefined, undefined, adminKickPolicy)
 
         await sponsorship.sponsor(parseEther("10000"))
 
@@ -64,8 +64,8 @@ describe("AdminKickPolicy", (): void => {
     })
 
     it("doesn't allow non-admins to kick", async function(): Promise<void> {
-        const { token } = contracts
-        const sponsorship = await deploySponsorshipWithoutFactory(contracts, { adminKickInsteadOfVoteKick: true })
+        const { token, adminKickPolicy } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
         await (await token.mint(operator.address, parseEther("1000"))).wait()
         await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), await operator.getAddress())).wait()
 

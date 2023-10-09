@@ -27,7 +27,7 @@ export const projects = [
         ],
         "streams": [],
         "isPublicPurchable": true,
-        "metadata": "{\"isDataUnion\": false}, \"name\": \"Test Project 2\", \"description\": \"payable with DATA\"}"
+        "metadata": "{\"isDataUnion\": false, \"name\": \"Test Project 2\", \"description\": \"payable with DATA\"}"
     },
     {
         "id": "0x0000000000000000000000000000000000000000000000000000000000000003",

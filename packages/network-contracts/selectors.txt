@@ -1,0 +1,599 @@
+
+======= Operator/sol:AccessControlUpgradeable =======
+Function signatures:
+a217fddf: DEFAULT_ADMIN_ROLE()
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+01ffc9a7: supportsInterface(bytes4)
+
+Event signatures:
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+
+======= Operator/sol:AddressUpgradeable =======
+Function signatures:
+
+======= Operator/sol:ClonesUpgradeable =======
+Function signatures:
+
+======= Operator/sol:ContextUpgradeable =======
+Function signatures:
+
+Event signatures:
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+
+======= Operator/sol:ERC165Upgradeable =======
+Function signatures:
+01ffc9a7: supportsInterface(bytes4)
+
+Event signatures:
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+
+======= Operator/sol:ERC1967UpgradeUpgradeable =======
+Function signatures:
+
+Event signatures:
+7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
+1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
+
+======= Operator/sol:ERC20Upgradeable =======
+Function signatures:
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+70a08231: balanceOf(address)
+313ce567: decimals()
+a457c2d7: decreaseAllowance(address,uint256)
+39509351: increaseAllowance(address,uint256)
+06fdde03: name()
+95d89b41: symbol()
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+23b872dd: transferFrom(address,address,uint256)
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+
+======= Operator/sol:ERC2771ContextUpgradeable =======
+Function signatures:
+572b6c05: isTrustedForwarder(address)
+
+Event signatures:
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+
+======= Operator/sol:IAccessControlUpgradeable =======
+Function signatures:
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+
+Event signatures:
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+
+======= Operator/sol:IAllocationPolicy =======
+Function signatures:
+6e9bb3f7: getEarningsWei(address)
+de44bb88: getInsolvencyTimestamp()
+624ca99c: onJoin(address)
+19153386: onLeave(address)
+6fff860d: onSponsor(address,uint256)
+e178d930: onStakeChange(address,int256)
+3a82b50d: onWithdraw(address)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:IBeaconUpgradeable =======
+Function signatures:
+5c60da1b: implementation()
+
+======= Operator/sol:IDelegationPolicy =======
+Function signatures:
+217fb33b: onDelegate(address)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:IERC165Upgradeable =======
+Function signatures:
+01ffc9a7: supportsInterface(bytes4)
+
+======= Operator/sol:IERC1822ProxiableUpgradeable =======
+Function signatures:
+52d1902d: proxiableUUID()
+
+======= Operator/sol:IERC20 =======
+Function signatures:
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+70a08231: balanceOf(address)
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+23b872dd: transferFrom(address,address,uint256)
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+
+======= Operator/sol:IERC20MetadataUpgradeable =======
+Function signatures:
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+70a08231: balanceOf(address)
+313ce567: decimals()
+06fdde03: name()
+95d89b41: symbol()
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+23b872dd: transferFrom(address,address,uint256)
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+
+======= Operator/sol:IERC20Upgradeable =======
+Function signatures:
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+70a08231: balanceOf(address)
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+23b872dd: transferFrom(address,address,uint256)
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+
+======= Operator/sol:IERC677 =======
+Function signatures:
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+70a08231: balanceOf(address)
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+4000aea0: transferAndCall(address,uint256,bytes)
+23b872dd: transferFrom(address,address,uint256)
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+ce8124fd2ae9fd7904103e5a9ebe88b527b9ca0e32a32fd497845c82706542d3: TransferAndCall(address,address,uint256,bytes)
+
+======= Operator/sol:IERC677Receiver =======
+Function signatures:
+a4c0ed36: onTokenTransfer(address,uint256,bytes)
+
+======= Operator/sol:IExchangeRatePolicy =======
+Function signatures:
+e926d55c: dataToOperatorToken(uint256,uint256)
+6f398f98: operatorTokenToData(uint256)
+ae447024: operatorTokenToDataInverse(uint256)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:IJoinPolicy =======
+Function signatures:
+07b88ea5: onJoin(address,uint256)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:IKickPolicy =======
+Function signatures:
+c0275535: getFlagData(address)
+d11d8fc4: onFlag(address,address)
+fbbabed9: onVote(address,bytes32,address)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:ILeavePolicy =======
+Function signatures:
+18820b1b: getLeavePenaltyWei(address)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:INodeModule =======
+Function signatures:
+2c23c940: _setNodeAddresses(address[])
+bc59647e: _updateNodeAddresses(address[],address[])
+377f1ecb: createCoordinationStream()
+
+======= Operator/sol:IOperator =======
+Function signatures:
+20fed94f: onKick(uint256,uint256)
+7bf713b6: onSlash(uint256)
+
+======= Operator/sol:IOperatorLivenessRegistry =======
+Function signatures:
+f456a0f8: registerAsLive()
+72184394: registerAsNotLive()
+
+======= Operator/sol:IQueueModule =======
+Function signatures:
+e4d10986: _payOutFirstInQueue()
+84733344: _payOutQueue(uint256)
+7a227c9f: _triggerAnotherOperatorWithdraw(address,address[])
+1d104c8c: _undelegate(uint256,address)
+
+======= Operator/sol:IStakeModule =======
+Function signatures:
+3d16f42d: _forceUnstake(address)
+d572a9cd: _reduceStakeTo(address,uint256)
+b2279c28: _removeSponsorship(address,uint256)
+aa0d97b3: _stake(address,uint256)
+af9ee81d: _unstake(address)
+1b155aa0: _withdrawEarnings(address[])
+
+======= Operator/sol:IStreamRegistryV4 =======
+Function signatures:
+5e57966d: addressToString(address)
+0ef8cdc7: createStream(string,string)
+261a323e: exists(string)
+6394fbd2: getStreamMetadata(string)
+997e8aaa: grantPermission(string,address,uint8)
+466f878e: grantPublicPermission(string,uint8)
+3e397aea: revokePermission(string,address,uint8)
+42617fe7: updateStreamMetadata(string,string)
+
+======= Operator/sol:IUndelegationPolicy =======
+Function signatures:
+d82264d4: onUndelegate(address,uint256)
+4a45d2e6: setParam(uint256)
+
+======= Operator/sol:Initializable =======
+Function signatures:
+
+Event signatures:
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+
+======= Operator/sol:MathUpgradeable =======
+Function signatures:
+
+======= Operator/sol:Operator =======
+Function signatures:
+092c5b3b: CONTROLLER_ROLE()
+a217fddf: DEFAULT_ADMIN_ROLE()
+e58378bb: OWNER_ROLE()
+dd62ed3e: allowance(address,address)
+095ea7b3: approve(address,uint256)
+a63ed2c8: balanceInData(address)
+70a08231: balanceOf(address)
+313ce567: decimals()
+a457c2d7: decreaseAllowance(address,uint256)
+9fa6dd35: delegate(uint256)
+799e2590: delegationPolicy()
+b72cd7a8: exchangeRatePolicy()
+4a178fe4: flag(address,address,string)
+a93a019f: forceUnstake(address,uint256)
+2e949824: getNodeAddresses()
+248a9ca3: getRoleAdmin(bytes32)
+2ebd89d1: getSponsorshipsAndEarnings()
+aa5703ad: getStreamMetadata()
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+0fd6ff49: heartbeat(string)
+39509351: increaseAllowance(address,uint256)
+58fc614a: indexOfSponsorships(address)
+a99fa31a: initialize(address,address,address,string,string,uint256,address[3])
+572b6c05: isTrustedForwarder(address)
+392f37e9: metadata()
+06fdde03: name()
+d673de46: nodeIndex(address)
+63d1ecf2: nodeModule()
+1c53c280: nodes(uint256)
+20fed94f: onKick(uint256,uint256)
+64f1abb7: onReviewRequest(address)
+7bf713b6: onSlash(uint256)
+a4c0ed36: onTokenTransfer(address,uint256,bytes)
+558a1568: operatorsCutFraction()
+8da5cb5b: owner()
+11606010: payOutFirstInQueue()
+87396e3b: payOutQueue(uint256)
+aa77fd55: queueCurrentIndex()
+5e61bb87: queueIsEmpty()
+9413462c: queueLastIndex()
+a48dca18: queueModule()
+2fc213fd: queuePositionOf(address)
+d1b68611: reduceStakeTo(address,uint256)
+4b095c03: reduceStakeWithoutQueue(address,uint256)
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+f3aea650: setDelegationPolicy(address,uint256)
+bc697ec5: setExchangeRatePolicy(address,uint256)
+25c33549: setNodeAddresses(address[])
+ffff59a6: setUndelegationPolicy(address,uint256)
+ba2bfc0a: slashedIn(address)
+a74194af: sponsorships(uint256)
+adc9772e: stake(address,uint256)
+21a76907: stakeModule()
+7d429385: stakedInto(address)
+f4408e4b: streamId()
+e3642153: streamRegistry()
+98833130: streamrConfig()
+01ffc9a7: supportsInterface(bytes4)
+95d89b41: symbol()
+fc0c546a: token()
+870ffde2: totalSlashedInSponsorshipsWei()
+04cbab8b: totalStakedIntoSponsorshipsWei()
+18160ddd: totalSupply()
+a9059cbb: transfer(address,uint256)
+23b872dd: transferFrom(address,address,uint256)
+f4350c24: triggerAnotherOperatorWithdraw(address,address[])
+6c68c0e1: undelegate(uint256)
+bc9b30c8: undelegationPolicy()
+4feeb00e: undelegationQueue(uint256)
+f2888dbb: unstake(address)
+1401f70b: unstakeWithoutQueue(address)
+918b5be1: updateMetadata(string)
+14797daa: updateNodeAddresses(address[],address[])
+5dff6e9f: updateOperatorsCutFraction(uint256)
+21194bd7: updateStreamMetadata(string)
+c229918e: valueWithoutEarnings()
+bed6ff09: voteOnFlag(address,address,bytes32)
+e8e658b4: withdrawEarningsFromSponsorships(address[])
+50d3ba9e: withdrawEarningsFromSponsorshipsWithoutQueue(address[])
+
+Error signatures:
+4ca88867: AccessDenied()
+231b3ae2: AccessDeniedDATATokenOnly()
+9e39d8be: AccessDeniedNodesOnly()
+69d9c224: AccessDeniedOperatorOnly()
+b3d3f77e: AccessDeniedStreamrSponsorshipOnly()
+ddecb772: DelegationBelowMinimum()
+b1c5c787: DidNotReceiveReward()
+ec6c87a6: FirstEmptyQueueThenStake()
+918623b7: ModuleCallError(address,bytes)
+29801d70: ModuleGetError(bytes)
+4ee7a8de: NoEarnings()
+25b10de0: NotMyStakedSponsorship()
+81cf7f80: StakedInSponsorships()
+c0a6104c: ZeroUndelegation()
+
+Event signatures:
+8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
+bbac117825721ba643d8ad675fe8e22c08ec438c38be7b6981ce85c631c88eb7: BalanceUpdate(address,uint256,uint256)
+83b3f5ce88736f0128f880f5cac19836da52ea5c5ca7704c7b38f3b06fffd7ab: Delegated(address,uint256)
+7432bbcdcf6009b3131a7b65f7af1fdbf79c27db5c115c1cdbcf9210298bc5f4: Heartbeat(address,string)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+b65b2e085d7d040c313f7d4e1ac90f5937026fee497e0e24a7eff16a55e1c5ea: Loss(uint256)
+4e51a007a3ec0f4dbfd0901ad752077940f47293197538644ffc302b534527d0: MetadataUpdated(string,address,uint256)
+fa7fb8364e713f89c581b4b8a998a62e7be034cb4fffa97c6a4a62072ebddba6: NodesSet(address[])
+f22a8c26ad08bc6548cdae55fec4c309e15e9d2290ad7e1f9186fc20189e7a15: OperatorSlashed(uint256,uint256,uint256)
+41c23f1b303a0c4396ea09a7fb42b216cd382ec1ea27c71c3e89e314be197a03: OperatorValueUpdate(uint256,uint256)
+604b365b22dbda1203004fba26c477ed19c49ad01cadf6eedf5f17f52ebbae18: Profit(uint256,uint256,uint256)
+3aba5f85865b18cdf0791e165e7ab854e1601844fe7f2439485f7951a621bf20: QueueUpdated(address,uint256,uint256)
+8a228768f3ff659f1949219559062a5847e296af390cb8d3a02ad7ee8f2a3575: QueuedDataPayout(address,uint256,uint256)
+545d20620dbb7fa2716e9f539af7d2eee7cb7dbd8810de5e2b43204bb1ab9a6a: ReviewRequest(address,address,string)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+89dbe872fd688c751e8c5df10849155d89d1467fd56ddb92b0d0024cda2ccd78: StakeUpdate(address,uint256)
+77338642d9284a44296d29a273e04b8ab6b15c7d2439094cd460b7e4f0b33074: Staked(address)
+ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
+4ae68879209bc4b489a38251122202a3653305e3d95a27baf7a5681410c90b38: Undelegated(address,uint256)
+908e667f6c2b13b8062954eb100253ea804c21222b190449e40d967a3ac0ff13: Unstaked(address)
+
+======= Operator/sol:Sponsorship =======
+Function signatures:
+a217fddf: DEFAULT_ADMIN_ROLE()
+2b308a56: addJoinPolicy(address,uint256)
+3a1c0aa8: allocationPolicy()
+fa267ddf: earningsWei()
+7e11d1c6: flag(address,string)
+7db18807: flagMetadataJson(address)
+df4bbd22: forceUnstake()
+759e30d8: forfeitedStakeWei()
+131b9c04: getEarnings(address)
+357e47fe: getFlag(address)
+da5a517b: getLeavePenalty(address)
+5499dca5: getMyStake()
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+4562980f: initialize(string,string,address,address,uint256[3],address)
+7c654303: isFunded()
+2014e5d1: isRunning()
+572b6c05: isTrustedForwarder(address)
+625eb6c8: joinPolicies(uint256)
+303cbe57: joinTimeOfOperator(address)
+584cb7cf: kickPolicy()
+54a991b4: leavePolicy()
+19d164f1: lockedStakeWei(address)
+392f37e9: metadata()
+11648a4c: minHorizonSeconds()
+40947369: minOperatorCount()
+48611fcd: minimumStakeOf(address)
+a4c0ed36: onTokenTransfer(address,uint256,bytes)
+7c6f3158: operatorCount()
+38106e4d: reduceStakeTo(uint256)
+91a11303: remainingWei()
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+b9efec95: setAllocationPolicy(address,uint256)
+acbeddd7: setKickPolicy(address,uint256)
+04a10591: setLeavePolicy(address,uint256)
+71b906eb: solventUntilTimestamp()
+b6cce5e2: sponsor(uint256)
+adc9772e: stake(address,uint256)
+14c948eb: stakedWei(address)
+f4408e4b: streamId()
+98833130: streamrConfig()
+01ffc9a7: supportsInterface(bytes4)
+fc0c546a: token()
+34a0f881: totalStakedWei()
+2def6620: unstake()
+a5b83ce4: voteOnFlag(address,bytes32)
+3ccfd60b: withdraw()
+
+Error signatures:
+4ca88867: AccessDenied()
+bbef3e1a: ActiveFlag(uint256)
+369ae979: CannotIncreaseStake()
+4274cbe6: FlaggingNotSupported()
+078759ac: LeavePenalty(uint256)
+c27c6c34: MinOperatorCountZero()
+047e14bb: MinimumStake()
+918623b7: ModuleCallError(address,bytes)
+29801d70: ModuleGetError(bytes)
+7377079b: OnlyDATAToken()
+51897574: OperatorNotStaked()
+
+Event signatures:
+bd472a400811f9918b708f3c32ed12bd5379ceb9c342451ea19b8d06c0850215: FlagUpdate(address,uint8,uint256,uint256)
+bfc2ea38f654c28196c9b1c7a859115b1d74103c705d851743383e2bcd8f7624: Flagged(address,address,uint256,uint256,string)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+9d584a7e1b19f15c4a9b3fc12662146f10b5739603ce9aaab30d80bab7d8ea2a: InsolvencyEnded(uint256,uint256,uint256)
+6b84b3854e3868de91705a7163cc5cc88f64366b8912900fa377af1f40d6fc1f: InsolvencyStarted(uint256)
+a2ab3900cad3f350c9333a5814b4c581dee01f3ca964bbf8cd96e061a00da0d2: OperatorJoined(address)
+85f399dce17fd584cfb835af46f245bced9a3bc29310ff3a4beb5f8a51d2ac08: OperatorKicked(address)
+14a9c4ce3dc5694e8873bfea05304d57d64ba56ee7ad9ad5fe40b3d8e4e4d3f0: OperatorLeft(address,uint256)
+a005d3b8f5c8149659f2afc06ed99732d5891377a370a723669418ca1ca29ced: OperatorSlashed(address,uint256)
+7e92fc9895973ad563faec3a717b98bdd9993734830b366fb37014b830fc1ea2: ProjectedInsolvencyUpdate(uint256)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipReceived(address,uint256)
+38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
+6bd50b2adbfd6455ea19dde2d7225e43f70fab44edfbac7ed0748d7d9c3f9059: StakeUpdate(address,uint256,uint256,uint256)
+
+======= Operator/sol:SponsorshipFactory =======
+Function signatures:
+a217fddf: DEFAULT_ADMIN_ROLE()
+f72c0d8b: UPGRADER_ROLE()
+b3a79c8d: addTrustedPolicies(address[])
+a0cdb9d2: addTrustedPolicy(address)
+145246e9: deploySponsorship(uint256,string,string,address[],uint256[])
+4703e001: deploymentTimestamp(address)
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+c0c53b8b: initialize(address,address,address)
+572b6c05: isTrustedForwarder(address)
+1a8eab7e: isTrustedPolicy(address)
+a4c0ed36: onTokenTransfer(address,uint256,bytes)
+52d1902d: proxiableUUID()
+d8bd0de4: removeTrustedPolicy(address)
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+3cffce93: sponsorshipContractTemplate()
+98833130: streamrConfig()
+01ffc9a7: supportsInterface(bytes4)
+9d76ea58: tokenAddress()
+6f0a812e: trustedPolicies(address)
+fbc1f718: updateTemplate(address)
+3659cfe6: upgradeTo(address)
+4f1ef286: upgradeToAndCall(address,bytes)
+
+Error signatures:
+6d75c207: AllocationPolicyRequired()
+1739bb9a: BadArguments()
+2cc6b17b: PolicyNotTrusted()
+13c872ee: StreamNotFound()
+
+Event signatures:
+7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
+1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+2f6aee5d8c249b83c278dc774b8923a70ea8df009e1d61e4210856b155dfee53: NewSponsorship(address,string,string,address[],uint256[],address)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+524bbf4293dcf708f5094aac50dee1ac60c1d058ee12a61c4a0eba8031e2c4cc: TemplateAddress(address)
+bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
+
+======= Operator/sol:StorageSlotUpgradeable =======
+Function signatures:
+
+======= Operator/sol:StreamrConfig =======
+Function signatures:
+a217fddf: DEFAULT_ADMIN_ROLE()
+f72c0d8b: UPGRADER_ROLE()
+6c29b3b7: fishermanRewardFraction()
+6abd9e41: flagProtectionSeconds()
+9ce68dc3: flagReviewerCount()
+bca31560: flagReviewerRewardWei()
+d2d5028c: flagReviewerSelectionIterations()
+e2811d67: flagStakeWei()
+dad5ca32: flaggerRewardWei()
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+8129fc1c: initialize()
+aeca7c78: maxAllowedEarningsFraction()
+78e72833: maxPenaltyPeriodSeconds()
+e2e8bcd8: maxQueueSeconds()
+afbd6c6c: minimumDelegationWei()
+7b94dead: minimumSelfDelegationFraction()
+66316372: minimumStakeWei()
+887f44fe: operatorContractOnlyJoinPolicy()
+5290c248: operatorFactory()
+7e06fddc: operatorLivenessRegistry()
+ceb80df2: protocolFeeBeneficiary()
+3a0298eb: protocolFeeFraction()
+52d1902d: proxiableUUID()
+a224c198: randomOracle()
+36568abe: renounceRole(bytes32,address)
+b18dccc2: reviewPeriodSeconds()
+d547741f: revokeRole(bytes32,address)
+bbb23c3f: setFishermanRewardFraction(uint256)
+4022fd5c: setFlagProtectionSeconds(uint256)
+66ba24f3: setFlagReviewerCount(uint256)
+c2146f66: setFlagReviewerRewardWei(uint256)
+269594a8: setFlagReviewerSelectionIterations(uint256)
+246e62d9: setFlagStakeWei(uint256)
+19770c57: setFlaggerRewardWei(uint256)
+ffb6e4da: setMaxAllowedEarningsFraction(uint256)
+7e8d889a: setMaxPenaltyPeriodSeconds(uint256)
+9739b08c: setMaxQueueSeconds(uint256)
+4d836fd2: setMinimumDelegationWei(uint256)
+62250c67: setMinimumSelfDelegationFraction(uint256)
+a810edd7: setOperatorContractOnlyJoinPolicy(address)
+f94ca551: setOperatorFactory(address)
+9585b0be: setProtocolFeeBeneficiary(address)
+274a38f3: setProtocolFeeFraction(uint256)
+f9b2f3c9: setRandomOracle(address)
+81929a6f: setReviewPeriodSeconds(uint256)
+af424c8e: setSlashingFraction(uint256)
+4b3fb81b: setSponsorshipFactory(address)
+055d7109: setStreamRegistryAddress(address)
+da742228: setTrustedForwarder(address)
+1cedd51e: setVotingPeriodSeconds(uint256)
+fc1e490f: slashingFraction()
+5efca0a9: sponsorshipFactory()
+7b0c2842: streamRegistryAddress()
+01ffc9a7: supportsInterface(bytes4)
+7da0a877: trustedForwarder()
+3659cfe6: upgradeTo(address)
+4f1ef286: upgradeToAndCall(address,bytes)
+cb85fe35: votingPeriodSeconds()
+
+Error signatures:
+b2a4c036: TooHigh(uint256,uint256)
+7e4b4593: TooLow(uint256,uint256)
+
+Event signatures:
+7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
+1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
+
+======= Operator/sol:StringsUpgradeable =======
+Function signatures:
+
+======= Operator/sol:UUPSUpgradeable =======
+Function signatures:
+52d1902d: proxiableUUID()
+3659cfe6: upgradeTo(address)
+4f1ef286: upgradeToAndCall(address,bytes)
+
+Event signatures:
+7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
+1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)

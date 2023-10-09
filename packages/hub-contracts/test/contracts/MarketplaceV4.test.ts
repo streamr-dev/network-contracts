@@ -758,7 +758,7 @@ describe("MarketplaceV4", () => {
 
     describe('Hyperlane - cross-chain messaging', () => {
         if (process.env.REPORT_GAS) {
-            describe.only('GasReporter', () => {
+            describe('GasReporter', () => {
                 before(async () => {
                     // needed for error_notHyperlaneMailbox validation
                     await marketplace.addMailbox(gasReporter.address)

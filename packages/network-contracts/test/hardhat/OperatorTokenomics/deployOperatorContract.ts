@@ -15,7 +15,12 @@ export async function deployOperatorContract(
     contracts: TestContracts,
     deployer: Wallet,
     operatorsCutFraction = parseEther("0"),
-    operatorMetadata = "{}",
+    opts: {
+        metadata?: string,
+        overrideDelegationPolicy?: string,
+        overrideExchangeRatePolicy?: string,
+        overrideUndelegationPolicy?: string
+    } = {},
     salt?: string
 ): Promise<Operator> {
     const {
@@ -33,8 +38,12 @@ export async function deployOperatorContract(
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
         operatorsCutFraction,
         operatorTokenName,
-        operatorMetadata,
-        [ defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address ],
+        opts?.metadata || "{}",
+        [
+            opts?.overrideDelegationPolicy || defaultDelegationPolicy.address,
+            opts?.overrideExchangeRatePolicy || defaultExchangeRatePolicy.address,
+            opts?.overrideUndelegationPolicy || defaultUndelegationPolicy.address
+        ],
         [ 0, 0, 0 ]
     )).wait() as ContractReceipt // TODO: figure out why typechain types produce any from .connect, shouldn't need explicit typing here
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress

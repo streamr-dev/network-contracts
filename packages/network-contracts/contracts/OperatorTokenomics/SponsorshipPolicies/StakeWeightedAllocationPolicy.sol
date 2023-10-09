@@ -5,40 +5,35 @@ pragma solidity ^0.8.13;
 import "./IAllocationPolicy.sol";
 import "../Sponsorship.sol";
 
-// import "hardhat/console.sol";
 
 // allocation happens over time, so there's necessarily lots of "relying on time" here
 /* solhint-disable not-rely-on-time */
 
-/**
- * @dev note: ...perStake variables are per FULL TOKEN stake for numerical precision reasons, internally.
- * @dev  Don't ever expose them outside! We don't want to deal with non-standard "full tokens", e.g. USDC has 6 decimals instead of 18
- * @dev Detailed reason: if incomePerSecondPerStake were per stake-wei, then because stake typically is greater than the payout in one second,
- * @dev  the quotient would always be zero.
- * @dev Example: 1 DATA/second, 1000 DATA staked:
- * @dev  - incomePerSecondPerStake(wei) would be 1e18 / 1000e18 < 1, which becomes zero
- * @dev  - incomePerSecondPerStake(token) however is 1e18 / 1000 = 1e15, which is fine
- * @dev Sanity check: There's order of 1e9 of DATA full tokens in existence, and one year is 3e7 seconds, so the precision is good enough
- * @dev  for the case where ALL data is staked on a sponsorship that pays 1 DATA/year
- */
 contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     struct LocalStorage {
-        uint incomePerSecond;       // wei, total income velocity, distributed to operators, decided by sponsor upon creation
-        uint cumulativeWeiPerStake; // cumulative income over time, per stake FULL TOKEN unit (wei x 1e18)
+        uint incomePerSecond; // wei, total income velocity, distributed to operators, decided by sponsor upon creation
+        uint cumulativeIncomePerStake; // cumulative income/stake over time, multiplied by 1e36 to avoid rounding to zero in calculations
 
         /**
-         * The per-stake-unit allocation (wei / full token stake) of each operator is the integral over time of incomePerSecond (divided by total stake),
-         *   calculated as cumulativeWeiPerStake (upper limit, common to all operators) minus cumulativeReference (lower limit, just for this operator)
-         * This reference point will be updated when stake changes because that's when the operator-specific allocation weight changes,
+         * Each operator's income/stake is the integral over time of incomePerSecond divided by total stake, calculated as
+         *   cumulativeIncomePerStake (upper limit, common to all operators) minus cumulativeReference (lower limit, just for this operator)
+         * This cumulativeReference will be updated when stake changes because that's when the operator-specific allocation weight changes,
          *   so we save the result of the integral up to that point and continue integrating from there with the new weight.
          */
         mapping(address => uint) cumulativeReference;
-        /** Remember how much earnings there were before the last cumulativeReference update */
-        mapping(address => uint) earningsBeforeReferenceUpdate;
+        /** Remember how much earnings there were before the last cumulativeReference update, multiplied by 1e36 for numerical reasons */
+        mapping(address => uint) earningsBeforeReferenceUpdateTimes1e36;
 
-        // the current unallocated funds will run out if more sponsorship is not added
-        uint defaultedWei; // lost income during the current insolvency; reported in InsolvencyEnded event, not used in allocations
-        uint defaultedWeiPerStake; // lost cumulativeWeiPerStake during the current insolvency; reported in InsolvencyEnded event, not used in allocations
+        /**
+         * The current unallocated funds will run out if more sponsorship is not added. defaultedWei is the lost income during the current insolvency
+         * @dev Reported in InsolvencyEnded event, not used in allocations
+         **/
+        uint defaultedWei;
+        /**
+         * Lost cumulativeIncomePerStake during the current insolvency
+         * @dev Reported in InsolvencyEnded event, not used in allocations, multiplied by 1e36 for numerical reasons
+         **/
+        uint defaultedPerStake;
 
         // calculation inputs in the beginning of the currently running update period
         //   explicitly stored in the end of last update() because they will be the primary inputs to next update()
@@ -63,19 +58,15 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     /** @return earningsWei the current earnings of the given operator (since last withdraw) */
     function getEarningsWei(address operator) public view returns (uint earningsWei) {
         if (stakedWei[operator] == 0) { return 0; }
-        return localData().earningsBeforeReferenceUpdate[operator] + calculateNewEarnings(localData().cumulativeReference[operator], stakedWei[operator]);
-    }
-
-    /**
-     * Calculate an operator's earnings since the last reset of the per-operator reference point (cumulativeReference)
-     */
-    function calculateNewEarnings(uint referenceWeiPerStake, uint stakeWei) private view returns (uint allocation) {
         LocalStorage storage local = localData();
         (uint newAllocationsWei,) = calculateSinceLastUpdate();
 
-        uint cumulativeWeiPerStake = local.cumulativeWeiPerStake + newAllocationsWei * 1e18 / local.lastUpdateTotalStake;
-        uint allocationWeiPerStake = cumulativeWeiPerStake - referenceWeiPerStake;
-        return stakeWei * allocationWeiPerStake / 1e18; // full token = 1e18 wei
+        // Round up if the remainder is less than what's possible to intentionally cause with incomePerSecond's precision:
+        //   minimum non-zero value for incomePerSecond is 1 wei/second; 1e25/1e36 = 1/1e11 of 1 wei/second < 1 wei / 300 years
+        // This fixes rounding errors such as 10/3 * 3 = 9.9999... = 9, now it will give 10 which is correct
+        uint cumulativeIncomePerStake = local.cumulativeIncomePerStake + newAllocationsWei * 1e36 / local.lastUpdateTotalStake;
+        uint newEarningsTimes1e36PerStake = cumulativeIncomePerStake - localData().cumulativeReference[operator];
+        return (localData().earningsBeforeReferenceUpdateTimes1e36[operator] + stakedWei[operator] * newEarningsTimes1e36PerStake + 1e25) / 1e36;
     }
 
     /**
@@ -104,7 +95,7 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     }
 
     /**
-     * Update the localData so that all subsequent calculations can use localData().cumulativeWeiPerStake
+     * Update the localData so that all subsequent calculations can use localData().cumulativeIncomePerStake
      * New funds that may have entered in the meanwhile are only counted towards the next update,
      *   so they appear the have arrived after this update() call.
      */
@@ -121,14 +112,14 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
                 emit InsolvencyStarted(getInsolvencyTimestamp());
             }
             localVars.defaultedWei += newDefaultsWei;
-            localVars.defaultedWeiPerStake += newDefaultsWei * 1e18 / localVars.lastUpdateTotalStake;
+            localVars.defaultedPerStake += newDefaultsWei * 1e36 / localVars.lastUpdateTotalStake;
         }
 
         if (newAllocationsWei > 0) {
-            // move funds from sponsorship to earnings, add to the cumulativeWeiPerStake integral
+            // move funds from sponsorship to earnings, add to the cumulativeIncomePerStake integral
             earningsWei += newAllocationsWei;
             remainingWei -= newAllocationsWei;
-            localVars.cumulativeWeiPerStake += newAllocationsWei * 1e18 / localVars.lastUpdateTotalStake;
+            localVars.cumulativeIncomePerStake += newAllocationsWei * 1e36 / localVars.lastUpdateTotalStake;
         }
 
         // save values for next update: adjust income velocity for a possibly changed number of operators
@@ -149,13 +140,13 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
     /** When operator joins, the current reference point is reset, and later the operator's allocation can be measured from the accumulated difference */
     function onJoin(address operator) external {
         update();
-        localData().cumulativeReference[operator] = localData().cumulativeWeiPerStake;
+        localData().cumulativeReference[operator] = localData().cumulativeIncomePerStake;
     }
 
     /** When operator leaves, its state is cleared as if it had never joined */
     function onLeave(address operator) external {
         update();
-        delete localData().earningsBeforeReferenceUpdate[operator];
+        delete localData().earningsBeforeReferenceUpdateTimes1e36[operator];
         delete localData().cumulativeReference[operator];
     }
 
@@ -169,23 +160,24 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         // must use pre-increase stake for the past period => undo the stakeChangeWei just for the calculation
         uint oldStakeWei = uint(int(stakedWei[operator]) - stakeChangeWei);
 
-        // Reference Point Update => move new earnings since last reference update to earningsBeforeReferenceUpdate
-        local.earningsBeforeReferenceUpdate[operator] += calculateNewEarnings(local.cumulativeReference[operator], oldStakeWei);
-        local.cumulativeReference[operator] = local.cumulativeWeiPerStake; // <- this is the reference update
+        // Reference Point Update => move (scaled) new earnings since last reference update to earningsBeforeReferenceUpdateTimes1e36
+        uint newEarningsTimes1e36PerStake = local.cumulativeIncomePerStake - local.cumulativeReference[operator];
+        local.earningsBeforeReferenceUpdateTimes1e36[operator] += oldStakeWei * newEarningsTimes1e36PerStake;
+        local.cumulativeReference[operator] = local.cumulativeIncomePerStake; // <- this is the reference update
     }
 
     /** @return payoutWei how many tokens to send out from Sponsorship */
     function onWithdraw(address operator) external returns (uint payoutWei) {
         update();
 
-        // calculate payout FIRST, before zeroing earningsBeforeReferenceUpdate
+        // calculate payout before zeroing earningsBeforeReferenceUpdateTimes1e36, because it's used in the calculation
         payoutWei = getEarningsWei(operator);
         earningsWei -= payoutWei;
 
         // update reference point, also zero the "unpaid earnings" because they will be paid out
         LocalStorage storage local = localData();
-        local.cumulativeReference[operator] = local.cumulativeWeiPerStake;
-        local.earningsBeforeReferenceUpdate[operator] = 0;
+        local.cumulativeReference[operator] = local.cumulativeIncomePerStake;
+        local.earningsBeforeReferenceUpdateTimes1e36[operator] = 0;
     }
 
     function onSponsor(address, uint amount) external {
@@ -197,8 +189,8 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
         //   don't distribute anything yet but start counting again
         LocalStorage storage localVars = localData();
         if (localVars.defaultedWei > 0) {
-            emit InsolvencyEnded(block.timestamp, localVars.defaultedWeiPerStake, localVars.defaultedWei);
-            localVars.defaultedWeiPerStake = 0;
+            emit InsolvencyEnded(block.timestamp, localVars.defaultedPerStake / 1e18, localVars.defaultedWei);
+            localVars.defaultedPerStake = 0;
             localVars.defaultedWei = 0;
         }
         emit ProjectedInsolvencyUpdate(getInsolvencyTimestamp());

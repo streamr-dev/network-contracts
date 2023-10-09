@@ -1,15 +1,20 @@
-import { ethers as hardhatEthers } from "hardhat"
+import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { expect } from "chai"
-import { utils as ethersUtils, Wallet } from "ethers"
-
-const { defaultAbiCoder, parseEther } = ethersUtils
-const { getSigners } = hardhatEthers
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
-import { StreamRegistryV4 } from "../../../typechain"
+import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
 
+const {
+    getSigners,
+    getContractFactory,
+    utils: { defaultAbiCoder, parseEther }
+} = hardhatEthers
+
+import type { Wallet } from "ethers"
+
+const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
 let sponsorshipCounter = 0
 
 async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
@@ -21,14 +26,79 @@ async function createStream(deployerAddress: string, streamRegistry: StreamRegis
 
 describe("SponsorshipFactory", () => {
     let admin: Wallet
+    let notAdmin: Wallet
     let contracts: TestContracts
 
     before(async (): Promise<void> => {
-        [admin] = await getSigners() as unknown as Wallet[]
+        [admin, notAdmin] = await getSigners() as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
+    })
+
+    // UUPS tests not placed in a describe block to be run before the policies are removed from the sponsorship factory
+    it("UUPS - admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
+        const { sponsorshipFactory } = contracts
+        const upgraderRole = await sponsorshipFactory.UPGRADER_ROLE()
+        const newSponsorshipFactoryContract = await getContractFactory("SponsorshipFactory") // this the upgraded version (e.g. SponsorshipFactoryV2)
+        await expect(upgrades.upgradeProxy(sponsorshipFactory.address, newSponsorshipFactoryContract, { unsafeAllow: ["delegatecall"] }))
+            .to.be.revertedWith(`AccessControl: account ${admin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+    })
+
+    it("UUPS - admin can upgrade after assigning himself UPGRADER_ROLE", async () => {
+        const { sponsorshipFactory } = contracts
+        await (await sponsorshipFactory.grantRole(await sponsorshipFactory.UPGRADER_ROLE(), admin.address)).wait()
+
+        const newContractFactory = await getContractFactory("SponsorshipFactory") // this is the upgraded version (e.g. SponsorshipFactoryV2)
+        const newSponsorshipFactoryTx = await upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
+        const newSponsorshipFactory = await newSponsorshipFactoryTx.deployed() as SponsorshipFactory
+
+        expect(sponsorshipFactory.address).to.equal(newSponsorshipFactory.address)
+    })
+
+    it("UUPS - notAdmin can NOT upgrade", async () => {
+        const { sponsorshipFactory } = contracts
+        const upgraderRole = await sponsorshipFactory.UPGRADER_ROLE()
+        const newContractFactory = await getContractFactory("SponsorshipFactory", notAdmin) // this is the upgraded version (e.g. StreamrConfigV2)
+
+        await expect(upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] }))
+            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+    })
+
+    it("UUPS - storage is preserved after the upgrade", async () => {
+        const { sponsorshipFactory } = contracts
+        const sponsorship = await deploySponsorship(contracts)
+        const deploymentTimestampBeforeUpgrade = await contracts.sponsorshipFactory.deploymentTimestamp(sponsorship.address)
+
+        const newContractFactory = await getContractFactory("SponsorshipFactory") // this is the upgraded version (e.g. SponsorshipFactoryV2)
+        const newSponsorshipFactoryTx = await upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
+        const newSponsorshipFactory = await newSponsorshipFactoryTx.deployed() as SponsorshipFactory
+
+        expect(await newSponsorshipFactory.deploymentTimestamp(sponsorship.address)).to.equal(deploymentTimestampBeforeUpgrade)
+    })
+
+    it("UUPS - reverts if trying to call initialize()", async () => {
+        const { streamrConfig, token, sponsorshipTemplate, sponsorshipFactory } = contracts
+        await expect(sponsorshipFactory.initialize(
+            sponsorshipTemplate.address,
+            token.address,
+            streamrConfig.address
+        )).to.be.revertedWith("Initializable: contract is already initialized")
+    })
+
+    it("lets only admin update template address", async function(): Promise<void> {
+        const { sponsorshipFactory, sponsorshipTemplate } = contracts
+        const dummyAddress = hardhatEthers.Wallet.createRandom().address as string
+
+        await expect(sponsorshipFactory.connect(notAdmin).updateTemplate(dummyAddress))
+            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+        await expect(sponsorshipFactory.updateTemplate(dummyAddress))
+            .to.emit(sponsorshipFactory, "TemplateAddress").withArgs(dummyAddress)
+
+        // restore the original template address
+        await expect(sponsorshipFactory.updateTemplate(sponsorshipTemplate.address))
+            .to.emit(sponsorshipFactory, "TemplateAddress").withArgs(sponsorshipTemplate.address)
     })
 
     it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {
@@ -109,22 +179,21 @@ describe("SponsorshipFactory", () => {
         const streamId1 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId1, "{}",
             [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
-        // leavepolicy
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         const streamId2 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId2, "{}",
             [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // kickpolicy
         const streamId3 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId3, "{}",
             [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // joinpolicy
         const streamId4 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId4, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_policyNotTrusted")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
     })
 
     it("will NOT create a Sponsorship with mismatching number of policies and params", async function(): Promise<void> {
@@ -133,14 +202,40 @@ describe("SponsorshipFactory", () => {
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
         await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_badArguments")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "BadArguments")
     })
 
     it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy } = contracts
         await expect(sponsorshipFactory.deploySponsorship(1, "0xnonexistingstreamid", "{}",
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWith("error_streamNotFound")
+            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
+    })
+
+    it("will NOT create a Sponsorship without an allocation policy", async function(): Promise<void> {
+        const { sponsorshipFactory, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [],
+            [])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
+    })
+
+    it("will not create a Sponsorship with a zero allocation policy", async function(): Promise<void> {
+        const { sponsorshipFactory, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [hardhatEthers.constants.AddressZero],
+            ["0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
+    })
+
+    it("is possible to have multilpe join policies", async function(): Promise<void> {
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
+            operatorContractOnlyJoinPolicy, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+            [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address,
+                maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, hardhatEthers.constants.AddressZero],
+            ["0", "0", "0", "0", "0", "0"])
     })
 
     // must be last test, will remove all policies in the sponsorshipFactory
@@ -158,5 +253,31 @@ describe("SponsorshipFactory", () => {
         expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.false
+    })
+
+    describe("SponsorshipFactory access control", () => {
+        it("non admin role can't add trusted policies", async function(): Promise<void> {
+            const { sponsorshipFactory, maxOperatorsJoinPolicy, allocationPolicy } = contracts
+            const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
+            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicy(maxOperatorsJoinPolicy.address))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([maxOperatorsJoinPolicy.address, allocationPolicy.address]))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+        })
+
+        it("non admin role can't remove trusted policies", async function(): Promise<void> {
+            const { sponsorshipFactory, maxOperatorsJoinPolicy } = contracts
+            await expect(sponsorshipFactory.connect(notAdmin).removeTrustedPolicy(maxOperatorsJoinPolicy.address))
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+        })
+
+        it("initializer can't be called twice", async function(): Promise<void> {
+            const { sponsorshipFactory } = contracts
+            await expect(sponsorshipFactory.initialize(
+                hardhatEthers.constants.AddressZero,
+                hardhatEthers.constants.AddressZero,
+                hardhatEthers.constants.AddressZero,
+            )).to.be.revertedWith("Initializable: contract is already initialized")
+        })
     })
 })

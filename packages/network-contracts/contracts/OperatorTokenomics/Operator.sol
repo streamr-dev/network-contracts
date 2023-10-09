@@ -26,8 +26,6 @@ import "./SponsorshipFactory.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
-// import "hardhat/console.sol";
-
 /**
  * Operator contract receives and holds the delegators' tokens.
  * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
@@ -61,13 +59,18 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     event NodesSet(address[] nodes);
     event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsCutFraction); // = owner() of this contract
 
+    // when the operator gets slashed an amount in DATA, the corresponding amount of self-delegated operator tokens are burned (other delegators' DATA value won't change)
+    //   but only down to zero, after which the DATA losses are borne by all delegators via loss of operator DATA value without corresponding operator token burn
+    event OperatorSlashed(uint slashingAmountDataWei, uint slashingAmountInOperatorTokensWei, uint actuallySlashedInOperatorTokensWei);
+
     error AccessDeniedOperatorOnly();
     error AccessDeniedNodesOnly();
     error DelegationBelowMinimum();
     error AccessDeniedDATATokenOnly();
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
-    error ModuleCallError();
+    error ModuleCallError(address module, bytes data);
+    error ModuleGetError(bytes data);
     error AccessDenied();
     error StakedInSponsorships();
     error NoEarnings();
@@ -77,7 +80,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
@@ -102,7 +104,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     IERC677 public token;
 
     /**
-     * How much the operator gets from every withdraw
+     * How much the operator gets from every withdraw (after protocol fee)
      * 1 ether == 100%, like in tokens
      **/
     uint public operatorsCutFraction;
@@ -127,8 +129,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     address[] public nodes;
     mapping(address => uint) public nodeIndex; // index in nodes array PLUS ONE
 
-    IStreamRegistryV4 public streamRegistry;
+    /** Every operator has a node coordination stream, and smart contract is a good place to store an authoritative reference to it */
     string public streamId;
+    IStreamRegistryV4 public streamRegistry;
     string public metadata;
 
     modifier onlyOperator() {
@@ -145,14 +148,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**
      * Initializes the Operator smart contract into a valid state.
      * Also creates a fleet coordination stream upon creation, id = <operatorContractAddress>/operator/coordination
      * @param tokenAddress default from OperatorFactory: DATA
-     * @param streamrConfigAddress default from OperatorFactory: global StreamrConfig
+     * @param config default from OperatorFactory: global StreamrConfig
      * @param ownerAddress controller/owner of this Operator contract
      * @param operatorTokenName name of the Operator's internal token (e.g. "Operator 1")
      * @param operatorMetadataJson metadata for the operator (e.g. "https://streamr.network/operators/1")
@@ -160,21 +162,20 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      */
     function initialize(
         address tokenAddress,
-        address streamrConfigAddress,
+        StreamrConfig config,
         address ownerAddress,
         string memory operatorTokenName,
         string memory operatorMetadataJson,
         uint operatorsCut,
         address[3] memory modules
     ) public initializer {
+        streamrConfig = config;
         __AccessControl_init();
         _setupRole(OWNER_ROLE, ownerAddress);
         _setupRole(CONTROLLER_ROLE, ownerAddress);
         _setRoleAdmin(CONTROLLER_ROLE, OWNER_ROLE); // owner sets the controllers
-        _setRoleAdmin(TRUSTED_FORWARDER_ROLE, CONTROLLER_ROLE); // controller can set the GSN trusted forwarder
 
         token = IERC677(tokenAddress);
-        streamrConfig = StreamrConfig(streamrConfigAddress);
 
         nodeModule = INodeModule(modules[0]);
         queueModule = IQueueModule(modules[1]);
@@ -185,34 +186,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         ERC20Upgradeable.__ERC20_init(operatorTokenName, operatorTokenName);
 
-        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        // DEFAULT_ADMIN_ROLE is needed (by factory) for setting modules and policies
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         // can't call updateMetadata because it has the onlyOperator guard
         metadata = operatorMetadataJson;
         emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
 
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector));
-    }
-
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
-        return super._msgSender();
-    }
-
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    function _transfer(address from, address to, uint amount) internal override {
-        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if (balanceOf(to) + amount < minimumDelegationWei ||
-            (balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)) {
-            revert DelegationBelowMinimum();
-        }
-        super._transfer(from, to, amount);
-        emit BalanceUpdate(from, balanceOf(from), totalSupply());
-        emit BalanceUpdate(to, balanceOf(to), totalSupply());
     }
 
     /**
@@ -227,28 +208,17 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return token.balanceOf(address(this)) + totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei;
     }
 
-    /**
-     * Return the value of delegations, if they were to undelegate right now
-     * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
-     **/
-    function balanceInData(address delegator) public view returns (uint amountDataWei) {
-        if (balanceOf(delegator) == 0) { return 0; }
-        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
-    }
-
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
-    }
-
     function updateMetadata(string calldata metadataJsonString) external onlyOperator {
         metadata = metadataJsonString;
         emit MetadataUpdated(metadataJsonString, owner, operatorsCutFraction);
     }
 
+    /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
+    function getStreamMetadata() external view returns (string memory) {
+        return streamRegistry.getStreamMetadata(streamId);
+    }
+
+    /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
     }
@@ -263,7 +233,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If not, the token sender is the delegator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (_msgSender() != address(token)) {
+        if (msg.sender != address(token)) {
             revert AccessDeniedDATATokenOnly();
         }
 
@@ -323,7 +293,53 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
      **/
     function undelegate(uint amountWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei));
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
+    }
+
+    /**
+     * Return the value of delegations, if they were to undelegate right now
+     * The actual returns for "undelegate all" transaction can in fact be more, if new earnings arrive while queuing.
+     **/
+    function balanceInData(address delegator) public view returns (uint amountDataWei) {
+        if (balanceOf(delegator) == 0) { return 0; }
+        return moduleGet(abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToData.selector, balanceOf(delegator), address(exchangeRatePolicy)));
+    }
+
+    /**
+     * Operator tokens transfer restrictions: operator tokens represent delegations, and so can't be completely freely transferred,
+     *   since there are restrictions to joining and leaving the delegator group.
+     * Transferring tokens between delegators does however make it possible to skip the undelegation queue, if you can find a buyer for your delegations.
+     * @param from delegator that sends operator tokens
+     * @param to recipient who either should be already a delegator, or else normal delegation checks are applied (operator has enough self-delegation)
+     * @param amount operator tokens to transfer
+    */
+    function _transfer(address from, address to, uint amount) internal override {
+        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
+        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+        if ((balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)
+            || balanceOf(to) + amount < minimumDelegationWei) {
+            revert DelegationBelowMinimum();
+        }
+
+        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
+        if (balanceOf(to) == 0) {
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
+            }
+        }
+
+        super._transfer(from, to, amount);
+
+        // check if the undelegation policy allows this transfer
+        // zero reflects that the "undelegation" (transfer) already happened above.
+        // We can't do a correct check beforehand by passing in the amount because it would have to happen in the middle
+        //   of the transfer "after undelegation but before delegation", so we would actually have to burn then mint. But this works just as well.
+        if (address(undelegationPolicy) != address(0)) {
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
+        }
+
+        emit BalanceUpdate(from, balanceOf(from), totalSupply());
+        emit BalanceUpdate(to, balanceOf(to), totalSupply());
     }
 
     /////////////////////////////////////////
@@ -331,23 +347,60 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // Implementations found in StakeModule.sol
     /////////////////////////////////////////
 
-    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator virtual {
+    /**
+     * Stake DATA tokens from this contract's DATA balance into Sponsorships.
+     * Can only happen if all the delegators who want to undelegate have been paid out first.
+     * This means the operator must clear the queue as part of normal operation before they can change staking allocations.
+     **/
+    function stake(Sponsorship sponsorship, uint amountWei) external onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._stake.selector, sponsorship, amountWei));
     }
-    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator virtual {
+
+    /**
+     * Take out some of the stake from a sponsorship without completely unstaking
+     * Except if you call this with targetStakeWei == 0, then it will actually call unstake
+     **/
+    function reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) external onlyOperator {
+        reduceStakeWithoutQueue(sponsorship, targetStakeWei);
+        payOutQueue(0);
+    }
+
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei));
     }
-    function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeWithoutQueue.selector, sponsorship, targetStakeWei));
+
+    /**
+     * Unstake from a sponsorship
+     * Throws if some of the stake is locked to pay for flags (being flagged or flagging others)
+     **/
+    function unstake(Sponsorship sponsorship) public onlyOperator {
+        unstakeWithoutQueue(sponsorship);
+        payOutQueue(0);
     }
-    function unstake(Sponsorship sponsorship) public onlyOperator virtual {
+
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstake.selector, sponsorship));
     }
-    function unstakeWithoutQueue(Sponsorship sponsorship) public onlyOperator virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._unstakeWithoutQueue.selector, sponsorship));
-    }
-    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external virtual {
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship, maxQueuePayoutIterations));
+
+    /**
+     * Self-service undelegation queue handling.
+     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
+     * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
+     * @param sponsorship the funds (unstake) to pay out the queue
+     * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
+     */
+    function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
+        // onlyOperator check happens only if grace period hasn't passed yet, after that anyone can call this
+        if (queueIsEmpty() || block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
+            if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
+                revert AccessDeniedOperatorOnly();
+            }
+        }
+        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._forceUnstake.selector, sponsorship));
+        payOutQueue(maxQueuePayoutIterations);
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -370,13 +423,44 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
     }
 
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        // this is in stakeModule because it calls _handleProfit
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorships.selector, sponsorshipAddresses));
+    /**
+     * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
+     *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
+     * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
+     */
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+        uint valueBeforeWithdraw = valueWithoutEarnings();
+        uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+
+        // if the caller is an outsider, and if sum of earnings are more than allowed, then send out the reward and slash operator
+        address msgSender = _msgSender();
+        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
+            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
+            if (withdrawnEarningsDataWei > allowedDifference) {
+                uint rewardDataWei = withdrawnEarningsDataWei * streamrConfig.fishermanRewardFraction() / 1 ether;
+                _slashSelfDelegation(rewardDataWei);
+                token.transfer(msgSender, rewardDataWei);
+                emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+            }
+        }
+
+        payOutQueue(0);
     }
-    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public virtual {
-        // this is in stakeModule because it calls _handleProfit
-        moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarningsFromSponsorshipsWithoutQueue.selector, sponsorshipAddresses));
+
+    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
+    function withdrawEarningsFromSponsorshipsWithoutQueue(Sponsorship[] memory sponsorshipAddresses) public returns (uint withdrawnEarningsDataWei) {
+        return moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._withdrawEarnings.selector, sponsorshipAddresses));
+    }
+
+    /** Operator is slashed by burning their operator tokens */
+    function _slashSelfDelegation(uint amountDataWei) internal {
+        uint selfDelegation = balanceOf(owner);
+        if (selfDelegation == 0) { return; }
+        uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
+        uint burnAmountWei = min(selfDelegation, amountOperatorTokens);
+        _burn(owner, burnAmountWei);
+        emit OperatorSlashed(amountDataWei, amountOperatorTokens, burnAmountWei);
+        emit BalanceUpdate(owner, balanceOf(owner), totalSupply());
     }
 
     /**
@@ -409,7 +493,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         maxAllowedEarnings = valueWithoutEarnings() * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
     }
-
 
     ////////////////////////////////////////
     // NODE FUNCTIONS: HEARTBEAT, FLAGGING, AND VOTING
@@ -463,9 +546,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
      */
     function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex - 1; i >= queueCurrentIndex; i--) {
-            if (undelegationQueue[i].delegator == delegator) {
-                return i - queueCurrentIndex + 1;
+        for (uint i = queueLastIndex; i > queueCurrentIndex; i--) {
+            if (undelegationQueue[i - 1].delegator == delegator) {
+                return i - queueCurrentIndex;
             }
         }
         return queueLastIndex - queueCurrentIndex + 1;
@@ -490,30 +573,34 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /////////////////////////////////////////
 
     function onSlash(uint amountSlashed) external {
-        Sponsorship sponsorship = Sponsorship(_msgSender());
+        Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
             revert NotMyStakedSponsorship();
         }
+
+        _slashSelfDelegation(amountSlashed);
+
+        // operator value is decreased by the slashed amount => exchange rate doesn't change (unless the operator ran out of tokens)
         slashedIn[sponsorship] += amountSlashed;
         totalSlashedInSponsorshipsWei += amountSlashed;
+
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     function onKick(uint, uint receivedPayoutWei) external {
-        Sponsorship sponsorship = Sponsorship(_msgSender());
+        Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
             revert NotMyStakedSponsorship();
         }
-        // _removeSponsorship(sponsorship, receivedPayoutWei);
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._removeSponsorship.selector, sponsorship, receivedPayoutWei));
     }
 
     function onReviewRequest(address targetOperator) external {
-        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(_msgSender()) == 0) {
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(msg.sender) == 0) {
             revert AccessDeniedStreamrSponsorshipOnly();
         }
-        Sponsorship sponsorship = Sponsorship(_msgSender());
+        Sponsorship sponsorship = Sponsorship(msg.sender);
         emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
     }
 
@@ -568,7 +655,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert ModuleCallError(); }
+            if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256 or nothing, so take that out and drop the rest
@@ -581,7 +668,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
-            if (returndata.length == 0) { revert(); }
+            if (returndata.length == 0) { revert ModuleGetError(callBytes); }
             assembly { revert(add(32, returndata), mload(returndata)) }
         }
         // assume a successful call returns precisely one uint256, so take that out and drop the rest
@@ -589,4 +676,20 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /* solhint-enable */
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
+    }
+
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
+    }
+
+    function min(uint a, uint b) internal pure returns (uint) {
+        return a < b ? a : b;
+    }
 }

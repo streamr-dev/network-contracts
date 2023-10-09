@@ -1,12 +1,16 @@
 import { ethers } from "hardhat"
 import { expect } from "chai"
-import { BigNumber, utils, ContractTransaction, Wallet } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
-const { parseEther, formatEther } = utils
+import type { Wallet } from "ethers"
+
+const {
+    BigNumber,
+    utils: { parseEther, formatEther }
+} = ethers
 
 describe("StakeWeightedAllocationPolicy", (): void => {
     let admin: Wallet
@@ -192,12 +196,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart, "Operator joins")
         await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("400"), operator.address))
-            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("400"), parseEther("0"))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("400"), parseEther("0"), parseEther("0"))
             .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("400"), parseEther("12345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 1000, "Operator adds 100 stake 400 -> 500")
         await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address))
-            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("500"), parseEther("1000"))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("500"), parseEther("1000"), parseEther("0"))
             .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("500"), parseEther("11345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 2000, "Operator leaves")
@@ -305,16 +309,16 @@ describe("StakeWeightedAllocationPolicy", (): void => {
             sponsorship.address,
             parseEther("4000"),
             operator2.address
-        ) as ContractTransaction).wait()
+        )).wait()
 
         // timeAtStart + 2001: money runs out (+1 because joins happen at +1)
 
         await advanceToTimestamp(timeAtStart + 3000, "Operator 2 leaves")
-        const leave2Tr = await (await sponsorship.connect(operator2).unstake() as ContractTransaction).wait()
+        const leave2Tr = await (await sponsorship.connect(operator2).unstake()).wait()
         const insolvencyEvent = leave2Tr.events?.find((e) => e.event == "InsolvencyStarted")
 
         await advanceToTimestamp(timeAtStart + 4000, "Operator 1 leaves")
-        await (await sponsorship.connect(operator).unstake() as ContractTransaction).wait()
+        await (await sponsorship.connect(operator).unstake()).wait()
 
         const tokensOperator1Actual = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
         const tokensOperator2Actual = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
@@ -356,7 +360,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const tr = await (await sponsorship.sponsor(parseEther("10000"))).wait()
         const insolvencyStartEvent = tr.events?.find((e) => e.event == "InsolvencyStarted")
         const insolvencyEndEvent = tr.events?.find((e) => e.event == "InsolvencyEnded")
-        const insolvencyStartTime = ((insolvencyStartEvent?.args?.[0]) as BigNumber).toNumber()
+        const insolvencyStartTime = insolvencyStartEvent?.args?.[0].toNumber() as number
 
         await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
         await (await sponsorship.connect(operator2).unstake()).wait()
@@ -372,7 +376,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
         expect(insolvencyStartTime - timeAtStart).to.equal(2001)
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             // timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
             (timeAtStart + 3001).toString(),
             parseEther("1000").div("2000").toString(),     // 2000 full token total stake
@@ -433,8 +437,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
-        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyStartEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             // (timeAtStart + 1001).toString(),
             (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("1.5").toString(),
@@ -466,7 +470,7 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const newTokens = (await token.balanceOf(operator.address)).sub(tokensBefore)
 
         // event InsolvencyStarted(uint startTimeStamp);
-        expect(insolvencyEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
         expect(formatEther(newTokens)).to.equal("1000.0")
     })
 
@@ -512,8 +516,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
-        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyStartEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             // (timeAtStart + 1001).toString(),
             (timeAtStart + 4001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("2").toString(),
@@ -577,8 +581,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
-        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyStartEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             (timeAtStart + 5001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("2.0").toString(),
             parseEther("3000").toString()
@@ -626,8 +630,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
-        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyStartEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 1001])
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             (timeAtStart + 2001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("0.5").toString(),
             parseEther("1000").toString()
@@ -675,8 +679,8 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         // event InsolvencyStarted(uint startTimeStamp);
         // event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
-        expect(insolvencyStartEvent?.args?.map((a: BigNumber) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
-        expect(insolvencyEndEvent?.args?.map((a: BigNumber) => a.toString())).to.deep.equal([
+        expect(insolvencyStartEvent?.args?.map((a) => a.toNumber())).to.deep.equal([timeAtStart + 2001])
+        expect(insolvencyEndEvent?.args?.map((a) => a.toString())).to.deep.equal([
             (timeAtStart + 3001).toString(), // +1 because all tx happen one second "late" in test env
             parseEther("1.0").toString(),
             parseEther("1000").toString()
@@ -736,5 +740,169 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         const allocation = await sponsorship.getEarnings(operator.address)
         expect(allocation.toString()).to.equal("0")
+    })
+
+    describe("Wei-scale allocations and stakes", function() {
+        it("allocates correctly even when incomePerSecond is wei-scale", async function(): Promise<void> {
+            // the numbers here also intentionally cause rounding errors, e.g. 1/12 for t=1000...2000
+            //     t0       : operator1 joins, stakes 6 (6 : 0)
+            // t = t0 + 1000: operator2 joins, stakes 6 (6 : 6)
+            // t = t0 + 2000: operator2 stake -> 4      (6 : 4)
+            // t = t0 + 3000: operator1 stake -> 4      (4 : 4)
+            // t = t0 + 4000: operator2 leaves          (4 : 0)
+            // t = t0 + 5000: operator1 leaves          (0 : 0)
+            // operator1 should have 1000 + 500 + 600 + 500 + 1000 = 3600
+            // operator2 should have        500 + 400 + 500        = 1400
+            const { token } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {
+                allocationWeiPerSecond: BigNumber.from("1")
+            })
+            await (await sponsorship.sponsor(parseEther("20000"))).wait()
+            const tokensOperator1Before = await token.balanceOf(operator.address)
+            const tokensOperator2Before = await token.balanceOf(operator2.address)
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("600"), operator.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 1000, "Operator 2 joins")
+            await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("600"), operator2.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 2000, "Operator 2 reduces stake 600 -> 400")
+            await (await sponsorship.connect(operator2).reduceStakeTo(parseEther("400"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 3000, "Operator 1 reduces stake 600 -> 400")
+            await (await sponsorship.connect(operator).reduceStakeTo(parseEther("400"))).wait()
+
+            await advanceToTimestamp(timeAtStart + 4000, "Operator 2 leaves")
+            await (await sponsorship.connect(operator2).unstake()).wait()
+
+            await advanceToTimestamp(timeAtStart + 5000, "Operator 1 leaves")
+            await (await sponsorship.connect(operator).unstake()).wait()
+
+            const newTokens1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+            const newTokens2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+
+            expect(newTokens1).to.equal(3600)
+            expect(newTokens2).to.equal(1400)
+        })
+
+        it("allocates correctly even when incomePerSecond and stakes are wei-scale", async function(): Promise<void> {
+            // time since start   0...3...13...15
+            // operator1 gets       3 + 9 +  0    = 12
+            // operator2 gets       0 + 1 +  2    =  3
+            const { token, streamrConfig } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {
+                allocationWeiPerSecond: BigNumber.from("1")
+            })
+            await (await streamrConfig.setFlaggerRewardWei("0")).wait()
+            await (await streamrConfig.setFlagReviewerRewardWei("0")).wait()
+            expect(await streamrConfig.minimumStakeWei()).to.equal(0)
+
+            await (await sponsorship.sponsor("16")).wait()
+            const tokensOperator1Before = await token.balanceOf(operator.address)
+            const tokensOperator2Before = await token.balanceOf(operator2.address)
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+            await (await token.connect(operator).transferAndCall(sponsorship.address, "9", operator.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 3, "Operator 2 joins")
+            await (await token.connect(operator2).transferAndCall(sponsorship.address, "1", operator2.address)).wait()
+
+            // Doing this still breaks it because the sub-wei earnings are discarded while nothing is paid out
+            // Not worth fixing since we're never going to have wei-scale stakes. Cool it mostly still works though :)
+            // Fixing it would complicate the withdraw where we couldn't just zero the earningsBeforeReferenceUpdateTimes1e36
+            //   so we could remember the wei-fractions that are left behind. But maybe we can ignore wei-fractions.
+            // await advanceToTimestamp(timeAtStart + 7, "Operator 2 does a withdraw")
+            // await (await sponsorship.connect(operator2).withdraw()).wait()
+
+            await advanceToTimestamp(timeAtStart + 13, "Operator 1 leaves")
+            await (await sponsorship.connect(operator).unstake()).wait()
+
+            await advanceToTimestamp(timeAtStart + 15, "Operator 2 leaves")
+            await (await sponsorship.connect(operator2).unstake()).wait()
+
+            const newTokens1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+            const newTokens2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+
+            expect(newTokens1).to.equal(12)
+            expect(newTokens2).to.equal(3)
+            expect(await token.balanceOf(sponsorship.address)).to.equal(1)
+        })
+
+        it("allocates correctly even when some stakes are wei-scale", async function(): Promise<void> {
+            // time since start   0...3...13...15
+            // operator1 gets       3 + 10* +  0    = 13*
+            // operator2 gets       0 +  0* +  2    =  2*
+            // where * = 10 wei that went to op2 instead of op1
+            const { token, streamrConfig } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await streamrConfig.setFlaggerRewardWei("0")).wait()
+            await (await streamrConfig.setFlagReviewerRewardWei("0")).wait()
+            expect(await streamrConfig.minimumStakeWei()).to.equal(0)
+
+            await (await sponsorship.sponsor(parseEther("16"))).wait()
+            const tokensOperator1Before = await token.balanceOf(operator.address)
+            const tokensOperator2Before = await token.balanceOf(operator2.address)
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 3, "Operator 2 joins")
+            await (await token.connect(operator2).transferAndCall(sponsorship.address, "1", operator2.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 13, "Operator 1 leaves")
+            await (await sponsorship.connect(operator).unstake()).wait()
+
+            await advanceToTimestamp(timeAtStart + 15, "Operator 2 leaves")
+            await (await sponsorship.connect(operator2).unstake()).wait()
+
+            const newTokens1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+            const newTokens2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+
+            expect(newTokens1).to.equal(parseEther("13").sub("10"))
+            expect(newTokens2).to.equal(parseEther("2").add("10"))
+            expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1.0")
+        })
+
+        it("allocates correctly even when allocation AND some stakes are wei-scale", async function(): Promise<void> {
+            // time since start   0...3...13...15
+            // operator1 gets       3 + 10* +  0    = 13*
+            // operator2 gets       0 +  0* +  2    =  2*
+            // where * = 10 wei that went to op2 instead of op1
+            const { token, streamrConfig } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {
+                allocationWeiPerSecond: BigNumber.from("1")
+            })
+            await (await streamrConfig.setFlaggerRewardWei("0")).wait()
+            await (await streamrConfig.setFlagReviewerRewardWei("0")).wait()
+            expect(await streamrConfig.minimumStakeWei()).to.equal(0)
+
+            await (await sponsorship.sponsor("16")).wait()
+            const tokensOperator1Before = await token.balanceOf(operator.address)
+            const tokensOperator2Before = await token.balanceOf(operator2.address)
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1"), operator.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 3, "Operator 2 joins")
+            await (await token.connect(operator2).transferAndCall(sponsorship.address, "1", operator2.address)).wait()
+
+            await advanceToTimestamp(timeAtStart + 13, "Operator 1 leaves")
+            await (await sponsorship.connect(operator).unstake()).wait()
+
+            await advanceToTimestamp(timeAtStart + 15, "Operator 2 leaves")
+            await (await sponsorship.connect(operator2).unstake()).wait()
+
+            const newTokens1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+            const newTokens2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+
+            expect(newTokens1).to.equal(13)
+            expect(newTokens2).to.equal(2)
+            expect(await token.balanceOf(sponsorship.address)).to.equal(1)
+        })
     })
 })

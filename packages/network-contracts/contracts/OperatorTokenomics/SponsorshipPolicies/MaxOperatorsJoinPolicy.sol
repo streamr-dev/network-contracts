@@ -5,7 +5,6 @@ pragma solidity ^0.8.13;
 import "./IJoinPolicy.sol";
 import "../Sponsorship.sol";
 
-// import "hardhat/console.sol";
 
 contract MaxOperatorsJoinPolicy is IJoinPolicy, Sponsorship {
     struct LocalStorage {

@@ -9,12 +9,10 @@ import "../Operator.sol";
 contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
-    function _undelegate(uint amountWei) public {
+    function _undelegate(uint amountWei, address undelegator) public {
         if (amountWei == 0) { // TODO: should there be minimum undelegation amount?
             revert ZeroUndelegation();
         }
-
-        address undelegator = _msgSender();
 
         // check if the undelegation policy allows this undelegation
         // this check must happen here because payOutQueue can't be allowed to fail
@@ -98,9 +96,9 @@ contract QueueModule is IQueueModule, Operator {
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
      * This function can only be called if there really are too many earnings in the other Operator.
      **/
-    function _triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
+    function _triggerAnotherOperatorWithdraw(address otherOperatorAddress, Sponsorship[] memory sponsorshipAddresses) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
-        other.withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        Operator(otherOperatorAddress).withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
         if (earnings == 0) {

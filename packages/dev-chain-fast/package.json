@@ -2,8 +2,13 @@
   "name": "@streamr/dev-chain-fast",
   "version": "0.1.0",
   "description": "Locally run Ethereum client for developing the Streamr services",
+  "author": "Streamr Network AG <contact@streamr.network>",
+  "license": "STREAMR NETWORK OPEN SOURCE LICENSE",
   "private": true,
-  "files": ["dist", "Dockerfile"],
+  "files": [
+    "dist",
+    "Dockerfile"
+  ],
   "scripts": {
     "docker:buildLocalArch": "./prepare.sh && docker build -t streamr/dev-chain-fast:dev .",
     "docker:buildMultiArchAndPush": "./prepare.sh && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/dev-chain-fast:dev --push .",
@@ -13,8 +18,6 @@
     "clean": "rm -fr node_modules dist",
     "build": "tsc -p tsconfig.build.json"
   },
-  "author": "Streamr Network AG",
-  "license": "ISC",
   "dependencies": {
     "@streamr/hub-contracts": "file:../hub-contracts",
     "@streamr/network-contracts": "file:../network-contracts",
