@@ -2,23 +2,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import "./IOperatorLivenessRegistry.sol";
 import "./Operator.sol";
 import "./IERC677.sol";
+import "./StreamrConfig.sol";
 
 /**
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
-contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable, IOperatorLivenessRegistry {
+contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IOperatorLivenessRegistry {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
+    event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
     error InvalidOperatorsCut();
     error PolicyNotTrusted();
@@ -26,15 +31,17 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     error OnlyOperators();
     error AlreadyLive();
     error NotLive();
-
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
+    error ExchangeRatePolicyRequired();
+    error NotDelegationPolicy();
+    error NotExchangeRatePolicy();
+    error NotUndelegationPolicy();
 
     address public operatorTemplate;
     address public nodeModuleTemplate;
     address public queueModuleTemplate;
     address public stakeModuleTemplate;
-    address public configAddress;
     address public tokenAddress;
+    StreamrConfig public streamrConfig;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
@@ -47,20 +54,27 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
-    function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress,
-    address nodeModuleAddress, address queueModuleAddress, address stakeModuleAddress) public initializer {
+    function initialize(
+        address templateAddress,
+        address dataTokenAddress,
+        address streamrConfigAddress,
+        address nodeModuleAddress,
+        address queueModuleAddress,
+        address stakeModuleAddress
+    ) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        configAddress = streamrConfigAddress;
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
         queueModuleTemplate = queueModuleAddress;
         stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function _authorizeUpgrade(address) internal override {}
-
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -68,6 +82,19 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function updateTemplates(
+        address templateAddress,
+        address nodeModuleAddress,
+        address queueModuleAddress,
+        address stakeModuleAddress
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorTemplate = templateAddress;
+        nodeModuleTemplate = nodeModuleAddress;
+        queueModuleTemplate = queueModuleAddress;
+        stakeModuleTemplate = stakeModuleAddress;
+        emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
     function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -148,7 +175,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         Operator newOperatorContract = Operator(newContractAddress);
         newOperatorContract.initialize(
             tokenAddress,
-            configAddress,
+            streamrConfig,
             operatorAddress,
             operatorTokenName,
             operatorMetadataJson,
@@ -156,12 +183,23 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
             [nodeModuleTemplate, queueModuleTemplate, stakeModuleTemplate]
         );
         if (policies[0] != address(0)) {
+            if (!IERC165(policies[0]).supportsInterface(type(IDelegationPolicy).interfaceId)) {
+                revert NotDelegationPolicy();
+            }
             newOperatorContract.setDelegationPolicy(IDelegationPolicy(policies[0]), policyParams[0]);
         }
         if (policies[1] != address(0)) {
+            if (!IERC165(policies[1]).supportsInterface(type(IExchangeRatePolicy).interfaceId)) {
+                revert NotExchangeRatePolicy();
+            }
             newOperatorContract.setExchangeRatePolicy(IExchangeRatePolicy(policies[1]), policyParams[1]);
+        } else {
+            revert ExchangeRatePolicyRequired();
         }
         if (policies[2] != address(0)) {
+            if (!IERC165(policies[2]).supportsInterface(type(IUndelegationPolicy).interfaceId)) {
+                revert NotUndelegationPolicy();
+            }
             newOperatorContract.setUndelegationPolicy(IUndelegationPolicy(policies[2]), policyParams[2]);
         }
         newOperatorContract.renounceRole(newOperatorContract.DEFAULT_ADMIN_ROLE(), address(this));
@@ -179,12 +217,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     /** Operators MUST call this function when they stake to their first Sponsorship */
@@ -192,7 +226,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] != 0) { revert AlreadyLive(); }
 
         liveOperators.push(operator);
         liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
@@ -205,7 +238,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgrad
         address operatorContractAddress = _msgSender();
         if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
         Operator operator = Operator(operatorContractAddress);
-        if (liveOperatorsIndex[operator] == 0) { revert NotLive(); }
 
         uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
         Operator lastOperator = liveOperators[liveOperators.length - 1];

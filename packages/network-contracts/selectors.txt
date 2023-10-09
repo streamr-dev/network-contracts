@@ -186,8 +186,8 @@ Function signatures:
 ======= Operator/sol:IKickPolicy =======
 Function signatures:
 c0275535: getFlagData(address)
-0b7677b5: onFlag(address)
-27f0ddf1: onVote(address,bytes32)
+d11d8fc4: onFlag(address,address)
+fbbabed9: onVote(address,bytes32,address)
 4a45d2e6: setParam(uint256)
 
 ======= Operator/sol:ILeavePolicy =======
@@ -216,18 +216,16 @@ Function signatures:
 e4d10986: _payOutFirstInQueue()
 84733344: _payOutQueue(uint256)
 7a227c9f: _triggerAnotherOperatorWithdraw(address,address[])
-d28d0cff: _undelegate(uint256)
+1d104c8c: _undelegate(uint256,address)
 
 ======= Operator/sol:IStakeModule =======
 Function signatures:
-e0f84ee8: _forceUnstake(address,uint256)
+3d16f42d: _forceUnstake(address)
 d572a9cd: _reduceStakeTo(address,uint256)
-33e411b8: _reduceStakeWithoutQueue(address,uint256)
 b2279c28: _removeSponsorship(address,uint256)
 aa0d97b3: _stake(address,uint256)
-be5a57c3: _unstakeWithoutQueue(address)
-9f7c9b58: _withdrawEarningsFromSponsorships(address[])
-630c34ae: _withdrawEarningsFromSponsorshipsWithoutQueue(address[])
+af9ee81d: _unstake(address)
+1b155aa0: _withdrawEarnings(address[])
 
 ======= Operator/sol:IStreamRegistryV4 =======
 Function signatures:
@@ -259,7 +257,6 @@ Function signatures:
 092c5b3b: CONTROLLER_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
 e58378bb: OWNER_ROLE()
-00cba943: TRUSTED_FORWARDER_ROLE()
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
 a63ed2c8: balanceInData(address)
@@ -364,6 +361,7 @@ bbac117825721ba643d8ad675fe8e22c08ec438c38be7b6981ce85c631c88eb7: BalanceUpdate(
 b65b2e085d7d040c313f7d4e1ac90f5937026fee497e0e24a7eff16a55e1c5ea: Loss(uint256)
 4e51a007a3ec0f4dbfd0901ad752077940f47293197538644ffc302b534527d0: MetadataUpdated(string,address,uint256)
 fa7fb8364e713f89c581b4b8a998a62e7be034cb4fffa97c6a4a62072ebddba6: NodesSet(address[])
+f22a8c26ad08bc6548cdae55fec4c309e15e9d2290ad7e1f9186fc20189e7a15: OperatorSlashed(uint256,uint256,uint256)
 41c23f1b303a0c4396ea09a7fb42b216cd382ec1ea27c71c3e89e314be197a03: OperatorValueUpdate(uint256,uint256)
 604b365b22dbda1203004fba26c477ed19c49ad01cadf6eedf5f17f52ebbae18: Profit(uint256,uint256,uint256)
 3aba5f85865b18cdf0791e165e7ab854e1601844fe7f2439485f7951a621bf20: QueueUpdated(address,uint256,uint256)
@@ -381,7 +379,6 @@ ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(addre
 ======= Operator/sol:Sponsorship =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
-00cba943: TRUSTED_FORWARDER_ROLE()
 2b308a56: addJoinPolicy(address,uint256)
 3a1c0aa8: allocationPolicy()
 fa267ddf: earningsWei()
@@ -433,10 +430,10 @@ a5b83ce4: voteOnFlag(address,bytes32)
 
 Error signatures:
 4ca88867: AccessDenied()
-9270fb06: ActiveFlag()
+bbef3e1a: ActiveFlag(uint256)
 369ae979: CannotIncreaseStake()
 4274cbe6: FlaggingNotSupported()
-e083ee96: LeavePenalty()
+078759ac: LeavePenalty(uint256)
 c27c6c34: MinOperatorCountZero()
 047e14bb: MinimumStake()
 918623b7: ModuleCallError(address,bytes)
@@ -445,7 +442,8 @@ c27c6c34: MinOperatorCountZero()
 51897574: OperatorNotStaked()
 
 Event signatures:
-f0a8ec5e34ba4097481c6c70380471f7618ec9fd4892b2694a1445821766895f: FlagUpdate(address,address,uint256,uint256,string)
+bd472a400811f9918b708f3c32ed12bd5379ceb9c342451ea19b8d06c0850215: FlagUpdate(address,uint8,uint256,uint256)
+bfc2ea38f654c28196c9b1c7a859115b1d74103c705d851743383e2bcd8f7624: Flagged(address,address,uint256,uint256,string)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 9d584a7e1b19f15c4a9b3fc12662146f10b5739603ce9aaab30d80bab7d8ea2a: InsolvencyEnded(uint256,uint256,uint256)
 6b84b3854e3868de91705a7163cc5cc88f64366b8912900fa377af1f40d6fc1f: InsolvencyStarted(uint256)
@@ -459,12 +457,12 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipReceived(address,uint256)
 38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
-5d179bbeed3396160151c93c13d38566dc1643f25a316cca998cd25f45a8bd3f: StakeUpdate(address,uint256,uint256)
+6bd50b2adbfd6455ea19dde2d7225e43f70fab44edfbac7ed0748d7d9c3f9059: StakeUpdate(address,uint256,uint256,uint256)
 
 ======= Operator/sol:SponsorshipFactory =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
-00cba943: TRUSTED_FORWARDER_ROLE()
+f72c0d8b: UPGRADER_ROLE()
 b3a79c8d: addTrustedPolicies(address[])
 a0cdb9d2: addTrustedPolicy(address)
 145246e9: deploySponsorship(uint256,string,string,address[],uint256[])
@@ -485,6 +483,7 @@ d547741f: revokeRole(bytes32,address)
 01ffc9a7: supportsInterface(bytes4)
 9d76ea58: tokenAddress()
 6f0a812e: trustedPolicies(address)
+fbc1f718: updateTemplate(address)
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 
@@ -502,6 +501,7 @@ Event signatures:
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+524bbf4293dcf708f5094aac50dee1ac60c1d058ee12a61c4a0eba8031e2c4cc: TemplateAddress(address)
 bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
 
 ======= Operator/sol:StorageSlotUpgradeable =======
@@ -510,6 +510,7 @@ Function signatures:
 ======= Operator/sol:StreamrConfig =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
+f72c0d8b: UPGRADER_ROLE()
 6c29b3b7: fishermanRewardFraction()
 6abd9e41: flagProtectionSeconds()
 9ce68dc3: flagReviewerCount()
@@ -558,11 +559,13 @@ f9b2f3c9: setRandomOracle(address)
 af424c8e: setSlashingFraction(uint256)
 4b3fb81b: setSponsorshipFactory(address)
 055d7109: setStreamRegistryAddress(address)
+da742228: setTrustedForwarder(address)
 1cedd51e: setVotingPeriodSeconds(uint256)
 fc1e490f: slashingFraction()
 5efca0a9: sponsorshipFactory()
 7b0c2842: streamRegistryAddress()
 01ffc9a7: supportsInterface(bytes4)
+7da0a877: trustedForwarder()
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 cb85fe35: votingPeriodSeconds()

@@ -10,7 +10,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "streamrEnvDeployer"
+                "test:fast"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [

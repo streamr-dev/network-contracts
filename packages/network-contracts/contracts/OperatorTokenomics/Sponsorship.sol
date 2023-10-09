@@ -40,7 +40,7 @@ import "./StreamrConfig.sol";
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
-    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
+    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei, uint lockedStakeWei);
     event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
@@ -51,24 +51,23 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     // Emitted from the allocation policy
     event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
     event InsolvencyStarted(uint startTimeStamp);
-    event InsolvencyEnded(uint endTimeStamp, uint forfeitedWeiPerStake, uint forfeitedWei);
+    event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
 
     // Emitted from VoteKickPolicy
-    event FlagUpdate(address indexed flagger, address target, uint targetLockedStake, uint result, string flagMetadata);
+    event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
+    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick);
 
-    error MinOperatorCountZero();
+    error AccessDenied();
     error OnlyDATAToken();
+    error MinOperatorCountZero();
     error MinimumStake();
     error CannotIncreaseStake();
     error OperatorNotStaked();
-    error LeavePenalty();
+    error LeavePenalty(uint penaltyWei); // prevents unstake()
+    error ActiveFlag(uint lockedStakeWei); // prevents unstake()
     error ModuleCallError(address moduleAddress, bytes callBytes);
     error ModuleGetError(bytes callBytes);
-    error ActiveFlag();
     error FlaggingNotSupported();
-    error AccessDenied();
-
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     StreamrConfig public streamrConfig;
     IERC677 public token;
@@ -236,7 +235,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)));
         }
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -246,8 +245,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      */
     function unstake() public returns (uint payoutWei) {
         address operator = _msgSender();
-        if (getLeavePenalty(operator) > 0) { revert LeavePenalty(); }
-        if (lockedStakeWei[operator] > 0) { revert ActiveFlag(); }
+        uint penaltyWei = getLeavePenalty(operator);
+        if (penaltyWei > 0) { revert LeavePenalty(penaltyWei); }
+        if (lockedStakeWei[operator] > 0) { revert ActiveFlag(lockedStakeWei[operator]); }
         payoutWei = _removeOperator(operator);
     }
 
@@ -257,7 +257,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
             uint slashedWei = _slash(operator, penaltyWei);
-            _addSponsorship(address(this), slashedWei);
+            // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
+            token.transfer(streamrConfig.protocolFeeBeneficiary(), slashedWei);
         }
         payoutWei = _removeOperator(operator); // forfeits locked stake
     }
@@ -271,7 +272,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
         token.transfer(operator, payoutWei);
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -285,7 +286,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
         emit OperatorSlashed(operator, actualSlashingWei);
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
     }
 
     /**
@@ -340,7 +341,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         delete joinTimeOfOperator[operator];
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator));
-        emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
+        emit StakeUpdate(operator, 0, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
 
@@ -357,7 +358,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
-            emit StakeUpdate(operator, stakedWei[operator], 0); // earnings will be zero after withdraw (see test)
+            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]); // earnings will be zero after withdraw (see test)
             emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         }
     }
@@ -376,13 +377,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function flag(address target, string memory metadataJsonString) external {
         flagMetadataJson[target] = metadataJsonString;
         if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target));
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onFlag.selector, target, _msgSender()));
     }
 
     /** Peer reviewers vote on the flag */
     function voteOnFlag(address target, bytes32 voteData) external {
         if (address(kickPolicy) == address(0)) { revert FlaggingNotSupported(); }
-        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData));
+        moduleCall(address(kickPolicy), abi.encodeWithSelector(kickPolicy.onVote.selector, target, voteData, _msgSender()));
     }
 
     /** Read information about a flag, see the flag policy how that info is packed into the 256 bits of flagData */
@@ -496,12 +497,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return super._msgData();
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 
     function min(uint a, uint b) internal pure returns (uint) {

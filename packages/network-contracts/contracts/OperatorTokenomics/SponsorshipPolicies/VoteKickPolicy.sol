@@ -8,7 +8,6 @@ import "../OperatorFactory.sol";
 import "../Operator.sol";
 import "../IRandomOracle.sol";
 
-// import "hardhat/console.sol";
 
 /**
  * @dev Only Operators can be selected as reviewers, so OperatorContractOnlyJoinPolicy is expected on the Sponsorship!
@@ -61,10 +60,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     }
 
     /**
-     * Start flagging process
+     * Start the flagging process: lock some of the flagger's and the target's stake, find reviewers
      */
-    function onFlag(address target) external {
-        address flagger = _msgSender();
+    function onFlag(address target, address flagger) external {
         require(flagger != target, "error_cannotFlagSelf");
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
         require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
@@ -114,7 +112,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             }
             uint index = uint(randomBytes32) % operatorCount;
             Operator peer = factory.liveOperators(index);
-            if (address(peer) == _msgSender() || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
+            if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
                 continue;
             }
             if (stakedWei[address(peer)] > 0) {
@@ -137,21 +135,24 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             reviewers[target].push(peer);
         }
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
-        emit FlagUpdate(flagger, target, targetStakeAtRiskWei[target], 0, flagMetadataJson[target]);
+
+        emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
+        emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+        emit Flagged(target, flagger, targetStakeAtRiskWei[target], reviewers[target].length, flagMetadataJson[target]);
     }
 
     /**
      * Tally votes and trigger resolution when everyone has voted
      * After voting period ends, anyone can trigger the resolution by calling this function
      */
-    function onVote(address target, bytes32 voteData) external {
+    function onVote(address target, bytes32 voteData, address voterAddress) external {
         require(voteStartTimestamp[target] > 0, "error_notFlagged");
         require(block.timestamp > voteStartTimestamp[target], "error_votingNotStarted"); // solhint-disable-line not-rely-on-time
         if (block.timestamp > voteEndTimestamp[target]) { // solhint-disable-line not-rely-on-time
             _endVote(target);
             return;
         }
-        Operator voter = Operator(_msgSender());
+        Operator voter = Operator(voterAddress);
         require(reviewerState[target][voter] != Reviewer.NOT_SELECTED, "error_reviewersOnly");
         require(reviewerState[target][voter] == Reviewer.IS_SELECTED, "error_alreadyVoted");
         bool votedKick = uint(voteData) & 0x1 == 1;
@@ -169,7 +170,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // end voting early when everyone's vote is in
         if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
             _endVote(target);
+            return;
         }
+
+        emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target]);
     }
 
     function _endVote(address target) internal {
@@ -212,9 +216,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     slashingWei -= reviewerRewardWei[target];
                 }
-                delete reviewerState[target][reviewer]; // clean up
+                delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
+            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target]);
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
@@ -233,6 +238,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
+            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target]);
+            if (!targetIsGone) {
+                emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+            }
+        }
+
+        if (!flaggerIsGone) {
+            emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
         }
 
         delete flaggerAddress[target];

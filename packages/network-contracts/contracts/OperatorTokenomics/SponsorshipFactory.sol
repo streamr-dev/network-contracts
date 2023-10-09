@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Sponsorship.sol";
 import "./IERC677.sol";
 import "./StreamrConfig.sol";
@@ -16,7 +16,8 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
  * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
  */
-contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable, ERC2771ContextUpgradeable {
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     error StreamNotFound();
     error BadArguments();
@@ -28,23 +29,24 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
     address public tokenAddress;
     mapping(address => bool) public trustedPolicies;
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
-    bytes32 public constant TRUSTED_FORWARDER_ROLE = keccak256("TRUSTED_FORWARDER_ROLE");
 
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
+    event TemplateAddress(address templateAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     function initialize(address templateAddress, address dataTokenAddress, address streamrConfigAddress) public initializer {
+        streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
-        streamrConfig = StreamrConfig(streamrConfigAddress);
+        emit TemplateAddress(templateAddress);
     }
 
-    function _authorizeUpgrade(address) internal override {}
-
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -52,6 +54,11 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
+    }
+
+    function updateTemplate(address templateAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        sponsorshipContractTemplate = templateAddress;
+        emit TemplateAddress(templateAddress);
     }
 
     function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -161,11 +168,7 @@ contract SponsorshipFactory is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         return sponsorshipAddress;
     }
 
-    /*
-     * Override openzeppelin's ERC2771ContextUpgradeable function
-     * @dev isTrustedForwarder override and project registry role access adds trusted forwarder reset functionality
-     */
-    function isTrustedForwarder(address forwarder) public view override returns (bool) {
-        return hasRole(TRUSTED_FORWARDER_ROLE, forwarder);
+    function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
+        return streamrConfig.trustedForwarder() == forwarder;
     }
 }

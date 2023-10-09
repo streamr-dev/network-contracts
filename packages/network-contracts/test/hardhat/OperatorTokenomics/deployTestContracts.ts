@@ -4,7 +4,7 @@ import type { Wallet } from "ethers"
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
-    StreamrConfig, NodeModule, QueueModule, StakeModule } from "../../../typechain"
+    StreamrConfig, NodeModule, QueueModule, StakeModule, MinimalForwarder } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -27,6 +27,7 @@ export type TestContracts = {
     nodeModule: NodeModule;
     queueModule: QueueModule;
     stakeModule: StakeModule;
+    minimalForwarder: MinimalForwarder;
     deployer: Wallet;
     streamRegistry: StreamRegistryV4;
 }
@@ -40,17 +41,16 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
-    const operatorFactory = await (await getContractFactory("OperatorFactory", { signer })).deploy() as OperatorFactory
-    await operatorFactory.deployed()
-    await (await operatorFactory.initialize(
+    const contractFactory = await getContractFactory("OperatorFactory", signer)
+    const operatorFactory = await(await upgrades.deployProxy(contractFactory, [
         operatorTemplate!.address,
         token!.address,
         streamrConfig!.address,
         contracts.nodeModule!.address,
         contracts.queueModule!.address,
         contracts.stakeModule!.address,
-        { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
-    )).wait()
+        // { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
+    ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as OperatorFactory
     await (await operatorFactory.addTrustedPolicies([
         defaultDelegationPolicy!.address,
         defaultExchangeRatePolicy!.address,
@@ -58,6 +58,11 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     ], { gasLimit: 500000 })).wait()
     await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
     return { operatorFactory, operatorTemplate }
+}
+
+export async function deployStreamrConfig(deployer: Wallet): Promise<StreamrConfig> {
+    const streamrConfigFactory = await getContractFactory("StreamrConfig", deployer)
+    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfig
 }
 
 /**
@@ -70,9 +75,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const token = await (await getContractFactory("TestToken", { signer })).deploy("TestToken", "TEST")
     await (await token.mint(signer.address, "1000000000000000000000000")).wait() // 1M tokens
 
-    const streamrConfig = await (await getContractFactory("StreamrConfig", { signer })).deploy()
-    await streamrConfig.deployed()
-    await(await streamrConfig.initialize()).wait()
+    const streamrConfig = await deployStreamrConfig(signer)
 
     // sponsorship and policies
     const maxOperatorsJoinPolicy = await (await getContractFactory("MaxOperatorsJoinPolicy", { signer })).deploy()
@@ -84,14 +87,13 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
     await sponsorshipTemplate.deployed()
 
-    const sponsorshipFactory = await (await getContractFactory("SponsorshipFactory", { signer })).deploy()
-    await sponsorshipFactory.deployed()
-    await (await sponsorshipFactory.initialize(
+    upgrades.silenceWarnings()
+    const contractFactory = await getContractFactory("SponsorshipFactory", signer)
+    const sponsorshipFactory = await(await upgrades.deployProxy(contractFactory, [
         sponsorshipTemplate.address,
         token.address,
         streamrConfig.address
-    )).wait()
-    await sponsorshipFactory.deployed()
+    ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as SponsorshipFactory
     await (await sponsorshipFactory.addTrustedPolicies([
         allocationPolicy.address,
         leavePolicy.address,
@@ -101,9 +103,12 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         operatorContractOnlyJoinPolicy.address,
     ])).wait()
 
-    await (await streamrConfig!.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
-    await (await streamrConfig!.setSponsorshipFactory(sponsorshipFactory.address)).wait()
+    const minimalForwarderFactory = await hardhatEthers.getContractFactory("MinimalForwarder", signer)
+    const minimalForwarder = await minimalForwarderFactory.deploy() as MinimalForwarder
 
+    await (await streamrConfig.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
+    await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
+    await (await streamrConfig.setTrustedForwarder(minimalForwarder.address)).wait()
     // operator contract and policies
     const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
     const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
@@ -129,7 +134,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         token, streamrConfig, streamRegistry,
         sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
         leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule,
+        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule, minimalForwarder,
         deployer: signer
     }
 }
