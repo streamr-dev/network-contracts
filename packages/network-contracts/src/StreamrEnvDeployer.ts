@@ -485,7 +485,7 @@ export class StreamrEnvDeployer {
     }
 
     async stakeIntoSponsorship(): Promise<void> {
-        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("1000"))
+        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("333"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
