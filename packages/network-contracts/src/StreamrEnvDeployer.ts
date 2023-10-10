@@ -93,7 +93,8 @@ export class StreamrEnvDeployer {
     readonly addresses: StreamrContractAddresses
     readonly contracts: StreamrContracts
     readonly preloadedDATAWallets: Wallet[] = []
-    streamId = "0xa3d1f77acff0060f7213d7bf3c7fec78df847de1/testStream"
+    streamId = "0xc2a02b33544cabd20b26e8f05ac14d04e3376055/testStream" // mumbai
+    // streamId = "0xa3d1f77acff0060f7213d7bf3c7fec78df847de1/testStream"
     sponsorshipAddress: any
     sponsorship?: Sponsorship
     operatorAddress: any
@@ -105,18 +106,17 @@ export class StreamrEnvDeployer {
         this.adminWallet = new Wallet(key, this.provider)
         this.addresses = {} as StreamrContractAddresses
         this.contracts = {} as StreamrContracts
-        this.streamId = ""
     }
 
     async deployEnvironment(): Promise<void> {
-        // this.addresses.StreamRegistry = "0x4F0779292bd0aB33B9EBC1DBE8e0868f3940E3F2"
-        this.addresses.StreamRegistry = "0x231b810D98702782963472e1D60a25496999E75D"
+        this.addresses.StreamRegistry = "0x4F0779292bd0aB33B9EBC1DBE8e0868f3940E3F2" // mumbai
+        // this.addresses.StreamRegistry = "0x231b810D98702782963472e1D60a25496999E75D"
         this.contracts.streamRegistry = new Contract(this.addresses.StreamRegistry, streamRegistryABI, this.adminWallet) as StreamRegistry
         await this.contracts.streamRegistry.deployed()
         log("stream exists: " + await this.contracts.streamRegistry.exists(this.streamId))
 
-        // this.addresses.DATA = "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20"
-        this.addresses.DATA = "0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78"
+        this.addresses.DATA = "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20"  // mumbai
+        // this.addresses.DATA = "0xAf71Ee871ff1a374F88D6Ff01Cd618cE85127e78"
         this.contracts.DATA = new Contract(this.addresses.DATA, tokenABI, this.adminWallet) as TestToken
         await this.contracts.DATA.deployed()
 
@@ -135,8 +135,11 @@ export class StreamrEnvDeployer {
         await this.delegate()
         await this.stakeIntoSponsorship()
 
-        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // target
-        await this.deployOperatorContract(this.preloadedDATAWallets[3]) // voter
+        const preloadedWallet2 = new Wallet("0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae", this.provider)
+        const preloadedWallet3 = new Wallet("0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9", this.provider)
+
+        const operator2 = await this.deployOperatorContract(preloadedWallet2) // target
+        await this.deployOperatorContract(preloadedWallet3) // voter
 
         await this.flag(operator2, this.operator!)
     }

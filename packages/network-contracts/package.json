@@ -16,6 +16,7 @@
   "types": "./dist/src/exports.d.ts",
   "scripts": {
     "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json && ./generateSelectorsTxt.sh",
+    "tsc": "tsc -p tsconfig.build.json",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
     "integration-test": "npm run test:dev-chain && npm run test:ens-e2e",

@@ -64,10 +64,10 @@ async function deploy() {
 
     console.log(JSON.stringify(hubDeployer.addresses, null, 4))
 
-    const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
+    // const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
     // deploy a data union to populate the subgraph
-    const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
+    // const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
     // await (await dataUnion.addMembersWithWeights(
     //     [ "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd2D23b73A67208a90CBfEE1381415329954f54E2" ],
     //     [ parseEther("1"), parseEther("2") ],
@@ -98,8 +98,8 @@ async function deploy() {
     const contractAddresses = {
         ...streamrEnvDeployer.addresses,
         ...hubDeployer.addresses,
-        DataUnionFactory: dataUnionFactory.address,
-        DataUnionTemplate: dataUnionTemplate.address,
+        // DataUnionFactory: dataUnionFactory.address,
+        // DataUnionTemplate: dataUnionTemplate.address,
     }
     const addressesJson = JSON.stringify(contractAddresses, null, 4)
 
