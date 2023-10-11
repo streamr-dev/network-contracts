@@ -29,10 +29,10 @@ describe("StakeWeightedAllocationPolicy", (): void => {
         await (await token.transfer(operator2.address, parseEther("100000"))).wait()
         await (await token.transfer(operator3.address, parseEther("100000"))).wait()
 
-        const { streamrConfig } = contracts // TODO: remove and fix 17 broken tests
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = contracts
         await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
         await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
-        // await( await streamrConfig.setFlagStakeWei(parseEther("10"))).wait() // doesn't break any test
     })
 
     it("allocates correctly for single operator (positive test)", async () => {

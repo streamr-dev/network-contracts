@@ -47,10 +47,11 @@ describe("Sponsorship contract", (): void => {
 
         defaultSponsorship = await deploySponsorshipWithoutFactory(contracts)
 
-        const { streamrConfig } = contracts // TODO: remove and fix 25 broken tests
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = contracts
         await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
         await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
-        // await( await streamrConfig.setFlagStakeWei(parseEther("10"))).wait() // doesn't break any test
+        await( await streamrConfig.setFlagReviewerCount(5)).wait()
     })
 
     // longer happy path tests

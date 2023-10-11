@@ -23,10 +23,10 @@ describe("AdminKickPolicy", (): void => {
         const { token } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
 
+        // revert to initial test values (using the real values would break the majority of tests)
         const { streamrConfig } = contracts
-        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait() //  // TODO: remove and fix 17 broken tests
-        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait() //  // TODO: remove and fix 17 broken tests
-        // await( await streamrConfig.setFlagStakeWei(parseEther("10"))).wait() // doesn't break any test, just remove with the above
+        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
     })
 
     it("doesn't penalize a kicked operator like it penalizes a leaving operator", async function(): Promise<void> {

@@ -86,10 +86,10 @@ describe("Operator contract", (): void => {
         defaultOperator = (await deployOperator(operatorWallet)).operator
         defaultSponsorship = await deploySponsorship(sharedContracts)
 
-        const { streamrConfig } = sharedContracts // TODO: remove and fix 36 broken tests
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = sharedContracts
         await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
         await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
-        // await( await streamrConfig.setFlagStakeWei(parseEther("10"))).wait() // doesn't break any test
     })
 
     describe("Scenarios", (): void => {
