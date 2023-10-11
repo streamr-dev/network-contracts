@@ -153,7 +153,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // Withdraw incentivization
         setMaxAllowedEarningsFraction(0.05 ether); // 5% of valueWithoutEarnings is when fisherman gets rewarded from the operator's self-delegation
-        setFishermanRewardFraction(0.1 ether); // 10% of withdrawn earnings
+        setFishermanRewardFraction(0.25 ether); // 25% of withdrawn earnings
 
         // protocol fee
         setProtocolFeeFraction(0.05 ether); // 5% of earnings go to protocol fee
