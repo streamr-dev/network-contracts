@@ -139,7 +139,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        setMinimumSelfDelegationFraction(0.1 ether); // 10% of the operator tokens must be held by the operator, or else new delegations are prevented
+        setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
         setMinimumDelegationWei(1 ether);
@@ -166,7 +166,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         setFlagReviewerSelectionIterations(20);
         setFlagStakeWei(500 ether);
         setReviewPeriodSeconds(1 days);
-        setVotingPeriodSeconds(1 hours);
+        setVotingPeriodSeconds(15 minutes);
         setFlagProtectionSeconds(1 hours);
     }
 
