@@ -1,4 +1,4 @@
-import { Wallet, ContractReceipt, utils } from "ethers"
+import { Wallet, utils } from "ethers"
 import { Operator } from "../../../typechain"
 import { TestContracts } from "./deployTestContracts"
 
