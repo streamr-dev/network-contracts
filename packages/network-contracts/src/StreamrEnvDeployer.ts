@@ -463,11 +463,11 @@ export class StreamrEnvDeployer {
         } else {
             // add self-delegation
             log("    Adding self-delegation")
-            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("5000"), deployer.address)).wait()
+            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("5003"), deployer.address)).wait()
 
             // stake to the sponsorship
             log("    Staking into sponsorship")
-            await (await operator.stake(this.sponsorshipAddress, parseEther("5000"))).wait()
+            await (await operator.stake(this.sponsorshipAddress, parseEther("5003"))).wait()
 
             // add self as node
             log("    Adding self as node")
@@ -478,14 +478,15 @@ export class StreamrEnvDeployer {
 
     async delegate(): Promise<void> {
         log("Sending delegation to %s", this.operatorAddress)
-        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("5000"),
+        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("5003"),
             this.adminWallet.address)
         await tx.wait()
         log("    Delegation sent")
     }
 
     async stakeIntoSponsorship(): Promise<void> {
-        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("5000"))
+        // stake prime number to have decimal APY
+        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("5003"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
