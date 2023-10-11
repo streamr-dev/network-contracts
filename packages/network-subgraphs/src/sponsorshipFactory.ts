@@ -1,4 +1,4 @@
-import { BigInt, log } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
 
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
@@ -15,7 +15,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     let sponsorship = new Sponsorship(sponsorshipContractAddress)
     sponsorship.totalStakedWei = BigInt.zero()
     sponsorship.remainingWei = BigInt.zero()
-    sponsorship.spotAPY = BigInt.zero()
+    sponsorship.spotAPY = BigDecimal.zero()
     sponsorship.projectedInsolvency = BigInt.zero()
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
