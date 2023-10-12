@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
+import { Address, BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
 
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
@@ -10,7 +10,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     let creator = event.params.creator.toHexString()
     log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} policies=[{}] policyParams={} creator={}',
         [event.block.number.toString(), sponsorshipContractAddress,
-            event.params.policies.map((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
+            event.params.policies.map<string>((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
     )
 
     let sponsorship = new Sponsorship(sponsorshipContractAddress)
