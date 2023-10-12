@@ -267,6 +267,9 @@ type Operator @entity {
   "Operator's share of the earnings (cumulative)"
   cumulativeOperatorsCutWei: BigInt!
 
+  "Operator earnings (cumulative) from all sponsorships. Includes the operator's share of earnings + delegators earnings"
+  cumulativeEarningsWei: BigInt!
+
   metadataJsonString: String!
   owner: String!
   slashingsCount: Int!
@@ -321,6 +324,9 @@ type OperatorDailyBucket @entity {
 
   "Sum of operator's share of earnings today"
   operatorsCutWei: BigInt!
+
+  "Sum of earnings today, including operator's share"
+  cumulativeEarningsWei: BigInt!
 }
 
 # Delegation events in an Operator contract signals trust in the operator
