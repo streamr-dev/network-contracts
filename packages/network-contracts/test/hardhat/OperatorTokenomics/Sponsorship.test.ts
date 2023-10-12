@@ -46,6 +46,12 @@ describe("Sponsorship contract", (): void => {
         await (await token.transfer(operator2.address, parseEther("100000"))).wait()
 
         defaultSponsorship = await deploySponsorshipWithoutFactory(contracts)
+
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = contracts
+        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlagReviewerCount(5)).wait()
     })
 
     // longer happy path tests

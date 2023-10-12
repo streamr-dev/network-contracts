@@ -119,6 +119,9 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
     operator.valueUpdateTimestamp = event.block.timestamp
     operator.valueUpdateBlockNumber = event.block.number
+    operator.exchangeRate = operator.operatorTokenTotalSupplyWei.gt(BigInt.zero())
+        ? operator.valueWithoutEarnings.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
+        : BigInt.fromU32(1).toBigDecimal()
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)

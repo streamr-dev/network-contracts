@@ -9,7 +9,8 @@ import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
 const {
     getSigners,
     getContractFactory,
-    utils: { defaultAbiCoder, parseEther }
+    utils: { defaultAbiCoder, parseEther },
+    constants: { AddressZero },
 } = hardhatEthers
 
 import type { Wallet } from "ethers"
@@ -105,10 +106,10 @@ describe("SponsorshipFactory", () => {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
         const pool = await deployOperatorContract(contracts, admin)
-        await (await token.mint(pool.address, parseEther("400"))).wait()
-        await expect(pool.stake(sponsorship.address, parseEther("200")))
+        await (await token.mint(pool.address, parseEther("10000"))).wait()
+        await expect(pool.stake(sponsorship.address, parseEther("5000")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(pool.address)
-        await expect(pool.stake(sponsorship.address, parseEther("200")))
+        await expect(pool.stake(sponsorship.address, parseEther("5000")))
             .to.not.emit(sponsorship, "OperatorJoined")
     })
 
@@ -200,42 +201,55 @@ describe("SponsorshipFactory", () => {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
         const kickPolicyAddress = "0x0000000000000000000000000000000000000000"
-        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+        await expect(sponsorshipFactory.deploySponsorship(
+            1, streamId, "{}",
             [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
-            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "BadArguments")
+            ["0", "0", "0", "0"]
+        )).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "BadArguments")
     })
 
     it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy } = contracts
-        await expect(sponsorshipFactory.deploySponsorship(1, "0xnonexistingstreamid", "{}",
+        await expect(sponsorshipFactory.deploySponsorship(
+            1, "0xnonexistingstreamid", "{}",
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address],
-            ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
+            ["0", "0", "0"]
+        )).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
     })
 
     it("will NOT create a Sponsorship without an allocation policy", async function(): Promise<void> {
         const { sponsorshipFactory, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
-            [],
-            [])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [], []))
+            .to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
     })
 
     it("will not create a Sponsorship with a zero allocation policy", async function(): Promise<void> {
         const { sponsorshipFactory, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}",
-            [hardhatEthers.constants.AddressZero],
-            ["0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [AddressZero], ["0"]))
+            .to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AllocationPolicyRequired")
     })
 
-    it("is possible to have multilpe join policies", async function(): Promise<void> {
+    it("is possible to have multiple join policies", async function(): Promise<void> {
         const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
             operatorContractOnlyJoinPolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
-        await sponsorshipFactory.deploySponsorship(1, streamId, "{}",
+        await expect(sponsorshipFactory.deploySponsorship(
+            1, streamId, "{}",
             [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address,
-                maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, hardhatEthers.constants.AddressZero],
-            ["0", "0", "0", "0", "0", "0"])
+                maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, AddressZero],
+            ["0", "0", "0", "0", "0", "0"]
+        )).to.emit(sponsorshipFactory, "NewSponsorship")
+    })
+
+    it("is ok to leave out policies with shorter arrays", async function(): Promise<void> {
+        const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
+        const streamId = await createStream(deployer.address, streamRegistry)
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address, leavePolicy.address], ["0", "0"]))
+            .to.emit(sponsorshipFactory, "NewSponsorship")
+        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address], ["0"]))
+            .to.emit(sponsorshipFactory, "NewSponsorship")
     })
 
     // must be last test, will remove all policies in the sponsorshipFactory
@@ -273,11 +287,8 @@ describe("SponsorshipFactory", () => {
 
         it("initializer can't be called twice", async function(): Promise<void> {
             const { sponsorshipFactory } = contracts
-            await expect(sponsorshipFactory.initialize(
-                hardhatEthers.constants.AddressZero,
-                hardhatEthers.constants.AddressZero,
-                hardhatEthers.constants.AddressZero,
-            )).to.be.revertedWith("Initializable: contract is already initialized")
+            await expect(sponsorshipFactory.initialize(AddressZero, AddressZero, AddressZero))
+                .to.be.revertedWith("Initializable: contract is already initialized")
         })
     })
 })

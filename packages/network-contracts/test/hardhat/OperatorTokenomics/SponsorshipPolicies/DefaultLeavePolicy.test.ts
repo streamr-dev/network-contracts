@@ -24,6 +24,11 @@ describe("DefaultLeavePolicy", (): void => {
 
         const { token } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
+
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = contracts
+        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
     })
 
     // burn the balance and (re-)mint

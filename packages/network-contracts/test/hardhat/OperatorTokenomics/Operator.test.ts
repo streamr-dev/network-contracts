@@ -85,6 +85,11 @@ describe("Operator contract", (): void => {
 
         defaultOperator = (await deployOperator(operatorWallet)).operator
         defaultSponsorship = await deploySponsorship(sharedContracts)
+
+        // revert to initial test values (using the real values would break the majority of tests)
+        const { streamrConfig } = sharedContracts
+        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
     })
 
     describe("Scenarios", (): void => {
@@ -522,6 +527,12 @@ describe("Operator contract", (): void => {
 
                 await (await operator.unstake(sponsorship.address)).wait()
                 await (await operator.undelegate(parseEther("1000"))).wait()
+
+                // contract is empty
+                expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("0"))
+                expect(await operator.totalSupply()).to.equal(parseEther("0"))
+                expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
+
                 await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
                     .to.be.revertedWith("error_selfDelegationTooLow")
             })
@@ -862,13 +873,20 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("2000.0") // 1000 + 1000
             expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("100.0")
 
+            // earnings are 500
+            // protocol fee is 5% * 500 = 25
+            // operator's cut is 20% * 475 = 95
+            // profit is 500 - 25 - 95 = 380
+            // operator value is 1000 + 380 = 1380
+            //  => exchange rate is 1380 / 1000 = 1.38
+            //  => operator's added self-delegation is 95 / 1.38 ~= 68.84
             await advanceToTimestamp(timeAtStart + 500, "Withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("380"), parseEther("95"), parseEther("25"))
 
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1500.0") // 2000 - 500
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("475.0") // only protocol fee of 25 left the contract
-            expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // TODO: find nice numbers!
+            expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // 100 + 68.84
         })
 
         it("rewards fisherman and slashes operator if too much earnings withdrawn", async function(): Promise<void> {
@@ -932,22 +950,22 @@ describe("Operator contract", (): void => {
             //  operator1 pool value after profit is 2000 + 1140 = 3140
             //  operator's cut is self-delegated, exchange rate is 3140 / 2000 = 1.57 DATA / operator token
             //    760 DATA / 1.57 ~= 483.44 operator tokens
-            //  fisherman's reward will be 10% of the earnings = 200 DATA, burned from self-delegation, keeping exchange rate at 1.57
-            const burnAmount = parseEther("200").mul(2000).div(3140) // ~= 127.38 operator tokens
+            //  fisherman's reward will be 25% of the earnings = 500 DATA, burned from self-delegation, keeping exchange rate at 1.57
+            const burnAmount = parseEther("500").mul(2000).div(3140) // ~= 127.38 operator tokens
             await expect(operator2.triggerAnotherOperatorWithdraw(operator.address, [sponsorship1.address, sponsorship2.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("1140"), parseEther("760"), parseEther("100"))
-                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("200"), burnAmount, burnAmount)
-                .to.emit(operator, "OperatorValueUpdate").withArgs(parseEther("2000"), parseEther("1700"))
-                .to.emit(operator2, "OperatorValueUpdate").withArgs(0, parseEther("1200")) // 0 == not staked anywhere
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("3700"))
-            expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1200"))
+                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("500"), burnAmount, burnAmount)
+                .to.emit(operator, "OperatorValueUpdate").withArgs(parseEther("2000"), parseEther("1400"))
+                .to.emit(operator2, "OperatorValueUpdate").withArgs(0, parseEther("1500")) // 0 == not staked anywhere
+            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("3400"))
+            expect(await operator2.valueWithoutEarnings()).to.equal(parseEther("1500"))
 
             // operator1's 380 DATA was added to operator1 pool value as self-delegation (not Profit)
-            //  => operatorWallet1 received 560 / 1.57 ~= 356.68 operator tokens, in addition to the 1000 from the initial self-delegation
-            expect(formatEther(await operator.balanceOf(operatorWallet.address)).slice(0, 7)).to.equal("1356.68")
-            // operator2's 200 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
-            //  => operatorWallet2 received 200 / 1 = 200 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
-            expect(formatEther(await operator2.balanceOf(operator2Wallet.address))).to.equal("1200.0")
+            //  => operatorWallet1 received 260 / 1.57 ~= 165.60 operator tokens, in addition to the 1000 from the initial self-delegation
+            expect(formatEther(await operator.balanceOf(operatorWallet.address)).slice(0, 7)).to.equal("1165.60")
+            // operator2's 500 DATA was added to operator2 pool value as self-delegation, exchange rate was still 1 DATA / operator token
+            //  => operatorWallet2 received 500 / 1 = 500 operator tokens, in addition to the 1000 operator tokens from the initial self-delegation
+            expect(formatEther(await operator2.balanceOf(operator2Wallet.address))).to.equal("1500.0")
 
             // (other) delegators' balances are unchanged, and exchange rate is still at 1.57
             expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("1000.0")

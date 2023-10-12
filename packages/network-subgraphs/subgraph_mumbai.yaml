@@ -88,9 +88,9 @@ dataSources:
     name: ProjectRegistryV1
     network: mumbai # xDai means dev1
     source:
-      address: "0xfEF774e3D49bc27BAe3942228454bC98c10840cC"
+      address: "0x35062aAda71A3dd6Dc3470866d418033113c3e40"
       abi: ProjectRegistryV1
-      startBlock: 40534000
+      startBlock: 41076040
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -122,9 +122,9 @@ dataSources:
     name: MarketplaceV4
     network: mumbai
     source:
-      address: "0xc1F41677B5C51b8807153852d7817CB499BCDE9c"
+      address: "0x4629ceBEA69F67D04e97f77C3F47E6E8E14114d5"
       abi: MarketplaceV4
-      startBlock: 40534000
+      startBlock: 41076040
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -142,9 +142,9 @@ dataSources:
     name: ProjectStakingV1
     network: mumbai
     source:
-      address: "0xFb461108d93a9a469A96AD32DBeBfCD333695A3a"
+      address: "0x8E94F3c9453a6d2aEE0ac154eb4Bf8D6517393D0"
       abi: ProjectStakingV1
-      startBlock: 40534000
+      startBlock: 41076040
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -166,9 +166,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x382f28729eBD661a0fF0f61b3381b6bbAB114CC8'
+      address: '0x7ad4c0F107CDA1631CEAbEAF35FED1f301A2773c'
       abi: SponsorshipFactory
-      startBlock: 40534000
+      startBlock: 41076040
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -180,16 +180,16 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(indexed address,string,string,uint256,uint256,indexed address)
+        - event: NewSponsorship(indexed address,string,string,address[],uint256[],indexed address)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
     network: mumbai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x7C72Bea7ac8fF5526Cd4e012Eb9b6a241092C536'
+      address: '0xD00F341571EF918040BFc4f8deF94EBA17c88eAe'
       abi: OperatorFactory
-      startBlock: 40534000
+      startBlock: 41076040
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

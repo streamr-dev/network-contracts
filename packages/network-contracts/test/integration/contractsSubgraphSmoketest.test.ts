@@ -77,8 +77,8 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.streams.length).to.equal(5)
         expect(resultDynamicIds.streamPermissions.length).to.equal(11)
 
-        expect(resultDynamicIds.delegations[0].delegatedDataWei).to.equal("1000000000000000000000")
-        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("1000000000000000000000")
+        expect(resultDynamicIds.delegations[0].delegatedDataWei).to.equal("5003000000000000000000")
+        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
     })
 
     it("can get indexed example flagging", async () => {
