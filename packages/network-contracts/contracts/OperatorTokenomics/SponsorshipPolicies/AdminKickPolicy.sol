@@ -12,7 +12,7 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
 
     function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("sponsorship.storage.AdminKickPolicy", address(this)));
-        assembly {data.slot := storagePosition}
+        assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
     function setParam(uint adminAdress) external {

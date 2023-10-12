@@ -18,7 +18,7 @@ contract TestExchangeRatePolicy3 is IExchangeRatePolicy {
 
     function operatorTokenToDataInverse(uint dataWei) external view returns (uint) {}
 
-    function dataToOperatorToken(uint dataWei, uint) external view returns (uint) {
+    function dataToOperatorToken(uint, uint) external view returns (uint) {
         // solhint-disable-next-line reason-string
         require(false); // using delegatecall the (success, data) returned values will be (0, 0)
     }

@@ -2,13 +2,14 @@
     "extends": "solhint:recommended",
     "plugins": [],
     "rules": {
+        "max-states-count": "off",
         "code-complexity": [
             "warn",
             11
         ],
         "function-max-lines": [
             "warn",
-            70
+            100
         ],
         "no-empty-blocks": "off",
         "no-unused-vars": "error",
@@ -19,6 +20,7 @@
                 "maxLength": 32
             }
         ],
+        "no-global-import": "off",
         "constructor-syntax": "error",
         "const-name-snakecase": "error",
         "event-name-camelcase": "error",
