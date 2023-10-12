@@ -881,7 +881,7 @@ describe("Operator contract", (): void => {
 
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("1500.0") // 2000 - 500
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("475.0") // only protocol fee of 25 left the contract
-            expect(formatEther(await operator.balanceOf(operatorWallet.address)).slice(0, 6)).to.equal("168.84") // 100 + 68.84
+            expect(formatEther(await operator.balanceOf(operatorWallet.address))).to.equal("168.840579710144927536") // 100 + 68.84
         })
 
         it("rewards fisherman and slashes operator if too much earnings withdrawn", async function(): Promise<void> {
