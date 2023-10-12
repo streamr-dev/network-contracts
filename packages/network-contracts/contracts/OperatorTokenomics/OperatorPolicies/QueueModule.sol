@@ -98,7 +98,7 @@ contract QueueModule is IQueueModule, Operator {
      **/
     function _triggerAnotherOperatorWithdraw(address otherOperatorAddress, Sponsorship[] memory sponsorshipAddresses) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
-        Operator(otherOperatorAddress).withdrawEarningsFromSponsorships(sponsorshipAddresses);
+        Operator(otherOperatorAddress).withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
         uint earnings = balanceAfterWei - balanceBeforeWei;
         if (earnings == 0) {

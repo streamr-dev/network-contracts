@@ -429,21 +429,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
-        uint valueBeforeWithdraw = valueWithoutEarnings();
-        uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
-
-        // if the caller is an outsider, and if sum of earnings are more than allowed, then send out the reward and slash operator
-        address msgSender = _msgSender();
-        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
-            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
-            if (withdrawnEarningsDataWei > allowedDifference) {
-                uint rewardDataWei = withdrawnEarningsDataWei * streamrConfig.fishermanRewardFraction() / 1 ether;
-                _slashSelfDelegation(rewardDataWei);
-                token.transfer(msgSender, rewardDataWei);
-                emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-            }
-        }
-
+        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
         payOutQueue(0);
     }
 
@@ -494,19 +480,35 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         maxAllowedEarnings = valueWithoutEarnings() * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
     }
 
-    ////////////////////////////////////////
+    //////////////////////////////////////////////////////
     // NODE FUNCTIONS: HEARTBEAT, FLAGGING, AND VOTING
-    ////////////////////////////////////////
+    //////////////////////////////////////////////////////
 
+    /**
+     * Start the flagging process to kick out an another operator in a sponsorship we're staked in.
+     * @param sponsorship one of the Sponsorships we're staked in
+     * @param targetOperator the operator to flag, also staked in that Sponsorship
+     * @param flagMetadata partition number and/or other conditions relevant to the failed inspection
+     */
     function flag(Sponsorship sponsorship, address targetOperator, string memory flagMetadata) external onlyNodes {
         sponsorship.flag(targetOperator, flagMetadata);
     }
 
+    /**
+     * After receiving a ReviewRequest, the nodes should inspect the target and then vote if they agree with the flag.
+     * @param sponsorship the Sponsorship where the flag was raised
+     * @param targetOperator the operator that was flagged and who we reviewed
+     * @param voteData vote for kick or no-kick, in the format expected by the Sponsorship's IKickPolicy
+     **/
     function voteOnFlag(Sponsorship sponsorship, address targetOperator, bytes32 voteData) external onlyNodes {
         sponsorship.voteOnFlag(targetOperator, voteData);
     }
 
-    /** Nodes announce their ID and other connectivity metadata */
+    /**
+     * Nodes announce regularly that they're alive and how to connect to them.
+     * This will be indexed in TheGraph for easy discovery.
+     * @param jsonData string that encodes node ID and other connectivity metadata
+     **/
     function heartbeat(string calldata jsonData) external onlyNodes {
         emit Heartbeat(_msgSender(), jsonData);
     }
@@ -516,16 +518,25 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // Implementations found in NodeModule.sol
     ////////////////////////////////////////
 
-    mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
+    /**
+     * Replace the existing node-set
+     * @param newNodes new set of nodes that replaces the existing one
+     **/
     function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._setNodeAddresses.selector, newNodes));
     }
 
-    /** First add then remove addresses (if in both lists, ends up removed!) */
+    /**
+     * Update the node-set by a "diff" or set-differences between new and old
+     * First add then remove addresses (if in both lists, ends up removed!)
+     * @param addNodes nodes that will be in the resulting set, unless they also are in `removeNodes`
+     * @param removeNodes nodes that will NOT be found in the resulting set
+     **/
     function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._updateNodeAddresses.selector, addNodes, removeNodes));
     }
 
+    /** List of nodes in the node-set */
     function getNodeAddresses() external view returns (address[] memory) {
         return nodes;
     }
