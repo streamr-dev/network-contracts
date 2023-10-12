@@ -139,7 +139,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        setMinimumSelfDelegationFraction(0.1 ether); // 10% of the operator tokens must be held by the operator, or else new delegations are prevented
+        setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
         // Prevent "sand delegations", set minimum delegation to 1 DATA
         setMinimumDelegationWei(1 ether);
@@ -153,20 +153,20 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // Withdraw incentivization
         setMaxAllowedEarningsFraction(0.05 ether); // 5% of valueWithoutEarnings is when fisherman gets rewarded from the operator's self-delegation
-        setFishermanRewardFraction(0.1 ether); // 10% of withdrawn earnings
+        setFishermanRewardFraction(0.25 ether); // 25% of withdrawn earnings
 
         // protocol fee
         setProtocolFeeFraction(0.05 ether); // 5% of earnings go to protocol fee
         setProtocolFeeBeneficiary(msg.sender);
 
         // flagging + voting
-        setFlagReviewerCount(5);
-        setFlagReviewerRewardWei(1 ether);
-        setFlaggerRewardWei(1 ether);
+        setFlagReviewerCount(7);
+        setFlagReviewerRewardWei(20 ether);
+        setFlaggerRewardWei(360 ether);
         setFlagReviewerSelectionIterations(20);
-        setFlagStakeWei(10 ether);
-        setReviewPeriodSeconds(1 days);
-        setVotingPeriodSeconds(1 hours);
+        setFlagStakeWei(500 ether);
+        setReviewPeriodSeconds(1 hours);
+        setVotingPeriodSeconds(15 minutes);
         setFlagProtectionSeconds(1 hours);
     }
 
