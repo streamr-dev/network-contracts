@@ -105,6 +105,6 @@ contract QueueModule is IQueueModule, Operator {
             revert DidNotReceiveReward();
         }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
-        _delegate(owner, earnings);
+        _mintOperatorTokensWorth(owner, earnings);
     }
 }

@@ -36,6 +36,7 @@ describe("Operator contract", (): void => {
     let testKickPolicy: IKickPolicy
     let testExchangeRatePolicy: IExchangeRatePolicy
     let testExchangeRatePolicy2: IExchangeRatePolicy
+    let testExchangeRatePolicy3: IExchangeRatePolicy
 
     // burn all tokens then mint the corrent amount of new ones
     async function setTokens(account: Wallet, amount: string) {
@@ -57,7 +58,11 @@ describe("Operator contract", (): void => {
         }
 
         const operatorsCutFraction = parseEther("1").mul(opts?.operatorsCutPercent ?? 0).div(100)
-        await (await contracts.operatorFactory.addTrustedPolicies([ testExchangeRatePolicy.address, testExchangeRatePolicy2.address])).wait()
+        await (await contracts.operatorFactory.addTrustedPolicies([
+            testExchangeRatePolicy.address,
+            testExchangeRatePolicy2.address,
+            testExchangeRatePolicy3.address,
+        ])).wait()
         const operator = await deployOperatorContract(contracts, deployer, operatorsCutFraction, opts)
         return { operator, contracts }
     }
@@ -79,6 +84,7 @@ describe("Operator contract", (): void => {
 
         testExchangeRatePolicy = await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy() as IExchangeRatePolicy
         testExchangeRatePolicy2 = await (await getContractFactory("TestExchangeRatePolicy2", admin)).deploy() as IExchangeRatePolicy
+        testExchangeRatePolicy3 = await (await getContractFactory("TestExchangeRatePolicy3", admin)).deploy() as IExchangeRatePolicy
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
@@ -88,8 +94,8 @@ describe("Operator contract", (): void => {
 
         // revert to initial test values (using the real values would break the majority of tests)
         const { streamrConfig } = sharedContracts
-        await( await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
-        await( await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
+        await (await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
+        await (await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
     })
 
     describe("Scenarios", (): void => {
@@ -175,12 +181,14 @@ describe("Operator contract", (): void => {
         // https://hackmd.io/Tmrj2OPLQwerMQCs_6yvMg
         it("forced example scenario", async function(): Promise<void> {
             const { token } = sharedContracts
+            setTokens(operatorWallet, "100")
             setTokens(delegator, "100")
             setTokens(delegator2, "100")
             setTokens(delegator3, "100")
 
             const days = 24 * 60 * 60
             const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(delegator2).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(delegator3).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
@@ -188,11 +196,12 @@ describe("Operator contract", (): void => {
             const sponsorship1 = await deploySponsorship(sharedContracts)
             const sponsorship2 = await deploySponsorship(sharedContracts)
             await operator.stake(sponsorship1.address, parseEther("200"))
-            await operator.stake(sponsorship2.address, parseEther("100"))
+            await operator.stake(sponsorship2.address, parseEther("200"))
 
             const timeAtStart = await getBlockTimestamp()
 
             // Starting state
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("100"))
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("100"))
             expect(await operator.balanceOf(delegator2.address)).to.equal(parseEther("100"))
             expect(await operator.balanceOf(delegator3.address)).to.equal(parseEther("100"))
@@ -209,13 +218,17 @@ describe("Operator contract", (): void => {
             await expect(operator.connect(delegator).forceUnstake(sponsorship1.address, 100))
                 .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
 
-            await advanceToTimestamp(timeAtStart + 31*days, "Operator unstakes 5 data from sponsorship1")
+            await advanceToTimestamp(timeAtStart + 31*days, "Operator unstakes 50 data from sponsorship1")
             await operator.reduceStakeTo(sponsorship1.address, parseEther("150"))
 
-            // sponsorship1 has 15 stake left, sponsorship2 has 10 stake left
+            // The first delegator got part of their DATA back
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("50"))
+            expect(await sponsorship1.stakedWei(operator.address)).to.equal(parseEther("150"))
+            expect(await sponsorship2.stakedWei(operator.address)).to.equal(parseEther("200"))
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
 
             // now anyone can trigger the unstake and payout of the queue
+            // i.e. partial payment doesn't reset the queueing time ;)
             await expect(operator.connect(delegator2).forceUnstake(sponsorship1.address, 10))
                 .to.emit(operator, "Unstaked").withArgs(sponsorship1.address)
 
@@ -620,7 +633,7 @@ describe("Operator contract", (): void => {
                 .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, true)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
 
-            await expect(operator.reduceStakeWithoutQueue(sponsorship.address, 0))
+            await expect(operator.reduceStakeTo(sponsorship.address, 0))
                 .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
         })
@@ -1817,7 +1830,7 @@ describe("Operator contract", (): void => {
                 .to.be.reverted
         })
 
-        it("moduleGet reverts for broken yield policies", async function(): Promise<void> {
+        it("moduleGet reverts for broken yield policies (without reason string)", async function(): Promise<void> {
             const { token: dataToken } = sharedContracts
             await setTokens(delegator, "1000")
             const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
@@ -1826,21 +1839,20 @@ describe("Operator contract", (): void => {
                 .to.be.revertedWithCustomError(operator, "ModuleGetError") // delegatecall returns (0, 0)
         })
 
-        it("moduleGet reverts for broken yield policies 2", async function(): Promise<void> {
+        it("moduleGet reverts for broken yield policies (with reason string)", async function(): Promise<void> {
             const { token: dataToken } = sharedContracts
             await setTokens(delegator, "1000")
             const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy2.address })
             await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await expect(operator.connect(delegator).balanceInData(delegator.address))
-                .to.be.reverted // delegatecall returns (0, data)
+                .to.be.revertedWith("revertedWithStringReason")
         })
 
         it("moduleCall reverts for broken exchange rate policy", async function(): Promise<void> {
             const { token: dataToken } = sharedContracts
             await setTokens(delegator, "1000")
-            const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy.address })
-            await (await dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
-            await expect(operator.connect(delegator).undelegate(parseEther("1000")))
+            const { operator } = await deployOperator(operatorWallet, { overrideExchangeRatePolicy: testExchangeRatePolicy3.address })
+            await expect(dataToken.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
                 .to.be.revertedWithCustomError(operator, "ModuleCallError") // delegatecall returns (0, 0)
         })
     })
