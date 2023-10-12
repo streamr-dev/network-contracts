@@ -106,5 +106,6 @@ contract QueueModule is IQueueModule, Operator {
         }
         // new DATA tokens are still unaccounted, will go to self-delegation instead of Profit
         _mintOperatorTokensWorth(owner, earnings);
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 }
