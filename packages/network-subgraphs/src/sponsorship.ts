@@ -1,4 +1,4 @@
-import { log, BigInt, BigDecimal } from '@graphprotocol/graph-ts'
+import { log, BigInt, BigDecimal, store } from '@graphprotocol/graph-ts'
 
 import {
     StakeUpdate,
@@ -30,6 +30,10 @@ export function handleStakeUpdated(event: StakeUpdate): void {
         [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), lockedStakeWei.toString(), now.toString()])
 
     let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
+    if (stakedWei == BigInt.zero()) {
+        store.remove('Stake', stake.id)
+        return
+    }
     if (stake.joinTimestamp == 0) { stake.joinTimestamp = now }
     stake.updateTimestamp = now
     stake.amountWei = stakedWei

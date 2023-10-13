@@ -73,7 +73,7 @@ describe("StreamrConfig", (): void => {
         it("flagStakeWei", async (): Promise<void> => {
             await expect(streamrConfig.setFlagStakeWei(parseEther("1")))
                 .to.be.revertedWithCustomError(streamrConfig, "TooLow")
-            await expect(streamrConfig.setFlagStakeWei(parseEther("10"))).to.not.be.reverted
+            await expect(streamrConfig.setFlagStakeWei(parseEther("500"))).to.not.be.reverted
         })
         it("maxQueueSeconds < maxPenaltyPeriodSeconds", async (): Promise<void> => {
             await expect(streamrConfig.setMaxQueueSeconds(3600 * 24 * 14))
@@ -83,7 +83,7 @@ describe("StreamrConfig", (): void => {
         it("flagReviewerSelectionIterations >= reviewerCount", async (): Promise<void> => {
             await expect(streamrConfig.setFlagReviewerSelectionIterations(4))
                 .to.be.revertedWithCustomError(streamrConfig, "TooLow")
-            await expect(streamrConfig.setFlagReviewerSelectionIterations(5)).to.not.be.reverted
+            await expect(streamrConfig.setFlagReviewerSelectionIterations(7)).to.not.be.reverted
         })
 
         // ...then let the ones that don't depend on others change

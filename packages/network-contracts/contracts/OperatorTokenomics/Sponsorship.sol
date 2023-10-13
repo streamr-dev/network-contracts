@@ -286,7 +286,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
         emit OperatorSlashed(operator, actualSlashingWei);
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
     }
 
     /**
@@ -358,8 +357,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
-            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]); // earnings will be zero after withdraw (see test)
-            emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
+            // earnings will be zero after withdraw (see test)
+            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]);
         }
     }
 

@@ -84,7 +84,7 @@ export function handleUndelegated(event: Undelegated): void {
 export function handleMetadataUpdate(event: MetadataUpdated): void {
     let operatorContractAddress = event.address.toHexString()
     let operatorAddress = event.params.operatorAddress.toHexString()
-    let metadataJsonString = event.params.metadataJsonString.toString()
+    let metadataJsonString = event.params.metadataJsonString
     log.info('handleMetadataUpdate: operatorContractAddress={} blockNumber={} operatorAddress={} metadataJsonString={}', [
         operatorContractAddress, event.block.number.toString(), operatorAddress, metadataJsonString
     ])
@@ -100,7 +100,7 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
 export function handleHeartbeat(event: Heartbeat): void {
     let operatorContractAddress = event.address.toHexString()
     // let nodeAddress = event.params.nodeAddress.toHexString()
-    let metadataJsonString = event.params.jsonData.toString()
+    let metadataJsonString = event.params.jsonData
 
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.latestHeartbeatMetadata = metadataJsonString
@@ -119,6 +119,9 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
     operator.valueUpdateTimestamp = event.block.timestamp
     operator.valueUpdateBlockNumber = event.block.number
+    operator.exchangeRate = operator.operatorTokenTotalSupplyWei.gt(BigInt.zero())
+        ? operator.valueWithoutEarnings.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
+        : BigInt.fromU32(1).toBigDecimal()
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)

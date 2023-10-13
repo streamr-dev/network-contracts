@@ -132,7 +132,7 @@ contract StakeModule is IStakeModule, Operator {
         //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
         uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
-        _delegate(owner, operatorsCutDataWei);
+        _mintOperatorTokensWorth(owner, operatorsCutDataWei);
 
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei, protocolFee);

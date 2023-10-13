@@ -19,6 +19,6 @@ export async function advanceToTimestamp(timestamp: number, message?: string): P
 
 export const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
 export const VOTE_NO_KICK = "0x0000000000000000000000000000000000000000000000000000000000000000"
-export const VOTE_START = 24 * 60 * 60 + 10 // 1 day
-export const VOTE_END = VOTE_START + 60 * 60 // +1 hour
+export const VOTE_START = 60 * 60 + 10 // 1 hour
+export const VOTE_END = VOTE_START + 15 * 60 // +15 minutes
 export const END_PROTECTION = VOTE_END + 60 * 60 // +1 hour

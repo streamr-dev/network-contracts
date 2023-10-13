@@ -241,6 +241,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         if (!flaggerIsGone) {
             emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
         }
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
 
         delete flaggerAddress[target];
         delete voteStartTimestamp[target];

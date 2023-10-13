@@ -347,7 +347,7 @@ Error signatures:
 9e39d8be: AccessDeniedNodesOnly()
 69d9c224: AccessDeniedOperatorOnly()
 b3d3f77e: AccessDeniedStreamrSponsorshipOnly()
-ddecb772: DelegationBelowMinimum()
+24c69407: DelegationBelowMinimum(uint256,uint256)
 b1c5c787: DidNotReceiveReward()
 ec6c87a6: FirstEmptyQueueThenStake()
 918623b7: ModuleCallError(address,bytes)
