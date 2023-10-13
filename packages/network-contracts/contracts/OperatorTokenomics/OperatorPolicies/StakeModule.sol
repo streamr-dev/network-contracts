@@ -105,8 +105,6 @@ contract StakeModule is IStakeModule, Operator {
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
     function _withdrawEarnings(Sponsorship[] memory sponsorshipAddresses) public returns (uint sumEarnings) {
-        uint valueBeforeWithdraw = valueWithoutEarnings();
-
         for (uint i = 0; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
@@ -114,18 +112,6 @@ contract StakeModule is IStakeModule, Operator {
             revert NoEarnings();
         }
         _splitEarnings(sumEarnings);
-
-        // if the caller is an outsider, and if sum of earnings are more than allowed, then send out the reward and slash operator
-        address msgSender = _msgSender();
-        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
-            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
-            if (sumEarnings > allowedDifference) {
-                uint rewardDataWei = sumEarnings * streamrConfig.fishermanRewardFraction() / 1 ether;
-                _slashSelfDelegation(rewardDataWei);
-                token.transfer(msgSender, rewardDataWei);
-            }
-        }
-
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 

@@ -429,7 +429,21 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
-        withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+        uint valueBeforeWithdraw = valueWithoutEarnings();
+        uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
+
+        // if the caller is an outsider, and if sum of earnings are more than allowed, then send out the reward and slash operator
+        address msgSender = _msgSender();
+        if (!hasRole(CONTROLLER_ROLE, msgSender) && nodeIndex[msgSender] == 0) {
+            uint allowedDifference = valueBeforeWithdraw * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
+            if (withdrawnEarningsDataWei > allowedDifference) {
+                uint rewardDataWei = withdrawnEarningsDataWei * streamrConfig.fishermanRewardFraction() / 1 ether;
+                _slashSelfDelegation(rewardDataWei);
+                token.transfer(msgSender, rewardDataWei);
+                emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+            }
+        }
+
         payOutQueue(0);
     }
 
