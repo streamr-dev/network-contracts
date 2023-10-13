@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
+import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
 
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
