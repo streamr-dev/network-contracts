@@ -325,7 +325,8 @@ type OperatorDailyBucket @entity {
 
 # Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
-  id: ID! # 0xoperatorAddress-0xdelegatorAddress
+  "0xoperatorAddress-0xdelegatorAddress"
+  id: ID!
   operator: Operator
   delegator: String!
 
@@ -341,25 +342,66 @@ type Delegation @entity {
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
 type Sponsorship @entity {
-  id: ID! # sponsorship address
-  stream: Stream
-  metadata: String
-  isRunning: Boolean!
+
+  ## Sponsorship properties: not changeable
+
+  "id = sponsorship address"
+  id: ID!
+
+  "who deployed the Sponsorship contract"
+  creator: String!
+
+  "how much is split between staked operators per second, weighted by their stake"
   totalPayoutWeiPerSec: BigInt!
+
+  "how long you have to stay staked, or else you get slashed when you forceUnstake"
   minimumStakingPeriodSeconds: BigInt!
+
+  "coordination stream for nodes"
+  stream: Stream
+
+  "connection metadata"
+  metadata: String
+
+  "how many stakers are accepted (if MaxOperatorsJoinPolicy is used)"
+  maxOperators: Int
+
+
+  ## Sponsorship state: live / updated after relevant transactions
+
+  "how many operators are staked right now"
+  operatorCount: Int!
+
+  "are there enough operators? Is this sponsorship paying?"
+  isRunning: Boolean!
+
+  "how much stake in total is sharing on the sponsorship revenue"
+  totalStakedWei: BigInt!
+
+  "who has staked how much"
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
+
+  "how much DATA has entered or travelled through this contract"
+  cumulativeSponsoring: BigInt!
+
+  "how much DATA is there still in this contract"
+  remainingWei: BigInt!
+
+  "when will the contract run out of DATA if more is not added"
+  projectedInsolvency: BigInt!
+
+  "how much 'ROI' you could make by staking, extrapolated from current payments"
+  spotAPY: BigDecimal!
+
+  "what the operators think about each other: 'flag' means an operator proposes another operator be kicked out"
+  flags: [Flag!]! @derivedFrom(field: "sponsorship")
+
+
+  ## plain event lists
+
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
   sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
-  cumulativeSponsoring: BigInt!
-  operatorCount: Int!
-  totalStakedWei: BigInt!
-  remainingWei: BigInt!
-  spotAPY: BigDecimal!
-  projectedInsolvency: BigInt!
-  flags: [Flag!]! @derivedFrom(field: "sponsorship")
-  creator: String!
-  maxOperators: Int
 }
 
 type SponsorshipDailyBucket @entity {
