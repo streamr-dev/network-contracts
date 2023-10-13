@@ -150,6 +150,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
         bucket.delegatorCountAtStart = operator.delegatorCount
+        bucket.cumulativeEarningsWei = operator.cumulativeEarningsWei
 
         // accumulated values, updated when events are fired
         bucket.delegatorCountChange = 0
@@ -158,7 +159,6 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.profitsWei = BigInt.zero()
         bucket.lossesWei = BigInt.zero()
         bucket.operatorsCutWei = BigInt.zero()
-        bucket.cumulativeEarningsWei = operator.cumulativeEarningsWei
     }
     return bucket
 }
