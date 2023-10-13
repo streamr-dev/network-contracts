@@ -9,7 +9,7 @@ import {
     OperatorSlashed,
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
-import { Sponsorship, Stake, Flag, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
+import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
 import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
@@ -114,8 +114,8 @@ export function handleFlagged(event: Flagged): void {
     flag.flagger = flagger
     flag.flaggingTimestamp = now
     flag.result = "waiting"
-    flag.votesForKick = 0
-    flag.votesAgainstKick = 0
+    flag.votesForKick = BigInt.zero()
+    flag.votesAgainstKick = BigInt.zero()
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
@@ -126,20 +126,31 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let sponsorship = event.address.toHexString()
     let target = event.params.target.toHexString()
     let statusCode = event.params.status
-    let votesForKick = event.params.votesForKick.toU32()
-    let votesAgainstKick = event.params.votesAgainstKick.toU32()
-    log.info('handleFlagUpdate: sponsorship={} target={} status={}, votesFor={} votesAgainst={}',
-        [ sponsorship, target, statusCode.toString(), votesForKick.toString(), votesAgainstKick.toString() ])
+    let votesForKick = event.params.votesForKick
+    let votesAgainstKick = event.params.votesAgainstKick
+    let voter = event.params.voter.toHexString()
+    let weight = event.params.voterWeight
+    let now = event.block.timestamp.toI32()
+    log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, weight={}, votesFor={} votesAgainst={}',
+        [ sponsorship, target, statusCode.toString(), voter, weight.toString(), votesForKick.toString(), votesAgainstKick.toString() ])
 
     let stake = loadOrCreateStake(sponsorship, target)
     let flagIndex = stake.flagCount - 1
 
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
+    let votedKick = votesForKick > flag.votesForKick // if votesForKick increased, then vote was kick. NB: must check before votesForKick is updated!
     flag.result = flagResultStrings[statusCode]
-    // to break ties, first voter only gets 1 vote, next ones get 2
-    flag.votesForKick = (votesForKick + 1) >> 1
-    flag.votesAgainstKick = (votesAgainstKick + 1) >> 1
+    flag.votesForKick = votesForKick
+    flag.votesAgainstKick = votesAgainstKick
     flag.save()
+
+    let vote = new Vote(sponsorship + "-" + target + "-" + flagIndex.toString() + "-" + voter)
+    vote.flag = flag.id
+    vote.voter = voter
+    vote.voterWeight = weight
+    vote.votedKick = votedKick
+    vote.timestamp = now
+    vote.save()
 }
 
 export function handleOperatorSlashed(event: OperatorSlashed): void {

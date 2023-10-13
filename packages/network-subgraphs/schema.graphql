@@ -394,11 +394,21 @@ type Flag @entity {
   flagger: Operator!
   flaggingTimestamp: Int!
   result: String! # "waiting", "voting", "kicked", or "failed"
-  votesForKick: Int!
-  votesAgainstKick: Int!
+  votesForKick: BigInt!
+  votesAgainstKick: BigInt!
+  votes: [Vote!]! @derivedFrom(field: "flag")
   reviewerCount: Int!
   targetStakeAtRiskWei: BigInt!
   metadata: String!
+}
+
+type Vote @entity {
+  id: ID! # 0xSponsorshipAddress-0xTargetOperatorAddress-flagIndex-0xReviewerAddress
+  flag: Flag!
+  voter: Operator!
+  voterWeight: BigInt!
+  timestamp: Int!
+  votedKick: Boolean!
 }
 
 # Undelegation queue: when a delegator wants their DATA back, they are put in the queue to receive their tokens when they arrive

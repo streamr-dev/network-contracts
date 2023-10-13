@@ -55,7 +55,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     // Emitted from VoteKickPolicy
     event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
-    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed lastVoter, int lastVoteWeight);
+    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
 
     error AccessDenied();
     error OnlyDATAToken();
