@@ -289,13 +289,13 @@ describe("OperatorFactory", function(): void {
         ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
     })
 
-    it("only operators can call registerAsLive", async function(): Promise<void> {
+    it("only operators can register as voters", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
+        await expect(operatorFactory.registerAsVoter()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 
-    it("only operators can call registerAsNotLive", async function(): Promise<void> {
+    it("only operators can register as non-voters", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsNotLive()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
+        await expect(operatorFactory.registerAsNonVoter()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 })
