@@ -15,6 +15,7 @@
                 "maxLength": 50
             }
         ],
+        "no-global-import": "off",
         "constructor-syntax": "error",
         "const-name-snakecase": "error",
         "event-name-camelcase": "error",
