@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 import "./IOperator.sol";
-import "./IOperatorLivenessRegistry.sol";
+import "./IVoterRegistry.sol";
 import "./OperatorPolicies/IDelegationPolicy.sol";
 import "./OperatorPolicies/IExchangeRatePolicy.sol";
 import "./OperatorPolicies/IUndelegationPolicy.sol";

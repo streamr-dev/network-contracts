@@ -4,58 +4,53 @@ pragma solidity ^0.8.13;
 
 import "./IKickPolicy.sol";
 import "../Sponsorship.sol";
-import "../OperatorFactory.sol";
+import "../IVoterRegistry.sol";
 import "../Operator.sol";
 import "../IRandomOracle.sol";
-
 
 /**
  * @dev Only Operators can be selected as reviewers, so OperatorContractOnlyJoinPolicy is expected on the Sponsorship!
  */
 contract VoteKickPolicy is IKickPolicy, Sponsorship {
-    enum Reviewer {
-        NOT_SELECTED,
-        IS_SELECTED,
-        VOTED_KICK,
-        VOTED_NO_KICK,
-        IS_SELECTED_SECONDARY
-    }
+
+    int private constant VOTED_KICK = -1;
+    int private constant VOTED_NO_KICK = -2;
 
     // flag
-    mapping (address => address) public flaggerAddress;
-    mapping (address => uint) public voteStartTimestamp;
-    mapping (address => uint) public voteEndTimestamp;
-    mapping (address => uint) public targetStakeAtRiskWei; // slashingFraction of the target's stake that is in the risk of being slashed upon kick
+    mapping (address => address) private flaggerAddress;
+    mapping (address => uint) private voteStartTimestamp;
+    mapping (address => uint) private voteEndTimestamp;
+    mapping (address => uint) private targetStakeAtRiskWei; // slashingFraction of the target's stake that is in the risk of being slashed upon kick
 
     // voting
-    mapping (address => Operator[]) public reviewers; // list of reviewers, for rewarding
-    mapping (address => mapping (Operator => Reviewer)) public reviewerState; // votes
-    mapping (address => uint) public votesForKick; // vote totals, for knowing when voting should end
-    mapping (address => uint) public votesAgainstKick;
+    mapping (address => Operator[]) private reviewers; // list of reviewers, for rewarding
+    mapping (address => mapping (Operator => int)) private reviewerState; // 0 = non-reviewer, + = voting-weight, - = voted
+    mapping (address => uint) private votesForKick;
+    mapping (address => uint) private votesAgainstKick;
+    mapping (address => uint) private votersTotalValueWei;
 
     // global StreamrConfig that needs to be cached, in case config changes during the flag
-    mapping (address => uint) public flagStakeWei;
-    mapping (address => uint) public flaggerRewardWei;
-    mapping (address => uint) public reviewerRewardWei;
+    mapping (address => uint) private flagStakeWei;
+    mapping (address => uint) private flaggerRewardWei;
+    mapping (address => uint) private reviewerRewardWei;
 
     // can't be flagged again right after a no-kick result
-    mapping (address => uint) public protectionEndTimestamp;
+    mapping (address => uint) private protectionEndTimestamp;
 
     function setParam(uint) external {
 
     }
 
-    function getFlagData(address operator) override external view returns (uint flagData) {
-        if (voteStartTimestamp[operator] == 0) {
+    function getFlagData(address target) override external view returns (uint flagData) {
+        if (voteStartTimestamp[target] == 0) {
             return 0;
         }
         return uint(bytes32(abi.encodePacked(
-            uint160(flaggerAddress[operator]),
-            uint32(voteStartTimestamp[operator]),
-            uint16(reviewers[operator].length),
-            uint16(votesForKick[operator]),
-            uint16(votesAgainstKick[operator])
-            // uint16()
+            uint160(flaggerAddress[target]),
+            uint32(voteStartTimestamp[target]),
+            uint16(2**16 * votesForKick[target] / votersTotalValueWei[target]),
+            uint16(2**16 * votesAgainstKick[target] / votersTotalValueWei[target])
+            // uint32() unused space
         )));
     }
 
@@ -85,22 +80,19 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         lockedStakeWei[flagger] += flagStakeWei[target];
         require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
 
-        OperatorFactory factory = OperatorFactory(streamrConfig.operatorFactory());
-        uint operatorCount = factory.liveOperatorCount();
+        IVoterRegistry voterRegistry = IVoterRegistry(streamrConfig.voterRegistry());
+        uint voterCount = voterRegistry.voterCount();
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
-        uint maxIterations = streamrConfig.flagReviewerSelectionIterations();
+        // uint maxIterations = streamrConfig.flagReviewerSelectionIterations(); // avoid "stack too deep"
 
         // If we don't have a good randomness source set in streamrConfig, we generate the outcome from a seed deterministically.
-        // Set the seed to only depend on target (until an operator [un]stakes), so that attacker who simulates transactions
-        //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every [un]stake
-        bytes32 randomBytes32 = bytes32((operatorCount << 160) | uint160(target));
-
-        // save peers that are in the same sponsorship as the flagging target for the secondary selection
-        Operator[] memory sameSponsorshipPeers = new Operator[](maxReviewerCount);
-        uint sameSponsorshipPeerCount = 0;
-
-        // primary selection: live peers that are not in the same sponsorship
-        for (uint i = 0; i < maxIterations && reviewers[target].length < maxReviewerCount; i++) {
+        // Set the seed to only depend on target (until a voter (dis)appears), so that attacker who simulates transactions
+        //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every voter-set change
+        bytes32 randomBytes32 = bytes32((voterCount << 160) | uint160(target));
+        uint totalValueWei = 0;
+        uint biggestVoterWeight = 0;
+        Operator biggestVoter;
+        for (uint i = 0; reviewers[target].length < maxReviewerCount && (i < maxReviewerCount || i < streamrConfig.flagReviewerSelectionIterations()); i++) {
             if (i % 32 == 0) {
                 if (streamrConfig.randomOracle() != address(0)) {
                     randomBytes32 = IRandomOracle(streamrConfig.randomOracle()).getRandomBytes32();
@@ -110,30 +102,31 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 randomBytes32 >>= 8;
             }
-            uint index = uint(randomBytes32) % operatorCount;
-            Operator peer = factory.liveOperators(index);
-            if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] != Reviewer.NOT_SELECTED) {
+            Operator peer = Operator(voterRegistry.voters(uint(randomBytes32) % voterCount));
+            if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] > 0) {
                 continue;
             }
-            if (stakedWei[address(peer)] > 0) {
-                if (sameSponsorshipPeerCount + reviewers[target].length < maxReviewerCount) {
-                    sameSponsorshipPeers[sameSponsorshipPeerCount++] = peer;
-                    reviewerState[target][peer] = Reviewer.IS_SELECTED_SECONDARY;
-                }
-                continue;
-            }
-            reviewerState[target][peer] = Reviewer.IS_SELECTED;
             peer.onReviewRequest(target);
             reviewers[target].push(peer);
+
+            // every Operator gets as many votes as they have DATA value locked (capped to half of total voter weight)
+            uint voterWeight = peer.valueWithoutEarnings();
+            totalValueWei += voterWeight;
+            reviewerState[target][peer] = int(voterWeight);
+            if (voterWeight > biggestVoterWeight) {
+                biggestVoterWeight = voterWeight;
+                biggestVoter = peer;
+            }
         }
 
-        // secondary selection: peers from the same sponsorship
-        for (uint i = 0; i < sameSponsorshipPeerCount && reviewers[target].length < maxReviewerCount; i++) {
-            Operator peer = sameSponsorshipPeers[i];
-            reviewerState[target][peer] = Reviewer.IS_SELECTED;
-            peer.onReviewRequest(target);
-            reviewers[target].push(peer);
+        // no voter should decide the vote alone (among >2 voters), so cap voting power to just below half of total voting power
+        if (biggestVoterWeight * 2 >= totalValueWei && reviewers[target].length > 2) {
+            totalValueWei -= biggestVoterWeight;
+            reviewerState[target][biggestVoter] = int(totalValueWei - 1);
+            totalValueWei += totalValueWei - 1;
         }
+
+        votersTotalValueWei[target] = totalValueWei;
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
 
         emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
@@ -152,31 +145,32 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             _endVote(target);
             return;
         }
+
         Operator voter = Operator(voterAddress);
-        require(reviewerState[target][voter] != Reviewer.NOT_SELECTED, "error_reviewersOnly");
-        require(reviewerState[target][voter] == Reviewer.IS_SELECTED, "error_alreadyVoted");
-        bool votedKick = uint(voteData) & 0x1 == 1;
-        reviewerState[target][voter] = votedKick ? Reviewer.VOTED_KICK : Reviewer.VOTED_NO_KICK;
+        int voterWeight = reviewerState[target][voter];     // reviewerState > 0: not yet voted, reviewerState = number of votes
+        require(voterWeight >= 0, "error_alreadyVoted");    // reviewerState < 0: already voted
+        require(voterWeight > 0, "error_reviewersOnly");    // reviewerState = 0: not a voter
 
-        // break ties by giving the first voter less weight
-        uint totalVotesBefore = votesForKick[target] + votesAgainstKick[target];
-        uint addVotes = totalVotesBefore == 0 ? 1 : 2;
-        if (votedKick) {
-            votesForKick[target] += addVotes;
+        int voterWeightSigned;
+        if (uint(voteData) & 0x1 == 1) {
+            reviewerState[target][voter] = VOTED_KICK;
+            votesForKick[target] += uint(voterWeight);
+            voterWeightSigned = voterWeight;
         } else {
-            votesAgainstKick[target] += addVotes;
+            reviewerState[target][voter] = VOTED_NO_KICK;
+            votesAgainstKick[target] += uint(voterWeight);
+            voterWeightSigned = -voterWeight;
         }
 
-        // end voting early when everyone's vote is in
-        if (totalVotesBefore + addVotes + 1 == 2 * reviewers[target].length) {
+        emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target], address(voter), voterWeightSigned);
+
+        // end voting early when everyone's votes are in
+        if (votesForKick[target] + votesAgainstKick[target] == votersTotalValueWei[target]) {
             _endVote(target);
-            return;
         }
-
-        emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target]);
     }
 
-    function _endVote(address target) internal {
+    function _endVote(address target) private {
         address flagger = flaggerAddress[target];
         bool flaggerIsGone = stakedWei[flagger] == 0;
         bool targetIsGone = stakedWei[target] == 0;
@@ -212,21 +206,21 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             }
             for (uint i = 0; i < reviewerCount; i++) {
                 Operator reviewer = reviewers[target][i];
-                if (reviewerState[target][reviewer] == Reviewer.VOTED_KICK) {
+                if (reviewerState[target][reviewer] == VOTED_KICK) {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     slashingWei -= reviewerRewardWei[target];
                 }
                 delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
             }
             _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
-            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target]);
+            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
             uint rewardsWei = 0;
             for (uint i = 0; i < reviewerCount; i++) {
                 Operator reviewer = reviewers[target][i];
-                if (reviewerState[target][reviewer] == Reviewer.VOTED_NO_KICK) {
+                if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
                     rewardsWei += reviewerRewardWei[target];
                 }
@@ -238,7 +232,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             } else {
                 _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
             }
-            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target]);
+            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
             if (!targetIsGone) {
                 emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
             }
@@ -257,6 +251,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // reviewerState was cleaned up inside the loop above
         delete votesForKick[target];
         delete votesAgainstKick[target];
+        delete votersTotalValueWei[target];
 
         delete flaggerRewardWei[target];
         delete reviewerRewardWei[target];

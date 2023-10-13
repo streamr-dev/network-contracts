@@ -606,11 +606,11 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
 
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, true)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, true)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
 
             await expect(operator.reduceStakeWithoutQueue(sponsorship.address, 0))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
         })
 

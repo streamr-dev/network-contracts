@@ -114,7 +114,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
     address public sponsorshipFactory;
     address public operatorFactory;
-    address public operatorLivenessRegistry; // same as OperatorFactory, for now
+    address public voterRegistry; // same as OperatorFactory, for now
 
     address public trustedForwarder;
 
@@ -178,7 +178,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
     function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         operatorFactory = operatorFactoryAddress;
-        operatorLivenessRegistry = operatorFactoryAddress;
+        voterRegistry = operatorFactoryAddress;
     }
 
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {

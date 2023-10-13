@@ -26,7 +26,7 @@ contract StakeModule is IStakeModule, Operator {
             sponsorships.push(sponsorship);
             indexOfSponsorships[sponsorship] = sponsorships.length; // real array index + 1
             if (sponsorships.length == 1) {
-                try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsLive() {} catch {}
+                try IVoterRegistry(streamrConfig.voterRegistry()).registerAsVoter() {} catch {}
             }
             emit Staked(sponsorship);
         }
@@ -93,7 +93,7 @@ contract StakeModule is IStakeModule, Operator {
         indexOfSponsorships[lastSponsorship] = index + 1; // indexOfSponsorships is the real array index + 1
         delete indexOfSponsorships[sponsorship];
         if (sponsorships.length == 0) {
-            try IOperatorLivenessRegistry(streamrConfig.operatorLivenessRegistry()).registerAsNotLive() {} catch {}
+            try IVoterRegistry(streamrConfig.voterRegistry()).registerAsNonVoter() {} catch {}
         }
 
         // remove from stake/slashing tracking
