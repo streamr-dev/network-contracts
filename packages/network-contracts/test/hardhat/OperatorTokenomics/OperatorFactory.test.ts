@@ -97,7 +97,13 @@ describe("OperatorFactory", function(): void {
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
-        const { operatorFactory, token, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
+        const {
+            operatorFactory,
+            token,
+            defaultDelegationPolicy,
+            defaultExchangeRatePolicy,
+            defaultUndelegationPolicy
+        } = await deployTestContracts(deployer)
         const operatorSharePercent = 10
         const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
@@ -166,7 +172,7 @@ describe("OperatorFactory", function(): void {
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        )).to.be.revertedWithCustomError(operatorTemplate, "InvalidOperatorsCut")
+        )).to.be.revertedWithCustomError(operatorTemplate, "InvalidOperatorsCut").withArgs(parseEther("1.01"))
     })
 
     it("can remove a trusted policy", async function(): Promise<void> {
