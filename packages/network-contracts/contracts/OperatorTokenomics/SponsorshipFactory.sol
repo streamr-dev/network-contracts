@@ -113,8 +113,6 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         address[] calldata policies,
         uint[] calldata policyParams
     ) external returns (address) {
-        IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
@@ -133,6 +131,8 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         address[] memory policies,
         uint[] memory policyParams
     ) private returns (address) {
+        IStreamRegistryV4 streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
+        if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         if (policies.length != policyParams.length) { revert BadArguments(); }
         if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
         for (uint i = 0; i < policies.length; i++) {
