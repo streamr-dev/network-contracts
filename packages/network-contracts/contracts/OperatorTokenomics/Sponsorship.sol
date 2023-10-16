@@ -281,6 +281,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
+        if (amountWei == 0) { return 0; }
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
         if (operator.code.length > 0) {
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
