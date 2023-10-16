@@ -189,7 +189,9 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
 
 export function loadOrCreateDelegator(delegator: string): Delegator {
     let delegatorEntity = Delegator.load(delegator)
+    log.info("loadOrCreateDelegator: delegator={}", [delegator])
     if (delegatorEntity == null) {
+        log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
         delegatorEntity = new Delegator(delegator)
         delegatorEntity.numberOfOperators = 0
         delegatorEntity.totalDelegatedWei = BigInt.zero()
