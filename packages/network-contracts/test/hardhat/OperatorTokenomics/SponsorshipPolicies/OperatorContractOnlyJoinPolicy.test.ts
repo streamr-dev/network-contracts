@@ -39,6 +39,7 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         const badOp = await (await (await getContractFactory("Operator", operator)).deploy()).deployed() as Operator
         await (await badOp.initialize(token.address, streamrConfig.address, operator.address, "testpool", "{}", "1",
             [contracts.nodeModule.address, contracts.queueModule.address, contracts.stakeModule.address])).wait()
+        await (await badOp.setExchangeRatePolicy(contracts.defaultExchangeRatePolicy.address, "0")).wait()
         await (await token.connect(operator).transferAndCall(badOp.address, parseEther("5000"), "0x")).wait()
         await expect(badOp.stake(sponsorship.address, parseEther("5000")))
             .to.be.revertedWith("error_onlyOperators")
