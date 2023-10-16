@@ -1,6 +1,8 @@
 import { BigDecimal, BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
 import {
     Delegation,
+    Delegator,
+    DelegatorDailyBucket,
     Operator,
     OperatorDailyBucket,
     Project,
@@ -183,6 +185,31 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
     }
 
     return delegation
+}
+
+export function loadOrCreateDelegator(delegator: string): Delegator {
+    let delegatorEntity = Delegator.load(delegator)
+    if (delegatorEntity == null) {
+        delegatorEntity = new Delegator(delegator)
+        delegatorEntity.numberOfOperators = 0
+        delegatorEntity.totalDelegatedWei = BigInt.zero()
+    }
+    return delegatorEntity
+}
+
+export function loadOrCreateDelegatorDailyBucket(delegator: string, timestamp: BigInt): DelegatorDailyBucket {
+    let date = getBucketStartDate(timestamp)
+    let bucketId = delegator + "-" + date.toString()
+    let bucket = DelegatorDailyBucket.load(bucketId)
+    if (bucket == null) {
+        bucket = new DelegatorDailyBucket(bucketId)
+        bucket.delegator = delegator
+        bucket.date = date
+        bucket.totalDelegatedWei = BigInt.zero()
+        bucket.operatorCount = 0
+        bucket.cumulativeEarningsWei = BigInt.zero()
+    }
+    return bucket
 }
 
 export function getBucketStartDate(timestamp: BigInt): BigInt {
