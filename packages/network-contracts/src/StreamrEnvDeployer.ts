@@ -18,6 +18,8 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 import { parseEther } from "ethers/lib/utils"
 
+const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
+
 export type StreamrContractAddresses = {
     // DATA token
     "DATA": string,
@@ -124,10 +126,10 @@ export class StreamrEnvDeployer {
         await this.delegate()
         await this.stakeIntoSponsorship()
 
-        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // target
-        await this.deployOperatorContract(this.preloadedDATAWallets[3]) // voter
+        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // flagger
+        const operator3 = await this.deployOperatorContract(this.preloadedDATAWallets[3]) // target
 
-        await this.flag(operator2, this.operator!)
+        await this.flagAndVote(operator2, operator3, this.operator!)
     }
 
     async deployEns(): Promise<void> {
@@ -468,11 +470,12 @@ export class StreamrEnvDeployer {
             // stake to the sponsorship
             log("    Staking into sponsorship")
             await (await operator.stake(this.sponsorshipAddress, parseEther("5003"))).wait()
-
-            // add self as node
-            log("    Adding self as node")
-            await (await operator.setNodeAddresses([deployer.address])).wait()
         }
+
+        // add self as node
+        log("    Adding self as node")
+        await (await operator.setNodeAddresses([deployer.address])).wait()
+
         return operator
     }
 
@@ -491,9 +494,20 @@ export class StreamrEnvDeployer {
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
 
-    async flag(flagger: Operator, target: Operator): Promise<void> {
+    async flagAndVote(flagger: Operator, target: Operator, voter: Operator): Promise<void> {
+        const { streamrConfig } = this.contracts
+        log(`Flagging and kicking ${target.address} from ${this.sponsorship!.address}...`)
+
+        const oldReviewPeriod = await streamrConfig.reviewPeriodSeconds()
+        await (await streamrConfig.setReviewPeriodSeconds("0")).wait()
+
         await (await flagger.flag(this.sponsorship!.address, target.address, "{\"metadata\":\"asdf\"}")).wait()
-        log(`${flagger.address} flagged ${target.address} in ${this.sponsorship!.address}`)
+        log(`    ${flagger.address} flagged ${target.address} in ${this.sponsorship!.address}`)
+
+        await (await voter.voteOnFlag(this.sponsorship!.address, target.address, VOTE_KICK)).wait()
+        log(`    ${voter.address} voted to kick ${target.address} in ${this.sponsorship!.address}`)
+
+        await (await streamrConfig.setReviewPeriodSeconds(oldReviewPeriod)).wait()
     }
 
     async preloadDATAToken(): Promise<void> {

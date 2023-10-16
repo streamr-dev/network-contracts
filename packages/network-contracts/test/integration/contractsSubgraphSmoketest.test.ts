@@ -82,22 +82,29 @@ describe("docker image integration test", () => {
     })
 
     it("can get indexed example flagging", async () => {
-        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `
-        {
+        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `{
             operators {
-                id
                 flagsOpened {
-                    id
+                    result
                 }
                 flagsTargeted {
-                    id
+                    result
+                }
+                votesOnFlags {
+                    votedKick
                 }
             }
-        }
-        `})
-        expect(new Set(resultDynamicIds.operators.map((o: any) => o.flagsOpened.length + "/" + o.flagsTargeted.length)))
-            .to.deep.equal(new Set(["0/0", "1/0", "0/1"]))
-
+            votes {
+                voterWeight
+                votedKick
+            }
+        }`})
+        expect(new Set(resultDynamicIds.operators.map((o: any) => `${o.flagsOpened.length}/${o.flagsTargeted.length}/${o.votesOnFlags.length}`)))
+            .to.deep.equal(new Set(["0/0/1", "1/0/0", "0/1/0"]))
+        expect(resultDynamicIds.votes).to.deep.equal([{
+            "voterWeight": "5003000000000000000000",
+            "votedKick": true,
+        }])
     })
 
     it("can get all the projects from thegraph", async () => {
