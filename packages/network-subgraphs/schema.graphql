@@ -426,12 +426,12 @@ type Stake @entity {
   earningsWei: BigInt! # momentary earnings at updateTimestamp
   updateTimestamp: Int! # timestamp when earningsWei (and others) were updated; useful for calculating "real-time" earnings values
   joinTimestamp: Int!
-  flagCount: Int! # how many times this operator has been flagged so far (failed flags + 0 or 1 pending)
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work
 type Flag @entity {
-  id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived from Stake.flagCount)
+  id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived using lastFlagIndex)
+  lastFlagIndex: Int! # there can be many flags for same Operator in same Sponsorship, but only one at a time. First flag stores the last flag's index.
   sponsorship: Sponsorship!
   target: Operator!
   flagger: Operator!

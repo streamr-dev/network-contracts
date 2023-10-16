@@ -107,10 +107,17 @@ export function handleFlagged(event: Flagged): void {
     log.info('handleFlagged: sponsorship={} flagger={} target={} targetStakeAtRiskWei={} reviewerCount={} flagMetadata={} now={}',
         [ sponsorship, flagger, target, targetStakeAtRiskWei.toString(), reviewerCount.toString(), flagMetadata, now.toString() ])
 
-    let stake = loadOrCreateStake(sponsorship, target)
-    let flagIndex = stake.flagCount
-    stake.flagCount = stake.flagCount + 1
-    stake.save()
+    // keep the running flagIndex in the first flag, set it to always point to the latest flag
+    // the reason why first flag is a good place is that there is a list of flags per Operator-Sponsorship pair,
+    //   however Stake (which would be the natural place since it represents such pair) isn't a good place for the running index
+    //   because when a vote concludes with VOTE_KICK (or Operator unstakes for whatever reason) the Stake entity is deleted
+    let flagIndex = 0
+    let firstFlag = Flag.load(sponsorship + "-" + target + "-0")
+    if (firstFlag !== null) {
+        flagIndex = firstFlag.lastFlagIndex + 1
+        firstFlag.lastFlagIndex = flagIndex
+        firstFlag.save()
+    }
 
     let flag = new Flag(sponsorship + "-" + target + "-" + flagIndex.toString())
     flag.sponsorship = sponsorship
@@ -123,6 +130,7 @@ export function handleFlagged(event: Flagged): void {
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
+    flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
     flag.save()
 }
 
@@ -136,14 +144,12 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let weight = event.params.voterWeight.abs()
     let votedKick = event.params.voterWeight.gt(BigInt.zero())
     let now = event.block.timestamp.toI32()
-    log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, weight={}, votesFor={} votesAgainst={}', [
+    log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, vote={}, weight={}, votesFor={} votesAgainst={}', [
         sponsorship, target, statusCode.toString(), voter, votedKick ? "kick" : "no kick", weight.toString(),
         votesForKick.toString(), votesAgainstKick.toString()
     ])
 
-    let stake = loadOrCreateStake(sponsorship, target)
-    let flagIndex = stake.flagCount - 1
-
+    let flagIndex = Flag.load(sponsorship + "-" + target + "-0")!.lastFlagIndex
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
     flag.result = flagResultStrings[statusCode]
     flag.votesForKick = votesForKick
@@ -208,7 +214,6 @@ function loadOrCreateStake(sponsorshipAddress: string, operatorAddress: string):
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress
         stake.operator = operatorAddress
-        stake.flagCount = 0
         stake.joinTimestamp = 0 // set this in StakeUpdate
     }
     return stake
