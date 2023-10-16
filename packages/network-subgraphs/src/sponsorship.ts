@@ -133,16 +133,18 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let votesForKick = event.params.votesForKick
     let votesAgainstKick = event.params.votesAgainstKick
     let voter = event.params.voter.toHexString()
-    let weight = event.params.voterWeight
+    let weight = event.params.voterWeight.abs()
+    let votedKick = event.params.voterWeight.gt(BigInt.zero())
     let now = event.block.timestamp.toI32()
-    log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, weight={}, votesFor={} votesAgainst={}',
-        [ sponsorship, target, statusCode.toString(), voter, weight.toString(), votesForKick.toString(), votesAgainstKick.toString() ])
+    log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, weight={}, votesFor={} votesAgainst={}', [
+        sponsorship, target, statusCode.toString(), voter, votedKick ? "kick" : "no kick", weight.toString(),
+        votesForKick.toString(), votesAgainstKick.toString()
+    ])
 
     let stake = loadOrCreateStake(sponsorship, target)
     let flagIndex = stake.flagCount - 1
 
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
-    let votedKick = votesForKick > flag.votesForKick // if votesForKick increased, then vote was kick. NB: must check before votesForKick is updated!
     flag.result = flagResultStrings[statusCode]
     flag.votesForKick = votesForKick
     flag.votesAgainstKick = votesAgainstKick
