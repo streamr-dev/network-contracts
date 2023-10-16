@@ -275,6 +275,7 @@ type Operator @entity {
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+  votesOnFlags: [Vote!]! @derivedFrom(field: "voter")
 
   queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
@@ -348,6 +349,12 @@ type Sponsorship @entity {
   "id = sponsorship address"
   id: ID!
 
+  "sponsored stream"
+  stream: Stream
+
+  "connection metadata"
+  metadata: String
+
   "who deployed the Sponsorship contract"
   creator: String!
 
@@ -356,12 +363,6 @@ type Sponsorship @entity {
 
   "how long you have to stay staked, or else you get slashed when you forceUnstake"
   minimumStakingPeriodSeconds: BigInt!
-
-  "coordination stream for nodes"
-  stream: Stream
-
-  "connection metadata"
-  metadata: String
 
   "how many stakers are accepted (if MaxOperatorsJoinPolicy is used)"
   maxOperators: Int
