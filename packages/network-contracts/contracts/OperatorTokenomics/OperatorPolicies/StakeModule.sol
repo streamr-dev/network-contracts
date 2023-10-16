@@ -79,7 +79,6 @@ contract StakeModule is IStakeModule, Operator {
         if (receivedDuringUnstakingWei < stakedInto[sponsorship]) {
             uint lossWei = stakedInto[sponsorship] - receivedDuringUnstakingWei;
             emit Loss(lossWei);
-            emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
         } else {
             uint profitDataWei = receivedDuringUnstakingWei - stakedInto[sponsorship];
             _splitEarnings(profitDataWei);
@@ -101,6 +100,7 @@ contract StakeModule is IStakeModule, Operator {
         slashedIn[sponsorship] = 0;
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
@@ -112,6 +112,7 @@ contract StakeModule is IStakeModule, Operator {
             revert NoEarnings();
         }
         _splitEarnings(sumEarnings);
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
