@@ -150,13 +150,15 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.votesAgainstKick = votesAgainstKick
     flag.save()
 
-    let vote = new Vote(sponsorship + "-" + target + "-" + flagIndex.toString() + "-" + voter)
-    vote.flag = flag.id
-    vote.voter = voter
-    vote.voterWeight = weight
-    vote.votedKick = votedKick
-    vote.timestamp = now
-    vote.save()
+    if (weight.gt(BigInt.zero())) {
+        let vote = new Vote(sponsorship + "-" + target + "-" + flagIndex.toString() + "-" + voter)
+        vote.flag = flag.id
+        vote.voter = voter
+        vote.voterWeight = weight
+        vote.votedKick = votedKick
+        vote.timestamp = now
+        vote.save()
+    }
 }
 
 export function handleOperatorSlashed(event: OperatorSlashed): void {
