@@ -1736,9 +1736,9 @@ describe("Operator contract", (): void => {
 
         it("can call flagging functions", async function(): Promise<void> {
             // hardhat accounts 1, 2, 3 will be used by setupSponsorships, see "before" hook which they are
-            await setTokens(sponsor, "1000")
-            await setTokens(operatorWallet, "1000")
-            await setTokens(operator2Wallet, "1000")
+            await setTokens(sponsor, "10000")
+            await setTokens(operatorWallet, "10000")
+            await setTokens(operator2Wallet, "10000")
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]

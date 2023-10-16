@@ -8,7 +8,7 @@ import { Wallet } from "ethers"
 import { OperatorFactory } from "../../../typechain"
 
 const { getSigners, getContractFactory } = hardhatEthers
-const { defaultAbiCoder, parseEther } = hardhatEthers.utils
+const { defaultAbiCoder, parseEther, formatEther } = hardhatEthers.utils
 
 describe("OperatorFactory", function(): void {
     let deployer: Wallet        // deploys all test contracts
@@ -19,7 +19,7 @@ describe("OperatorFactory", function(): void {
     let sharedContracts: TestContracts
 
     before(async (): Promise<void> => {
-        [deployer, operatorWallet, operator2Wallet] = await getSigners() as unknown as Wallet[]
+        [ deployer, operatorWallet, operator2Wallet ] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(deployer)
     })
 
@@ -98,8 +98,7 @@ describe("OperatorFactory", function(): void {
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
         const { operatorFactory, token, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-        const operatorSharePercent = 10
-        const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
+        const operatorsCutFraction = parseEther("0.1")
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
             [
                 operatorsCutFraction,
@@ -118,7 +117,7 @@ describe("OperatorFactory", function(): void {
             ]
         )
 
-        const operatorDeployTx = await token.connect(deployer).transferAndCall(operatorFactory.address, parseEther("10"), data)
+        const operatorDeployTx = await token.connect(deployer).transferAndCall(operatorFactory.address, parseEther("1000"), data)
         const operatorDeployReceipt = await operatorDeployTx.wait()
         const newOperatorAddress = operatorDeployReceipt.events?.filter((e) => e.event === "Transfer")[1]?.args?.to
         const newOperatorLog = operatorDeployReceipt.logs.find((e) => e.address == operatorFactory.address)
@@ -128,6 +127,7 @@ describe("OperatorFactory", function(): void {
         expect(newOperatorEvent.name).to.equal("NewOperator")
         expect(newOperatorEvent.args.operatorAddress).to.equal(deployer.address)
         expect(newOperatorEvent.args.operatorContractAddress).to.equal(newOperatorAddress)
+        expect(formatEther(await token.balanceOf(newOperatorAddress))).to.equal("1000.0")
     })
 
     it("transferAndCall revets for missing / incomplete data encoded", async function(): Promise<void> {
@@ -138,8 +138,7 @@ describe("OperatorFactory", function(): void {
             .to.be.reverted
 
         // missing encoded policies and policies params
-        const operatorSharePercent = 10
-        const operatorsCutFraction = parseEther("1").mul(operatorSharePercent).div(100)
+        const operatorsCutFraction = parseEther("0.1")
         const data = defaultAbiCoder.encode(["uint", "string", "string"],
             [
                 operatorsCutFraction,
