@@ -324,13 +324,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amount operator tokens to transfer
     */
     function _transfer(address from, address to, uint amount) internal override {
-        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
-        if (balanceOf(to) == 0) {
-            if (address(delegationPolicy) != address(0)) {
-                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
-            }
-        }
-
+        bool newDelegatorCreated = balanceOf(to) == 0;
         super._transfer(from, to, amount);
 
         // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
@@ -340,6 +334,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
         if (balanceOf(to) < minimumDelegationWei) {
             revert DelegationBelowMinimum(balanceOf(to), minimumDelegationWei);
+        }
+
+        // transfer creates a new delegator: check if the delegation policy allows this "delegation"
+        if (newDelegatorCreated) {
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
+            }
         }
 
         // check if the undelegation policy allows this transfer
