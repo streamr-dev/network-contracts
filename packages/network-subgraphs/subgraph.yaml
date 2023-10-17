@@ -88,7 +88,7 @@ dataSources:
     name: ProjectRegistryV1
     network: xDai # xDai means dev1
     source:
-      address: "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253"
+      address: "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018"
       abi: ProjectRegistryV1
       startBlock: 0
     mapping:
@@ -122,7 +122,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0xBaD604cd8C38E970b5285D34CA5d146268e2b84A"
+      address: "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
@@ -142,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: xDai
     source:
-      address: "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018"
+      address: "0x05784c543C5155979f82Ece2FbB4cE356181D30e"
       abi: ProjectStakingV1
       startBlock: 0
     mapping:
