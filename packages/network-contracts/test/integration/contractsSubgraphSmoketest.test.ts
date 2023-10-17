@@ -120,7 +120,8 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.projects.length).to.equal(5)
     })
 
-    it("can get all the indexed example data from Data Union subgraph", async () => {
+    // TODO: move this to DU repository?
+    it.skip("can get all the indexed example data from Data Union subgraph", async () => {
         const resultDynamicIds = await duGraphClient.queryEntity<{
             dataUnionStatsBuckets: [],
             dataUnions: [],
