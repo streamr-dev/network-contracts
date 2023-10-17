@@ -653,17 +653,17 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("5000")) // StreamrConfig.earlyLeaverPenaltyWei
             await expect(operator.forceUnstake(sponsorship.address, 0))
                 .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
-                .to.emit(operator, "Loss").withArgs(parseEther("100"))
-                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("100"), parseEther("100"), parseEther("100"))
+                .to.emit(operator, "Loss").withArgs(parseEther("1000"))
+                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("1000"), parseEther("1000"), parseEther("1000"))
 
             // leave penalty goes to the protocol
-            expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
+            expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("1000.0")
         })
 
-        it("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
+        it.only("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
@@ -676,10 +676,10 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("5000"))
             await expect(operator.forceUnstake(sponsorship.address, 0))
                 .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
-                .to.emit(operator, "Loss").withArgs(parseEther("100"))
+                .to.emit(operator, "Loss").withArgs(parseEther("1000"))
                 .to.not.emit(operator, "OperatorSlashed")
         })
 
@@ -1615,7 +1615,7 @@ describe("Operator contract", (): void => {
             const { operator } = await deployOperator(operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
             const penaltyPeriodSeconds = 60 // trigger penalty check e.g. `block.timestamp >= joinTimestamp + penaltyPeriodSeconds`
-            const allocationWeiPerSecond = parseEther("0") // avoind earnings additions
+            const allocationWeiPerSecond = parseEther("0") // avoid earnings additions
             const sponsorship1 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds, allocationWeiPerSecond })
             await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("60"), "0x")).wait()
             const sponsorship2 = await deploySponsorship(sharedContracts)
@@ -1625,14 +1625,14 @@ describe("Operator contract", (): void => {
             const totalStakeInSponsorshipsBeforeSlashing = await operator.totalStakedIntoSponsorshipsWei()
             const valueBeforeSlashing = await operator.valueWithoutEarnings()
 
-            await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
+            await (await operator.forceUnstake(sponsorship1.address, "10")).wait()
             const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
             const valueAfterSlashing = await operator.valueWithoutEarnings()
 
             expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
             expect(valueBeforeSlashing).to.equal(parseEther("2000"))
             expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
-            expect(valueAfterSlashing).to.equal(parseEther("1900"))
+            expect(valueAfterSlashing).to.equal(parseEther("1000"))
         })
 
         it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {

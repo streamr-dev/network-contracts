@@ -10,7 +10,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /** Stake DATA tokens from this contract's DATA balance into Sponsorships. */
     function _stake(Sponsorship sponsorship, uint amountWei) external {
-        if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
             revert AccessDeniedStreamrSponsorshipOnly();
         }
         if (!queueIsEmpty()) {
