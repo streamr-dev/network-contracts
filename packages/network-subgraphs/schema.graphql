@@ -325,7 +325,7 @@ type OperatorDailyBucket @entity {
   "Sum of operator's share of earnings today"
   operatorsCutWei: BigInt!
 
-  "Sum of earnings today, including operator's share"
+  "Sum of the operator's lifetime earnings (including operator's cut)"
   cumulativeEarningsWei: BigInt!
 }
 
