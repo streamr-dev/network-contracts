@@ -65,7 +65,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     error AccessDeniedOperatorOnly();
     error AccessDeniedNodesOnly();
-    error DelegationBelowMinimum();
+    error DelegationBelowMinimum(uint operatorTokenBalanceWei, uint minimumDelegationWei);
     error AccessDeniedDATATokenOnly();
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
@@ -77,6 +77,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error FirstEmptyQueueThenStake();
     error ZeroUndelegation();
     error DidNotReceiveReward();
+    error InvalidOperatorsCut(uint newOperatorsCutFraction);
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
@@ -182,7 +183,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         stakeModule = IStakeModule(modules[2]);
 
         owner = ownerAddress;
-        operatorsCutFraction = operatorsCut;
 
         ERC20Upgradeable.__ERC20_init(operatorTokenName, operatorTokenName);
 
@@ -191,7 +191,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // can't call updateMetadata because it has the onlyOperator guard
         metadata = operatorMetadataJson;
-        emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
+        _updateOperatorsCutFraction(operatorsCut); // emits MetadataUpdated
 
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector));
     }
@@ -221,6 +221,22 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
+    }
+
+    /**
+     * Update operator's cut fraction.
+     * Operator can update it's cut if it isn't staked into any Sponsorships, so this change will only affect future earnings.
+     */
+    function updateOperatorsCutFraction(uint newOperatorsCutFraction) public onlyOperator {
+        _updateOperatorsCutFraction(newOperatorsCutFraction);
+    }
+
+    function _updateOperatorsCutFraction(uint newOperatorsCutFraction) internal {
+        if (totalStakedIntoSponsorshipsWei > 0) { revert StakedInSponsorships(); }
+        if (newOperatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(newOperatorsCutFraction); }
+
+        operatorsCutFraction = newOperatorsCutFraction;
+        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
     }
 
     /////////////////////////////////////////
@@ -272,8 +288,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountDataWei how many DATA tokens were transferred
      **/
     function _delegate(address delegator, uint amountDataWei) internal {
-        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
-        _mint(delegator, amountOperatorToken);
+        _mintOperatorTokensWorth(delegator, amountDataWei);
+
+        // enforce minimum delegation amount
+        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+        if (balanceOf(delegator) < minimumDelegationWei) {
+            revert DelegationBelowMinimum(balanceOf(delegator), minimumDelegationWei);
+        }
 
         // check if the delegation policy allows this delegation
         if (address(delegationPolicy) != address(0)) {
@@ -281,8 +302,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         emit Delegated(delegator, amountDataWei);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+    }
+
+    function _mintOperatorTokensWorth(address delegator, uint amountDataWei) internal {
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
+        _mint(delegator, amountOperatorToken);
+        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
     }
 
     /**
@@ -314,13 +340,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amount operator tokens to transfer
     */
     function _transfer(address from, address to, uint amount) internal override {
-        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
-        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if ((balanceOf(from) < amount + minimumDelegationWei && balanceOf(from) != amount)
-            || balanceOf(to) + amount < minimumDelegationWei) {
-            revert DelegationBelowMinimum();
-        }
-
         // transfer creates a new delegator: check if the delegation policy allows this "delegation"
         if (balanceOf(to) == 0) {
             if (address(delegationPolicy) != address(0)) {
@@ -329,6 +348,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         super._transfer(from, to, amount);
+
+        // enforce minimum delegation amount, but allow transfering everything (i.e. fully undelegate)
+        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+        if (balanceOf(from) < minimumDelegationWei && balanceOf(from) > 0) {
+            revert DelegationBelowMinimum(balanceOf(from), minimumDelegationWei);
+        }
+        if (balanceOf(to) < minimumDelegationWei) {
+            revert DelegationBelowMinimum(balanceOf(to), minimumDelegationWei);
+        }
 
         // check if the undelegation policy allows this transfer
         // zero reflects that the "undelegation" (transfer) already happened above.
@@ -411,19 +439,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     //////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Update operator's cut fraction.
-     * Operator can update it's cut if it isn't staked into any Sponsorships
-     */
-    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
-        if (totalStakedIntoSponsorshipsWei > 0) {
-            revert StakedInSponsorships();
-        }
-
-        operatorsCutFraction = newOperatorsCutFraction;
-        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
-    }
-
-    /**
      * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
@@ -494,19 +509,35 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         maxAllowedEarnings = valueWithoutEarnings() * streamrConfig.maxAllowedEarningsFraction() / 1 ether;
     }
 
-    ////////////////////////////////////////
+    //////////////////////////////////////////////////////
     // NODE FUNCTIONS: HEARTBEAT, FLAGGING, AND VOTING
-    ////////////////////////////////////////
+    //////////////////////////////////////////////////////
 
+    /**
+     * Start the flagging process to kick out an another operator in a sponsorship we're staked in.
+     * @param sponsorship one of the Sponsorships we're staked in
+     * @param targetOperator the operator to flag, also staked in that Sponsorship
+     * @param flagMetadata partition number and/or other conditions relevant to the failed inspection
+     */
     function flag(Sponsorship sponsorship, address targetOperator, string memory flagMetadata) external onlyNodes {
         sponsorship.flag(targetOperator, flagMetadata);
     }
 
+    /**
+     * After receiving a ReviewRequest, the nodes should inspect the target and then vote if they agree with the flag.
+     * @param sponsorship the Sponsorship where the flag was raised
+     * @param targetOperator the operator that was flagged and who we reviewed
+     * @param voteData vote for kick or no-kick, in the format expected by the Sponsorship's IKickPolicy
+     **/
     function voteOnFlag(Sponsorship sponsorship, address targetOperator, bytes32 voteData) external onlyNodes {
         sponsorship.voteOnFlag(targetOperator, voteData);
     }
 
-    /** Nodes announce their ID and other connectivity metadata */
+    /**
+     * Nodes announce regularly that they're alive and how to connect to them.
+     * This will be indexed in TheGraph for easy discovery.
+     * @param jsonData string that encodes node ID and other connectivity metadata
+     **/
     function heartbeat(string calldata jsonData) external onlyNodes {
         emit Heartbeat(_msgSender(), jsonData);
     }
@@ -516,16 +547,25 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // Implementations found in NodeModule.sol
     ////////////////////////////////////////
 
-    mapping (address => bool) private isInNewNodes; // lookup used during the setNodeAddresses
+    /**
+     * Replace the existing node-set
+     * @param newNodes new set of nodes that replaces the existing one
+     **/
     function setNodeAddresses(address[] calldata newNodes) external onlyOperator {
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._setNodeAddresses.selector, newNodes));
     }
 
-    /** First add then remove addresses (if in both lists, ends up removed!) */
+    /**
+     * Update the node-set by a "diff" or set-differences between new and old
+     * First add then remove addresses (if in both lists, ends up removed!)
+     * @param addNodes nodes that will be in the resulting set, unless they also are in `removeNodes`
+     * @param removeNodes nodes that will NOT be found in the resulting set
+     **/
     function updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external onlyOperator {
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._updateNodeAddresses.selector, addNodes, removeNodes));
     }
 
+    /** List of nodes in the node-set */
     function getNodeAddresses() external view returns (address[] memory) {
         return nodes;
     }

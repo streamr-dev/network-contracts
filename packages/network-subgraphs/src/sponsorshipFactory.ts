@@ -8,8 +8,9 @@ import { loadOrCreateSponsorshipDailyBucket } from './helpers'
 export function handleNewSponsorship(event: NewSponsorship): void {
     let sponsorshipContractAddress = event.params.sponsorshipContract.toHexString()
     let creator = event.params.creator.toHexString()
-    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} policies={} policyParams={} creator={}',
-        [event.block.number.toString(), sponsorshipContractAddress, event.params.policies.toString(), event.params.policyParams.toString(), creator]
+    log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} policies=[{}] policyParams={} creator={}',
+        [event.block.number.toString(), sponsorshipContractAddress,
+            event.params.policies.map<string>((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
     )
 
     let sponsorship = new Sponsorship(sponsorshipContractAddress)
