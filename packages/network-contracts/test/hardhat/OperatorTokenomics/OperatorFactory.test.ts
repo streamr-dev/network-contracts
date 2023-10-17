@@ -97,12 +97,18 @@ describe("OperatorFactory", function(): void {
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
-        const { operatorFactory, token, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
+        const {
+            operatorFactory,
+            token,
+            defaultDelegationPolicy,
+            defaultExchangeRatePolicy,
+            defaultUndelegationPolicy
+        } = await deployTestContracts(deployer)
         const operatorsCutFraction = parseEther("0.1")
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
             [
                 operatorsCutFraction,
-                "OperatorTokenName",
+                "TransferAndCallTest",
                 "{}",
                 [
                     defaultDelegationPolicy.address,
@@ -130,7 +136,7 @@ describe("OperatorFactory", function(): void {
         expect(formatEther(await token.balanceOf(newOperatorAddress))).to.equal("1000.0")
     })
 
-    it("transferAndCall revets for missing / incomplete data encoded", async function(): Promise<void> {
+    it("transferAndCall reverts for missing / incomplete data encoded", async function(): Promise<void> {
         const { operatorFactory, token } = sharedContracts
 
         // missing encoded data
@@ -142,7 +148,7 @@ describe("OperatorFactory", function(): void {
         const data = defaultAbiCoder.encode(["uint", "string", "string"],
             [
                 operatorsCutFraction,
-                "OperatorTokenName",
+                "BadDataTest",
                 "{}"
             ]
         )
@@ -152,20 +158,20 @@ describe("OperatorFactory", function(): void {
 
     it("predicts the correct address for a new operator contract", async function(): Promise<void> {
         const contracts = await deployTestContracts(deployer)
-        const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("OperatorTokenName")
-        const operator = await deployOperatorContract(contracts, deployer, parseEther("0"), {}, "OperatorTokenName")
+        const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("PredictTest")
+        const operator = await deployOperatorContract(contracts, deployer, parseEther("0"), {}, "PredictTest")
         expect(predictedOperatorAddress).to.equal(operator.address)
     })
 
     it("can't deploy an operator having a cut over 100%", async function(): Promise<void> {
-        const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
+        const { operatorFactory, operatorTemplate, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("1.01"), // 101%
-            "OperatorTokenName",
+            "BadOperatorCutTest",
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        )).to.be.revertedWithCustomError(operatorFactory, "InvalidOperatorsCut")
+        )).to.be.revertedWithCustomError(operatorTemplate, "InvalidOperatorsCut").withArgs(parseEther("1.01"))
     })
 
     it("can remove a trusted policy", async function(): Promise<void> {
@@ -203,87 +209,81 @@ describe("OperatorFactory", function(): void {
         const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = await deployTestContracts(deployer)
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName",
+            "DelegationPolicyZero",
             "{}",
             [hardhatEthers.constants.AddressZero, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.emit(operatorFactory, "NewOperator")
+        )).to.emit(operatorFactory, "NewOperator")
     })
 
     it("ExchangeRatePolicy can NOT be the zero address", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName0",
+            "ExchangeRatePolicyZero",
             "{}",
             [defaultDelegationPolicy.address, hardhatEthers.constants.AddressZero, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.be.revertedWithCustomError(operatorFactory, "ExchangeRatePolicyRequired")
+        )).to.be.revertedWithCustomError(operatorFactory, "ExchangeRatePolicyRequired")
     })
 
     it("UnelegationPolicy can be the zero address", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy } = await deployTestContracts(deployer)
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName",
+            "UnelegationPolicyZero",
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, hardhatEthers.constants.AddressZero],
             [0, 0, 0]
-        ))
-            .to.emit(operatorFactory, "NewOperator")
+        )).to.emit(operatorFactory, "NewOperator")
     })
 
     it("reverts if incorrect delegation policy is provided", async function(): Promise<void> {
         const { operatorFactory, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName1",
+            "BadDelegationPolicyTest",
             "{}",
             [defaultExchangeRatePolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.be.revertedWithCustomError(operatorFactory, "NotDelegationPolicy")
+        )).to.be.revertedWithCustomError(operatorFactory, "NotDelegationPolicy")
     })
 
     it("reverts if incorrect exchange rate policy is provided", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultUndelegationPolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName2",
+            "BadExchangeRatePolicyTest",
             "{}",
             [defaultDelegationPolicy.address, defaultDelegationPolicy.address, defaultUndelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.be.revertedWithCustomError(operatorFactory, "NotExchangeRatePolicy")
+        )).to.be.revertedWithCustomError(operatorFactory, "NotExchangeRatePolicy")
     })
 
     it("reverts if incorrect undelegation policy is provided", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy } = sharedContracts
         await expect(operatorFactory.deployOperator(
             parseEther("0.1"),
-            "OperatorTokenName3",
+            "BadUndelegationPolicyTest",
             "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultDelegationPolicy.address],
             [0, 0, 0]
-        ))
-            .to.be.revertedWithCustomError(operatorFactory, "NotUndelegationPolicy")
+        )).to.be.revertedWithCustomError(operatorFactory, "NotUndelegationPolicy")
     })
 
     it("reverts on operator deploy if any of the policies are not trusted", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
         const untrustedPolicyAddress = await operatorFactory.predictAddress("TokenName" + Date.now())
 
-        await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
+        await expect(operatorFactory.deployOperator(parseEther("0.1"), "NotTrustedTest", "{}",
             [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])
         ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
-        await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
+        await expect(operatorFactory.deployOperator(parseEther("0.1"), "NotTrustedTest", "{}",
             [defaultDelegationPolicy.address, untrustedPolicyAddress, defaultUndelegationPolicy.address], [0, 0, 0])
         ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
 
-        await expect(operatorFactory.deployOperator(parseEther("0.1"), "OperatorTokenName", "{}",
+        await expect(operatorFactory.deployOperator(parseEther("0.1"), "NotTrustedTest", "{}",
             [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, untrustedPolicyAddress], [0, 0, 0])
         ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
     })

@@ -24,7 +24,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     event NewOperator(address operatorAddress, address operatorContractAddress);
     event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
-    error InvalidOperatorsCut();
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
     error OnlyOperators();
@@ -168,7 +167,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address[3] memory policies,
         uint[3] memory policyParams
     ) private returns (address) {
-        if (operatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(); }
+        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
@@ -209,9 +208,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewOperator(operatorAddress, newContractAddress);
 
-        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
         operators[operatorAddress] = newContractAddress;
-
         return newContractAddress;
     }
 
