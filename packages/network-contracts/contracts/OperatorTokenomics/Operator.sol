@@ -297,13 +297,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Add the request to undelegate into the undelegation queue. When new earnings arrive, they will be used to pay out the queue in order.
-     * It's all call `undelegate` with any `amountWei`, the actual amount is decided when it's your turn, and will be capped to the actual balance at the time.
+     * Can call `undelegate` with any `amountWei` but the actual amount will be capped to the actual balance at the time of queue payout.
      * NOTE: "Undelegate all" request can be made by calling this function e.g. like so: `operator.undelegate(maxUint256)`,
      *       where `maxUint256 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` (or `2**256 - 1`).
-     * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
+     * @param amountDataWei of undelegation tokens. Can be more than the balance; then all DATA tokens are undelegated.
      **/
-    function undelegate(uint amountWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
+    function undelegate(uint amountDataWei) public {
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountDataWei, _msgSender()));
     }
 
     /**

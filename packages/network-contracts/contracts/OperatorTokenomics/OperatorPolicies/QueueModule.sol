@@ -51,7 +51,7 @@ contract QueueModule is IQueueModule, Operator {
         uint amountDataWei = undelegationQueue[queueCurrentIndex].amountWei;
 
         // Silently cap the undelegation to the amount of operator tokens the exiting delegator has,
-        //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
+        //   this means it's ok to add infinity DATA tokens to undelegation queue, it means "undelegate all my tokens".
         // Also, if the delegator would be left with less than minimumDelegationWei, just undelegate the whole balance (don't leave sand delegations)
         uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
         if (balanceOf(delegator) < amountOperatorTokens + streamrConfig.minimumDelegationWei()) {
