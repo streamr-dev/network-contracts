@@ -43,15 +43,17 @@ async function deploy() {
     const deployerWallet = new Wallet(key, provider)
     const streamrEnvDeployer = new StreamrEnvDeployer(key, url)
 
-    await streamrEnvDeployer.deployEnvironment()
+    await streamrEnvDeployer.deployToken()
+
+    const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
+
+    await streamrEnvDeployer.deployEnvironment({ deployToken: false })
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
     console.log("Deploying Hub contracts...")
     const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 1337)
     await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
-
-    const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
     // deploy a data union to populate the subgraph
     const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
@@ -62,7 +64,7 @@ async function deploy() {
 
     console.log("\n\n")
     console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
-    
+
     console.log(`Adding ${projects.length} projects to ProjectRegistryV1`)
     for (const p of projects) {
         await hubDeployer.contracts.projectRegistryV1.createProject(

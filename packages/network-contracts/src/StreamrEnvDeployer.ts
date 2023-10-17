@@ -110,7 +110,10 @@ export class StreamrEnvDeployer {
         this.streamId = ""
     }
 
-    async deployEnvironment(): Promise<void> {
+    async deployEnvironment({ deployToken = true } = {}): Promise<void> {
+        if (deployToken) {
+            await this.deployToken()
+        }
         await this.deployEns()
         await this.deployRegistries()
         await this.deploySponsorshipFactory()
@@ -130,6 +133,15 @@ export class StreamrEnvDeployer {
         const operator3 = await this.deployOperatorContract(this.preloadedDATAWallets[3]) // target
 
         await this.flagAndVote(operator2, operator3, this.operator!)
+    }
+
+    async deployToken(): Promise<void> {
+        const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
+        const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
+        await token.deployed()
+        this.addresses.DATA = token.address
+        this.contracts.DATA = token
+        log(`token address ${token.address}`)
     }
 
     async deployEns(): Promise<void> {
@@ -286,13 +298,6 @@ export class StreamrEnvDeployer {
         log(`streamrConfig address ${streamrConfig.address}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
 
-        const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
-        const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
-        await token.deployed()
-        this.addresses.DATA = token.address
-        this.contracts.DATA = token
-        log(`token address ${token.address}`)
-
         const maxOperatorsJoinPolicy = await (new ContractFactory(maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode,
             this.adminWallet)).deploy() as MaxOperatorsJoinPolicy
         await maxOperatorsJoinPolicy.deployed()
@@ -331,7 +336,7 @@ export class StreamrEnvDeployer {
         await sponsorshipFactory.deployed()
         await (await sponsorshipFactory.initialize(
             sponsorshipTemplate.address,
-            token.address,
+            this.addresses.DATA,
             streamrConfig.address
         )).wait()
 
@@ -343,7 +348,7 @@ export class StreamrEnvDeployer {
         this.contracts.sponsorshipFactory = sponsorshipFactory
         log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
 
-        await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
+        await (await this.contracts.DATA.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
     }
 
