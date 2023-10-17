@@ -70,8 +70,13 @@ export function handleDelegated(event: Delegated): void {
 
     log.info('handleDelegated 3: delegator={}', [event.params.delegator.toHexString()])
     let delegator = loadOrCreateDelegator(event.params.delegator.toHexString())
+    log.info('handleDelegated 3.1: delegator={}', [delegator.id])
+    // log.info('handleDelegated 3.1: totalDelegatedWei={} delegations.length={}',
+    //     [delegator.totalDelegatedWei.toString(), delegator.delegations.length.toString()])
     delegator.totalDelegatedWei = delegator.totalDelegatedWei.plus(amountDataWei)
-    delegator.numberOfOperators = delegator.delegations.length
+    if (delegator.delegations !== null) {
+        delegator.numberOfOperators = delegator.delegations.length
+    }
     delegator.save()
 
     // log.info('handleDelegated 4: delegator={}', [event.params.delegator.toHexString()])

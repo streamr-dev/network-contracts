@@ -326,7 +326,7 @@ type OperatorDailyBucket @entity {
 # Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
   id: ID! # 0xoperatorAddress-0xdelegatorAddress
-  operator: Operator
+  operator: Operator!
   delegator: Delegator!
 
   "Amount of internal Operator tokens this delegator holds"
@@ -341,8 +341,8 @@ type Delegation @entity {
 
 type Delegator @entity {
   id: ID! # delegator address
-  delegations: [Delegation!] @derivedFrom(field: "delegator")
-  queueEntries: [QueueEntry!] @derivedFrom(field: "delegator")
+  delegations: [Delegation!]!
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
   numberOfOperators: Int!
   totalDelegatedWei: BigInt!
 }
