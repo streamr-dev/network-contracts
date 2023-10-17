@@ -70,24 +70,25 @@ export function handleDelegated(event: Delegated): void {
 
     log.info('handleDelegated 3: delegator={}', [event.params.delegator.toHexString()])
     let delegator = loadOrCreateDelegator(event.params.delegator.toHexString())
+    let delegations = delegator.delegations.load()
     log.info('handleDelegated 3.1: delegator={}', [delegator.id])
-    // log.info('handleDelegated 3.1: totalDelegatedWei={} delegations.length={}',
-    //     [delegator.totalDelegatedWei.toString(), delegator.delegations.length.toString()])
+    log.info('handleDelegated 3.1: totalDelegatedWei={} delegations.length={}',
+        [delegator.totalDelegatedWei.toString(), delegations.length.toString()])
     delegator.totalDelegatedWei = delegator.totalDelegatedWei.plus(amountDataWei)
-    if (delegator.delegations !== null) {
-        delegator.numberOfOperators = delegator.delegations.length
+    if (delegations.length > 0) {
+        delegator.numberOfOperators = delegations.length
     }
     delegator.save()
 
-    // log.info('handleDelegated 4: delegator={}', [event.params.delegator.toHexString()])
-    // let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(event.params.delegator.toHexString(), event.block.timestamp)
-    // delegatorDailyBucket.totalDelegatedWei = delegatorDailyBucket.totalDelegatedWei.plus(amountDataWei)
-    // delegatorDailyBucket.save()
+    log.info('handleDelegated 4: delegator={}', [event.params.delegator.toHexString()])
+    let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(event.params.delegator.toHexString(), event.block.timestamp)
+    delegatorDailyBucket.totalDelegatedWei = delegatorDailyBucket.totalDelegatedWei.plus(amountDataWei)
+    delegatorDailyBucket.save()
 
-    // log.info('handleDelegated 5: delegator={}', [event.params.delegator.toHexString()])
-    // let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
-    // bucket.totalDelegatedWei = bucket.totalDelegatedWei.plus(amountDataWei)
-    // bucket.save()
+    log.info('handleDelegated 5: delegator={}', [event.params.delegator.toHexString()])
+    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.totalDelegatedWei = bucket.totalDelegatedWei.plus(amountDataWei)
+    bucket.save()
 }
 
 /** Track how much has been undelegated (in DATA) */
@@ -103,7 +104,10 @@ export function handleUndelegated(event: Undelegated): void {
 
     let delegator = loadOrCreateDelegator(event.params.delegator.toHexString())
     delegator.totalDelegatedWei = delegator.totalDelegatedWei.minus(amountUndelegatedWei)
-    delegator.numberOfOperators = delegator.delegations.length
+    if (delegator.delegations !== null) {
+        let delegations = delegator.delegations.load()
+        delegator.numberOfOperators = delegations.length
+    }
     delegator.save()
 
     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(event.params.delegator.toHexString(), event.block.timestamp)
@@ -174,9 +178,9 @@ export function handleProfit(event: Profit): void {
     operator.cumulativeOperatorsCutWei = operator.cumulativeOperatorsCutWei.plus(operatorsCutDataWei)
     operator.save()
 
-    for (let i = 0; i < operator.delegations.length; i++) {
-        let delegationId = operator.delegations[i]
-        let delegation = loadOrCreateDelegation(operatorContractAddress, delegationId, event.block.timestamp)
+    let delegations = operator.delegations.load()
+    for (let i = 0; i < delegations.length; i++) {
+        let delegation = loadOrCreateDelegation(operatorContractAddress, delegations[i].id, event.block.timestamp)
         let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegation.delegator, event.block.timestamp)
         let fractionOfProfitsString = delegation.operatorTokenBalanceWei.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
             .times(valueIncreaseWei.toBigDecimal()).toString()
@@ -197,8 +201,9 @@ export function handleProfit(event: Profit): void {
     //     // return delegatorDailyBucket.id
     // })
 
-    // let delegatorDailyBuckets = operator.delegations.map<string>((delegationId) => {
-    //     let delegation = loadOrCreateDelegation(operatorContractAddress, delegationId, event.block.timestamp)
+    // let delegations = operator.delegations.load()
+    // let delegatorDailyBuckets = delegations.map<Delegation>((delegation) => {
+    //     let delegation = loadOrCreateDelegation(operatorContractAddress, delegation.delegator, event.block.timestamp)
     //     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegation.delegator, event.block.timestamp)
     //     let fractionOfProfitsString = delegation.operatorTokenBalanceWei.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
     //         .times(valueIncreaseWei.toBigDecimal()).toString()

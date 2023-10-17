@@ -195,7 +195,6 @@ export function loadOrCreateDelegator(delegator: string): Delegator {
         delegatorEntity = new Delegator(delegator)
         delegatorEntity.numberOfOperators = 0
         delegatorEntity.totalDelegatedWei = BigInt.zero()
-        delegatorEntity.delegations = []
     }
     return delegatorEntity
 }

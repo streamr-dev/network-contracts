@@ -341,7 +341,7 @@ type Delegation @entity {
 
 type Delegator @entity {
   id: ID! # delegator address
-  delegations: [Delegation!]!
+  delegations: [Delegation!]! @derivedFrom(field: "delegator")
   queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
   numberOfOperators: Int!
   totalDelegatedWei: BigInt!
