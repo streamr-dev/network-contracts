@@ -8,6 +8,7 @@
   "scripts": {
     "clean": "",
     "build": "",
+    "docker:build": "docker build . -t streamr/ens-sync-script:dev-fastchain",
     "test": "mocha --timeout 0",
     "start": "node -r dotenv/config app.js"
   },

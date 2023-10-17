@@ -45,7 +45,6 @@ async function deploy() {
 
     await streamrEnvDeployer.deployEnvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
-    await streamrEnvDeployer.deployEns()
     await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
     console.log("Deploying Hub contracts...")

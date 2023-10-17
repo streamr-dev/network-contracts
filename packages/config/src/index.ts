@@ -84,9 +84,9 @@ export const config = {
         ],
         "adminPrivateKey": "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
         "contracts": {
-            "ENS": "0x01AC06E9F0D8179314483c1C6c6a565cd3A815f2",
-            "FIFSRegistrar": "0xf1ae2198CBb4d9B1DC478CC419744931706DCEE5",
-            "PublicResolver": "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253",
+            "ENS": "0xbAA81A0179015bE47Ad439566374F2Bae098686F",
+            "FIFSRegistrar": "0xEAA002f7Dc60178B6103f8617Be45a9D3df659B6",
+            "PublicResolver": "0xd2D23b73A67208a90CBfEE1381415329954f54E2",
             "TrackerRegistry": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
             "StorageNodeRegistry": "0x642D2B84A32A9A92FEc78CeAA9488388b3704898",
             "StreamRegistry": "0x231b810D98702782963472e1D60a25496999E75D",
@@ -103,11 +103,11 @@ export const config = {
             "OperatorDefaultExchangeRatePolicy": "0xF38aA4130AB07Ae1dF1d9F48386A16aD42768166",
             "OperatorDefaultUndelegationPolicy": "0x5159FBF2e0Ff63e35b17293416fdf7a0909a0cDA",
             "OperatorFactory": "0x122E9ee63Fa5e4F2710b7BB66E9a1FF0013Cec15",
-            "ProjectRegistryV1": "0x862FD06E0a3D5B651ED88e1C650E4f87ffD45018",
-            "MarketplaceV4": "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13",
-            "ProjectStakingV1": "0x05784c543C5155979f82Ece2FbB4cE356181D30e",
-            "DataUnionFactory": "0x9472993E43dea67bB82B46Cc71Ef9570f83A8049",
-            "DataUnionTemplate": "0xd73437154Ef05167a083ed8Fe839db4fB076A1A3"
+            "ProjectRegistryV1": "0x916FE6b8DB2C0D01FB96F37550CE8ff41F4Ed470",
+            "MarketplaceV4": "0xf1ae2198CBb4d9B1DC478CC419744931706DCEE5",
+            "ProjectStakingV1": "0x7711fa72e78697c4B3b8bbBc8e9b91C662bC6253",
+            "DataUnionFactory": "0xfb19CE10b438417D95354d9BB09583a2a07b4367",
+            "DataUnionTemplate": "0xBaD604cd8C38E970b5285D34CA5d146268e2b84A"
         },
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs",
         "entryPoints": [
