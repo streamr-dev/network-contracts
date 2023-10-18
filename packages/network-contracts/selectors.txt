@@ -206,11 +206,6 @@ Function signatures:
 20fed94f: onKick(uint256,uint256)
 7bf713b6: onSlash(uint256)
 
-======= Operator/sol:IOperatorLivenessRegistry =======
-Function signatures:
-f456a0f8: registerAsLive()
-72184394: registerAsNotLive()
-
 ======= Operator/sol:IQueueModule =======
 Function signatures:
 e4d10986: _payOutFirstInQueue()
@@ -242,6 +237,16 @@ Function signatures:
 Function signatures:
 d82264d4: onUndelegate(address,uint256)
 4a45d2e6: setParam(uint256)
+
+======= Operator/sol:IVoterRegistry =======
+Function signatures:
+49228b24: registerAsNonVoter()
+78668658: registerAsVoter()
+42169e48: voterCount()
+da58c7d9: voters(uint256)
+
+Event signatures:
+190b16f47d6f4fe52425356b5df39a17e02bf9849f1637a8be52b19c442bcd42: VoterUpdate(address,bool)
 
 ======= Operator/sol:Initializable =======
 Function signatures:
@@ -345,6 +350,7 @@ b3d3f77e: AccessDeniedStreamrSponsorshipOnly()
 24c69407: DelegationBelowMinimum(uint256,uint256)
 b1c5c787: DidNotReceiveReward()
 ec6c87a6: FirstEmptyQueueThenStake()
+f37a3008: InvalidOperatorsCut(uint256)
 918623b7: ModuleCallError(address,bytes)
 29801d70: ModuleGetError(bytes)
 4ee7a8de: NoEarnings()
@@ -442,7 +448,7 @@ c27c6c34: MinOperatorCountZero()
 51897574: OperatorNotStaked()
 
 Event signatures:
-bd472a400811f9918b708f3c32ed12bd5379ceb9c342451ea19b8d06c0850215: FlagUpdate(address,uint8,uint256,uint256)
+7dcb8032e88752534faa495e623b33aa8a0aeeb94c02debf5d97782e5cca8734: FlagUpdate(address,uint8,uint256,uint256,address,int256)
 bfc2ea38f654c28196c9b1c7a859115b1d74103c705d851743383e2bcd8f7624: Flagged(address,address,uint256,uint256,string)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 9d584a7e1b19f15c4a9b3fc12662146f10b5739603ce9aaab30d80bab7d8ea2a: InsolvencyEnded(uint256,uint256,uint256)
@@ -530,7 +536,6 @@ afbd6c6c: minimumDelegationWei()
 66316372: minimumStakeWei()
 887f44fe: operatorContractOnlyJoinPolicy()
 5290c248: operatorFactory()
-7e06fddc: operatorLivenessRegistry()
 ceb80df2: protocolFeeBeneficiary()
 3a0298eb: protocolFeeFraction()
 52d1902d: proxiableUUID()
@@ -568,6 +573,7 @@ fc1e490f: slashingFraction()
 7da0a877: trustedForwarder()
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
+be60040e: voterRegistry()
 cb85fe35: votingPeriodSeconds()
 
 Error signatures:
