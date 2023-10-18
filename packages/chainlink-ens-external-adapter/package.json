@@ -8,6 +8,7 @@
   "scripts": {
     "clean": "",
     "build": "",
+    "docker:build": "docker build . -t streamr/chainlink-external-adapter:dev",
     "test": "mocha --timeout 0",
     "start": "node -r dotenv/config app.js"
   },
