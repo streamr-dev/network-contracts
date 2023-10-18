@@ -40,7 +40,7 @@ function splitBy<T>(arr: T[], counts: number[]): T[][] {
 export async function setupSponsorships(contracts: TestContracts, operatorCounts = [0, 3], saltSeed: string, {
     sponsorshipSettings = {},
     operatorsCutFraction = parseEther("1"),
-    stakeAmountWei = parseEther("1000"),
+    stakeAmountWei = parseEther("10000"),
     sponsor = true,
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
     const { token } = contracts
