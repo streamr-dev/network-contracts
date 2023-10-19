@@ -138,11 +138,13 @@ export function handleProfit(event: Profit): void {
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.cumulativeProfitsWei = operator.cumulativeProfitsWei.plus(valueIncreaseWei)
     operator.cumulativeOperatorsCutWei = operator.cumulativeOperatorsCutWei.plus(operatorsCutDataWei)
+    operator.cumulativeEarningsWei = operator.cumulativeProfitsWei.plus(operator.cumulativeOperatorsCutWei)
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.profitsWei = bucket.profitsWei.plus(valueIncreaseWei)
     bucket.operatorsCutWei = bucket.operatorsCutWei.plus(operatorsCutDataWei)
+    bucket.cumulativeEarningsWei = operator.cumulativeEarningsWei
     bucket.save()
 }
 
