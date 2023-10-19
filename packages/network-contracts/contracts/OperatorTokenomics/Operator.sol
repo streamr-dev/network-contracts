@@ -39,7 +39,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei); // Operator token tracking event
+    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
     event QueuedDataPayout(address delegator, uint amountWei, uint queueIndex);
     event QueueUpdated(address delegator, uint amountWei, uint queueIndex);
 
@@ -308,7 +308,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _mintOperatorTokensWorth(address delegator, uint amountDataWei) internal {
         uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountOperatorToken);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
     }
 
     /**
@@ -344,7 +344,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (balanceOf(to) == 0) {
             if (address(delegationPolicy) != address(0)) {
                 moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
-                emit Delegated(to, 0);
             }
         }
 
@@ -367,8 +366,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
         }
 
-        emit BalanceUpdate(from, balanceOf(from), totalSupply());
-        emit BalanceUpdate(to, balanceOf(to), totalSupply());
+        emit BalanceUpdate(from, balanceOf(from), totalSupply(), valueWithoutEarnings());
+        emit BalanceUpdate(to, balanceOf(to), totalSupply(), valueWithoutEarnings());
     }
 
     /////////////////////////////////////////
@@ -476,7 +475,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint burnAmountWei = min(selfDelegation, amountOperatorTokens);
         _burn(owner, burnAmountWei);
         emit OperatorSlashed(amountDataWei, amountOperatorTokens, burnAmountWei);
-        emit BalanceUpdate(owner, balanceOf(owner), totalSupply());
+        emit BalanceUpdate(owner, balanceOf(owner), totalSupply(), valueWithoutEarnings());
     }
 
     /**

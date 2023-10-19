@@ -21,6 +21,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     let delegatorAddress = event.params.delegator.toHexString()
     let newBalance = event.params.balanceWei
     let totalSupply = event.params.totalSupplyWei
+    let valueWithoutEarnings = event.params.dataValueWithoutEarnings
     log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
     log.info('handleBalanceUpdate: delegator={} balanceWei={} totalSupplyWei={}', [
         delegatorAddress, newBalance.toString(), totalSupply.toString()
@@ -32,7 +33,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         operator.operatorTokenTotalSupplyWei.toString(), operator.exchangeRate.toString()
     ])
     operator.exchangeRate = totalSupply.gt(BigInt.zero())
-        ? operator.valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
+        ? valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
         : BigInt.fromU32(1).toBigDecimal()
 
     // fix rounding error before truncating to int
@@ -45,7 +46,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     ])
     let delegator = loadOrCreateDelegator(delegatorAddress)
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
-
+    let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegatorAddress, event.block.timestamp)
     // delegation is new
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
         log.info("handleBalanceUpdate: new delegation", [])
@@ -62,8 +63,12 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
         delegation.valueDataWei = newBalanceDataWei
         log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
+        delegatorDailyBucket.delegator = delegatorAddress
+        delegatorDailyBucket.totalValueDataWei = newBalanceDataWei
+        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
         delegation.save()
         delegator.save()
+        delegatorDailyBucket.save()
     } else {
         // delegator left
         // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count

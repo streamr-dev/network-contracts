@@ -85,7 +85,7 @@ contract QueueModule is IQueueModule, Operator {
         _burn(delegator, amountOperatorTokens);
         token.transfer(delegator, amountDataWei);
         emit Undelegated(delegator, amountDataWei);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         return token.balanceOf(address(this)) == 0 || queueIsEmpty() ? 1 : 0;

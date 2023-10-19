@@ -360,7 +360,7 @@ c0a6104c: ZeroUndelegation()
 
 Event signatures:
 8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-bbac117825721ba643d8ad675fe8e22c08ec438c38be7b6981ce85c631c88eb7: BalanceUpdate(address,uint256,uint256)
+861514f61b5b3fcfb87564eec25aa9bdfcf29e63af898e1fd66ba0f88ef51839: BalanceUpdate(address,uint256,uint256,uint256)
 83b3f5ce88736f0128f880f5cac19836da52ea5c5ca7704c7b38f3b06fffd7ab: Delegated(address,uint256)
 7432bbcdcf6009b3131a7b65f7af1fdbf79c27db5c115c1cdbcf9210298bc5f4: Heartbeat(address,string)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)

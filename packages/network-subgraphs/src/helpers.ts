@@ -192,6 +192,7 @@ export function loadOrCreateDelegator(delegator: string): Delegator {
     if (delegatorEntity == null) {
         log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
         delegatorEntity = new Delegator(delegator)
+        delegatorEntity.delegations = []
         delegatorEntity.numberOfDelegations = 0
         delegatorEntity.totalValueDataWei = BigInt.zero()
     }
