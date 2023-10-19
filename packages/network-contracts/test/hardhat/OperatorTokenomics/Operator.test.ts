@@ -653,11 +653,11 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
 
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, true)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, true)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
 
             await expect(operator.reduceStakeTo(sponsorship.address, 0))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
         })
 
@@ -1008,14 +1008,18 @@ describe("Operator contract", (): void => {
             expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("1569.999999999999999999")
         })
 
-        it("can update operator cut fraction for himself, but NOT for others", async function(): Promise<void> {
+        it("can update operator cut fraction for himself, but NOT for others (and not >100%)", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet)
             const operator2 = await deployOperatorContract(contracts, operator2Wallet)
 
-            await expect(operator.updateOperatorsCutFraction(parseEther("0.2")))
-                .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.2"))
             await expect(operator2.connect(operatorWallet).updateOperatorsCutFraction(parseEther("0.2")))
                 .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
+            await expect(operator.updateOperatorsCutFraction(parseEther("1.1")))
+                .to.be.revertedWithCustomError(operator, "InvalidOperatorsCut")
+            await expect(operator.updateOperatorsCutFraction(parseEther("0")))
+                .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0"))
+            await expect(operator.updateOperatorsCutFraction(parseEther("0.9")))
+                .to.emit(operator, "MetadataUpdated").withArgs(await operator.metadata(), operatorWallet.address, parseEther("0.9"))
         })
 
         it("can NOT update the operator cut fraction if it's staked in any sponsorships", async function(): Promise<void> {
@@ -1758,9 +1762,9 @@ describe("Operator contract", (): void => {
 
         it("can call flagging functions", async function(): Promise<void> {
             // hardhat accounts 1, 2, 3 will be used by setupSponsorships, see "before" hook which they are
-            await setTokens(sponsor, "1000")
-            await setTokens(operatorWallet, "1000")
-            await setTokens(operator2Wallet, "1000")
+            await setTokens(sponsor, "10000")
+            await setTokens(operatorWallet, "10000")
+            await setTokens(operator2Wallet, "10000")
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
@@ -1806,8 +1810,7 @@ describe("Operator contract", (): void => {
                 "{}",
                 parseEther("0.1"),
                 [nodeModule.address, queueModule.address, stakeModule.address])
-            )
-                .to.be.revertedWith("Initializable: contract is already initialized")
+            ).to.be.revertedWith("Initializable: contract is already initialized")
         })
 
         it("allows controller role holders to act on its behalf", async function(): Promise<void> {
