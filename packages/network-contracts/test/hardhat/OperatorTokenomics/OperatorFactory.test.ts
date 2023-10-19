@@ -159,7 +159,6 @@ describe("OperatorFactory", function(): void {
     it("transferAndCall reverts for wrong token", async function(): Promise<void> {
         const {
             operatorFactory,
-            token,
             defaultDelegationPolicy,
             defaultExchangeRatePolicy,
             defaultUndelegationPolicy
