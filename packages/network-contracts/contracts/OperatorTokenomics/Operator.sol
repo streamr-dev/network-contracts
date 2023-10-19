@@ -276,7 +276,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
-    function delegate(uint amountWei) public payable {
+    function delegate(uint amountWei) public {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
     }
