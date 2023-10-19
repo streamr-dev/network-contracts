@@ -170,8 +170,7 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation = new Delegation(delegationId)
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
-        delegation.delegatedDataWei = BigInt.zero()
-        delegation.undelegatedDataWei = BigInt.zero()
+        delegation.valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
 
         // creating a Delegation means a new delegator has joined the operator => increase delegator count
@@ -193,8 +192,8 @@ export function loadOrCreateDelegator(delegator: string): Delegator {
     if (delegatorEntity == null) {
         log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
         delegatorEntity = new Delegator(delegator)
-        delegatorEntity.numberOfOperators = 0
-        delegatorEntity.totalDelegatedWei = BigInt.zero()
+        delegatorEntity.numberOfDelegations = 0
+        delegatorEntity.totalValueDataWei = BigInt.zero()
     }
     return delegatorEntity
 }
@@ -207,7 +206,7 @@ export function loadOrCreateDelegatorDailyBucket(delegator: string, timestamp: B
         bucket = new DelegatorDailyBucket(bucketId)
         bucket.delegator = delegator
         bucket.date = date
-        bucket.totalDelegatedWei = BigInt.zero()
+        bucket.totalValueDataWei = BigInt.zero()
         bucket.operatorCount = 0
         bucket.cumulativeEarningsWei = BigInt.zero()
     }

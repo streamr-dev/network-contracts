@@ -333,26 +333,23 @@ type Delegation @entity {
   "Amount of internal Operator tokens this delegator holds"
   operatorTokenBalanceWei: BigInt!
 
-  "Amount of DATA tokens this delegator has moved into the Operator contract"
-  delegatedDataWei: BigInt!
-
-  "Amount of DATA tokens this delegator has moved out of the Operator contract"
-  undelegatedDataWei: BigInt!
+  "DATA value of the Operator tokens this delegator holds"
+  valueDataWei: BigInt!
 }
 
 type Delegator @entity {
   id: ID! # delegator address
-  delegations: [Delegation!]! @derivedFrom(field: "delegator")
+  delegations: [Delegation!]!
   queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
-  numberOfOperators: Int!
-  totalDelegatedWei: BigInt!
+  numberOfDelegations: Int!
+  totalValueDataWei: BigInt!
 }
 
 type DelegatorDailyBucket @entity {
   id: ID! # delegator address + date
   delegator: Delegator!
   date: BigInt!
-  totalDelegatedWei: BigInt!
+  totalValueDataWei: BigInt!
   operatorCount: Int!
   cumulativeEarningsWei: BigInt!
 }

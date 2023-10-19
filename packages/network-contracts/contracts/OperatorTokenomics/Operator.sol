@@ -344,6 +344,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (balanceOf(to) == 0) {
             if (address(delegationPolicy) != address(0)) {
                 moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, to));
+                emit Delegated(to, 0);
             }
         }
 
