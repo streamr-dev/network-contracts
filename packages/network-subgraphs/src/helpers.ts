@@ -120,6 +120,7 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.valueUpdateBlockNumber = BigInt.zero()
         operator.operatorTokenTotalSupplyWei = BigInt.zero()
         operator.cumulativeProfitsWei = BigInt.zero()
+        operator.cumulativeEarningsWei = BigInt.zero()
         operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
@@ -149,6 +150,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
         bucket.delegatorCountAtStart = operator.delegatorCount
+        bucket.cumulativeEarningsWei = operator.cumulativeEarningsWei
 
         // accumulated values, updated when events are fired
         bucket.delegatorCountChange = 0

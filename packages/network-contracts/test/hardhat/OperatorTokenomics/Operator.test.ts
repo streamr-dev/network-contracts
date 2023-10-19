@@ -631,11 +631,11 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
 
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, true)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, true)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
 
             await expect(operator.reduceStakeTo(sponsorship.address, 0))
-                .to.emit(contracts.operatorFactory, "OperatorLivenessChanged").withArgs(operator.address, false)
+                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, false)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
         })
 
@@ -1740,9 +1740,9 @@ describe("Operator contract", (): void => {
 
         it("can call flagging functions", async function(): Promise<void> {
             // hardhat accounts 1, 2, 3 will be used by setupSponsorships, see "before" hook which they are
-            await setTokens(sponsor, "1000")
-            await setTokens(operatorWallet, "1000")
-            await setTokens(operator2Wallet, "1000")
+            await setTokens(sponsor, "10000")
+            await setTokens(operatorWallet, "10000")
+            await setTokens(operator2Wallet, "10000")
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
