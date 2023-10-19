@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "./IERC677.sol";
 import "./IERC677Receiver.sol";
 import "./IOperator.sol";
-import "./IOperatorLivenessRegistry.sol";
+import "./IVoterRegistry.sol";
 import "./OperatorPolicies/IDelegationPolicy.sol";
 import "./OperatorPolicies/IExchangeRatePolicy.sol";
 import "./OperatorPolicies/IUndelegationPolicy.sol";
@@ -77,6 +77,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error FirstEmptyQueueThenStake();
     error ZeroUndelegation();
     error DidNotReceiveReward();
+    error InvalidOperatorsCut(uint newOperatorsCutFraction);
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
@@ -182,7 +183,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         stakeModule = IStakeModule(modules[2]);
 
         owner = ownerAddress;
-        operatorsCutFraction = operatorsCut;
 
         ERC20Upgradeable.__ERC20_init(operatorTokenName, operatorTokenName);
 
@@ -191,7 +191,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
         // can't call updateMetadata because it has the onlyOperator guard
         metadata = operatorMetadataJson;
-        emit MetadataUpdated(operatorMetadataJson, owner, operatorsCutFraction);
+        _updateOperatorsCutFraction(operatorsCut); // emits MetadataUpdated
 
         moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule.createCoordinationStream.selector));
     }
@@ -221,6 +221,22 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** Node coordination stream management added here for convenience: everything the Operator needs to do can be done via this contract. */
     function updateStreamMetadata(string calldata metadataJsonString) external onlyOperator {
         streamRegistry.updateStreamMetadata(streamId, metadataJsonString);
+    }
+
+    /**
+     * Update operator's cut fraction.
+     * Operator can update it's cut if it isn't staked into any Sponsorships, so this change will only affect future earnings.
+     */
+    function updateOperatorsCutFraction(uint newOperatorsCutFraction) public onlyOperator {
+        _updateOperatorsCutFraction(newOperatorsCutFraction);
+    }
+
+    function _updateOperatorsCutFraction(uint newOperatorsCutFraction) internal {
+        if (totalStakedIntoSponsorshipsWei > 0) { revert StakedInSponsorships(); }
+        if (newOperatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(newOperatorsCutFraction); }
+
+        operatorsCutFraction = newOperatorsCutFraction;
+        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
     }
 
     /////////////////////////////////////////
@@ -260,7 +276,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
-    function delegate(uint amountWei) public payable {
+    function delegate(uint amountWei) public {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
     }
@@ -421,19 +437,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // In fact, they should ideally be called as often as is feasible, to maintain the Operator value approximation `valueWithoutEarnings()`.
     // The only incentivized function is `withdrawEarningsFromSponsorships`, others are expected to be used by the operator or nodes only.
     //////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Update operator's cut fraction.
-     * Operator can update it's cut if it isn't staked into any Sponsorships
-     */
-    function updateOperatorsCutFraction(uint newOperatorsCutFraction) external onlyOperator {
-        if (totalStakedIntoSponsorshipsWei > 0) {
-            revert StakedInSponsorships();
-        }
-
-        operatorsCutFraction = newOperatorsCutFraction;
-        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
-    }
 
     /**
      * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
