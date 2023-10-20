@@ -23,6 +23,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     error BadArguments();
     error AllocationPolicyRequired();
     error PolicyNotTrusted();
+    error AccessDeniedDATATokenOnly();
 
     StreamrConfig public streamrConfig;
     address public sponsorshipContractTemplate;
@@ -87,6 +88,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             address[] memory policies,
             uint[] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[], uint[]));
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
