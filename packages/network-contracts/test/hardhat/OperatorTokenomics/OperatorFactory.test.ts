@@ -156,6 +156,38 @@ describe("OperatorFactory", function(): void {
             .to.be.reverted
     })
 
+    it("transferAndCall reverts for wrong token", async function(): Promise<void> {
+        const {
+            operatorFactory,
+            defaultDelegationPolicy,
+            defaultExchangeRatePolicy,
+            defaultUndelegationPolicy
+        } = await deployTestContracts(deployer)
+        const wrongToken = await (await getContractFactory("TestToken", { deployer })).deploy("TestToken", "TEST")
+        await (await wrongToken.mint(deployer.address, parseEther("1000"))).wait()
+        const operatorsCutFraction = parseEther("0.1")
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
+            [
+                operatorsCutFraction,
+                "TransferAndCallWrongToken",
+                "{}",
+                [
+                    defaultDelegationPolicy.address,
+                    defaultExchangeRatePolicy.address,
+                    defaultUndelegationPolicy.address
+                ],
+                [
+                    0,
+                    0,
+                    0
+                ]
+            ]
+        )
+
+        await expect(wrongToken.connect(deployer).transferAndCall(operatorFactory.address, parseEther("1000"), data))
+            .to.be.revertedWithCustomError(operatorFactory, "AccessDeniedDATATokenOnly")
+    })
+
     it("predicts the correct address for a new operator contract", async function(): Promise<void> {
         const contracts = await deployTestContracts(deployer)
         const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("PredictTest")
