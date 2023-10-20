@@ -663,7 +663,7 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("1000.0")
         })
 
-        it.only("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
+        it("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "1000")
             await setTokens(sponsor, "1000")
