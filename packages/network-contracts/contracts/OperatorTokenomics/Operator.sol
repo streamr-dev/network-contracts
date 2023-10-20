@@ -67,6 +67,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedNodesOnly();
     error DelegationBelowMinimum(uint operatorTokenBalanceWei, uint minimumDelegationWei);
     error AccessDeniedDATATokenOnly();
+    error NoSelfDelegation();
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
     error ModuleCallError(address module, bytes data);
