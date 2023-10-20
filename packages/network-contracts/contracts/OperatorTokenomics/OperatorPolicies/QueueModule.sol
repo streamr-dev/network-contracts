@@ -9,19 +9,19 @@ import "../Operator.sol";
 contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
-    function _undelegate(uint amountWei, address undelegator) public {
-        if (amountWei == 0) { // TODO: should there be minimum undelegation amount?
+    function _undelegate(uint amountDataWei, address undelegator) public {
+        if (amountDataWei == 0) { // TODO: should there be minimum undelegation amount?
             revert ZeroUndelegation();
         }
 
         // check if the undelegation policy allows this undelegation
         // this check must happen here because payOutQueue can't be allowed to fail
         if (address(undelegationPolicy) != address(0)) {
-            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountWei));
+            moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, undelegator, amountDataWei));
         }
 
-        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountWei, block.timestamp); // solhint-disable-line not-rely-on-time
-        emit QueuedDataPayout(undelegator, amountWei, queueLastIndex);
+        undelegationQueue[queueLastIndex] = UndelegationQueueEntry(undelegator, amountDataWei, block.timestamp); // solhint-disable-line not-rely-on-time
+        emit QueuedDataPayout(undelegator, amountDataWei, queueLastIndex);
         queueLastIndex++;
         _payOutQueue(0);
     }
