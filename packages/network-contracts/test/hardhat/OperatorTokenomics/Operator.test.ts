@@ -1504,6 +1504,17 @@ describe("Operator contract", (): void => {
             expect(formatEther(contractBalanceAfterDelegate)).to.equal("100.5")
             expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
         })
+
+        it("undelegate completely if the amount is max uint256", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+
+            await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
+        })
     })
 
     describe("Kick/slash handler", () => {

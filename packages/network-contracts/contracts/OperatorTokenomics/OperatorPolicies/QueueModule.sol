@@ -48,7 +48,7 @@ contract QueueModule is IQueueModule, Operator {
         }
 
         address delegator = undelegationQueue[queueCurrentIndex].delegator;
-        uint amountDataWei = undelegationQueue[queueCurrentIndex].amountWei;
+        uint amountDataWei = min(undelegationQueue[queueCurrentIndex].amountWei, valueWithoutEarnings());
 
         // Silently cap the undelegation to the amount of operator tokens the exiting delegator has,
         //   this means it's ok to add infinity tokens to undelegation queue, it means "undelegate all my tokens".
