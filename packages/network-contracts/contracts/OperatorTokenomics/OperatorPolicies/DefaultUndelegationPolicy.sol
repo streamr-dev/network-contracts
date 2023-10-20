@@ -29,7 +29,7 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
         if (delegator != owner) { return; }
 
         uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
-        uint actualAmount = amountOperatorTokens < balanceOf(owner) ? amountOperatorTokens : balanceOf(owner);
+        uint actualAmount = min(amountOperatorTokens, balanceOf(owner));
         uint balanceAfter = balanceOf(owner) - actualAmount;
         uint totalSupplyAfter = totalSupply() - actualAmount;
         require(1 ether * balanceAfter >= totalSupplyAfter * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
