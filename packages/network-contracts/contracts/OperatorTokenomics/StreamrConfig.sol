@@ -15,17 +15,17 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooLow(uint value, uint limit);
 
     /**
-     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship, or if they unstake from a sponsorship prematurely
-     */
-    uint public slashingFraction;
-
-    /**
      * Minimum amount to pay reviewers+flagger
      * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
      */
     function minimumStakeWei() public view returns (uint) {
         return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
     }
+
+    /**
+     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship
+     */
+    uint public slashingFraction;
 
     /**
      * The minimum share of the Operator contract's own token should belong to the owner ("skin in the game")
@@ -54,6 +54,11 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * without being slashed (provided it does the work) in a fixed maximum time.
      */
     uint public maxPenaltyPeriodSeconds;
+
+    /**
+     * DefaultLeavePolicy: If an operator unstakes from a Sponsorship before penaltyPeriodSeconds is over, they get slashed earlyLeaverPenaltyWei.
+     */
+    uint public earlyLeaverPenaltyWei;
 
     /**
      * The real-time precise operator value (that includes earnings) can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
@@ -136,7 +141,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
+        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator gets kicked after a vote
+        setEarlyLeaverPenaltyWei(5000 ether); // at least initially earlyLeaverPenalty is set to the same as minimum stake
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
@@ -179,6 +185,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         operatorFactory = operatorFactoryAddress;
         voterRegistry = operatorFactoryAddress;
+    }
+
+    function setEarlyLeaverPenaltyWei(uint newEarlyLeaverPenaltyWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        earlyLeaverPenaltyWei = newEarlyLeaverPenaltyWei;
     }
 
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
