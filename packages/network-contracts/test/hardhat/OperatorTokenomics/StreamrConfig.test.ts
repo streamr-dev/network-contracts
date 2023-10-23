@@ -44,28 +44,29 @@ describe("StreamrConfig", (): void => {
             // In the beginning of onFlag, if the target doesn't have enough (unlocked) stake to pay for the review,
             //   then just kick them out immediately without slashing. No one gets paid, no one gets slashed.
             // The incentive for the flagger to do this is to increase their own share ;)
-            it.only("causes minimum-stakers to get kicked out without vote", async (): Promise<void> => {
+            it("causes minimum-stakers to get kicked out without vote", async (): Promise<void> => {
                 const { token, streamrConfig } = sharedContracts
                 const minimumStakeWei = await streamrConfig.minimumStakeWei()
-                const flagger = await deployOperator(operatorWallet, parseEther("10000"))
+                const flagger = await deployOperator(operatorWallet, parseEther("100000"))
                 const target = await deployOperator(operator2Wallet, minimumStakeWei)
 
                 const sponsorship = await deploySponsorship(sharedContracts)
                 await expect(token.transferAndCall(sponsorship.address, parseEther("1000"), "0x"))
                     .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("1000"))
-                await expect(flagger.stake(sponsorship.address, minimumStakeWei))
+                await expect(flagger.stake(sponsorship.address, parseEther("100000")))
                     .to.emit(flagger, "Staked").withArgs(sponsorship.address)
-                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, minimumStakeWei, "0", "0")
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("100000"), "0", "0")
+                await expect(target.stake(sponsorship.address, minimumStakeWei))
+                    .to.emit(target, "Staked").withArgs(sponsorship.address)
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, minimumStakeWei, "0", "0")
 
                 // raise the targetStakeAtRiskWei by raising minimum stake by setting higher reviewer rewards
-                expect(formatEther(minimumStakeWei)).to.equal("5000.0")
+                // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that `target` staked
                 await (await streamrConfig.setFlagReviewerRewardWei(parseEther("1000"))).wait()
-                // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that was staked
 
                 await expect(flagger.flag(sponsorship.address, target.address, "{}"))
                     .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
                     .to.not.emit(sponsorship, "Flagged")
-
             })
         })
     })
