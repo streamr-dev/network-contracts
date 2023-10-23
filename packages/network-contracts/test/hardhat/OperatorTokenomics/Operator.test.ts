@@ -645,19 +645,29 @@ describe("Operator contract", (): void => {
                 .to.not.emit(operator, "Staked")
         })
 
-        it("lets reduce stake to zero (unstake from all sponsorships, become 'inactive')", async function(): Promise<void> {
+        it("lets reduce stake to zero (unstake from all sponsorships, become non-voter)", async function(): Promise<void> {
             const { token } = sharedContracts
-            await setTokens(delegator, "2000")
+            await setTokens(operatorWallet, "20000000")
+            await setTokens(operator2Wallet, "20000000")
             const sponsorship = await deploySponsorship(sharedContracts)
             const { operator, contracts } = await deployOperator(operatorWallet)
-            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("20000000"), "0x")).wait()
+            await (await token.connect(operator2Wallet).transferAndCall(operator2.address, parseEther("20000000"), "0x")).wait()
+            const { operatorFactory } = contracts
 
-            await expect(operator.stake(sponsorship.address, parseEther("1000")))
-                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, true)
-            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("1000"))
+            await expect(operator.stake(sponsorship.address, parseEther("10000000")))
+                .to.emit(operatorFactory, "VoterUpdate").withArgs(operator.address, true)
+            await expect(operator2.stake(sponsorship.address, parseEther("10000000")))
+                .to.emit(operatorFactory, "VoterUpdate").withArgs(operator2.address, true)
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("10000000"))
+            expect(await operator2.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("10000000"))
+            expect(await operatorFactory.totalStakedWei()).to.equal(parseEther("20000000"))
 
+            await expect(operator.reduceStakeTo(sponsorship.address, parseEther("10000")))
+                .to.emit(operatorFactory, "VoterUpdate").withArgs(operator.address, false)
             await expect(operator.reduceStakeTo(sponsorship.address, 0))
-                .to.emit(contracts.operatorFactory, "VoterUpdate").withArgs(operator.address, false)
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
             expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(0)
         })
 
@@ -1509,7 +1519,7 @@ describe("Operator contract", (): void => {
             const { token } = sharedContracts
             await setTokens(delegator, "100")
             const { operator } = await deployOperator(operatorWallet)
-            
+
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
 
             await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
