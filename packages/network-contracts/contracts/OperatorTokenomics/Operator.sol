@@ -53,7 +53,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
-    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator, string flagMetadata);
+    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator, uint voteStartTimestamp, uint voteEndTimestamp, string flagMetadata);
 
     // operator admin events
     event NodesSet(address[] nodes);
@@ -642,7 +642,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             revert AccessDeniedStreamrSponsorshipOnly();
         }
         Sponsorship sponsorship = Sponsorship(msg.sender);
-        emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
+        uint voteStartTimestamp = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
+        uint voteEndTimestamp = voteStartTimestamp + streamrConfig.votingPeriodSeconds();
+        emit ReviewRequest(sponsorship, targetOperator, voteStartTimestamp, voteEndTimestamp, sponsorship.flagMetadataJson(targetOperator));
     }
 
     ////////////////////////////////////////
