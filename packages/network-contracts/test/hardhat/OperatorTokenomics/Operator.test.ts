@@ -1516,7 +1516,7 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
         })
 
-        it.only("undelegate when there was never a delegation, but transfer (not transferAndCall) of tokens", async function(): Promise<void> {
+        it("undelegate when there was never a delegation, but transfer (not transferAndCall) of tokens", async function(): Promise<void> {
             const { token } = sharedContracts
             await setTokens(delegator, "100")
             const { operator } = await deployOperator(operatorWallet)
