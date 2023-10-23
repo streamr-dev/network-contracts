@@ -1515,6 +1515,18 @@ describe("Operator contract", (): void => {
             await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
         })
+
+        it.only("undelegate when there was never a delegation, but transfer (not transferAndCall) of tokens", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+            
+            await (await token.connect(delegator).transfer(operator.address, parseEther("100"))).wait()
+
+            await (await operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256)).wait()
+
+            await expect(operator.payOutFirstInQueue()).to.not.throw
+        })
     })
 
     describe("Kick/slash handler", () => {

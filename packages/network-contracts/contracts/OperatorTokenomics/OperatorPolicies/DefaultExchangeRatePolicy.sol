@@ -22,7 +22,12 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
      * @return dataWei Amount of DATA token that would be received from the undelegation
      */
     function operatorTokenToData(uint operatorTokenWei) external view returns (uint dataWei) {
-        // don't guard here against this.totalSupply() == 0 because: no tokens in supply => nothing to undelegate => ?!
+        // guards against sending DATA to the operator contract without transferAndCall,
+        // so there is no totalSupply but non-zero valueWithoutEarnings
+        // also noone can get the DATA in that case, only operator by delegating first
+        if (this.totalSupply() == 0) {
+            return 0;
+        }
         return operatorTokenWei * valueWithoutEarnings() / this.totalSupply();
     }
 
