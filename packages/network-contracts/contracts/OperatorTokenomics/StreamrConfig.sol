@@ -17,9 +17,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     /**
      * Minimum amount to pay reviewers+flagger
      * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
+     * Round UP so that we're guaranteed to have enough to pay the reviewers+flagger
      */
     function minimumStakeWei() public view returns (uint) {
-        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
+        return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
     }
 
     /**
