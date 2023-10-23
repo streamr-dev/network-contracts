@@ -861,6 +861,39 @@ describe("VoteKickPolicy", (): void => {
             // left the sponsorship => lockedStakeWei is reset
             expect(formatEther(await sponsorship.lockedStakeWei(flagger.address))).to.equal("0.0")
         })
+
+        it("works with rounding errors from slashingFractions like 30%", async function(): Promise<void> {
+            const start = await getBlockTimestamp()
+            await (await contracts.streamrConfig.setSlashingFraction(parseEther("0.6"))).wait()
+
+            const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
+            expect(minimumStakeWei).to.equal("833333333333333333334")
+            
+            const {
+                token,
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [3], "one-of-each", {stakeAmountWei: minimumStakeWei})
+
+            // await (await flagger.unstake(sponsorship.address)).wait()
+            await (await token.connect(flagger.signer).transferAndCall(flagger.address, 
+                parseEther("500"), "0x")).wait()
+            await flagger.stake(sponsorship.address, parseEther("500"))
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("500"), 1, "{}")
+                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "{}")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
+                .to.emit(sponsorship, "FlagUpdate").withArgs(target.address, FlagState.VOTING, minimumStakeWei, 0, voter.address, minimumStakeWei)
+                .to.emit(sponsorship, "FlagUpdate").withArgs(target.address, FlagState.RESULT_KICK, minimumStakeWei, 0, AddressZero, 0)
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("500"))
+
+            expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
+        })
     })
 
     describe("Access control", (): void => {
