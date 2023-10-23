@@ -3,12 +3,11 @@ import { expect } from "chai"
 
 import type { BigNumber, Wallet } from "ethers"
 import type { StreamrConfig, Operator } from "../../../typechain"
-import { parseEther } from "ethers/lib/utils"
 import { TestContracts, deployTestContracts, deployStreamrConfig } from "./deployTestContracts"
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
 
-const { getSigners, getContractFactory } = hardhatEthers
+const { getSigners, getContractFactory, utils: { parseEther } } = hardhatEthers
 
 describe("StreamrConfig", (): void => {
     let admin: Wallet
@@ -50,7 +49,7 @@ describe("StreamrConfig", (): void => {
                 const flagger = await deployOperator(operatorWallet, parseEther("100000"))
                 const target = await deployOperator(operator2Wallet, minimumStakeWei)
 
-                const sponsorship = await deploySponsorship(sharedContracts)
+                const sponsorship = await deploySponsorship(sharedContracts, { allocationWeiPerSecond: parseEther("0") })
                 await expect(token.transferAndCall(sponsorship.address, parseEther("1000"), "0x"))
                     .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("1000"))
                 await expect(flagger.stake(sponsorship.address, parseEther("100000")))
@@ -64,9 +63,13 @@ describe("StreamrConfig", (): void => {
                 // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that `target` staked
                 await (await streamrConfig.setFlagReviewerRewardWei(parseEther("1000"))).wait()
 
+                // target is kicked out without a vote
                 await expect(flagger.flag(sponsorship.address, target.address, "{}"))
                     .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
                     .to.not.emit(sponsorship, "Flagged")
+
+                // check target got all their tokens back
+                expect(await token.balanceOf(target.address)).to.equal(minimumStakeWei)
             })
         })
     })
