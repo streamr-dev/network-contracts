@@ -8,7 +8,7 @@ import { TestContracts, deployTestContracts, deployStreamrConfig } from "./deplo
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
 
-const { getSigners, getContractFactory, utils: { formatEther } } = hardhatEthers
+const { getSigners, getContractFactory } = hardhatEthers
 
 describe("StreamrConfig", (): void => {
     let admin: Wallet
