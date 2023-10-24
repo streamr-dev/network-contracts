@@ -1525,6 +1525,22 @@ describe("Operator contract", (): void => {
             await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
         })
+
+        it("undelegate when there was never a delegation, but transfer (not transferAndCall) of tokens", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+
+            await (await token.connect(delegator).transfer(operator.address, parseEther("100"))).wait()
+
+            await (await operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256)).wait()
+
+            // queue item will be popped but nothing is sent out
+            await expect(operator.payOutFirstInQueue()).to.not.throw
+            expect(await operator.queueIsEmpty()).to.equal(true)
+            expect(await token.balanceOf(delegator.address)).to.equal(parseEther("0"))
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("100"))
+        })
     })
 
     describe("Kick/slash handler", () => {
