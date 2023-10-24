@@ -68,7 +68,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
         expect(resultDynamicIds.sponsoringEvents.length).to.equal(2) // sponsoring + slashing
 
-        expect(resultDynamicIds.stakingEvents.length).to.equal(5)
+        expect(resultDynamicIds.stakingEvents.length).to.equal(6)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.delegations.length).to.equal(3)
         expect(resultDynamicIds.operators.length).to.equal(3)
