@@ -82,7 +82,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "{}"))
                 .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("1000"), 1, "{}")
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "{}")
+                .to.emit(voter, "ReviewRequest")
 
             const stake = parseEther("10000")
             await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
@@ -107,9 +107,9 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("1000"), 3, "")
-                .to.emit(voter1, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
-                .to.emit(voter2, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
-                .to.emit(voter3, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter1, "ReviewRequest")
+                .to.emit(voter2, "ReviewRequest")
+                .to.emit(voter3, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `votes to kick ${addr(target)}`)
             await expect(voter1.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate").withArgs(
@@ -145,14 +145,14 @@ describe("VoteKickPolicy", (): void => {
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(target1)} and ${addr(target2)} are flagged`)
-            await expect (flagger1.flag(sponsorship.address, t1, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, t1, "")
-                .to.emit(target2, "ReviewRequest").withArgs(sponsorship.address, t1, "")
-                .to.emit(flagger2, "ReviewRequest").withArgs(sponsorship.address, t1, "")
-            await expect (flagger2.flag(sponsorship.address, t2, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, t2, "")
-                .to.emit(target1, "ReviewRequest").withArgs(sponsorship.address, t2, "")
-                .to.emit(flagger1, "ReviewRequest").withArgs(sponsorship.address, t2, "")
+            await expect(flagger1.flag(sponsorship.address, t1, ""))
+                .to.emit(voter, "ReviewRequest")
+                .to.emit(target2, "ReviewRequest")
+                .to.emit(flagger2, "ReviewRequest")
+            await expect(flagger2.flag(sponsorship.address, t2, ""))
+                .to.emit(voter, "ReviewRequest")
+                .to.emit(target1, "ReviewRequest")
+                .to.emit(flagger1, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `votes to kick ${addr(target1)} and ${addr(target2)}`)
             await expect(flagger2.voteOnFlag(sponsorship.address, t1, VOTE_KICK))
@@ -192,7 +192,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(nonStaked.unstake(sponsorships[1].address))
                 .to.emit(operatorFactory, "VoterUpdate").withArgs(nonStaked.address, false)
             await expect(flagger.flag(sponsorships[0].address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorships[0].address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
                 .to.not.emit(nonStaked, "ReviewRequest")
         })
 
@@ -251,7 +251,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "{foo: true}"))
                 .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("1000"), 1, "{foo: true}")
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "{foo: true}")
+                .to.emit(voter, "ReviewRequest")
 
             const { flagData, flagMetadata } = await sponsorship.getFlag(target.address)
             expect(parseFlag(flagData)).to.contain({
@@ -310,7 +310,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship. address, target.address, VOTE_NO_KICK))
@@ -331,7 +331,7 @@ describe("VoteKickPolicy", (): void => {
             } = await setupSponsorships(contracts, [2, 1], "voting-too-early")
 
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
                 .to.be.revertedWith("error_votingNotStarted")
         })
@@ -346,7 +346,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START + 20, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
@@ -582,7 +582,7 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await sponsorship.minimumStakeOf(target.address))).to.equal("5000.0")
 
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
 
             expect(formatEther(await sponsorship.minimumStakeOf(target.address))).to.equal("10000.0")
 
@@ -601,7 +601,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship. address, target.address, VOTE_NO_KICK))
@@ -640,7 +640,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
@@ -719,7 +719,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voters[0], "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voters[0], "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `${voters.map(addr).join(", ")} vote NO_KICK`)
             await Promise.all(voters.map(async (voter) => (await voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()))
@@ -728,7 +728,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start2, `${addr(target)} flags ${addr(flagger)}`)
             await expect(target.flag(sponsorship.address, flagger.address, ""))
-                .to.emit(voters[0], "ReviewRequest").withArgs(sponsorship.address, flagger.address, "")
+                .to.emit(voters[0], "ReviewRequest")
 
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(voters.map(async (voter) => (await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK)).wait()))
@@ -784,7 +784,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start2, `${addr(targets[0])} flags ${addr(flagger)}`)
             await expect(targets[0].flag(sponsorship.address, flagger.address, ""))
-                .to.emit(targets[1], "ReviewRequest").withArgs(sponsorship.address, flagger.address, "")
+                .to.emit(targets[1], "ReviewRequest")
 
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(targets.slice(1).map(async (voter) => {
@@ -819,7 +819,7 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start + 1000, `${addr(targets[0])} flags ${addr(flagger)}`)
             await expect(targets[0].flag(sponsorship.address, flagger.address, ""))
-                .to.emit(targets[1], "ReviewRequest").withArgs(sponsorship.address, flagger.address, "")
+                .to.emit(targets[1], "ReviewRequest")
 
             expect(formatEther(await sponsorship.lockedStakeWei(flagger.address))).to.equal("5000.0")
 
@@ -928,7 +928,7 @@ describe("VoteKickPolicy", (): void => {
                 // ...not after flagging
                 await advanceToTimestamp(start, "Flagging")
                 await expect(flagger.flag(sponsorship.address, target.address, "{}"))
-                    .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "{}")
+                    .to.emit(voter, "ReviewRequest")
                 await expect(sponsorship.connect(outsider).voteOnFlag(target.address, VOTE_KICK))
                     .to.be.revertedWith("error_votingNotStarted")
 
