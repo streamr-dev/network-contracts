@@ -63,14 +63,22 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
         require(stakedWei[target] > 0, "error_flagTargetNotStaked");
 
-        flaggerAddress[target] = flagger;
-        voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
-        voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds(); // solhint-disable-line not-rely-on-time
-
         // the flag target risks to lose a slashingFraction if the flag resolves to KICK
         // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid!
         targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) * streamrConfig.slashingFraction() / 1 ether;
         lockedStakeWei[target] += targetStakeAtRiskWei[target];
+
+        // this can happen if we raise the minimumStakeWei. It's not the target-operator's fault, so don't slash them for this flag, just kick them out.
+        if (lockedStakeWei[target] > stakedWei[target]) {
+            lockedStakeWei[target] -= targetStakeAtRiskWei[target]; // unlock this flag's stake to avoid slashing when kicking
+            delete targetStakeAtRiskWei[target];
+            _kick(target, 0);
+            return;
+        }
+
+        flaggerAddress[target] = flagger;
+        voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
+        voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds();
 
         // cache these just in case the config changes during the flag
         flagStakeWei[target] = streamrConfig.flagStakeWei();
@@ -82,6 +90,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         IVoterRegistry voterRegistry = IVoterRegistry(streamrConfig.voterRegistry());
         uint voterCount = voterRegistry.voterCount();
+        require(voterCount > 0, "error_noEligibleVoters");
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
         // uint maxIterations = streamrConfig.flagReviewerSelectionIterations(); // avoid "stack too deep"
 
