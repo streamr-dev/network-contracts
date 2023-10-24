@@ -21,16 +21,12 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     let newBalance = event.params.balanceWei
     let totalSupply = event.params.totalSupplyWei
     let valueWithoutEarnings = event.params.dataValueWithoutEarnings
-    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={}', [operatorContractAddress, event.block.number.toString()])
-    log.info('handleBalanceUpdate: delegator={} balanceWei={} totalSupplyWei={}', [
-        delegatorAddress, newBalance.toString(), totalSupply.toString()
+    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={} delegatorAddress={} newBalance={} totalSupply={} valueWithoutEarnings={}', [
+        operatorContractAddress, event.block.number.toString(), delegatorAddress, newBalance.toString(), totalSupply.toString(), valueWithoutEarnings.toString()
     ])
 
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.operatorTokenTotalSupplyWei = totalSupply
-    log.info('handleBalanceUpdate 1: operatorTokenTotalSupplyWei={} exchangeRate={}', [
-        operator.operatorTokenTotalSupplyWei.toString(), operator.exchangeRate.toString()
-    ])
     operator.exchangeRate = totalSupply.gt(BigInt.zero())
         ? valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
         : BigInt.fromU32(1).toBigDecimal()
@@ -40,15 +36,11 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         .plus(BigDecimal.fromString("0.0000001")).toString().split('.')[0]
     let newBalanceDataWei = BigInt.fromString(newBalanceData)
 
-    log.info('handleBalanceUpdate 1: operatorTokenTotalSupplyWei={} exchangeRate={} newBalanceDataWei={}', [
-        operator.operatorTokenTotalSupplyWei.toString(), operator.exchangeRate.toString(), newBalanceDataWei.toString()
-    ])
     let delegator = loadOrCreateDelegator(delegatorAddress)
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegatorAddress, event.block.timestamp)
     // delegation is new
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
-        log.info("handleBalanceUpdate: new delegation", [])
         delegation.operatorTokenBalanceWei = newBalance
         let delegations = delegator.delegations
         delegations.push(delegation.id)
@@ -58,10 +50,8 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     }
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
-        log.info("handleBalanceUpdate: delegation updated", [])
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
         delegation.valueDataWei = newBalanceDataWei
-        log.info('handleBalanceUpdate: Delegation saved id={}', [delegation.id])
         delegatorDailyBucket.delegator = delegatorAddress
         delegatorDailyBucket.totalValueDataWei = newBalanceDataWei
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
@@ -75,7 +65,6 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         operator.delegatorCount = operator.delegatorCount - 1
         let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
         operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange - 1
-        log.info('handleBalanceUpdate: Delegation removed id={}', [delegation.id])
         operatorBucket.save()
     }
     operator.save()
