@@ -345,8 +345,8 @@ describe("Operator contract", (): void => {
             await expect(operator.undelegate(parseEther("10")))
                 .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("10"))
             await expect(operator.transfer(delegator.address, parseEther("10")))
-                .to.emit(operator, "BalanceUpdate").withArgs(operatorWallet.address, parseEther("80"), parseEther("290"))
-                .to.emit(operator, "BalanceUpdate").withArgs(delegator.address, parseEther("210"), parseEther("290"))
+                .to.emit(operator, "BalanceUpdate").withArgs(operatorWallet.address, parseEther("80"), parseEther("290"), parseEther("290"))
+                .to.emit(operator, "BalanceUpdate").withArgs(delegator.address, parseEther("210"), parseEther("290"), parseEther("290"))
         })
 
         // streamrConfig.minimumDelegationWei = 1 DATA
