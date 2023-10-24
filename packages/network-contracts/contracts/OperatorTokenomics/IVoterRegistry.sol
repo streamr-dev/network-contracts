@@ -6,8 +6,7 @@ pragma solidity ^0.8.0;
 interface IVoterRegistry {
     event VoterUpdate(address voterAddress, bool isVoter);
 
-    function registerAsVoter() external;
-    function registerAsNonVoter() external;
+    function updateStake(uint newStakeWei) external;
 
     function voterCount() external view returns (uint);
     function voters(uint index) external view returns (address);

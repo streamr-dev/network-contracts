@@ -20,17 +20,16 @@ contract StakeModule is IStakeModule, Operator {
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
         totalStakedIntoSponsorshipsWei += amountWei;
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
 
         if (indexOfSponsorships[sponsorship] == 0) { // initial staking in a new sponsorship
             sponsorships.push(sponsorship);
             indexOfSponsorships[sponsorship] = sponsorships.length; // real array index + 1
-            if (sponsorships.length == 1) {
-                try IVoterRegistry(streamrConfig.voterRegistry()).registerAsVoter() {} catch {}
-            }
             emit Staked(sponsorship);
         }
+
+        IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei);
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
@@ -41,8 +40,9 @@ contract StakeModule is IStakeModule, Operator {
         }
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
-        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         totalStakedIntoSponsorshipsWei -= cashoutWei;
+        IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei);
+        emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
@@ -91,9 +91,6 @@ contract StakeModule is IStakeModule, Operator {
         sponsorships.pop();
         indexOfSponsorships[lastSponsorship] = index + 1; // indexOfSponsorships is the real array index + 1
         delete indexOfSponsorships[sponsorship];
-        if (sponsorships.length == 0) {
-            try IVoterRegistry(streamrConfig.voterRegistry()).registerAsNonVoter() {} catch {}
-        }
 
         // remove from stake/slashing tracking
         stakedInto[sponsorship] = 0;
@@ -101,6 +98,7 @@ contract StakeModule is IStakeModule, Operator {
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
     }
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
