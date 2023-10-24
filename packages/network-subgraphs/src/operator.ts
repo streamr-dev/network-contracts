@@ -42,9 +42,6 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     // delegation is new
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
         delegation.operatorTokenBalanceWei = newBalance
-        let delegations = delegator.delegations
-        delegations.push(delegation.id)
-        delegator.delegations = delegations
         operator.delegatorCount = operator.delegatorCount + 1
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
     }
