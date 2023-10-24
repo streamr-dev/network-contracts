@@ -228,7 +228,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
 
     function updateStake(uint newStakeWei) public {
         address operator = _msgSender();
-        console.log("updateStake", operator, newStakeWei);
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
         totalStakedWei = totalStakedWei - stakedWei[operator] + newStakeWei;
