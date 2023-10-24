@@ -33,6 +33,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     error NotDelegationPolicy();
     error NotExchangeRatePolicy();
     error NotUndelegationPolicy();
+    error AccessDeniedDATATokenOnly();
 
     address public operatorTemplate;
     address public nodeModuleTemplate;
@@ -125,6 +126,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,

@@ -10,7 +10,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /** Stake DATA tokens from this contract's DATA balance into Sponsorships. */
     function _stake(Sponsorship sponsorship, uint amountWei) external {
-        if(SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
             revert AccessDeniedStreamrSponsorshipOnly();
         }
         if (!queueIsEmpty()) {
@@ -121,7 +121,6 @@ contract StakeModule is IStakeModule, Operator {
      *  2) to delegators: leave (earnings - protocol fee - operator's cut) to this contract's DATA balance as profit, inflating the operator token value, and finally
      *  3) to operator: leave operatorsCutFraction * (earnings - protocol fee) to this contract's DATA balance as operator's cut,
      *                  paid in self-delegation (by minting operator tokens to Operator)
-     * If the operator is penalized for too much earnings, a fraction will be deducted from the operator's cut and sent to operatorsCutSplitRecipient
      * @param earningsDataWei income to be processed, in DATA
      **/
     function _splitEarnings(uint earningsDataWei) public {

@@ -15,6 +15,7 @@ import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 const {
     getSigners,
     getContractFactory,
+    constants: { AddressZero },
     utils: { parseEther, formatEther, hexZeroPad }
 } = hardhatEthers
 
@@ -287,6 +288,27 @@ describe("Operator contract", (): void => {
             await setTokens(operatorWallet, "1000")
 
             const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+
+            // after the transfer, operator should have 600 operator tokens, but has only 500
+            await expect(operator.transfer(delegator.address, parseEther("500")))
+                .to.be.revertedWith("error_selfDelegationTooLow")
+
+            // equivalent action in 3 parts: undelegate, transfer DATA, then delegator delegates it
+            await expect(operator.undelegate(parseEther("500")))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
+            await expect(token.connect(operatorWallet).transfer(delegator.address, parseEther("500")))
+            await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x"))
+                .to.be.revertedWith("error_selfDelegationTooLow")
+        })
+
+        // undelegation policy would do this check
+        it("will NOT allow transfer if normal delegation wouldn't be allowed (no undelegation policy)", async (): Promise<void> => {
+            const { token, streamrConfig } = sharedContracts
+            await (await streamrConfig.setMinimumSelfDelegationFraction(parseEther("0.6"))).wait()
+            await setTokens(operatorWallet, "1000")
+
+            const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: AddressZero })
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
 
             // after the transfer, operator should have 600 operator tokens, but has only 500
@@ -653,14 +675,14 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("5000")) // StreamrConfig.earlyLeaverPenaltyWei
             await expect(operator.forceUnstake(sponsorship.address, 0))
                 .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
-                .to.emit(operator, "Loss").withArgs(parseEther("100"))
-                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("100"), parseEther("100"), parseEther("100"))
+                .to.emit(operator, "Loss").withArgs(parseEther("1000"))
+                .to.emit(operator, "OperatorSlashed").withArgs(parseEther("1000"), parseEther("1000"), parseEther("1000"))
 
             // leave penalty goes to the protocol
-            expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("100.0")
+            expect(formatEther(await token.balanceOf(protocolFeeBeneficiary.address))).to.equal("1000.0")
         })
 
         it("if operator has no self-delegation, it won't get slashed for losses either", async function(): Promise<void> {
@@ -676,10 +698,10 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1000")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.unstake(sponsorship.address))
-                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("100"))
+                .to.be.revertedWithCustomError(sponsorship, "LeavePenalty").withArgs(parseEther("5000"))
             await expect(operator.forceUnstake(sponsorship.address, 0))
                 .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
-                .to.emit(operator, "Loss").withArgs(parseEther("100"))
+                .to.emit(operator, "Loss").withArgs(parseEther("1000"))
                 .to.not.emit(operator, "OperatorSlashed")
         })
 
@@ -1482,6 +1504,17 @@ describe("Operator contract", (): void => {
             expect(formatEther(contractBalanceAfterDelegate)).to.equal("100.5")
             expect(formatEther(contractBalanceAfterUndelegate)).to.equal("0.0")
         })
+
+        it("undelegate completely if the amount is max uint256", async function(): Promise<void> {
+            const { token } = sharedContracts
+            await setTokens(delegator, "100")
+            const { operator } = await deployOperator(operatorWallet)
+
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
+
+            await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
+        })
     })
 
     describe("Kick/slash handler", () => {
@@ -1615,7 +1648,7 @@ describe("Operator contract", (): void => {
             const { operator } = await deployOperator(operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
             const penaltyPeriodSeconds = 60 // trigger penalty check e.g. `block.timestamp >= joinTimestamp + penaltyPeriodSeconds`
-            const allocationWeiPerSecond = parseEther("0") // avoind earnings additions
+            const allocationWeiPerSecond = parseEther("0") // avoid earnings additions
             const sponsorship1 = await deploySponsorship(sharedContracts, { penaltyPeriodSeconds, allocationWeiPerSecond })
             await (await token.connect(sponsor).transferAndCall(sponsorship1.address, parseEther("60"), "0x")).wait()
             const sponsorship2 = await deploySponsorship(sharedContracts)
@@ -1625,14 +1658,14 @@ describe("Operator contract", (): void => {
             const totalStakeInSponsorshipsBeforeSlashing = await operator.totalStakedIntoSponsorshipsWei()
             const valueBeforeSlashing = await operator.valueWithoutEarnings()
 
-            await (await operator.forceUnstake(sponsorship1.address, parseEther("1000"))).wait()
+            await (await operator.forceUnstake(sponsorship1.address, "10")).wait()
             const totalStakeInSponsorshipsAfterSlashing = await operator.totalStakedIntoSponsorshipsWei()
             const valueAfterSlashing = await operator.valueWithoutEarnings()
 
             expect(totalStakeInSponsorshipsBeforeSlashing).to.equal(parseEther("2000"))
             expect(valueBeforeSlashing).to.equal(parseEther("2000"))
             expect(totalStakeInSponsorshipsAfterSlashing).to.equal(parseEther("1000"))
-            expect(valueAfterSlashing).to.equal(parseEther("1900"))
+            expect(valueAfterSlashing).to.equal(parseEther("1000"))
         })
 
         it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
@@ -1756,7 +1789,7 @@ describe("Operator contract", (): void => {
 
             await (await flagger.setNodeAddresses([await flagger.owner()])).wait()
             await expect(flagger.flag(sponsorship.address, target.address, ""))
-                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, "")
+                .to.emit(voter, "ReviewRequest").withArgs(sponsorship.address, target.address, start + 3604, start + 4504, "")
 
             await advanceToTimestamp(start + VOTE_START, "Voting starts")
             await (await voter.setNodeAddresses([])).wait()

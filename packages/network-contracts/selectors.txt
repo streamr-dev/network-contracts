@@ -494,6 +494,7 @@ fbc1f718: updateTemplate(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 
 Error signatures:
+231b3ae2: AccessDeniedDATATokenOnly()
 6d75c207: AllocationPolicyRequired()
 1739bb9a: BadArguments()
 2cc6b17b: PolicyNotTrusted()
@@ -517,6 +518,7 @@ Function signatures:
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
 f72c0d8b: UPGRADER_ROLE()
+6aac44e9: earlyLeaverPenaltyWei()
 6c29b3b7: fishermanRewardFraction()
 6abd9e41: flagProtectionSeconds()
 9ce68dc3: flagReviewerCount()
@@ -543,6 +545,7 @@ a224c198: randomOracle()
 36568abe: renounceRole(bytes32,address)
 b18dccc2: reviewPeriodSeconds()
 d547741f: revokeRole(bytes32,address)
+ae5a9afe: setEarlyLeaverPenaltyWei(uint256)
 bbb23c3f: setFishermanRewardFraction(uint256)
 4022fd5c: setFlagProtectionSeconds(uint256)
 66ba24f3: setFlagReviewerCount(uint256)
