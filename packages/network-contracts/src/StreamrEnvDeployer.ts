@@ -132,7 +132,8 @@ export class StreamrEnvDeployer {
         const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // flagger
         const operator3 = await this.deployOperatorContract(this.preloadedDATAWallets[3]) // target
 
-        await this.flagAndVote(operator2, operator3, this.operator!)
+        await this.flagVoteWithdraw(operator2, operator3, this.operator!)
+
     }
 
     async deployToken(): Promise<void> {
@@ -499,7 +500,7 @@ export class StreamrEnvDeployer {
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
 
-    async flagAndVote(flagger: Operator, target: Operator, voter: Operator): Promise<void> {
+    async flagVoteWithdraw(flagger: Operator, target: Operator, voter: Operator): Promise<void> {
         const { streamrConfig } = this.contracts
         log(`Flagging and kicking ${target.address} from ${this.sponsorship!.address}...`)
 
@@ -513,6 +514,8 @@ export class StreamrEnvDeployer {
         log(`    ${voter.address} voted to kick ${target.address} in ${this.sponsorship!.address}`)
 
         await (await streamrConfig.setReviewPeriodSeconds(oldReviewPeriod)).wait()
+
+        await (await voter.withdrawEarningsFromSponsorships([this.sponsorship!.address])).wait()
     }
 
     async preloadDATAToken(): Promise<void> {
