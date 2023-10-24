@@ -82,6 +82,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         IVoterRegistry voterRegistry = IVoterRegistry(streamrConfig.voterRegistry());
         uint voterCount = voterRegistry.voterCount();
+        require(voterCount > 0, "error_noEligibleVoters");
         uint maxReviewerCount = streamrConfig.flagReviewerCount();
         // uint maxIterations = streamrConfig.flagReviewerSelectionIterations(); // avoid "stack too deep"
 
