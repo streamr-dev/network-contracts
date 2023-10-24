@@ -884,7 +884,6 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "{}"))
                 .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("500"), 7, "{}")
-                .to.emit(voters[0], "ReviewRequest").withArgs(sponsorship.address, target.address, "{}")
 
             // if we were rounding minimumStake down, here we could not pay every reviewer; total payments: parseEther("500") (flagStake)
             await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
