@@ -861,6 +861,45 @@ describe("VoteKickPolicy", (): void => {
             // left the sponsorship => lockedStakeWei is reset
             expect(formatEther(await sponsorship.lockedStakeWei(flagger.address))).to.equal("0.0")
         })
+
+        it("works with rounding errors from slashingFractions like 30%", async function(): Promise<void> {
+            const start = await getBlockTimestamp()
+            await (await contracts.streamrConfig.setSlashingFraction(parseEther("0.6"))).wait()
+
+            const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
+            expect(minimumStakeWei).to.equal("833333333333333333334") // if we were rounding minimumStake down: 83...33
+
+            const {
+                token,
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, ...voters ]
+            } = await setupSponsorships(contracts, [9], "one-of-each", { stakeAmountWei: minimumStakeWei })
+
+            // await (await flagger.unstake(sponsorship.address)).wait()
+            // flagger needs to add flagStakeWei more to be able to flag
+            await (await token.connect(flagger.signer).transferAndCall(flagger.address, parseEther("500"), "0x")).wait()
+            await flagger.stake(sponsorship.address, parseEther("500"))
+
+            // if we were rounding minimumStake down, we'd lock too little stake: parseEther("500").sub(1)
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("500"), 7, "{}")
+
+            // if we were rounding minimumStake down, here we could not pay every reviewer; total payments: parseEther("500") (flagStake)
+            await advanceToTimestamp(start + VOTE_START, `${addr(flagger)} votes to kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[3].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[4].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[5].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await expect(voters[6].voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
+                .to.emit(sponsorship, "FlagUpdate").withArgs(target.address, FlagState.RESULT_KICK, minimumStakeWei.mul(7), 0, AddressZero, 0)
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("500"))
+
+            expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
+        })
     })
 
     describe("Access control", (): void => {
