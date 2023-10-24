@@ -230,7 +230,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address operator = _msgSender();
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
-        totalStakedWei = totalStakedWei - stakedWei[operator] + newStakeWei;
+        totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
         stakedWei[operator] = newStakeWei;
 
         uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
