@@ -332,7 +332,8 @@ type OperatorDailyBucket @entity {
 
 # Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
-  id: ID! # 0xoperatorAddress-0xdelegatorAddress
+  "0xoperatorAddress-0xdelegatorAddress"
+  id: ID!
   operator: Operator!
   delegator: Delegator!
 
