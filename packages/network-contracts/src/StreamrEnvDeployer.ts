@@ -346,7 +346,7 @@ export class StreamrEnvDeployer {
         await sponsorshipFactory.deployed()
         await (await sponsorshipFactory.initialize(
             sponsorshipTemplate.address,
-            token.address,
+            this.addresses.DATA,
             streamrConfig.address
         )).wait()
 
@@ -358,7 +358,7 @@ export class StreamrEnvDeployer {
         this.contracts.sponsorshipFactory = sponsorshipFactory
         log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
 
-        await (await token.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
+        await (await this.contracts.DATA.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
     }
 

@@ -51,9 +51,9 @@ async function deploy() {
     const deployerWallet = new Wallet(key, provider)
     const streamrEnvDeployer = new StreamrEnvDeployer(key, url)
 
-    await streamrEnvDeployer.deployToken()
+    // await streamrEnvDeployer.deployToken()
 
-    const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
+    // const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
     await streamrEnvDeployer.deployEnvironment({ deployToken: false })
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
@@ -61,11 +61,11 @@ async function deploy() {
 
     console.log(JSON.stringify(streamrEnvDeployer.addresses, null, 4))
 
-    console.log("Deploying Hub contracts...")
-    const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 80001)
-    await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
+    // console.log("Deploying Hub contracts...")
+    // const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 80001)
+    // await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
 
-    console.log(JSON.stringify(hubDeployer.addresses, null, 4))
+    // console.log(JSON.stringify(hubDeployer.addresses, null, 4))
 
     // deploy a data union to populate the subgraph
     // const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
@@ -98,7 +98,7 @@ async function deploy() {
 
     const contractAddresses = {
         ...streamrEnvDeployer.addresses,
-        ...hubDeployer.addresses,
+        // ...hubDeployer.addresses,
         // DataUnionFactory: dataUnionFactory.address,
         // DataUnionTemplate: dataUnionTemplate.address,
     }
