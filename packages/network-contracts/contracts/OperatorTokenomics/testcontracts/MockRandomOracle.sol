@@ -3,6 +3,10 @@ pragma solidity ^0.8.13;
 
 import "../IRandomOracle.sol";
 
+// use this file to generate selectors.txt => include "top of inheritance-chain contracts" here
+import "../SponsorshipFactory.sol";
+import "../OperatorFactory.sol";
+
 contract MockRandomOracle is IRandomOracle {
     bytes32[] public outcomes = [ bytes32(0x1234567812345678123456781234567812345678123456781234567812345678) ];
     uint public index = 0;
