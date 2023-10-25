@@ -227,7 +227,7 @@ type ProjectStakingDayBucket @entity {
 type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
-  delegators: [Delegation!]! @derivedFrom(field: "operator")
+  delegations: [Delegation!]! @derivedFrom(field: "operator")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "operator")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "operator")
   raisedFlags: [Flag!]! @derivedFrom(field: "flagger")
@@ -334,17 +334,31 @@ type OperatorDailyBucket @entity {
 type Delegation @entity {
   "0xoperatorAddress-0xdelegatorAddress"
   id: ID!
-  operator: Operator
-  delegator: String!
+  operator: Operator!
+  delegator: Delegator!
 
   "Amount of internal Operator tokens this delegator holds"
   operatorTokenBalanceWei: BigInt!
 
-  "Amount of DATA tokens this delegator has moved into the Operator contract"
-  delegatedDataWei: BigInt!
+  "DATA value of the Operator tokens this delegator holds"
+  valueDataWei: BigInt!
+}
 
-  "Amount of DATA tokens this delegator has moved out of the Operator contract"
-  undelegatedDataWei: BigInt!
+type Delegator @entity {
+  id: ID! # delegator address
+  delegations: [Delegation!]! @derivedFrom(field: "delegator")
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
+  numberOfDelegations: Int!
+  totalValueDataWei: BigInt!
+}
+
+type DelegatorDailyBucket @entity {
+  id: ID! # delegator address + date
+  delegator: Delegator!
+  date: BigInt!
+  totalValueDataWei: BigInt!
+  operatorCount: Int!
+  cumulativeEarningsWei: BigInt!
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
@@ -466,7 +480,7 @@ type QueueEntry @entity {
   operator: Operator!
   amount: BigInt!
   date: BigInt!
-  delegator: String!
+  delegator: Delegator!
 }
 
 # Plain events, saved "as-is". TODO: do we need and want them? Will they be expensive in the new decentralized subgraph?

@@ -39,7 +39,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei); // Operator token tracking event
+    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
     event QueuedDataPayout(address delegator, uint amountWei, uint queueIndex);
     event QueueUpdated(address delegator, uint amountWei, uint queueIndex);
 
@@ -53,7 +53,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
-    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator, string flagMetadata);
+    event ReviewRequest(Sponsorship indexed sponsorship, address indexed targetOperator, uint voteStartTimestamp, uint voteEndTimestamp, string flagMetadata);
 
     // operator admin events
     event NodesSet(address[] nodes);
@@ -237,7 +237,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (newOperatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(newOperatorsCutFraction); }
 
         operatorsCutFraction = newOperatorsCutFraction;
-        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
+        emit MetadataUpdated(metadata, owner, newOperatorsCutFraction);
     }
 
     /////////////////////////////////////////
@@ -283,7 +283,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * Final step of delegation: mint new Operator tokens
+     * Final step of delegation: mint new Operator tokens and do minimum-delegation and self-delegation checks
      * NOTE: This function must be called *AFTER* the DATA tokens have already been transferred
      * @param delegator who receives the new operator tokens
      * @param amountDataWei how many DATA tokens were transferred
@@ -309,18 +309,18 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function _mintOperatorTokensWorth(address delegator, uint amountDataWei) internal {
         uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
         _mint(delegator, amountOperatorToken);
-        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply());
+        emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
     }
 
     /**
      * Add the request to undelegate into the undelegation queue. When new earnings arrive, they will be used to pay out the queue in order.
-     * It's all call `undelegate` with any `amountWei`, the actual amount is decided when it's your turn, and will be capped to the actual balance at the time.
+     * Can call `undelegate` with any `amountDataWei` but the actual amount will be capped to the actual DATA value of delegation at the time of queue payout.
      * NOTE: "Undelegate all" request can be made by calling this function e.g. like so: `operator.undelegate(maxUint256)`,
      *       where `maxUint256 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF` (or `2**256 - 1`).
-     * @param amountWei of operator tokens to convert back to DATA. Can be more than the balance; then all operator tokens are undelegated.
+     * @param amountDataWei of requested undelegation. Can be more than the DATA value of delegation; then all of delegation is sent out (all operator tokens burned).
      **/
-    function undelegate(uint amountWei) public {
-        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountWei, _msgSender()));
+    function undelegate(uint amountDataWei) public {
+        moduleCall(address(queueModule), abi.encodeWithSelector(queueModule._undelegate.selector, amountDataWei, _msgSender()));
     }
 
     /**
@@ -335,10 +335,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Operator tokens transfer restrictions: operator tokens represent delegations, and so can't be completely freely transferred,
      *   since there are restrictions to joining and leaving the delegator group.
-     * Transferring tokens between delegators does however make it possible to skip the undelegation queue, if you can find a buyer for your delegations.
-     * @param from delegator that sends operator tokens
+     * Transferring tokens between delegators does however make it possible to skip the undelegation queue, if you can find a buyer for your operator tokens.
+     * @param from delegator that sends the operator tokens
      * @param to recipient who either should be already a delegator, or else normal delegation checks are applied (operator has enough self-delegation)
-     * @param amount operator tokens to transfer
+     * @param amount operator tokens to transfer (in "wei", i.e. 1 token = 1e18 wei)
     */
     function _transfer(address from, address to, uint amount) internal override {
         bool newDelegatorCreated = balanceOf(to) == 0;
@@ -368,8 +368,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             moduleCall(address(undelegationPolicy), abi.encodeWithSelector(undelegationPolicy.onUndelegate.selector, from, 0));
         }
 
-        emit BalanceUpdate(from, balanceOf(from), totalSupply());
-        emit BalanceUpdate(to, balanceOf(to), totalSupply());
+        emit BalanceUpdate(from, balanceOf(from), totalSupply(), valueWithoutEarnings());
+        emit BalanceUpdate(to, balanceOf(to), totalSupply(), valueWithoutEarnings());
     }
 
     /////////////////////////////////////////
@@ -477,7 +477,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint burnAmountWei = min(selfDelegation, amountOperatorTokens);
         _burn(owner, burnAmountWei);
         emit OperatorSlashed(amountDataWei, amountOperatorTokens, burnAmountWei);
-        emit BalanceUpdate(owner, balanceOf(owner), totalSupply());
+        emit BalanceUpdate(owner, balanceOf(owner), totalSupply(), valueWithoutEarnings());
     }
 
     /**
@@ -643,7 +643,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             revert AccessDeniedStreamrSponsorshipOnly();
         }
         Sponsorship sponsorship = Sponsorship(msg.sender);
-        emit ReviewRequest(sponsorship, targetOperator, sponsorship.flagMetadataJson(targetOperator));
+        uint voteStartTimestamp = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
+        uint voteEndTimestamp = voteStartTimestamp + streamrConfig.votingPeriodSeconds();
+        emit ReviewRequest(sponsorship, targetOperator, voteStartTimestamp, voteEndTimestamp, sponsorship.flagMetadataJson(targetOperator));
     }
 
     ////////////////////////////////////////

@@ -58,7 +58,7 @@ describe("docker image integration test", () => {
                 id
             }
             delegations {
-                delegatedDataWei
+                valueDataWei
                 operatorTokenBalanceWei
             }
         }
@@ -68,7 +68,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
         expect(resultDynamicIds.sponsoringEvents.length).to.equal(2) // sponsoring + slashing
 
-        expect(resultDynamicIds.stakingEvents.length).to.equal(5)
+        expect(resultDynamicIds.stakingEvents.length).to.equal(6)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.delegations.length).to.equal(3)
         expect(resultDynamicIds.operators.length).to.equal(3)
@@ -77,7 +77,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.streams.length).to.equal(5)
         expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3 operators + 9?
 
-        expect(resultDynamicIds.delegations[0].delegatedDataWei).to.equal("5003000000000000000000")
+        expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
         expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
     })
 

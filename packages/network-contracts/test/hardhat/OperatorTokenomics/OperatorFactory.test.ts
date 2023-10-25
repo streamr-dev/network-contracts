@@ -156,6 +156,38 @@ describe("OperatorFactory", function(): void {
             .to.be.reverted
     })
 
+    it("transferAndCall reverts for wrong token", async function(): Promise<void> {
+        const {
+            operatorFactory,
+            defaultDelegationPolicy,
+            defaultExchangeRatePolicy,
+            defaultUndelegationPolicy
+        } = await deployTestContracts(deployer)
+        const wrongToken = await (await getContractFactory("TestToken", { deployer })).deploy("TestToken", "TEST")
+        await (await wrongToken.mint(deployer.address, parseEther("1000"))).wait()
+        const operatorsCutFraction = parseEther("0.1")
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[3]", "uint[3]"],
+            [
+                operatorsCutFraction,
+                "TransferAndCallWrongToken",
+                "{}",
+                [
+                    defaultDelegationPolicy.address,
+                    defaultExchangeRatePolicy.address,
+                    defaultUndelegationPolicy.address
+                ],
+                [
+                    0,
+                    0,
+                    0
+                ]
+            ]
+        )
+
+        await expect(wrongToken.connect(deployer).transferAndCall(operatorFactory.address, parseEther("1000"), data))
+            .to.be.revertedWithCustomError(operatorFactory, "AccessDeniedDATATokenOnly")
+    })
+
     it("predicts the correct address for a new operator contract", async function(): Promise<void> {
         const contracts = await deployTestContracts(deployer)
         const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("PredictTest")
@@ -288,13 +320,8 @@ describe("OperatorFactory", function(): void {
         ).to.be.revertedWithCustomError(operatorFactory, "PolicyNotTrusted")
     })
 
-    it("only operators can register as voters", async function(): Promise<void> {
+    it("only operators can update their stake to the IVoterRegistry", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsVoter()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
-    })
-
-    it("only operators can register as non-voters", async function(): Promise<void> {
-        const { operatorFactory } = sharedContracts
-        await expect(operatorFactory.registerAsNonVoter()).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
+        await expect(operatorFactory.updateStake(parseEther("1"))).to.revertedWithCustomError(operatorFactory, "OnlyOperators")
     })
 })

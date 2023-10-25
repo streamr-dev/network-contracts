@@ -141,6 +141,27 @@ describe("SponsorshipFactory", () => {
         expect(newSponsorshipEvent.args.streamId).to.equal(streamId)
     })
 
+    it("transferAndCall reverts for wrong token", async function(): Promise<void> {
+        const { allocationPolicy, leavePolicy, sponsorshipFactory, deployer, streamRegistry } = contracts
+        const wrongToken = await (await getContractFactory("TestToken", { deployer })).deploy("TestToken", "TEST")
+        await (await wrongToken.mint(deployer.address, parseEther("1000"))).wait()
+
+        const streamId = await createStream(deployer.address, streamRegistry)
+        const data = defaultAbiCoder.encode(["uint", "string", "string", "address[]", "uint[]"],
+            [1, streamId, "{}", [
+                allocationPolicy.address,
+                leavePolicy.address,
+                "0x0000000000000000000000000000000000000000",
+            ], [
+                "2000000000000000000",
+                "0",
+                "0",
+            ]]
+        )
+        await expect(wrongToken.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
+            .to.be.revertedWithCustomError(contracts.sponsorshipFactory, "AccessDeniedDATATokenOnly")
+    })
+
     it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
         const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)

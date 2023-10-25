@@ -1,6 +1,8 @@
 import { BigDecimal, BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
 import {
     Delegation,
+    Delegator,
+    DelegatorDailyBucket,
     Operator,
     OperatorDailyBucket,
     Project,
@@ -170,8 +172,7 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation = new Delegation(delegationId)
         delegation.operator = operatorContractAddress
         delegation.delegator = delegator
-        delegation.delegatedDataWei = BigInt.zero()
-        delegation.undelegatedDataWei = BigInt.zero()
+        delegation.valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
 
         // creating a Delegation means a new delegator has joined the operator => increase delegator count
@@ -185,6 +186,33 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
     }
 
     return delegation
+}
+
+export function loadOrCreateDelegator(delegator: string): Delegator {
+    let delegatorEntity = Delegator.load(delegator)
+    log.info("loadOrCreateDelegator: delegator={}", [delegator])
+    if (delegatorEntity == null) {
+        log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
+        delegatorEntity = new Delegator(delegator)
+        delegatorEntity.numberOfDelegations = 0
+        delegatorEntity.totalValueDataWei = BigInt.zero()
+    }
+    return delegatorEntity
+}
+
+export function loadOrCreateDelegatorDailyBucket(delegator: string, timestamp: BigInt): DelegatorDailyBucket {
+    let date = getBucketStartDate(timestamp)
+    let bucketId = delegator + "-" + date.toString()
+    let bucket = DelegatorDailyBucket.load(bucketId)
+    if (bucket == null) {
+        bucket = new DelegatorDailyBucket(bucketId)
+        bucket.delegator = delegator
+        bucket.date = date
+        bucket.totalValueDataWei = BigInt.zero()
+        bucket.operatorCount = 0
+        bucket.cumulativeEarningsWei = BigInt.zero()
+    }
+    return bucket
 }
 
 export function getBucketStartDate(timestamp: BigInt): BigInt {

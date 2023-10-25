@@ -33,6 +33,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     error NotDelegationPolicy();
     error NotExchangeRatePolicy();
     error NotUndelegationPolicy();
+    error AccessDeniedDATATokenOnly();
 
     address public operatorTemplate;
     address public nodeModuleTemplate;
@@ -52,6 +53,9 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
 
     /** Owner of the Operator contract */
     mapping (address => address) public operators; // operator wallet => Operator contract address
+
+    uint public totalStakedWei; // global total stake in Sponsorships
+    mapping (address => uint) public stakedWei; // each Operator.totalStakedWei
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -125,6 +129,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
@@ -221,28 +226,31 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    function registerAsVoter() public {
+    function updateStake(uint newStakeWei) public {
         address operator = _msgSender();
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
-        voters.push(operator);
-        votersIndex[operator] = voters.length; // real index + 1
+        totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
+        stakedWei[operator] = newStakeWei;
 
-        emit VoterUpdate(operator, true);
-    }
+        uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
+        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp;
 
-    function registerAsNonVoter() public {
-        address operator = _msgSender();
-        if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
+        if (isEligible && votersIndex[operator] == 0) {
+            voters.push(operator);
+            votersIndex[operator] = voters.length; // real index + 1
+            emit VoterUpdate(operator, true);
+        }
 
-        uint index = votersIndex[operator] - 1; // real index = votersIndex - 1
-        address lastOperator = voters[voters.length - 1];
-        voters[index] = lastOperator;
-        voters.pop();
-        votersIndex[lastOperator] = index + 1; // real index + 1
-        delete votersIndex[operator];
-
-        emit VoterUpdate(operator, false);
+        if (!isEligible && votersIndex[operator] > 0) {
+            uint index = votersIndex[operator] - 1; // real index = votersIndex - 1
+            address lastOperator = voters[voters.length - 1];
+            voters[index] = lastOperator;
+            voters.pop();
+            votersIndex[lastOperator] = index + 1; // real index + 1
+            delete votersIndex[operator];
+            emit VoterUpdate(operator, false);
+        }
     }
 
     function voterCount() public view returns (uint) {
