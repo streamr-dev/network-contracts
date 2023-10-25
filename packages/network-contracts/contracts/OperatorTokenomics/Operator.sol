@@ -236,7 +236,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (newOperatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(newOperatorsCutFraction); }
 
         operatorsCutFraction = newOperatorsCutFraction;
-        emit MetadataUpdated(metadata, _msgSender(), newOperatorsCutFraction);
+        emit MetadataUpdated(metadata, owner, newOperatorsCutFraction);
     }
 
     /////////////////////////////////////////
