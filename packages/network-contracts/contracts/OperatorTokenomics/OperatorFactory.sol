@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import "./IOperatorLivenessRegistry.sol";
+import "./IVoterRegistry.sol";
 import "./Operator.sol";
 import "./IERC677.sol";
 import "./StreamrConfig.sol";
@@ -18,14 +18,12 @@ import "./StreamrConfig.sol";
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
  */
-contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IOperatorLivenessRegistry {
+contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IVoterRegistry {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     event NewOperator(address operatorAddress, address operatorContractAddress);
-    event OperatorLivenessChanged(address operatorContractAddress, bool isLive);
     event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
 
-    error InvalidOperatorsCut();
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
     error OnlyOperators();
@@ -35,6 +33,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     error NotDelegationPolicy();
     error NotExchangeRatePolicy();
     error NotUndelegationPolicy();
+    error AccessDeniedDATATokenOnly();
 
     address public operatorTemplate;
     address public nodeModuleTemplate;
@@ -43,13 +42,20 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     address public tokenAddress;
     StreamrConfig public streamrConfig;
     mapping(address => bool) public trustedPolicies;
-    mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
-    // array needed for peer operator selection for VoteKickPolicy peer review
-    Operator[] public liveOperators;
-    mapping (Operator => uint) public liveOperatorsIndex; // real index +1, zero for Operators not staked in a Sponsorship
+    /** @dev zero for contracts not deployed by this factory */
+    mapping(address => uint) public deploymentTimestamp;
 
+    /** array needed for peer operator selection for VoteKickPolicy peer review */
+    address[] public voters;
+    /** real index in voters array +1, zero for Operators not staked in a Sponsorship */
+    mapping (address => uint) public votersIndex;
+
+    /** Owner of the Operator contract */
     mapping (address => address) public operators; // operator wallet => Operator contract address
+
+    uint public totalStakedWei; // global total stake in Sponsorships
+    mapping (address => uint) public stakedWei; // each Operator.totalStakedWei
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -123,6 +129,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
@@ -165,7 +172,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address[3] memory policies,
         uint[3] memory policyParams
     ) private returns (address) {
-        if (operatorsCutFraction > 1 ether) { revert InvalidOperatorsCut(); }
+        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
         for (uint i = 0; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
@@ -206,9 +213,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         deploymentTimestamp[newContractAddress] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit NewOperator(operatorAddress, newContractAddress);
 
-        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
         operators[operatorAddress] = newContractAddress;
-
         return newContractAddress;
     }
 
@@ -221,35 +226,34 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    /** Operators MUST call this function when they stake to their first Sponsorship */
-    function registerAsLive() public {
-        address operatorContractAddress = _msgSender();
-        if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
-        Operator operator = Operator(operatorContractAddress);
+    function updateStake(uint newStakeWei) public {
+        address operator = _msgSender();
+        if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
-        liveOperators.push(operator);
-        liveOperatorsIndex[operator] = liveOperators.length; // real index + 1
+        totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
+        stakedWei[operator] = newStakeWei;
 
-        emit OperatorLivenessChanged(operatorContractAddress, true);
+        uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
+        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp;
+
+        if (isEligible && votersIndex[operator] == 0) {
+            voters.push(operator);
+            votersIndex[operator] = voters.length; // real index + 1
+            emit VoterUpdate(operator, true);
+        }
+
+        if (!isEligible && votersIndex[operator] > 0) {
+            uint index = votersIndex[operator] - 1; // real index = votersIndex - 1
+            address lastOperator = voters[voters.length - 1];
+            voters[index] = lastOperator;
+            voters.pop();
+            votersIndex[lastOperator] = index + 1; // real index + 1
+            delete votersIndex[operator];
+            emit VoterUpdate(operator, false);
+        }
     }
 
-    /** Operators MUST call this function when they unstake from their last Sponsorship */
-    function registerAsNotLive() public {
-        address operatorContractAddress = _msgSender();
-        if (deploymentTimestamp[operatorContractAddress] == 0) { revert OnlyOperators(); }
-        Operator operator = Operator(operatorContractAddress);
-
-        uint index = liveOperatorsIndex[operator] - 1; // real index = liveOperatorsIndex - 1
-        Operator lastOperator = liveOperators[liveOperators.length - 1];
-        liveOperators[index] = lastOperator;
-        liveOperators.pop();
-        liveOperatorsIndex[lastOperator] = index + 1; // real index + 1
-        delete liveOperatorsIndex[operator];
-
-        emit OperatorLivenessChanged(operatorContractAddress, false);
-    }
-
-    function liveOperatorCount() public view returns (uint) {
-        return liveOperators.length;
+    function voterCount() public view returns (uint) {
+        return voters.length;
     }
 }

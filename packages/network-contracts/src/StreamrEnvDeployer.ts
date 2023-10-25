@@ -18,6 +18,8 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
 import { parseEther } from "ethers/lib/utils"
 
+const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
+
 export type StreamrContractAddresses = {
     // DATA token
     "DATA": string,
@@ -135,13 +137,20 @@ export class StreamrEnvDeployer {
         await this.delegate()
         await this.stakeIntoSponsorship()
 
-        const preloadedWallet2 = new Wallet("0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae", this.provider)
-        const preloadedWallet3 = new Wallet("0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9", this.provider)
+        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // flagger
+        const operator3 = await this.deployOperatorContract(this.preloadedDATAWallets[3]) // target
 
-        const operator2 = await this.deployOperatorContract(preloadedWallet2) // target
-        await this.deployOperatorContract(preloadedWallet3) // voter
+        await this.flagVoteWithdraw(operator2, operator3, this.operator!)
 
-        await this.flag(operator2, this.operator!)
+    }
+
+    async deployToken(): Promise<void> {
+        const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
+        const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
+        await token.deployed()
+        this.addresses.DATA = token.address
+        this.contracts.DATA = token
+        log(`token address ${token.address}`)
     }
 
     // async deployEns(): Promise<void> {
@@ -298,14 +307,6 @@ export class StreamrEnvDeployer {
         log(`streamrConfig address ${streamrConfig.address}`)
         log(`setting streamRegistry address ${this.addresses.StreamRegistry}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
-
-        // const tokenFactory = new ContractFactory(tokenABI, tokenBytecode, this.adminWallet)
-        // const token = await tokenFactory.deploy("Test token", "TEST") as TestToken
-        // await token.deployed()
-        // this.addresses.DATA = token.address
-        // this.contracts.DATA = token
-        // log(`token address ${token.address}`)
-        const token = this.contracts.DATA
 
         const maxOperatorsJoinPolicy = await (new ContractFactory(maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode,
             this.adminWallet)).deploy() as MaxOperatorsJoinPolicy
@@ -479,36 +480,51 @@ export class StreamrEnvDeployer {
         } else {
             // add self-delegation
             log("    Adding self-delegation")
-            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("1000"), deployer.address)).wait()
+            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("5003"), deployer.address)).wait()
 
             // stake to the sponsorship
             log("    Staking into sponsorship")
-            await (await operator.stake(this.sponsorshipAddress, parseEther("1000"))).wait()
-
-            // add self as node
-            log("    Adding self as node")
-            await (await operator.setNodeAddresses([deployer.address])).wait()
+            await (await operator.stake(this.sponsorshipAddress, parseEther("5003"))).wait()
         }
+
+        // add self as node
+        log("    Adding self as node")
+        await (await operator.setNodeAddresses([deployer.address])).wait()
+
         return operator
     }
 
     async delegate(): Promise<void> {
         log("Sending delegation to %s", this.operatorAddress)
-        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("1000"),
+        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("5003"),
             this.adminWallet.address)
         await tx.wait()
         log("    Delegation sent")
     }
 
     async stakeIntoSponsorship(): Promise<void> {
-        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("333"))
+        // stake prime number to have decimal APY
+        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("5003"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
 
-    async flag(flagger: Operator, target: Operator): Promise<void> {
+    async flagVoteWithdraw(flagger: Operator, target: Operator, voter: Operator): Promise<void> {
+        const { streamrConfig } = this.contracts
+        log(`Flagging and kicking ${target.address} from ${this.sponsorship!.address}...`)
+
+        const oldReviewPeriod = await streamrConfig.reviewPeriodSeconds()
+        await (await streamrConfig.setReviewPeriodSeconds("0")).wait()
+
         await (await flagger.flag(this.sponsorship!.address, target.address, "{\"metadata\":\"asdf\"}")).wait()
-        log(`${flagger.address} flagged ${target.address} in ${this.sponsorship!.address}`)
+        log(`    ${flagger.address} flagged ${target.address} in ${this.sponsorship!.address}`)
+
+        await (await voter.voteOnFlag(this.sponsorship!.address, target.address, VOTE_KICK)).wait()
+        log(`    ${voter.address} voted to kick ${target.address} in ${this.sponsorship!.address}`)
+
+        await (await streamrConfig.setReviewPeriodSeconds(oldReviewPeriod)).wait()
+
+        await (await voter.withdrawEarningsFromSponsorships([this.sponsorship!.address])).wait()
     }
 
     // async preloadDATAToken(): Promise<void> {

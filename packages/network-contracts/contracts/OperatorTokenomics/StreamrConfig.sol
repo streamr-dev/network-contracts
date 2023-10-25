@@ -15,17 +15,17 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooLow(uint value, uint limit);
 
     /**
-     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship, or if they unstake from a sponsorship prematurely
-     */
-    uint public slashingFraction;
-
-    /**
      * Minimum amount to pay reviewers+flagger
      * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
      */
     function minimumStakeWei() public view returns (uint) {
-        return (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether / slashingFraction;
+        return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
     }
+
+    /**
+     * Fraction of stake that operators lose if they are found to be violating protocol rules and kicked out from a sponsorship
+     */
+    uint public slashingFraction;
 
     /**
      * The minimum share of the Operator contract's own token should belong to the owner ("skin in the game")
@@ -56,6 +56,11 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     uint public maxPenaltyPeriodSeconds;
 
     /**
+     * DefaultLeavePolicy: If an operator unstakes from a Sponsorship before penaltyPeriodSeconds is over, they get slashed earlyLeaverPenaltyWei.
+     */
+    uint public earlyLeaverPenaltyWei;
+
+    /**
      * The real-time precise operator value (that includes earnings) can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
      * However, if `withdrawEarningsFromSponsorships` is called often enough, the `valueWithoutEarnings` is a good approximation.
      * If the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
@@ -78,6 +83,12 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
     /** Address where the protocol fee is sent */
     address public protocolFeeBeneficiary;
+
+    /** As a sybil defense, only voters that control this fraction of global staking are eligible to vote */
+    uint public minEligibleVoterFractionOfAllStake;
+
+    /** As a sybil defense, too new operators can't be selected as voters if this is set to non-zero */
+    uint public minEligibleVoterAge;
 
     /** How many reviewers we ideally (=usually) select to review a Sponsorship flag, see VoteKickPolicy.sol */
     uint public flagReviewerCount;
@@ -114,7 +125,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
     address public sponsorshipFactory;
     address public operatorFactory;
-    address public operatorLivenessRegistry; // same as OperatorFactory, for now
+    address public voterRegistry; // same as OperatorFactory, for now
 
     address public trustedForwarder;
 
@@ -136,13 +147,14 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator leaves early or gets kicked after vote
+        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator gets kicked after a vote
+        setEarlyLeaverPenaltyWei(5000 ether); // at least initially earlyLeaverPenalty is set to the same as minimum stake
 
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
-        setMinimumSelfDelegationFraction(0.1 ether); // 10% of the operator tokens must be held by the operator, or else new delegations are prevented
+        setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
-        // Prevent "sand delegations", set minimum delegation to 1 DATA
-        setMinimumDelegationWei(1 ether);
+        // Prevent "sand delegations", set minimum delegation to 100 DATA
+        setMinimumDelegationWei(100 ether);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
@@ -153,32 +165,23 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // Withdraw incentivization
         setMaxAllowedEarningsFraction(0.05 ether); // 5% of valueWithoutEarnings is when fisherman gets rewarded from the operator's self-delegation
-        setFishermanRewardFraction(0.1 ether); // 10% of withdrawn earnings
+        setFishermanRewardFraction(0.25 ether); // 25% of withdrawn earnings
 
         // protocol fee
         setProtocolFeeFraction(0.05 ether); // 5% of earnings go to protocol fee
         setProtocolFeeBeneficiary(msg.sender);
 
         // flagging + voting
-        setFlagReviewerCount(5);
-        setFlagReviewerRewardWei(1 ether);
-        setFlaggerRewardWei(1 ether);
+        setMinEligibleVoterAge(0); // no age limit
+        setMinEligibleVoterFractionOfAllStake(0.005 ether); // every voter controls at least 0.5% of global stake
+        setFlagReviewerCount(7);
+        setFlagReviewerRewardWei(20 ether);
+        setFlaggerRewardWei(360 ether);
         setFlagReviewerSelectionIterations(20);
-        setFlagStakeWei(10 ether);
-        setReviewPeriodSeconds(1 days);
-        setVotingPeriodSeconds(1 hours);
+        setFlagStakeWei(500 ether);
+        setReviewPeriodSeconds(1 hours);
+        setVotingPeriodSeconds(15 minutes);
         setFlagProtectionSeconds(1 hours);
-    }
-
-    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
-
-    function setSponsorshipFactory(address sponsorshipFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        sponsorshipFactory = sponsorshipFactoryAddress;
-    }
-
-    function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        operatorFactory = operatorFactoryAddress;
-        operatorLivenessRegistry = operatorFactoryAddress;
     }
 
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -189,12 +192,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         slashingFraction = newSlashingFraction;
     }
 
-    function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        operatorContractOnlyJoinPolicy = operatorContractOnlyJoinPolicyAddress;
-    }
-
-    function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        streamRegistryAddress = streamRegistryAddress_;
+    function setEarlyLeaverPenaltyWei(uint newEarlyLeaverPenaltyWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        earlyLeaverPenaltyWei = newEarlyLeaverPenaltyWei;
     }
 
     function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -211,6 +210,16 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
     function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
         maxPenaltyPeriodSeconds = newMaxPenaltyPeriodSeconds;
+    }
+
+    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
+            revert TooLow({
+                value: newMaxQueueSeconds,
+                limit: maxPenaltyPeriodSeconds
+            });
+        }
+        maxQueueSeconds = newMaxQueueSeconds;
     }
 
     function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -241,6 +250,18 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         protocolFeeBeneficiary = newProtocolFeeBeneficiary;
     }
 
+    function setMinEligibleVoterAge(uint ageLimitSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        minEligibleVoterAge = ageLimitSeconds;
+    }
+
+    function setMinEligibleVoterFractionOfAllStake(uint newMinEligibleVoterFractionOfAllStake) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newMinEligibleVoterFractionOfAllStake > 1 ether) {
+            // can't be more than 100%
+            revert TooHigh({ value: newMinEligibleVoterFractionOfAllStake, limit: 1 ether });
+        }
+        minEligibleVoterFractionOfAllStake = newMinEligibleVoterFractionOfAllStake;
+    }
+
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newFlagReviewerCount < 1) { revert TooLow({ value: newFlagReviewerCount, limit: 1 }); }
         flagReviewerCount = newFlagReviewerCount;
@@ -248,16 +269,6 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         if (flagReviewerSelectionIterations < flagReviewerCount) {
             flagReviewerSelectionIterations = flagReviewerCount;
         }
-    }
-
-    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
-            revert TooLow({
-                value: newMaxQueueSeconds,
-                limit: maxPenaltyPeriodSeconds
-            });
-        }
-        maxQueueSeconds = newMaxQueueSeconds;
     }
 
     function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -347,4 +358,23 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function setTrustedForwarder(address newTrustedForwarder) public onlyRole(DEFAULT_ADMIN_ROLE) {
         trustedForwarder = newTrustedForwarder;
     }
+
+    function setSponsorshipFactory(address sponsorshipFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        sponsorshipFactory = sponsorshipFactoryAddress;
+    }
+
+    function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorFactory = operatorFactoryAddress;
+        voterRegistry = operatorFactoryAddress;
+    }
+
+    function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        operatorContractOnlyJoinPolicy = operatorContractOnlyJoinPolicyAddress;
+    }
+
+    function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        streamRegistryAddress = streamRegistryAddress_;
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
 }

@@ -58,7 +58,7 @@ describe("docker image integration test", () => {
                 id
             }
             delegations {
-                delegatedDataWei
+                valueDataWei
                 operatorTokenBalanceWei
             }
         }
@@ -66,38 +66,45 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.nodes.length).to.equal(1)
         expect(resultDynamicIds.sponsorships.length).to.equal(1)
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
-        expect(resultDynamicIds.sponsoringEvents.length).to.equal(1)
+        expect(resultDynamicIds.sponsoringEvents.length).to.equal(2) // sponsoring + slashing
 
-        expect(resultDynamicIds.stakingEvents.length).to.equal(4)
+        expect(resultDynamicIds.stakingEvents.length).to.equal(6)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.delegations.length).to.equal(3)
         expect(resultDynamicIds.operators.length).to.equal(3)
-        expect(resultDynamicIds.stakes.length).to.equal(3)
+        expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators - 1 got kicked out
 
         expect(resultDynamicIds.streams.length).to.equal(5)
-        expect(resultDynamicIds.streamPermissions.length).to.equal(11)
+        expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3 operators + 9?
 
-        expect(resultDynamicIds.delegations[0].delegatedDataWei).to.equal("1000000000000000000000")
-        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("1000000000000000000000")
+        expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
+        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
     })
 
     it("can get indexed example flagging", async () => {
-        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `
-        {
+        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `{
             operators {
-                id
                 flagsOpened {
-                    id
+                    result
                 }
                 flagsTargeted {
-                    id
+                    result
+                }
+                votesOnFlags {
+                    votedKick
                 }
             }
-        }
-        `})
-        expect(new Set(resultDynamicIds.operators.map((o: any) => o.flagsOpened.length + "/" + o.flagsTargeted.length)))
-            .to.deep.equal(new Set(["0/0", "1/0", "0/1"]))
-
+            votes {
+                voterWeight
+                votedKick
+            }
+        }`})
+        expect(new Set(resultDynamicIds.operators.map((o: any) => `${o.flagsOpened.length}/${o.flagsTargeted.length}/${o.votesOnFlags.length}`)))
+            .to.deep.equal(new Set(["0/0/1", "1/0/0", "0/1/0"]))
+        expect(resultDynamicIds.votes).to.deep.equal([{
+            "voterWeight": "5003000000000000000000",
+            "votedKick": true,
+        }])
     })
 
     it("can get all the projects from thegraph", async () => {
@@ -113,6 +120,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.projects.length).to.equal(5)
     })
 
+    // TODO: move this to DU repository?
     it("can get all the indexed example data from Data Union subgraph", async () => {
         const resultDynamicIds = await duGraphClient.queryEntity<{
             dataUnionStatsBuckets: [],

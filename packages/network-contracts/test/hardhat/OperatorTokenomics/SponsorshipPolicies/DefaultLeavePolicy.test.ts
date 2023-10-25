@@ -45,26 +45,26 @@ describe("DefaultLeavePolicy", (): void => {
             penaltyPeriodSeconds: 1000,
             allocationWeiPerSecond: parseEther("0")
         })
-        await setTokenBalance(contracts, operator, parseEther("100"))
+        await setTokenBalance(contracts, operator, parseEther("10000"))
 
         // sponsor 1 DATA to make sponsorship "running" (don't distribute tokens though, since allocationWeiPerSecond = 0)
         await token.approve(sponsorship.address, parseEther("1"))
         await sponsorship.sponsor(parseEther("1"))
 
         // stake 100 DATA
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("10000"), operator.address)).wait()
         const tokensAfterStaking = await token.balanceOf(operator.address)
 
         // safety: won't unstake if losing stake
         expect(sponsorship.connect(operator).unstake())
             .to.be.revertedWith("error_leavePenalty")
 
-        // lose slashingFraction = 10 DATA because leaving a "running" sponsorship too early
+        // lose earlyLeaverPenaltyWei because leaving a "running" sponsorship too early
         await (await sponsorship.connect(operator).forceUnstake()).wait()
         const tokensAfterLeaving = await token.balanceOf(operator.address)
 
         expect(tokensAfterStaking).to.equal(0)
-        expect(formatEther(tokensAfterLeaving)).to.equal("90.0")
+        expect(formatEther(tokensAfterLeaving)).to.equal("5000.0")
     })
 
     it("penalizes only the operator that leaves early while sponsorship is running", async function(): Promise<void> {
@@ -77,8 +77,8 @@ describe("DefaultLeavePolicy", (): void => {
             minOperatorCount: 2,
             penaltyPeriodSeconds: 1000
         })
-        await setTokenBalance(contracts, operator, parseEther("1000"))
-        await setTokenBalance(contracts, operator2, parseEther("1000"))
+        await setTokenBalance(contracts, operator, parseEther("10000"))
+        await setTokenBalance(contracts, operator2, parseEther("10000"))
         const timeAtStart = await getBlockTimestamp()
 
         expect(!await sponsorship.isRunning())
@@ -88,12 +88,12 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await sponsorship.isFunded())
 
         await advanceToTimestamp(timeAtStart, "operator 1 joins, sponsorship still not started")
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("10000"), operator.address)).wait()
         expect(!await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
         await advanceToTimestamp(timeAtStart + 100, "operator 2 joins, sponsorship starts")
-        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("10000"), operator2.address)).wait()
         expect(await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
@@ -102,7 +102,7 @@ describe("DefaultLeavePolicy", (): void => {
             .to.be.revertedWith("error_leavePenalty")
 
         // TODO: for some reason advanceToTimestamp goes to 300 when I set 299?! So next tx is at 301, which would be correct
-        await advanceToTimestamp(timeAtStart + 299, "operator 1 forceUnstakes while sponsorship is running, loses slashingFraction * 1000 = 100")
+        await advanceToTimestamp(timeAtStart + 299, "operator 1 forceUnstakes while sponsorship is running, loses earlyLeaverPenaltyWei")
         await (await sponsorship.connect(operator).forceUnstake()).wait()
         expect(!await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
@@ -112,10 +112,10 @@ describe("DefaultLeavePolicy", (): void => {
         expect(!await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
-        // operator loses slashingFraction * 1000 = 100, gets 900 back + 100 earnings = 1000 same as staked
-        expect(await token.balanceOf(operator.address)).to.equal(parseEther("1000"))
-        // operator2 keeps stake, gets 1000 back + 100 earnings = 1100
-        expect(await token.balanceOf(operator2.address)).to.equal(parseEther("1100"))
+        // operator loses earlyLeaverPenaltyWei = 5000, gets 5000 back + 100 earnings
+        expect(await token.balanceOf(operator.address)).to.equal(parseEther("5100"))
+        // operator2 keeps stake, gets full stake back + 100 earnings
+        expect(await token.balanceOf(operator2.address)).to.equal(parseEther("10100"))
     })
 
     it("doesn't penalize an operator that leaves after the leave period (even when contract is running)", async function(): Promise<void> {
@@ -125,8 +125,8 @@ describe("DefaultLeavePolicy", (): void => {
         // operator2:               300  +  700       = 1000
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, { penaltyPeriodSeconds: 1000 })
-        await setTokenBalance(contracts, operator, parseEther("1000"))
-        await setTokenBalance(contracts, operator2, parseEther("1000"))
+        await setTokenBalance(contracts, operator, parseEther("10000"))
+        await setTokenBalance(contracts, operator2, parseEther("10000"))
         const timeAtStart = await getBlockTimestamp()
 
         expect(!await sponsorship.isRunning())
@@ -136,12 +136,12 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await sponsorship.isFunded())
 
         await advanceToTimestamp(timeAtStart)
-        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("1000"), operator.address)).wait()
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("10000"), operator.address)).wait()
         expect(await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
         await advanceToTimestamp(timeAtStart + 400)
-        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("1000"), operator2.address)).wait()
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("10000"), operator2.address)).wait()
         expect(await sponsorship.isRunning())
         expect(await sponsorship.isFunded())
 
@@ -156,7 +156,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await sponsorship.isFunded())
 
         // both get 1000 back + earnings
-        expect(await token.balanceOf(operator.address)).to.equal(parseEther("1700"))
-        expect(await token.balanceOf(operator2.address)).to.equal(parseEther("2000"))
+        expect(await token.balanceOf(operator.address)).to.equal(parseEther("10700"))
+        expect(await token.balanceOf(operator2.address)).to.equal(parseEther("11000"))
     })
 })

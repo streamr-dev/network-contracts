@@ -16,7 +16,7 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
 
     /**
      * After penaltyPeriod, leaving is always okay
-     * During penaltyPeriod, leaving is only okay if sponsorship is not running
+     * During penaltyPeriod, leaving is only okay if sponsorship is not paying for the service
      */
     function getLeavePenaltyWei(address operator) public override view returns (uint leavePenaltyWei) {
         uint joinTimestamp = joinTimeOfOperator[operator];
@@ -24,9 +24,8 @@ contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
             return 0;
         }
 
-        uint stake = stakedWei[operator];
         if (isRunning() && isFunded()) {
-            return stake * streamrConfig.slashingFraction() / 1 ether;
+            return streamrConfig.earlyLeaverPenaltyWei();
         }
         return 0;
     }

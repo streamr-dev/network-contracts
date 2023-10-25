@@ -227,7 +227,7 @@ type ProjectStakingDayBucket @entity {
 type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
-  delegators: [Delegation!]! @derivedFrom(field: "operator")
+  delegations: [Delegation!]! @derivedFrom(field: "operator")
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "operator")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "operator")
   raisedFlags: [Flag!]! @derivedFrom(field: "flagger")
@@ -267,6 +267,9 @@ type Operator @entity {
   "Operator's share of the earnings (cumulative)"
   cumulativeOperatorsCutWei: BigInt!
 
+  "Operator earnings (cumulative) from all sponsorships. Includes the operator's share of earnings + delegators earnings"
+  cumulativeEarningsWei: BigInt!
+
   metadataJsonString: String!
   owner: String!
   slashingsCount: Int!
@@ -275,6 +278,7 @@ type Operator @entity {
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+  votesOnFlags: [Vote!]! @derivedFrom(field: "voter")
 
   queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
@@ -321,45 +325,104 @@ type OperatorDailyBucket @entity {
 
   "Sum of operator's share of earnings today"
   operatorsCutWei: BigInt!
+
+  "Sum of the operator's lifetime earnings (including operator's cut)"
+  cumulativeEarningsWei: BigInt!
 }
 
 # Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
-  id: ID! # 0xoperatorAddress-0xdelegatorAddress
-  operator: Operator
-  delegator: String!
+  "0xoperatorAddress-0xdelegatorAddress"
+  id: ID!
+  operator: Operator!
+  delegator: Delegator!
 
   "Amount of internal Operator tokens this delegator holds"
   operatorTokenBalanceWei: BigInt!
 
-  "Amount of DATA tokens this delegator has moved into the Operator contract"
-  delegatedDataWei: BigInt!
+  "DATA value of the Operator tokens this delegator holds"
+  valueDataWei: BigInt!
+}
 
-  "Amount of DATA tokens this delegator has moved out of the Operator contract"
-  undelegatedDataWei: BigInt!
+type Delegator @entity {
+  id: ID! # delegator address
+  delegations: [Delegation!]! @derivedFrom(field: "delegator")
+  queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
+  numberOfDelegations: Int!
+  totalValueDataWei: BigInt!
+}
+
+type DelegatorDailyBucket @entity {
+  id: ID! # delegator address + date
+  delegator: Delegator!
+  date: BigInt!
+  totalValueDataWei: BigInt!
+  operatorCount: Int!
+  cumulativeEarningsWei: BigInt!
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
 type Sponsorship @entity {
-  id: ID! # sponsorship address
+
+  ## Sponsorship properties: not changeable
+
+  "id = sponsorship address"
+  id: ID!
+
+  "sponsored stream"
   stream: Stream
+
+  "connection metadata"
   metadata: String
-  isRunning: Boolean!
+
+  "who deployed the Sponsorship contract"
+  creator: String!
+
+  "how much is split between staked operators per second, weighted by their stake"
   totalPayoutWeiPerSec: BigInt!
+
+  "how long you have to stay staked, or else you get slashed when you forceUnstake"
   minimumStakingPeriodSeconds: BigInt!
+
+  "how many stakers are accepted (if MaxOperatorsJoinPolicy is used)"
+  maxOperators: Int
+
+
+  ## Sponsorship state: live / updated after relevant transactions
+
+  "how many operators are staked right now"
+  operatorCount: Int!
+
+  "are there enough operators? Is this sponsorship paying?"
+  isRunning: Boolean!
+
+  "how much stake in total is sharing on the sponsorship revenue"
+  totalStakedWei: BigInt!
+
+  "who has staked how much"
   stakes: [Stake!]! @derivedFrom(field: "sponsorship")
+
+  "how much DATA has entered or travelled through this contract"
+  cumulativeSponsoring: BigInt!
+
+  "how much DATA is there still in this contract"
+  remainingWei: BigInt!
+
+  "when will the contract run out of DATA if more is not added"
+  projectedInsolvency: BigInt!
+
+  "how much 'ROI' you could make by staking, extrapolated from current payments"
+  spotAPY: BigDecimal!
+
+  "what the operators think about each other: 'flag' means an operator proposes another operator be kicked out"
+  flags: [Flag!]! @derivedFrom(field: "sponsorship")
+
+
+  ## plain event lists
+
   slashingEvents: [SlashingEvent!]! @derivedFrom(field: "sponsorship")
   stakingEvents: [StakingEvent!]! @derivedFrom(field: "sponsorship")
   sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
-  cumulativeSponsoring: BigInt!
-  operatorCount: Int!
-  totalStakedWei: BigInt!
-  remainingWei: BigInt!
-  spotAPY: BigDecimal!
-  projectedInsolvency: BigInt!
-  flags: [Flag!]! @derivedFrom(field: "sponsorship")
-  creator: String!
-  maxOperators: Int
 }
 
 type SponsorshipDailyBucket @entity {
@@ -383,22 +446,32 @@ type Stake @entity {
   earningsWei: BigInt! # momentary earnings at updateTimestamp
   updateTimestamp: Int! # timestamp when earningsWei (and others) were updated; useful for calculating "real-time" earnings values
   joinTimestamp: Int!
-  flagCount: Int! # how many times this operator has been flagged so far (failed flags + 0 or 1 pending)
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work
 type Flag @entity {
-  id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived from Stake.flagCount)
+  id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived using lastFlagIndex)
+  lastFlagIndex: Int! # there can be many flags for same Operator in same Sponsorship, but only one at a time. First flag stores the last flag's index.
   sponsorship: Sponsorship!
   target: Operator!
   flagger: Operator!
   flaggingTimestamp: Int!
   result: String! # "waiting", "voting", "kicked", or "failed"
-  votesForKick: Int!
-  votesAgainstKick: Int!
+  votesForKick: BigInt!
+  votesAgainstKick: BigInt!
+  votes: [Vote!]! @derivedFrom(field: "flag")
   reviewerCount: Int!
   targetStakeAtRiskWei: BigInt!
   metadata: String!
+}
+
+type Vote @entity {
+  id: ID! # 0xSponsorshipAddress-0xTargetOperatorAddress-flagIndex-0xReviewerAddress
+  flag: Flag!
+  voter: Operator!
+  voterWeight: BigInt!
+  timestamp: Int!
+  votedKick: Boolean!
 }
 
 # Undelegation queue: when a delegator wants their DATA back, they are put in the queue to receive their tokens when they arrive
@@ -407,7 +480,7 @@ type QueueEntry @entity {
   operator: Operator!
   amount: BigInt!
   date: BigInt!
-  delegator: String!
+  delegator: Delegator!
 }
 
 # Plain events, saved "as-is". TODO: do we need and want them? Will they be expensive in the new decentralized subgraph?

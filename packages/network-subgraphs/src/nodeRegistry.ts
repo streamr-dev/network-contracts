@@ -12,7 +12,7 @@ export function handleNodeUpdate(event: NodeUpdated): void {
     let id = event.params.nodeAddress.toHexString()
     let isNew = !event.params.isNew.isZero()
     log.info('handleStreamCreation: {} node={} metadata={} blockNumber={}',
-        [isNew ? 'NEW' : 'UPDATE', id, event.params.metadata.toString(), event.block.number.toString()])
+        [isNew ? 'NEW' : 'UPDATE', id, event.params.metadata, event.block.number.toString()])
 
     let node = Node.load(id)
     if (!node) { node = new Node(id) }
@@ -35,7 +35,7 @@ export function handleNodeRemoved(event: NodeRemoved): void {
 // The "rejections" could be interesting to query though so maybe this needs to be solved at some point
 
 // export function handleNodeWhitelistApproved(event: NodeWhitelistApproved): void {
-//     const id = event.params.nodeAddress.toString()
+//     const id = event.params.nodeAddress.toHexString()
 //     log.info('handleNodeWhitelistApproved: node={} blockNumber={}', [id, event.block.number.toString()])
 //     let node = Node.load(id)
 //     node.whitelisted = true
@@ -43,7 +43,7 @@ export function handleNodeRemoved(event: NodeRemoved): void {
 // }
 
 // export function handleNodeWhitelistRejected(event: NodeWhitelistRejected): void {
-//     const id = event.params.nodeAddress.toString()
+//     const id = event.params.nodeAddress.toHexString()
 //     log.info('handleNodeWhitelistRejected: node={} blockNumber={}', [id, event.block.number.toString()])
 //     let node = Node.load(id)
 //     node.whitelisted = false

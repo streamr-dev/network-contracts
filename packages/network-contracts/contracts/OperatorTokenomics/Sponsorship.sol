@@ -55,7 +55,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     // Emitted from VoteKickPolicy
     event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
-    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick);
+    event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
 
     error AccessDenied();
     error OnlyDATAToken();
@@ -281,12 +281,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
+        if (amountWei == 0) { return 0; }
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
         if (operator.code.length > 0) {
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
         emit OperatorSlashed(operator, actualSlashingWei);
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
     }
 
     /**
@@ -358,8 +358,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
-            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]); // earnings will be zero after withdraw (see test)
-            emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
+            // earnings will be zero after withdraw (see test)
+            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]);
         }
     }
 

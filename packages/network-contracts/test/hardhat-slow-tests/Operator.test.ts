@@ -33,21 +33,21 @@ describe("Operator", (): void => {
         const contracts = await deployTestContracts(admin)
         const { token, streamrConfig } = contracts
         await (await streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
-        await setTokens(token, operatorWallet, "1000")
+        await setTokens(token, operatorWallet, "5000")
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
         const operator = await deployOperatorContract(contracts, operatorWallet)
-        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+        await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("5000"), "0x")).wait()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorship and queue payouts")
-        await expect(operator.stake(sponsorship.address, parseEther("1000")))
+        await expect(operator.stake(sponsorship.address, parseEther("5000")))
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
         const queueLength = 1000
         for (let i = 0; i < queueLength; i++) {
             if (i % 10 === 0) { log("undelegate %d / %d", i, queueLength) }
-            await operator.undelegate(parseEther("1"))
+            await operator.undelegate(parseEther("5"))
         }
 
         // doing it in one go with 1000 slots in the queue will fail...
@@ -68,12 +68,12 @@ describe("Operator", (): void => {
 
         // got everything back
         const balanceAfter = await token.balanceOf(operatorWallet.address)
-        expect(formatEther(balanceAfter)).to.equal("1000.0")
+        expect(formatEther(balanceAfter)).to.equal("5000.0")
     })
 
     it("edge case one queue entry, many sponsorships", async function(): Promise<void> {
         const numberOfSponsorships = 1000
-        const totalTokens = (100 * numberOfSponsorships).toString()
+        const totalTokens = (5000 * numberOfSponsorships).toString()
         const totalWei = parseEther(totalTokens)
 
         const contracts = await deployTestContracts(admin)
@@ -85,12 +85,12 @@ describe("Operator", (): void => {
         const timeAtStart = await getBlockTimestamp()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorships and queue the payout")
-        const totalStaked = parseEther("100").mul(numberOfSponsorships)
+        const totalStaked = parseEther("5000").mul(numberOfSponsorships)
         const sponsorships = []
         for (let i = 0; i < numberOfSponsorships; i++) {
             if (i % 10 === 0) { log("deploySponsorship & stake %d / %d", i, numberOfSponsorships) }
             const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-            await (await operator.stake(sponsorship.address, parseEther("100"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("5000"))).wait()
             sponsorships.push(sponsorship)
         }
         await operator.undelegate(totalStaked)

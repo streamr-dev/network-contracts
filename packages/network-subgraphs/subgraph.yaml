@@ -232,7 +232,7 @@ templates:
             handler: handleSponsorshipUpdated
           - event: Flagged(indexed address,indexed address,uint256,uint256,string)
             handler: handleFlagged
-          - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256)
+          - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256,indexed address,int256)
             handler: handleFlagUpdate
           - event: ProjectedInsolvencyUpdate(uint256)
             handler: handleProjectedInsolvencyUpdate
@@ -266,11 +266,7 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: Delegated(indexed address,uint256)
-            handler: handleDelegated
-          - event: Undelegated(indexed address,uint256)
-            handler: handleUndelegated
-          - event: BalanceUpdate(address,uint256,uint256)
+          - event: BalanceUpdate(address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)
