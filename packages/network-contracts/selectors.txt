@@ -1,5 +1,5 @@
 
-======= Operator/sol:AccessControlUpgradeable =======
+======= OperatorTokenomics/sol:AccessControlUpgradeable =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
 248a9ca3: getRoleAdmin(bytes32)
@@ -15,26 +15,26 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 
-======= Operator/sol:AddressUpgradeable =======
+======= OperatorTokenomics/sol:AddressUpgradeable =======
 Function signatures:
 
-======= Operator/sol:ClonesUpgradeable =======
+======= OperatorTokenomics/sol:ClonesUpgradeable =======
 Function signatures:
 
-======= Operator/sol:ContextUpgradeable =======
+======= OperatorTokenomics/sol:ContextUpgradeable =======
 Function signatures:
 
 Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 
-======= Operator/sol:ERC165Upgradeable =======
+======= OperatorTokenomics/sol:ERC165Upgradeable =======
 Function signatures:
 01ffc9a7: supportsInterface(bytes4)
 
 Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 
-======= Operator/sol:ERC1967UpgradeUpgradeable =======
+======= OperatorTokenomics/sol:ERC1967UpgradeUpgradeable =======
 Function signatures:
 
 Event signatures:
@@ -43,7 +43,7 @@ Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
 
-======= Operator/sol:ERC20Upgradeable =======
+======= OperatorTokenomics/sol:ERC20Upgradeable =======
 Function signatures:
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
@@ -62,14 +62,14 @@ Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
 
-======= Operator/sol:ERC2771ContextUpgradeable =======
+======= OperatorTokenomics/sol:ERC2771ContextUpgradeable =======
 Function signatures:
 572b6c05: isTrustedForwarder(address)
 
 Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 
-======= Operator/sol:IAccessControlUpgradeable =======
+======= OperatorTokenomics/sol:IAccessControlUpgradeable =======
 Function signatures:
 248a9ca3: getRoleAdmin(bytes32)
 2f2ff15d: grantRole(bytes32,address)
@@ -82,7 +82,7 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 
-======= Operator/sol:IAllocationPolicy =======
+======= OperatorTokenomics/sol:IAllocationPolicy =======
 Function signatures:
 6e9bb3f7: getEarningsWei(address)
 de44bb88: getInsolvencyTimestamp()
@@ -93,24 +93,28 @@ e178d930: onStakeChange(address,int256)
 3a82b50d: onWithdraw(address)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:IBeaconUpgradeable =======
+======= OperatorTokenomics/sol:IBeaconUpgradeable =======
 Function signatures:
 5c60da1b: implementation()
 
-======= Operator/sol:IDelegationPolicy =======
+======= OperatorTokenomics/sol:IDelegationPolicy =======
 Function signatures:
 217fb33b: onDelegate(address)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:IERC165Upgradeable =======
+======= OperatorTokenomics/sol:IERC165 =======
 Function signatures:
 01ffc9a7: supportsInterface(bytes4)
 
-======= Operator/sol:IERC1822ProxiableUpgradeable =======
+======= OperatorTokenomics/sol:IERC165Upgradeable =======
+Function signatures:
+01ffc9a7: supportsInterface(bytes4)
+
+======= OperatorTokenomics/sol:IERC1822ProxiableUpgradeable =======
 Function signatures:
 52d1902d: proxiableUUID()
 
-======= Operator/sol:IERC20 =======
+======= OperatorTokenomics/sol:IERC20 =======
 Function signatures:
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
@@ -123,7 +127,7 @@ Event signatures:
 8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
 ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
 
-======= Operator/sol:IERC20MetadataUpgradeable =======
+======= OperatorTokenomics/sol:IERC20MetadataUpgradeable =======
 Function signatures:
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
@@ -139,7 +143,7 @@ Event signatures:
 8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
 ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
 
-======= Operator/sol:IERC20Upgradeable =======
+======= OperatorTokenomics/sol:IERC20Upgradeable =======
 Function signatures:
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
@@ -152,7 +156,7 @@ Event signatures:
 8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
 ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
 
-======= Operator/sol:IERC677 =======
+======= OperatorTokenomics/sol:IERC677 =======
 Function signatures:
 dd62ed3e: allowance(address,address)
 095ea7b3: approve(address,uint256)
@@ -167,53 +171,57 @@ Event signatures:
 ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
 ce8124fd2ae9fd7904103e5a9ebe88b527b9ca0e32a32fd497845c82706542d3: TransferAndCall(address,address,uint256,bytes)
 
-======= Operator/sol:IERC677Receiver =======
+======= OperatorTokenomics/sol:IERC677Receiver =======
 Function signatures:
 a4c0ed36: onTokenTransfer(address,uint256,bytes)
 
-======= Operator/sol:IExchangeRatePolicy =======
+======= OperatorTokenomics/sol:IExchangeRatePolicy =======
 Function signatures:
 e926d55c: dataToOperatorToken(uint256,uint256)
 6f398f98: operatorTokenToData(uint256)
 ae447024: operatorTokenToDataInverse(uint256)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:IJoinPolicy =======
+======= OperatorTokenomics/sol:IJoinPolicy =======
 Function signatures:
 07b88ea5: onJoin(address,uint256)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:IKickPolicy =======
+======= OperatorTokenomics/sol:IKickPolicy =======
 Function signatures:
 c0275535: getFlagData(address)
 d11d8fc4: onFlag(address,address)
 fbbabed9: onVote(address,bytes32,address)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:ILeavePolicy =======
+======= OperatorTokenomics/sol:ILeavePolicy =======
 Function signatures:
 18820b1b: getLeavePenaltyWei(address)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:INodeModule =======
+======= OperatorTokenomics/sol:INodeModule =======
 Function signatures:
 2c23c940: _setNodeAddresses(address[])
 bc59647e: _updateNodeAddresses(address[],address[])
 377f1ecb: createCoordinationStream()
 
-======= Operator/sol:IOperator =======
+======= OperatorTokenomics/sol:IOperator =======
 Function signatures:
 20fed94f: onKick(uint256,uint256)
 7bf713b6: onSlash(uint256)
 
-======= Operator/sol:IQueueModule =======
+======= OperatorTokenomics/sol:IQueueModule =======
 Function signatures:
 e4d10986: _payOutFirstInQueue()
 84733344: _payOutQueue(uint256)
 7a227c9f: _triggerAnotherOperatorWithdraw(address,address[])
 1d104c8c: _undelegate(uint256,address)
 
-======= Operator/sol:IStakeModule =======
+======= OperatorTokenomics/sol:IRandomOracle =======
+Function signatures:
+f5b0fe54: getRandomBytes32()
+
+======= OperatorTokenomics/sol:IStakeModule =======
 Function signatures:
 3d16f42d: _forceUnstake(address)
 d572a9cd: _reduceStakeTo(address,uint256)
@@ -222,7 +230,7 @@ aa0d97b3: _stake(address,uint256)
 af9ee81d: _unstake(address)
 1b155aa0: _withdrawEarnings(address[])
 
-======= Operator/sol:IStreamRegistryV4 =======
+======= OperatorTokenomics/sol:IStreamRegistryV4 =======
 Function signatures:
 5e57966d: addressToString(address)
 0ef8cdc7: createStream(string,string)
@@ -233,12 +241,12 @@ Function signatures:
 3e397aea: revokePermission(string,address,uint8)
 42617fe7: updateStreamMetadata(string,string)
 
-======= Operator/sol:IUndelegationPolicy =======
+======= OperatorTokenomics/sol:IUndelegationPolicy =======
 Function signatures:
 d82264d4: onUndelegate(address,uint256)
 4a45d2e6: setParam(uint256)
 
-======= Operator/sol:IVoterRegistry =======
+======= OperatorTokenomics/sol:IVoterRegistry =======
 Function signatures:
 7c1f751f: updateStake(uint256)
 42169e48: voterCount()
@@ -247,16 +255,23 @@ da58c7d9: voters(uint256)
 Event signatures:
 190b16f47d6f4fe52425356b5df39a17e02bf9849f1637a8be52b19c442bcd42: VoterUpdate(address,bool)
 
-======= Operator/sol:Initializable =======
+======= OperatorTokenomics/sol:Initializable =======
 Function signatures:
 
 Event signatures:
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 
-======= Operator/sol:MathUpgradeable =======
+======= OperatorTokenomics/sol:MathUpgradeable =======
 Function signatures:
 
-======= Operator/sol:Operator =======
+======= OperatorTokenomics/sol:MockRandomOracle =======
+Function signatures:
+f5b0fe54: getRandomBytes32()
+2986c0e5: index()
+eed2a147: outcomes(uint256)
+6646586f: setOutcomes(bytes32[])
+
+======= OperatorTokenomics/sol:Operator =======
 Function signatures:
 092c5b3b: CONTROLLER_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
@@ -381,7 +396,70 @@ ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(addre
 4ae68879209bc4b489a38251122202a3653305e3d95a27baf7a5681410c90b38: Undelegated(address,uint256)
 908e667f6c2b13b8062954eb100253ea804c21222b190449e40d967a3ac0ff13: Unstaked(address)
 
-======= Operator/sol:Sponsorship =======
+======= OperatorTokenomics/sol:OperatorFactory =======
+Function signatures:
+a217fddf: DEFAULT_ADMIN_ROLE()
+f72c0d8b: UPGRADER_ROLE()
+b3a79c8d: addTrustedPolicies(address[])
+a0cdb9d2: addTrustedPolicy(address)
+1dac77c3: deployOperator(uint256,string,string,address[3],uint256[3])
+4703e001: deploymentTimestamp(address)
+248a9ca3: getRoleAdmin(bytes32)
+2f2ff15d: grantRole(bytes32,address)
+91d14854: hasRole(bytes32,address)
+cc2a9a5b: initialize(address,address,address,address,address,address)
+572b6c05: isTrustedForwarder(address)
+1a8eab7e: isTrustedPolicy(address)
+658de4e5: nodeModuleTemplate()
+a4c0ed36: onTokenTransfer(address,uint256,bytes)
+b190f493: operatorTemplate()
+13e7c9d8: operators(address)
+1ee49ac4: predictAddress(string)
+52d1902d: proxiableUUID()
+869e3884: queueModuleTemplate()
+d8bd0de4: removeTrustedPolicy(address)
+36568abe: renounceRole(bytes32,address)
+d547741f: revokeRole(bytes32,address)
+5b8f0c58: stakeModuleTemplate()
+14c948eb: stakedWei(address)
+98833130: streamrConfig()
+01ffc9a7: supportsInterface(bytes4)
+9d76ea58: tokenAddress()
+34a0f881: totalStakedWei()
+6f0a812e: trustedPolicies(address)
+7c1f751f: updateStake(uint256)
+ee2a68eb: updateTemplates(address,address,address,address)
+3659cfe6: upgradeTo(address)
+4f1ef286: upgradeToAndCall(address,bytes)
+42169e48: voterCount()
+da58c7d9: voters(uint256)
+1625aeef: votersIndex(address)
+
+Error signatures:
+231b3ae2: AccessDeniedDATATokenOnly()
+def29dac: AlreadyLive()
+f7158c49: ExchangeRatePolicyRequired()
+085c97df: NotDelegationPolicy()
+c18a867a: NotExchangeRatePolicy()
+baf13b3f: NotLive()
+6165de00: NotUndelegationPolicy()
+d9475104: OnlyOperators()
+77f0d411: OperatorAlreadyDeployed()
+2cc6b17b: PolicyNotTrusted()
+
+Event signatures:
+7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
+1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
+f1e04d73c4304b5ff164f9d10c7473e2a1593b740674a6107975e2a7001c1e5c: NewOperator(address,address)
+bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
+2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
+f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
+22f37dbf1f1c0d5752a4bc19d8f74804e877c5be33cc9c09b5ea3fef12a6be1c: TemplateAddresses(address,address,address,address)
+bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
+190b16f47d6f4fe52425356b5df39a17e02bf9849f1637a8be52b19c442bcd42: VoterUpdate(address,bool)
+
+======= OperatorTokenomics/sol:Sponsorship =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
 2b308a56: addJoinPolicy(address,uint256)
@@ -464,7 +542,7 @@ e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipRec
 38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
 6bd50b2adbfd6455ea19dde2d7225e43f70fab44edfbac7ed0748d7d9c3f9059: StakeUpdate(address,uint256,uint256,uint256)
 
-======= Operator/sol:SponsorshipFactory =======
+======= OperatorTokenomics/sol:SponsorshipFactory =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
 f72c0d8b: UPGRADER_ROLE()
@@ -510,10 +588,10 @@ f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(by
 524bbf4293dcf708f5094aac50dee1ac60c1d058ee12a61c4a0eba8031e2c4cc: TemplateAddress(address)
 bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
 
-======= Operator/sol:StorageSlotUpgradeable =======
+======= OperatorTokenomics/sol:StorageSlotUpgradeable =======
 Function signatures:
 
-======= Operator/sol:StreamrConfig =======
+======= OperatorTokenomics/sol:StreamrConfig =======
 Function signatures:
 a217fddf: DEFAULT_ADMIN_ROLE()
 f72c0d8b: UPGRADER_ROLE()
@@ -595,10 +673,10 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
 
-======= Operator/sol:StringsUpgradeable =======
+======= OperatorTokenomics/sol:StringsUpgradeable =======
 Function signatures:
 
-======= Operator/sol:UUPSUpgradeable =======
+======= OperatorTokenomics/sol:UUPSUpgradeable =======
 Function signatures:
 52d1902d: proxiableUUID()
 3659cfe6: upgradeTo(address)
