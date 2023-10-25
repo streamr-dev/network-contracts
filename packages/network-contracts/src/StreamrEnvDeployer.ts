@@ -137,8 +137,11 @@ export class StreamrEnvDeployer {
         await this.delegate()
         await this.stakeIntoSponsorship()
 
-        const operator2 = await this.deployOperatorContract(this.preloadedDATAWallets[2]) // flagger
-        const operator3 = await this.deployOperatorContract(this.preloadedDATAWallets[3]) // target
+        const preloadedWallet2 = new Wallet("0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae", this.provider)
+        const preloadedWallet3 = new Wallet("0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9", this.provider)
+
+        const operator2 = await this.deployOperatorContract(preloadedWallet2) // flagger
+        const operator3 = await this.deployOperatorContract(preloadedWallet3) // target
 
         await this.flagVoteWithdraw(operator2, operator3, this.operator!)
 
