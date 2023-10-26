@@ -54,6 +54,34 @@ describe("Sponsorship contract", (): void => {
         await( await streamrConfig.setFlagReviewerCount(5)).wait()
     })
 
+    it("if a bad operator contract reverts upon transferAndCall, he is kiked out of the sponsorship", async function(): Promise<void> {
+        const { token } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+        const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+        await (await token.transfer(badOperator.address, parseEther("100"))).wait()
+        await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+
+        const sponsorshipBalanceBeforeUnstake = await token.balanceOf(sponsorship.address)
+        const operatorBalanceBeforeUnstake = await token.balanceOf(badOperator.address)
+        const sponsorshipStakeBeforeUnstake = await badOperator.getMyStake(sponsorship.address)
+        await (await badOperator.unstake(sponsorship.address)).wait()
+        const sponsorshipBalanceAfterUnstake = await token.balanceOf(sponsorship.address)
+        const operatorBalanceAfterUnstake = await token.balanceOf(badOperator.address)
+        const sponsorshipStakeAfterUnstake = await badOperator.getMyStake(sponsorship.address)
+        
+        expect(sponsorshipStakeBeforeUnstake).to.equal(parseEther("100"))
+        expect(sponsorshipStakeAfterUnstake).to.equal(parseEther("0"))
+        // TestBadOperator.onTokenTransfer reverts so the funds did not get transferred
+        expect(operatorBalanceBeforeUnstake).to.equal(parseEther("0"))
+        expect(operatorBalanceAfterUnstake).to.equal(parseEther("0"))
+        expect(sponsorshipBalanceBeforeUnstake).to.equal(parseEther("100"))
+        expect(sponsorshipBalanceAfterUnstake).to.equal(parseEther("100"))
+
+        // bad operator got kicked out of the sponsorship even though he did not receive the funds from the previous unstake
+        await expect(badOperator.unstake(sponsorship.address))
+            .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
+    })
+
     // longer happy path tests
     describe("Scenarios", (): void => {
         it("Multiple stakings and sponsorings", async function(): Promise<void> {
