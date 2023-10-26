@@ -590,7 +590,7 @@ describe("Operator contract", (): void => {
         })
     })
 
-    describe.only("Stake management", (): void => {
+    describe("Stake management", (): void => {
         it("stakes, and unstakes with gains", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(sponsor, "1000")
