@@ -513,7 +513,7 @@ describe("Operator contract", (): void => {
             })
 
             it("can transfer operator tokens without having a delegation policy set", async function(): Promise<void> {
-                    const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
+                const { operator } = await deployOperator(operatorWallet, { overrideDelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
 
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
@@ -523,7 +523,7 @@ describe("Operator contract", (): void => {
             })
 
             it("can transfer operator tokens without having an undelegation policy set", async function(): Promise<void> {
-                    const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
+                const { operator } = await deployOperator(operatorWallet, { overrideUndelegationPolicy: hardhatEthers.constants.AddressZero })
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
 
                 await (await operator.connect(operatorWallet).transfer(delegator.address, parseEther("400"))).wait()
@@ -533,7 +533,7 @@ describe("Operator contract", (): void => {
             })
 
             it("will NOT let operator's self-delegation go under the limit", async function(): Promise<void> {
-                    setTokens(operatorWallet, "1000")
+                setTokens(operatorWallet, "1000")
                 setTokens(delegator, "1000")
                 const { operator } = await deployOperator(operatorWallet)
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -544,7 +544,7 @@ describe("Operator contract", (): void => {
             })
 
             it("will NOT allow delegations after operator unstakes and undelegates all (operator value -> zero)", async function(): Promise<void> {
-                    setTokens(operatorWallet, "1000")
+                setTokens(operatorWallet, "1000")
                 setTokens(delegator, "1000")
                 const { operator } = await deployOperator(operatorWallet)
                 const sponsorship = await deploySponsorship(sharedContracts)
@@ -568,14 +568,14 @@ describe("Operator contract", (): void => {
             })
 
             it("will NOT allow delegations when operator's stake too small", async function(): Promise<void> {
-                    const { operator } = await deployOperator(operatorWallet)
+                const { operator } = await deployOperator(operatorWallet)
                 // operator should have 111.2 operator tokens, but has nothing
                 await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x"))
                     .to.be.revertedWith("error_selfDelegationTooLow")
             })
 
             it("will NOT allow delegations if the operator's share would fall too low", async function(): Promise<void> {
-                    const { operator } = await deployOperator(operatorWallet)
+                const { operator } = await deployOperator(operatorWallet)
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
                 await (await token.connect(delegator).transferAndCall(operator.address, parseEther("8999.99"), "0x")).wait() // 1:9 ~= 10% is ok
                 await expect(token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")) // 1:10 < 10% not ok
@@ -583,7 +583,7 @@ describe("Operator contract", (): void => {
             })
 
             it("allows to delegate", async function(): Promise<void> {
-                    const { operator } = await deployOperator(operatorWallet)
+                const { operator } = await deployOperator(operatorWallet)
                 await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("113"), "0x")).wait()
                 await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             })
@@ -815,7 +815,6 @@ describe("Operator contract", (): void => {
             const STAKE_AMOUNT_WEI = parseEther(STAKE_AMOUNT)
             const operatorsCutFraction = parseEther("0.1") // 10%
             const triggerWithdrawLimitSeconds = 50
-
 
             // "generateWalletWithGasAndTokens", fund a fresh random wallet
             const operatorWallet = hardhatEthers.Wallet.createRandom().connect(admin.provider)
