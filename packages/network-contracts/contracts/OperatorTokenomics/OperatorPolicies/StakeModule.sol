@@ -10,15 +10,10 @@ contract StakeModule is IStakeModule, Operator {
 
     /** Stake DATA tokens from this contract's DATA balance into Sponsorships. */
     function _stake(Sponsorship sponsorship, uint amountWei) external {
-        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
-            revert AccessDeniedStreamrSponsorshipOnly();
-        }
-        if (!queueIsEmpty()) {
-            revert FirstEmptyQueueThenStake();
-        }
-        if (balanceOf(owner) == 0) {
-            revert NoSelfDelegation();
-        }
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) { revert AccessDeniedStreamrSponsorshipOnly(); }
+        if (!queueIsEmpty()) { revert FirstEmptyQueueThenStake(); }
+        if (balanceOf(owner) == 0) { revert NoSelfDelegation(); }
+
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
@@ -35,7 +30,6 @@ contract StakeModule is IStakeModule, Operator {
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) public {
         if (targetStakeWei == 0) {
             _unstake(sponsorship);
@@ -49,7 +43,6 @@ contract StakeModule is IStakeModule, Operator {
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _unstake(Sponsorship sponsorship) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();

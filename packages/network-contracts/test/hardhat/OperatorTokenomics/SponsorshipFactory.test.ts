@@ -105,11 +105,12 @@ describe("SponsorshipFactory", () => {
     it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
-        const pool = await deployOperatorContract(contracts, admin)
-        await (await token.mint(pool.address, parseEther("10000"))).wait()
-        await expect(pool.stake(sponsorship.address, parseEther("5000")))
-            .to.emit(sponsorship, "OperatorJoined").withArgs(pool.address)
-        await expect(pool.stake(sponsorship.address, parseEther("5000")))
+        const operator = await deployOperatorContract(contracts, admin)
+        await (await token.approve(operator.address, parseEther("10000"))).wait()
+        await (await operator.delegate(parseEther("10000"))).wait()
+        await expect(operator.stake(sponsorship.address, parseEther("5000")))
+            .to.emit(sponsorship, "OperatorJoined").withArgs(operator.address)
+        await expect(operator.stake(sponsorship.address, parseEther("5000")))
             .to.not.emit(sponsorship, "OperatorJoined")
     })
 

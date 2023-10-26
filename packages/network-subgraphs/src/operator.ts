@@ -10,7 +10,7 @@ import {
     QueueUpdated,
     QueuedDataPayout
 } from '../generated/templates/Operator/Operator'
-import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket, 
+import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 import { QueueEntry } from '../generated/schema'
 
@@ -21,8 +21,8 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     let newBalance = event.params.balanceWei
     let totalSupply = event.params.totalSupplyWei
     let valueWithoutEarnings = event.params.dataValueWithoutEarnings
-    log.info('handleBalanceUpdate: operatorContractAddress={} blockNumber={} delegatorAddress={} newBalance={} totalSupply={} valueWithoutEarnings={}', [
-        operatorContractAddress, event.block.number.toString(), delegatorAddress, newBalance.toString(), totalSupply.toString(), valueWithoutEarnings.toString()
+    log.info('handleBalanceUpdate: operator={} delegatorAddress={} newBalance={} totalSupply={} valueWithoutEarnings={}', [
+        operatorContractAddress, delegatorAddress, newBalance.toString(), totalSupply.toString(), valueWithoutEarnings.toString()
     ])
 
     let operator = loadOrCreateOperator(operatorContractAddress)
@@ -125,7 +125,7 @@ export function handleProfit(event: Profit): void {
     operator.cumulativeProfitsWei = operator.cumulativeProfitsWei.plus(valueIncreaseWei)
     operator.cumulativeOperatorsCutWei = operator.cumulativeOperatorsCutWei.plus(operatorsCutDataWei)
     operator.cumulativeEarningsWei = operator.cumulativeProfitsWei.plus(operator.cumulativeOperatorsCutWei)
-    log.info('handleProfit: operatorTokenTotalSupplyWei={} exchangeRate={}', [ 
+    log.info('handleProfit: operatorTokenTotalSupplyWei={} exchangeRate={}', [
         operator.operatorTokenTotalSupplyWei.toString(), operator.exchangeRate.toString()
     ])
     operator.save()

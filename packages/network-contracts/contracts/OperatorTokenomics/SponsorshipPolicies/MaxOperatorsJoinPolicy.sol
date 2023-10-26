@@ -17,6 +17,7 @@ contract MaxOperatorsJoinPolicy is IJoinPolicy, Sponsorship {
     }
 
     function setParam(uint256 maxOperators) external {
+        require(maxOperators > 0, "error_maxOperatorsZero");
         localData().maxOperators = maxOperators;
     }
 
