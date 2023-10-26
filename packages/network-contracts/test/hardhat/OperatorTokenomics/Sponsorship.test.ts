@@ -54,7 +54,7 @@ describe("Sponsorship contract", (): void => {
         await( await streamrConfig.setFlagReviewerCount(5)).wait()
     })
 
-    it("if a bad operator contract reverts upon transferAndCall, he is kiked out of the sponsorship", async function(): Promise<void> {
+    it("if a bad operator contract reverts upon transferAndCall, he is kicked out of the sponsorship", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
