@@ -372,10 +372,12 @@ export class StreamrEnvDeployer {
                 this.addresses.SponsorshipStakeWeightedAllocationPolicy,
                 ethers.constants.AddressZero,
                 this.addresses.SponsorshipVoteKickPolicy,
+                this.addresses.SponsorshipMaxOperatorsJoinPolicy
             ], [
                 ethers.utils.parseEther("0.01"),
                 "0",
-                "0"
+                "0",
+                "3"
             ]
         )
         const sponsorshipReceipt = await sponsorshiptx.wait()

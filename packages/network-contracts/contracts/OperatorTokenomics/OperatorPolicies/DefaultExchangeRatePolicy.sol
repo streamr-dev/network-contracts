@@ -18,6 +18,7 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
     /**
      * Conversion from Operator's internal token to DATA when undelegating
      * We calculate using valueWithoutEarnings() because smart contract's can't check the outstanding earnings of arbitrary number of Sponsorships
+     * Rounding is DOWN, so that we don't give away more DATA than we should
      * @param operatorTokenWei Amount of Operator's internal token to undelegate
      * @return dataWei Amount of DATA token that would be received from the undelegation
      */
@@ -34,11 +35,13 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
     /**
      * Conversion from DATA to Operator's internal token when undelegating
      * We calculate using valueWithoutEarnings() because smart contract's can't check the outstanding earnings of arbitrary number of Sponsorships
+     * Rounding is UP, so that we get AT MOST the requested amount of DATA when burning the returned amount of Operator's internal token
      * @param dataWei Amount of DATA we want from undelegating
      * @return operatorTokenWei Amount of Operator's internal token to undelegate to receive the given amount of DATA
      */
     function operatorTokenToDataInverse(uint dataWei) external view returns (uint operatorTokenWei) {
-        return dataWei * this.totalSupply() / valueWithoutEarnings();
+        uint valueDataWei = valueWithoutEarnings();
+        return (dataWei * this.totalSupply() + valueDataWei - 1) / valueDataWei;
     }
 
     /**
