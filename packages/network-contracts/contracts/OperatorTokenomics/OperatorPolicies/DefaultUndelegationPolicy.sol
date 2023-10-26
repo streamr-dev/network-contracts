@@ -28,7 +28,8 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
         // limitation only applies to the operator, others can always undelegate
         if (delegator != owner) { return; }
 
-        // if all staking has been unstaked, allow total self-undelegation ("rapid shutdown")
+        // if all has been unstaked, no slashing can be coming => allow total self-undelegation ("rapid shutdown")
+        // otherwise the operator would have to wait for all delegators to undelegate first
         if (totalStakedIntoSponsorshipsWei == 0 && amountDataWei > valueWithoutEarnings()) { return; }
 
         uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
