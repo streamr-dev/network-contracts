@@ -16,6 +16,9 @@ contract StakeModule is IStakeModule, Operator {
         if (!queueIsEmpty()) {
             revert FirstEmptyQueueThenStake();
         }
+        if (balanceOf(owner) == 0) {
+            revert NoSelfDelegation();
+        }
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
