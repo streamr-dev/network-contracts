@@ -46,7 +46,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     const { token } = contracts
 
     // Hardhat provides 20 pre-funded signers
-    const [admin, ...hardhatSigners] = await hardhatEthers.getSigners() as unknown as Wallet[]
+    const [admin,, ...hardhatSigners] = await hardhatEthers.getSigners() as unknown as Wallet[]
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
     const signers = hardhatSigners.slice(0, totalOperatorCount)

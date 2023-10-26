@@ -32,7 +32,7 @@ import "./StreamrConfig.sol";
  * - earningsWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
  *  -> governed by the `IAllocationPolicy`
  * - forfeitedStakeWei: stakes that were locked to pay for a flag by a past operator who `forceUnstake`d (or was kicked)
- *  -> should be zero when there are no active flags
+ *  -> should be zero for everyone when there are no active flags
  *
  * @dev We track both earningsWei and remainingWei because there can be 'ghost tokens' from plain ERC20 transfers (instead of transferAndCall)
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
@@ -82,7 +82,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
     mapping(address => uint) public lockedStakeWei; // how much can not be unstaked (during e.g. flagging)
-    uint public forfeitedStakeWei; // lockedStakeWei that has been forfeited but is still needed to e.g. pay the flag reviewers
+    mapping(address => uint) public forfeitedStakeWei; // lockedStakeWei that has been forfeited but is still needed to e.g. pay the flag reviewers
+    uint public totalForfeitedStakeWei;
     uint public totalStakedWei;
     uint public operatorCount;
     uint public minOperatorCount;
@@ -192,7 +193,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _addSponsorship(address sponsorAddress, uint tokensFromSponsorWei) internal {
         // sweep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
         uint remainingWeiBefore = remainingWei;
-        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - forfeitedStakeWei;
+        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - totalForfeitedStakeWei;
         uint newTokensWei = remainingWei - remainingWeiBefore;
 
         // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
@@ -278,7 +279,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Slashing removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
-     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
         if (amountWei == 0) { return 0; }
@@ -291,7 +292,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Kicking does what slashing does, plus removes the operator
-     * NOTE: The caller MUST ensure that slashed tokens (if any) are added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure that slashed tokens (if any) are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      */
     function _kick(address operator, uint slashingWei) internal returns (uint actualSlashingWei) {
         if (slashingWei > 0) {
@@ -327,7 +328,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         if (lockedStakeWei[operator] > 0) {
             uint slashedWei = _slash(operator, lockedStakeWei[operator]);
-            forfeitedStakeWei += slashedWei;
+            totalForfeitedStakeWei += slashedWei;
+            forfeitedStakeWei[operator] += slashedWei;
             lockedStakeWei[operator] = 0;
         }
 

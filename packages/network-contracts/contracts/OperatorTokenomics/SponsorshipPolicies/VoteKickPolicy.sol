@@ -170,7 +170,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             votesAgainstKick[target] += uint(voterWeight);
             voterWeightSigned = -voterWeight;
         }
-
         emit FlagUpdate(target, FlagState.VOTING, votesForKick[target], votesAgainstKick[target], address(voter), voterWeightSigned);
 
         // end voting early when everyone's votes are in
@@ -179,78 +178,13 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         }
     }
 
+    /** Vote ends either when everyone voted, or `streamrConfig.votingPeriodSeconds()` passed */
     function _endVote(address target) private {
-        address flagger = flaggerAddress[target];
-        bool flaggerIsGone = stakedWei[flagger] == 0;
-        bool targetIsGone = stakedWei[target] == 0;
-        uint reviewerCount = reviewers[target].length;
-
-        // release stake locks before vote resolution so that slashings and kickings during resolution aren't affected
-        // if either the flagger or the target has forceUnstaked or been kicked, the lockedStakeWei was moved to forfeitedStakeWei
-        if (flaggerIsGone) {
-            forfeitedStakeWei -= flagStakeWei[target];
-        } else {
-            lockedStakeWei[flagger] -= flagStakeWei[target];
-        }
-        if (targetIsGone) {
-            forfeitedStakeWei -= targetStakeAtRiskWei[target];
-        } else {
-            lockedStakeWei[target] -= targetStakeAtRiskWei[target];
-        }
-
-        if (votesForKick[target] > votesAgainstKick[target]) {
-            uint slashingWei = targetStakeAtRiskWei[target];
-            // if targetIsGone: the tokens are still in Sponsorship, accounted in forfeitedStakeWei (so "slashing" was already done)
-            if (!targetIsGone) {
-                slashingWei = _kick(target, slashingWei);
-            }
-
-            // pay the flagger and those reviewers who voted correctly from the slashed stake
-            if (flaggerIsGone) {
-                // ...unless the flagger left and forfeited its flag-stake. Add the forfeited stake on top of "slashing" that will go to sponsorship
-                slashingWei += flagStakeWei[target];
-            } else {
-                token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
-                slashingWei -= flaggerRewardWei[target];
-            }
-            for (uint i = 0; i < reviewerCount; i++) {
-                Operator reviewer = reviewers[target][i];
-                if (reviewerState[target][reviewer] == VOTED_KICK) {
-                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                    slashingWei -= reviewerRewardWei[target];
-                }
-                delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
-            }
-            _addSponsorship(address(this), slashingWei); // leftovers are added to sponsorship
-            emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
-        } else {
-            // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
-            protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
-            uint rewardsWei = 0;
-            for (uint i = 0; i < reviewerCount; i++) {
-                Operator reviewer = reviewers[target][i];
-                if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
-                    token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                    rewardsWei += reviewerRewardWei[target];
-                }
-                delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
-            }
-            if (flaggerIsGone) {
-                uint leftoverWei = flagStakeWei[target] - rewardsWei;
-                _addSponsorship(address(this), leftoverWei); // flagger forfeited its flagstake, so the leftovers go to sponsorship
-            } else {
-                _slash(flagger, rewardsWei); // just slash enough to cover the rewards, the rest will be unlocked = released
-            }
-            emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
-            if (!targetIsGone) {
-                emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
-            }
-        }
-
-        if (!flaggerIsGone) {
-            emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
-        }
-        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
+        // Some stake may be "lost" during the flagging, e.g. if flagger or target forceUnstaked while some of their stake was locked.
+        // Send the leftovers out of the contract in order to make it impossible for malicious operators to get them for themselves:
+        //   an operator can deliberately lose their delegators' tokens, and leaving them into the Sponsorship would enable the operator to pocket them
+        uint leftoverWei = (votesForKick[target] > votesAgainstKick[target]) ? _kick(target) : _noKick(target);
+        token.transfer(streamrConfig.protocolFeeBeneficiary(), leftoverWei);
 
         delete flaggerAddress[target];
         delete voteStartTimestamp[target];
@@ -258,7 +192,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         delete targetStakeAtRiskWei[target];
 
         delete reviewers[target];
-        // reviewerState was cleaned up inside the loop above
+        // reviewerState was cleaned up inside the reviewer payment loop in _kick() or _noKick()
         delete votesForKick[target];
         delete votesAgainstKick[target];
         delete votersTotalValueWei[target];
@@ -266,5 +200,95 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         delete flaggerRewardWei[target];
         delete reviewerRewardWei[target];
         delete flagStakeWei[target];
+
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
+    }
+
+    /** successful flag: target gets kicked and the flagger+reviewers are paid from the slashing */
+    function _kick(address target) private returns (uint leftoverWei) {
+        address flagger = flaggerAddress[target];
+        uint reviewerCount = reviewers[target].length;
+
+        // Take the slashing from target's locked stake...
+        uint slashingWei = targetStakeAtRiskWei[target];
+        if (lockedStakeWei[target] >= slashingWei) {
+            lockedStakeWei[target] -= slashingWei;
+            _kick(target, slashingWei); // ignore return value, there should be enough (now unlocked) stake to slash
+        } else {
+            //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake
+            forfeitedStakeWei[target] -= slashingWei;
+            totalForfeitedStakeWei -= slashingWei;
+        }
+
+        // Unlock the flagger's stake and pay them from the slashed stake
+        uint flagStake = flagStakeWei[target];
+        if (lockedStakeWei[flagger] >= flagStake) {
+            lockedStakeWei[flagger] -= flagStake;
+            token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
+            slashingWei -= flaggerRewardWei[target];
+            emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
+        } else {
+            //...unless flagger has forceUnstaked or been kicked
+            forfeitedStakeWei[flagger] -= flagStake;
+            totalForfeitedStakeWei -= flagStake;
+            leftoverWei += flagStake;
+        }
+
+        // pay from the slashed stake those reviewers who voted correctly
+        for (uint i = 0; i < reviewerCount; i++) {
+            Operator reviewer = reviewers[target][i];
+            if (reviewerState[target][reviewer] == VOTED_KICK) {
+                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
+                slashingWei -= reviewerRewardWei[target];
+            }
+            delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
+        }
+
+        // after flagger and reviewers got paid, the rest belongs to no one (target still must be slashed to keep the negative incentive)
+        leftoverWei += slashingWei;
+        emit FlagUpdate(target, FlagState.KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
+    }
+
+    /** false flag: no kick, flagger pays the reviewers */
+    function _noKick(address target) private returns (uint leftoverWei) {
+        address flagger = flaggerAddress[target];
+        uint reviewerCount = reviewers[target].length;
+
+        // Unlock the target's stake
+        uint targetStake = targetStakeAtRiskWei[target];
+        if (lockedStakeWei[target] >= targetStake) {
+            lockedStakeWei[target] -= targetStake;
+        } else {
+            //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake
+            forfeitedStakeWei[target] -= targetStake;
+            totalForfeitedStakeWei -= targetStake;
+            leftoverWei += targetStake;
+        }
+
+        // Pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
+        protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
+        uint rewardsWei = 0;
+        for (uint i = 0; i < reviewerCount; i++) {
+            Operator reviewer = reviewers[target][i];
+            if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
+                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
+                rewardsWei += reviewerRewardWei[target];
+            }
+            delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
+        }
+
+        // Unlock the flagger's stake. Slash just enough to cover the rewards, the rest will be unlocked = released
+        uint flagStake = flagStakeWei[target];
+        if (lockedStakeWei[flagger] >= flagStake) {
+            lockedStakeWei[flagger] -= flagStake;
+            _slash(flagger, rewardsWei);
+        } else {
+            //...unless flagger has forceUnstaked or been kicked, in which case the locked flag-stake was moved into forfeited stake
+            forfeitedStakeWei[flagger] -= flagStake;
+            totalForfeitedStakeWei -= flagStake;
+            leftoverWei += flagStake - rewardsWei;
+        }
+
+        emit FlagUpdate(target, FlagState.NOT_KICKED, votesForKick[target], votesAgainstKick[target], address(0), 0);
     }
 }
