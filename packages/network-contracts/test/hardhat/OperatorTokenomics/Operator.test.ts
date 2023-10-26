@@ -1808,8 +1808,8 @@ describe("Operator contract", (): void => {
         })
 
         it("can call flagging functions", async function(): Promise<void> {
-            // hardhat accounts 1, 2, 3 will be used by setupSponsorships, see "before" hook which they are
-            await setTokens(sponsor, "10000")
+            // hardhat accounts 2, 3, 4 will be used by setupSponsorships, see "before" hook which they are
+            await setTokens(delegator, "10000")
             await setTokens(operatorWallet, "10000")
             await setTokens(operator2Wallet, "10000")
             const {
