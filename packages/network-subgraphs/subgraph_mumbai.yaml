@@ -166,9 +166,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x7ad4c0F107CDA1631CEAbEAF35FED1f301A2773c'
+      address: '0x34177d5D01D7c97F78a7d05ae2c08821315997E0'
       abi: SponsorshipFactory
-      startBlock: 41076040
+      startBlock: 41627710
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -187,9 +187,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xD00F341571EF918040BFc4f8deF94EBA17c88eAe'
+      address: '0x3cB6184dD5D80C30D4564E21B561fdBD7F406ccd'
       abi: OperatorFactory
-      startBlock: 41076040
+      startBlock: 41627710
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -266,11 +266,7 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: Delegated(indexed address,uint256)
-            handler: handleDelegated
-          - event: Undelegated(indexed address,uint256)
-            handler: handleUndelegated
-          - event: BalanceUpdate(address,uint256,uint256)
+          - event: BalanceUpdate(address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)

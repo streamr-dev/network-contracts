@@ -16,6 +16,11 @@ contract StakeModule is IStakeModule, Operator {
         if (!queueIsEmpty()) {
             revert FirstEmptyQueueThenStake();
         }
+        if (totalSupply() == 0) {
+            // this could happen if the operator funds the contract initially with an ERC-20 transfer
+            // it would enable the operator to cause an extreme exchange rate (~1 : 1e18) after a withdraw
+            revert NoSelfDelegation();
+        }
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;

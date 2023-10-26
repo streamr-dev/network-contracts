@@ -234,7 +234,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         stakedWei[operator] = newStakeWei;
 
         uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
-        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp;
+        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp; // solhint-disable-line not-rely-on-time
 
         if (isEligible && votersIndex[operator] == 0) {
             voters.push(operator);
