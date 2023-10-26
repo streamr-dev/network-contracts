@@ -21,8 +21,8 @@ import "./StreamrConfig.sol";
 contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IVoterRegistry {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    event NewOperator(address operatorAddress, address operatorContractAddress);
-    event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
+    event NewOperator(address indexed operatorAddress, address indexed operatorContractAddress);
+    event TemplateAddresses(address indexed operatorTemplate, address indexed nodeModuleTemplate, address indexed queueModuleTemplate, address stakeModuleTemplate);
 
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();

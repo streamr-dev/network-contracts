@@ -32,7 +32,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
-    event TemplateAddress(address templateAddress);
+    event TemplateAddress(address indexed templateAddress);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}

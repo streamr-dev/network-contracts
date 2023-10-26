@@ -40,21 +40,21 @@ import "./StreamrConfig.sol";
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
 
-    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei, uint lockedStakeWei);
-    event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
+    event StakeUpdate(address indexed operator, uint indexed stakedWei, uint indexed earningsWei, uint lockedStakeWei);
+    event SponsorshipUpdate(uint totalStakedWei, uint indexed remainingWei, uint indexed operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
-    event OperatorLeft(address indexed operator, uint returnedStakeWei);
-    event SponsorshipReceived(address indexed sponsor, uint amount);
+    event OperatorLeft(address indexed operator, uint indexed returnedStakeWei);
+    event SponsorshipReceived(address indexed sponsor, uint indexed amount);
     event OperatorKicked(address indexed operator);
-    event OperatorSlashed(address indexed operator, uint amountWei);
+    event OperatorSlashed(address indexed operator, uint indexed amountWei);
 
     // Emitted from the allocation policy
-    event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
-    event InsolvencyStarted(uint startTimeStamp);
-    event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
+    event ProjectedInsolvencyUpdate(uint indexed projectedInsolvencyTimestamp);
+    event InsolvencyStarted(uint indexed startTimeStamp);
+    event InsolvencyEnded(uint indexed endTimeStamp, uint indexed defaultedWeiPerStake, uint indexed defaultedWei);
 
     // Emitted from VoteKickPolicy
-    event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
+    event Flagged(address indexed target, address indexed flagger, uint indexed targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
     event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
 
     error AccessDenied();
