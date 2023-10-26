@@ -7,7 +7,7 @@ import "../Sponsorship.sol";
 
 contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
 
-    uint public penaltyPeriodSeconds;
+    uint public penaltyPeriodSeconds; // = 0
 
     function setParam(uint penaltyPeriod) external {
         require (penaltyPeriod <= streamrConfig.maxPenaltyPeriodSeconds(), "error_penaltyPeriodTooLong");

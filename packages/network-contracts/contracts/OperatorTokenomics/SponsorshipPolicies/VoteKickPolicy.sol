@@ -98,8 +98,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // Set the seed to only depend on target (until a voter (dis)appears), so that attacker who simulates transactions
         //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every voter-set change
         bytes32 randomBytes32 = bytes32((voterCount << 160) | uint160(target));
-        uint totalValueWei;
-        uint biggestVoterWeight;
+        uint totalValueWei; // = 0
+        uint biggestVoterWeight; // = 0
         Operator biggestVoter;
         for (uint i; reviewers[target].length < maxReviewerCount && (i < maxReviewerCount || i < streamrConfig.flagReviewerSelectionIterations()); i++) {
             if (i % 32 == 0) {
