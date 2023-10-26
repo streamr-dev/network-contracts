@@ -98,10 +98,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // Set the seed to only depend on target (until a voter (dis)appears), so that attacker who simulates transactions
         //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every voter-set change
         bytes32 randomBytes32 = bytes32((voterCount << 160) | uint160(target));
-        uint totalValueWei = 0;
-        uint biggestVoterWeight = 0;
+        uint totalValueWei;
+        uint biggestVoterWeight;
         Operator biggestVoter;
-        for (uint i = 0; reviewers[target].length < maxReviewerCount && (i < maxReviewerCount || i < streamrConfig.flagReviewerSelectionIterations()); i++) {
+        for (uint i; reviewers[target].length < maxReviewerCount && (i < maxReviewerCount || i < streamrConfig.flagReviewerSelectionIterations()); i++) {
             if (i % 32 == 0) {
                 if (streamrConfig.randomOracle() != address(0)) {
                     randomBytes32 = IRandomOracle(streamrConfig.randomOracle()).getRandomBytes32();
@@ -213,7 +213,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
                 token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
                 slashingWei -= flaggerRewardWei[target];
             }
-            for (uint i = 0; i < reviewerCount; i++) {
+            for (uint i; i < reviewerCount; i++) {
                 Operator reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == VOTED_KICK) {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
@@ -226,8 +226,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
-            uint rewardsWei = 0;
-            for (uint i = 0; i < reviewerCount; i++) {
+            uint rewardsWei;
+            for (uint i; i < reviewerCount; i++) {
                 Operator reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
                     token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));

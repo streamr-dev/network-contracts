@@ -225,7 +225,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         if (newStaker) {
             operatorCount += 1;
             joinTimeOfOperator[operator] = block.timestamp; // solhint-disable-line not-rely-on-time
-            for (uint i = 0; i < joinPolicies.length; i++) {
+            for (uint i; i < joinPolicies.length; i++) {
                 IJoinPolicy joinPolicy = joinPolicies[i];
                 moduleCall(address(joinPolicy), abi.encodeWithSelector(joinPolicy.onJoin.selector, operator, amountWei));
             }

@@ -503,7 +503,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     ) {
         addresses = new address[](sponsorships.length);
         earnings = new uint[](sponsorships.length);
-        for (uint i = 0; i < sponsorships.length; i++) {
+        for (uint i; i < sponsorships.length; i++) {
             Sponsorship sponsorship = sponsorships[i];
             addresses[i] = address(sponsorship);
             earnings[i] = sponsorship.getEarnings(address(this));
