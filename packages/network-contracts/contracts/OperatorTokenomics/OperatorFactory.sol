@@ -22,7 +22,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     event NewOperator(address indexed operatorAddress, address indexed operatorContractAddress);
-    event TemplateAddresses(address indexed operatorTemplate, address indexed nodeModuleTemplate, address indexed queueModuleTemplate, address stakeModuleTemplate);
+    event TemplateAddresses(address indexed operatorTemplate, address nodeModuleTemplate, address indexed queueModuleTemplate, address indexed stakeModuleTemplate);
 
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
