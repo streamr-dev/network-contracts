@@ -1211,14 +1211,16 @@ describe("Operator contract", (): void => {
             expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ delegator.address, delegator.address ])
             expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("100"), parseEther("100") ])
 
+            // withdraw 1000 DATA => after protocol fee 5%, 950 DATA remains => pay out queue worth 200 DATA, 750 DATA remains
             await advanceToTimestamp(timeAtStart + 1000, "withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
             expect(await operator.undelegationQueue()).to.deep.equal([])
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("750"))
 
             await operator.connect(delegator).undelegate(parseEther("1000000"))
             expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ delegator.address ])
-            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("810") ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("999250") ])
 
             expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("950.0")
