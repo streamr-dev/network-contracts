@@ -226,7 +226,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         } else {
             // false flag, no kick; pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
             protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time
-            uint rewardsWei;
+            uint rewardsWei; // = 0
             for (uint i; i < reviewerCount; i++) {
                 Operator reviewer = reviewers[target][i];
                 if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
