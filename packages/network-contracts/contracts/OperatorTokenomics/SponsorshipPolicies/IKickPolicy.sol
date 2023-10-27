@@ -14,4 +14,5 @@ interface IKickPolicy {
     function onFlag(address target, address flagger) external;
     function onVote(address operator, bytes32 voteData, address voter) external;
     function getFlagData(address operator) external view returns (uint flagData);
+    function getMinimumStakeOf(address operator) external view returns (uint individualMinimumStakeWei);
 }

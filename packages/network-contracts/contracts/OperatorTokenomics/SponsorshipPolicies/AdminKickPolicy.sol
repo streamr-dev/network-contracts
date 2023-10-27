@@ -30,4 +30,8 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
     function getFlagData(address) override external pure returns (uint flagData) {
         return 0;
     }
+
+    function getMinimumStakeOf(address) override external pure returns (uint individualMinimumStakeWei) {
+        return 0;
+    }
 }

@@ -54,10 +54,10 @@ describe("StreamrConfig", (): void => {
                     .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("1000"))
                 await expect(flagger.stake(sponsorship.address, parseEther("100000")))
                     .to.emit(flagger, "Staked").withArgs(sponsorship.address)
-                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("100000"), "0", "0")
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("100000"), "0")
                 await expect(target.stake(sponsorship.address, minimumStakeWei))
                     .to.emit(target, "Staked").withArgs(sponsorship.address)
-                    .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, minimumStakeWei, "0", "0")
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, minimumStakeWei, "0")
 
                 // raise the targetStakeAtRiskWei by raising minimum stake by setting higher reviewer rewards
                 // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that `target` staked
