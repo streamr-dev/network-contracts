@@ -54,7 +54,7 @@ describe("Sponsorship contract", (): void => {
         await( await streamrConfig.setFlagReviewerCount(5)).wait()
     })
 
-    it("bad operator contract that reverts upon transferAndCall, can't prevent getting kicked out of the sponsorship", async function(): Promise<void> {
+    it("bad operator (reverts upon transferAndCall) can't prevent getting kicked out of the sponsorship", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts)
         const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
@@ -82,7 +82,7 @@ describe("Sponsorship contract", (): void => {
             .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
     })
 
-    it("bad operator contract that reverts upon transferAndCall, can be kicked out of the sponsorship through admin policy", async function(): Promise<void> {
+    it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async function(): Promise<void> {
         const { token, adminKickPolicy } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
         const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
@@ -94,7 +94,7 @@ describe("Sponsorship contract", (): void => {
         const badOperatorStakeAfterKick = await sponsorship.stakedWei(badOperator.address)
 
         expect(badOperatorStakeBeforeKick).to.equal(parseEther("100"))
-        expect(badOperatorStakeAfterKick).to.equal(parseEther("0"))
+        expect(badOperatorStakeAfterKick).to.equal(parseEther("0")) // they're out
     })
 
     // longer happy path tests
