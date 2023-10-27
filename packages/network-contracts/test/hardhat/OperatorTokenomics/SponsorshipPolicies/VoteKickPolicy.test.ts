@@ -904,6 +904,18 @@ describe("VoteKickPolicy", (): void => {
 
             expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
         })
+
+        it("stake gets unlocked if there's only a little unlocked stake left", async function(): Promise<void> {
+            // A, B stake 7000
+            // B flags A => targetStakeAtRisk = 700
+            // A forceunstakes => forfeitedStake = 700
+            // A stakes again
+            // A flags B, C, D => 3 * 500 = A's locked stake > targetStakeAtRisk = 700
+            // B-A flag resolves with NO_KICK => A's locked stake = 3 * 500 - targetStakeAtRisk = 800
+            // A-C flag resolves with KICK => A's locked stake = 800 - flagStake = 300
+
+            // after A-D flag resolves, A's locked stake should be zero
+        })
     })
 
     describe("Access control", (): void => {

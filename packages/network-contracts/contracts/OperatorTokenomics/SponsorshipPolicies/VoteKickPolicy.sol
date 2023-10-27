@@ -216,8 +216,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             _kick(target, slashingWei); // ignore return value, there should be enough (now unlocked) stake to slash
         } else {
             //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake
-            forfeitedStakeWei[target] -= slashingWei;
-            totalForfeitedStakeWei -= slashingWei;
+            forfeitedStakeWei -= slashingWei;
         }
 
         // Unlock the flagger's stake and pay them from the slashed stake
@@ -229,8 +228,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
         } else {
             //...unless flagger has forceUnstaked or been kicked
-            forfeitedStakeWei[flagger] -= flagStake;
-            totalForfeitedStakeWei -= flagStake;
+            forfeitedStakeWei -= flagStake;
             leftoverWei += flagStake;
         }
 
@@ -260,8 +258,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             lockedStakeWei[target] -= targetStake;
         } else {
             //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake
-            forfeitedStakeWei[target] -= targetStake;
-            totalForfeitedStakeWei -= targetStake;
+            forfeitedStakeWei -= targetStake;
             leftoverWei += targetStake;
         }
 
@@ -284,8 +281,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             _slash(flagger, rewardsWei);
         } else {
             //...unless flagger has forceUnstaked or been kicked, in which case the locked flag-stake was moved into forfeited stake
-            forfeitedStakeWei[flagger] -= flagStake;
-            totalForfeitedStakeWei -= flagStake;
+            forfeitedStakeWei -= flagStake;
             leftoverWei += flagStake - rewardsWei;
         }
 

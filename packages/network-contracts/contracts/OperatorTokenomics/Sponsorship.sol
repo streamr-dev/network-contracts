@@ -82,8 +82,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
     mapping(address => uint) public lockedStakeWei; // how much can not be unstaked (during e.g. flagging)
-    mapping(address => uint) public forfeitedStakeWei; // lockedStakeWei that has been forfeited but is still needed to e.g. pay the flag reviewers
-    uint public totalForfeitedStakeWei;
+    uint public forfeitedStakeWei; // lockedStakeWei that has been forfeited but is still needed to e.g. pay the flag reviewers
     uint public totalStakedWei;
     uint public operatorCount;
     uint public minOperatorCount;
@@ -193,7 +192,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _addSponsorship(address sponsorAddress, uint tokensFromSponsorWei) internal {
         // sweep all non-staked tokens into "unallocated" bin (remainingWei). This also takes care of tokens sent using plain `ERC20.transfer` without calling `sponsor`
         uint remainingWeiBefore = remainingWei;
-        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - totalForfeitedStakeWei;
+        remainingWei = token.balanceOf(address(this)) - earningsWei - totalStakedWei - forfeitedStakeWei;
         uint newTokensWei = remainingWei - remainingWeiBefore;
 
         // tokens can't be lost if ERC677.onTokenTransfer or ERC20.transferFrom works correctly ==> assume newTokens >= amount
@@ -328,8 +327,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
         if (lockedStakeWei[operator] > 0) {
             uint slashedWei = _slash(operator, lockedStakeWei[operator]);
-            totalForfeitedStakeWei += slashedWei;
-            forfeitedStakeWei[operator] += slashedWei;
+            forfeitedStakeWei += slashedWei;
             lockedStakeWei[operator] = 0;
         }
 
