@@ -240,7 +240,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake, and they already paid for the KICK
             forfeitedStakeWei -= slashingWei - lockedStakeWei[target];
             lockedStakeWei[target] = 0;
-            if (stakedWei[target] > 0) { emit StakeLockUpdate(target, lockedStakeWei[target], getMinimumStakeOf(target)); }
+            if (stakedWei[target] > 0) {
+                emit StakeLockUpdate(target, lockedStakeWei[target], getMinimumStakeOf(target));
+            }
         }
 
         // Unlock the flagger's stake and pay them from the slashed stake
@@ -255,7 +257,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             lockedStakeWei[flagger] = 0;
             leftoverWei += flagStake;
         }
-        if (stakedWei[flagger] > 0) { emit StakeLockUpdate(flagger, lockedStakeWei[flagger], getMinimumStakeOf(flagger)); }
+        if (stakedWei[flagger] > 0) {
+            emit StakeLockUpdate(flagger, lockedStakeWei[flagger], getMinimumStakeOf(flagger));
+        }
 
         // pay from the slashed stake those reviewers who voted correctly
         for (uint i; i < reviewerCount; i++) {
@@ -288,7 +292,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             lockedStakeWei[target] = 0;
             leftoverWei += targetStake;
         }
-        if (stakedWei[target] > 0) { emit StakeLockUpdate(target, lockedStakeWei[target], getMinimumStakeOf(target)); }
+        if (stakedWei[target] > 0) {
+            emit StakeLockUpdate(target, lockedStakeWei[target], getMinimumStakeOf(target));
+        }
 
         // Pay the reviewers who voted correctly from the flagger's stake, return the leftovers to the flagger
         protectionEndTimestamp[target] = block.timestamp + streamrConfig.flagProtectionSeconds(); // solhint-disable-line not-rely-on-time

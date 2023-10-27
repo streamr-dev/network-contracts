@@ -291,13 +291,13 @@ describe("VoteKickPolicy", (): void => {
                 ],
                 contracts.allocationPolicy.address
             )
-
             await expect(sponsorship.flag(defaultSetup.sponsorships[0].address, ""))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
             await expect(sponsorship.voteOnFlag(defaultSetup.sponsorships[0].address, VOTE_KICK))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
             await expect(sponsorship.getFlag(defaultSetup.sponsorships[0].address))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
+            expect(await sponsorship.minimumStakeOf(admin.address)).to.equal("0")
         })
 
         it("FAILS to flag self", async function(): Promise<void> {
