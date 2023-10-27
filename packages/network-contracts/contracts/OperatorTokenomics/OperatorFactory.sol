@@ -108,7 +108,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     }
 
     function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
@@ -173,7 +173,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         uint[3] memory policyParams
     ) private returns (address) {
         if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }

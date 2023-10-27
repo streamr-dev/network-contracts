@@ -46,7 +46,8 @@ describe("docker image integration test", () => {
                 id
             }
             sponsorships {
-                id
+                id,
+                maxOperators
             }
             stakes {
                 id
@@ -65,6 +66,7 @@ describe("docker image integration test", () => {
         `})
         expect(resultDynamicIds.nodes.length).to.equal(1)
         expect(resultDynamicIds.sponsorships.length).to.equal(1)
+        expect(resultDynamicIds.sponsorships[0].maxOperators).to.equal(3)
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
         expect(resultDynamicIds.sponsoringEvents.length).to.equal(1)
 
