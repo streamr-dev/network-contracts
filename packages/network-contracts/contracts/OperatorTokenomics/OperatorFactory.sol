@@ -122,6 +122,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint operatorsCutFraction,
             string memory operatorTokenName,
@@ -129,7 +130,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
@@ -153,7 +153,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         string memory operatorMetadataJson,
         address[3] memory policies,  // [0] delegation, [1] exchange rate, [2] undelegation policy
         uint[3] memory policyParams  // [0] delegation, [1] exchange rate, [2] undelegation policy param
-    ) public returns (address) {
+    ) external returns (address) {
         return _deployOperator(
             _msgSender(),
             operatorsCutFraction,
@@ -217,8 +217,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return newContractAddress;
     }
 
-    function predictAddress(string calldata operatorTokenName) public view returns (address) {
-        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), _msgSender()));
+    function predictAddress(address deployer, string calldata operatorTokenName) external view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), deployer));
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
@@ -253,7 +253,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         }
     }
 
-    function voterCount() public view returns (uint) {
+    function voterCount() external view returns (uint) {
         return voters.length;
     }
 }

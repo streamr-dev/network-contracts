@@ -58,7 +58,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
 
     error AccessDenied();
-    error OnlyDATAToken();
+    error AccessDeniedDATATokenOnly();
     error MinOperatorCountZero();
     error MinimumStake();
     error CannotIncreaseStake();
@@ -245,7 +245,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Get all the stake and allocations out
      * Throw if that's not possible due to open flags or leave penalty (e.g. leaving too early)
      */
-    function unstake() public returns (uint payoutWei) {
+    function unstake() external returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) { revert LeavePenalty(penaltyWei); }
@@ -254,7 +254,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is locked to pay for flags */
-    function forceUnstake() public returns (uint payoutWei) {
+    function forceUnstake() external returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
