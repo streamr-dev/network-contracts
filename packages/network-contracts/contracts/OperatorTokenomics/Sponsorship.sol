@@ -366,7 +366,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _withdraw(address operator) internal returns (uint payoutWei) {
         payoutWei = moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onWithdraw.selector, operator));
         if (payoutWei > 0) {
-            token.transferAndCall(operator, payoutWei, "allocation");
+            try token.transferAndCall(operator, payoutWei, "allocation") {} catch {}
         }
     }
 
