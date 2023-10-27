@@ -90,8 +90,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public remainingWei;
     uint public earningsWei; // allocated but not withdrawn tokens; only the IAllocationPolicy should modify this!
 
-    function getMyStake() public view returns (uint) {
-        return stakedWei[_msgSender()];
+    function getMyStake() external view returns (uint) {
+        return stakedWei[msg.sender];
     }
 
     /**
@@ -147,7 +147,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
+        // this needs not happen via meta-tx, normally msg.sender should be the factory
+        // factory needs DEFAULT_ADMIN_ROLE to set policies, and should (self-)revoke it after policies are set!
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
 
@@ -156,7 +158,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If the data bytes contains an address, the incoming tokens are staked for that operator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (msg.sender != address(token)) { revert OnlyDATAToken(); } // trusted forwarder should NOT be able to set this
+        if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); } // trusted forwarder should NOT be able to set this
         if (data.length == 20) {
             // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)

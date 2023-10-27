@@ -41,7 +41,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
         emit TemplateAddress(templateAddress);

@@ -226,8 +226,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    function updateStake(uint newStakeWei) public {
-        address operator = _msgSender();
+    function updateStake(uint newStakeWei) external {
+        address operator = msg.sender;
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
         totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
