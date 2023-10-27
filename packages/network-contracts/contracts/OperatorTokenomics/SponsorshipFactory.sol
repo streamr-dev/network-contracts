@@ -67,7 +67,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
@@ -137,7 +137,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         if (policies.length != policyParams.length) { revert BadArguments(); }
         if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }

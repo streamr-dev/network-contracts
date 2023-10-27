@@ -99,7 +99,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
     function _withdrawEarnings(Sponsorship[] memory sponsorshipAddresses) public returns (uint sumEarnings) {
-        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
+        for (uint i; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
         if (sumEarnings == 0) {
