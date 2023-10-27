@@ -324,6 +324,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             uint slashedWei = _slash(operator, lockedStakeWei[operator]);
             forfeitedStakeWei += slashedWei;
             lockedStakeWei[operator] = 0;
+            emit StakeLockUpdate(operator, 0, 0);
         }
 
         // send out both allocations and stake

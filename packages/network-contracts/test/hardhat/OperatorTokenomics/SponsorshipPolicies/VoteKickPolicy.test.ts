@@ -376,7 +376,21 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("results in NO_KICK if there was a tie", async function(): Promise<void> {
-            // TODO
+            const {
+                sponsorships: [ s ],
+                operatorsPerSponsorship: [ [flagger, target], voters ]
+            } = await setupSponsorships(contracts, [2, 4], "tie")
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(s.address, target.address, "")).wait()
+
+            await advanceToTimestamp(start + VOTE_START + 20, `Voting to kick ${addr(flagger)}`)
+            await (await voters[0].voteOnFlag(s.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(s.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(s.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[3].voteOnFlag(s.address, target.address, VOTE_NO_KICK))
+                .to.emit(s, "FlagUpdate").withArgs(target.address, FlagState.RESULT_NO_KICK, parseEther("20000"), parseEther("20000"), AddressZero, 0)
         })
 
         it("results in NO_KICK if no one voted, flagger doesn't lose stake", async function(): Promise<void> {
@@ -969,16 +983,110 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
         })
 
-        it("stake gets unlocked if there's only a little unlocked stake left", async function(): Promise<void> {
-            // A, B stake 7000
+        it("stake gets unlocked if there's only a little unlocked stake left (KICK branch)", async function(): Promise<void> {
+            // This is how locked stake can get split between locked and forfeited stake:
+            // A, B, C, D stake 7000
             // B flags A => targetStakeAtRisk = 700
             // A forceunstakes => forfeitedStake = 700
             // A stakes again
             // A flags B, C, D => 3 * 500 = A's locked stake > targetStakeAtRisk = 700
             // B-A flag resolves with NO_KICK => A's locked stake = 3 * 500 - targetStakeAtRisk = 800
-            // A-C flag resolves with KICK => A's locked stake = 800 - flagStake = 300
+            // A-C flag resolves with NO_KICK => A's locked stake = 800 - flagStake = 300
+            // after A-D flag resolves, A's locked stake should be zero, and forfeitedStake should be 200 less
+            const {
+                sponsorships: [ s ],
+                operators: [ a, b, c, d ]
+            } = await setupSponsorships(contracts, [4], "split-locked-stake", {
+                stakeAmountWei: parseEther("7000"), // flag-stake is 500 tokens
+            })
+            const start = await getBlockTimestamp()
 
-            // after A-D flag resolves, A's locked stake should be zero
+            await advanceToTimestamp(start, "flagging")
+            await expect(b.flag(s.address, a.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("700"), parseEther("5000"))
+            await expect(a.forceUnstake(s.address, 0)).to.emit(s, "OperatorLeft").withArgs(a.address, parseEther("6300"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+            await expect(a.stake(s.address, parseEther("6300"))).to.emit(s, "StakeUpdate").withArgs(a.address, parseEther("6300"), parseEther("0"))
+            await expect(a.flag(s.address, b.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("500"), parseEther("5000"))
+            await expect(a.flag(s.address, c.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("1000"), parseEther("5000"))
+            await expect(a.flag(s.address, d.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("1500"), parseEther("5000"))
+
+            // NO_KICK "accidentally" unlocks flagstake-lockings worth targetAtRisk, but that's okay:
+            //   the targetAtRisk is in forfeitedStake, and later the flagstake-unlockings will decrease forfeitedStake. Sums match.
+            await advanceToTimestamp(start + VOTE_START, "voting")
+            await expect(c.voteOnFlag(s.address, a.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, a.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("800"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+
+            await expect(b.voteOnFlag(s.address, c.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, c.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("300"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+
+            // notice how the lockings are now split between locked and forfeited stake
+            // especially note how lockedStake < flagStake, so we'll end up in the "else" branch in flagger-stake unlocking despite being staked!
+            await expect(b.voteOnFlag(s.address, d.address, VOTE_KICK)).to.emit(s, "FlagUpdate")
+            await expect(c.voteOnFlag(s.address, d.address, VOTE_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("0"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("500"))
+
+            await expect(c.voteOnFlag(s.address, b.address, VOTE_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, b.address, VOTE_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("0"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("0"))
+        })
+
+        it("stake gets unlocked if there's only a little unlocked stake left (NO_KICK branch)", async function(): Promise<void> {
+            // This is how locked stake can get split between locked and forfeited stake:
+            // A, B, C, D stake 7000
+            // B flags A => targetStakeAtRisk = 700
+            // A forceunstakes => forfeitedStake = 700
+            // A stakes again
+            // A flags B, C, D => 3 * 500 = A's locked stake > targetStakeAtRisk = 700
+            // B-A flag resolves with NO_KICK => A's locked stake = 3 * 500 - targetStakeAtRisk = 800
+            // A-C flag resolves with NO_KICK => A's locked stake = 800 - flagStake = 300
+            // after A-D flag resolves, A's locked stake should be zero, and forfeitedStake should be 200 less
+            const {
+                sponsorships: [ s ],
+                operators: [ a, b, c, d ]
+            } = await setupSponsorships(contracts, [4], "split-locked-stake", {
+                stakeAmountWei: parseEther("7000"), // flag-stake is 500 tokens
+            })
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, "flagging")
+            await expect(b.flag(s.address, a.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("700"), parseEther("5000"))
+            await expect(a.forceUnstake(s.address, 0)).to.emit(s, "OperatorLeft").withArgs(a.address, parseEther("6300"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+            await expect(a.stake(s.address, parseEther("6300"))).to.emit(s, "StakeUpdate").withArgs(a.address, parseEther("6300"), parseEther("0"))
+            await expect(a.flag(s.address, b.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("500"), parseEther("5000"))
+            await expect(a.flag(s.address, c.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("1000"), parseEther("5000"))
+            await expect(a.flag(s.address, d.address, "")).to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("1500"), parseEther("5000"))
+
+            // NO_KICK "accidentally" unlocks flagstake-lockings worth targetAtRisk, but that's okay:
+            //   the targetAtRisk is in forfeitedStake, and later the flagstake-unlockings will decrease forfeitedStake. Sums match.
+            await advanceToTimestamp(start + VOTE_START, "voting")
+            await expect(c.voteOnFlag(s.address, a.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, a.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("800"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+
+            await expect(b.voteOnFlag(s.address, c.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, c.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("300"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("700"))
+
+            // notice how the lockings are now split between locked and forfeited stake
+            // especially note how lockedStake < flagStake, so we'll end up in the "else" branch in flagger-stake unlocking despite being staked!
+            await expect(b.voteOnFlag(s.address, d.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(c.voteOnFlag(s.address, d.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("0"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("500"))
+
+            await expect(c.voteOnFlag(s.address, b.address, VOTE_NO_KICK)).to.emit(s, "FlagUpdate")
+            await expect(d.voteOnFlag(s.address, b.address, VOTE_NO_KICK))
+                .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("0"), parseEther("5000"))
+            expect(await s.forfeitedStakeWei()).to.equal(parseEther("0"))
         })
     })
 
