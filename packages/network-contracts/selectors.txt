@@ -190,6 +190,7 @@ Function signatures:
 ======= OperatorTokenomics/sol:IKickPolicy =======
 Function signatures:
 c0275535: getFlagData(address)
+09f359be: getMinimumStakeOf(address)
 d11d8fc4: onFlag(address,address)
 fbbabed9: onVote(address,bytes32,address)
 4a45d2e6: setParam(uint256)
@@ -515,11 +516,11 @@ a5b83ce4: voteOnFlag(address,bytes32)
 Error signatures:
 4ca88867: AccessDenied()
 bbef3e1a: ActiveFlag(uint256)
-369ae979: CannotIncreaseStake()
+aa4c0757: CannotIncreaseStakeUsingReduceStakeTo()
 4274cbe6: FlaggingNotSupported()
 078759ac: LeavePenalty(uint256)
 c27c6c34: MinOperatorCountZero()
-047e14bb: MinimumStake()
+0be9186a: MinimumStake(uint256)
 918623b7: ModuleCallError(address,bytes)
 29801d70: ModuleGetError(bytes)
 7377079b: OnlyDATAToken()
@@ -541,7 +542,8 @@ bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChang
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
 e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipReceived(address,uint256)
 38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
-6bd50b2adbfd6455ea19dde2d7225e43f70fab44edfbac7ed0748d7d9c3f9059: StakeUpdate(address,uint256,uint256,uint256)
+7785543bdf6fdde3b8486c62fa277837a6032d5819acf53e664ef0c45332fcb2: StakeLockUpdate(address,uint256,uint256)
+5d179bbeed3396160151c93c13d38566dc1643f25a316cca998cd25f45a8bd3f: StakeUpdate(address,uint256,uint256)
 
 ======= OperatorTokenomics/sol:SponsorshipFactory =======
 Function signatures:

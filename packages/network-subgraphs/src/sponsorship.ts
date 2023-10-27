@@ -2,6 +2,7 @@ import { log, BigInt, BigDecimal, store } from '@graphprotocol/graph-ts'
 
 import {
     StakeUpdate,
+    StakeLockUpdate,
     SponsorshipUpdate,
     FlagUpdate,
     Flagged,
@@ -57,7 +58,7 @@ export function handleStakeLockUpdated(event: StakeLockUpdate): void {
         [sponsorshipAddress, operatorAddress, lockedStakeWei.toString(), minimumStakeWei.toString()])
 
     let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
-    stake.lockedAmountWei = lockedStakeWei
+    stake.lockedWei = lockedStakeWei
     stake.minimumStakeWei = minimumStakeWei
     stake.save()
 }
