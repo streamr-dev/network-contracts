@@ -7,10 +7,6 @@ import "../IERC677Receiver.sol";
 import "../Sponsorship.sol";
 
 contract TestBadOperator is IERC677Receiver {
-    function getMyStake(Sponsorship sponsorship) public view returns (uint) {
-        return sponsorship.getMyStake();
-    }
-
     function stake(Sponsorship sponsorship, uint amountWei, address token) public {
         IERC677(token).approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei);
@@ -22,6 +18,6 @@ contract TestBadOperator is IERC677Receiver {
 
     function onTokenTransfer(address, uint256, bytes calldata) public pure {
         // reverts here but try catch from sponsorship silently swallows it
-        revert("TestTokenReceiver.onTokenTransfer: revert");
+        revert("onTokenTransfer failed");
     }
 }

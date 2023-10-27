@@ -63,11 +63,11 @@ describe("Sponsorship contract", (): void => {
 
         const sponsorshipBalanceBeforeUnstake = await token.balanceOf(sponsorship.address)
         const operatorBalanceBeforeUnstake = await token.balanceOf(badOperator.address)
-        const sponsorshipStakeBeforeUnstake = await badOperator.getMyStake(sponsorship.address)
+        const sponsorshipStakeBeforeUnstake = await sponsorship.stakedWei(badOperator.address)
         await (await badOperator.unstake(sponsorship.address)).wait()
         const sponsorshipBalanceAfterUnstake = await token.balanceOf(sponsorship.address)
         const operatorBalanceAfterUnstake = await token.balanceOf(badOperator.address)
-        const sponsorshipStakeAfterUnstake = await badOperator.getMyStake(sponsorship.address)
+        const sponsorshipStakeAfterUnstake = await sponsorship.stakedWei(badOperator.address)
         
         expect(sponsorshipStakeBeforeUnstake).to.equal(parseEther("100"))
         expect(sponsorshipStakeAfterUnstake).to.equal(parseEther("0"))
@@ -80,6 +80,21 @@ describe("Sponsorship contract", (): void => {
         // bad operator got kicked out of the sponsorship even though he did not receive the funds from the previous unstake
         await expect(badOperator.unstake(sponsorship.address))
             .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
+    })
+
+    it("bad operator contract that reverts upon transferAndCall, can be kicked out of the sponsorship through admin policy", async function(): Promise<void> {
+        const { token, adminKickPolicy } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
+        const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+        await (await token.transfer(badOperator.address, parseEther("100"))).wait()
+        await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+
+        const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator.address)
+        await (await sponsorship.connect(admin).flag(badOperator.address, "{}")).wait()
+        const badOperatorStakeAfterKick = await sponsorship.stakedWei(badOperator.address)
+
+        expect(badOperatorStakeBeforeKick).to.equal(parseEther("100"))
+        expect(badOperatorStakeAfterKick).to.equal(parseEther("0"))
     })
 
     // longer happy path tests
