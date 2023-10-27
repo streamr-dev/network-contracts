@@ -60,7 +60,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /**
      * Self-service undelegation queue handling.
-     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     * If the operator hasn't been doing its job, and the undelegation queue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
      * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
