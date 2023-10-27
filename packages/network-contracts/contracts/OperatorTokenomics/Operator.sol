@@ -250,9 +250,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If not, the token sender is the delegator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (msg.sender != address(token)) {
-            revert AccessDeniedDATATokenOnly();
-        }
+        if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -277,7 +275,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
-    function delegate(uint amountWei) public {
+    function delegate(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
     }
@@ -447,7 +445,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external {
         uint valueBeforeWithdraw = valueWithoutEarnings();
         uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
 

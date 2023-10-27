@@ -260,7 +260,7 @@ describe("Sponsorship contract", (): void => {
             const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
             await (await newToken.mint(admin.address, parseEther("1000000"))).wait()
             await expect(newToken.transferAndCall(defaultSponsorship.address, parseEther("100"), admin.address))
-                .to.be.revertedWithCustomError(defaultSponsorship, "OnlyDATAToken")
+                .to.be.revertedWithCustomError(defaultSponsorship, "AccessDeniedDATATokenOnly")
         })
 
         it("lets you add stake any small positive amount", async function(): Promise<void> {

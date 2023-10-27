@@ -41,7 +41,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
         emit TemplateAddress(templateAddress);
@@ -81,6 +81,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint minOperatorCount,
             string memory streamId,
@@ -88,7 +89,6 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             address[] memory policies,
             uint[] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[], uint[]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
