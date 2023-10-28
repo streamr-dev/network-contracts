@@ -31,7 +31,7 @@ function addr(w: {address: string}) {
     return w.address?.slice(0, 5) + "…" + w.address?.slice(-3)
 }
 
-describe.only("VoteKickPolicy", (): void => {
+describe("VoteKickPolicy", (): void => {
     let admin: Wallet
     let protocol: Wallet
 
