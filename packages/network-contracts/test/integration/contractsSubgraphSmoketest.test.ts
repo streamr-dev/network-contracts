@@ -43,19 +43,19 @@ describe("docker image integration test", () => {
             operatorDailyBuckets {
                 id
             }
-            delegations {
-                id
-            }
             stakingEvents {
                 id
             }
             stakes {
                 id
             }
-            streamPermissions {
+            delegations {
                 id
             }
             streams {
+                id
+            }
+            streamPermissions {
                 id
             }
             delegations {
@@ -72,12 +72,15 @@ describe("docker image integration test", () => {
 
         expect(resultDynamicIds.operators.length).to.equal(3)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
-        expect(resultDynamicIds.delegations.length).to.equal(3)
         expect(resultDynamicIds.stakingEvents.length).to.equal(4) // 3 operators staked + 1 got kicked out
         expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators staked - 1 got kicked out
+        expect(resultDynamicIds.delegations.length).to.equal(3) // notice how delegations != stakes
 
+        // 3 operator coordination streams, each has 3 permissions (public + owner + ?)
+        // 1 storage node assignment stream, each has 2 permissions (public + owner)
+        // 1 test stream, only owner permission
         expect(resultDynamicIds.streams.length).to.equal(5)
-        expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3 operators + 9?
+        expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3*3 + 2 + 1
 
         expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
         expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
