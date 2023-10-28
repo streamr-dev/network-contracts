@@ -108,7 +108,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     }
 
     function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
@@ -122,6 +122,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint operatorsCutFraction,
             string memory operatorTokenName,
@@ -129,7 +130,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
@@ -153,7 +153,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         string memory operatorMetadataJson,
         address[3] memory policies,  // [0] delegation, [1] exchange rate, [2] undelegation policy
         uint[3] memory policyParams  // [0] delegation, [1] exchange rate, [2] undelegation policy param
-    ) public returns (address) {
+    ) external returns (address) {
         return _deployOperator(
             _msgSender(),
             operatorsCutFraction,
@@ -173,7 +173,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         uint[3] memory policyParams
     ) private returns (address) {
         if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }
@@ -217,8 +217,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return newContractAddress;
     }
 
-    function predictAddress(string calldata operatorTokenName) public view returns (address) {
-        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), _msgSender()));
+    function predictAddress(address deployer, string calldata operatorTokenName) external view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), deployer));
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
@@ -226,15 +226,15 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    function updateStake(uint newStakeWei) public {
-        address operator = _msgSender();
+    function updateStake(uint newStakeWei) external {
+        address operator = msg.sender;
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
         totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
         stakedWei[operator] = newStakeWei;
 
         uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
-        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp;
+        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp; // solhint-disable-line not-rely-on-time
 
         if (isEligible && votersIndex[operator] == 0) {
             voters.push(operator);
@@ -253,7 +253,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         }
     }
 
-    function voterCount() public view returns (uint) {
+    function voterCount() external view returns (uint) {
         return voters.length;
     }
 }

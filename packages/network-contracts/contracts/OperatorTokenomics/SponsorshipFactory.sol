@@ -41,7 +41,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
         emit TemplateAddress(templateAddress);
@@ -67,7 +67,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
         }
     }
@@ -81,6 +81,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint minOperatorCount,
             string memory streamId,
@@ -88,7 +89,6 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             address[] memory policies,
             uint[] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[], uint[]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
@@ -137,7 +137,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         if (policies.length != policyParams.length) { revert BadArguments(); }
         if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }

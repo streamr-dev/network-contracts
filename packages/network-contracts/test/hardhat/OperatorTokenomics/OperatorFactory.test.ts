@@ -190,7 +190,7 @@ describe("OperatorFactory", function(): void {
 
     it("predicts the correct address for a new operator contract", async function(): Promise<void> {
         const contracts = await deployTestContracts(deployer)
-        const predictedOperatorAddress = await contracts.operatorFactory.predictAddress("PredictTest")
+        const predictedOperatorAddress = await contracts.operatorFactory.predictAddress(deployer.address, "PredictTest")
         const operator = await deployOperatorContract(contracts, deployer, parseEther("0"), {}, "PredictTest")
         expect(predictedOperatorAddress).to.equal(operator.address)
     })
@@ -208,7 +208,7 @@ describe("OperatorFactory", function(): void {
 
     it("can remove a trusted policy", async function(): Promise<void> {
         const { operatorFactory } = sharedContracts
-        const randomAddress = await operatorFactory.predictAddress("TokenName" + Date.now())
+        const randomAddress = await operatorFactory.predictAddress(deployer.address, "TokenName" + Date.now())
         await (await operatorFactory.addTrustedPolicy(randomAddress)).wait()
 
         expect(await operatorFactory.isTrustedPolicy(randomAddress)).to.be.true
@@ -305,7 +305,7 @@ describe("OperatorFactory", function(): void {
 
     it("reverts on operator deploy if any of the policies are not trusted", async function(): Promise<void> {
         const { operatorFactory, defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = sharedContracts
-        const untrustedPolicyAddress = await operatorFactory.predictAddress("TokenName" + Date.now())
+        const untrustedPolicyAddress = await operatorFactory.predictAddress(deployer.address, "TokenName" + Date.now())
 
         await expect(operatorFactory.deployOperator(parseEther("0.1"), "NotTrustedTest", "{}",
             [untrustedPolicyAddress, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])
