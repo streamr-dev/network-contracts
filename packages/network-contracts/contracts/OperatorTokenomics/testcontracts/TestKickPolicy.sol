@@ -24,4 +24,8 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
     function getFlagData(address operator) override external view returns (uint flagData) {
         return operator.balance;
     }
+
+    function getMinimumStakeOf(address) override external pure returns (uint individualMinimumStakeWei) {
+        return 0;
+    }
 }
