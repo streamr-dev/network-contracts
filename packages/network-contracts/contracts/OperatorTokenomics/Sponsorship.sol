@@ -39,8 +39,8 @@ import "./StreamrConfig.sol";
  * @dev   either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)
  */
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
-
-    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei, uint lockedStakeWei);
+    // Emitted from this contract
+    event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
     event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
@@ -56,12 +56,13 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     // Emitted from VoteKickPolicy
     event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
     event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
+    event StakeLockUpdate(address indexed operator, uint lockedStakeWei, uint minimumStakeWei);
 
     error AccessDenied();
-    error OnlyDATAToken();
+    error AccessDeniedDATATokenOnly();
     error MinOperatorCountZero();
-    error MinimumStake();
-    error CannotIncreaseStake();
+    error MinimumStake(uint minimumStakeWei);
+    error CannotIncreaseStakeUsingReduceStakeTo();
     error OperatorNotStaked();
     error LeavePenalty(uint penaltyWei); // prevents unstake()
     error ActiveFlag(uint lockedStakeWei); // prevents unstake()
@@ -81,7 +82,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     mapping(address => uint) public stakedWei; // how much each operator has staked, if 0 operator is considered not part of sponsorship
     mapping(address => uint) public joinTimeOfOperator;
-    mapping(address => uint) public lockedStakeWei; // how much can not be unstaked (during e.g. flagging)
+    mapping(address => uint) public lockedStakeWei; // how much stake can not be taken out with forceUnstake or reduceStake (during e.g. flagging)
     uint public forfeitedStakeWei; // lockedStakeWei that has been forfeited but is still needed to e.g. pay the flag reviewers
     uint public totalStakedWei;
     uint public operatorCount;
@@ -90,18 +91,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     uint public remainingWei;
     uint public earningsWei; // allocated but not withdrawn tokens; only the IAllocationPolicy should modify this!
 
-    function getMyStake() public view returns (uint) {
-        return stakedWei[_msgSender()];
-    }
-
-    /**
-     * You can't unstake the locked part or go below the minimum stake (by cashing out your stake),
-     *   hence there is an individual limit for reduceStakeTo.
-     * When joining, locked stake is zero, so the it's the same minimumStakeWei for everyone.
-     */
-    function minimumStakeOf(address operator) public view returns (uint) {
-        uint minimumStakeWei = streamrConfig.minimumStakeWei();
-        return max(lockedStakeWei[operator], minimumStakeWei);
+    function getMyStake() external view returns (uint) {
+        return stakedWei[msg.sender];
     }
 
     /**
@@ -147,7 +138,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         metadata = metadata_;
         streamrConfig = globalStreamrConfig;
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender()); // factory needs this to set policies, (self-)revoke after policies are set!
+        // this needs not happen via meta-tx, normally msg.sender should be the factory
+        // factory needs DEFAULT_ADMIN_ROLE to set policies, and should (self-)revoke it after policies are set!
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         setAllocationPolicy(initialAllocationPolicy, allocationPerSecond);
     }
 
@@ -156,7 +149,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If the data bytes contains an address, the incoming tokens are staked for that operator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (msg.sender != address(token)) { revert OnlyDATAToken(); } // trusted forwarder should NOT be able to set this
+        if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); } // trusted forwarder should NOT be able to set this
         if (data.length == 20) {
             // shift the 20 address bytes (= 160 bits) to end of uint256 to populate an address variable => shift by 256 - 160 = 96
             // (this is what abi.encodePacked would produce)
@@ -220,7 +213,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         bool newStaker = stakedWei[operator] == 0;
         stakedWei[operator] += amountWei;
         totalStakedWei += amountWei;
-        if (stakedWei[operator] < streamrConfig.minimumStakeWei()) { revert MinimumStake(); }
+        uint minimumStake = minimumStakeOf(operator);
+        if (stakedWei[operator] < minimumStake) { revert MinimumStake(minimumStake); }
 
         if (newStaker) {
             operatorCount += 1;
@@ -235,7 +229,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, int(amountWei)));
         }
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -243,7 +237,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Get all the stake and allocations out
      * Throw if that's not possible due to open flags or leave penalty (e.g. leaving too early)
      */
-    function unstake() public returns (uint payoutWei) {
+    function unstake() external returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) { revert LeavePenalty(penaltyWei); }
@@ -252,7 +246,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is locked to pay for flags */
-    function forceUnstake() public returns (uint payoutWei) {
+    function forceUnstake() external returns (uint payoutWei) {
         address operator = _msgSender();
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
@@ -266,13 +260,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Reduce your stake in the sponsorship without leaving */
     function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
         address operator = _msgSender();
-        if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStake(); }
-        if (targetStakeWei < minimumStakeOf(operator)) { revert MinimumStake(); }
+        if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStakeUsingReduceStakeTo(); }
+        uint minimumStake = minimumStakeOf(operator);
+        if (targetStakeWei < minimumStake) { revert MinimumStake(minimumStake); }
 
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
         token.transfer(operator, payoutWei);
 
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator), lockedStakeWei[operator]);
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
@@ -341,7 +336,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         delete joinTimeOfOperator[operator];
 
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onLeave.selector, operator));
-        emit StakeUpdate(operator, 0, 0, 0); // stake and allocation must be zero when the operator is gone
+        emit StakeUpdate(operator, 0, 0); // stake and allocation must be zero when the operator is gone
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
         emit OperatorLeft(operator, paidOutStakeWei);
 
@@ -359,7 +354,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         payoutWei = _withdraw(operator);
         if (payoutWei > 0) {
             // earnings will be zero after withdraw (see test)
-            emit StakeUpdate(operator, stakedWei[operator], 0, lockedStakeWei[operator]);
+            emit StakeUpdate(operator, stakedWei[operator], 0);
         }
     }
 
@@ -487,6 +482,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function getLeavePenalty(address operator) public view returns(uint leavePenalty) {
         if (address(leavePolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)));
+    }
+
+    function minimumStakeOf(address operator) public view returns (uint individualMinimumStakeWei) {
+        if (address(kickPolicy) == address(0)) { return 0; }
+        return moduleGet(abi.encodeWithSelector(kickPolicy.getMinimumStakeOf.selector, operator, address(kickPolicy)));
     }
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {

@@ -37,10 +37,33 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     // can't be flagged again right after a no-kick result
     mapping (address => uint) private protectionEndTimestamp;
 
-    function setParam(uint) external {
+    function setParam(uint) external {}
 
+    /**
+     * You can't cash out the locked part of your stake, or go below the minimum stake.
+     * When joining, locked stake is zero, so the limit is the same minimumStakeWei for everyone.
+     * In addition to locked stake, the individual limit must have enough room for flagging (if not already flagged). When a flag is raised:
+     *    lockedStakeAfter = lockedStakeBefore + stake * slashingFraction
+     * If we require that in all circumstances lockedStake < stake, then we get:
+     *    stake > lockedStakeAfter = lockedStakeBefore + stake * slashingFraction
+     * Solving for stake:
+     *    stake > lockedStakeBefore / (1 - slashingFraction) = minimumStake
+     */
+    function getMinimumStakeOf(address operator) override public view returns (uint) {
+        uint minimumStakeWei = streamrConfig.minimumStakeWei();
+        uint lockedStake = lockedStakeWei[operator];
+        // only bake in the "room for flagging" if not yet flagged
+        if (voteStartTimestamp[operator] == 0) { lockedStake = lockedStake * 1 ether / (1 ether - streamrConfig.slashingFraction()); }
+        return max(lockedStake, minimumStakeWei);
     }
 
+    /**
+     * Info about flag packed in 32 bytes:
+     * 20 bytes: flagger address
+     * 4 bytes: vote start timestamp
+     * 4 bytes: vote fraction for kick (100% = 2**32 = 4294967296)
+     * 4 bytes: vote fraction against kick (100% = 2**32 = 4294967296)
+     */
     function getFlagData(address target) override external view returns (uint flagData) {
         if (voteStartTimestamp[target] == 0) {
             return 0;
@@ -48,9 +71,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         return uint(bytes32(abi.encodePacked(
             uint160(flaggerAddress[target]),
             uint32(voteStartTimestamp[target]),
-            uint16(2**16 * votesForKick[target] / votersTotalValueWei[target]),
-            uint16(2**16 * votesAgainstKick[target] / votersTotalValueWei[target])
-            // uint32() unused space
+            uint32(2**32 * votesForKick[target] / votersTotalValueWei[target]),
+            uint32(2**32 * votesAgainstKick[target] / votersTotalValueWei[target])
         )));
     }
 
@@ -60,11 +82,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     function onFlag(address target, address flagger) external {
         require(flagger != target, "error_cannotFlagSelf");
         require(voteStartTimestamp[target] == 0 && block.timestamp > protectionEndTimestamp[target], "error_cannotFlagAgain"); // solhint-disable-line not-rely-on-time
-        require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
         require(stakedWei[target] > 0, "error_flagTargetNotStaked");
 
         // the flag target risks to lose a slashingFraction if the flag resolves to KICK
-        // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid!
+        // take at least slashingFraction of minimumStakeWei to ensure everyone can get paid, even if the target somehow has managed to go under the minimum stake
         targetStakeAtRiskWei[target] = max(stakedWei[target], streamrConfig.minimumStakeWei()) * streamrConfig.slashingFraction() / 1 ether;
         lockedStakeWei[target] += targetStakeAtRiskWei[target];
 
@@ -85,8 +106,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         reviewerRewardWei[target] = streamrConfig.flagReviewerRewardWei();
         flaggerRewardWei[target] = streamrConfig.flaggerRewardWei();
 
+        // added locked stake may also raise the flagger's minimum stake
         lockedStakeWei[flagger] += flagStakeWei[target];
-        require(lockedStakeWei[flagger] * 1 ether <= stakedWei[flagger] * (1 ether - streamrConfig.slashingFraction()), "error_notEnoughStake");
+        require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
 
         IVoterRegistry voterRegistry = IVoterRegistry(streamrConfig.voterRegistry());
         uint voterCount = voterRegistry.voterCount();
@@ -138,8 +160,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         votersTotalValueWei[target] = totalValueWei;
         require(reviewers[target].length > 0, "error_failedToFindReviewers");
 
-        emit StakeUpdate(flagger, stakedWei[flagger], getEarnings(flagger), lockedStakeWei[flagger]);
-        emit StakeUpdate(target, stakedWei[target], getEarnings(target), lockedStakeWei[target]);
+        emit StakeLockUpdate(flagger, lockedStakeWei[flagger], getMinimumStakeOf(flagger));
+        emit StakeLockUpdate(target, lockedStakeWei[target], getMinimumStakeOf(target));
         emit Flagged(target, flagger, targetStakeAtRiskWei[target], reviewers[target].length, flagMetadataJson[target]);
     }
 

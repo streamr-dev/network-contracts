@@ -19,8 +19,8 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
         localData().admin = address(uint160(adminAdress));
     }
 
-    function onFlag(address operator, address) external {
-        require(localData().admin == _msgSender(), "error_onlyAdmin");
+    function onFlag(address operator, address flagger) external {
+        require(localData().admin == flagger, "error_onlyAdmin");
         _kick(operator, 0);
     }
 
@@ -28,6 +28,10 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
     }
 
     function getFlagData(address) override external pure returns (uint flagData) {
+        return 0;
+    }
+
+    function getMinimumStakeOf(address) override external pure returns (uint individualMinimumStakeWei) {
         return 0;
     }
 }

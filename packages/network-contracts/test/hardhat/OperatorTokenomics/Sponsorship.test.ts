@@ -260,7 +260,7 @@ describe("Sponsorship contract", (): void => {
             const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
             await (await newToken.mint(admin.address, parseEther("1000000"))).wait()
             await expect(newToken.transferAndCall(defaultSponsorship.address, parseEther("100"), admin.address))
-                .to.be.revertedWithCustomError(defaultSponsorship, "OnlyDATAToken")
+                .to.be.revertedWithCustomError(defaultSponsorship, "AccessDeniedDATATokenOnly")
         })
 
         it("lets you add stake any small positive amount", async function(): Promise<void> {
@@ -287,7 +287,7 @@ describe("Sponsorship contract", (): void => {
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("150")))
-                .to.be.revertedWithCustomError(sponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(sponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
 
         it("won't let unstake if you would be slashed", async function(): Promise<void> {
@@ -300,9 +300,9 @@ describe("Sponsorship contract", (): void => {
 
         it("won't let you reduceStake if you're not staked", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator).reduceStakeTo(0))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
             await expect(defaultSponsorship.connect(operator).reduceStakeTo(parseEther("1")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
 
         it("won't let you unstake if you're not staked", async function(): Promise<void> {
@@ -457,9 +457,9 @@ describe("Sponsorship contract", (): void => {
         })
         it("cannot reduceStakeTo", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator2).reduceStakeTo(parseEther("1")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
             await expect(defaultSponsorship.connect(operator2).reduceStakeTo(parseEther("0")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
         it("cannot withdraw", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator2).withdraw())
