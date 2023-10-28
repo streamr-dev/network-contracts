@@ -67,7 +67,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedNodesOnly();
     error DelegationBelowMinimum(uint operatorTokenBalanceWei, uint minimumDelegationWei);
     error AccessDeniedDATATokenOnly();
-    error NoSelfDelegation();
+    error SelfDelegationTooLow(uint operatorBalanceWei, uint minimumSelfDelegationWei);
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
     error ModuleCallError(address module, bytes data);
@@ -272,12 +272,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         _delegate(delegator, amount);
+        payOutQueue(0);
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
+        payOutQueue(0);
     }
 
     /**
@@ -287,29 +289,26 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountDataWei how many DATA tokens were transferred
      **/
     function _delegate(address delegator, uint amountDataWei) internal {
-        _mintOperatorTokensWorth(delegator, amountDataWei);
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
+        _mint(delegator, amountOperatorToken);
 
-        // enforce minimum delegation amount
-        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if (balanceOf(delegator) < minimumDelegationWei) {
-            revert DelegationBelowMinimum(balanceOf(delegator), minimumDelegationWei);
-        }
+        // owner must always be able to accept delegation without reverting (as rewards for flagging, reviewing or fishing), so skip checks
+        if (delegator != owner) {
+            // enforce minimum delegation amount
+            uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+            if (balanceOf(delegator) < minimumDelegationWei) {
+                revert DelegationBelowMinimum(balanceOf(delegator), minimumDelegationWei);
+            }
 
-        // check if the delegation policy allows this delegation
-        if (address(delegationPolicy) != address(0)) {
-            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
+            // check if the delegation policy allows this delegation
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
+            }
         }
 
         emit Delegated(delegator, amountDataWei);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-
-        payOutQueue(0);
-    }
-
-    function _mintOperatorTokensWorth(address delegator, uint amountDataWei) internal {
-        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
-        _mint(delegator, amountOperatorToken);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
