@@ -1105,6 +1105,7 @@ describe("VoteKickPolicy", (): void => {
                     sponsorships: [ sponsorship ],
                     operators
                 } = defaultSetup
+                const signers = await ethers.getSigners()
                 await expect(sponsorship.connect(signers[6]).flag(operators[0].address, ""))
                     .to.be.revertedWith("error_notEnoughStake")
             })
@@ -1114,6 +1115,7 @@ describe("VoteKickPolicy", (): void => {
                     operatorsPerSponsorship: [ [flagger, target], [voter] ]
                 } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
                 const start = await getBlockTimestamp()
+                const signers = await ethers.getSigners()
                 const outsider = signers[5]
 
                 // ...not before flagging
