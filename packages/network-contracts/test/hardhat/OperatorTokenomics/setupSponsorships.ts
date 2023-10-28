@@ -34,6 +34,35 @@ function splitBy<T>(arr: T[], counts: number[]): T[][] {
     return result
 }
 
+async function createAndFundWallet(contracts: TestContracts): Promise<Wallet> {
+    const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
+    const wallet = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
+    await (await admin.sendTransaction({ to: wallet.address, value: parseEther("1") })).wait()
+    await (await contracts.token.mint(wallet.address, parseEther("1000000"))).wait()
+    return wallet
+}
+
+const testWallets: Wallet[] = []
+
+/** Get a given number of test wallets funded with native and test token. Re-use hardhat signers first. */
+async function getTestWallets(contracts: TestContracts, count: number): Promise<Wallet[]> {
+
+    // initialize with hardhat signers; they already have native token, so mint them test token too
+    if (testWallets.length === 0) {
+        testWallets.push(...(await hardhatEthers.getSigners()).slice(2)) // leave out admin, protocol
+        for (const { address } of testWallets) {
+            await (await contracts.token.mint(address, parseEther("1000000"))).wait()
+        }
+    }
+
+    // generate more if needed
+    for (let i = testWallets.length; i < count; i++) {
+        testWallets.push(await createAndFundWallet(contracts))
+    }
+
+    return testWallets.slice(0, count)
+}
+
 /**
  * Sets up a Sponsorships with given number of operators staked to each; each with Operator that stakes 1000 tokens into that Sponsorship
  */
@@ -44,12 +73,11 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     sponsor = true,
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
     const { token } = contracts
+    const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
 
-    // Hardhat provides 20 pre-funded signers
-    const [admin,, ...hardhatSigners] = await hardhatEthers.getSigners() as unknown as Wallet[]
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
-    const signers = hardhatSigners.slice(0, totalOperatorCount)
+    const signers = await getTestWallets(contracts, totalOperatorCount)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32

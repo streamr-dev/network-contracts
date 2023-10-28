@@ -31,7 +31,7 @@ function addr(w: {address: string}) {
     return w.address?.slice(0, 5) + "…" + w.address?.slice(-3)
 }
 
-describe("VoteKickPolicy", (): void => {
+describe.only("VoteKickPolicy", (): void => {
     let admin: Wallet
     let protocol: Wallet
 
@@ -44,12 +44,8 @@ describe("VoteKickPolicy", (): void => {
     let signers: Wallet[]
 
     before(async (): Promise<void> => {
-        signers = await ethers.getSigners()
-        ;[admin, protocol] = signers
+        [admin, protocol] = await ethers.getSigners()
         contracts = await deployTestContracts(admin)
-        for (const { address } of signers) {
-            await (await contracts.token.mint(address, parseEther("1000000"))).wait()
-        }
 
         const { streamrConfig } = contracts
         await (await streamrConfig.setFlaggerRewardWei(parseEther("360"))).wait()
@@ -697,7 +693,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [11], "super-flagger", {
+            } = await setupSponsorships(contracts, [11], "not-enough-stake-to-flag", {
                 stakeAmountWei: parseEther("5000"), // flag-stake is 500 tokens
             })
             // flagger can open flags up to the staked amount minus the slashing amount if kicked
@@ -872,37 +868,35 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [13], "super-flagger-2", {
+            } = await setupSponsorships(contracts, [19], "super-flagger", {
                 stakeAmountWei: parseEther("15000"), // flag-stake is 500 tokens
             })
 
-            log(targets.length)
-
             log(`${addr(flagger)} flags`)
-            async function expectFlag(index: number, expectedLockedStakeWei: BigNumber, expectedMinimumStakeWei: BigNumber): Promise<void> {
+            async function flagAndExpectStakeLockUpdate(index: number, expectedLockedStakeWei: BigNumber, expectedMinimumStakeWei: BigNumber) {
                 log(`  ${index}: ${addr(targets[index])}`)
                 await expect(flagger.flag(sponsorship.address, targets[index].address, ""))
                     .to.emit(sponsorship, "StakeLockUpdate")
                     .withArgs(flagger.address, expectedLockedStakeWei, expectedMinimumStakeWei)
             }
-            await expectFlag(0, parseEther("500"), parseEther("5000"))
-            await expectFlag(1, parseEther("1000"), parseEther("5000"))
-            await expectFlag(2, parseEther("1500"), parseEther("5000"))
-            await expectFlag(3, parseEther("2000"), parseEther("5000"))
-            await expectFlag(4, parseEther("2500"), parseEther("5000"))
-            await expectFlag(5, parseEther("3000"), parseEther("5000"))
-            await expectFlag(6, parseEther("3500"), parseEther("5000"))
-            await expectFlag(7, parseEther("4000"), parseEther("5000"))
-            await expectFlag(8, parseEther("4500"), parseEther("5000"))
-            await expectFlag(9, parseEther("5000"), parseEther("5555.555555555555555555"))
-            await expectFlag(10, parseEther("5500"), parseEther("6111.111111111111111111"))
-            await expectFlag(11, parseEther("6000"), parseEther("6666.666666666666666666"))
-            await expectFlag(12, parseEther("6500"), parseEther("7222.222222222222222222"))
-            await expectFlag(13, parseEther("7000"), parseEther("7777.777777777777777777"))
-            await expectFlag(14, parseEther("7500"), parseEther("8333.333333333333333333"))
-            await expectFlag(15, parseEther("8000"), parseEther("8888.888888888888888888"))
-            await expectFlag(16, parseEther("8500"), parseEther("9444.444444444444444444"))
-            await expectFlag(17, parseEther("9000"), parseEther("10000"))
+            await flagAndExpectStakeLockUpdate(0, parseEther("500"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(1, parseEther("1000"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(2, parseEther("1500"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(3, parseEther("2000"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(4, parseEther("2500"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(5, parseEther("3000"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(6, parseEther("3500"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(7, parseEther("4000"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(8, parseEther("4500"), parseEther("5000"))
+            await flagAndExpectStakeLockUpdate(9, parseEther("5000"), parseEther("5555.555555555555555555"))
+            await flagAndExpectStakeLockUpdate(10, parseEther("5500"), parseEther("6111.111111111111111111"))
+            await flagAndExpectStakeLockUpdate(11, parseEther("6000"), parseEther("6666.666666666666666666"))
+            await flagAndExpectStakeLockUpdate(12, parseEther("6500"), parseEther("7222.222222222222222222"))
+            await flagAndExpectStakeLockUpdate(13, parseEther("7000"), parseEther("7777.777777777777777777"))
+            await flagAndExpectStakeLockUpdate(14, parseEther("7500"), parseEther("8333.333333333333333333"))
+            await flagAndExpectStakeLockUpdate(15, parseEther("8000"), parseEther("8888.888888888888888888"))
+            await flagAndExpectStakeLockUpdate(16, parseEther("8500"), parseEther("9444.444444444444444444"))
+            await flagAndExpectStakeLockUpdate(17, parseEther("9000"), parseEther("10000"))
 
             // lockedStake 18 * 500 = 9000, plus room for 10% slashing = 10000
             // 10000 > global minimumStake 5000 ==> flagger's minimumStake = 10000
