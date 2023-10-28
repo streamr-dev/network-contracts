@@ -22,7 +22,8 @@ contract DefaultDelegationPolicy is IDelegationPolicy, Operator {
      * @dev - the first delegation must be self-delegation since at first balance(owner) == 0
      * @dev - if minimumSelfDelegationFraction == 0, then any delegations are fine, AS LONG AS the owner has some tokens
      */
-    function onDelegate(address) view external {
+    // solc-ignore-next-line func-mutability
+    function onDelegate(address) external {
         // multiplying the left side by 1 ether is equivalent to dividing the right side by 1 ether, but numerically a lot better
         require(1 ether * balanceOf(owner) > totalSupply() * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
     }
