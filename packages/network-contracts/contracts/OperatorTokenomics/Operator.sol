@@ -124,7 +124,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint amountWei;
         uint timestamp;
     }
-    mapping(uint => UndelegationQueueEntry) public undelegationQueue;
+    mapping(uint => UndelegationQueueEntry) public queueEntryAt;
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
@@ -250,9 +250,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If not, the token sender is the delegator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (msg.sender != address(token)) {
-            revert AccessDeniedDATATokenOnly();
-        }
+        if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -277,7 +275,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
-    function delegate(uint amountWei) public {
+    function delegate(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
     }
@@ -415,15 +413,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Self-service undelegation queue handling.
-     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     * If the operator hasn't been doing its job, and the undelegation queue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
      * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
-     * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
+     * @param maxQueuePayoutIterations how many queue items to pay out, check queue status from undelegationQueue()
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet, after that anyone can call this
-        if (queueIsEmpty() || block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
+        if (queueIsEmpty() || block.timestamp < queueEntryAt[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
                 revert AccessDeniedOperatorOnly();
             }
@@ -444,7 +442,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
      * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
      */
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external {
         uint valueBeforeWithdraw = valueWithoutEarnings();
         uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
 
@@ -580,19 +578,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return queueCurrentIndex == queueLastIndex;
     }
 
-    /**
-     * Get the position of the LAST undelegation request in the queue for the given delegator.
-     * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueue)
-     * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
-     */
-    function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex; i > queueCurrentIndex; i--) {
-            if (undelegationQueue[i - 1].delegator == delegator) {
-                return i - queueCurrentIndex;
-            }
+    /** Get all undelegation queue entries */
+    function undelegationQueue() external view returns (UndelegationQueueEntry[] memory queue) {
+        uint queueLength = queueLastIndex - queueCurrentIndex;
+        queue = new UndelegationQueueEntry[](queueLength);
+        for (uint i = 0; i < queueLength; i++) {
+            queue[i] = queueEntryAt[queueCurrentIndex + i];
         }
-        return queueLastIndex - queueCurrentIndex + 1;
     }
 
     /** Pay out up to maxIterations items in the queue, or until this contract's DATA balance runs out */

@@ -15,7 +15,7 @@ import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 const {
     getSigners,
     getContractFactory,
-    constants: { AddressZero },
+    constants: { AddressZero, MaxUint256 },
     utils: { parseEther, formatEther, hexZeroPad }
 } = hardhatEthers
 
@@ -444,43 +444,54 @@ describe("Operator contract", (): void => {
             expect(await operator.connect(operatorWallet).balanceInData(operatorWallet.address)).to.equal(0)
         })
 
-        it("returns the correct queue position for a delegator not in queue", async function(): Promise<void> {
+        it("keeps track of delegators queuing to undelegate", async function(): Promise<void> {
+            const { token } = sharedContracts
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator2, "1000")
             await setTokens(delegator3, "1000")
             const { operator } = await deployOperator(operatorWallet)
             const sponsorship  = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
+            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
 
-            // operatorWallet can query his position in the queue without delegating
-            expect(await operator.queuePositionOf(operatorWallet.address)).to.equal(1) // not in queue
+            // delegator can query his position in the queue without delegating
+            expect(await operator.undelegationQueue()).to.deep.equal([])
 
             // all delegators delegate to operator
             // operatorWallet and delegator2 are in the queue => returns position in front of him + himself
             // delegator3 is not in the queue => returns all positions in queue + 1 (as if he would undelegate now)
-            await (await token.connect(operatorWallet).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator2).approve(operator.address, parseEther("1000"))).wait()
-            await (await token.connect(delegator3).approve(operator.address, parseEther("1000"))).wait()
             await (await operator.connect(operatorWallet).delegate(parseEther("1000"))).wait()
             await (await operator.connect(delegator2).delegate(parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("2000"))).wait()
+
+            await (await operator.connect(operatorWallet).undelegate(parseEther("500"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ operatorWallet.address, delegator2.address ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("500"), parseEther("500") ])
+
+            // undelegate some more => add more items
+            await (await operator.connect(operatorWallet).undelegate(parseEther("300"))).wait()
+            await (await operator.connect(delegator2).undelegate(parseEther("300"))).wait()
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([
+                operatorWallet.address, delegator2.address, operatorWallet.address, delegator2.address
+            ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([
+                parseEther("500"), parseEther("500"), parseEther("300"), parseEther("300")
+            ])
+
+            // pay out queue by delegating more
             await (await operator.connect(delegator3).delegate(parseEther("1000"))).wait()
-            await (await operator.stake(sponsorship.address, parseEther("3000"))).wait()
-
-            await (await operator.connect(operatorWallet).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-
-            expect(await operator.queuePositionOf(operatorWallet.address)).to.equal(1) // first in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(2) // second in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(3) // not in queue
-
-            // undelegate some more => move down into the queue
-            await (await operator.connect(operatorWallet).undelegate(parseEther("500"))).wait()
-            await (await operator.connect(delegator2).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(operatorWallet.address)).to.equal(3) // first aand third in queue
-            expect(await operator.queuePositionOf(delegator2.address)).to.equal(4) // second and fourth in queue
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // not in queue
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ operatorWallet.address, delegator2.address ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("300"), parseEther("300") ])
 
             await (await operator.connect(delegator3).undelegate(parseEther("500"))).wait()
-            expect(await operator.queuePositionOf(delegator3.address)).to.equal(5) // in queue (same position as before being in the queue)
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([
+                operatorWallet.address, delegator2.address, delegator3.address
+            ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([
+                parseEther("300"), parseEther("300"), parseEther("500")
+            ])
         })
     })
 
@@ -1234,7 +1245,6 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             await expect(operator.connect(delegator).undelegate(parseEther("200")))
                 .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("200"), 0)
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1)
 
             // earnings are 1 token/second * 1000 seconds = 1000
             //  minus protocol fee 5% = 50 DATA => 950 DATA remains
@@ -1299,19 +1309,24 @@ describe("Operator contract", (): void => {
             await expect(operator.stake(sponsorship.address, parseEther("1100")))
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
-            // queue payout
+            // queue payouts
             await operator.connect(delegator).undelegate(parseEther("100"))
             await operator.connect(delegator).undelegate(parseEther("100"))
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(2)
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ delegator.address, delegator.address ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("100"), parseEther("100") ])
 
+            // withdraw 1000 DATA => after protocol fee 5%, 950 DATA remains => pay out queue worth 200 DATA, 750 DATA remains
             await advanceToTimestamp(timeAtStart + 1000, "withdraw earnings from sponsorship")
             await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
                 .to.emit(operator, "Profit").withArgs(parseEther("760"), parseEther("190"), parseEther("50"))
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1)
+            expect(await operator.undelegationQueue()).to.deep.equal([])
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("750"))
 
             await operator.connect(delegator).undelegate(parseEther("1000000"))
-            expect(await operator.queuePositionOf(delegator.address)).to.equal(1)
+            expect((await operator.undelegationQueue()).map((q) => q.delegator)).to.deep.equal([ delegator.address ])
+            expect((await operator.undelegationQueue()).map((q) => q.amountWei)).to.deep.equal([ parseEther("999250") ])
 
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
             expect(formatEther(await token.balanceOf(delegator.address))).to.equal("950.0")
         })
 
@@ -1634,17 +1649,19 @@ describe("Operator contract", (): void => {
 
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
 
-            await expect(operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256))
+            await expect(operator.connect(delegator).undelegate(MaxUint256))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("100"))
         })
 
-        it("undelegate when there was never a delegation, but transfer (not transferAndCall) of tokens", async function(): Promise<void> {
+        // ERC20.transfer (not transferAndCall!) will not trigger delegation, instead those tokens are a "gift" to all delegators equally
+        // If there are no delegators, the "gift" goes to the operator who should eventually do the initial self-delegation
+        it("send out nothing if there was never a delegation, even if there's tokens", async function(): Promise<void> {
             await setTokens(delegator, "100")
             const { operator } = await deployOperator(operatorWallet)
 
             await (await token.connect(delegator).transfer(operator.address, parseEther("100"))).wait()
 
-            await (await operator.connect(delegator).undelegate(hardhatEthers.constants.MaxUint256)).wait()
+            await (await operator.connect(delegator).undelegate(MaxUint256)).wait()
 
             // queue item will be popped but nothing is sent out
             await expect(operator.payOutFirstInQueue()).to.not.throw
