@@ -32,7 +32,7 @@ import "./StreamrConfig.sol";
  * - earningsWei: part of the sponsorship that has been paid out to operators but not yet withdrawn
  *  -> governed by the `IAllocationPolicy`
  * - forfeitedStakeWei: stakes that were locked to pay for a flag by a past operator who `forceUnstake`d (or was kicked)
- *  -> should be zero for everyone when there are no active flags
+ *  -> should be zero when there are no active flags
  *
  * @dev We track both earningsWei and remainingWei because there can be 'ghost tokens' from plain ERC20 transfers (instead of transferAndCall)
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
