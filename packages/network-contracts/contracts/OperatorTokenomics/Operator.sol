@@ -584,7 +584,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     function undelegationQueue() external view returns (UndelegationQueueEntry[] memory queue) {
         uint queueLength = queueLastIndex - queueCurrentIndex;
         queue = new UndelegationQueueEntry[](queueLength);
-        for (uint i = 0; i < queueLength; i++) {
+        for (uint i; i < queueLength; i++) {
             queue[i] = queueEntryAt[queueCurrentIndex + i];
         }
     }

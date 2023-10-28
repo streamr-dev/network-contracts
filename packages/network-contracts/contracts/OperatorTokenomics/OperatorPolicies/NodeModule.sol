@@ -11,7 +11,6 @@ contract NodeModule is INodeModule, Operator {
 
     function createCoordinationStream() external {
         streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
         streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
         streamRegistry.createStream("/operator/coordination", "{\"partitions\":1}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);

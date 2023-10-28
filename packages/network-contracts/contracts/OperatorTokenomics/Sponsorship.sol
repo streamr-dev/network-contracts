@@ -273,7 +273,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Slashing removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
-     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
         if (amountWei == 0) { return 0; }
@@ -286,7 +286,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * Kicking does what slashing does, plus removes the operator
-     * NOTE: The caller MUST ensure that slashed tokens (if any) are added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure that slashed tokens (if any) are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      */
     function _kick(address operator, uint slashingWei) internal returns (uint actualSlashingWei) {
         if (slashingWei > 0) {
@@ -324,6 +324,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             uint slashedWei = _slash(operator, lockedStakeWei[operator]);
             forfeitedStakeWei += slashedWei;
             lockedStakeWei[operator] = 0;
+            emit StakeLockUpdate(operator, 0, 0);
         }
 
         // send out both allocations and stake
