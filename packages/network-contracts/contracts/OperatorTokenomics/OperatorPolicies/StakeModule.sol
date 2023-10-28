@@ -10,9 +10,15 @@ contract StakeModule is IStakeModule, Operator {
 
     /** Stake DATA tokens from this contract's DATA balance into Sponsorships. */
     function _stake(Sponsorship sponsorship, uint amountWei) external {
-        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) { revert AccessDeniedStreamrSponsorshipOnly(); }
-        if (!queueIsEmpty()) { revert FirstEmptyQueueThenStake(); }
-        if (balanceOf(owner) == 0) { revert NoSelfDelegation(); }
+        if (SponsorshipFactory(streamrConfig.sponsorshipFactory()).deploymentTimestamp(address(sponsorship)) == 0) {
+            revert AccessDeniedStreamrSponsorshipOnly();
+        }
+        if (!queueIsEmpty()) {
+            revert FirstEmptyQueueThenStake();
+        }
+        if (balanceOf(owner) * 1 ether <= totalSupply() * streamrConfig.minimumSelfDelegationFraction()) {
+            revert SelfDelegationTooLow(balanceOf(owner), totalSupply() * streamrConfig.minimumSelfDelegationFraction() / 1 ether);
+        }
 
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
@@ -80,6 +86,8 @@ contract StakeModule is IStakeModule, Operator {
             _splitEarnings(profitDataWei);
         }
 
+        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
+
         // remove from array: replace with the last element
         uint index = indexOfSponsorships[sponsorship] - 1; // indexOfSponsorships is the real array index + 1
         Sponsorship lastSponsorship = sponsorships[sponsorships.length - 1];
@@ -94,7 +102,6 @@ contract StakeModule is IStakeModule, Operator {
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
     }
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
@@ -106,7 +113,6 @@ contract StakeModule is IStakeModule, Operator {
             revert NoEarnings();
         }
         _splitEarnings(sumEarnings);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
@@ -126,7 +132,7 @@ contract StakeModule is IStakeModule, Operator {
         //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
         uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
-        _mintOperatorTokensWorth(owner, operatorsCutDataWei);
+        _delegate(owner, operatorsCutDataWei);
 
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei, protocolFee);

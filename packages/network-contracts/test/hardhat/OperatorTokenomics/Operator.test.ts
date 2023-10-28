@@ -19,7 +19,7 @@ const {
     utils: { parseEther, formatEther, hexZeroPad }
 } = hardhatEthers
 
-describe("Operator contract", (): void => {
+describe.only("Operator contract", (): void => {
     let admin: Wallet           // creates the Sponsorship
     let sponsor: Wallet         // sponsors the Sponsorship
     let operatorWallet: Wallet  // creates Operator contract
@@ -327,14 +327,16 @@ describe("Operator contract", (): void => {
             await setTokens(delegator, "200")
 
             const { operator } = await deployOperator(operatorWallet, { operatorsCutPercent: 10 })
+            const sponsorship  = await deploySponsorship(sharedContracts)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("100"), "0x")).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("200"), "0x")).wait()
+            await (await operator.stake(sponsorship.address, parseEther("100"))).wait()
 
-            // operator can't self-undelegate-all, since there's still another delegator
+            // operator can't self-undelegate-all, since there's still another delegator, and staking
             await expect(operator.undelegate(parseEther("100"))).to.be.revertedWith("error_selfDelegationTooLow")
             await expect(operator.transfer(delegator.address, parseEther("100"))).to.be.revertedWith("error_selfDelegationTooLow")
 
-            // operator can't self-undelegate under 10% of ~200, since there's still another delegator
+            // operator can't self-undelegate under 10% of ~200, since there's still another delegator, and staking
             await expect(operator.undelegate(parseEther("80"))).to.be.revertedWith("error_selfDelegationTooLow")
             await expect(operator.transfer(delegator.address, parseEther("80"))).to.be.revertedWith("error_selfDelegationTooLow")
 
@@ -533,9 +535,11 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("400"))
         })
 
-        it("will NOT let operator's self-delegation go under the limit", async function(): Promise<void> {
+        it("will NOT let operator's self-delegation go under the limit if there's staking", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await expect(operator.undelegate(parseEther("1000")))
                 .to.be.revertedWith("error_selfDelegationTooLow")
@@ -587,14 +591,15 @@ describe("Operator contract", (): void => {
         // The idea of the "rapid shutdown" feature is to let the operator get their self-delegation out without waiting for all delegators to leave.
         // Normally the self-delegation limit would prevent this.
         // But if there's no staking, there can be no slashing, and there's no need for self-delegation that could be slashed.
-        it("allows the owner to undelegate-all when there's no staking (rapid shutdown)", async function(): Promise<void> {
+        it("allows the owner to undelegate when there's no staking (rapid shutdown)", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "10000")
             const { operator } = await deployOperator(operatorWallet)
             const sponsorship = await deploySponsorship(sharedContracts, { allocationWeiPerSecond: parseEther("0") })
 
             log("staking not allowed yet!")
-            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "NoSelfDelegation")
+            await expect(operator.stake(sponsorship.address, parseEther("1000")))
+                .to.be.revertedWithCustomError(operator, "SelfDelegationTooLow").withArgs(parseEther("0"), parseEther("0"))
 
             log("initial self-delegation, let's go.")
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -606,15 +611,15 @@ describe("Operator contract", (): void => {
             await expect(operator.undelegate(parseEther("500"))).to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
 
             log("staking still ok.")
-            await expect(operator.stake(sponsorship.address, parseEther("100"))).to.not.be.reverted
-            await expect(operator.unstake(sponsorship.address)).to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+            await expect(operator.stake(sponsorship.address, parseEther("100"))).to.emit(operator, "StakeUpdate")
 
             log("complete self-undelegation also okay without validator")
+            await expect(operator.unstake(sponsorship.address)).to.emit(operator, "Unstaked").withArgs(sponsorship.address)
             await expect(operator.undelegate(parseEther("10000000")))
                 .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
 
             log("staking not allowed again!")
-            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "NoSelfDelegation")
+            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "SelfDelegationTooLow")
 
             log("second round: with delegators")
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
@@ -626,27 +631,43 @@ describe("Operator contract", (): void => {
             log("partial self-undelegation now NOT okay, hits the self-delegation limit")
             await expect(operator.undelegate(parseEther("500"))).to.be.revertedWith("error_selfDelegationTooLow")
 
-            log("complete self-undelegation also not okay, since we still have stake!")
+            log("complete self-undelegation also NOT okay, since we still have stake!")
             await expect(operator.undelegate(parseEther("10000000"))).to.be.revertedWith("error_selfDelegationTooLow")
 
             log("unstake all")
             await expect(operator.unstake(sponsorship.address)).to.emit(operator, "Unstaked").withArgs(sponsorship.address)
 
+            log("partial self-undelegation now okay, even though delegator is still in")
+            await expect(operator.undelegate(parseEther("500")))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("500"))
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("10000"))
+
             log("complete self-undelegation now okay, even though delegator is still in")
             await expect(operator.undelegate(parseEther("10000000")))
-                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("1000"))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
             expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("0"))
             expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("10000"))
 
             log("staking not allowed again!")
-            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "NoSelfDelegation")
+            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "SelfDelegationTooLow")
 
             log("delegator can always undelegate")
             await expect(operator.connect(delegator).undelegate(parseEther("5000")))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("5000"))
 
+            log("the operator can always delegate, even though not reaching the self-delegation limit")
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("10"), "0x")).wait()
+
+            log("staking still not allowed")
+            await expect(operator.stake(sponsorship.address, parseEther("1000"))).to.be.revertedWithCustomError(operator, "SelfDelegationTooLow")
+
+            log("also new delegators not allowed")
+            await expect(token.connect(admin).transferAndCall(operator.address, parseEther("10000"), "0x"))
+                .to.be.revertedWith("error_selfDelegationTooLow")
+
             log("the operator returns")
-            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("990"), "0x")).wait()
 
             log("staking now ok.")
             await expect(operator.stake(sponsorship.address, parseEther("100"))).to.emit(operator, "Staked").withArgs(sponsorship.address)
