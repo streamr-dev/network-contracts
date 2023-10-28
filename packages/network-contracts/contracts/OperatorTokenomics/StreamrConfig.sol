@@ -15,8 +15,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooLow(uint value, uint limit);
 
     /**
-     * Minimum amount to pay reviewers+flagger
-     * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
+     * Minimum stake whose slashing is enough to pay reviewers+flagger in case of a voting that results in KICK.
+     * That is: minimumStakeWei * slashingFraction >= flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei
+     * Round UP so that the possible rounding error doesn't cause reward money to run out.
      */
     function minimumStakeWei() public view returns (uint) {
         return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
