@@ -307,6 +307,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
+
+        payOutQueue(0);
     }
 
     /**
