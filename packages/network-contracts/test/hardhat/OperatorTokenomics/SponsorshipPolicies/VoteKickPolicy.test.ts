@@ -47,11 +47,11 @@ describe("VoteKickPolicy", (): void => {
         contracts = await deployTestContracts(admin)
 
         const { streamrConfig } = contracts
-        await (await streamrConfig.setFlaggerRewardWei(parseEther("360"))).wait()
-        await (await streamrConfig.setFlagReviewerRewardWei(parseEther("20"))).wait()
-        await (await streamrConfig.setFlagStakeWei(parseEther("500"))).wait()
-        await (await streamrConfig.setFlagReviewerCount(7)).wait()
         await (await streamrConfig.setProtocolFeeBeneficiary(protocol.address)).wait()
+        await (await streamrConfig.setFlagReviewerCount(7)).wait()
+        await (await streamrConfig.setFlagReviewerRewardWei(parseEther("20"))).wait()
+        await (await streamrConfig.setFlaggerRewardWei(parseEther("360"))).wait()
+        await (await streamrConfig.setFlagStakeWei(parseEther("500"))).wait()
 
         defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
         mockRandomOracle = await (await ethers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
@@ -988,6 +988,8 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("500"))
 
             expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
+
+            await (await contracts.streamrConfig.setSlashingFraction(parseEther("0.1"))).wait()
         })
 
         it("stake gets unlocked if there's only a little unlocked stake left (KICK branch)", async function(): Promise<void> {
