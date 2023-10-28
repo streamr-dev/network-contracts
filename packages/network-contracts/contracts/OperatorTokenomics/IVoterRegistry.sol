@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 // Operator contract announces to the registry when it's eligible to vote, or not eligible anymore.
 interface IVoterRegistry {
-    event VoterUpdate(address voterAddress, bool isVoter);
+    event VoterUpdate(address indexed voterAddress, bool indexed isVoter);
 
     function updateStake(uint newStakeWei) external;
 

@@ -39,16 +39,16 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
-    event QueuedDataPayout(address delegator, uint amountWei, uint queueIndex);
-    event QueueUpdated(address delegator, uint amountWei, uint queueIndex);
+    event BalanceUpdate(address indexed delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
+    event QueuedDataPayout(address indexed delegator, uint amountWei, uint queueIndex);
+    event QueueUpdated(address indexed delegator, uint amountWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
     event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
-    event Profit(uint valueIncreaseWei, uint operatorsCutDataWei, uint protocolFeeDataWei);
+    event Profit(uint valueIncreaseWei, uint indexed operatorsCutDataWei, uint indexed protocolFeeDataWei);
     event Loss(uint valueDecreaseWei);
 
     // node events (initiated by nodes)
@@ -57,7 +57,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // operator admin events
     event NodesSet(address[] nodes);
-    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsCutFraction); // = owner() of this contract
+    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint indexed operatorsCutFraction); // = owner() of this contract
 
     // when the operator gets slashed an amount in DATA, the corresponding amount of self-delegated operator tokens are burned (other delegators' DATA value won't change)
     //   but only down to zero, after which the DATA losses are borne by all delegators via loss of operator DATA value without corresponding operator token burn

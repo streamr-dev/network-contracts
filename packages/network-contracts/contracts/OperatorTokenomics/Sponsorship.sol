@@ -41,7 +41,7 @@ import "./StreamrConfig.sol";
 contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable {
     // Emitted from this contract
     event StakeUpdate(address indexed operator, uint stakedWei, uint earningsWei);
-    event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint operatorCount, bool isRunning);
+    event SponsorshipUpdate(uint totalStakedWei, uint remainingWei, uint indexed operatorCount, bool indexed isRunning);
     event OperatorJoined(address indexed operator);
     event OperatorLeft(address indexed operator, uint returnedStakeWei);
     event SponsorshipReceived(address indexed sponsor, uint amount);
@@ -54,7 +54,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
 
     // Emitted from VoteKickPolicy
-    event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint reviewerCount, string flagMetadata);
+    event Flagged(address indexed target, address indexed flagger, uint targetStakeAtRiskWei, uint indexed reviewerCount, string flagMetadata);
     event FlagUpdate(address indexed target, IKickPolicy.FlagState indexed status, uint votesForKick, uint votesAgainstKick, address indexed voter, int voterWeight);
     event StakeLockUpdate(address indexed operator, uint lockedStakeWei, uint minimumStakeWei);
 

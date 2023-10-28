@@ -202,7 +202,7 @@ dataSources:
         - name: OperatorFactory
           file: ./abis/OperatorFactory.json
       eventHandlers:
-        - event: NewOperator(address,address)
+        - event: NewOperator(indexed address,indexed address)
           handler: handleNewOperator
 
 templates:
@@ -230,9 +230,9 @@ templates:
             handler: handleStakeUpdated
           - event: StakeLockUpdate(indexed address,uint256,uint256)
             handler: handleStakeLockUpdated
-          - event: SponsorshipUpdate(uint256,uint256,uint256,bool)
+          - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
             handler: handleSponsorshipUpdated
-          - event: Flagged(indexed address,indexed address,uint256,uint256,string)
+          - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)
             handler: handleFlagged
           - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256,indexed address,int256)
             handler: handleFlagUpdate
@@ -268,24 +268,24 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: BalanceUpdate(address,uint256,uint256,uint256)
+          - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)
           #   handler: handleStakeUpdated
           - event: OperatorValueUpdate(uint256,uint256)
             handler: handleOperatorValueUpdate
-          - event: Profit(uint256,uint256,uint256)
+          - event: Profit(uint256,indexed uint256,indexed uint256)
             handler: handleProfit
           - event: Loss(uint256)
             handler: handleLoss
-          - event: QueuedDataPayout(address,uint256,uint256)
+          - event: QueuedDataPayout(indexed address,uint256,uint256)
             handler: handleQueuedDataPayout
-          - event: QueueUpdated(address,uint256,uint256)
+          - event: QueueUpdated(indexed address,uint256,uint256)
             handler: handleQueueUpdated
           - event: NodesSet(address[])
             handler: handleNodesSet
           - event: Heartbeat(indexed address,string)
             handler: handleHeartbeat
-          - event: MetadataUpdated(string,indexed address,uint256)
+          - event: MetadataUpdated(string,indexed address,indexed uint256)
             handler: handleMetadataUpdate
