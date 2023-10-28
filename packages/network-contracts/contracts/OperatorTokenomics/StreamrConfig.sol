@@ -13,7 +13,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    event ConfigChanged(string key, uint newValue, address newAddress);
+    event ConfigChanged(string indexed key, uint indexed newValue, address indexed newAddress);
 
     error TooHigh(uint value, uint limit);
     error TooLow(uint value, uint limit);
