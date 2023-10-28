@@ -272,12 +272,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         _delegate(delegator, amount);
+        payOutQueue(0);
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
     function delegate(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
+        payOutQueue(0);
     }
 
     /**
@@ -307,8 +309,6 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-
-        payOutQueue(0);
     }
 
     /**
