@@ -41,7 +41,6 @@ describe("VoteKickPolicy", (): void => {
     // default setup for test cases that don't need a clean set of contracts
     // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
     let defaultSetup: SponsorshipTestSetup
-    let signers: Wallet[]
 
     before(async (): Promise<void> => {
         [admin, protocol] = await ethers.getSigners()

@@ -49,10 +49,11 @@ async function getTestWallets(contracts: TestContracts, count: number): Promise<
 
     // initialize with hardhat signers; they already have native token, so mint them test token too
     if (testWallets.length === 0) {
-        testWallets.push(...(await hardhatEthers.getSigners()).slice(2)) // leave out admin, protocol
-        for (const { address } of testWallets) {
+        const hardhatSigners = await hardhatEthers.getSigners() as Wallet[]
+        for (const { address } of hardhatSigners) {
             await (await contracts.token.mint(address, parseEther("1000000"))).wait()
         }
+        testWallets.push(...hardhatSigners.slice(2)) // leave out admin, protocol
     }
 
     // generate more if needed
