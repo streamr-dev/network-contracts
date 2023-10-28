@@ -24,19 +24,14 @@ describe("docker image integration test", () => {
     it("can get all the indexed example data from thegraph", async () => {
         const resultDynamicIds = await graphClient.queryEntity<any>({ query: `
         {
-            operatorDailyBuckets {
-                id
+            sponsorships {
+                id,
+                maxOperators
             }
             sponsorshipDailyBuckets {
                 id
             }
-            stakingEvents {
-                id
-            }
             sponsoringEvents {
-                id
-            }
-            delegations {
                 id
             }
             nodes {
@@ -45,9 +40,14 @@ describe("docker image integration test", () => {
             operators {
                 id
             }
-            sponsorships {
-                id,
-                maxOperators
+            operatorDailyBuckets {
+                id
+            }
+            delegations {
+                id
+            }
+            stakingEvents {
+                id
             }
             stakes {
                 id
@@ -64,17 +64,17 @@ describe("docker image integration test", () => {
             }
         }
         `})
-        expect(resultDynamicIds.nodes.length).to.equal(1)
         expect(resultDynamicIds.sponsorships.length).to.equal(1)
         expect(resultDynamicIds.sponsorships[0].maxOperators).to.equal(3)
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
-        expect(resultDynamicIds.sponsoringEvents.length).to.equal(2) // sponsoring + slashing
+        expect(resultDynamicIds.sponsoringEvents.length).to.equal(2)
+        expect(resultDynamicIds.nodes.length).to.equal(1)
 
-        expect(resultDynamicIds.stakingEvents.length).to.equal(6)
+        expect(resultDynamicIds.operators.length).to.equal(3)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.delegations.length).to.equal(3)
-        expect(resultDynamicIds.operators.length).to.equal(3)
-        expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators - 1 got kicked out
+        expect(resultDynamicIds.stakingEvents.length).to.equal(4) // 3 operators staked + 1 got kicked out
+        expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators staked - 1 got kicked out
 
         expect(resultDynamicIds.streams.length).to.equal(5)
         expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3 operators + 9?

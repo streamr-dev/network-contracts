@@ -201,12 +201,12 @@ describe("StakeWeightedAllocationPolicy", (): void => {
 
         await advanceToTimestamp(timeAtStart, "Operator joins")
         await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("400"), operator.address))
-            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("400"), parseEther("0"), parseEther("0"))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("400"), parseEther("0"))
             .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("400"), parseEther("12345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 1000, "Operator adds 100 stake 400 -> 500")
         await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address))
-            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("500"), parseEther("1000"), parseEther("0"))
+            .to.emit(sponsorship, "StakeUpdate").withArgs(operator.address, parseEther("500"), parseEther("1000"))
             .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("500"), parseEther("11345"), 1, true)
 
         await advanceToTimestamp(timeAtStart + 2000, "Operator leaves")

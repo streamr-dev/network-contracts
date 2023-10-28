@@ -15,8 +15,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooLow(uint value, uint limit);
 
     /**
-     * Minimum amount to pay reviewers+flagger
-     * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
+     * Minimum stake whose slashing is enough to pay reviewers+flagger in case of a voting that results in KICK.
+     * That is: minimumStakeWei * slashingFraction >= flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei
+     * Round UP so that the possible rounding error doesn't cause reward money to run out.
      */
     function minimumStakeWei() public view returns (uint) {
         return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
@@ -153,7 +154,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
-        // Prevent "sand delegations", set minimum delegation to 100 DATA
+        // Prevent "sand delegations", set minimum delegation to 100 operator tokens
         setMinimumDelegationWei(100 ether);
 
         // Sponsorship leave penalty parameter limit
