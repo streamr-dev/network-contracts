@@ -37,19 +37,19 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator {
 
     // delegator events (initiated by anyone)
-    event Delegated(address indexed delegator, uint indexed amountDataWei);
-    event Undelegated(address indexed delegator, uint indexed amountDataWei);
-    event BalanceUpdate(address indexed delegator, uint indexed balanceWei, uint indexed totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
-    event QueuedDataPayout(address indexed delegator, uint indexed amountWei, uint indexed queueIndex);
-    event QueueUpdated(address indexed delegator, uint indexed amountWei, uint indexed queueIndex);
+    event Delegated(address indexed delegator, uint amountDataWei);
+    event Undelegated(address indexed delegator, uint amountDataWei);
+    event BalanceUpdate(address indexed delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
+    event QueuedDataPayout(address indexed delegator, uint amountWei, uint queueIndex);
+    event QueueUpdated(address indexed delegator, uint amountWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
-    event StakeUpdate(Sponsorship indexed sponsorship, uint indexed stakedWei);
-    event OperatorValueUpdate(uint indexed totalStakeInSponsorshipsWei, uint indexed dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
-    event Profit(uint indexed valueIncreaseWei, uint indexed operatorsCutDataWei, uint indexed protocolFeeDataWei);
-    event Loss(uint indexed valueDecreaseWei);
+    event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
+    event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
+    event Profit(uint valueIncreaseWei, uint indexed operatorsCutDataWei, uint indexed protocolFeeDataWei);
+    event Loss(uint valueDecreaseWei);
 
     // node events (initiated by nodes)
     event Heartbeat(address indexed nodeAddress, string jsonData);
@@ -61,7 +61,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // when the operator gets slashed an amount in DATA, the corresponding amount of self-delegated operator tokens are burned (other delegators' DATA value won't change)
     //   but only down to zero, after which the DATA losses are borne by all delegators via loss of operator DATA value without corresponding operator token burn
-    event OperatorSlashed(uint indexed slashingAmountDataWei, uint indexed slashingAmountInOperatorTokensWei, uint indexed actuallySlashedInOperatorTokensWei);
+    event OperatorSlashed(uint slashingAmountDataWei, uint slashingAmountInOperatorTokensWei, uint actuallySlashedInOperatorTokensWei);
 
     error AccessDeniedOperatorOnly();
     error AccessDeniedNodesOnly();

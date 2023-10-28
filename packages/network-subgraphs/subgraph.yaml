@@ -180,7 +180,7 @@ dataSources:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
       eventHandlers:
-        - event: NewSponsorship(indexed address,string,string,address[],uint256[],indexed address)
+        - event: NewSponsorship(indexed address,indexed string,string,address[],uint256[],indexed address)
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
@@ -226,22 +226,22 @@ templates:
         - name: Sponsorship
           file: ./abis/Sponsorship.json
       eventHandlers:
-          - event: StakeUpdate(indexed address,indexed uint256,indexed uint256,uint256)
+          - event: StakeUpdate(indexed address,uint256,uint256,uint256)
             handler: handleStakeUpdated
-          - event: SponsorshipUpdate(uint256,indexed uint256,indexed uint256,bool)
+          - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
             handler: handleSponsorshipUpdated
-          - event: Flagged(indexed address,indexed address,indexed uint256,uint256,string)
+          - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)
             handler: handleFlagged
           - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256,indexed address,int256)
             handler: handleFlagUpdate
-          - event: ProjectedInsolvencyUpdate(indexed uint256)
+          - event: ProjectedInsolvencyUpdate(uint256)
             handler: handleProjectedInsolvencyUpdate
-          - event: OperatorSlashed(indexed address,indexed uint256)
+          - event: OperatorSlashed(indexed address,uint256)
             handler: handleOperatorSlashed
 
         # - event: StakeAdded(indexed address,uint256,uint256)
         #   handler: handleStakeAdded
-          - event: SponsorshipReceived(indexed address,indexed uint256)
+          - event: SponsorshipReceived(indexed address,uint256)
             handler: handleSponsorshipReceived
         # - event: OperatorJoined(indexed address)
         #   handler: handleOperatorJoined
@@ -266,20 +266,20 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
-          - event: BalanceUpdate(indexed address,indexed uint256,indexed uint256,uint256)
+          - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
           # - event: StakeUpdate(indexed address,uint256)
           #   handler: handleStakeUpdated
-          - event: OperatorValueUpdate(indexed uint256,indexed uint256)
+          - event: OperatorValueUpdate(uint256,uint256)
             handler: handleOperatorValueUpdate
-          - event: Profit(indexed uint256,indexed uint256,indexed uint256)
+          - event: Profit(uint256,indexed uint256,indexed uint256)
             handler: handleProfit
-          - event: Loss(indexed uint256)
+          - event: Loss(uint256)
             handler: handleLoss
-          - event: QueuedDataPayout(indexed address,indexed uint256,indexed uint256)
+          - event: QueuedDataPayout(indexed address,uint256,uint256)
             handler: handleQueuedDataPayout
-          - event: QueueUpdated(indexed address,indexed uint256,indexed uint256)
+          - event: QueueUpdated(indexed address,uint256,uint256)
             handler: handleQueueUpdated
           - event: NodesSet(address[])
             handler: handleNodesSet
