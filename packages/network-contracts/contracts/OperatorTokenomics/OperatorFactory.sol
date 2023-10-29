@@ -17,12 +17,15 @@ import "./StreamrConfig.sol";
 /**
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
+ *
+ * `ADMIN_ROLE()` can update the `operatorContractTemplate` address, and add/remove trusted policies, as well as upgrade this whole contract.
  */
 contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IVoterRegistry {
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     event NewOperator(address indexed operatorAddress, address indexed operatorContractAddress);
     event TemplateAddresses(address indexed operatorTemplate, address nodeModuleTemplate, address indexed queueModuleTemplate, address indexed stakeModuleTemplate);
+    event PolicyWhitelisted(address indexed policyAddress, bool indexed isWhitelisted);
 
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
@@ -71,7 +74,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
@@ -80,7 +84,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(ADMIN_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -95,7 +99,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address nodeModuleAddress,
         address queueModuleAddress,
         address stakeModuleAddress
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyRole(ADMIN_ROLE) {
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
         queueModuleTemplate = queueModuleAddress;
@@ -103,18 +107,21 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = true;
+        emit PolicyWhitelisted(policyAddress, true);
     }
 
-    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(ADMIN_ROLE) {
         for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
+            emit PolicyWhitelisted(policyAddresses[i], true);
         }
     }
 
-    function removeTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = false;
+        emit PolicyWhitelisted(policyAddress, false);
     }
 
     function isTrustedPolicy(address policyAddress) public view returns (bool) {

@@ -966,6 +966,7 @@ describe("VoteKickPolicy", (): void => {
 
             // await (await flagger.unstake(sponsorship.address)).wait()
             // flagger needs to add flagStakeWei more to be able to flag
+            await (await token.mint(await flagger.owner(), parseEther("500"))).wait()
             await (await token.connect(flagger.signer).transferAndCall(flagger.address, parseEther("500"), "0x")).wait()
             await flagger.stake(sponsorship.address, parseEther("500"))
 

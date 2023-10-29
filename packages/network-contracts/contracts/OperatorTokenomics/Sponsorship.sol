@@ -34,6 +34,8 @@ import "./StreamrConfig.sol";
  * - forfeitedStakeWei: stakes that were locked to pay for a flag by a past operator who `forceUnstake`d (or was kicked)
  *  -> should be zero when there are no active flags
  *
+ * `DEFAULT_ADMIN_ROLE()` can set the policies, and it should only be held by the SponsorshipFactory during deployment.
+ *
  * @dev We track both earningsWei and remainingWei because there can be 'ghost tokens' from plain ERC20 transfers (instead of transferAndCall)
  * @dev It's important that whenever tokens are moved out (or unaccounted tokens detected) that they be accounted for
  * @dev   either via _stake/_slash (to/from stake) or _addSponsorship (to remainingWei)

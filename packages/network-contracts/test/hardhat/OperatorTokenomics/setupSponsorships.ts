@@ -34,31 +34,24 @@ function splitBy<T>(arr: T[], counts: number[]): T[][] {
     return result
 }
 
-async function createAndFundWallet(contracts: TestContracts): Promise<Wallet> {
-    const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
-    const wallet = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
-    await (await admin.sendTransaction({ to: wallet.address, value: parseEther("1") })).wait()
-    await (await contracts.token.mint(wallet.address, parseEther("1000000"))).wait()
-    return wallet
-}
-
-const testWallets: Wallet[] = []
-
 /** Get a given number of test wallets funded with native and test token. Re-use hardhat signers first. */
-async function getTestWallets(contracts: TestContracts, count: number): Promise<Wallet[]> {
-
+async function getTestWallets(contracts: TestContracts, count: number, minTokenBalance: BigNumber): Promise<Wallet[]> {
     // initialize with hardhat signers; they already have native token, so mint them test token too
-    if (testWallets.length === 0) {
-        const hardhatSigners = await hardhatEthers.getSigners() as Wallet[]
-        for (const { address } of hardhatSigners) {
-            await (await contracts.token.mint(address, parseEther("1000000"))).wait()
+    const [admin,, ...testWallets] = await hardhatEthers.getSigners() as Wallet[] // leave out admin, protocol
+
+    // check everyone has enough tokens
+    for (const wallet of testWallets.slice(0, count)) {
+        if ((await contracts.token.balanceOf(wallet.address)).lt(minTokenBalance)) {
+            await (await contracts.token.mint(wallet.address, minTokenBalance)).wait()
         }
-        testWallets.push(...hardhatSigners.slice(2)) // leave out admin, protocol
     }
 
-    // generate more if needed
-    for (let i = testWallets.length; i < count; i++) {
-        testWallets.push(await createAndFundWallet(contracts))
+    // generate and fund more if needed
+    while (testWallets.length < count) {
+        const wallet = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
+        await (await admin.sendTransaction({ to: wallet.address, value: parseEther("1") })).wait()
+        await (await contracts.token.mint(wallet.address, parseEther("1000000"))).wait()
+        testWallets.push(wallet)
     }
 
     return testWallets.slice(0, count)
@@ -78,7 +71,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
-    const signers = await getTestWallets(contracts, totalOperatorCount)
+    const signers = await getTestWallets(contracts, totalOperatorCount, stakeAmountWei)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
