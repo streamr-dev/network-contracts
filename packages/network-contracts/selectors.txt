@@ -369,8 +369,8 @@ f37a3008: InvalidOperatorsCut(uint256)
 918623b7: ModuleCallError(address,bytes)
 29801d70: ModuleGetError(bytes)
 4ee7a8de: NoEarnings()
-0558c33f: NoSelfDelegation()
 25b10de0: NotMyStakedSponsorship()
+c89199b3: SelfDelegationTooLow(uint256,uint256)
 81cf7f80: StakedInSponsorships()
 c0a6104c: ZeroUndelegation()
 
@@ -400,8 +400,8 @@ ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(addre
 
 ======= OperatorTokenomics/sol:OperatorFactory =======
 Function signatures:
+75b238fc: ADMIN_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
-f72c0d8b: UPGRADER_ROLE()
 b3a79c8d: addTrustedPolicies(address[])
 a0cdb9d2: addTrustedPolicy(address)
 1dac77c3: deployOperator(uint256,string,string,address[3],uint256[3])
@@ -454,6 +454,7 @@ Event signatures:
 1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 f1e04d73c4304b5ff164f9d10c7473e2a1593b740674a6107975e2a7001c1e5c: NewOperator(address,address)
+8ce67518f52f7c7836ccbbfa10a4543762161480026cf287be7c7e0bb24d242a: PolicyWhitelisted(address,bool)
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
@@ -547,8 +548,8 @@ e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipRec
 
 ======= OperatorTokenomics/sol:SponsorshipFactory =======
 Function signatures:
+75b238fc: ADMIN_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
-f72c0d8b: UPGRADER_ROLE()
 b3a79c8d: addTrustedPolicies(address[])
 a0cdb9d2: addTrustedPolicy(address)
 145246e9: deploySponsorship(uint256,string,string,address[],uint256[])
@@ -585,6 +586,7 @@ Event signatures:
 1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 2f6aee5d8c249b83c278dc774b8923a70ea8df009e1d61e4210856b155dfee53: NewSponsorship(address,string,string,address[],uint256[],address)
+8ce67518f52f7c7836ccbbfa10a4543762161480026cf287be7c7e0bb24d242a: PolicyWhitelisted(address,bool)
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
 f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
@@ -596,6 +598,8 @@ Function signatures:
 
 ======= OperatorTokenomics/sol:StreamrConfig =======
 Function signatures:
+75b238fc: ADMIN_ROLE()
+d853015e: CONFIGURATOR_ROLE()
 a217fddf: DEFAULT_ADMIN_ROLE()
 f72c0d8b: UPGRADER_ROLE()
 6aac44e9: earlyLeaverPenaltyWei()
@@ -670,6 +674,7 @@ b2a4c036: TooHigh(uint256,uint256)
 Event signatures:
 7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
 1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
+0378fef41f6809e49c98b88328d92d19c96e56c48a18f31dd74e3a20fa7148d6: ConfigChanged(string,uint256,address)
 7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
 bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
 2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
