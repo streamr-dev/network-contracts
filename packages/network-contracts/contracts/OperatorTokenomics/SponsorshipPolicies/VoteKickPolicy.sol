@@ -137,7 +137,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] > 0) {
                 continue;
             }
-            peer.onReviewRequest(target);
+            try peer.onReviewRequest(target) {} catch {
+                continue;
+            }
             reviewers[target].push(peer);
 
             // every Operator gets as many votes as they have DATA value locked (capped to half of total voter weight)
@@ -249,8 +251,12 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint flagStake = flagStakeWei[target];
         if (lockedStakeWei[flagger] >= flagStake) {
             lockedStakeWei[flagger] -= flagStake;
-            token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
-            slashingWei -= flaggerRewardWei[target];
+            (bool success, bytes memory flaggerOwner) = flagger.call(abi.encodeWithSignature("owner()")); // solhint-disable-line avoid-low-level-calls
+            if (success && flaggerOwner.length == 32) {
+                try token.transferAndCall(flagger, flaggerRewardWei[target], flaggerOwner) {
+                    slashingWei -= flaggerRewardWei[target];
+                } catch {}
+            }
         } else {
             //...unless flagger has forceUnstaked or been kicked; so unlock the remaining part from forfeitedStake
             forfeitedStakeWei -= flagStake - lockedStakeWei[flagger];
@@ -265,8 +271,13 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_KICK) {
-                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                slashingWei -= reviewerRewardWei[target];
+                // solhint-disable-next-line avoid-low-level-calls
+                (bool success, bytes memory reviewerOwner) = address(reviewer).call(abi.encodeWithSignature("owner()"));
+                if (success && reviewerOwner.length == 32) {
+                    try token.transferAndCall(address(reviewer), reviewerRewardWei[target], reviewerOwner) {
+                        slashingWei -= reviewerRewardWei[target];
+                    } catch {}
+                }
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
@@ -302,8 +313,13 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
-                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                rewardsWei += reviewerRewardWei[target];
+                // solhint-disable-next-line avoid-low-level-calls
+                (bool success, bytes memory reviewerOwner) = address(reviewer).call(abi.encodeWithSignature("owner()"));
+                if (success && reviewerOwner.length == 32) {
+                    try token.transferAndCall(address(reviewer), reviewerRewardWei[target], reviewerOwner) {
+                        rewardsWei += reviewerRewardWei[target];
+                    } catch {}
+                }
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }

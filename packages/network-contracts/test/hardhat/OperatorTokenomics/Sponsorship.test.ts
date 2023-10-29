@@ -375,9 +375,11 @@ describe("Sponsorship contract", (): void => {
             const { token } = contracts
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, a, a, "", "", "0", [a, a, a])).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
-            await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
 
             const sponsorshipBalanceBeforeUnstake = await token.balanceOf(sponsorship.address)
             const operatorBalanceBeforeUnstake = await token.balanceOf(badOperator.address)
@@ -400,13 +402,15 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
         })
 
-        it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async function(): Promise<void> {
+        it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async (): Promise<void> => {
             const { token, adminKickPolicy } = contracts
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, a, a, "", "", "0", [a, a, a])).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
-            await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
 
             const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator.address)
             await expect(sponsorship.connect(admin).flag(badOperator.address, "{}"))

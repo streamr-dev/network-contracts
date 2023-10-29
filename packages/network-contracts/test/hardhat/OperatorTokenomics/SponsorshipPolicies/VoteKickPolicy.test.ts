@@ -1,15 +1,19 @@
-import { ethers } from "hardhat"
+import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { setupSponsorships, SponsorshipTestSetup } from "../setupSponsorships"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_START, VOTE_END, END_PROTECTION, log } from "../utils"
 
-import type { MockRandomOracle } from "../../../../typechain"
+import type { MockRandomOracle, TestBadOperator } from "../../../../typechain"
 import type { BigNumber, Wallet } from "ethers"
+import { deployOperatorContract } from "../deployOperatorContract"
 
-const { parseEther, formatEther, getAddress, hexZeroPad } = ethers.utils
-const { AddressZero } = ethers.constants
+const {
+    getContractFactory,
+    utils: { parseEther, formatEther, getAddress, hexZeroPad },
+    constants: { AddressZero }
+} = hardhatEthers
 
 function parseFlag(flagData: BigNumber) {
     return {
@@ -42,8 +46,10 @@ describe("VoteKickPolicy", (): void => {
     // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
     let defaultSetup: SponsorshipTestSetup
 
+    let badOperatorTemplate: TestBadOperator
+
     before(async (): Promise<void> => {
-        [admin, protocol] = await ethers.getSigners()
+        [admin, protocol] = await hardhatEthers.getSigners()
         contracts = await deployTestContracts(admin)
 
         const { streamrConfig } = contracts
@@ -54,8 +60,10 @@ describe("VoteKickPolicy", (): void => {
         await (await streamrConfig.setFlagStakeWei(parseEther("500"))).wait()
 
         defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
-        mockRandomOracle = await (await ethers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
+        mockRandomOracle = await (await hardhatEthers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
         await (await contracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
+
+        badOperatorTemplate = await (await getContractFactory("TestBadOperator", admin)).deploy()
     })
 
     beforeEach(async () => {
@@ -70,6 +78,16 @@ describe("VoteKickPolicy", (): void => {
         const protocolBalance = await contracts.token.balanceOf(protocol.address)
         await (await contracts.token.connect(protocol).transfer("0x1234000000000000000000000000000000000000", protocolBalance)).wait()
     })
+
+    async function deployBadOperator(contracts: TestContracts, deployer: Wallet): Promise<TestBadOperator> {
+        const { operatorFactory, operatorTemplate, nodeModule, queueModule, stakeModule } = contracts
+        await expect(operatorFactory.updateTemplates(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
+            .to.emit(operatorFactory, "TemplateAddresses")
+        const badOperator = await deployOperatorContract(contracts, deployer)
+        await expect(operatorFactory.updateTemplates(operatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
+            .to.emit(operatorFactory, "TemplateAddresses")
+        return badOperatorTemplate.attach(badOperator.address).connect(deployer)
+    }
 
     describe("Happy path (flag + vote + resolution)", (): void => {
         it("with one flagger, one target and one voter", async function(): Promise<void> {
@@ -194,12 +212,12 @@ describe("VoteKickPolicy", (): void => {
     describe("Reviewer selection", function(): void {
         // live = staked to any Sponsorship
         it("will only pick live reviewers", async () => {
-            const { operatorFactory, sponsorships, operators: [
+            const { newContracts, sponsorships, operators: [
                 flagger, target, voter, nonStaked
             ] } = await setupSponsorships(contracts, [2, 2], "pick-only-live-reviewers")
 
             await expect(nonStaked.unstake(sponsorships[1].address))
-                .to.emit(operatorFactory, "VoterUpdate").withArgs(nonStaked.address, false)
+                .to.emit(newContracts.operatorFactory, "VoterUpdate").withArgs(nonStaked.address, false)
             await expect(flagger.flag(sponsorships[0].address, target.address, ""))
                 .to.emit(voter, "ReviewRequest")
                 .to.not.emit(nonStaked, "ReviewRequest")
@@ -233,6 +251,25 @@ describe("VoteKickPolicy", (): void => {
 
             // target is not kicked
             expect(await sponsorship.stakedWei(target.address)).to.not.equal("0")
+        })
+
+        it("works even if voter candidate's onReviewRequest reverts (skip that voter)", async function(): Promise<void> {
+            const { token } = contracts
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target ],
+                newContracts
+            } = await setupSponsorships(contracts, [2], "bad-voter")
+            const signers = await hardhatEthers.getSigners()
+            const badOperator = await deployBadOperator(newContracts, signers[6])
+            await (await token.mint(badOperator.address, parseEther("100000"))).wait()
+            await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
+
+            await (await badOperator.setReviewRequestReverting(true)).wait()
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.be.rejectedWith("error_failedToFindReviewers")
+
+            await (await badOperator.setReviewRequestReverting(false)).wait()
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(sponsorship, "Flagged")
         })
     })
 
@@ -272,7 +309,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS to flag if modules are not set", async function(): Promise<void> {
-            const sponsorship = await (await ethers.getContractFactory("Sponsorship", { signer: admin })).deploy()
+            const sponsorship = await (await hardhatEthers.getContractFactory("Sponsorship", { signer: admin })).deploy()
             await sponsorship.deployed()
             await sponsorship.initialize(
                 "streamId",
@@ -588,6 +625,54 @@ describe("VoteKickPolicy", (): void => {
 
             expect((await sponsorship.getFlag(target.address)).flagData).to.equal("0") // flag is resolved
             expect(await sponsorship.stakedWei(target.address)).to.be.greaterThan("0", "vote should end with NO_KICK, but ended with KICK")
+        })
+
+        it("works even if flagger's transferAndCall reverts", async function(): Promise<void> {
+            const { token } = contracts
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ target, voter ],
+                newContracts
+            } = await setupSponsorships(contracts, [2], "bad-flagger")
+            const signers = await hardhatEthers.getSigners()
+            const badOperator = await deployBadOperator(newContracts, signers[6])
+            await (await token.mint(badOperator.address, parseEther("100000"))).wait()
+            await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(badOperator)} flags ${addr(target)}`)
+            await expect(badOperator.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+        })
+
+        it("works even if voter's transferAndCall reverts", async function(): Promise<void> {
+            const { token } = contracts
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, target2 ],
+                newContracts
+            } = await setupSponsorships(contracts, [3], "bad-voter")
+            const signers = await hardhatEthers.getSigners()
+            const badOperator = await deployBadOperator(newContracts, signers[6])
+            await (await token.mint(badOperator.address, parseEther("100000"))).wait()
+            await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
+
+            const start = await getBlockTimestamp()
+            await advanceToTimestamp(start, `${addr(badOperator)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(sponsorship, "Flagged")
+
+            await advanceToTimestamp(start + VOTE_START, "voting")
+            await expect(target2.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(badOperator.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+
+            const start2 = await getBlockTimestamp()
+            await advanceToTimestamp(start2, `${addr(badOperator)} flags ${addr(target2)}`)
+            await expect(flagger.flag(sponsorship.address, target2.address, "")).to.emit(sponsorship, "Flagged")
+
+            await advanceToTimestamp(start2 + VOTE_START, `${addr(badOperator)} votes`)
+            await expect(badOperator.voteOnFlag(sponsorship.address, target2.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
         })
     })
 
@@ -1107,7 +1192,7 @@ describe("VoteKickPolicy", (): void => {
                     sponsorships: [ sponsorship ],
                     operators
                 } = defaultSetup
-                const signers = await ethers.getSigners()
+                const signers = await hardhatEthers.getSigners()
                 await expect(sponsorship.connect(signers[6]).flag(operators[0].address, ""))
                     .to.be.revertedWith("error_notEnoughStake")
             })
@@ -1117,7 +1202,7 @@ describe("VoteKickPolicy", (): void => {
                     operatorsPerSponsorship: [ [flagger, target], [voter] ]
                 } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
                 const start = await getBlockTimestamp()
-                const signers = await ethers.getSigners()
+                const signers = await hardhatEthers.getSigners()
                 const outsider = signers[5]
 
                 // ...not before flagging
