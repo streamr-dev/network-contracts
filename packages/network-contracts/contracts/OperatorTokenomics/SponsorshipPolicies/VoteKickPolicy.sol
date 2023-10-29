@@ -108,7 +108,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
 
         // added locked stake may also raise the flagger's minimum stake
         lockedStakeWei[flagger] += flagStakeWei[target];
-        require(stakedWei[flagger] >= minimumStakeOf(flagger), "error_notEnoughStake");
+        require(stakedWei[flagger] >= getMinimumStakeOf(flagger), "error_notEnoughStake");
 
         IVoterRegistry voterRegistry = IVoterRegistry(streamrConfig.voterRegistry());
         uint voterCount = voterRegistry.voterCount();
