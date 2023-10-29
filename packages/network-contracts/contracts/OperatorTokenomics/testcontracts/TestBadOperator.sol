@@ -18,10 +18,10 @@ contract TestBadOperator is IERC677Receiver, IOperator {
 
     // asked by VoteKickPolicy
     uint public valueWithoutEarnings = 100 ether;
-    address public owner = 0x1337000000000000000000000000000000000000;
+    address public owner = 0x1337000000000000000000000000000000000000; // TODO: another function with this removed would cover the failure case of owner()
 
     // asked by factory
-    bytes32 public DEFAULT_ADMIN_ROLE = bytes32(0);
+    bytes32 public DEFAULT_ADMIN_ROLE = bytes32(0); // solhint-disable-line var-name-mixedcase
 
     function setReviewRequestReverting(bool shouldRevert) external {
         shouldRevertOnReviewRequest = shouldRevert;
@@ -68,10 +68,10 @@ contract TestBadOperator is IERC677Receiver, IOperator {
 
     function onReviewRequest(address) public view {
         if (shouldRevertOnReviewRequest) {
-            revert("TestBadOperator.onReviewRequest: revert");
+            revert("onReviewRequest: revert");
         }
     }
 
     // OperatorFactory will call: setUndelegationPolicy, setDelegationPolicy, setExchangeRatePolicy, renounceRole
-    fallback() external { }
+    fallback() external { } // solhint-disable-line payable-fallback
 }
