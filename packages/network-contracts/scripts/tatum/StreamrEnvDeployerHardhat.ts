@@ -135,7 +135,7 @@ export class StreamrEnvDeployerHardhat {
         const streamrConfigFactory = await ethers.getContractFactory("StreamrConfig", { signer: this.adminWallet })
         const streamrConfigFactoryTx = await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })
         const streamrConfig = await streamrConfigFactoryTx.deployed() as StreamrConfig
-        const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.DEFAULT_ADMIN_ROLE(), this.adminWallet.address)
+        const hasroleEthSigner = await streamrConfig.hasRole(await streamrConfig.ADMIN_ROLE(), this.adminWallet.address)
         log(`hasrole ${hasroleEthSigner}`)
         this.addresses.StreamrConfig = streamrConfig.address
         this.contracts.streamrConfig = streamrConfig

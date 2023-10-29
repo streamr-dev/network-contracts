@@ -27,12 +27,33 @@ import "./SponsorshipFactory.sol";
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
 /**
- * Operator contract receives and holds the delegators' tokens.
- * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
+ * Operator contract receives and holds the delegators' DATA tokens.
  * Operator contract also is an ERC20 token that each delegator receives, and can swap back to DATA when they undelegate.
  *
+ * The operator (`owner()`) stakes the delegated DATA to Sponsorships of streams, and the operator's nodes will perform work brokering those streams.
+ * Earnings from this work are split when they're withdrawn: operator and protocol take their cuts, and the rest inflates the value of the operator token.
+ * When a delegator undelegates, the DATA tokens they receive in addition to what they delegated originally are their share of the profits.
+ *
+ * At the undelegation moment, the contract might not have enough DATA to pay out immediately. In that case, the undelegation is queued.
+ * Always when new DATA tokens arrive, they are first used for paying out the queue, in order. This is why the payment may happen in many parts.
+ * The operator is allowed to stake available DATA to Sponsorships only when the queue is empty, that is, all undelegations have been paid out.
+ *
+ * The operator is required to keep a self-delegation in this contract. It is the operator's "skin in the game",
+ *   and will also be burned if the operator gets slashed in a Sponsorship (see `_slashSelfDelegation()`).
+ * This way, as long as there's self-delegation, the delegators will not pay for the penalties the operator receives.
+ * When a slashing happens, just enough self-delegation is burned that the DATA value of all delegations remains the same.
+ *
+ * Only when the operator has unstaked from all Sponsorships, can they self-undelegate freely from this contract.
+ * If there's not enough self-delegation, new delegators are rejected, and new staking is disabled.
+ * The same restriction applies to transferring the operator contract token: if the recipient is not a delegator already, then the self-delegation check is applied.
+ *
+ * Second restriction is that no delegator should hold less tokens than a special "minimum delegation amount".
+ * This is to defend against sand delegations enabling extreme token exchange rates and rounding error exploits.
+ *
+ * `DEFAULT_ADMIN_ROLE()` can set the modules and policies, and it should only be held by the OperatorFactory during deployment.
+ *
  * @dev DATA token balance of the contract === the "free funds" available for staking,
- * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from "unallocated tokens")
+ * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from earnings and remaining sponsorship)
  */
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator {
 
@@ -442,7 +463,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
-     * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
+     * Caller gets fishermanRewardFraction of the withdrawn earnings as a reward, if they provide that set of sponsorships.
      */
     function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external {
         uint valueBeforeWithdraw = valueWithoutEarnings();
@@ -482,7 +503,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many earnings in the other Operator.
+     * This function can only be called if there really are too many earnings in the other Operator to trigger the reward.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
         // this was put into queue module because that module was still small enough, and it could've been put into any module (no dependent functions)

@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, Operator)
+ *
+ * `ADMIN_ROLE()` can grant `CONFIGURATOR_ROLE()` to others, who can then change the parameters.
+ * `ADMIN_ROLE()` can grant `UPGRADER_ROLE()` to others, who can then upgrade this contract.
  */
 contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -66,7 +69,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     uint public earlyLeaverPenaltyWei;
 
     /**
-     * The real-time precise operator value (that includes earnings) can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
+     * The real-time precise operator value (that includes earnings) can not be kept track of,
+     *   since it would mean looping through all Sponsorships in each transaction.
      * However, if `withdrawEarningsFromSponsorships` is called often enough, the `valueWithoutEarnings` is a good approximation.
      * If the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
      *   then `fishermanRewardFraction` is the fraction of the withdrawn earnings that is un-selfdelegated (burned) from the operator and sent to the fisherman
