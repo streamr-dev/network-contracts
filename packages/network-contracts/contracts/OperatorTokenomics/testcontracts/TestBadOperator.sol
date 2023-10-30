@@ -12,13 +12,17 @@ import "../IVoterRegistry.sol";
 contract TestBadOperator is IERC677Receiver, IOperator {
 
     bool public shouldRevertOnReviewRequest = false;
+    bool public shouldRevertGetOwner = false;
 
     IERC677 public token;
     IVoterRegistry public voterRegistry;
 
     // asked by VoteKickPolicy
     uint public valueWithoutEarnings = 100 ether;
-    address public owner = 0x1337000000000000000000000000000000000000; // TODO: another function with this removed would cover the failure case of owner()
+    function owner() public view returns (address) {
+        require(shouldRevertGetOwner == false, "TestBadOperator.owner: revert");
+        return 0x1337000000000000000000000000000000000000;
+    }
 
     // asked by factory
     bytes32 public DEFAULT_ADMIN_ROLE = bytes32(0); // solhint-disable-line var-name-mixedcase
