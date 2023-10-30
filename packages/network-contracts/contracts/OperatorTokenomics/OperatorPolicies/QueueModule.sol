@@ -76,10 +76,6 @@ contract QueueModule is IQueueModule, Operator {
             // not enough DATA for full payout => all DATA tokens are paid out as a partial payment, update the item in the queue
             amountDataWei = balanceDataWei;
             amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
-
-            // there's not enough DATA in the contract to pay out even one operator token wei, so stop the payouts for now, wait for more DATA to arrive
-            if (amountOperatorTokens == 0) { return 1; }
-
             UndelegationQueueEntry memory oldEntry = queueEntryAt[queueCurrentIndex];
             uint remainingWei = oldEntry.amountWei - amountDataWei;
             queueEntryAt[queueCurrentIndex] = UndelegationQueueEntry(oldEntry.delegator, remainingWei, oldEntry.timestamp);
