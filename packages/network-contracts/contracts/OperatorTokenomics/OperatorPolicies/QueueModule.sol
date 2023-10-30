@@ -10,7 +10,7 @@ contract QueueModule is IQueueModule, Operator {
 
     /** Add the request to undelegate into the undelegation queue */
     function _undelegate(uint amountDataWei, address undelegator) public {
-        if (amountDataWei == 0) { // TODO: should there be minimum undelegation amount?
+        if (amountDataWei == 0) {
             revert ZeroUndelegation();
         }
 

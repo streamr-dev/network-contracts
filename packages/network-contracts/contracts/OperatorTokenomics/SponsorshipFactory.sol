@@ -160,10 +160,10 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             sponsorshipParams,
             IAllocationPolicy(policies[0])
         );
-        if (policies.length > 1 && policies[1] != address(0)) { // TODO: add tests for short policies arrays
+        if (policies.length > 1 && policies[1] != address(0)) {
             sponsorship.setLeavePolicy(ILeavePolicy(policies[1]), policyParams[1]);
         }
-        if (policies.length > 2 && policies[2] != address(0)) { // TODO: add tests for short policies arrays
+        if (policies.length > 2 && policies[2] != address(0)) {
             sponsorship.setKickPolicy(IKickPolicy(policies[2]), policyParams[2]);
         }
         for (uint i = 3; i < policies.length; i++) {
