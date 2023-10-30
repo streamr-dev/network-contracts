@@ -737,18 +737,18 @@ describe("VoteKickPolicy", (): void => {
             await expect(flagger.flag(sponsorship.address, targets[6].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("3500"), parseEther("5000"))
             await expect(flagger.flag(sponsorship.address, targets[7].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("4000"), parseEther("5000"))
             await expect(flagger.flag(sponsorship.address, targets[8].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("4500"), parseEther("5000"))
-            await expect(flagger.flag(sponsorship.address, targets[9].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("5000"), parseEther("5555.555555555555555555"))
-            await expect(flagger.flag(sponsorship.address, targets[10].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("5500"), parseEther("6111.111111111111111111"))
-            await expect(flagger.flag(sponsorship.address, targets[11].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("6000"), parseEther("6666.666666666666666666"))
+            await expect(flagger.flag(sponsorship.address, targets[9].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("5000"), parseEther("5555.555555555555555556"))
+            await expect(flagger.flag(sponsorship.address, targets[10].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("5500"), parseEther("6111.111111111111111112"))
+            await expect(flagger.flag(sponsorship.address, targets[11].address, "")).to.emit(sponsorship, "StakeLockUpdate").withArgs(flagger.address, parseEther("6000"), parseEther("6666.666666666666666667"))
             /* eslint-enable max-len */
 
             // lockedStake 12 * 500 = 6000, plus room for 10% slashing = 6666.66...
             // 6666.66... > global minimumStake 5000 ==> flagger's minimumStake = 6666.66...
-            expect(formatEther(await sponsorship.minimumStakeOf(flagger.address))).to.equal("6666.666666666666666666")
+            expect(formatEther(await sponsorship.minimumStakeOf(flagger.address))).to.equal("6666.666666666666666667")
             await expect(flagger.unstake(sponsorship.address)).to.be.revertedWithCustomError(sponsorship, "ActiveFlag")
             await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("6666"))).to.be.revertedWithCustomError(sponsorship, "MinimumStake")
-            await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("6666.666666666666666666")))
-                .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("6666.666666666666666666"), parseEther("0"))
+            await expect(flagger.reduceStakeTo(sponsorship.address, parseEther("6666.666666666666666667")))
+                .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("6666.666666666666666667"), parseEther("0"))
         })
 
         it("allows the flagger to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
@@ -972,14 +972,14 @@ describe("VoteKickPolicy", (): void => {
             await flagAndExpectStakeLockUpdate(6, parseEther("3500"), parseEther("5000"))
             await flagAndExpectStakeLockUpdate(7, parseEther("4000"), parseEther("5000"))
             await flagAndExpectStakeLockUpdate(8, parseEther("4500"), parseEther("5000"))
-            await flagAndExpectStakeLockUpdate(9, parseEther("5000"), parseEther("5555.555555555555555555"))
-            await flagAndExpectStakeLockUpdate(10, parseEther("5500"), parseEther("6111.111111111111111111"))
-            await flagAndExpectStakeLockUpdate(11, parseEther("6000"), parseEther("6666.666666666666666666"))
-            await flagAndExpectStakeLockUpdate(12, parseEther("6500"), parseEther("7222.222222222222222222"))
-            await flagAndExpectStakeLockUpdate(13, parseEther("7000"), parseEther("7777.777777777777777777"))
-            await flagAndExpectStakeLockUpdate(14, parseEther("7500"), parseEther("8333.333333333333333333"))
-            await flagAndExpectStakeLockUpdate(15, parseEther("8000"), parseEther("8888.888888888888888888"))
-            await flagAndExpectStakeLockUpdate(16, parseEther("8500"), parseEther("9444.444444444444444444"))
+            await flagAndExpectStakeLockUpdate(9, parseEther("5000"), parseEther("5555.555555555555555556"))
+            await flagAndExpectStakeLockUpdate(10, parseEther("5500"), parseEther("6111.111111111111111112"))
+            await flagAndExpectStakeLockUpdate(11, parseEther("6000"), parseEther("6666.666666666666666667"))
+            await flagAndExpectStakeLockUpdate(12, parseEther("6500"), parseEther("7222.222222222222222223"))
+            await flagAndExpectStakeLockUpdate(13, parseEther("7000"), parseEther("7777.777777777777777778"))
+            await flagAndExpectStakeLockUpdate(14, parseEther("7500"), parseEther("8333.333333333333333334"))
+            await flagAndExpectStakeLockUpdate(15, parseEther("8000"), parseEther("8888.888888888888888889"))
+            await flagAndExpectStakeLockUpdate(16, parseEther("8500"), parseEther("9444.444444444444444445"))
             await flagAndExpectStakeLockUpdate(17, parseEther("9000"), parseEther("10000"))
 
             // lockedStake 18 * 500 = 9000, plus room for 10% slashing = 10000
