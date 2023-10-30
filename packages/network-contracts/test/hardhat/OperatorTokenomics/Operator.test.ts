@@ -1669,6 +1669,34 @@ describe("Operator contract", (): void => {
             expect(await token.balanceOf(delegator.address)).to.equal(parseEther("0"))
             expect(await token.balanceOf(operator.address)).to.equal(parseEther("100"))
         })
+
+        it("always burn at least 1 wei operator token due to rounding up", async function(): Promise<void> {
+            await setTokens(operatorWallet, "1000000")
+            await setTokens(sponsor, "1")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts )
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, 1, "0x")).wait() // sponsor 1 wei DATA, not 1 full DATA
+
+            // 1000 DATA self-delegated (which mints 1000 operator tokens) and 999000 DATA gifted through ERC20 transfer (no operator tokens minted)
+            // make the exchange rate extreme:  1 op = 1000 DATA
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), operatorWallet.address)).wait() // self-delegate
+            await (await token.connect(operatorWallet).transfer(operator.address, parseEther("999000"))).wait() // ERC20.transfer, not transferAndCall
+            await (await operator.stake(sponsorship.address, parseEther("1000000"))).wait()
+            await (await operator.undelegate(parseEther("1000000"))).wait()
+
+            const operatorTokenBalanceBefore = await operator.balanceOf(operatorWallet.address)
+            const dataTokenBalanceBefore = await token.balanceOf(operatorWallet.address)
+            await (await operator.withdrawEarningsFromSponsorships([sponsorship.address])).wait()
+            const operatorTokenBalanceAfter = await operator.balanceOf(operatorWallet.address)
+            const dataTokenBalanceAfter = await token.balanceOf(operatorWallet.address)
+
+            // exchange rate is 1 op = 1000 DATA, but due to rounding up, always burn at least 1 wei operator token
+            // burn 1 wei operator token, earn 1 wei DATA token
+            expect(operatorTokenBalanceBefore).to.equal(parseEther("1000"))
+            expect(operatorTokenBalanceAfter).to.equal(parseEther("999.999999999999999999"))
+            expect(dataTokenBalanceBefore).to.equal(parseEther("0.0"))
+            expect(dataTokenBalanceAfter).to.equal(parseEther("0.000000000000000001"))
+        })
     })
 
     describe("Kick/slash handler", () => {
