@@ -6,7 +6,6 @@ import {
     SponsorshipUpdate,
     FlagUpdate,
     Flagged,
-    ProjectedInsolvencyUpdate,
     OperatorSlashed,
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
@@ -82,9 +81,16 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
 
     sponsorship.totalStakedWei = event.params.totalStakedWei
     sponsorship.remainingWei = event.params.remainingWei
+    sponsorship.remainingWeiUpdateTimestamp = event.block.timestamp
     sponsorship.operatorCount = event.params.operatorCount.toI32()
     sponsorship.isRunning = event.params.isRunning
     sponsorship.spotAPY = spotAPY
+    if (sponsorship.isRunning) {
+        sponsorship.projectedInsolvency = null
+    } else {
+        sponsorship.projectedInsolvency = sponsorship.remainingWei.div(sponsorship.totalPayoutWeiPerSec)
+            .plus(sponsorship.remainingWeiUpdateTimestamp)
+    }        
     sponsorship.save()
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
@@ -95,19 +101,19 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.save()
 }
 
-export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
-    log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
-        [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
+// export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
+//     log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
+//         [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
 
-    let sponsorshipAddress = event.address.toHexString()
-    let sponsorship = Sponsorship.load(sponsorshipAddress)!
-    sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    sponsorship.save()
+//     let sponsorshipAddress = event.address.toHexString()
+//     let sponsorship = Sponsorship.load(sponsorshipAddress)!
+//     sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+//     sponsorship.save()
 
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    bucket.save()
-}
+//     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+//     bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
+//     bucket.save()
+// }
 
 export function handleFlagged(event: Flagged): void {
     let sponsorship = event.address.toHexString()
