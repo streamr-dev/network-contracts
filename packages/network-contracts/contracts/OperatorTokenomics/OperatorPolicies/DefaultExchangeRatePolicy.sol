@@ -40,8 +40,8 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
      * @return operatorTokenWei Amount of Operator's internal token to undelegate to receive the given amount of DATA
      */
     function operatorTokenToDataInverse(uint dataWei) external view returns (uint operatorTokenWei) {
-        uint valueDataWei = valueWithoutEarnings();
-        return (dataWei * this.totalSupply() + valueDataWei - 1) / valueDataWei;
+        uint operatorValue = valueWithoutEarnings();
+        return (dataWei * this.totalSupply() + operatorValue - 1) / operatorValue;
     }
 
     /**
@@ -60,9 +60,8 @@ contract DefaultExchangeRatePolicy is IExchangeRatePolicy, Operator {
             return dataWei;
         }
 
+        // operatorValue == alreadyTransferredWei => this was the first delegation => totalsupply should still be 0 => we shouldn't be able to divide by zero
         uint operatorValue = valueWithoutEarnings();
-        assert(alreadyTransferredWei < operatorValue);
-
         return dataWei * this.totalSupply() / (operatorValue - alreadyTransferredWei);
     }
 }

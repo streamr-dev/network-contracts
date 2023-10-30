@@ -22,12 +22,21 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooLow(uint value, uint limit);
 
     /**
+     * Division by a "fraction" expressed as multiple of 1e18, like ether (1e18 = 100%)
+     * @return result = x / fraction, rounding UP
+     */
+    function divByFraction(uint x, uint fraction) internal pure returns (uint) {
+        return (x * 1 ether + fraction - 1) / fraction;
+    }
+
+    /**
      * Minimum stake whose slashing is enough to pay reviewers+flagger in case of a voting that results in KICK.
-     * That is: minimumStakeWei * slashingFraction >= flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei
-     * Round UP so that the possible rounding error doesn't cause reward money to run out.
+     * That is: stakeWei * slashingFraction >= flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei
+     * Or: minimumStakeWei = total rewards / slashingFraction
+     * Round UP so that the possible rounding error doesn't cause reward money to run out. Better to require 1 wei too much than too little.
      */
     function minimumStakeWei() public view returns (uint) {
-        return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
+        return divByFraction(flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei, slashingFraction);
     }
 
     /**
@@ -350,9 +359,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * @dev After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
      * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
      * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
+     * @dev round UP, it's better to require a 1 wei too much than too little
      */
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(CONFIGURATOR_ROLE) {
-        uint minFlagStakeWei = flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction);
+        uint minFlagStakeWei = divByFraction(flagReviewerCount * flagReviewerRewardWei, 1 ether - slashingFraction);
         if (newFlagStakeWei < minFlagStakeWei) {
             revert TooLow({
                 value: newFlagStakeWei,
