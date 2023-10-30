@@ -6,7 +6,6 @@ import {
     SponsorshipUpdate,
     FlagUpdate,
     Flagged,
-    ProjectedInsolvencyUpdate,
     OperatorSlashed,
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
@@ -92,20 +91,6 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.remainingWei = event.params.remainingWei
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.spotAPY = spotAPY
-    bucket.save()
-}
-
-export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
-    log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
-        [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
-
-    let sponsorshipAddress = event.address.toHexString()
-    let sponsorship = Sponsorship.load(sponsorshipAddress)!
-    sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    sponsorship.save()
-
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
     bucket.save()
 }
 
