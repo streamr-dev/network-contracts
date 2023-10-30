@@ -85,7 +85,9 @@ describe("Sponsorship contract", (): void => {
             advanceToTimestamp(start + 200, "Sponsorship")
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
-            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "1.0", "1.0"]) // t = start + 202
+
+            advanceToTimestamp(start + 204, "Sponsorship (check)")
+            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "2.0", "2.0"])
 
             advanceToTimestamp(start + 300, "Stake more")
             await (await token.transferAndCall(sponsorship.address, parseEther("3000"), op1.address)).wait()

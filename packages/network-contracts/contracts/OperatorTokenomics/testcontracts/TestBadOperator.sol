@@ -36,7 +36,7 @@ contract TestBadOperator is IERC677Receiver, IOperator {
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei);
         valueWithoutEarnings = amountWei;
-        voterRegistry.updateStake(amountWei);
+        try voterRegistry.updateStake(amountWei) {} catch {}
     }
 
     function unstake(Sponsorship sponsorship) public {
