@@ -208,8 +208,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     }
 
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newSlashingFraction > 1 ether) {
-            // can't be more than 100%
+        if (newSlashingFraction >= 1 ether) {
+            // can't be 100%
             revert TooHigh({ value: newSlashingFraction, limit: 1 ether });
         }
         slashingFraction = newSlashingFraction;
