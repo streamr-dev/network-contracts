@@ -228,6 +228,15 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
+    function safeSendRewards(address to, uint amountWei) internal returns (uint actuallySentWei) {
+        (bool success, bytes memory owner) = to.call(abi.encodeWithSignature("owner()")); // solhint-disable-line avoid-low-level-calls
+        if (success && owner.length == 32) {
+            try token.transferAndCall(to, amountWei, owner) {
+                actuallySentWei = amountWei;
+            } catch {}
+        }
+    }
+
     /** successful flag: target gets kicked and the flagger+reviewers are paid from the slashing */
     function _handleKick(address target) private returns (uint leftoverWei) {
         address flagger = flaggerAddress[target];
@@ -251,12 +260,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint flagStake = flagStakeWei[target];
         if (lockedStakeWei[flagger] >= flagStake) {
             lockedStakeWei[flagger] -= flagStake;
-            (bool success, bytes memory flaggerOwner) = flagger.call(abi.encodeWithSignature("owner()")); // solhint-disable-line avoid-low-level-calls
-            if (success && flaggerOwner.length == 32) {
-                try token.transferAndCall(flagger, flaggerRewardWei[target], flaggerOwner) {
-                    slashingWei -= flaggerRewardWei[target];
-                } catch {}
-            }
+            slashingWei -= safeSendRewards(flagger, flaggerRewardWei[target]);
         } else {
             //...unless flagger has forceUnstaked or been kicked; so unlock the remaining part from forfeitedStake
             forfeitedStakeWei -= flagStake - lockedStakeWei[flagger];
@@ -271,13 +275,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_KICK) {
-                // solhint-disable-next-line avoid-low-level-calls
-                (bool success, bytes memory reviewerOwner) = address(reviewer).call(abi.encodeWithSignature("owner()"));
-                if (success && reviewerOwner.length == 32) {
-                    try token.transferAndCall(address(reviewer), reviewerRewardWei[target], reviewerOwner) {
-                        slashingWei -= reviewerRewardWei[target];
-                    } catch {}
-                }
+                slashingWei -= safeSendRewards(address(reviewer), reviewerRewardWei[target]);
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
@@ -313,13 +311,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
-                // solhint-disable-next-line avoid-low-level-calls
-                (bool success, bytes memory reviewerOwner) = address(reviewer).call(abi.encodeWithSignature("owner()"));
-                if (success && reviewerOwner.length == 32) {
-                    try token.transferAndCall(address(reviewer), reviewerRewardWei[target], reviewerOwner) {
-                        rewardsWei += reviewerRewardWei[target];
-                    } catch {}
-                }
+                rewardsWei += safeSendRewards(address(reviewer), reviewerRewardWei[target]);
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
