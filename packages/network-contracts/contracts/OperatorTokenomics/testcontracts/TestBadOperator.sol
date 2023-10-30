@@ -82,5 +82,5 @@ contract TestBadOperator is IERC677Receiver, IOperator {
     }
 
     // OperatorFactory will call: setUndelegationPolicy, setDelegationPolicy, setExchangeRatePolicy, renounceRole
-    fallback() external { } // solhint-disable-line payable-fallback
+    fallback() external { }
 }
