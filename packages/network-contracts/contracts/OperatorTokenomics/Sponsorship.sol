@@ -51,7 +51,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     event OperatorSlashed(address indexed operator, uint amountWei);
 
     // Emitted from the allocation policy
-    event ProjectedInsolvencyUpdate(uint projectedInsolvencyTimestamp);
     event InsolvencyStarted(uint startTimeStamp);
     event InsolvencyEnded(uint endTimeStamp, uint defaultedWeiPerStake, uint defaultedWei);
 

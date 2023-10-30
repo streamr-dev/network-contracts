@@ -142,10 +142,10 @@ describe("StreamrConfig", (): void => {
         })
 
         // ...then let the ones that don't depend on others change
-        it("slashingFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setSlashingFraction("1000000000000000001"))
+        it("slashingFraction < 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setSlashingFraction("1000000000000000000"))
                 .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setSlashingFraction("1000000000000000000")).to.not.be.reverted
+            await expect(sharedConfig.setSlashingFraction("999999999999999999")).to.not.be.reverted
         })
         it("minimumSelfDelegationFraction <= 100%", async (): Promise<void> => {
             await expect(sharedConfig.setMinimumSelfDelegationFraction("1000000000000000001"))
