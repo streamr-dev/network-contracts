@@ -9,8 +9,12 @@ import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolic
 import { Wallet } from "ethers"
 import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
-const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
-const { getSigners, getContractFactory } = hardhatEthers
+const {
+    getSigners,
+    getContractFactory,
+    constants: { AddressZero },
+    utils: { defaultAbiCoder, parseEther, formatEther, hexZeroPad }
+} = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
     let admin: Wallet
@@ -85,7 +89,9 @@ describe("Sponsorship contract", (): void => {
             advanceToTimestamp(start + 200, "Sponsorship")
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
-            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "1.0", "1.0"]) // t = start + 202
+
+            advanceToTimestamp(start + 204, "Sponsorship (check)")
+            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "2.0", "2.0"])
 
             advanceToTimestamp(start + 300, "Stake more")
             await (await token.transferAndCall(sponsorship.address, parseEther("3000"), op1.address)).wait()
@@ -375,9 +381,11 @@ describe("Sponsorship contract", (): void => {
             const { token } = contracts
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
-            await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
 
             const sponsorshipBalanceBeforeUnstake = await token.balanceOf(sponsorship.address)
             const operatorBalanceBeforeUnstake = await token.balanceOf(badOperator.address)
@@ -400,13 +408,15 @@ describe("Sponsorship contract", (): void => {
                 .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
         })
 
-        it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async function(): Promise<void> {
+        it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async (): Promise<void> => {
             const { token, adminKickPolicy } = contracts
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
-            await (await badOperator.stake(sponsorship.address, parseEther("100"), token.address)).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
 
             const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator.address)
             await expect(sponsorship.connect(admin).flag(badOperator.address, "{}"))

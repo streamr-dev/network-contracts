@@ -137,7 +137,9 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             if (address(peer) == flagger || address(peer) == target || reviewerState[target][peer] > 0) {
                 continue;
             }
-            peer.onReviewRequest(target);
+            try peer.onReviewRequest(target) {} catch {
+                continue;
+            }
             reviewers[target].push(peer);
 
             // every Operator gets as many votes as they have DATA value locked (capped to half of total voter weight)
@@ -226,6 +228,15 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
     }
 
+    function safeSendRewards(address to, uint amountWei) internal returns (uint actuallySentWei) {
+        (bool success, bytes memory owner) = to.call(abi.encodeWithSignature("owner()")); // solhint-disable-line avoid-low-level-calls
+        if (success && owner.length == 32) {
+            try token.transferAndCall(to, amountWei, owner) {
+                actuallySentWei = amountWei;
+            } catch {}
+        }
+    }
+
     /** successful flag: target gets kicked and the flagger+reviewers are paid from the slashing */
     function _handleKick(address target) private returns (uint leftoverWei) {
         address flagger = flaggerAddress[target];
@@ -249,8 +260,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint flagStake = flagStakeWei[target];
         if (lockedStakeWei[flagger] >= flagStake) {
             lockedStakeWei[flagger] -= flagStake;
-            token.transferAndCall(flagger, flaggerRewardWei[target], abi.encode(Operator(flagger).owner()));
-            slashingWei -= flaggerRewardWei[target];
+            slashingWei -= safeSendRewards(flagger, flaggerRewardWei[target]);
         } else {
             //...unless flagger has forceUnstaked or been kicked; so unlock the remaining part from forfeitedStake
             forfeitedStakeWei -= flagStake - lockedStakeWei[flagger];
@@ -265,8 +275,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_KICK) {
-                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                slashingWei -= reviewerRewardWei[target];
+                slashingWei -= safeSendRewards(address(reviewer), reviewerRewardWei[target]);
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
@@ -302,8 +311,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         for (uint i; i < reviewerCount; i++) {
             Operator reviewer = reviewers[target][i];
             if (reviewerState[target][reviewer] == VOTED_NO_KICK) {
-                token.transferAndCall(address(reviewer), reviewerRewardWei[target], abi.encode(reviewer.owner()));
-                rewardsWei += reviewerRewardWei[target];
+                rewardsWei += safeSendRewards(address(reviewer), reviewerRewardWei[target]);
             }
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
