@@ -50,7 +50,7 @@ async function getTestWallets(contracts: TestContracts, count: number, minTokenB
     // generate and fund more if needed
     while (testWallets.length < count) {
         const wallet = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
-        await (await admin.sendTransaction({ to: wallet.address, value: parseEther("1") })).wait()
+        await (await admin.sendTransaction({ to: wallet.address, value: parseEther("10") })).wait()
         await (await contracts.token.mint(wallet.address, parseEther("1000000"))).wait()
         testWallets.push(wallet)
     }

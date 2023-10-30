@@ -9,8 +9,12 @@ import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolic
 import { Wallet } from "ethers"
 import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
-const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
-const { getSigners, getContractFactory } = hardhatEthers
+const {
+    getSigners,
+    getContractFactory,
+    constants: { AddressZero },
+    utils: { defaultAbiCoder, parseEther, formatEther, hexZeroPad }
+} = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
     let admin: Wallet
@@ -378,7 +382,7 @@ describe("Sponsorship contract", (): void => {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
             const a = token.address
-            await (await badOperator.initialize(a, a, a, "", "", "0", [a, a, a])).wait()
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
             await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
@@ -410,7 +414,7 @@ describe("Sponsorship contract", (): void => {
             await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
             const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
             const a = token.address
-            await (await badOperator.initialize(a, a, a, "", "", "0", [a, a, a])).wait()
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
             await (await token.transfer(badOperator.address, parseEther("100"))).wait()
             await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
 

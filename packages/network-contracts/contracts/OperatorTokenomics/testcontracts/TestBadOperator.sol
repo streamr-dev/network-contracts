@@ -27,16 +27,21 @@ contract TestBadOperator is IERC677Receiver, IOperator {
         shouldRevertOnReviewRequest = shouldRevert;
     }
 
-    function initialize(address tokenAddress, address, address, string memory, string memory, uint, address[3] memory) public {
+    // if TestBadOperator is created without factory, leave config empty to avoid calling back
+    function initialize(address tokenAddress, address config, address, string memory, string memory, uint, address[3] memory) public {
         token = IERC677(tokenAddress);
-        voterRegistry = IVoterRegistry(msg.sender);
+        if (config != address(0)) {
+            voterRegistry = IVoterRegistry(msg.sender);
+        }
     }
 
     function stake(Sponsorship sponsorship, uint amountWei) public {
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei);
         valueWithoutEarnings = amountWei;
-        try voterRegistry.updateStake(amountWei) {} catch {}
+        if (address(voterRegistry) != address(0)) {
+            voterRegistry.updateStake(amountWei);
+        }
     }
 
     function unstake(Sponsorship sponsorship) public {
