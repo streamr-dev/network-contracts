@@ -11,7 +11,6 @@ contract NodeModule is INodeModule, Operator {
 
     function createCoordinationStream() external {
         streamRegistry = IStreamRegistryV4(streamrConfig.streamRegistryAddress());
-        // TODO: avoid this stream.concat once streamRegistry.createStream returns the streamId (ETH-505)
         streamId = string.concat(streamRegistry.addressToString(address(this)), "/operator/coordination");
         streamRegistry.createStream("/operator/coordination", "{\"partitions\":1}");
         streamRegistry.grantPublicPermission(streamId, IStreamRegistryV4.PermissionType.Subscribe);
@@ -19,7 +18,7 @@ contract NodeModule is INodeModule, Operator {
 
     function _setNodeAddresses(address[] calldata newNodes) external {
         // add new nodes on top
-        for (uint i = 0; i < newNodes.length; i++) {
+        for (uint i; i < newNodes.length; i++) {
             address node = newNodes[i];
             if (nodeIndex[node] == 0) {
                 _addNode(node);
@@ -27,7 +26,7 @@ contract NodeModule is INodeModule, Operator {
             isInNewNodes[node] = true;
         }
         // remove from old nodes
-        for (uint i = 0; i < nodes.length;) {
+        for (uint i; i < nodes.length;) {
             address node = nodes[i];
             if (!isInNewNodes[node]) {
                 _removeNode(node);
@@ -36,7 +35,7 @@ contract NodeModule is INodeModule, Operator {
             }
         }
         // reset lookup (TODO: replace with transient storage once https://eips.ethereum.org/EIPS/eip-1153 is available)
-        for (uint i = 0; i < newNodes.length; i++) {
+        for (uint i; i < newNodes.length; i++) {
             address node = newNodes[i];
             delete isInNewNodes[node];
         }
@@ -45,13 +44,13 @@ contract NodeModule is INodeModule, Operator {
 
     /** First add then remove addresses (if in both lists, ends up removed!) */
     function _updateNodeAddresses(address[] calldata addNodes, address[] calldata removeNodes) external {
-        for (uint i = 0; i < addNodes.length; i++) {
+        for (uint i; i < addNodes.length; i++) {
             address node = addNodes[i];
             if (nodeIndex[node] == 0) {
                 _addNode(node);
             }
         }
-        for (uint i = 0; i < removeNodes.length; i++) {
+        for (uint i; i < removeNodes.length; i++) {
             address node = removeNodes[i];
             if (nodeIndex[node] > 0) {
                 _removeNode(node);

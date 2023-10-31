@@ -16,11 +16,10 @@ contract StakeModule is IStakeModule, Operator {
         if (!queueIsEmpty()) {
             revert FirstEmptyQueueThenStake();
         }
-        if (totalSupply() == 0) {
-            // this could happen if the operator funds the contract initially with an ERC-20 transfer
-            // it would enable the operator to cause an extreme exchange rate (~1 : 1e18) after a withdraw
-            revert NoSelfDelegation();
+        if (balanceOf(owner) * 1 ether <= totalSupply() * streamrConfig.minimumSelfDelegationFraction()) {
+            revert SelfDelegationTooLow(balanceOf(owner), totalSupply() * streamrConfig.minimumSelfDelegationFraction() / 1 ether);
         }
+
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei); // may fail if amountWei < minimumStake
         stakedInto[sponsorship] += amountWei;
@@ -37,7 +36,6 @@ contract StakeModule is IStakeModule, Operator {
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _reduceStakeTo(Sponsorship sponsorship, uint targetStakeWei) public {
         if (targetStakeWei == 0) {
             _unstake(sponsorship);
@@ -51,7 +49,6 @@ contract StakeModule is IStakeModule, Operator {
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function _unstake(Sponsorship sponsorship) public {
         uint balanceBeforeWei = token.balanceOf(address(this));
         sponsorship.unstake();
@@ -60,7 +57,7 @@ contract StakeModule is IStakeModule, Operator {
 
     /**
      * Self-service undelegation queue handling.
-     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     * If the operator hasn't been doing its job, and the undelegation queue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
      * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
@@ -89,6 +86,8 @@ contract StakeModule is IStakeModule, Operator {
             _splitEarnings(profitDataWei);
         }
 
+        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
+
         // remove from array: replace with the last element
         uint index = indexOfSponsorships[sponsorship] - 1; // indexOfSponsorships is the real array index + 1
         Sponsorship lastSponsorship = sponsorships[sponsorships.length - 1];
@@ -103,19 +102,17 @@ contract StakeModule is IStakeModule, Operator {
         emit Unstaked(sponsorship);
         emit StakeUpdate(sponsorship, 0);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
     }
 
     /** @dev this is in stakeModule because it calls _splitEarnings */
     function _withdrawEarnings(Sponsorship[] memory sponsorshipAddresses) public returns (uint sumEarnings) {
-        for (uint i = 0; i < sponsorshipAddresses.length; i++) {
+        for (uint i; i < sponsorshipAddresses.length; i++) {
             sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
         }
         if (sumEarnings == 0) {
             revert NoEarnings();
         }
         _splitEarnings(sumEarnings);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
@@ -135,7 +132,7 @@ contract StakeModule is IStakeModule, Operator {
         //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
         uint operatorsCutDataWei = (earningsDataWei - protocolFee) * operatorsCutFraction / 1 ether;
-        _mintOperatorTokensWorth(owner, operatorsCutDataWei);
+        _delegate(owner, operatorsCutDataWei);
 
         // the rest just goes to the Operator contract's DATA balance, inflating the Operator token value, and so is counted as Profit
         emit Profit(earningsDataWei - protocolFee - operatorsCutDataWei, operatorsCutDataWei, protocolFee);

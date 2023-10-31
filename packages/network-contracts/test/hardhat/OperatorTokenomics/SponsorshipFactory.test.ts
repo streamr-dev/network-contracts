@@ -6,6 +6,8 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
 
+import type { Wallet } from "ethers"
+
 const {
     getSigners,
     getContractFactory,
@@ -13,9 +15,6 @@ const {
     constants: { AddressZero },
 } = hardhatEthers
 
-import type { Wallet } from "ethers"
-
-const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
 let sponsorshipCounter = 0
 
 async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
@@ -30,26 +29,20 @@ describe("SponsorshipFactory", () => {
     let notAdmin: Wallet
     let contracts: TestContracts
 
+    let adminRole: string
+
     before(async (): Promise<void> => {
         [admin, notAdmin] = await getSigners() as Wallet[]
         contracts = await deployTestContracts(admin)
 
-        const { token } = contracts
+        const { token, sponsorshipFactory } = contracts
         await (await token.mint(admin.address, parseEther("1000000"))).wait()
+        adminRole = (await sponsorshipFactory.ADMIN_ROLE()).toLowerCase()
     })
 
-    // UUPS tests not placed in a describe block to be run before the policies are removed from the sponsorship factory
-    it("UUPS - admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
+    it("UUPS - admin can upgrade", async () => {
         const { sponsorshipFactory } = contracts
-        const upgraderRole = await sponsorshipFactory.UPGRADER_ROLE()
-        const newSponsorshipFactoryContract = await getContractFactory("SponsorshipFactory") // this the upgraded version (e.g. SponsorshipFactoryV2)
-        await expect(upgrades.upgradeProxy(sponsorshipFactory.address, newSponsorshipFactoryContract, { unsafeAllow: ["delegatecall"] }))
-            .to.be.revertedWith(`AccessControl: account ${admin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
-    })
-
-    it("UUPS - admin can upgrade after assigning himself UPGRADER_ROLE", async () => {
-        const { sponsorshipFactory } = contracts
-        await (await sponsorshipFactory.grantRole(await sponsorshipFactory.UPGRADER_ROLE(), admin.address)).wait()
+        await (await sponsorshipFactory.grantRole(adminRole, admin.address)).wait()
 
         const newContractFactory = await getContractFactory("SponsorshipFactory") // this is the upgraded version (e.g. SponsorshipFactoryV2)
         const newSponsorshipFactoryTx = await upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
@@ -60,11 +53,10 @@ describe("SponsorshipFactory", () => {
 
     it("UUPS - notAdmin can NOT upgrade", async () => {
         const { sponsorshipFactory } = contracts
-        const upgraderRole = await sponsorshipFactory.UPGRADER_ROLE()
         const newContractFactory = await getContractFactory("SponsorshipFactory", notAdmin) // this is the upgraded version (e.g. StreamrConfigV2)
 
         await expect(upgrades.upgradeProxy(sponsorshipFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] }))
-            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
     })
 
     it("UUPS - storage is preserved after the upgrade", async () => {
@@ -93,7 +85,7 @@ describe("SponsorshipFactory", () => {
         const dummyAddress = hardhatEthers.Wallet.createRandom().address as string
 
         await expect(sponsorshipFactory.connect(notAdmin).updateTemplate(dummyAddress))
-            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+            .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
         await expect(sponsorshipFactory.updateTemplate(dummyAddress))
             .to.emit(sponsorshipFactory, "TemplateAddress").withArgs(dummyAddress)
 
@@ -269,7 +261,6 @@ describe("SponsorshipFactory", () => {
             .to.emit(sponsorshipFactory, "NewSponsorship")
     })
 
-    // must be last test, will remove all policies in the sponsorshipFactory
     it("positivetest remove trusted policies", async function(): Promise<void> {
         const { sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy, leavePolicy } = contracts
         expect(await sponsorshipFactory.isTrustedPolicy(maxOperatorsJoinPolicy.address)).to.be.true
@@ -287,19 +278,18 @@ describe("SponsorshipFactory", () => {
     })
 
     describe("SponsorshipFactory access control", () => {
-        it("non admin role can't add trusted policies", async function(): Promise<void> {
+        it("non-admin can't add trusted policies", async function(): Promise<void> {
             const { sponsorshipFactory, maxOperatorsJoinPolicy, allocationPolicy } = contracts
-            const DEFAULT_ADMIN_ROLE = "0x0000000000000000000000000000000000000000000000000000000000000000"
             await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicy(maxOperatorsJoinPolicy.address))
-                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
             await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([maxOperatorsJoinPolicy.address, allocationPolicy.address]))
-                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
         })
 
-        it("non admin role can't remove trusted policies", async function(): Promise<void> {
+        it("non-admin can't remove trusted policies", async function(): Promise<void> {
             const { sponsorshipFactory, maxOperatorsJoinPolicy } = contracts
             await expect(sponsorshipFactory.connect(notAdmin).removeTrustedPolicy(maxOperatorsJoinPolicy.address))
-                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`)
+                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
         })
 
         it("initializer can't be called twice", async function(): Promise<void> {

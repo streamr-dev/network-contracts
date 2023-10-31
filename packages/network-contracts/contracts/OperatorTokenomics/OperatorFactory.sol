@@ -17,12 +17,15 @@ import "./StreamrConfig.sol";
 /**
  * OperatorFactory creates "smart contract interfaces" for operators to the Streamr Network.
  * Only Operators from this OperatorFactory can stake to Streamr Network Sponsorships.
+ *
+ * `ADMIN_ROLE()` can update the `operatorContractTemplate` address, and add/remove trusted policies, as well as upgrade this whole contract.
  */
 contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgradeable, ERC2771ContextUpgradeable, IVoterRegistry {
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    event NewOperator(address operatorAddress, address operatorContractAddress);
-    event TemplateAddresses(address operatorTemplate, address nodeModuleTemplate, address queueModuleTemplate, address stakeModuleTemplate);
+    event NewOperator(address indexed operatorAddress, address indexed operatorContractAddress);
+    event TemplateAddresses(address indexed operatorTemplate, address nodeModuleTemplate, address indexed queueModuleTemplate, address indexed stakeModuleTemplate);
+    event PolicyWhitelisted(address indexed policyAddress, bool indexed isWhitelisted);
 
     error PolicyNotTrusted();
     error OperatorAlreadyDeployed();
@@ -71,7 +74,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         tokenAddress = dataTokenAddress;
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
@@ -80,7 +84,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(ADMIN_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -95,7 +99,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address nodeModuleAddress,
         address queueModuleAddress,
         address stakeModuleAddress
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) public onlyRole(ADMIN_ROLE) {
         operatorTemplate = templateAddress;
         nodeModuleTemplate = nodeModuleAddress;
         queueModuleTemplate = queueModuleAddress;
@@ -103,18 +107,21 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         emit TemplateAddresses(templateAddress, nodeModuleAddress, queueModuleAddress, stakeModuleAddress);
     }
 
-    function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = true;
+        emit PolicyWhitelisted(policyAddress, true);
     }
 
-    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+    function addTrustedPolicies(address[] calldata policyAddresses) public onlyRole(ADMIN_ROLE) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
+            emit PolicyWhitelisted(policyAddresses[i], true);
         }
     }
 
-    function removeTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = false;
+        emit PolicyWhitelisted(policyAddress, false);
     }
 
     function isTrustedPolicy(address policyAddress) public view returns (bool) {
@@ -122,6 +129,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint operatorsCutFraction,
             string memory operatorTokenName,
@@ -129,7 +137,6 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
             address[3] memory policies,
             uint[3] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[3], uint[3]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address operatorContractAddress = _deployOperator(
             from,
             operatorsCutFraction,
@@ -153,7 +160,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         string memory operatorMetadataJson,
         address[3] memory policies,  // [0] delegation, [1] exchange rate, [2] undelegation policy
         uint[3] memory policyParams  // [0] delegation, [1] exchange rate, [2] undelegation policy param
-    ) public returns (address) {
+    ) external returns (address) {
         return _deployOperator(
             _msgSender(),
             operatorsCutFraction,
@@ -173,7 +180,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         uint[3] memory policyParams
     ) private returns (address) {
         if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }
@@ -217,8 +224,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return newContractAddress;
     }
 
-    function predictAddress(string calldata operatorTokenName) public view returns (address) {
-        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), _msgSender()));
+    function predictAddress(address deployer, string calldata operatorTokenName) external view returns (address) {
+        bytes32 salt = keccak256(abi.encode(bytes(operatorTokenName), deployer));
         return ClonesUpgradeable.predictDeterministicAddress(operatorTemplate, salt, address(this));
     }
 
@@ -226,8 +233,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    function updateStake(uint newStakeWei) public {
-        address operator = _msgSender();
+    function updateStake(uint newStakeWei) external {
+        address operator = msg.sender;
         if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
 
         totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
@@ -253,7 +260,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         }
     }
 
-    function voterCount() public view returns (uint) {
+    function voterCount() external view returns (uint) {
         return voters.length;
     }
 }

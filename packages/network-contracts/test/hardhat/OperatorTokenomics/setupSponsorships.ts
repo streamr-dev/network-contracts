@@ -15,6 +15,7 @@ export interface SponsorshipTestSetup {
     operators: Operator[]
     operatorsPerSponsorship: Operator[][]
     operatorFactory: OperatorFactory
+    newContracts: TestContracts
 }
 
 export interface SponsorshipTestSetupOptions {
@@ -34,6 +35,29 @@ function splitBy<T>(arr: T[], counts: number[]): T[][] {
     return result
 }
 
+/** Get a given number of test wallets funded with native and test token. Re-use hardhat signers first. */
+async function getTestWallets(contracts: TestContracts, count: number, minTokenBalance: BigNumber): Promise<Wallet[]> {
+    // initialize with hardhat signers; they already have native token, so mint them test token too
+    const [admin,, ...testWallets] = await hardhatEthers.getSigners() as Wallet[] // leave out admin, protocol
+
+    // check everyone has enough tokens
+    for (const wallet of testWallets.slice(0, count)) {
+        if ((await contracts.token.balanceOf(wallet.address)).lt(minTokenBalance)) {
+            await (await contracts.token.mint(wallet.address, minTokenBalance)).wait()
+        }
+    }
+
+    // generate and fund more if needed
+    while (testWallets.length < count) {
+        const wallet = hardhatEthers.Wallet.createRandom().connect(admin.provider) as Wallet
+        await (await admin.sendTransaction({ to: wallet.address, value: parseEther("10") })).wait()
+        await (await contracts.token.mint(wallet.address, parseEther("1000000"))).wait()
+        testWallets.push(wallet)
+    }
+
+    return testWallets.slice(0, count)
+}
+
 /**
  * Sets up a Sponsorships with given number of operators staked to each; each with Operator that stakes 1000 tokens into that Sponsorship
  */
@@ -44,12 +68,11 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     sponsor = true,
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
     const { token } = contracts
+    const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
 
-    // Hardhat provides 20 pre-funded signers
-    const [admin, ...hardhatSigners] = await hardhatEthers.getSigners() as unknown as Wallet[]
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
-    const signers = hardhatSigners.slice(0, totalOperatorCount)
+    const signers = await getTestWallets(contracts, totalOperatorCount, stakeAmountWei)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
@@ -66,7 +89,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
     const operators = await Promise.all(signers.map((signer) =>
-        deployOperatorContract(newContracts, signer, operatorsCutFraction, { metadata: "{}" }, saltSeed)))
+        deployOperatorContract(newContracts, signer, operatorsCutFraction, {}, saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
     // add operator also as the (only) node, so that flag/vote functions Just Work
@@ -99,6 +122,6 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
         sponsorships,
         operators,
         operatorsPerSponsorship,
-        operatorFactory: newContracts.operatorFactory
+        newContracts
     }
 }

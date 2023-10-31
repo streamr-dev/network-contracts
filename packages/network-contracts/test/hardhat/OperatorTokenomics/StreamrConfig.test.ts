@@ -1,11 +1,12 @@
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
-import type { BigNumber, Wallet } from "ethers"
-import type { StreamrConfig, Operator } from "../../../typechain"
 import { TestContracts, deployTestContracts, deployStreamrConfig } from "./deployTestContracts"
 import { deployOperatorContract } from "./deployOperatorContract"
 import { deploySponsorship } from "./deploySponsorshipContract"
+
+import type { BigNumber, ContractFactory, Wallet } from "ethers"
+import type { StreamrConfig, Operator } from "../../../typechain"
 
 const { getSigners, getContractFactory, utils: { parseEther } } = hardhatEthers
 
@@ -54,10 +55,10 @@ describe("StreamrConfig", (): void => {
                     .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("1000"))
                 await expect(flagger.stake(sponsorship.address, parseEther("100000")))
                     .to.emit(flagger, "Staked").withArgs(sponsorship.address)
-                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("100000"), "0", "0")
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(flagger.address, parseEther("100000"), "0")
                 await expect(target.stake(sponsorship.address, minimumStakeWei))
                     .to.emit(target, "Staked").withArgs(sponsorship.address)
-                    .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, minimumStakeWei, "0", "0")
+                    .to.emit(sponsorship, "StakeUpdate").withArgs(target.address, minimumStakeWei, "0")
 
                 // raise the targetStakeAtRiskWei by raising minimum stake by setting higher reviewer rewards
                 // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that `target` staked
@@ -75,29 +76,27 @@ describe("StreamrConfig", (): void => {
     })
 
     describe("UUPS upgradeability", () => {
-        it("admin can NOT upgrade before assigning himself UPGRADER_ROLE", async () => {
-            const upgraderRole = await sharedConfig.UPGRADER_ROLE()
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this the upgraded version (e.g. StreamrConfigV2)
-            await expect(upgrades.upgradeProxy(sharedConfig.address, newStreamrConfigFactory))
-                .to.be.revertedWith(`AccessControl: account ${admin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        let streamrConfigFactory: ContractFactory
+        let upgraderRole: string
+        before(async () => {
+            // this would be the upgraded version (e.g. StreamrConfigV2), and notAdmin would be attempting the upgrade
+            streamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin)
+            upgraderRole = await sharedConfig.UPGRADER_ROLE()
         })
 
-        it("admin can upgrade after assigning himesf UPGRADER_ROLE", async () => {
-            await (await sharedConfig.grantRole(await sharedConfig.UPGRADER_ROLE(), admin.address)).wait()
-
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this the upgraded version (e.g. StreamrConfigV2)
-            const newStreamrConfigTx = await upgrades.upgradeProxy(sharedConfig.address, newStreamrConfigFactory)
-            const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
-
-            expect(sharedConfig.address).to.equal(newStreamrConfig.address)
-        })
-
-        it("notAdmin can NOT upgrade", async () => {
-            const upgraderRole = await sharedConfig.UPGRADER_ROLE()
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin) // this the upgraded version (e.g. StreamrConfigV2)
-
-            await expect(upgrades.upgradeProxy(sharedConfig.address, newStreamrConfigFactory))
+        it("does not allow upgrade without UPGRADER_ROLE", async () => {
+            await expect(upgrades.upgradeProxy(sharedConfig.address, streamrConfigFactory))
                 .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
+        })
+
+        it("allows upgrade with UPGRADER_ROLE", async () => {
+            await (await sharedConfig.grantRole(await sharedConfig.UPGRADER_ROLE(), notAdmin.address)).wait()
+
+            const newStreamrConfig = await upgrades.upgradeProxy(sharedConfig.address, streamrConfigFactory) as StreamrConfig
+            await newStreamrConfig.deployed()
+            expect(sharedConfig.address).to.equal(newStreamrConfig.address)
+
+            await (await sharedConfig.revokeRole(await sharedConfig.UPGRADER_ROLE(), notAdmin.address)).wait()
         })
 
         it("storage is preserved after the upgrade", async () => {
@@ -143,10 +142,10 @@ describe("StreamrConfig", (): void => {
         })
 
         // ...then let the ones that don't depend on others change
-        it("slashingFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setSlashingFraction("1000000000000000001"))
+        it("slashingFraction < 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setSlashingFraction("1000000000000000000"))
                 .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setSlashingFraction("1000000000000000000")).to.not.be.reverted
+            await expect(sharedConfig.setSlashingFraction("999999999999999999")).to.not.be.reverted
         })
         it("minimumSelfDelegationFraction <= 100%", async (): Promise<void> => {
             await expect(sharedConfig.setMinimumSelfDelegationFraction("1000000000000000001"))
@@ -181,54 +180,32 @@ describe("StreamrConfig", (): void => {
 
     describe("Access control", (): void => {
         it("only lets admin call setters", async (): Promise<void> => {
-            await expect(sharedConfig.connect(notAdmin).setSponsorshipFactory(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setOperatorFactory(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setSlashingFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setOperatorContractOnlyJoinPolicy(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setStreamRegistryAddress(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMinimumDelegationWei("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMaxPenaltyPeriodSeconds("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMaxAllowedEarningsFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFishermanRewardFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setProtocolFeeFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setProtocolFeeBeneficiary(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlagReviewerCount("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMaxQueueSeconds("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlagReviewerRewardWei("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlaggerRewardWei("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlagReviewerSelectionIterations("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlagStakeWei("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setReviewPeriodSeconds("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setVotingPeriodSeconds("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setFlagProtectionSeconds("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0"))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setRandomOracle(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
-            await expect(sharedConfig.connect(notAdmin).setTrustedForwarder(admin.address))
-                .to.be.revertedWith(/is missing role 0x0000000000000000000000000000000000000000000000000000000000000000/)
+            const configuratorRole = await sharedConfig.CONFIGURATOR_ROLE()
+            const expectedError = `AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${configuratorRole.toLowerCase()}`
+            await expect(sharedConfig.connect(notAdmin).setSponsorshipFactory(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setOperatorFactory(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setSlashingFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setOperatorContractOnlyJoinPolicy(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setStreamRegistryAddress(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMinimumDelegationWei("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMaxPenaltyPeriodSeconds("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMaxAllowedEarningsFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFishermanRewardFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setProtocolFeeFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setProtocolFeeBeneficiary(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlagReviewerCount("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMaxQueueSeconds("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlagReviewerRewardWei("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlaggerRewardWei("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlagReviewerSelectionIterations("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlagStakeWei("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setReviewPeriodSeconds("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setVotingPeriodSeconds("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setFlagProtectionSeconds("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setRandomOracle(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setTrustedForwarder(admin.address)).to.be.revertedWith(expectedError)
         })
 
         it("prevents calling initialize", async (): Promise<void> => {

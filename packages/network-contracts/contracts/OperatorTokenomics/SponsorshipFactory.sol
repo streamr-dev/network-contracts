@@ -15,9 +15,11 @@ import "../StreamRegistry/IStreamRegistryV4.sol";
 /**
  * SponsorshipFactory creates Sponsorships that respect Streamr Network rules and StreamrConfig.
  * Only Sponsorships from this SponsorshipFactory can be used in Streamr Network, and staked into by Operators.
+ *
+ * `ADMIN_ROLE()` can update the `sponsorshipContractTemplate` address, and add/remove trusted policies, as well as upgrade this whole contract.
  */
 contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable, ERC2771ContextUpgradeable {
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     error StreamNotFound();
     error BadArguments();
@@ -32,7 +34,8 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     mapping(address => uint) public deploymentTimestamp; // zero for contracts not deployed by this factory
 
     event NewSponsorship(address indexed sponsorshipContract, string streamId, string metadata, address[] policies, uint[] policyParams, address indexed creator);
-    event TemplateAddress(address templateAddress);
+    event TemplateAddress(address indexed templateAddress);
+    event PolicyWhitelisted(address indexed policyAddress, bool indexed isWhitelisted);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -41,13 +44,14 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         streamrConfig = StreamrConfig(streamrConfigAddress);
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         tokenAddress = dataTokenAddress;
         sponsorshipContractTemplate = templateAddress;
         emit TemplateAddress(templateAddress);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}
+    function _authorizeUpgrade(address newImplementation) internal onlyRole(ADMIN_ROLE) override {}
 
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
@@ -57,23 +61,26 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         return super._msgData();
     }
 
-    function updateTemplate(address templateAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updateTemplate(address templateAddress) public onlyRole(ADMIN_ROLE) {
         sponsorshipContractTemplate = templateAddress;
         emit TemplateAddress(templateAddress);
     }
 
-    function addTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = true;
+        emit PolicyWhitelisted(policyAddress, true);
     }
 
-    function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        for (uint i = 0; i < policyAddresses.length; i++) {
+    function addTrustedPolicies(address[] memory policyAddresses) public onlyRole(ADMIN_ROLE) {
+        for (uint i; i < policyAddresses.length; i++) {
             addTrustedPolicy(policyAddresses[i]);
+            emit PolicyWhitelisted(policyAddresses[i], true);
         }
     }
 
-    function removeTrustedPolicy(address policyAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeTrustedPolicy(address policyAddress) public onlyRole(ADMIN_ROLE) {
         trustedPolicies[policyAddress] = false;
+        emit PolicyWhitelisted(policyAddress, false);
     }
 
     function isTrustedPolicy(address policyAddress) public view returns (bool) {
@@ -81,6 +88,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     function onTokenTransfer(address from, uint amount, bytes calldata param) external {
+        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         (
             uint minOperatorCount,
             string memory streamId,
@@ -88,7 +96,6 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             address[] memory policies,
             uint[] memory policyParams
         ) = abi.decode(param, (uint, string, string, address[], uint[]));
-        if (msg.sender != tokenAddress) { revert AccessDeniedDATATokenOnly(); }
         address sponsorshipAddress = _deploySponsorship(
             minOperatorCount,
             streamId,
@@ -137,7 +144,7 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
         if (!streamRegistry.exists(streamId)) { revert StreamNotFound(); }
         if (policies.length != policyParams.length) { revert BadArguments(); }
         if (policies.length == 0 || policies[0] == address(0)) { revert AllocationPolicyRequired(); }
-        for (uint i = 0; i < policies.length; i++) {
+        for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
             if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
         }
@@ -153,10 +160,10 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
             sponsorshipParams,
             IAllocationPolicy(policies[0])
         );
-        if (policies.length > 1 && policies[1] != address(0)) { // TODO: add tests for short policies arrays
+        if (policies.length > 1 && policies[1] != address(0)) {
             sponsorship.setLeavePolicy(ILeavePolicy(policies[1]), policyParams[1]);
         }
-        if (policies.length > 2 && policies[2] != address(0)) { // TODO: add tests for short policies arrays
+        if (policies.length > 2 && policies[2] != address(0)) {
             sponsorship.setKickPolicy(IKickPolicy(policies[2]), policyParams[2]);
         }
         for (uint i = 3; i < policies.length; i++) {

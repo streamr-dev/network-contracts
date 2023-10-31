@@ -1,14 +1,18 @@
 import { expect } from "chai"
-import { ethers } from "hardhat"
+import { ethers as hardhatEthers } from "hardhat"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
-import { advanceToTimestamp, getBlockTimestamp } from "../utils"
+import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK } from "../utils"
 
 import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
 
 import type { Wallet } from "ethers"
 
-const { parseEther, formatEther } = ethers.utils
+const {
+    getSigners,
+    constants: { AddressZero },
+    utils: { parseEther, formatEther },
+} = hardhatEthers
 
 describe("AdminKickPolicy", (): void => {
     let admin: Wallet
@@ -17,7 +21,7 @@ describe("AdminKickPolicy", (): void => {
 
     let contracts: TestContracts
     before(async (): Promise<void> => {
-        [admin, operator, operator2] = await ethers.getSigners() as unknown as Wallet[]
+        [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
 
         const { token } = contracts
@@ -76,5 +80,13 @@ describe("AdminKickPolicy", (): void => {
 
         expect(operatorCountBeforeReport.toString()).to.equal("1")
         expect(operatorCountAfterReport.toString()).to.equal("1")
+    })
+
+    it("doesn't do voting", async function(): Promise<void> {
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, contracts.adminKickPolicy)
+        await expect(sponsorship.voteOnFlag(AddressZero, VOTE_KICK)).to.not.be.reverted
+        const flag = await sponsorship.getFlag(AddressZero)
+        expect(flag.flagData).to.equal(parseEther("0"))
+        expect(flag.flagMetadata).to.equal("")
     })
 })

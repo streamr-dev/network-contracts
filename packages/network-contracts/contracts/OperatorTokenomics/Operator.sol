@@ -27,28 +27,49 @@ import "./SponsorshipFactory.sol";
 import "../StreamRegistry/IStreamRegistryV4.sol";
 
 /**
- * Operator contract receives and holds the delegators' tokens.
- * The operator (`owner()`) stakes them to Sponsorships of the streams that the operator's nodes relay.
+ * Operator contract receives and holds the delegators' DATA tokens.
  * Operator contract also is an ERC20 token that each delegator receives, and can swap back to DATA when they undelegate.
  *
+ * The operator (`owner()`) stakes the delegated DATA to Sponsorships of streams, and the operator's nodes will perform work brokering those streams.
+ * Earnings from this work are split when they're withdrawn: operator and protocol take their cuts, and the rest inflates the value of the operator token.
+ * When a delegator undelegates, the DATA tokens they receive in addition to what they delegated originally are their share of the profits.
+ *
+ * At the undelegation moment, the contract might not have enough DATA to pay out immediately. In that case, the undelegation is queued.
+ * Always when new DATA tokens arrive, they are first used for paying out the queue, in order. This is why the payment may happen in many parts.
+ * The operator is allowed to stake available DATA to Sponsorships only when the queue is empty, that is, all undelegations have been paid out.
+ *
+ * The operator is required to keep a self-delegation in this contract. It is the operator's "skin in the game",
+ *   and will also be burned if the operator gets slashed in a Sponsorship (see `_slashSelfDelegation()`).
+ * This way, as long as there's self-delegation, the delegators will not pay for the penalties the operator receives.
+ * When a slashing happens, just enough self-delegation is burned that the DATA value of all delegations remains the same.
+ *
+ * Only when the operator has unstaked from all Sponsorships, can they self-undelegate freely from this contract.
+ * If there's not enough self-delegation, new delegators are rejected, and new staking is disabled.
+ * The same restriction applies to transferring the operator contract token: if the recipient is not a delegator already, then the self-delegation check is applied.
+ *
+ * Second restriction is that no delegator should hold less tokens than a special "minimum delegation amount".
+ * This is to defend against sand delegations enabling extreme token exchange rates and rounding error exploits.
+ *
+ * `DEFAULT_ADMIN_ROLE()` can set the modules and policies, and it should only be held by the OperatorFactory during deployment.
+ *
  * @dev DATA token balance of the contract === the "free funds" available for staking,
- * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from "unallocated tokens")
+ * @dev   so there's no need to track "unstaked tokens" separately from delegations (like Sponsorships must track stakes separately from earnings and remaining sponsorship)
  */
 contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, AccessControlUpgradeable, ERC20Upgradeable, IOperator {
 
     // delegator events (initiated by anyone)
     event Delegated(address indexed delegator, uint amountDataWei);
     event Undelegated(address indexed delegator, uint amountDataWei);
-    event BalanceUpdate(address delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
-    event QueuedDataPayout(address delegator, uint amountWei, uint queueIndex);
-    event QueueUpdated(address delegator, uint amountWei, uint queueIndex);
+    event BalanceUpdate(address indexed delegator, uint balanceWei, uint totalSupplyWei, uint dataValueWithoutEarnings); // Operator token tracking event
+    event QueuedDataPayout(address indexed delegator, uint amountWei, uint queueIndex);
+    event QueueUpdated(address indexed delegator, uint amountWei, uint queueIndex);
 
     // sponsorship events (initiated by CONTROLLER_ROLE)
     event Staked(Sponsorship indexed sponsorship);
     event Unstaked(Sponsorship indexed sponsorship);
     event StakeUpdate(Sponsorship indexed sponsorship, uint stakedWei);
     event OperatorValueUpdate(uint totalStakeInSponsorshipsWei, uint dataTokenBalanceWei); // DATA token tracking event (staked - slashed)
-    event Profit(uint valueIncreaseWei, uint operatorsCutDataWei, uint protocolFeeDataWei);
+    event Profit(uint valueIncreaseWei, uint indexed operatorsCutDataWei, uint indexed protocolFeeDataWei);
     event Loss(uint valueDecreaseWei);
 
     // node events (initiated by nodes)
@@ -57,7 +78,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     // operator admin events
     event NodesSet(address[] nodes);
-    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint operatorsCutFraction); // = owner() of this contract
+    event MetadataUpdated(string metadataJsonString, address indexed operatorAddress, uint indexed operatorsCutFraction); // = owner() of this contract
 
     // when the operator gets slashed an amount in DATA, the corresponding amount of self-delegated operator tokens are burned (other delegators' DATA value won't change)
     //   but only down to zero, after which the DATA losses are borne by all delegators via loss of operator DATA value without corresponding operator token burn
@@ -67,7 +88,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error AccessDeniedNodesOnly();
     error DelegationBelowMinimum(uint operatorTokenBalanceWei, uint minimumDelegationWei);
     error AccessDeniedDATATokenOnly();
-    error NoSelfDelegation();
+    error SelfDelegationTooLow(uint operatorBalanceWei, uint minimumSelfDelegationWei);
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
     error ModuleCallError(address module, bytes data);
@@ -124,7 +145,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         uint amountWei;
         uint timestamp;
     }
-    mapping(uint => UndelegationQueueEntry) public undelegationQueue;
+    mapping(uint => UndelegationQueueEntry) public queueEntryAt;
     uint public queueLastIndex;
     uint public queueCurrentIndex;
 
@@ -250,9 +271,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * If not, the token sender is the delegator
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
-        if (msg.sender != address(token)) {
-            revert AccessDeniedDATATokenOnly();
-        }
+        if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); }
 
         // check if sender is a sponsorship contract: unstaking/withdrawing from sponsorships will call this method
         // ignore returned tokens, handle them in unstake()/withdraw() instead
@@ -274,12 +293,14 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         }
 
         _delegate(delegator, amount);
+        payOutQueue(0);
     }
 
     /** 2-step delegation: first call DATA.approve(operatorContract.address, amountWei) then this function */
-    function delegate(uint amountWei) public {
+    function delegate(uint amountWei) external {
         token.transferFrom(_msgSender(), address(this), amountWei);
         _delegate(_msgSender(), amountWei);
+        payOutQueue(0);
     }
 
     /**
@@ -289,27 +310,26 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * @param amountDataWei how many DATA tokens were transferred
      **/
     function _delegate(address delegator, uint amountDataWei) internal {
-        _mintOperatorTokensWorth(delegator, amountDataWei);
+        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
+        _mint(delegator, amountOperatorToken);
 
-        // enforce minimum delegation amount
-        uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
-        if (balanceOf(delegator) < minimumDelegationWei) {
-            revert DelegationBelowMinimum(balanceOf(delegator), minimumDelegationWei);
-        }
+        // owner must always be able to accept delegation without reverting (as rewards for flagging, reviewing or fishing), so skip checks
+        if (delegator != owner) {
+            // enforce minimum delegation amount
+            uint minimumDelegationWei = streamrConfig.minimumDelegationWei();
+            if (balanceOf(delegator) < minimumDelegationWei) {
+                revert DelegationBelowMinimum(balanceOf(delegator), minimumDelegationWei);
+            }
 
-        // check if the delegation policy allows this delegation
-        if (address(delegationPolicy) != address(0)) {
-            moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
+            // check if the delegation policy allows this delegation
+            if (address(delegationPolicy) != address(0)) {
+                moduleCall(address(delegationPolicy), abi.encodeWithSelector(delegationPolicy.onDelegate.selector, delegator));
+            }
         }
 
         emit Delegated(delegator, amountDataWei);
-        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
-    }
-
-    function _mintOperatorTokensWorth(address delegator, uint amountDataWei) internal {
-        uint amountOperatorToken = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.dataToOperatorToken.selector, amountDataWei, amountDataWei));
-        _mint(delegator, amountOperatorToken);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
+        emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
     /**
@@ -416,15 +436,15 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     /**
      * Self-service undelegation queue handling.
-     * If the operator hasn't been doing its job, and undelegationQueue hasn't been paid out,
+     * If the operator hasn't been doing its job, and the undelegation queue hasn't been paid out,
      *   anyone can come along and forceUnstake from a sponsorship to get the payouts rolling
      * Operator can also call this, if they want to forfeit the stake locked to flagging in a sponsorship (normal unstake would revert for safety)
      * @param sponsorship the funds (unstake) to pay out the queue
-     * @param maxQueuePayoutIterations how many queue items to pay out, see getMyQueuePosition()
+     * @param maxQueuePayoutIterations how many queue items to pay out, check queue status from undelegationQueue()
      */
     function forceUnstake(Sponsorship sponsorship, uint maxQueuePayoutIterations) external {
         // onlyOperator check happens only if grace period hasn't passed yet, after that anyone can call this
-        if (queueIsEmpty() || block.timestamp < undelegationQueue[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
+        if (queueIsEmpty() || block.timestamp < queueEntryAt[queueCurrentIndex].timestamp + streamrConfig.maxQueueSeconds()) { // solhint-disable-line not-rely-on-time
             if (!hasRole(CONTROLLER_ROLE, _msgSender())) {
                 revert AccessDeniedOperatorOnly();
             }
@@ -443,9 +463,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * If the sum of accumulated earnings over all staked Sponsorships (includes operator's share of the earnings) becomes too large,
      *   then anyone can call this method and point out a set of sponsorships where earnings together sum up to maxAllowedEarningsFraction.
-     * Caller gets fishermanRewardFraction of the operator's earnings share as a reward, if they provide that set of sponsorships.
+     * Caller gets fishermanRewardFraction of the withdrawn earnings as a reward, if they provide that set of sponsorships.
      */
-    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) public {
+    function withdrawEarningsFromSponsorships(Sponsorship[] memory sponsorshipAddresses) external {
         uint valueBeforeWithdraw = valueWithoutEarnings();
         uint withdrawnEarningsDataWei = withdrawEarningsFromSponsorshipsWithoutQueue(sponsorshipAddresses);
 
@@ -483,7 +503,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /**
      * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
-     * This function can only be called if there really are too many earnings in the other Operator.
+     * This function can only be called if there really are too many earnings in the other Operator to trigger the reward.
      **/
     function triggerAnotherOperatorWithdraw(Operator other, Sponsorship[] memory sponsorshipAddresses) public {
         // this was put into queue module because that module was still small enough, and it could've been put into any module (no dependent functions)
@@ -503,7 +523,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     ) {
         addresses = new address[](sponsorships.length);
         earnings = new uint[](sponsorships.length);
-        for (uint i = 0; i < sponsorships.length; i++) {
+        for (uint i; i < sponsorships.length; i++) {
             Sponsorship sponsorship = sponsorships[i];
             addresses[i] = address(sponsorship);
             earnings[i] = sponsorship.getEarnings(address(this));
@@ -581,19 +601,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         return queueCurrentIndex == queueLastIndex;
     }
 
-    /**
-     * Get the position of the LAST undelegation request in the queue for the given delegator.
-     * Answers the question 'how many queue positions must (still) be paid out before I get (all) my queued tokens?'
-     *   for the purposes of "self-service undelegation" (forceUnstake or payOutQueue)
-     * If delegator is not in the queue, returns just the length of the queue + 1 (i.e. the position they'd get if they undelegate now)
-     */
-    function queuePositionOf(address delegator) external view returns (uint) {
-        for (uint i = queueLastIndex; i > queueCurrentIndex; i--) {
-            if (undelegationQueue[i - 1].delegator == delegator) {
-                return i - queueCurrentIndex;
-            }
+    /** Get all undelegation queue entries */
+    function undelegationQueue() external view returns (UndelegationQueueEntry[] memory queue) {
+        uint queueLength = queueLastIndex - queueCurrentIndex;
+        queue = new UndelegationQueueEntry[](queueLength);
+        for (uint i; i < queueLength; i++) {
+            queue[i] = queueEntryAt[queueCurrentIndex + i];
         }
-        return queueLastIndex - queueCurrentIndex + 1;
     }
 
     /** Pay out up to maxIterations items in the queue, or until this contract's DATA balance runs out */

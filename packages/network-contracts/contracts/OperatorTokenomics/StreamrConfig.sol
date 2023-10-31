@@ -7,19 +7,36 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title Chain-specific parameters and addresses for the Streamr Network tokenomics (Sponsorship, Operator)
+ *
+ * `ADMIN_ROLE()` can grant `CONFIGURATOR_ROLE()` to others, who can then change the parameters.
+ * `ADMIN_ROLE()` can grant `UPGRADER_ROLE()` to others, who can then upgrade this contract.
  */
 contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    event ConfigChanged(string indexed key, uint indexed newValue, address indexed newAddress);
 
     error TooHigh(uint value, uint limit);
     error TooLow(uint value, uint limit);
 
     /**
-     * Minimum amount to pay reviewers+flagger
-     * That is: minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
+     * Division by a "fraction" expressed as multiple of 1e18, like ether (1e18 = 100%)
+     * @return result = x / fraction, rounding UP
+     */
+    function divByFraction(uint x, uint fraction) internal pure returns (uint) {
+        return (x * 1 ether + fraction - 1) / fraction;
+    }
+
+    /**
+     * Minimum stake whose slashing is enough to pay reviewers+flagger in case of a voting that results in KICK.
+     * That is: stakeWei * slashingFraction >= flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei
+     * Or: minimumStakeWei = total rewards / slashingFraction
+     * Round UP so that the possible rounding error doesn't cause reward money to run out. Better to require 1 wei too much than too little.
      */
     function minimumStakeWei() public view returns (uint) {
-        return ((flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) * 1 ether + slashingFraction - 1) / slashingFraction;
+        return divByFraction(flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei, slashingFraction);
     }
 
     /**
@@ -61,7 +78,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     uint public earlyLeaverPenaltyWei;
 
     /**
-     * The real-time precise operator value (that includes earnings) can not be kept track of, since it would mean looping through all Sponsorships in each transaction.
+     * The real-time precise operator value (that includes earnings) can not be kept track of,
+     *   since it would mean looping through all Sponsorships in each transaction.
      * However, if `withdrawEarningsFromSponsorships` is called often enough, the `valueWithoutEarnings` is a good approximation.
      * If the withdrawn earnings are more than `maxAllowedEarningsFraction * valueWithoutEarnings`,
      *   then `fishermanRewardFraction` is the fraction of the withdrawn earnings that is un-selfdelegated (burned) from the operator and sent to the fisherman
@@ -145,7 +163,12 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(ADMIN_ROLE, msg.sender);
+        _setupRole(UPGRADER_ROLE, msg.sender);
+        _setupRole(CONFIGURATOR_ROLE, msg.sender);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(UPGRADER_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(CONFIGURATOR_ROLE, ADMIN_ROLE);
 
         setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator gets kicked after a vote
         setEarlyLeaverPenaltyWei(5000 ether); // at least initially earlyLeaverPenalty is set to the same as minimum stake
@@ -153,7 +176,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
-        // Prevent "sand delegations", set minimum delegation to 100 DATA
+        // Prevent "sand delegations", set minimum delegation to 100 operator tokens
         setMinimumDelegationWei(100 ether);
 
         // Sponsorship leave penalty parameter limit
@@ -184,35 +207,40 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         setFlagProtectionSeconds(1 hours);
     }
 
-    function setSlashingFraction(uint newSlashingFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newSlashingFraction > 1 ether) {
-            // can't be more than 100%
+    function setSlashingFraction(uint newSlashingFraction) public onlyRole(CONFIGURATOR_ROLE) {
+        if (newSlashingFraction >= 1 ether) {
+            // can't be 100%
             revert TooHigh({ value: newSlashingFraction, limit: 1 ether });
         }
         slashingFraction = newSlashingFraction;
+        emit ConfigChanged("slashingFraction", newSlashingFraction, address(0));
     }
 
-    function setEarlyLeaverPenaltyWei(uint newEarlyLeaverPenaltyWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setEarlyLeaverPenaltyWei(uint newEarlyLeaverPenaltyWei) public onlyRole(CONFIGURATOR_ROLE) {
         earlyLeaverPenaltyWei = newEarlyLeaverPenaltyWei;
+        emit ConfigChanged("earlyLeaverPenaltyWei", newEarlyLeaverPenaltyWei, address(0));
     }
 
-    function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(CONFIGURATOR_ROLE) {
         minimumDelegationWei = newMinimumDelegationWei;
+        emit ConfigChanged("minimumDelegationWei", newMinimumDelegationWei, address(0));
     }
 
-    function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(CONFIGURATOR_ROLE) {
         if (newMinimumSelfDelegationFraction > 1 ether) {
             // can't be more than 100%
             revert TooHigh({ value: newMinimumSelfDelegationFraction, limit: 1 ether });
         }
         minimumSelfDelegationFraction = newMinimumSelfDelegationFraction;
+        emit ConfigChanged("minimumSelfDelegationFraction", newMinimumSelfDelegationFraction, address(0));
     }
 
-    function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         maxPenaltyPeriodSeconds = newMaxPenaltyPeriodSeconds;
+        emit ConfigChanged("maxPenaltyPeriodSeconds", newMaxPenaltyPeriodSeconds, address(0));
     }
 
-    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
             revert TooLow({
                 value: newMaxQueueSeconds,
@@ -220,63 +248,73 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
             });
         }
         maxQueueSeconds = newMaxQueueSeconds;
+        emit ConfigChanged("maxQueueSeconds", newMaxQueueSeconds, address(0));
     }
 
-    function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(CONFIGURATOR_ROLE) {
         if (newMaxAllowedEarningsFraction > 1 ether) {
             // can't be more than 100%
             revert TooHigh({ value: newMaxAllowedEarningsFraction, limit: 1 ether });
         }
         maxAllowedEarningsFraction = newMaxAllowedEarningsFraction;
+        emit ConfigChanged("maxAllowedEarningsFraction", newMaxAllowedEarningsFraction, address(0));
     }
 
-    function setFishermanRewardFraction(uint newFishermanRewardFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFishermanRewardFraction(uint newFishermanRewardFraction) public onlyRole(CONFIGURATOR_ROLE) {
         if (newFishermanRewardFraction > 1 ether) {
             // can't be more than 100%
             revert TooHigh({ value: newFishermanRewardFraction, limit: 1 ether });
         }
         fishermanRewardFraction = newFishermanRewardFraction;
+        emit ConfigChanged("fishermanRewardFraction", newFishermanRewardFraction, address(0));
     }
 
-    function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(CONFIGURATOR_ROLE) {
         if (newProtocolFeeFraction > 1 ether) {
             // can't be more than 100%
             revert TooHigh({ value: newProtocolFeeFraction, limit: 1 ether });
         }
         protocolFeeFraction = newProtocolFeeFraction;
+        emit ConfigChanged("protocolFeeFraction", newProtocolFeeFraction, address(0));
     }
 
-    function setProtocolFeeBeneficiary(address newProtocolFeeBeneficiary) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setProtocolFeeBeneficiary(address newProtocolFeeBeneficiary) public onlyRole(CONFIGURATOR_ROLE) {
         protocolFeeBeneficiary = newProtocolFeeBeneficiary;
+        emit ConfigChanged("protocolFeeBeneficiary", 0, newProtocolFeeBeneficiary);
     }
 
-    function setMinEligibleVoterAge(uint ageLimitSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMinEligibleVoterAge(uint ageLimitSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         minEligibleVoterAge = ageLimitSeconds;
+        emit ConfigChanged("minEligibleVoterAge", ageLimitSeconds, address(0));
     }
 
-    function setMinEligibleVoterFractionOfAllStake(uint newMinEligibleVoterFractionOfAllStake) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMinEligibleVoterFractionOfAllStake(uint newMinEligibleVoterFractionOfAllStake) public onlyRole(CONFIGURATOR_ROLE) {
         if (newMinEligibleVoterFractionOfAllStake > 1 ether) {
             // can't be more than 100%
             revert TooHigh({ value: newMinEligibleVoterFractionOfAllStake, limit: 1 ether });
         }
         minEligibleVoterFractionOfAllStake = newMinEligibleVoterFractionOfAllStake;
+        emit ConfigChanged("minEligibleVoterFractionOfAllStake", newMinEligibleVoterFractionOfAllStake, address(0));
     }
 
-    function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(CONFIGURATOR_ROLE) {
         if (newFlagReviewerCount < 1) { revert TooLow({ value: newFlagReviewerCount, limit: 1 }); }
         flagReviewerCount = newFlagReviewerCount;
         // we can't select more than 1 reviewer per iteration, so we have to try at least as many times
         if (flagReviewerSelectionIterations < flagReviewerCount) {
             flagReviewerSelectionIterations = flagReviewerCount;
         }
+        emit ConfigChanged("flagReviewerCount", newFlagReviewerCount, address(0));
     }
 
-    function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
         flagReviewerRewardWei = newFlagReviewerRewardWei;
+        emit ConfigChanged("flagReviewerRewardWei", newFlagReviewerRewardWei, address(0));
     }
 
-    function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
         flaggerRewardWei = newFlaggerRewardWei;
+        emit ConfigChanged("flaggerRewardWei", newFlaggerRewardWei, address(0));
     }
 
     /**
@@ -302,7 +340,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * @dev                     28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30,
      * @dev                     30, 30, 30, 30, 30, 30, 31, 31, 31, 31 ], i.e. up to half (16), it picks every 1...2nd time, as you would expect
      */
-    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(CONFIGURATOR_ROLE) {
         if (newFlagReviewerSelectionIterations < flagReviewerCount) {
             revert TooLow({
                 value: newFlagReviewerSelectionIterations,
@@ -310,11 +348,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
             });
         }
         flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
+        emit ConfigChanged("flagReviewerSelectionIterations", newFlagReviewerSelectionIterations, address(0));
     }
 
     /**
-     * @dev TODO: check if the below reasoning applies anymore, now that we always take max(minimum stake, stake) * slashingFraction
-     * @dev TODO: can they actually get their stake below `slashingFraction * minimum stake`? If yes, it needs an additional require in VoteKickPolicy.
      * @dev flagStakeWei must be enough to pay all the reviewers, even after the flagger would be kicked (and slashed the "slashingFraction" of the total stake).
      * @dev If the operator decides to reduceStake, locked stake is the limit how much stake must be left into Sponsorship.
      * @dev The total locked stake must be enough to pay the reviewers of all flags.
@@ -322,9 +359,10 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * @dev After n flags: n * flagStakeWei >= n * reviewer fees + slashing from total locked stake
      * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei + slashingFraction * flagStakeWei (assuming only flagging causes locked stake)
      * @dev   =>  flagStakeWei >= flagReviewerCount * flagReviewerRewardWei / (1 - slashingFraction)
+     * @dev round UP, it's better to require a 1 wei too much than too little
      */
-    function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint minFlagStakeWei = flagReviewerCount * flagReviewerRewardWei * 1 ether / (1 ether - slashingFraction);
+    function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(CONFIGURATOR_ROLE) {
+        uint minFlagStakeWei = divByFraction(flagReviewerCount * flagReviewerRewardWei, 1 ether - slashingFraction);
         if (newFlagStakeWei < minFlagStakeWei) {
             revert TooLow({
                 value: newFlagStakeWei,
@@ -332,18 +370,22 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
             });
         }
         flagStakeWei = newFlagStakeWei;
+        emit ConfigChanged("flagStakeWei", newFlagStakeWei, address(0));
     }
 
-    function setReviewPeriodSeconds(uint newReviewPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setReviewPeriodSeconds(uint newReviewPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         reviewPeriodSeconds = newReviewPeriodSeconds;
+        emit ConfigChanged("reviewPeriodSeconds", newReviewPeriodSeconds, address(0));
     }
 
-    function setVotingPeriodSeconds(uint newVotingPeriodSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setVotingPeriodSeconds(uint newVotingPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         votingPeriodSeconds = newVotingPeriodSeconds;
+        emit ConfigChanged("votingPeriodSeconds", newVotingPeriodSeconds, address(0));
     }
 
-    function setFlagProtectionSeconds(uint newFlagProtectionSeconds) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setFlagProtectionSeconds(uint newFlagProtectionSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         flagProtectionSeconds = newFlagProtectionSeconds;
+        emit ConfigChanged("flagProtectionSeconds", newFlagProtectionSeconds, address(0));
     }
 
     /**
@@ -351,29 +393,36 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * For instance, in Ethereum mainnet, block.difficulty would be such, see https://github.com/ethereum/solidity/pull/13759
      * Important criterion is: it's not possible to know the outcome by simulating the transaction (e.g. using estimateGas)
      **/
-    function setRandomOracle(address newRandomOracle) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setRandomOracle(address newRandomOracle) public onlyRole(CONFIGURATOR_ROLE) {
         randomOracle = newRandomOracle;
+        emit ConfigChanged("randomOracle", 0, newRandomOracle);
     }
 
-    function setTrustedForwarder(address newTrustedForwarder) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTrustedForwarder(address newTrustedForwarder) public onlyRole(CONFIGURATOR_ROLE) {
         trustedForwarder = newTrustedForwarder;
+        emit ConfigChanged("trustedForwarder", 0, newTrustedForwarder);
     }
 
-    function setSponsorshipFactory(address sponsorshipFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setSponsorshipFactory(address sponsorshipFactoryAddress) external onlyRole(CONFIGURATOR_ROLE) {
         sponsorshipFactory = sponsorshipFactoryAddress;
+        emit ConfigChanged("sponsorshipFactory", 0, sponsorshipFactoryAddress);
     }
 
-    function setOperatorFactory(address operatorFactoryAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setOperatorFactory(address operatorFactoryAddress) external onlyRole(CONFIGURATOR_ROLE) {
         operatorFactory = operatorFactoryAddress;
         voterRegistry = operatorFactoryAddress;
+        emit ConfigChanged("operatorFactory", 0, operatorFactoryAddress);
+        emit ConfigChanged("voterRegistry", 0, operatorFactoryAddress);
     }
 
-    function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setOperatorContractOnlyJoinPolicy(address operatorContractOnlyJoinPolicyAddress) external onlyRole(CONFIGURATOR_ROLE) {
         operatorContractOnlyJoinPolicy = operatorContractOnlyJoinPolicyAddress;
+        emit ConfigChanged("operatorContractOnlyJoinPolicy", 0, operatorContractOnlyJoinPolicyAddress);
     }
 
-    function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setStreamRegistryAddress(address streamRegistryAddress_) external onlyRole(CONFIGURATOR_ROLE) {
         streamRegistryAddress = streamRegistryAddress_;
+        emit ConfigChanged("streamRegistryAddress", 0, streamRegistryAddress_);
     }
 
     function _authorizeUpgrade(address newImplementation) internal onlyRole(UPGRADER_ROLE) override {}

@@ -193,6 +193,5 @@ contract StakeWeightedAllocationPolicy is IAllocationPolicy, Sponsorship {
             localVars.defaultedPerStake = 0;
             localVars.defaultedWei = 0;
         }
-        emit ProjectedInsolvencyUpdate(getInsolvencyTimestamp());
     }
 }

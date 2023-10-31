@@ -2,10 +2,10 @@ import { log, BigInt, BigDecimal, store } from '@graphprotocol/graph-ts'
 
 import {
     StakeUpdate,
+    StakeLockUpdate,
     SponsorshipUpdate,
     FlagUpdate,
     Flagged,
-    ProjectedInsolvencyUpdate,
     OperatorSlashed,
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
@@ -24,10 +24,9 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     let operatorAddress = event.params.operator.toHexString()
     let stakedWei = event.params.stakedWei
     let earningsWei = event.params.earningsWei
-    let lockedStakeWei = event.params.lockedStakeWei
     let now = event.block.timestamp.toU32()
-    log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, lockedStake={} now={}',
-        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), lockedStakeWei.toString(), now.toString()])
+    log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, now={}',
+        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), now.toString()])
 
     let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
     if (stakedWei == BigInt.zero()) {
@@ -38,7 +37,6 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stake.updateTimestamp = now
     stake.amountWei = stakedWei
     stake.earningsWei = earningsWei
-    stake.lockedWei = lockedStakeWei
     stake.save()
 
     // also save StakingEvent, TODO: do we need them?
@@ -48,6 +46,20 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stakingEvent.date = event.block.timestamp
     stakingEvent.amount = event.params.stakedWei
     stakingEvent.save()
+}
+
+export function handleStakeLockUpdated(event: StakeLockUpdate): void {
+    let sponsorshipAddress = event.address.toHexString()
+    let operatorAddress = event.params.operator.toHexString()
+    let lockedStakeWei = event.params.lockedStakeWei
+    let minimumStakeWei = event.params.minimumStakeWei
+    log.info('handleStakeLockUpdated: sponsorship={} operator={} lockedStakeWei={} minimumStakeWei={}',
+        [sponsorshipAddress, operatorAddress, lockedStakeWei.toString(), minimumStakeWei.toString()])
+
+    let stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
+    stake.lockedWei = lockedStakeWei
+    stake.minimumStakeWei = minimumStakeWei
+    stake.save()
 }
 
 export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
@@ -69,9 +81,16 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
 
     sponsorship.totalStakedWei = event.params.totalStakedWei
     sponsorship.remainingWei = event.params.remainingWei
+    sponsorship.remainingWeiUpdateTimestamp = event.block.timestamp
     sponsorship.operatorCount = event.params.operatorCount.toI32()
     sponsorship.isRunning = event.params.isRunning
     sponsorship.spotAPY = spotAPY
+    if (!sponsorship.isRunning || sponsorship.totalPayoutWeiPerSec.equals(BigInt.zero())) {
+        sponsorship.projectedInsolvency = null
+    } else {
+        sponsorship.projectedInsolvency = sponsorship.remainingWei.div(sponsorship.totalPayoutWeiPerSec)
+            .plus(event.block.timestamp)
+    }        
     sponsorship.save()
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
@@ -79,20 +98,6 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.remainingWei = event.params.remainingWei
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.spotAPY = spotAPY
-    bucket.save()
-}
-
-export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
-    log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
-        [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
-
-    let sponsorshipAddress = event.address.toHexString()
-    let sponsorship = Sponsorship.load(sponsorshipAddress)!
-    sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-    sponsorship.save()
-
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-    bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
     bucket.save()
 }
 
@@ -214,7 +219,16 @@ function loadOrCreateStake(sponsorshipAddress: string, operatorAddress: string):
         stake = new Stake(stakeID)
         stake.sponsorship = sponsorshipAddress
         stake.operator = operatorAddress
-        stake.joinTimestamp = 0 // set this in StakeUpdate
+
+        // set in handleStakeUpdated
+        stake.joinTimestamp = 0
+        stake.updateTimestamp = 0
+        stake.amountWei = BigInt.zero()
+        stake.earningsWei = BigInt.zero()
+
+        // set in handleStakeLockUpdated
+        stake.lockedWei = BigInt.zero()
+        stake.minimumStakeWei = BigInt.zero() // TODO: populate from global minimum stake once we have the network-stats entity
     }
     return stake
 }

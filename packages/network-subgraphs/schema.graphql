@@ -408,8 +408,11 @@ type Sponsorship @entity {
   "how much DATA is there still in this contract"
   remainingWei: BigInt!
 
+  "timestamp when remainingWei was last updated"
+  remainingWeiUpdateTimestamp: BigInt
+
   "when will the contract run out of DATA if more is not added"
-  projectedInsolvency: BigInt!
+  projectedInsolvency: BigInt
 
   "how much 'ROI' you could make by staking, extrapolated from current payments"
   spotAPY: BigDecimal!
@@ -431,7 +434,7 @@ type SponsorshipDailyBucket @entity {
   date: BigInt!
   totalStakedWei: BigInt!
   remainingWei: BigInt!
-  projectedInsolvency: BigInt!
+  projectedInsolvency: BigInt
   spotAPY: BigDecimal!
   operatorCount: Int!
 }
@@ -443,6 +446,7 @@ type Stake @entity {
   operator: Operator!
   amountWei: BigInt!
   lockedWei: BigInt!
+  minimumStakeWei: BigInt! # individual minimum stake can be different from global one if operator got flagged or opened lots of flags
   earningsWei: BigInt! # momentary earnings at updateTimestamp
   updateTimestamp: Int! # timestamp when earningsWei (and others) were updated; useful for calculating "real-time" earnings values
   joinTimestamp: Int!

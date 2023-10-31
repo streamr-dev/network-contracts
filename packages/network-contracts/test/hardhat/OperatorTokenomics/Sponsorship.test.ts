@@ -9,8 +9,12 @@ import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolic
 import { Wallet } from "ethers"
 import { getEIP2771MetaTx } from "../Registries/getEIP2771MetaTx"
 
-const { defaultAbiCoder, parseEther, formatEther, hexZeroPad } = hardhatEthers.utils
-const { getSigners, getContractFactory } = hardhatEthers
+const {
+    getSigners,
+    getContractFactory,
+    constants: { AddressZero },
+    utils: { defaultAbiCoder, parseEther, formatEther, hexZeroPad }
+} = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
     let admin: Wallet
@@ -85,7 +89,9 @@ describe("Sponsorship contract", (): void => {
             advanceToTimestamp(start + 200, "Sponsorship")
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
-            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "1.0", "1.0"]) // t = start + 202
+
+            advanceToTimestamp(start + 204, "Sponsorship (check)")
+            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "2.0", "2.0"])
 
             advanceToTimestamp(start + 300, "Stake more")
             await (await token.transferAndCall(sponsorship.address, parseEther("3000"), op1.address)).wait()
@@ -215,7 +221,7 @@ describe("Sponsorship contract", (): void => {
             const newToken = await (await (await (await getContractFactory("TestToken", admin)).deploy("Test2", "T2")).deployed())
             await (await newToken.mint(admin.address, parseEther("1000000"))).wait()
             await expect(newToken.transferAndCall(defaultSponsorship.address, parseEther("100"), admin.address))
-                .to.be.revertedWithCustomError(defaultSponsorship, "OnlyDATAToken")
+                .to.be.revertedWithCustomError(defaultSponsorship, "AccessDeniedDATATokenOnly")
         })
 
         it("lets you add stake any small positive amount", async function(): Promise<void> {
@@ -242,7 +248,7 @@ describe("Sponsorship contract", (): void => {
             await (await sponsorship.sponsor(parseEther("10000"))).wait()
             await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).reduceStakeTo(parseEther("150")))
-                .to.be.revertedWithCustomError(sponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(sponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
 
         it("won't let unstake if you would be slashed", async function(): Promise<void> {
@@ -255,9 +261,9 @@ describe("Sponsorship contract", (): void => {
 
         it("won't let you reduceStake if you're not staked", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator).reduceStakeTo(0))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
             await expect(defaultSponsorship.connect(operator).reduceStakeTo(parseEther("1")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
 
         it("won't let you unstake if you're not staked", async function(): Promise<void> {
@@ -370,6 +376,56 @@ describe("Sponsorship contract", (): void => {
             await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("100").toHexString(), 32)))
                 .to.emit(sponsorship, "OperatorSlashed").withArgs(operator.address, parseEther("70"))
         })
+
+        it("bad operator (reverts upon transferAndCall) can't prevent getting kicked out of the sponsorship", async function(): Promise<void> {
+            const { token } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
+            await (await token.transfer(badOperator.address, parseEther("100"))).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
+
+            const sponsorshipBalanceBeforeUnstake = await token.balanceOf(sponsorship.address)
+            const operatorBalanceBeforeUnstake = await token.balanceOf(badOperator.address)
+            const sponsorshipStakeBeforeUnstake = await sponsorship.stakedWei(badOperator.address)
+            await (await badOperator.unstake(sponsorship.address)).wait()
+            const sponsorshipBalanceAfterUnstake = await token.balanceOf(sponsorship.address)
+            const operatorBalanceAfterUnstake = await token.balanceOf(badOperator.address)
+            const sponsorshipStakeAfterUnstake = await sponsorship.stakedWei(badOperator.address)
+
+            expect(sponsorshipStakeBeforeUnstake).to.equal(parseEther("100"))
+            expect(sponsorshipStakeAfterUnstake).to.equal(parseEther("0"))
+            // TestBadOperator.onTokenTransfer reverts so the funds did not get transferred
+            expect(operatorBalanceBeforeUnstake).to.equal(parseEther("0"))
+            expect(operatorBalanceAfterUnstake).to.equal(parseEther("0"))
+            expect(sponsorshipBalanceBeforeUnstake).to.equal(parseEther("200"))
+            expect(sponsorshipBalanceAfterUnstake).to.equal(parseEther("200"))
+
+            // bad operator got kicked out of the sponsorship even though he did not receive the funds from the previous unstake
+            await expect(badOperator.unstake(sponsorship.address))
+                .to.be.revertedWithCustomError(sponsorship, "OperatorNotStaked")
+        })
+
+        it("bad operator (reverts upon transferAndCall) can be kicked out of the sponsorship through admin policy", async (): Promise<void> => {
+            const { token, adminKickPolicy } = contracts
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, adminKickPolicy)
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait()
+            const badOperator = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            const a = token.address
+            await (await badOperator.initialize(a, AddressZero, a, "", "", "0", [a, a, a])).wait()
+            await (await token.transfer(badOperator.address, parseEther("100"))).wait()
+            await (await badOperator.stake(sponsorship.address, parseEther("100"))).wait()
+
+            const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator.address)
+            await expect(sponsorship.connect(admin).flag(badOperator.address, "{}"))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(badOperator.address)
+            const badOperatorStakeAfterKick = await sponsorship.stakedWei(badOperator.address)
+
+            expect(badOperatorStakeBeforeKick).to.equal(parseEther("100"))
+            expect(badOperatorStakeAfterKick).to.equal(parseEther("0")) // they're out
+        })
     })
 
     describe("Adding policies", (): void => {
@@ -412,9 +468,9 @@ describe("Sponsorship contract", (): void => {
         })
         it("cannot reduceStakeTo", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator2).reduceStakeTo(parseEther("1")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
             await expect(defaultSponsorship.connect(operator2).reduceStakeTo(parseEther("0")))
-                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStake")
+                .to.be.revertedWithCustomError(defaultSponsorship, "CannotIncreaseStakeUsingReduceStakeTo")
         })
         it("cannot withdraw", async function(): Promise<void> {
             await expect(defaultSponsorship.connect(operator2).withdraw())
