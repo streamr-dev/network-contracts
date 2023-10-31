@@ -278,6 +278,20 @@ describe("Operator contract", (): void => {
             expect(formatEther(await token.balanceOf(delegator2.address))).to.equal("1000.0")
         })
 
+        it("will NOT allow delegation under minimumDelegationWei from non-owner", async function(): Promise<void> {
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "1000")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(delegator).approve(operator.address, parseEther("0.1"))).wait()
+            await expect(operator.connect(delegator).delegate(parseEther("0.1")))
+                .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum").withArgs(parseEther("0.1"), parseEther("100"))
+
+            // self-delegation is always ok
+            await (await token.connect(operatorWallet).approve(operator.address, parseEther("0.1"))).wait()
+            await expect(operator.delegate(parseEther("0.1")))
+                .to.emit(operator, "Delegated").withArgs(operatorWallet.address, parseEther("0.1"))
+        })
+
         it("will NOT allow creating a new delegator by transfer if normal delegation wouldn't be allowed", async function(): Promise<void> {
             const { token, streamrConfig } = sharedContracts
             await (await streamrConfig.setMinimumSelfDelegationFraction(parseEther("0.6"))).wait()
