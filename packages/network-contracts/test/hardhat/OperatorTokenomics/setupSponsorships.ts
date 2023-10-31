@@ -4,7 +4,7 @@ import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 
-import type { Wallet, BigNumber } from "ethers"
+import { Wallet, BigNumber } from "ethers"
 import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
 
 const { parseEther, id } = hardhatEthers.utils
@@ -69,7 +69,6 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
     const { token } = contracts
     const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
-
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
     const signers = await getTestWallets(contracts, totalOperatorCount, stakeAmountWei)
@@ -77,6 +76,10 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
     await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
+
+    const loadedWallet = new Wallet("0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0", admin.provider)
+    await (await loadedWallet.sendTransaction({ to: deployer.address, value: parseEther("100000") })).wait()
+    
     // console.log("deployer: %s", addr(deployer))
 
     // we just want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)

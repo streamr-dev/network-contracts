@@ -24,7 +24,10 @@ const config: HardhatUserConfig = {
         hardhat: {
             gas: 12000000,
             blockGasLimit: 0x1fffffffffffff,
-            allowUnlimitedContractSize: true
+            allowUnlimitedContractSize: true,
+            accounts: [
+                {privateKey: "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0", balance: "1000000000000000000000000000" },
+            ]
         },
         dev2: {
             chainId: 31337,

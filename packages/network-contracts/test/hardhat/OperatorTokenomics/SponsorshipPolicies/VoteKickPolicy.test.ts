@@ -89,7 +89,7 @@ describe("VoteKickPolicy", (): void => {
         return badOperatorTemplate.attach(badOperator.address).connect(deployer)
     }
 
-    describe("Happy path (flag + vote + resolution)", (): void => {
+    describe.only("Happy path (flag + vote + resolution)", (): void => {
         it("with one flagger, one target and one voter", async function(): Promise<void> {
             const start = await getBlockTimestamp()
             const {

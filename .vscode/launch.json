@@ -10,7 +10,7 @@
             "request": "launch",
             "runtimeArgs": [
                 "run",
-                "test:fast"
+                "coverage"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
