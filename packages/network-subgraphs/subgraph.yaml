@@ -166,9 +166,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x34177d5D01D7c97F78a7d05ae2c08821315997E0'
+      address: '0x9a842c37575f84A076036F2531134ba0a94a69C6'
       abi: SponsorshipFactory
-      startBlock: 41627710
+      startBlock: 41860400
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -187,9 +187,9 @@ dataSources:
     network: mumbai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x3cB6184dD5D80C30D4564E21B561fdBD7F406ccd'
+      address: '0xb843fC3cB92c31AAa8d9e0379F7c5c204Faa82cA'
       abi: OperatorFactory
-      startBlock: 41627710
+      startBlock: 41860400
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
