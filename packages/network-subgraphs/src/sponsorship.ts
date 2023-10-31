@@ -85,11 +85,11 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     sponsorship.operatorCount = event.params.operatorCount.toI32()
     sponsorship.isRunning = event.params.isRunning
     sponsorship.spotAPY = spotAPY
-    if (!sponsorship.isRunning) {
+    if (!sponsorship.isRunning || sponsorship.totalPayoutWeiPerSec.equals(BigInt.zero())) {
         sponsorship.projectedInsolvency = null
     } else {
         sponsorship.projectedInsolvency = sponsorship.remainingWei.div(sponsorship.totalPayoutWeiPerSec)
-            .plus(sponsorship.remainingWeiUpdateTimestamp!)
+            .plus(event.block.timestamp)
     }        
     sponsorship.save()
 
