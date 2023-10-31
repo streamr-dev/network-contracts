@@ -1679,7 +1679,7 @@ describe("Operator contract", (): void => {
 
             // 1000 DATA self-delegated (which mints 1000 operator tokens) and 999000 DATA gifted through ERC20 transfer (no operator tokens minted)
             // make the exchange rate extreme:  1 op = 1000 DATA
-            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), operatorWallet.address)).wait() // self-delegate
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), operatorWallet.address)).wait()
             await (await token.connect(operatorWallet).transfer(operator.address, parseEther("999000"))).wait() // ERC20.transfer, not transferAndCall
             await (await operator.stake(sponsorship.address, parseEther("1000000"))).wait()
             await (await operator.undelegate(parseEther("1000000"))).wait()
