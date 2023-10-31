@@ -13,6 +13,7 @@
         ],
         "no-empty-blocks": "off",
         "no-unused-vars": "error",
+        "payable-fallback": "off",
         "reason-string": [
             "error",
             {

@@ -236,8 +236,6 @@ templates:
             handler: handleFlagged
           - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256,indexed address,int256)
             handler: handleFlagUpdate
-          # - event: ProjectedInsolvencyUpdate(uint256)
-          #   handler: handleProjectedInsolvencyUpdate
           - event: OperatorSlashed(indexed address,uint256)
             handler: handleOperatorSlashed
 

@@ -101,20 +101,6 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.save()
 }
 
-// export function handleProjectedInsolvencyUpdate(event: ProjectedInsolvencyUpdate): void {
-//     log.info('handleProjectedInsolvencyUpdate: sidechainaddress={} projectedInsolvency={}',
-//         [event.address.toHexString(), event.params.projectedInsolvencyTimestamp.toString()])
-
-//     let sponsorshipAddress = event.address.toHexString()
-//     let sponsorship = Sponsorship.load(sponsorshipAddress)!
-//     sponsorship.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-//     sponsorship.save()
-
-//     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
-//     bucket.projectedInsolvency = event.params.projectedInsolvencyTimestamp
-//     bucket.save()
-// }
-
 export function handleFlagged(event: Flagged): void {
     let sponsorship = event.address.toHexString()
     let target = event.params.target.toHexString()

@@ -40,6 +40,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
     function setParam(uint) external {}
 
     /**
+     * Division by a "fraction" expressed as multiple of 1e18, like ether (1e18 = 100%)
+     * @return result = x / fraction, rounding UP
+     */
+    function divByFraction(uint x, uint fraction) internal pure returns (uint) {
+        return (x * 1 ether + fraction - 1) / fraction;
+    }
+
+    /**
      * You can't cash out the locked part of your stake, or go below the minimum stake.
      * When joining, locked stake is zero, so the limit is the same minimumStakeWei for everyone.
      * In addition to locked stake, the individual limit must have enough room for flagging (if not already flagged). When a flag is raised:
@@ -48,12 +56,15 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
      *    stake > lockedStakeAfter = lockedStakeBefore + stake * slashingFraction
      * Solving for stake:
      *    stake > lockedStakeBefore / (1 - slashingFraction) = minimumStake
+     * @dev round UP, it's better to require 1 wei too much than too little.
      */
     function getMinimumStakeOf(address operator) override public view returns (uint) {
         uint minimumStakeWei = streamrConfig.minimumStakeWei();
         uint lockedStake = lockedStakeWei[operator];
         // only bake in the "room for flagging" if not yet flagged
-        if (voteStartTimestamp[operator] == 0) { lockedStake = lockedStake * 1 ether / (1 ether - streamrConfig.slashingFraction()); }
+        if (voteStartTimestamp[operator] == 0) {
+            lockedStake = divByFraction(lockedStake, 1 ether - streamrConfig.slashingFraction());
+        }
         return max(lockedStake, minimumStakeWei);
     }
 
