@@ -24,6 +24,10 @@ contract TestBadOperator is IERC677Receiver, IOperator {
         return 0x1337000000000000000000000000000000000000;
     }
 
+    function setShouldRevertGetOwner(bool shouldRevert) external {
+        shouldRevertGetOwner = shouldRevert;
+    }
+
     // asked by factory
     bytes32 public DEFAULT_ADMIN_ROLE = bytes32(0); // solhint-disable-line var-name-mixedcase
 

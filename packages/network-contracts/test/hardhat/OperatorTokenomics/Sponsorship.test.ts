@@ -426,6 +426,61 @@ describe("Sponsorship contract", (): void => {
             expect(badOperatorStakeBeforeKick).to.equal(parseEther("100"))
             expect(badOperatorStakeAfterKick).to.equal(parseEther("0")) // they're out
         })
+
+        it("VoteKickPolicy works when TestBadOperator reverts on owner() call", async (): Promise<void> => {
+            const { token, operatorFactory, nodeModule, queueModule, stakeModule } = contracts
+
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait() // sponsor
+
+            const badOperatorTemplate = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            await expect(operatorFactory.updateTemplates(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
+                .to.emit(operatorFactory, "TemplateAddresses")
+                .withArgs(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address)
+
+            const { defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = contracts
+            const badOperator1Receipt = await (await operatorFactory.connect(op1).deployOperator(
+                parseEther("0.1"), "BadOperator1", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badOperator1Address = badOperator1Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badOperator1 = badOperatorTemplate.attach(badOperator1Address)
+
+            const badOperator2Receipt = await (await operatorFactory.connect(op2).deployOperator(
+                parseEther("0.1"), "BadOperator2", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badOperator2Address = badOperator2Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badOperator2 = badOperatorTemplate.attach(badOperator2Address)
+
+            const badOperator3Receipt = await (await operatorFactory.connect(operator).deployOperator(
+                parseEther("0.1"), "BadOperator3", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badOperator3Address = badOperator3Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badOperator3 = badOperatorTemplate.attach(badOperator3Address)
+
+            await (await token.transfer(badOperator1.address, parseEther("5000"))).wait()
+            await (await badOperator1.connect(op1).stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badOperator2.address, parseEther("5000"))).wait()
+            await (await badOperator2.stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badOperator3.address, parseEther("5000"))).wait()
+            await (await badOperator3.stake(sponsorship.address, parseEther("5000"))).wait()
+
+            await (await badOperator3.setShouldRevertGetOwner(true)).wait()
+
+            const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator1.address)
+
+            const start = await getBlockTimestamp()
+            advanceToTimestamp(start, "Flag bad operator")
+            await (await badOperator2.flag(sponsorship.address, badOperator1.address, "{}")).wait()
+
+            advanceToTimestamp(start + 3601, "Vote for bad operator")
+            await expect(badOperator3.voteOnFlag(sponsorship.address, badOperator1.address, hexZeroPad(parseEther("100").toHexString(), 32)))
+                .to.emit(sponsorship, "FlagUpdate") // emits VOTING
+                .to.emit(sponsorship, "FlagUpdate") // emits NOT_KICKED
+            const badOperatorStakeAfterKick = await sponsorship.stakedWei(badOperator1.address)
+
+            expect(badOperatorStakeBeforeKick).to.equal(parseEther("5000"))
+            expect(badOperatorStakeAfterKick).to.equal(parseEther("5000")) // NOT_KICKED
+        })
     })
 
     describe("Adding policies", (): void => {
