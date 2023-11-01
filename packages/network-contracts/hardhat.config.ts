@@ -26,7 +26,6 @@ const config: HardhatUserConfig = {
             blockGasLimit: 0x1fffffffffffff,
             allowUnlimitedContractSize: true,
             accounts: [
-                {privateKey: "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0", balance: "1000000000000000000000000000" },
                 {privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", balance: "1000000000000000000000000000" },
                 {privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", balance: "1000000000000000000000000000" },
                 {privateKey: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", balance: "1000000000000000000000000000" },
@@ -47,6 +46,7 @@ const config: HardhatUserConfig = {
                 {privateKey: "0x689af8efa8c651a91ad287602527f3af2fe9f6501a7ac4b061667b5a93e037fd", balance: "1000000000000000000000000000" },
                 {privateKey: "0xde9be858da4a475276426320d5e9262ecfc3ba460bfac56360bfa6c4c28b4ee0", balance: "1000000000000000000000000000" },
                 {privateKey: "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e", balance: "1000000000000000000000000000" },
+                {privateKey: "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0", balance: "1000000000000000000000000000" },
             ]
         },
         dev2: {
