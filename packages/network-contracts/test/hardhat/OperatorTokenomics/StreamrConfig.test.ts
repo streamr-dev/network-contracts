@@ -176,7 +176,7 @@ describe("StreamrConfig", (): void => {
             await (await sharedConfig.setFlagReviewerCount(10)).wait()
             expect(await sharedConfig.flagReviewerSelectionIterations()).to.equal(10)
         })
-        it("newMinEligibleVoterFractionOfAllStake > 1eth", async (): Promise<void> => {
+        it("minEligibleVoterFractionOfAllStake <= 100%", async (): Promise<void> => {
             await expect(sharedConfig.setMinEligibleVoterFractionOfAllStake(parseEther("2")))
                 .to.be.revertedWithCustomError(sharedConfig, "TooHigh").withArgs("2000000000000000000", "1000000000000000000")
         })
