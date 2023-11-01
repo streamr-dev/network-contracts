@@ -278,7 +278,7 @@ describe("Operator contract", (): void => {
             const { operator } = await deployOperator(operatorWallet)
             await (await token.connect(delegator).approve(operator.address, parseEther("0.1"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("0.1")))
-                .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum").withArgs(parseEther("0.1"), parseEther("100"))
+                .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum").withArgs(parseEther("0.1"), parseEther("1"))
 
             // self-delegation is always ok
             await (await token.connect(operatorWallet).approve(operator.address, parseEther("0.1"))).wait()
@@ -370,7 +370,7 @@ describe("Operator contract", (): void => {
             const delegationRemaining = await operator.balanceOf(delegator.address)
 
             // delegator can NOT send tokens to another address if the minimum delegation amount is NOT left after transfer
-            await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("4950")))
+            await expect(operator.connect(delegator).transfer(delegator2.address, parseEther("4999.5")))
                 .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
 
             expect(contractBalanceAfterDelegate).to.equal(parseEther("20000"))
@@ -389,14 +389,14 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Delegated").withArgs(delegator.address, parseEther("10000"))
 
             const minimumDelegationWei = await streamrConfig.minimumDelegationWei()
-            expect(minimumDelegationWei).to.equal(parseEther("100"))
+            expect(minimumDelegationWei).to.equal(parseEther("1"))
 
             // sender would have 0.5 tokens left which is less than the minimumDelegationWei
-            await expect(operator.connect(delegator).transfer(operator2.address, parseEther("9950")))
+            await expect(operator.connect(delegator).transfer(operator2.address, parseEther("9999.5")))
                 .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
 
             // recipinet would have 0.5 tokens which is less than the minimumDelegationWei
-            await expect(operator.connect(delegator).transfer(operator2.address, parseEther("50")))
+            await expect(operator.connect(delegator).transfer(operator2.address, parseEther("0.5")))
                 .to.be.revertedWithCustomError(operator, "DelegationBelowMinimum")
 
             // transfer is successful if the minimumDelegationWei is met for both sender and recipient
