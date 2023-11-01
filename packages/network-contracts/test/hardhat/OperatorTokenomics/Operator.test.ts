@@ -98,7 +98,6 @@ describe("Operator contract", (): void => {
         const { streamrConfig } = sharedContracts
         await (await streamrConfig.setFlagReviewerRewardWei(parseEther("1"))).wait()
         await (await streamrConfig.setFlaggerRewardWei(parseEther("1"))).wait()
-        await (await streamrConfig.setMinimumDelegationWei(parseEther("1"))).wait()
     })
 
     describe("Scenarios", (): void => {

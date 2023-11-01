@@ -176,8 +176,8 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
-        // Prevent "sand delegations", set minimum delegation to 100 operator tokens
-        setMinimumDelegationWei(100 ether);
+        // Prevent "sand delegations", set minimum delegation to 1 operator tokens
+        setMinimumDelegationWei(1 ether);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
