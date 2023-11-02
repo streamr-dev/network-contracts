@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { Contract, ethers } from 'ethers'
 import { Sponsorship, sponsorshipABI } from '@streamr/network-contracts'
 
-const { ENV, PRIVKEY } = process.env
+const { ENV, PRIVKEY, INTERVALSEC } = process.env
 
 let graphClient: TheGraphClient
 let provider: ethers.providers.JsonRpcProvider
@@ -31,12 +31,13 @@ if (ENV === 'test') {
 }
 
 async function checkForFlags() {
-    console.log('starting, flag lifetime is', flagLifetime, 'seconds')
-    // const minFlagAge = Math.floor(Date.now() / 1000) - flagLifetime
-    const minFlagAge = Math.floor(Date.now() / 1000)
+    console.log('checking, flag lifetime is', flagLifetime, 'seconds')
+    const minFlagStartTime = Math.floor(Date.now() / 1000) - flagLifetime
+    // console.log('min flag start time', minFlagStartTime)
+    // const minFlagStartTime = Math.floor(Date.now() / 1000)
     const flags = await graphClient.queryEntity<any>({ query: `
         {
-            flags(where: {flaggingTimestamp_lt: ${minFlagAge}}) {
+            flags(where: {flaggingTimestamp_lt: ${minFlagStartTime}, result_not_in: ["kicked", "failed"]}) {
                 id
                 flaggingTimestamp
                 sponsorship {
@@ -48,32 +49,35 @@ async function checkForFlags() {
             }
         }
         `})
-    console.log(flags)
+    console.log('found', flags.flags.length, 'flags')
     for (const flag of flags.flags) {
-        console.log('flag', flag)
-        console.log('flag age now is', Math.floor(Date.now() / 1000) - flag.flaggingTimestamp)
+        // console.log('flag', flag)
         const flagId = flag.id
         const operatorAddress = flag.target.id
         const sponsorship = flag.sponsorship.id
         const sponsorshipContract = new Contract(sponsorship, sponsorshipABI, signer) as unknown as Sponsorship
-        console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagAge)
-        if (flag.flaggingTimestamp < minFlagAge) {
-            // endFlag(flagId, sponsorshipContract, operatorAddress)
+        // console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagStartTime)
+        if (flag.flaggingTimestamp < minFlagStartTime) {
+            await endFlag(flagId, sponsorshipContract, operatorAddress)
         }
     }
 }
 
 async function main() {
     await checkForFlags()
-    setInterval(checkForFlags, 60 * 1000)
+    setInterval(checkForFlags, parseInt(INTERVALSEC || "900") * 1000) // default 15 minutes
 }
 
 main()
 
 const endFlag = async (flagID: string, sponsorshipContract: Sponsorship, operatorAddress: string) => {
-    console.log('ending flag', flagID, 'for operator', operatorAddress)
-    const tx = await sponsorshipContract.voteOnFlag(operatorAddress, ethers.utils.randomBytes(32))
-    console.log('flag id: ', flagID, 'sent tx, tx hash: ', tx.hash)
-    const receipt = await tx.wait()
-    console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
+    try {
+        console.log('flag id:', flagID, 'sending close flag tx')
+        const tx = await sponsorshipContract.voteOnFlag(operatorAddress, ethers.utils.randomBytes(32))
+        console.log('flag id:', flagID, 'sent tx, tx hash: ', tx.hash)
+        const receipt = await tx.wait()
+        console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
+    } catch (e) {
+        console.log('flag id:', flagID, 'failed to send tx', e)
+    }
 }
