@@ -2,10 +2,10 @@ export const config = {
     "dev0": {
         "id": 8995,
         "name": "dev0",
-        "nativeCoin": {
-            "symbol": "TEST",
-            "name": "Test-ether",
-            "logoURI": "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -39,10 +39,10 @@ export const config = {
     "dev1": {
         "id": 8997,
         "name": "dev1",
-        "nativeCoin": {
-            "symbol": "TEST",
-            "name": "Test-ether",
-            "logoURI": "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -87,10 +87,10 @@ export const config = {
     "dev2": {
         "id": 31337,
         "name": "dev2",
-        "nativeCoin": {
-            "symbol": "TEST",
-            "name": "Test-ether",
-            "logoURI": "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -139,10 +139,10 @@ export const config = {
     "alfajores": {
         "id": 44787,
         "name": "Celo Alfajores",
-        "nativeCoin": {
+        "nativeCurrency": {
             "symbol": "CELO",
             "name": "Celo Alfajores",
-            "logoURI": "https://raw.githubusercontent.com/celo-org/docs/main/static/img/color-favicon.png"
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -158,10 +158,10 @@ export const config = {
     "optGoerli": {
         "id": 420,
         "name": "Optimism Goerli Testnet",
-        "nativeCoin": {
+        "nativeCurrency": {
             "symbol": "ETH",
-            "name": "Optimism Goerli Testnet",
-            "logoURI": "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
+            "name": "Optimism Goerli Testnet Ethereum",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -176,10 +176,10 @@ export const config = {
     "ethereum": {
         "id": 1,
         "name": "Ethereum",
-        "nativeCoin": {
+        "nativeCurrency": {
             "symbol": "ETH",
             "name": "Ethereum",
-            "logoURI": "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png"
+            "decimals": 18
         },
         "rpcEndpoints": [],
         "contracts": {
@@ -199,10 +199,10 @@ export const config = {
     "gnosis": {
         "id": 100,
         "name": "Gnosis Chain",
-        "nativeCoin": {
+        "nativeCurrency": {
             "symbol": "xDAI",
             "name": "xDai",
-            "logoURI": "https://docs.gnosischain.com/img/tokens/xdai.png"
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -235,10 +235,10 @@ export const config = {
     "binance": {
         "id": 56,
         "name": "BNB Chain",
-        "nativeCoin":{
+        "nativeCurrency":{
             "symbol": "BNB",
             "name": "BNB",
-            "logoURI": "https://tokens.1inch.io/0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c_1.png"
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -256,10 +256,10 @@ export const config = {
     "polygon": {
         "id": 137,
         "name": "Polygon",
-        "nativeCoin": {
+        "nativeCurrency": {
             "symbol": "MATIC",
-            "name": "Polygon",
-            "logoURI": "https://tokens.1inch.io/0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0.png"
+            "name": "MATIC",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
@@ -293,10 +293,11 @@ export const config = {
     },
     "mumbai": {
         "id": 80001,
-        "nativeCoin": {
+        "name": "Polygon Mumbai",
+        "nativeCurrency": {
             "symbol": "MATIC",
-            "name": "Mumbai",
-            "logoURI": "https://tokens.1inch.io/0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0.png"
+            "name": "Mumbai MATIC",
+            "decimals": 18
         },
         "rpcEndpoints": [
             {
