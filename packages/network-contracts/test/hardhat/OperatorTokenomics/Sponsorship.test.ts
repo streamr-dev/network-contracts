@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
-import { advanceToTimestamp, getBlockTimestamp } from "./utils"
+import { VOTE_NO_KICK, advanceToTimestamp, getBlockTimestamp } from "./utils"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
@@ -439,44 +439,44 @@ describe("Sponsorship contract", (): void => {
                 .withArgs(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address)
 
             const { defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy } = contracts
-            const badOperator1Receipt = await (await operatorFactory.connect(op1).deployOperator(
-                parseEther("0.1"), "BadOperator1", "{}",
+            const badFlaggedReceipt = await (await operatorFactory.connect(op1).deployOperator(
+                parseEther("0.1"), "BadFlagged", "{}",
                 [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
-            const badOperator1Address = badOperator1Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-            const badOperator1 = badOperatorTemplate.attach(badOperator1Address)
+            const badFlaggedAddress = badFlaggedReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badFlagged = badOperatorTemplate.attach(badFlaggedAddress)
 
-            const badOperator2Receipt = await (await operatorFactory.connect(op2).deployOperator(
-                parseEther("0.1"), "BadOperator2", "{}",
+            const badFlaggerReceipt = await (await operatorFactory.connect(op2).deployOperator(
+                parseEther("0.1"), "BadFlagger", "{}",
                 [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
-            const badOperator2Address = badOperator2Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-            const badOperator2 = badOperatorTemplate.attach(badOperator2Address)
+            const badFlaggerAddress = badFlaggerReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badFlagger = badOperatorTemplate.attach(badFlaggerAddress)
 
-            const badOperator3Receipt = await (await operatorFactory.connect(operator).deployOperator(
-                parseEther("0.1"), "BadOperator3", "{}",
+            const badVoterReceipt = await (await operatorFactory.connect(operator).deployOperator(
+                parseEther("0.1"), "BadVoter", "{}",
                 [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
-            const badOperator3Address = badOperator3Receipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-            const badOperator3 = badOperatorTemplate.attach(badOperator3Address)
+            const badVoterAddress = badVoterReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badVoter = badOperatorTemplate.attach(badVoterAddress)
 
-            await (await token.transfer(badOperator1.address, parseEther("5000"))).wait()
-            await (await badOperator1.connect(op1).stake(sponsorship.address, parseEther("5000"))).wait()
-            await (await token.transfer(badOperator2.address, parseEther("5000"))).wait()
-            await (await badOperator2.stake(sponsorship.address, parseEther("5000"))).wait()
-            await (await token.transfer(badOperator3.address, parseEther("5000"))).wait()
-            await (await badOperator3.stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badFlagged.address, parseEther("5000"))).wait()
+            await (await badFlagged.connect(op1).stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badFlagger.address, parseEther("5000"))).wait()
+            await (await badFlagger.stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badVoter.address, parseEther("5000"))).wait()
+            await (await badVoter.stake(sponsorship.address, parseEther("5000"))).wait()
 
-            await (await badOperator3.setShouldRevertGetOwner(true)).wait()
+            await (await badVoter.setShouldRevertGetOwner(true)).wait()
 
-            const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badOperator1.address)
+            const badOperatorStakeBeforeKick = await sponsorship.stakedWei(badFlagged.address)
 
             const start = await getBlockTimestamp()
             advanceToTimestamp(start, "Flag bad operator")
-            await (await badOperator2.flag(sponsorship.address, badOperator1.address, "{}")).wait()
+            await (await badFlagger.flag(sponsorship.address, badFlagged.address, "{}")).wait()
 
             advanceToTimestamp(start + 3601, "Vote for bad operator")
-            await expect(badOperator3.voteOnFlag(sponsorship.address, badOperator1.address, hexZeroPad(parseEther("100").toHexString(), 32)))
+            await expect(badVoter.voteOnFlag(sponsorship.address, badFlagged.address, VOTE_NO_KICK))
                 .to.emit(sponsorship, "FlagUpdate") // emits VOTING
                 .to.emit(sponsorship, "FlagUpdate") // emits NOT_KICKED
-            const badOperatorStakeAfterKick = await sponsorship.stakedWei(badOperator1.address)
+            const badOperatorStakeAfterKick = await sponsorship.stakedWei(badFlagged.address)
 
             expect(badOperatorStakeBeforeKick).to.equal(parseEther("5000"))
             expect(badOperatorStakeAfterKick).to.equal(parseEther("5000")) // NOT_KICKED
