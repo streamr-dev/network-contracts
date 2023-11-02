@@ -109,8 +109,10 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         }
 
         flaggerAddress[target] = flagger;
-        voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
-        voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds();
+        // voteStartTimestamp[target] = block.timestamp + streamrConfig.reviewPeriodSeconds(); // solhint-disable-line not-rely-on-time
+        // voteEndTimestamp[target] = voteStartTimestamp[target] + streamrConfig.votingPeriodSeconds();
+        voteStartTimestamp[target] = block.timestamp + 60; // solhint-disable-line not-rely-on-time
+        voteEndTimestamp[target] = voteStartTimestamp[target] + 120;
 
         // cache these just in case the config changes during the flag
         flagStakeWei[target] = streamrConfig.flagStakeWei();

@@ -30,10 +30,10 @@ if (ENV === 'test') {
     signer = new ethers.Wallet(PRIVKEY || "", provider).connect(provider)
 }
 
-async function main() {
+async function checkForFlags() {
     console.log('starting, flag lifetime is', flagLifetime, 'seconds')
-    // const maxFlagAge = Math.floor(Date.now() / 1000) - flagLifetime
-    const minFlagAge = Math.floor(Date.now() / 1000) - 60
+    // const minFlagAge = Math.floor(Date.now() / 1000) - flagLifetime
+    const minFlagAge = Math.floor(Date.now() / 1000)
     const flags = await graphClient.queryEntity<any>({ query: `
         {
             flags(where: {flaggingTimestamp_lt: ${minFlagAge}}) {
@@ -56,16 +56,23 @@ async function main() {
         const operatorAddress = flag.target.id
         const sponsorship = flag.sponsorship.id
         const sponsorshipContract = new Contract(sponsorship, sponsorshipABI, signer) as unknown as Sponsorship
-        if (flag.flaggingTimestamp > minFlagAge) {
+        console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagAge)
+        if (flag.flaggingTimestamp < minFlagAge) {
             // endFlag(flagId, sponsorshipContract, operatorAddress)
         }
     }
 }
+
+async function main() {
+    await checkForFlags()
+    setInterval(checkForFlags, 60 * 1000)
+}
+
 main()
 
 const endFlag = async (flagID: string, sponsorshipContract: Sponsorship, operatorAddress: string) => {
-
-    const tx = await sponsorshipContract.voteOnFlag(operatorAddress, "0x1")
+    console.log('ending flag', flagID, 'for operator', operatorAddress)
+    const tx = await sponsorshipContract.voteOnFlag(operatorAddress, ethers.utils.randomBytes(32))
     console.log('flag id: ', flagID, 'sent tx, tx hash: ', tx.hash)
     const receipt = await tx.wait()
     console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
