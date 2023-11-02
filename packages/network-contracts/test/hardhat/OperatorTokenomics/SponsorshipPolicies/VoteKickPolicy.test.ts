@@ -739,7 +739,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "target-reducestake")
+            } = await setupSponsorships(sharedContracts, [2, 1], "target-reducestake")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
