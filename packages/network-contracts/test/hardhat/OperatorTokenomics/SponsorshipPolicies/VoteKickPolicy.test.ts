@@ -733,6 +733,24 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start2 + VOTE_START, `${addr(badOperator)} votes`)
             await expect(badOperator.voteOnFlag(sponsorship.address, target2.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
         })
+
+        // flagger already pays by forfeiting the flagStake, no point in slashing again
+        it("will not slash a flagger that has forceUnstaked even if result is NO_KICK", async function(): Promise<void> {
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ]
+            } = await setupSponsorships(contracts, [2, 1], "target-reducestake")
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+            await expect(flagger.forceUnstake(sponsorship.address, "0")).to.emit(flagger, "OperatorSlashed")
+            await expect(flagger.stake(sponsorship.address, parseEther("9000"))).to.emit(sponsorship, "OperatorJoined")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
+                .to.not.emit(flagger, "OperatorSlashed")
+        })
     })
 
     describe("Stake locking", (): void => {
@@ -758,11 +776,11 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("allows the target to unstake AFTER the flag resolves to NO_KICK", async function(): Promise<void> {
-            const start = await getBlockTimestamp()
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
             } = await setupSponsorships(sharedContracts, [2, 1], "target-after-flag")
+            const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
