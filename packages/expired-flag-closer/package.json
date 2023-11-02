@@ -14,9 +14,16 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "@ethersproject/abstract-signer": "^5.7.0",
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@ethersproject/random": "^5.7.0",
+    "@ethersproject/wallet": "^5.7.0",
     "@streamr/config": "^4.0.12",
-    "@streamr/network-contracts": "file:../network-contracts",
+    "@streamr/network-contracts": "^7.0.5",
     "@streamr/utils": "^8.5.5",
+    "debug": "^4.3.4",
+    "ethers": "^5.7.2",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

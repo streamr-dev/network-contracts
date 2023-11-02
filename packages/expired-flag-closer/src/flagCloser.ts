@@ -1,14 +1,18 @@
 import { config } from '@streamr/config'
 import { Logger, TheGraphClient } from '@streamr/utils'
-import fetch from 'node-fetch'
-import { Contract, ethers } from 'ethers'
+import  fetch  from 'node-fetch'
 import { Sponsorship, sponsorshipABI } from '@streamr/network-contracts'
+import { JsonRpcProvider } from '@ethersproject/providers'
+import { Signer } from '@ethersproject/abstract-signer'
+import { Wallet } from '@ethersproject/wallet'
+import { Contract } from '@ethersproject/contracts'
+import { randomBytes } from '@ethersproject/random'
 
 const { ENV, PRIVKEY, INTERVALSEC } = process.env
 
 let graphClient: TheGraphClient
-let provider: ethers.providers.JsonRpcProvider
-let signer: ethers.Signer
+let provider: JsonRpcProvider
+let signer: Signer
 const flagLifetime = 60 * 75 // 75 minutes
 
 if (ENV === 'test') {
@@ -17,8 +21,8 @@ if (ENV === 'test') {
         fetch,
         logger: new Logger(module)
     })
-    provider = new ethers.providers.JsonRpcProvider(config.dev2.rpcEndpoints[0].url)
-    signer = new ethers.Wallet("0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0")
+    provider = new JsonRpcProvider(config.dev2.rpcEndpoints[0].url)
+    signer = new Wallet("0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0")
         .connect(provider)
 } else {
     graphClient = new TheGraphClient({
@@ -26,8 +30,8 @@ if (ENV === 'test') {
         fetch,
         logger: new Logger(module)
     })
-    provider = new ethers.providers.JsonRpcProvider(config.mumbai.rpcEndpoints[0].url)
-    signer = new ethers.Wallet(PRIVKEY || "", provider).connect(provider)
+    provider = new JsonRpcProvider(config.mumbai.rpcEndpoints[0].url)
+    signer = new Wallet(PRIVKEY || "", provider).connect(provider)
 }
 
 async function checkForFlags() {
@@ -73,7 +77,7 @@ main()
 const endFlag = async (flagID: string, sponsorshipContract: Sponsorship, operatorAddress: string) => {
     try {
         console.log('flag id:', flagID, 'sending close flag tx')
-        const tx = await sponsorshipContract.voteOnFlag(operatorAddress, ethers.utils.randomBytes(32))
+        const tx = await sponsorshipContract.voteOnFlag(operatorAddress, randomBytes(32))
         console.log('flag id:', flagID, 'sent tx, tx hash: ', tx.hash)
         const receipt = await tx.wait()
         console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
