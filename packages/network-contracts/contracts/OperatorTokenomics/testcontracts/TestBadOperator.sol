@@ -27,6 +27,9 @@ contract TestBadOperator is IERC677Receiver, IOperator {
     // asked by factory
     bytes32 public DEFAULT_ADMIN_ROLE = bytes32(0); // solhint-disable-line var-name-mixedcase
 
+    // asked by IVoterRegistry
+    uint public totalStakedIntoSponsorshipsWei = 100 ether;
+
     function setReviewRequestReverting(bool shouldRevert) external {
         shouldRevertOnReviewRequest = shouldRevert;
     }
@@ -43,8 +46,9 @@ contract TestBadOperator is IERC677Receiver, IOperator {
         token.approve(address(sponsorship), amountWei);
         sponsorship.stake(address(this), amountWei);
         valueWithoutEarnings = amountWei;
+        totalStakedIntoSponsorshipsWei = amountWei;
         if (address(voterRegistry) != address(0)) {
-            voterRegistry.updateStake(amountWei);
+            voterRegistry.voterUpdate(address(this));
         }
     }
 

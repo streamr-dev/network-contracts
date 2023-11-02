@@ -28,8 +28,8 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     event PolicyWhitelisted(address indexed policyAddress, bool indexed isWhitelisted);
 
     error PolicyNotTrusted();
-    error OperatorAlreadyDeployed();
-    error OnlyOperators();
+    error OperatorAlreadyDeployed(address operatorContractAddress);
+    error InvalidOperatorContract(address notAnOperatorContractAddress);
     error AlreadyLive();
     error NotLive();
     error ExchangeRatePolicyRequired();
@@ -58,7 +58,7 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
     mapping (address => address) public operators; // operator wallet => Operator contract address
 
     uint public totalStakedWei; // global total stake in Sponsorships
-    mapping (address => uint) public stakedWei; // each Operator.totalStakedWei
+    mapping (address => uint) public stakedWei; // each Operator.totalStakedIntoSponsorshipsWei()
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
@@ -179,10 +179,14 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         address[3] memory policies,
         uint[3] memory policyParams
     ) private returns (address) {
-        if (operators[operatorAddress] != address(0)) { revert OperatorAlreadyDeployed(); }
+        if (operators[operatorAddress] != address(0)) {
+            revert OperatorAlreadyDeployed(operators[operatorAddress]);
+        }
         for (uint i; i < policies.length; i++) {
             address policyAddress = policies[i];
-            if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) { revert PolicyNotTrusted(); }
+            if (policyAddress != address(0) && !isTrustedPolicy(policyAddress)) {
+                revert PolicyNotTrusted();
+            }
         }
         bytes32 salt = keccak256(abi.encode(operatorTokenName, operatorAddress));
         address newContractAddress = ClonesUpgradeable.cloneDeterministic(operatorTemplate, salt);
@@ -233,30 +237,35 @@ contract OperatorFactory is Initializable, UUPSUpgradeable, AccessControlUpgrade
         return streamrConfig.trustedForwarder() == forwarder;
     }
 
-    function updateStake(uint newStakeWei) external {
-        address operator = msg.sender;
-        if (deploymentTimestamp[operator] == 0) { revert OnlyOperators(); }
+    function voterUpdate(address operatorContractAddress) external returns (bool isEligible) {
+        if (deploymentTimestamp[operatorContractAddress] == 0) {
+            revert InvalidOperatorContract(operatorContractAddress);
+        }
+        Operator operator = Operator(operatorContractAddress);
 
-        totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operator];
-        stakedWei[operator] = newStakeWei;
+        uint newStakeWei = operator.totalStakedIntoSponsorshipsWei();
+        totalStakedWei = totalStakedWei + newStakeWei - stakedWei[operatorContractAddress];
+        stakedWei[operatorContractAddress] = newStakeWei;
 
         uint voterThreshold = totalStakedWei * streamrConfig.minEligibleVoterFractionOfAllStake() / 1 ether;
-        bool isEligible = newStakeWei >= voterThreshold && deploymentTimestamp[operator] + streamrConfig.minEligibleVoterAge() < block.timestamp; // solhint-disable-line not-rely-on-time
+        isEligible =
+            newStakeWei >= voterThreshold &&
+            deploymentTimestamp[operatorContractAddress] + streamrConfig.minEligibleVoterAge() < block.timestamp; // solhint-disable-line not-rely-on-time
 
-        if (isEligible && votersIndex[operator] == 0) {
-            voters.push(operator);
-            votersIndex[operator] = voters.length; // real index + 1
-            emit VoterUpdate(operator, true);
+        if (isEligible && votersIndex[operatorContractAddress] == 0) {
+            voters.push(operatorContractAddress);
+            votersIndex[operatorContractAddress] = voters.length; // real index + 1
+            emit VoterUpdate(operatorContractAddress, true);
         }
 
-        if (!isEligible && votersIndex[operator] > 0) {
-            uint index = votersIndex[operator] - 1; // real index = votersIndex - 1
+        if (!isEligible && votersIndex[operatorContractAddress] > 0) {
+            uint index = votersIndex[operatorContractAddress] - 1; // real index = votersIndex - 1
             address lastOperator = voters[voters.length - 1];
             voters[index] = lastOperator;
             voters.pop();
             votersIndex[lastOperator] = index + 1; // real index + 1
-            delete votersIndex[operator];
-            emit VoterUpdate(operator, false);
+            delete votersIndex[operatorContractAddress];
+            emit VoterUpdate(operatorContractAddress, false);
         }
     }
 
