@@ -55,7 +55,7 @@ async function deploy() {
 
     // const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
 
-    await streamrEnvDeployer.deployEnvironment({ deployToken: false })
+    await streamrEnvDeployer.deployEnvironment()
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     // await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
 
