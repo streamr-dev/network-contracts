@@ -331,6 +331,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint flagStake = flagStakeWei[target];
         if (lockedStakeWei[flagger] >= flagStake) {
             lockedStakeWei[flagger] -= flagStake;
+            _slash(flagger, rewardsWei);
         } else {
             //...unless flagger has forceUnstaked or been kicked, in which case the locked flag-stake was moved into forfeited stake
             forfeitedStakeWei -= flagStake - lockedStakeWei[flagger];
@@ -338,7 +339,6 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             leftoverWei += flagStake - rewardsWei;
         }
         if (stakedWei[flagger] > 0) {
-            _slash(flagger, rewardsWei);
             emit StakeLockUpdate(flagger, lockedStakeWei[flagger], getMinimumStakeOf(flagger));
         }
 
