@@ -111,6 +111,8 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     operator.save()
 
     let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    bucket.valueWithoutEarnings = operator.valueWithoutEarnings
+    bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
     bucket.save()
 }
 

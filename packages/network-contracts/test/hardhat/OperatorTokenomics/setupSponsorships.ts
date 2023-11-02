@@ -76,7 +76,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
-    await (await admin.sendTransaction({ to: deployer.address, value: parseEther("1") })).wait()
+    await (await admin.sendTransaction({ to: deployer.address, value: parseEther("100000") })).wait()
     // console.log("deployer: %s", addr(deployer))
 
     // we just want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)

@@ -176,6 +176,10 @@ describe("StreamrConfig", (): void => {
             await (await sharedConfig.setFlagReviewerCount(10)).wait()
             expect(await sharedConfig.flagReviewerSelectionIterations()).to.equal(10)
         })
+        it("minEligibleVoterFractionOfAllStake <= 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setMinEligibleVoterFractionOfAllStake(parseEther("2")))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh").withArgs("2000000000000000000", "1000000000000000000")
+        })
     })
 
     describe("Access control", (): void => {
@@ -206,6 +210,9 @@ describe("StreamrConfig", (): void => {
             await expect(sharedConfig.connect(notAdmin).setMinimumSelfDelegationFraction("0")).to.be.revertedWith(expectedError)
             await expect(sharedConfig.connect(notAdmin).setRandomOracle(admin.address)).to.be.revertedWith(expectedError)
             await expect(sharedConfig.connect(notAdmin).setTrustedForwarder(admin.address)).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setEarlyLeaverPenaltyWei("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMinEligibleVoterAge("0")).to.be.revertedWith(expectedError)
+            await expect(sharedConfig.connect(notAdmin).setMinEligibleVoterFractionOfAllStake("0")).to.be.revertedWith(expectedError)
         })
 
         it("prevents calling initialize", async (): Promise<void> => {

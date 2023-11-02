@@ -2,6 +2,11 @@ export const config = {
     "dev0": {
         "id": 8995,
         "name": "dev0",
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "http://10.200.10.1:8545"
@@ -34,6 +39,11 @@ export const config = {
     "dev1": {
         "id": 8997,
         "name": "dev1",
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "http://10.200.10.1:8546"
@@ -77,6 +87,11 @@ export const config = {
     "dev2": {
         "id": 31337,
         "name": "dev2",
+        "nativeCurrency": {
+            "symbol": "DEV",
+            "name": "Developer Ethereum",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "http://10.200.10.1:8547"
@@ -123,7 +138,12 @@ export const config = {
     },
     "alfajores": {
         "id": 44787,
-        "name": "alfajores",
+        "name": "Celo Alfajores",
+        "nativeCurrency": {
+            "symbol": "CELO",
+            "name": "Celo Alfajores",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://alfajores-forno.celo-testnet.org"
@@ -137,7 +157,12 @@ export const config = {
     },
     "optGoerli": {
         "id": 420,
-        "name": "optGoerli",
+        "name": "Optimism Goerli Testnet",
+        "nativeCurrency": {
+            "symbol": "ETH",
+            "name": "Optimism Goerli Testnet Ethereum",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://goerli.optimism.io"
@@ -150,7 +175,12 @@ export const config = {
     },
     "ethereum": {
         "id": 1,
-        "name": "ethereum",
+        "name": "Ethereum",
+        "nativeCurrency": {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "decimals": 18
+        },
         "rpcEndpoints": [],
         "contracts": {
             "AMB": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
@@ -168,7 +198,12 @@ export const config = {
     },
     "gnosis": {
         "id": 100,
-        "name": "gnosis",
+        "name": "Gnosis Chain",
+        "nativeCurrency": {
+            "symbol": "xDAI",
+            "name": "xDai",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://rpc.gnosischain.com"
@@ -199,7 +234,12 @@ export const config = {
     },
     "binance": {
         "id": 56,
-        "name": "binance",
+        "name": "BNB Chain",
+        "nativeCurrency":{
+            "symbol": "BNB",
+            "name": "BNB",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://bsc-dataseed.binance.org"
@@ -215,7 +255,12 @@ export const config = {
     },
     "polygon": {
         "id": 137,
-        "name": "polygon",
+        "name": "Polygon",
+        "nativeCurrency": {
+            "symbol": "MATIC",
+            "name": "MATIC",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://polygon-rpc.com"
@@ -248,7 +293,12 @@ export const config = {
     },
     "mumbai": {
         "id": 80001,
-        "name": "mumbai",
+        "name": "Polygon Mumbai",
+        "nativeCurrency": {
+            "symbol": "MATIC",
+            "name": "Mumbai MATIC",
+            "decimals": 18
+        },
         "rpcEndpoints": [
             {
                 "url": "https://rpc-mumbai.maticvigil.com"
