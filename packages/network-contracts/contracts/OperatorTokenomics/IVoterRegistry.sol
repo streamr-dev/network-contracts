@@ -6,7 +6,8 @@ pragma solidity ^0.8.0;
 interface IVoterRegistry {
     event VoterUpdate(address indexed voterAddress, bool indexed isVoter);
 
-    function updateStake(uint newStakeWei) external;
+    /** Will check if the given contract is eligible or not, update voter list if needed */
+    function voterUpdate(address operatorContractAddress) external returns (bool isEligible);
 
     function voterCount() external view returns (uint);
     function voters(uint index) external view returns (address);

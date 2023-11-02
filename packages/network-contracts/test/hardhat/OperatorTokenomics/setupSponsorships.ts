@@ -5,7 +5,7 @@ import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
 
 import type { Wallet, BigNumber } from "ethers"
-import type { Sponsorship, Operator, OperatorFactory, TestToken } from "../../../typechain"
+import type { Sponsorship, Operator, TestToken } from "../../../typechain"
 
 const { parseEther, id } = hardhatEthers.utils
 
@@ -14,8 +14,7 @@ export interface SponsorshipTestSetup {
     sponsorships: Sponsorship[]
     operators: Operator[]
     operatorsPerSponsorship: Operator[][]
-    operatorFactory: OperatorFactory
-    newContracts: TestContracts
+    contracts: TestContracts
 }
 
 export interface SponsorshipTestSetupOptions {
@@ -61,18 +60,18 @@ async function getTestWallets(contracts: TestContracts, count: number, minTokenB
 /**
  * Sets up a Sponsorships with given number of operators staked to each; each with Operator that stakes 1000 tokens into that Sponsorship
  */
-export async function setupSponsorships(contracts: TestContracts, operatorCounts = [0, 3], saltSeed: string, {
+export async function setupSponsorships(originalContracts: TestContracts, operatorCounts = [0, 3], saltSeed: string, {
     sponsorshipSettings = {},
     operatorsCutFraction = parseEther("1"),
     stakeAmountWei = parseEther("10000"),
     sponsor = true,
 }: SponsorshipTestSetupOptions = {}): Promise<SponsorshipTestSetup> {
-    const { token } = contracts
+    const { token } = originalContracts
     const [admin] = await hardhatEthers.getSigners() as unknown as Wallet[]
 
     const totalOperatorCount = operatorCounts.reduce((a, b) => a + b, 0)
     const sponsorshipCount = operatorCounts.length
-    const signers = await getTestWallets(contracts, totalOperatorCount, stakeAmountWei)
+    const signers = await getTestWallets(originalContracts, totalOperatorCount, stakeAmountWei)
 
     // clean deployer wallet starts from nothing => needs ether to deploy Operator etc.
     const deployer = new hardhatEthers.Wallet(id(saltSeed), admin.provider) // id turns string into bytes32
@@ -82,8 +81,8 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     // we just want to re-deploy the OperatorFactory (not all the policies or SponsorshipFactory)
     // to generate deterministic Operator addresses => deterministic reviewer selection
     const newContracts = {
-        ...contracts,
-        ...await deployOperatorFactory(contracts, deployer)
+        ...originalContracts,
+        ...await deployOperatorFactory(originalContracts, deployer)
     }
 
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
@@ -103,7 +102,7 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
     const sponsorships: Sponsorship[] = []
     for (let i = 0; i < sponsorshipCount; i++) {
         const staked = operatorsPerSponsorship[i]
-        const sponsorship = await deploySponsorship(contracts, {
+        const sponsorship = await deploySponsorship(originalContracts, {
             allocationWeiPerSecond: parseEther("0"),
             penaltyPeriodSeconds: 0,
             ...sponsorshipSettings
@@ -122,6 +121,6 @@ export async function setupSponsorships(contracts: TestContracts, operatorCounts
         sponsorships,
         operators,
         operatorsPerSponsorship,
-        newContracts
+        contracts: newContracts
     }
 }
