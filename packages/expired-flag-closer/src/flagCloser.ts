@@ -39,7 +39,9 @@ async function checkForFlags() {
     const minFlagStartTime = Math.floor(Date.now() / 1000) - flagLifetime
     // console.log('min flag start time', minFlagStartTime)
     // const minFlagStartTime = Math.floor(Date.now() / 1000)
-    const flags = await graphClient.queryEntity<any>({ query: `
+    let flags: any
+    try {
+        flags = await graphClient.queryEntity<any>({ query: `
         {
             flags(where: {flaggingTimestamp_lt: ${minFlagStartTime}, result_not_in: ["kicked", "failed"]}) {
                 id
@@ -53,6 +55,10 @@ async function checkForFlags() {
             }
         }
         `})
+    } catch (e) {
+        console.log('failed to query flags', e)
+        return
+    }
     console.log('found', flags.flags.length, 'flags')
     for (const flag of flags.flags) {
         // console.log('flag', flag)
