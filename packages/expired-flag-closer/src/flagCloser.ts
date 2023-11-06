@@ -78,7 +78,7 @@ async function main() {
     setInterval(checkForFlags, parseInt(INTERVALSEC || "900") * 1000) // default 15 minutes
 }
 
-main()
+main().catch(console.error)
 
 const endFlag = async (flagID: string, sponsorshipContract: Sponsorship, operatorAddress: string) => {
     try {
