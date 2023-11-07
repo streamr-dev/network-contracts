@@ -287,3 +287,5 @@ templates:
             handler: handleHeartbeat
           - event: MetadataUpdated(string,indexed address,indexed uint256)
             handler: handleMetadataUpdate
+          - event: ReviewRequest(indexed address,indexed address,uint256,uint256,string)
+            handler: handleReviewRequest

@@ -122,6 +122,7 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
         flag.votesForKick = BigInt.zero()
         flag.votesAgainstKick = BigInt.zero()
         flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+        flag.reviewers = []
     }
     return flag
 }
