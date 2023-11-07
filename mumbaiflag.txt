@@ -1,0 +1,120 @@
+Sponsorship 0x823802371008f4409ed9a2a4dfc47952158d85f2
+flagger 0x975c4f2b0ab5b81b4d99c6b9826f620d7921c02a
+target 0xd7aac51f563d462b07f1441b8760bf125043bf0b
+
+flag tx
+https://mumbai.polygonscan.com/tx/0x50532d2b3ceef6824323de0178baaa894d47e9862727e18678c8441ab727666c
+
+
+stake history of target in sponsorship
+query MyQuery {
+  stakingEvents(
+    where: {operator_: {id: "0xd7aac51f563d462b07f1441b8760bf125043bf0b"}, sponsorship_: {id: "0x823802371008f4409ed9a2a4dfc47952158d85f2"}}
+    orderBy: date
+  ) {
+    amount
+    date
+    id
+  }
+}
+
+flags against this target
+query MyQuery {
+  flags(
+    where: {sponsorship_: {id: "0x823802371008f4409ed9a2a4dfc47952158d85f2"}, target_: {id: "0xd7aac51f563d462b07f1441b8760bf125043bf0b"}}
+  ) {
+    flaggingTimestamp
+    metadata
+    result
+    reviewerCount
+    targetStakeAtRiskWei
+    votesAgainstKick
+    votesForKick
+  }
+}
+
+20000000000000000000
+
+slashingEvents in this sponsorship of the target
+query MyQuery {
+  slashingEvents(
+    where: {sponsorship_: {id: "0x823802371008f4409ed9a2a4dfc47952158d85f2"}, operator_: {id: "0xd7aac51f563d462b07f1441b8760bf125043bf0b"}}
+  ) {
+    amount
+    date
+    id
+    operator {
+      id
+    }
+    sponsorship {
+      id
+    }
+  }
+}
+
+flag query
+query MyQuery {
+  flag(
+    id: "0x823802371008f4409ed9a2a4dfc47952158d85f2-0xd7aac51f563d462b07f1441b8760bf125043bf0b-0"
+  ) {
+    result
+    id
+    lastFlagIndex
+    metadata
+    reviewerCount
+    targetStakeAtRiskWei
+    votesAgainstKick
+    votesForKick
+    flaggingTimestamp
+    flagger {
+      id
+    }
+    target {
+      id
+    }
+    votes {
+      voter {
+        id
+      }
+    }
+    sponsorship {
+      id
+    }
+  }
+}
+
+
+
+
+steps
+1. stake 10k txhash:0xc089f9276cd07a9e0a2939d9f334d5a8266f222b4c032c05f8c763e3fe3065d1
+2. flag Nov-03-2023 12:32:54 AM block:41946619 0xefb054effe27d8b9d11f45e8417f3effae331421 txhash:0x46e262e9ba023bd67b2102752126a9afcf250fc18cc45344d9eeea12d3776bb3
+    flagid 0x823802371008f4409ed9a2a4dfc47952158d85f2-0xefb054effe27d8b9d11f45e8417f3effae331421-0
+    flag fails -> flagger gets slashed, but still above minstake 5k
+3. flag Nov-03-2023 04:27:11 AM block:41952720 same target:0xefB054EFfe27D8B9d11F45E8417F3eFFAE331421
+    flagid 0x823802371008f4409ed9a2a4dfc47952158d85f2-0xefb054effe27d8b9d11f45e8417f3effae331421-1
+    fails
+4. flag Nov-03-2023 08:20:20 AM block:41958789 target:0x6528d652Fc06A65540d9d61D0246763B2fa5bdcD
+    flagid 0x823802371008f4409ed9a2a4dfc47952158d85f2-0x6528d652fc06a65540d9d61d0246763b2fa5bdcd-0
+    fails
+5. flag Nov-03-2023 08:37:28 AM target:0xefB054EFfe27D8B9d11F45E8417F3eFFAE331421
+    flagid 0x823802371008f4409ed9a2a4dfc47952158d85f2-0xefb054effe27d8b9d11f45e8417f3effae331421-0
+    fails
+6. flag Nov-03-2023 11:24:31 AM target:0xefB054EFfe27D8B9d11F45E8417F3eFFAE331421
+    flagid 0x823802371008f4409ed9a2a4dfc47952158d85f2-0xefb054effe27d8b9d11f45e8417f3effae331421-0
+    fails
+7. flag Nov-03-2023 11:58:43 AM target:0x0a1b3F202890a5061C44583E52175BEb6E974de4
+    fails
+8. flag Nov-03-2023 12:32:33 PM target:0xdf826763fc0930f9cb6644292db8db50d23b0c35
+    fails
+9. flag Nov-03-2023 01:23:11 PM target:0xB7B95CF77e27BdEa328022F80B5603667565Bd05
+
+
+
+
+
+
+handleStakeLockUpdated: sponsorship=0x823802371008f4409ed9a2a4dfc47952158d85f2 operator=0xd7aac51f563d462b07f1441b8760bf125043bf0b
+
+
+handleFlagged: sponsorship=0x823802371008f4409ed9a2a4dfc47952158d85f2 flagger=0x975c4f2b0ab5b81b4d99c6b9826f620d7921c02a target=0xd7aac51f563d462b07f1441b8760bf125043bf0b
