@@ -10,7 +10,7 @@ import {
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateFlag, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
     "waiting",
@@ -124,18 +124,12 @@ export function handleFlagged(event: Flagged): void {
         firstFlag.save()
     }
 
-    let flag = new Flag(sponsorship + "-" + target + "-" + flagIndex.toString())
-    flag.sponsorship = sponsorship
-    flag.target = target
+    let flag = loadOrCreateFlag(sponsorship, target, flagIndex) // will always be a load (ReviewRequest handler does the creation)
     flag.flagger = flagger
     flag.flaggingTimestamp = now
-    flag.result = "waiting"
-    flag.votesForKick = BigInt.zero()
-    flag.votesAgainstKick = BigInt.zero()
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
-    flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
     flag.save()
 }
 

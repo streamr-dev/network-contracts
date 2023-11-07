@@ -3,6 +3,7 @@ import {
     Delegation,
     Delegator,
     DelegatorDailyBucket,
+    Flag,
     Operator,
     OperatorDailyBucket,
     Project,
@@ -108,6 +109,21 @@ export function loadOrCreateSponsorshipDailyBucket(
         bucket.operatorCount = sponsorship!.operatorCount
     }
     return bucket
+}
+
+export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: string, flagIndex: i32): Flag {
+    let flagId = sponsorshipAddress + "-" + targetAddress + "-" + flagIndex.toString()
+    let flag = Flag.load(flagId)
+    if (flag === null) {
+        flag = new Flag(flagId)
+        flag.sponsorship = sponsorshipAddress
+        flag.target = targetAddress
+        flag.result = "waiting"
+        flag.votesForKick = BigInt.zero()
+        flag.votesAgainstKick = BigInt.zero()
+        flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+    }
+    return flag
 }
 
 export function loadOrCreateOperator(operatorId: string): Operator {
