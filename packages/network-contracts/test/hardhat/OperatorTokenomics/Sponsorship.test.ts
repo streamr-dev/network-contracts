@@ -13,7 +13,7 @@ const {
     getSigners,
     getContractFactory,
     constants: { AddressZero },
-    utils: { defaultAbiCoder, parseEther, formatEther, hexZeroPad }
+    utils: { defaultAbiCoder, parseEther, formatEther }
 } = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
