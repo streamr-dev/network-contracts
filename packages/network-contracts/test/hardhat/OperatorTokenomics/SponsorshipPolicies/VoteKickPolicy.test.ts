@@ -40,7 +40,7 @@ describe("VoteKickPolicy", (): void => {
     let protocol: Wallet
 
     let mockRandomOracle: MockRandomOracle
-    let contracts: TestContracts
+    let sharedContracts: TestContracts
 
     // default setup for test cases that don't need a clean set of contracts
     // clean setup is needed when review selection has to be controlled (so that Operators from old tests don't interfere)
@@ -50,18 +50,18 @@ describe("VoteKickPolicy", (): void => {
 
     before(async (): Promise<void> => {
         [admin, protocol] = await hardhatEthers.getSigners()
-        contracts = await deployTestContracts(admin)
+        sharedContracts = await deployTestContracts(admin)
 
-        const { streamrConfig } = contracts
+        const { streamrConfig } = sharedContracts
         await (await streamrConfig.setProtocolFeeBeneficiary(protocol.address)).wait()
         await (await streamrConfig.setFlagReviewerCount(7)).wait()
         await (await streamrConfig.setFlagReviewerRewardWei(parseEther("20"))).wait()
         await (await streamrConfig.setFlaggerRewardWei(parseEther("360"))).wait()
         await (await streamrConfig.setFlagStakeWei(parseEther("500"))).wait()
 
-        defaultSetup = await setupSponsorships(contracts, [3, 2], "default-setup")
+        defaultSetup = await setupSponsorships(sharedContracts, [3, 2], "default-setup")
         mockRandomOracle = await (await hardhatEthers.getContractFactory("MockRandomOracle", { signer: admin })).deploy()
-        await (await contracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
+        await (await sharedContracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
 
         badOperatorTemplate = await (await getContractFactory("TestBadOperator", admin)).deploy()
     })
@@ -75,8 +75,10 @@ describe("VoteKickPolicy", (): void => {
         await (await mockRandomOracle.setOutcomes([ "0x0001000100010001000100010001000100010001000100010001000100030002" ])).wait()
 
         // burn all protocolBeneficiary's tokens
-        const protocolBalance = await contracts.token.balanceOf(protocol.address)
-        await (await contracts.token.connect(protocol).transfer("0x1234000000000000000000000000000000000000", protocolBalance)).wait()
+        const protocolBalance = await sharedContracts.token.balanceOf(protocol.address)
+        await (await sharedContracts.token.connect(protocol).transfer("0x1234000000000000000000000000000000000000", protocolBalance)).wait()
+
+        await (await sharedContracts.streamrConfig.setOperatorFactory(defaultSetup.contracts.operatorFactory.address)).wait()
     })
 
     async function deployBadOperator(contracts: TestContracts, deployer: Wallet): Promise<TestBadOperator> {
@@ -96,7 +98,7 @@ describe("VoteKickPolicy", (): void => {
                 token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [3], "one-of-each")
+            } = await setupSponsorships(sharedContracts, [3], "one-of-each")
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "{}"))
@@ -121,7 +123,7 @@ describe("VoteKickPolicy", (): void => {
                 token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter1, voter2, voter3 ]
-            } = await setupSponsorships(contracts, [5], "3-voters-test")
+            } = await setupSponsorships(sharedContracts, [5], "3-voters-test")
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, ""))
@@ -166,7 +168,7 @@ describe("VoteKickPolicy", (): void => {
                 token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger1, flagger2, target1, target2, voter ],
-            } = await setupSponsorships(contracts, [4, 1], "2-active-flags")
+            } = await setupSponsorships(sharedContracts, [4, 1], "2-active-flags")
             const t1 = target1.address
             const t2 = target2.address
             const start = await getBlockTimestamp()
@@ -209,15 +211,17 @@ describe("VoteKickPolicy", (): void => {
         })
     })
 
-    describe("Reviewer selection", function(): void {
+    describe("Reviewer selection / IVoterRegistry", function(): void {
         // live = staked to any Sponsorship
         it("will only pick live reviewers", async () => {
-            const { newContracts, sponsorships, operators: [
-                flagger, target, voter, nonStaked
-            ] } = await setupSponsorships(contracts, [2, 2], "pick-only-live-reviewers")
+            const {
+                sponsorships,
+                operators: [ flagger, target, voter, nonStaked ],
+                contracts: { operatorFactory },
+            } = await setupSponsorships(sharedContracts, [2, 2], "pick-only-live-reviewers")
 
             await expect(nonStaked.unstake(sponsorships[1].address))
-                .to.emit(newContracts.operatorFactory, "VoterUpdate").withArgs(nonStaked.address, false)
+                .to.emit(operatorFactory, "VoterUpdate").withArgs(nonStaked.address, false)
             await expect(flagger.flag(sponsorships[0].address, target.address, ""))
                 .to.emit(voter, "ReviewRequest")
                 .to.not.emit(nonStaked, "ReviewRequest")
@@ -227,7 +231,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 5], "target-forceUnstake", { sponsor: false })
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstake", { sponsor: false })
             const start = await getBlockTimestamp()
 
             // make one voter much bigger than others
@@ -254,14 +258,14 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("works even if voter candidate's onReviewRequest reverts (skip that voter)", async function(): Promise<void> {
-            const { token } = contracts
             const {
+                token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target ],
-                newContracts
-            } = await setupSponsorships(contracts, [2], "bad-voter")
+                contracts
+            } = await setupSponsorships(sharedContracts, [2], "bad-voter")
             const signers = await hardhatEthers.getSigners()
-            const badOperator = await deployBadOperator(newContracts, signers[6])
+            const badOperator = await deployBadOperator(contracts, signers[6])
             await (await token.mint(badOperator.address, parseEther("100000"))).wait()
             await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
 
@@ -270,6 +274,60 @@ describe("VoteKickPolicy", (): void => {
 
             await (await badOperator.setReviewRequestReverting(false)).wait()
             await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(sponsorship, "Flagged")
+        })
+
+        it("allows anyone to update the voter eligibility in registry", async function(): Promise<void> {
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ op1, op2 ],
+                contracts: { streamrConfig, token, operatorFactory: voterRegistry }
+            } = await setupSponsorships(sharedContracts, [2], "eligibility")
+            expect(await voterRegistry.voterCount()).to.equal(2)
+
+            const originalStakeLimit = await streamrConfig.minEligibleVoterFractionOfAllStake()
+            const originalAgeLimit = await streamrConfig.minEligibleVoterAge()
+
+            await (await token.mint(op1.address, parseEther("10000000"))).wait()
+            await expect(op1.stake(sponsorship.address, parseEther("10000000"))).to.emit(sponsorship, "StakeUpdate")
+
+            await expect(voterRegistry.voterUpdate(op1.address)).to.not.emit(voterRegistry, "VoterUpdate")
+            await expect(voterRegistry.voterUpdate(op2.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op2.address, false)
+            expect(await voterRegistry.voterCount()).to.equal(1)
+
+            await expect(streamrConfig.setMinEligibleVoterFractionOfAllStake("0")).to.emit(streamrConfig, "ConfigChanged")
+
+            await expect(voterRegistry.voterUpdate(op1.address)).to.not.emit(voterRegistry, "VoterUpdate")
+            await expect(voterRegistry.voterUpdate(op2.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op2.address, true)
+            expect(await voterRegistry.voterCount()).to.equal(2)
+
+            await expect(streamrConfig.setMinEligibleVoterFractionOfAllStake(parseEther("1"))).to.emit(streamrConfig, "ConfigChanged")
+
+            await expect(voterRegistry.voterUpdate(op1.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op1.address, false)
+            await expect(voterRegistry.voterUpdate(op2.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op2.address, false)
+            expect(await voterRegistry.voterCount()).to.equal(0)
+
+            await expect(streamrConfig.setMinEligibleVoterFractionOfAllStake(originalStakeLimit)).to.emit(streamrConfig, "ConfigChanged")
+
+            await expect(voterRegistry.voterUpdate(op1.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op1.address, true)
+            await expect(voterRegistry.voterUpdate(op2.address)).to.not.emit(voterRegistry, "VoterUpdate")
+
+            await (await token.mint(op2.address, parseEther("10000000"))).wait()
+            await expect(op2.stake(sponsorship.address, parseEther("10000000")))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op2.address, true)
+
+            await expect(streamrConfig.setMinEligibleVoterAge("1000000")).to.emit(streamrConfig, "ConfigChanged")
+
+            await expect(voterRegistry.voterUpdate(op1.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op1.address, false)
+            await expect(voterRegistry.voterUpdate(op2.address))
+                .to.emit(voterRegistry, "VoterUpdate").withArgs(op2.address, false)
+
+            await expect(streamrConfig.setMinEligibleVoterAge(originalAgeLimit)).to.emit(streamrConfig, "ConfigChanged")
         })
     })
 
@@ -291,7 +349,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], [voter] ]
-            } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
+            } = await setupSponsorships(sharedContracts, [2, 1], "flag-with-metadata")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -309,25 +367,26 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS to flag if modules are not set", async function(): Promise<void> {
+            const { streamrConfig, token, allocationPolicy } = sharedContracts
             const sponsorship = await (await hardhatEthers.getContractFactory("Sponsorship", { signer: admin })).deploy()
             await sponsorship.deployed()
             await sponsorship.initialize(
                 "streamId",
                 "metadata",
-                contracts.streamrConfig.address,
-                defaultSetup.token.address,
+                streamrConfig.address,
+                token.address,
                 [
                     0,
                     1,
                     parseEther("1").toString()
                 ],
-                contracts.allocationPolicy.address
+                allocationPolicy.address
             )
-            await expect(sponsorship.flag(defaultSetup.sponsorships[0].address, ""))
+            await expect(sponsorship.flag(AddressZero, ""))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
-            await expect(sponsorship.voteOnFlag(defaultSetup.sponsorships[0].address, VOTE_KICK))
+            await expect(sponsorship.voteOnFlag(AddressZero, VOTE_KICK))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
-            await expect(sponsorship.getFlag(defaultSetup.sponsorships[0].address))
+            await expect(sponsorship.getFlag(AddressZero))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
             expect(await sponsorship.minimumStakeOf(admin.address)).to.equal("0")
         })
@@ -342,7 +401,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target ],
-            } = await setupSponsorships(contracts, [2], "no-reviewers")
+            } = await setupSponsorships(sharedContracts, [2], "no-reviewers")
             await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.be.revertedWith("error_failedToFindReviewers")
         })
@@ -351,7 +410,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "protection-after-no-kick")
+            } = await setupSponsorships(sharedContracts, [2, 1], "protection-after-no-kick")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -374,7 +433,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "voting-too-early")
+            } = await setupSponsorships(sharedContracts, [2, 1], "voting-too-early")
 
             await expect(flagger.flag(sponsorship.address, target.address, ""))
                 .to.emit(voter, "ReviewRequest")
@@ -386,7 +445,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 2], "voting-two-times")
+            } = await setupSponsorships(sharedContracts, [2, 2], "voting-two-times")
             const voterStake = parseEther("10000")
             const start = await getBlockTimestamp()
 
@@ -411,7 +470,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ s ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 4], "tie")
+            } = await setupSponsorships(sharedContracts, [2, 4], "tie")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -429,7 +488,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target ]
-            } = await setupSponsorships(contracts, [2, 1], "no-one-votes")
+            } = await setupSponsorships(sharedContracts, [2, 1], "no-one-votes")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -453,7 +512,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 5], "flagger-had-been-kicked")
+            } = await setupSponsorships(sharedContracts, [2, 5], "flagger-had-been-kicked")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -491,7 +550,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 5], "forceUnstaked-flagger")
+            } = await setupSponsorships(sharedContracts, [2, 5], "forceUnstaked-flagger")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -528,7 +587,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 5], "target-forceUnstake", { sponsor: false })
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstake", { sponsor: false })
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -566,7 +625,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 token, sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], voters ]
-            } = await setupSponsorships(contracts, [2, 5], "target-forceUnstake", { sponsor: false })
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstake", { sponsor: false })
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -604,7 +663,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operatorsPerSponsorship: [ [flagger, target], [voter0, voter1, nonVoter,, voter2, voter3] ]
-            } = await setupSponsorships(contracts, [2, 9], "non-voter-triggers-resolution")
+            } = await setupSponsorships(sharedContracts, [2, 9], "non-voter-triggers-resolution")
             const start = await getBlockTimestamp()
 
             // For 11 operators, produces 9 6 2 7 6 9 3 8 10
@@ -628,14 +687,14 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("works even if flagger's transferAndCall reverts", async function(): Promise<void> {
-            const { token } = contracts
+            const { token } = sharedContracts
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ target, voter ],
-                newContracts
-            } = await setupSponsorships(contracts, [2], "bad-flagger")
+                contracts
+            } = await setupSponsorships(sharedContracts, [2], "bad-flagger")
             const signers = await hardhatEthers.getSigners()
-            const badOperator = await deployBadOperator(newContracts, signers[6])
+            const badOperator = await deployBadOperator(contracts, signers[6])
             await (await token.mint(badOperator.address, parseEther("100000"))).wait()
             await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
             const start = await getBlockTimestamp()
@@ -648,14 +707,14 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("works even if voter's transferAndCall reverts", async function(): Promise<void> {
-            const { token } = contracts
+            const { token } = sharedContracts
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, target2 ],
-                newContracts
-            } = await setupSponsorships(contracts, [3], "bad-voter")
+                contracts
+            } = await setupSponsorships(sharedContracts, [3], "bad-voter")
             const signers = await hardhatEthers.getSigners()
-            const badOperator = await deployBadOperator(newContracts, signers[6])
+            const badOperator = await deployBadOperator(contracts, signers[6])
             await (await token.mint(badOperator.address, parseEther("100000"))).wait()
             await expect(await badOperator.stake(sponsorship.address, parseEther("100000"))).to.emit(sponsorship, "OperatorJoined")
 
@@ -680,7 +739,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "target-reducestake")
+            } = await setupSponsorships(sharedContracts, [2, 1], "target-reducestake")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -699,7 +758,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "target-reducestake", {
+            } = await setupSponsorships(sharedContracts, [2, 1], "target-reducestake", {
                 stakeAmountWei: parseEther("100000")
             })
 
@@ -720,7 +779,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "target-after-flag")
+            } = await setupSponsorships(sharedContracts, [2, 1], "target-after-flag")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -741,7 +800,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [flagger, ...targets]
-            } = await setupSponsorships(contracts, [13], "flagger-reducestake", {
+            } = await setupSponsorships(sharedContracts, [13], "flagger-reducestake", {
                 stakeAmountWei: parseEther("100000")
             })
 
@@ -773,7 +832,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [2, 1], "flagger-after-flag")
+            } = await setupSponsorships(sharedContracts, [2, 1], "flagger-after-flag")
             const start = await getBlockTimestamp()
 
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
@@ -795,7 +854,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [11], "not-enough-stake-to-flag", {
+            } = await setupSponsorships(sharedContracts, [11], "not-enough-stake-to-flag", {
                 stakeAmountWei: parseEther("5000"), // flag-stake is 500 tokens
             })
             // flagger can open flags up to the staked amount minus the slashing amount if kicked
@@ -816,8 +875,8 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, voter ]
-            } = await setupSponsorships(contracts, [3, 0], "flagger-slashed-below-minimum", {
-                stakeAmountWei: await contracts.streamrConfig.minimumStakeWei()
+            } = await setupSponsorships(sharedContracts, [3, 0], "flagger-slashed-below-minimum", {
+                stakeAmountWei: await sharedContracts.streamrConfig.minimumStakeWei()
             })
             const start = await getBlockTimestamp()
 
@@ -838,13 +897,13 @@ describe("VoteKickPolicy", (): void => {
             // TODO: check that slashingFraction of minimumStakeWei is enough to pay reviewers
             // I.e. minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
 
-            const reviewerCount = +await contracts.streamrConfig.flagReviewerCount()
-            const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
+            const reviewerCount = +await sharedContracts.streamrConfig.flagReviewerCount()
+            const minimumStakeWei = await sharedContracts.streamrConfig.minimumStakeWei()
             const {
                 token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, ...voters ],
-            } = await setupSponsorships(contracts, [2, reviewerCount], "sufficient-flag-stake", {
+            } = await setupSponsorships(sharedContracts, [2, reviewerCount], "sufficient-flag-stake", {
                 sponsor: false
             })
             const start = await getBlockTimestamp()
@@ -893,7 +952,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [10], "extreme-flagger", {
+            } = await setupSponsorships(sharedContracts, [10], "extreme-flagger", {
                 stakeAmountWei: parseEther("5000"), // flag-stake is 500 tokens
             })
             const start = await getBlockTimestamp()
@@ -938,7 +997,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [11], "extreme-flagged", {
+            } = await setupSponsorships(sharedContracts, [11], "extreme-flagged", {
                 stakeAmountWei: parseEther("5000"), // flag-stake is 500 tokens
             })
             const start = await getBlockTimestamp()
@@ -970,7 +1029,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [19], "super-flagger", {
+            } = await setupSponsorships(sharedContracts, [19], "super-flagger", {
                 stakeAmountWei: parseEther("15000"), // flag-stake is 500 tokens
             })
 
@@ -1020,13 +1079,13 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures a flagger that opens flags maximally can still pay the early leave penalty", async function(): Promise<void> {
-            const { token, streamrConfig } = contracts
+            const { token, streamrConfig } = sharedContracts
 
             // maximal flagging is 9 flags, see "not enough (unlocked) stake" test case
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, ...targets ]
-            } = await setupSponsorships(contracts, [11], "extreme-leaver", {
+            } = await setupSponsorships(sharedContracts, [11], "extreme-leaver", {
                 stakeAmountWei: parseEther("5000"), // flag-stake is 500 tokens
                 sponsorshipSettings: { penaltyPeriodSeconds: await streamrConfig.maxPenaltyPeriodSeconds() }
             })
@@ -1056,16 +1115,16 @@ describe("VoteKickPolicy", (): void => {
 
         it("works with rounding errors from slashingFractions like 30%", async function(): Promise<void> {
             const start = await getBlockTimestamp()
-            await (await contracts.streamrConfig.setSlashingFraction(parseEther("0.6"))).wait()
+            await (await sharedContracts.streamrConfig.setSlashingFraction(parseEther("0.6"))).wait()
 
-            const minimumStakeWei = await contracts.streamrConfig.minimumStakeWei()
+            const minimumStakeWei = await sharedContracts.streamrConfig.minimumStakeWei()
             expect(minimumStakeWei).to.equal("833333333333333333334") // if we were rounding minimumStake down: 83...33
 
             const {
                 token,
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target, ...voters ]
-            } = await setupSponsorships(contracts, [9], "one-of-each", { stakeAmountWei: minimumStakeWei })
+            } = await setupSponsorships(sharedContracts, [9], "one-of-each", { stakeAmountWei: minimumStakeWei })
 
             // await (await flagger.unstake(sponsorship.address)).wait()
             // flagger needs to add flagStakeWei more to be able to flag
@@ -1093,7 +1152,7 @@ describe("VoteKickPolicy", (): void => {
 
             expect(formatEther(await token.balanceOf(target.address))).to.equal("333.333333333333333334")
 
-            await (await contracts.streamrConfig.setSlashingFraction(parseEther("0.1"))).wait()
+            await (await sharedContracts.streamrConfig.setSlashingFraction(parseEther("0.1"))).wait()
         })
 
         it("stake gets unlocked if there's only a little unlocked stake left (KICK branch)", async function(): Promise<void> {
@@ -1109,7 +1168,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ s ],
                 operators: [ a, b, c, d ]
-            } = await setupSponsorships(contracts, [4], "split-locked-stake", {
+            } = await setupSponsorships(sharedContracts, [4], "split-locked-stake", {
                 stakeAmountWei: parseEther("7000"), // flag-stake is 500 tokens
             })
             const start = await getBlockTimestamp()
@@ -1162,7 +1221,7 @@ describe("VoteKickPolicy", (): void => {
             const {
                 sponsorships: [ s ],
                 operators: [ a, b, c, d ]
-            } = await setupSponsorships(contracts, [4], "split-locked-stake", {
+            } = await setupSponsorships(sharedContracts, [4], "split-locked-stake", {
                 stakeAmountWei: parseEther("7000"), // flag-stake is 500 tokens
             })
             const start = await getBlockTimestamp()
@@ -1218,7 +1277,7 @@ describe("VoteKickPolicy", (): void => {
                 const {
                     sponsorships: [ sponsorship ],
                     operatorsPerSponsorship: [ [flagger, target], [voter] ]
-                } = await setupSponsorships(contracts, [2, 1], "flag-with-metadata")
+                } = await setupSponsorships(sharedContracts, [2, 1], "flag-with-metadata")
                 const start = await getBlockTimestamp()
                 const signers = await hardhatEthers.getSigners()
                 const outsider = signers[5]

@@ -31,7 +31,7 @@ contract StakeModule is IStakeModule, Operator {
             emit Staked(sponsorship);
         }
 
-        IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei);
+        IVoterRegistry(streamrConfig.voterRegistry()).voterUpdate(address(this));
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
@@ -44,7 +44,7 @@ contract StakeModule is IStakeModule, Operator {
         uint cashoutWei = sponsorship.reduceStakeTo(targetStakeWei);
         stakedInto[sponsorship] -= cashoutWei;
         totalStakedIntoSponsorshipsWei -= cashoutWei;
-        IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei);
+        IVoterRegistry(streamrConfig.voterRegistry()).voterUpdate(address(this));
         emit StakeUpdate(sponsorship, stakedInto[sponsorship] - slashedIn[sponsorship]);
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
@@ -86,7 +86,7 @@ contract StakeModule is IStakeModule, Operator {
             _splitEarnings(profitDataWei);
         }
 
-        try IVoterRegistry(streamrConfig.voterRegistry()).updateStake(totalStakedIntoSponsorshipsWei) {} catch {}
+        IVoterRegistry(streamrConfig.voterRegistry()).voterUpdate(address(this));
 
         // remove from array: replace with the last element
         uint index = indexOfSponsorships[sponsorship] - 1; // indexOfSponsorships is the real array index + 1
