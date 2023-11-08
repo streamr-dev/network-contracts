@@ -258,7 +258,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function _kick(address operator) internal {
         uint payoutWei = _removeOperator(operator);
         if (operator.code.length > 0) {
-            try IOperator(operator).onKick(payoutWei) {} catch {}
+            try IOperator(operator).onKick(0, payoutWei) {} catch {}
         }
         emit OperatorKicked(operator);
     }

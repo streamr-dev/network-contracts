@@ -1882,7 +1882,7 @@ describe("Operator contract", (): void => {
 
         it("onKick can only be called by a Sponsorship the operator is staked to", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
-            await expect(operator.onKick(parseEther("10")))
+            await expect(operator.onKick(0, 0))
                 .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
         })
 
