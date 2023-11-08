@@ -1,6 +1,5 @@
-import { BigInt, log } from '@graphprotocol/graph-ts'
+import { log } from '@graphprotocol/graph-ts'
 import { ConfigChanged } from '../generated/StreamrConfig/StreamrConfig'
-import { Network } from '../generated/schema'
 import { loadOrCreateNetwork } from './helpers'
 
 export function handleConfigChanged(event: ConfigChanged): void {
