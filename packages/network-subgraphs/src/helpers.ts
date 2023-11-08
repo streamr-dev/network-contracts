@@ -3,6 +3,7 @@ import {
     Delegation,
     Delegator,
     DelegatorDailyBucket,
+    Network,
     Operator,
     OperatorDailyBucket,
     Project,
@@ -13,6 +14,7 @@ import {
 } from '../generated/schema'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
+const NETWORK_ENTITY_ID = "network-entity-id"
 
 /**
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
@@ -86,6 +88,43 @@ export function getIsDataUnionValue(jsonString: string): boolean {
             : isDataUnionOrNull.toBool()
     }
     return false
+}
+
+export function loadOrCreateNetwork(): Network {
+    let network = Network.load(NETWORK_ENTITY_ID)
+    if (network == null) {
+        network = new Network(NETWORK_ENTITY_ID)
+
+        network.slashingFraction = BigInt.zero()
+        network.earlyLeaverPenaltyWei = BigInt.zero()
+        network.minimumDelegationWei = BigInt.zero()
+        network.minimumSelfDelegationFraction = BigInt.zero()
+        network.maxPenaltyPeriodSeconds = BigInt.zero()
+        network.maxQueueSeconds = BigInt.zero()
+        network.maxAllowedEarningsFraction = BigInt.zero()
+        network.fishermanRewardFraction = BigInt.zero()
+        network.protocolFeeFraction = BigInt.zero()
+        network.protocolFeeBeneficiary = ''
+        network.minEligibleVoterAge = BigInt.zero()
+        network.minEligibleVoterFractionOfAllStake = BigInt.zero()
+        network.flagReviewerCount = BigInt.zero()
+        network.flagReviewerRewardWei = BigInt.zero()
+        network.flaggerRewardWei = BigInt.zero()
+        network.flagReviewerSelectionIterations = BigInt.zero()
+        network.flagStakeWei = BigInt.zero()
+        network.reviewPeriodSeconds = BigInt.zero()
+        network.votingPeriodSeconds = BigInt.zero()
+        network.flagProtectionSeconds = BigInt.zero()
+
+        network.randomOracle = ''
+        network.trustedForwarder = ''
+        network.sponsorshipFactory = ''
+        network.operatorFactory = ''
+        network.voterRegistry = ''
+        network.operatorContractOnlyJoinPolicy = ''
+        network.streamRegistryAddress = ''
+    }
+    return network
 }
 
 export function loadOrCreateSponsorshipDailyBucket(

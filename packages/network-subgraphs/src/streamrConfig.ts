@@ -1,6 +1,7 @@
 import { BigInt, log } from '@graphprotocol/graph-ts'
 import { ConfigChanged } from '../generated/StreamrConfig/StreamrConfig'
 import { Network } from '../generated/schema'
+import { loadOrCreateNetwork } from './helpers'
 
 export function handleConfigChanged(event: ConfigChanged): void {
     let streamrConfigAddress = event.address.toHexString()
@@ -11,7 +12,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
     log.info('handleConfigChanged: streamrConfigAddress={} key={} newValue={} newAddress={} blockNumber={}', 
         [streamrConfigAddress, key, newValue.toString(), newAddress, event.block.number.toString()])
 
-    let network = loadOrCreateNetwork(streamrConfigAddress)
+    let network = loadOrCreateNetwork()
     if (key == "slashingFraction") { network.slashingFraction = newValue }
     else if (key == "earlyLeaverPenaltyWei") { network.earlyLeaverPenaltyWei = newValue }
     else if (key == "minimumSelfDelegationFraction") { network.minimumSelfDelegationFraction = newValue }
@@ -40,41 +41,4 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == "operatorContractOnlyJoinPolicy") { network.operatorContractOnlyJoinPolicy = newAddress }
     else if (key == "streamRegistryAddress") { network.streamRegistryAddress = newAddress }
     network.save()
-}
-
-export function loadOrCreateNetwork(id: string): Network {
-    let network = Network.load(id)
-    if (network == null) {
-        network = new Network(id)
-
-        network.slashingFraction = BigInt.zero()
-        network.earlyLeaverPenaltyWei = BigInt.zero()
-        network.minimumDelegationWei = BigInt.zero()
-        network.minimumSelfDelegationFraction = BigInt.zero()
-        network.maxPenaltyPeriodSeconds = BigInt.zero()
-        network.maxQueueSeconds = BigInt.zero()
-        network.maxAllowedEarningsFraction = BigInt.zero()
-        network.fishermanRewardFraction = BigInt.zero()
-        network.protocolFeeFraction = BigInt.zero()
-        network.protocolFeeBeneficiary = ''
-        network.minEligibleVoterAge = BigInt.zero()
-        network.minEligibleVoterFractionOfAllStake = BigInt.zero()
-        network.flagReviewerCount = BigInt.zero()
-        network.flagReviewerRewardWei = BigInt.zero()
-        network.flaggerRewardWei = BigInt.zero()
-        network.flagReviewerSelectionIterations = BigInt.zero()
-        network.flagStakeWei = BigInt.zero()
-        network.reviewPeriodSeconds = BigInt.zero()
-        network.votingPeriodSeconds = BigInt.zero()
-        network.flagProtectionSeconds = BigInt.zero()
-
-        network.randomOracle = ''
-        network.trustedForwarder = ''
-        network.sponsorshipFactory = ''
-        network.operatorFactory = ''
-        network.voterRegistry = ''
-        network.operatorContractOnlyJoinPolicy = ''
-        network.streamRegistryAddress = ''
-    }
-    return network
 }
