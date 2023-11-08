@@ -227,6 +227,8 @@ type ProjectStakingDayBucket @entity {
 type Network @entity {
   id: ID! # StreamrConfig contract address
 
+  "Total DATA delegated to all operators"
+  totalDelegated: BigInt!
   ## StreamrConfig values
 
   slashingFraction: BigInt!

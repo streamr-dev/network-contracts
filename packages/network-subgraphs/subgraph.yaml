@@ -286,6 +286,8 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
           - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate

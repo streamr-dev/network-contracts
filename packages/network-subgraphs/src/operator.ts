@@ -1,6 +1,7 @@
 import { BigDecimal, BigInt, log, store } from '@graphprotocol/graph-ts'
 import {
     BalanceUpdate,
+    Delegated,
     Heartbeat,
     Loss,
     MetadataUpdated,
@@ -11,8 +12,22 @@ import {
     QueuedDataPayout
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
+    loadOrCreateNetwork,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 import { QueueEntry } from '../generated/schema'
+
+/** Delegated is used for tracking the total amount delegated across all Operators */
+export function handleDelegated(event: Delegated): void {
+    let operatorContract = event.address.toHexString()
+    let delegator = event.params.delegator.toHexString()
+    let newDelegation = event.params.amountDataWei
+    log.info('handleDelegated: operatorContract={} delegator={} amountDataWei={}', [
+        operatorContract, delegator, newDelegation.toString()])
+
+    let network = loadOrCreateNetwork()
+    network.totalDelegated = network.totalDelegated.plus(newDelegation)
+    network.save()
+}
 
 /** BalanceUpdate is used for tracking the internal Operator token's ERC20 balances */
 export function handleBalanceUpdate(event: BalanceUpdate): void {
