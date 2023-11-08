@@ -1850,10 +1850,11 @@ describe("Operator contract", (): void => {
         })
 
         it("gets notified when kicked (IOperator interface)", async function(): Promise<void> {
+            const { adminKickPolicy } = sharedContracts
             await setTokens(operatorWallet, "1000")
             await setTokens(sponsor, "1000")
 
-            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, adminKickPolicy, admin.address)
             const { operator } = await deployOperator(operatorWallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
@@ -1865,37 +1866,27 @@ describe("Operator contract", (): void => {
                 .to.emit(operator, "Staked").withArgs(sponsorship.address)
             expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1000"))
 
-            await advanceToTimestamp(timeAtStart + 1000, "Slash, update operator value")
-            await expect(operator.withdrawEarningsFromSponsorships([sponsorship.address]))
-                .to.emit(operator, "Profit").withArgs(parseEther("950"), 0, parseEther("50"))
+            // AdminKickPolicy just kicks without slashing
+            await advanceToTimestamp(timeAtStart + 1000, "Get kicked")
+            await expect(sponsorship.flag(operator.address, ""))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship.address)
+                .to.emit(operator, "Profit").withArgs(parseEther("950"), parseEther("0"), parseEther("50"))
             expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1950"))
-
-            // TestKickPolicy actually kicks and slashes given amount (here, 10)
-            await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("10").toHexString(), 32)))
-                .to.emit(sponsorship, "OperatorKicked").withArgs(operator.address)
-            expect(await operator.valueWithoutEarnings()).to.equal(parseEther("1940"))
         })
 
-        it("onSlash reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+        it("onSlash can only be called by a Sponsorship the operator is staked to", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
             await expect(operator.onSlash(parseEther("10")))
                 .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
         })
 
-        it("onKick reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
+        it("onKick can only be called by a Sponsorship the operator is staked to", async function(): Promise<void> {
             const { operator } = await deployOperator(operatorWallet)
-            await expect(operator.onKick(parseEther("10"), parseEther("10")))
+            await expect(operator.onKick(parseEther("10")))
                 .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
         })
 
-        it("onReviewRequest reverts for operators not staked into streamr sponsorships", async function(): Promise<void> {
-            const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
-            await expect(operator.onReviewRequest(operator2.address))
-                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
-        })
-
-        it("sponsorship callbacks revert if direct called - onKick", async function(): Promise<void> {
+        it("onReviewRequest can only be called by a Sponsorship created by SponsorshipFactory", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet)
             const operator2 = await deployOperatorContract(contracts, operator2Wallet)
             await expect(operator.onReviewRequest(operator2.address))

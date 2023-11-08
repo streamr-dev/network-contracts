@@ -104,7 +104,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         if (lockedStakeWei[target] > stakedWei[target]) {
             lockedStakeWei[target] -= targetStakeAtRiskWei[target]; // unlock this flag's stake to avoid slashing when kicking
             delete targetStakeAtRiskWei[target];
-            _kick(target, 0);
+            _kick(target);
             return;
         }
 
@@ -227,7 +227,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         delete targetStakeAtRiskWei[target];
 
         delete reviewers[target];
-        // reviewerState was cleaned up inside the reviewer payment loop in _kick() or _noKick()
+        // reviewerState was cleaned up inside the reviewer payment loop in _handleKick() or _handleNoKick()
         delete votesForKick[target];
         delete votesAgainstKick[target];
         delete votersTotalValueWei[target];
@@ -256,8 +256,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // Take the slashing from target's locked stake...
         uint slashingWei = targetStakeAtRiskWei[target];
         if (lockedStakeWei[target] >= slashingWei) {
-            lockedStakeWei[target] -= slashingWei;
-            _kick(target, slashingWei); // ignore return value, there should be enough (now unlocked) stake to slash
+            _kick(target); // ignore return value; at least slashingWei was locked, so there should be enough (now forfeited) stake to pay for review
+            forfeitedStakeWei -= slashingWei;
         } else {
             //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake, and they already paid for the KICK
             forfeitedStakeWei -= slashingWei - lockedStakeWei[target];
@@ -327,14 +327,14 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
             delete reviewerState[target][reviewer]; // clean up here, to avoid another loop
         }
 
-        // Unlock the flagger's stake. Slash just enough to cover the rewards, the rest will be unlocked = released
+        // Unlock the flagger's stake. Slash just enough to cover the rewards, the rest will be simply unlocked = released
         uint flagStake = flagStakeWei[target];
         if (lockedStakeWei[flagger] >= flagStake) {
             lockedStakeWei[flagger] -= flagStake;
-            _slash(flagger, rewardsWei);
+            _slash(flagger, rewardsWei); // ignore return value; should be rewardsWei, because at least flagStake was just unlocked
         } else {
             //...unless flagger has forceUnstaked or been kicked, in which case the locked flag-stake was moved into forfeited stake
-            forfeitedStakeWei -= flagStake - lockedStakeWei[flagger];
+            forfeitedStakeWei -= flagStake - lockedStakeWei[flagger]; // spend the rest of lockedStake before forfeitedStake
             lockedStakeWei[flagger] = 0;
             leftoverWei += flagStake - rewardsWei;
         }

@@ -62,6 +62,7 @@ describe("StreamrConfig", (): void => {
 
                 // raise the targetStakeAtRiskWei by raising minimum stake by setting higher reviewer rewards
                 // minimum stake goes up to 73600.0, slashingFraction of that is 7360 > 5000 that `target` staked
+                await (await streamrConfig.setFlagStakeWei(parseEther("100000"))).wait()
                 await (await streamrConfig.setFlagReviewerRewardWei(parseEther("1000"))).wait()
 
                 // target is kicked out without a vote
@@ -128,53 +129,53 @@ describe("StreamrConfig", (): void => {
         it("flagStakeWei", async (): Promise<void> => {
             await expect(sharedConfig.setFlagStakeWei(parseEther("1")))
                 .to.be.revertedWithCustomError(sharedConfig, "TooLow")
-            await expect(sharedConfig.setFlagStakeWei(parseEther("500"))).to.not.be.reverted
-        })
-        it("maxQueueSeconds < maxPenaltyPeriodSeconds", async (): Promise<void> => {
-            await expect(sharedConfig.setMaxQueueSeconds(3600 * 24 * 14))
-                .to.be.revertedWithCustomError(sharedConfig, "TooLow")
-            await expect(sharedConfig.setMaxQueueSeconds(3600 * 24 * 14 + 1)).to.not.be.reverted
+            await (await sharedConfig.setFlagStakeWei(parseEther("10000"))).wait()
         })
         it("flagReviewerSelectionIterations >= reviewerCount", async (): Promise<void> => {
             await expect(sharedConfig.setFlagReviewerSelectionIterations(4))
                 .to.be.revertedWithCustomError(sharedConfig, "TooLow")
-            await expect(sharedConfig.setFlagReviewerSelectionIterations(7)).to.not.be.reverted
-        })
-
-        // ...then let the ones that don't depend on others change
-        it("slashingFraction < 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setSlashingFraction("1000000000000000000"))
-                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setSlashingFraction("999999999999999999")).to.not.be.reverted
-        })
-        it("minimumSelfDelegationFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setMinimumSelfDelegationFraction("1000000000000000001"))
-                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setMinimumSelfDelegationFraction("1000000000000000000")).to.not.be.reverted
-        })
-        it("protocolFeeFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setProtocolFeeFraction("1000000000000000001"))
-                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setProtocolFeeFraction("1000000000000000000")).to.not.be.reverted
-        })
-        it("maxAllowedEarningsFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setMaxAllowedEarningsFraction("1000000000000000001"))
-                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setMaxAllowedEarningsFraction("1000000000000000000")).to.not.be.reverted
-        })
-        it("fishermanRewardFraction <= 100%", async (): Promise<void> => {
-            await expect(sharedConfig.setFishermanRewardFraction("1000000000000000001"))
-                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
-            await expect(sharedConfig.setFishermanRewardFraction("1000000000000000000")).to.not.be.reverted
+            await (await sharedConfig.setFlagReviewerSelectionIterations(7)).wait()
         })
         it("flagReviewerCount > 0", async (): Promise<void> => {
             await expect(sharedConfig.setFlagReviewerCount(0))
                 .to.be.revertedWithCustomError(sharedConfig, "TooLow")
-            await expect(sharedConfig.setFlagReviewerCount(1)).to.not.be.reverted
+            await (await sharedConfig.setFlagReviewerCount(1)).wait()
 
             // setting flag reviewer count also bumps up iterations, otherwise we couldn't get so many reviewers
             await (await sharedConfig.setFlagReviewerCount(10)).wait()
             expect(await sharedConfig.flagReviewerSelectionIterations()).to.equal(10)
+        })
+        it("maxQueueSeconds >= maxPenaltyPeriodSeconds", async (): Promise<void> => {
+            await expect(sharedConfig.setMaxQueueSeconds(3600 * 24 * 14 - 1))
+                .to.be.revertedWithCustomError(sharedConfig, "TooLow")
+            await (await sharedConfig.setMaxQueueSeconds(3600 * 24 * 14)).wait()
+        })
+        it("slashingFraction", async (): Promise<void> => {
+            await expect(sharedConfig.setSlashingFraction("1000000000000000000"))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
+            await (await sharedConfig.setSlashingFraction(parseEther("0.72"))).wait()
+        })
+
+        // ...then let the ones that don't depend on others change
+        it("minimumSelfDelegationFraction <= 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setMinimumSelfDelegationFraction("1000000000000000001"))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
+            await (await sharedConfig.setMinimumSelfDelegationFraction("1000000000000000000")).wait()
+        })
+        it("protocolFeeFraction <= 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setProtocolFeeFraction("1000000000000000001"))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
+            await (await sharedConfig.setProtocolFeeFraction("1000000000000000000")).wait()
+        })
+        it("maxAllowedEarningsFraction <= 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setMaxAllowedEarningsFraction("1000000000000000001"))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
+            await (await sharedConfig.setMaxAllowedEarningsFraction("1000000000000000000")).wait()
+        })
+        it("fishermanRewardFraction <= 100%", async (): Promise<void> => {
+            await expect(sharedConfig.setFishermanRewardFraction("1000000000000000001"))
+                .to.be.revertedWithCustomError(sharedConfig, "TooHigh")
+            await (await sharedConfig.setFishermanRewardFraction("1000000000000000000")).wait()
         })
         it("minEligibleVoterFractionOfAllStake <= 100%", async (): Promise<void> => {
             await expect(sharedConfig.setMinEligibleVoterFractionOfAllStake(parseEther("2")))

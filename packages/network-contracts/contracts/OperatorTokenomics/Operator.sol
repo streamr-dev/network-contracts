@@ -644,7 +644,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    function onKick(uint, uint receivedPayoutWei) external {
+    function onKick(uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
             revert NotMyStakedSponsorship();

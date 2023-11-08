@@ -73,7 +73,7 @@ contract TestBadOperator is IERC677Receiver, IOperator {
         revert("onTokenTransfer failed");
     }
 
-    function onKick(uint, uint) public pure override {
+    function onKick(uint) public pure override {
         // reverts here but try catch from sponsorship silently swallows it
         revert("TestBadOperator.onKick: revert");
     }

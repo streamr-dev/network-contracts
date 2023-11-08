@@ -21,6 +21,15 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     error TooHigh(uint value, uint limit);
     error TooLow(uint value, uint limit);
 
+    function requireBetween(uint value, uint min, uint max) private pure {
+        if (value < min) {
+            revert TooLow({ value: value, limit: min });
+        }
+        if (value > max) {
+            revert TooHigh({ value: value, limit: max });
+        }
+    }
+
     /**
      * Division by a "fraction" expressed as multiple of 1e18, like ether (1e18 = 100%)
      * @return result = x / fraction, rounding UP
@@ -60,15 +69,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     uint public maxQueueSeconds;
 
     /**
-     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
-     *
-     * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
-     * This value can vary from sponsorship to sponsorship, and it can be 0, then the operator can leave immediately
-     * without being slashed.
-     *
-     * maxPenaltyPeriodSeconds is the global maximum value that MIN_JOIN_TIME can have across all sponsorships.
-     * This garuantees that every operator can get the money back from any and all sponsorships
-     * without being slashed (provided it does the work) in a fixed maximum time.
+     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can require an operator to stay under threat of earlyLeaverPenalty.
+     * Penalty period can vary from sponsorship to sponsorship, or it can also be 0, in which case
+     *   the operators can unstake immediately after staking without being slashed.
      */
     uint public maxPenaltyPeriodSeconds;
 
@@ -170,21 +173,18 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         _setRoleAdmin(UPGRADER_ROLE, ADMIN_ROLE);
         _setRoleAdmin(CONFIGURATOR_ROLE, ADMIN_ROLE);
 
-        setSlashingFraction(0.1 ether); // 10% of stake is slashed if operator gets kicked after a vote
-        setEarlyLeaverPenaltyWei(5000 ether); // at least initially earlyLeaverPenalty is set to the same as minimum stake
-
         // Operator's "skin in the game" = minimum share of total delegation (= Operator token supply)
         setMinimumSelfDelegationFraction(0.05 ether); // 5% of the operator tokens must be held by the operator, or else new delegations are prevented
 
         // Prevent "sand delegations", set minimum delegation to 1 full operator token (1e18)
         setMinimumDelegationWei(1 ether);
 
-        // Sponsorship leave penalty parameter limit
-        setMaxPenaltyPeriodSeconds(14 days);
-
         // Undelegation escape hatch: self-service available after maxQueueSeconds
         // Must be more than maxPenaltyPeriodSeconds to allow operator to service the queue in all cases
         setMaxQueueSeconds(30 days);
+
+        // Sponsorship leave penalty parameter limit
+        setMaxPenaltyPeriodSeconds(14 days);
 
         // Withdraw incentivization
         setMaxAllowedEarningsFraction(0.05 ether); // 5% of valueWithoutEarnings is when fisherman gets rewarded from the operator's self-delegation
@@ -197,21 +197,27 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         // flagging + voting
         setMinEligibleVoterAge(0); // no age limit
         setMinEligibleVoterFractionOfAllStake(0.005 ether); // every voter controls at least 0.5% of global stake
-        setFlagReviewerCount(7);
+        setFlagStakeWei(500 ether);
+        flagReviewerCount = 7; // needed due to interdependency with flagReviewerRewardWei
         setFlagReviewerRewardWei(20 ether);
+        setFlagReviewerCount(7);
         setFlaggerRewardWei(360 ether);
         setFlagReviewerSelectionIterations(20);
-        setFlagStakeWei(500 ether);
         setReviewPeriodSeconds(1 hours);
         setVotingPeriodSeconds(15 minutes);
         setFlagProtectionSeconds(1 hours);
+
+        // 10% of stake is slashed if operator gets kicked after a vote
+        setSlashingFraction(0.1 ether);
+
+        // slashed if leaving within penalty period
+        setEarlyLeaverPenaltyWei(5000 ether);
     }
 
+    /** @dev limit: `flagStakeWei * (1 ether - slashingFraction) > flagReviewerCount * flagReviewerRewardWei`, see setFlagStakeWei */
     function setSlashingFraction(uint newSlashingFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newSlashingFraction >= 1 ether) {
-            // can't be 100%
-            revert TooHigh({ value: newSlashingFraction, limit: 1 ether });
-        }
+        uint maxSlashingFraction = 1 ether - 1 ether * flagReviewerCount * flagReviewerRewardWei / flagStakeWei;
+        requireBetween(newSlashingFraction, 0, maxSlashingFraction);
         slashingFraction = newSlashingFraction;
         emit ConfigChanged("slashingFraction", newSlashingFraction, address(0));
     }
@@ -227,53 +233,48 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newMinimumSelfDelegationFraction > 1 ether) {
-            // can't be more than 100%
-            revert TooHigh({ value: newMinimumSelfDelegationFraction, limit: 1 ether });
-        }
+        requireBetween(newMinimumSelfDelegationFraction, 0, 1 ether);
         minimumSelfDelegationFraction = newMinimumSelfDelegationFraction;
         emit ConfigChanged("minimumSelfDelegationFraction", newMinimumSelfDelegationFraction, address(0));
     }
 
+    /**
+     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can require an operator to stay under threat of earlyLeaverPenalty.
+     * Penalty period can vary from sponsorship to sponsorship, or it can also be 0, in which case
+     *   the operators can unstake immediately after staking without being slashed.
+     * Can't be more than maxQueueSeconds. This guarantees that forceUnstake due to queue age can never slash earlyLeaverPenaltyWei.
+     */
     function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {
+        requireBetween(newMaxPenaltyPeriodSeconds, 0, maxQueueSeconds);
         maxPenaltyPeriodSeconds = newMaxPenaltyPeriodSeconds;
         emit ConfigChanged("maxPenaltyPeriodSeconds", newMaxPenaltyPeriodSeconds, address(0));
     }
 
+    /**
+     * The time the operator is given for paying out the undelegation queue.
+     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
+     * Can't be less than maxPenaltyPeriodSeconds. This guarantees that forceUnstake due to queue age can never slash earlyLeaverPenaltyWei.
+     **/
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
-            revert TooLow({
-                value: newMaxQueueSeconds,
-                limit: maxPenaltyPeriodSeconds
-            });
-        }
+        requireBetween(newMaxQueueSeconds, maxPenaltyPeriodSeconds, 365 days);
         maxQueueSeconds = newMaxQueueSeconds;
         emit ConfigChanged("maxQueueSeconds", newMaxQueueSeconds, address(0));
     }
 
     function setMaxAllowedEarningsFraction(uint newMaxAllowedEarningsFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newMaxAllowedEarningsFraction > 1 ether) {
-            // can't be more than 100%
-            revert TooHigh({ value: newMaxAllowedEarningsFraction, limit: 1 ether });
-        }
+        requireBetween(newMaxAllowedEarningsFraction, 0, 1 ether);
         maxAllowedEarningsFraction = newMaxAllowedEarningsFraction;
         emit ConfigChanged("maxAllowedEarningsFraction", newMaxAllowedEarningsFraction, address(0));
     }
 
     function setFishermanRewardFraction(uint newFishermanRewardFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newFishermanRewardFraction > 1 ether) {
-            // can't be more than 100%
-            revert TooHigh({ value: newFishermanRewardFraction, limit: 1 ether });
-        }
+        requireBetween(newFishermanRewardFraction, 0, 1 ether);
         fishermanRewardFraction = newFishermanRewardFraction;
         emit ConfigChanged("fishermanRewardFraction", newFishermanRewardFraction, address(0));
     }
 
     function setProtocolFeeFraction(uint newProtocolFeeFraction) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newProtocolFeeFraction > 1 ether) {
-            // can't be more than 100%
-            revert TooHigh({ value: newProtocolFeeFraction, limit: 1 ether });
-        }
+        requireBetween(newProtocolFeeFraction, 0, 1 ether);
         protocolFeeFraction = newProtocolFeeFraction;
         emit ConfigChanged("protocolFeeFraction", newProtocolFeeFraction, address(0));
     }
@@ -289,32 +290,21 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     }
 
     function setMinEligibleVoterFractionOfAllStake(uint newMinEligibleVoterFractionOfAllStake) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newMinEligibleVoterFractionOfAllStake > 1 ether) {
-            // can't be more than 100%
-            revert TooHigh({ value: newMinEligibleVoterFractionOfAllStake, limit: 1 ether });
-        }
+        requireBetween(newMinEligibleVoterFractionOfAllStake, 0, 1 ether);
         minEligibleVoterFractionOfAllStake = newMinEligibleVoterFractionOfAllStake;
         emit ConfigChanged("minEligibleVoterFractionOfAllStake", newMinEligibleVoterFractionOfAllStake, address(0));
     }
 
+    /** @dev limit: `flagStakeWei * (1 ether - slashingFraction) > flagReviewerCount * flagReviewerRewardWei`, see setFlagStakeWei */
     function setFlagReviewerCount(uint newFlagReviewerCount) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newFlagReviewerCount < 1) { revert TooLow({ value: newFlagReviewerCount, limit: 1 }); }
+        uint maxFlagReviewerCount = flagStakeWei * (1 ether - slashingFraction) / flagReviewerRewardWei / 1 ether;
+        requireBetween(newFlagReviewerCount, 1, maxFlagReviewerCount);
         flagReviewerCount = newFlagReviewerCount;
-        // we can't select more than 1 reviewer per iteration, so we have to try at least as many times
+        // we can't select more than 1 reviewer per iteration, so we have to try at least that many times
         if (flagReviewerSelectionIterations < flagReviewerCount) {
-            flagReviewerSelectionIterations = flagReviewerCount;
+            setFlagReviewerSelectionIterations(flagReviewerCount);
         }
         emit ConfigChanged("flagReviewerCount", newFlagReviewerCount, address(0));
-    }
-
-    function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
-        flagReviewerRewardWei = newFlagReviewerRewardWei;
-        emit ConfigChanged("flagReviewerRewardWei", newFlagReviewerRewardWei, address(0));
-    }
-
-    function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
-        flaggerRewardWei = newFlaggerRewardWei;
-        emit ConfigChanged("flaggerRewardWei", newFlaggerRewardWei, address(0));
     }
 
     /**
@@ -341,12 +331,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * @dev                     30, 30, 30, 30, 30, 30, 31, 31, 31, 31 ], i.e. up to half (16), it picks every 1...2nd time, as you would expect
      */
     function setFlagReviewerSelectionIterations(uint newFlagReviewerSelectionIterations) public onlyRole(CONFIGURATOR_ROLE) {
-        if (newFlagReviewerSelectionIterations < flagReviewerCount) {
-            revert TooLow({
-                value: newFlagReviewerSelectionIterations,
-                limit: flagReviewerCount
-            });
-        }
+        requireBetween(newFlagReviewerSelectionIterations, flagReviewerCount, type(uint).max);
         flagReviewerSelectionIterations = newFlagReviewerSelectionIterations;
         emit ConfigChanged("flagReviewerSelectionIterations", newFlagReviewerSelectionIterations, address(0));
     }
@@ -363,14 +348,22 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      */
     function setFlagStakeWei(uint newFlagStakeWei) public onlyRole(CONFIGURATOR_ROLE) {
         uint minFlagStakeWei = divByFraction(flagReviewerCount * flagReviewerRewardWei, 1 ether - slashingFraction);
-        if (newFlagStakeWei < minFlagStakeWei) {
-            revert TooLow({
-                value: newFlagStakeWei,
-                limit: minFlagStakeWei
-            });
-        }
+        requireBetween(newFlagStakeWei, minFlagStakeWei, type(uint).max);
         flagStakeWei = newFlagStakeWei;
         emit ConfigChanged("flagStakeWei", newFlagStakeWei, address(0));
+    }
+
+    /** @dev limit: `flagStakeWei * (1 ether - slashingFraction) > flagReviewerCount * flagReviewerRewardWei`, see setFlagStakeWei */
+    function setFlagReviewerRewardWei(uint newFlagReviewerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
+        uint maxFlagReviewerRewardWei = flagStakeWei * (1 ether - slashingFraction) / flagReviewerCount / 1 ether;
+        requireBetween(newFlagReviewerRewardWei, 0, maxFlagReviewerRewardWei);
+        flagReviewerRewardWei = newFlagReviewerRewardWei;
+        emit ConfigChanged("flagReviewerRewardWei", newFlagReviewerRewardWei, address(0));
+    }
+
+    function setFlaggerRewardWei(uint newFlaggerRewardWei) public onlyRole(CONFIGURATOR_ROLE) {
+        flaggerRewardWei = newFlaggerRewardWei;
+        emit ConfigChanged("flaggerRewardWei", newFlaggerRewardWei, address(0));
     }
 
     function setReviewPeriodSeconds(uint newReviewPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {

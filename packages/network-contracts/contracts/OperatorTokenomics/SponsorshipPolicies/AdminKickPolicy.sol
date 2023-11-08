@@ -21,7 +21,7 @@ contract AdminKickPolicy is IKickPolicy, Sponsorship {
 
     function onFlag(address operator, address flagger) external {
         require(localData().admin == flagger, "error_onlyAdmin");
-        _kick(operator, 0);
+        _kick(operator);
     }
 
     function onVote(address, bytes32, address) external {
