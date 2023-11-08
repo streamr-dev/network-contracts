@@ -1,7 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
 import { NewOperator } from '../generated/OperatorFactory/OperatorFactory'
 import { Operator as OperatorTemplate } from '../generated/templates'
-import { loadOrCreateOperator } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateOperator } from './helpers'
 
 export function handleNewOperator(event: NewOperator): void {
     let contractAddress = event.params.operatorContractAddress
@@ -14,4 +14,8 @@ export function handleNewOperator(event: NewOperator): void {
     let operator = loadOrCreateOperator(contractAddressString)
     operator.save()
     log.info('handleNewOperator: operatorId={}', [operator.id])
+
+    let network = loadOrCreateNetwork()
+    network.operatorsCount = network.operatorsCount + 1
+    network.save()
 }

@@ -231,6 +231,9 @@ type Network @entity {
   totalDelegated: BigInt!
   "The number of all Sponsorships ever created through the SponsorshipFactory" # TODO: what about non-expired ones ?!
   sponsorshipsCount: Int!
+  "The number of all Operators ever created through the OperatorpFactory" # TODO: what about active/eligible ones ?!
+  operatorsCount: Int!
+
   ## StreamrConfig values
 
   slashingFraction: BigInt!
