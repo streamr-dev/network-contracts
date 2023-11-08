@@ -145,14 +145,17 @@ export function handleProfit(event: Profit): void {
     for (let i = 0; i < delegations.length; i++) {
         let delegator = loadOrCreateDelegator(delegations[i].delegator)
         let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegations[i].delegator, event.block.timestamp)
-        let fractionOfProfitsString = delegations[i].operatorTokenBalanceWei.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
-            .times(valueIncreaseWei.toBigDecimal()).toString()
-        let fractionOfProfitsFloor = BigInt.fromString(fractionOfProfitsString.split('.')[0])
+        let fractionOfProfitsFloor = BigInt.fromString(delegations[i].operatorTokenBalanceWei.toBigDecimal()
+            .div(operator.operatorTokenTotalSupplyWei.toBigDecimal())   // fraction of token supply
+            .times(valueIncreaseWei.toBigDecimal())                     // profit is divided equally to delegators
+            .toString().split('.')[0]                                   // truncate to int
+        )
 
         delegator.cumulativeEarningsWei = delegator.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
+        delegator.save()
+
         delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(fractionOfProfitsFloor)
         delegatorDailyBucket.cumulativeEarningsWei = delegatorDailyBucket.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
-        delegator.save()
         delegatorDailyBucket.save()
     }
 
