@@ -3,7 +3,7 @@ import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
-import { loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
     let sponsorshipContractAddress = event.params.sponsorshipContract.toHexString()
@@ -46,4 +46,8 @@ export function handleNewSponsorship(event: NewSponsorship): void {
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
     bucket.save()
+
+    const network = loadOrCreateNetwork()
+    network.sponsorshipsCount = network.sponsorshipsCount + 1
+    network.save()
 }

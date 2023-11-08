@@ -229,6 +229,8 @@ type Network @entity {
 
   "Total DATA delegated to all operators"
   totalDelegated: BigInt!
+  "The number of all Sponsorships ever created through the SponsorshipFactory" # TODO: what about non-expired ones ?!
+  sponsorshipsCount: Int!
   ## StreamrConfig values
 
   slashingFraction: BigInt!
