@@ -31,10 +31,12 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         ? valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
         : BigInt.fromU32(1).toBigDecimal()
 
-    // fix rounding error before truncating to int
-    let newBalanceData = newBalance.toBigDecimal().times(operator.exchangeRate)
-        .plus(BigDecimal.fromString("0.0000001")).toString().split('.')[0]
-    let newBalanceDataWei = BigInt.fromString(newBalanceData)
+    let newBalanceDataWei = BigInt.fromString(newBalance
+        .toBigDecimal()
+        .times(operator.exchangeRate)
+        .plus(BigDecimal.fromString("0.0000001"))   // fix rounding error
+        .toString().split('.')[0]                   // truncate to int
+    )
 
     let delegator = loadOrCreateDelegator(delegatorAddress)
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
@@ -51,10 +53,10 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
-        if (newBalance > delegation.valueDataWei) {
-            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalance.minus(delegation.valueDataWei))
+        if (newBalanceDataWei > delegation.valueDataWei) {
+            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
         } else {
-            operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalance))
+            operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalanceDataWei))
         }
         delegation.valueDataWei = newBalanceDataWei
         delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
