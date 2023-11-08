@@ -51,10 +51,11 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
-        let balanceDifference = newBalance.minus(delegation.valueDataWei)
-        balanceDifference > BigInt.zero() ? 
-            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(balanceDifference) 
-            : operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(balanceDifference)
+        if (newBalance > delegation.valueDataWei) {
+            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalance.minus(delegation.valueDataWei))
+        } else {
+            operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalance))
+        }
         delegation.valueDataWei = newBalanceDataWei
         delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     } else {
