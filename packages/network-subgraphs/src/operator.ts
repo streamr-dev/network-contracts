@@ -155,7 +155,7 @@ export function handleProfit(event: Profit): void {
         delegator.save()
 
         delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(fractionOfProfitsFloor)
-        delegatorDailyBucket.cumulativeEarningsWei = delegatorDailyBucket.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
+        delegatorDailyBucket.cumulativeEarningsWei = delegator.cumulativeEarningsWei
         delegatorDailyBucket.save()
     }
 
