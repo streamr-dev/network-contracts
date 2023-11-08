@@ -39,31 +39,37 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     let delegator = loadOrCreateDelegator(delegatorAddress)
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegatorAddress, event.block.timestamp)
-    // delegation is new
+    let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
+        // delegation is new
         delegation.operatorTokenBalanceWei = newBalance
         operator.delegatorCount = operator.delegatorCount + 1
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
+        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
+        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei)
     }
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+        let balanceDifference = newBalance.minus(delegation.valueDataWei)
+        balanceDifference > BigInt.zero() ? 
+            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(balanceDifference) 
+            : operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(balanceDifference)
         delegation.valueDataWei = newBalanceDataWei
-        delegatorDailyBucket.delegator = delegatorAddress
-        delegatorDailyBucket.totalValueDataWei = newBalanceDataWei
-        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
-        delegation.save()
-        delegator.save()
-        delegatorDailyBucket.save()
+        delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     } else {
         // delegator left
         // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
+        delegator.numberOfDelegations = delegator.numberOfDelegations - 1
         store.remove('Delegation', delegation.id)
         operator.delegatorCount = operator.delegatorCount - 1
-        let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
         operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange - 1
-        operatorBucket.save()
+        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei)
     }
+    delegation.save()
+    delegator.save()
+    delegatorDailyBucket.save()
+    operatorBucket.save()
     operator.save()
 }
 
@@ -134,12 +140,16 @@ export function handleProfit(event: Profit): void {
 
     let delegations = operator.delegations.load()
     for (let i = 0; i < delegations.length; i++) {
+        let delegator = loadOrCreateDelegator(delegations[i].delegator)
         let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegations[i].delegator, event.block.timestamp)
         let fractionOfProfitsString = delegations[i].operatorTokenBalanceWei.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
             .times(valueIncreaseWei.toBigDecimal()).toString()
-        let fractionOfProfitsFloor = fractionOfProfitsString.split('.')[0]
-        delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(BigInt.fromString(fractionOfProfitsFloor))
-        delegatorDailyBucket.cumulativeEarningsWei = delegatorDailyBucket.cumulativeEarningsWei.plus(BigInt.fromString(fractionOfProfitsFloor))
+        let fractionOfProfitsFloor = BigInt.fromString(fractionOfProfitsString.split('.')[0])
+
+        delegator.cumulativeEarningsWei = delegator.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
+        delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(fractionOfProfitsFloor)
+        delegatorDailyBucket.cumulativeEarningsWei = delegatorDailyBucket.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
+        delegator.save()
         delegatorDailyBucket.save()
     }
 

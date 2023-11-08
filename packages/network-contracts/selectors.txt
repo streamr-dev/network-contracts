@@ -249,8 +249,8 @@ d82264d4: onUndelegate(address,uint256)
 
 ======= OperatorTokenomics/sol:IVoterRegistry =======
 Function signatures:
-7c1f751f: updateStake(uint256)
 42169e48: voterCount()
+6a1ba88c: voterUpdate(address)
 da58c7d9: voters(uint256)
 
 Event signatures:
@@ -429,11 +429,11 @@ d547741f: revokeRole(bytes32,address)
 9d76ea58: tokenAddress()
 34a0f881: totalStakedWei()
 6f0a812e: trustedPolicies(address)
-7c1f751f: updateStake(uint256)
 ee2a68eb: updateTemplates(address,address,address,address)
 3659cfe6: upgradeTo(address)
 4f1ef286: upgradeToAndCall(address,bytes)
 42169e48: voterCount()
+6a1ba88c: voterUpdate(address)
 da58c7d9: voters(uint256)
 1625aeef: votersIndex(address)
 
@@ -441,12 +441,12 @@ Error signatures:
 231b3ae2: AccessDeniedDATATokenOnly()
 def29dac: AlreadyLive()
 f7158c49: ExchangeRatePolicyRequired()
+43506a21: InvalidOperatorContract(address)
 085c97df: NotDelegationPolicy()
 c18a867a: NotExchangeRatePolicy()
 baf13b3f: NotLive()
 6165de00: NotUndelegationPolicy()
-d9475104: OnlyOperators()
-77f0d411: OperatorAlreadyDeployed()
+1609c582: OperatorAlreadyDeployed(address)
 2cc6b17b: PolicyNotTrusted()
 
 Event signatures:
