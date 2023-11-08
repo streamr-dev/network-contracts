@@ -224,6 +224,40 @@ type ProjectStakingDayBucket @entity {
 ##  Delegators signal their trust by delegating tokens to Operators
 ############################################################
 
+type Network @entity {
+  id: ID! # StreamrConfig contract address
+
+  ## StreamrConfig values
+
+  slashingFraction: BigInt!
+  earlyLeaverPenaltyWei: BigInt!
+  minimumDelegationWei: BigInt!
+  minimumSelfDelegationFraction: BigInt!
+  maxPenaltyPeriodSeconds: BigInt!
+  maxQueueSeconds: BigInt!
+  maxAllowedEarningsFraction: BigInt!
+  fishermanRewardFraction: BigInt!
+  protocolFeeFraction: BigInt!
+  protocolFeeBeneficiary: String!
+  minEligibleVoterAge: BigInt!
+  minEligibleVoterFractionOfAllStake: BigInt!
+  flagReviewerCount: BigInt!
+  flagReviewerRewardWei: BigInt!
+  flaggerRewardWei: BigInt!
+  flagReviewerSelectionIterations: BigInt!
+  flagStakeWei: BigInt!
+  reviewPeriodSeconds: BigInt!
+  votingPeriodSeconds: BigInt!
+  flagProtectionSeconds: BigInt!
+  randomOracle: String
+  trustedForwarder: String
+  sponsorshipFactory: String
+  operatorFactory: String
+  voterRegistry: String
+  operatorContractOnlyJoinPolicy: String
+  streamRegistryAddress: String
+}
+
 type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")

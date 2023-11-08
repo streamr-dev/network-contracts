@@ -162,6 +162,26 @@ dataSources:
           handler: handleUnstake
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
+    name: StreamrConfig
+    network: xDai
+    source:
+      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+      abi: StreamrConfig
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/streamrConfig.ts
+      entities:
+        - Network
+      abis:
+        - name: StreamrConfig
+          file: ./abis/StreamrConfig.json
+      eventHandlers:
+        - event: ConfigChanged(indexed string,indexed uint256,indexed address)
+          handler: handleConfigChanged
+  - kind: ethereum/contract
     name: SponsorshipFactory
     network: xDai
     source:
