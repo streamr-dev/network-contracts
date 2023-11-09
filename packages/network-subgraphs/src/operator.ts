@@ -46,39 +46,49 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         ? valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
         : BigInt.fromU32(1).toBigDecimal()
 
-    // fix rounding error before truncating to int
-    let newBalanceData = newBalance.toBigDecimal().times(operator.exchangeRate)
-        .plus(BigDecimal.fromString("0.0000001")).toString().split('.')[0]
-    let newBalanceDataWei = BigInt.fromString(newBalanceData)
+    let newBalanceDataWei = BigInt.fromString(newBalance
+        .toBigDecimal()
+        .times(operator.exchangeRate)
+        .plus(BigDecimal.fromString("0.0000001"))   // fix rounding error
+        .toString().split('.')[0]                   // truncate to int
+    )
 
     let delegator = loadOrCreateDelegator(delegatorAddress)
     let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
-    let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegatorAddress, event.block.timestamp)
-    // delegation is new
+    let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
+    let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
+        // delegation is new
         delegation.operatorTokenBalanceWei = newBalance
         operator.delegatorCount = operator.delegatorCount + 1
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
+        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
+        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei)
     }
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
         delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+        if (newBalanceDataWei > delegation.valueDataWei) {
+            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+        } else {
+            operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalanceDataWei))
+        }
         delegation.valueDataWei = newBalanceDataWei
-        delegatorDailyBucket.delegator = delegatorAddress
-        delegatorDailyBucket.totalValueDataWei = newBalanceDataWei
-        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
-        delegation.save()
-        delegator.save()
-        delegatorDailyBucket.save()
+        delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     } else {
         // delegator left
         // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
+        delegator.numberOfDelegations = delegator.numberOfDelegations - 1
         store.remove('Delegation', delegation.id)
         operator.delegatorCount = operator.delegatorCount - 1
-        let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
         operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange - 1
-        operatorBucket.save()
+        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei)
+        delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount - 1
     }
+    delegation.save()
+    delegator.save()
+    delegatorDailyBucket.save()
+    operatorBucket.save()
     operator.save()
 }
 
@@ -153,12 +163,19 @@ export function handleProfit(event: Profit): void {
 
     let delegations = operator.delegations.load()
     for (let i = 0; i < delegations.length; i++) {
-        let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegations[i].delegator, event.block.timestamp)
-        let fractionOfProfitsString = delegations[i].operatorTokenBalanceWei.toBigDecimal().div(operator.operatorTokenTotalSupplyWei.toBigDecimal())
-            .times(valueIncreaseWei.toBigDecimal()).toString()
-        let fractionOfProfitsFloor = fractionOfProfitsString.split('.')[0]
-        delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(BigInt.fromString(fractionOfProfitsFloor))
-        delegatorDailyBucket.cumulativeEarningsWei = delegatorDailyBucket.cumulativeEarningsWei.plus(BigInt.fromString(fractionOfProfitsFloor))
+        let delegator = loadOrCreateDelegator(delegations[i].delegator)
+        let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
+        let fractionOfProfitsFloor = BigInt.fromString(delegations[i].operatorTokenBalanceWei.toBigDecimal()
+            .div(operator.operatorTokenTotalSupplyWei.toBigDecimal())   // fraction of token supply
+            .times(valueIncreaseWei.toBigDecimal())                     // profit is divided equally to delegators
+            .toString().split('.')[0]                                   // truncate to int
+        )
+
+        delegator.cumulativeEarningsWei = delegator.cumulativeEarningsWei.plus(fractionOfProfitsFloor)
+        delegator.save()
+
+        delegatorDailyBucket.totalValueDataWei = delegatorDailyBucket.totalValueDataWei.plus(fractionOfProfitsFloor)
+        delegatorDailyBucket.cumulativeEarningsWei = delegator.cumulativeEarningsWei
         delegatorDailyBucket.save()
     }
 

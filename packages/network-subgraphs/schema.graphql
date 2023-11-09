@@ -396,6 +396,7 @@ type Delegator @entity {
   queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
   numberOfDelegations: Int!
   totalValueDataWei: BigInt!
+  cumulativeEarningsWei: BigInt!
 }
 
 type DelegatorDailyBucket @entity {
