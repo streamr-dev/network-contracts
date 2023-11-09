@@ -250,6 +250,10 @@ templates:
             handler: handleStakeUpdated
           - event: StakeLockUpdate(indexed address,uint256,uint256)
             handler: handleStakeLockUpdated
+          - event: InsolvencyStarted(uint256)
+            handler: handleInsolvencyStarted
+          - event: InsolvencyEnded(uint256,uint256,uint256)
+            handler: handleInsolvencyEnded
           - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
             handler: handleSponsorshipUpdated
           - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)

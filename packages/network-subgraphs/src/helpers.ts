@@ -99,6 +99,7 @@ export function loadOrCreateNetwork(): Network {
         network.totalDelegation = BigInt.zero()
         network.sponsorshipsCount = 0
         network.operatorsCount = 0
+        network.payingSponsorshipsCount = 0
 
         network.slashingFraction = BigInt.zero()
         network.earlyLeaverPenaltyWei = BigInt.zero()

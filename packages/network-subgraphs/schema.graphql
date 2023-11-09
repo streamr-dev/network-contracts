@@ -230,6 +230,8 @@ type Network @entity {
   totalDelegation: BigInt!
   "The number of all Sponsorships ever created through the SponsorshipFactory"
   sponsorshipsCount: Int!
+  "The number of all Sponsorships ever created through the SponsorshipFactory that are currently paying"
+  payingSponsorshipsCount: Int!
   "The number of all Operators ever created through the OperatorpFactory"
   operatorsCount: Int!
 

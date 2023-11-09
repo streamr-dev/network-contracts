@@ -7,7 +7,9 @@ import {
     FlagUpdate,
     Flagged,
     OperatorSlashed,
-    SponsorshipReceived
+    SponsorshipReceived,
+    InsolvencyStarted,
+    InsolvencyEnded
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
 import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
@@ -99,6 +101,24 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.operatorCount = event.params.operatorCount.toI32()
     bucket.spotAPY = spotAPY
     bucket.save()
+}
+
+export function handleInsolvencyStarted(event: InsolvencyStarted): void {
+    let sponsorshipAddress = event.address.toHexString()
+    let startTimestamp = event.params.startTimeStamp.toHexString()
+    log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} now={}', [sponsorshipAddress, startTimestamp])
+    let network = loadOrCreateNetwork()
+    network.payingSponsorshipsCount += 1
+    network.save()
+}
+
+export function handleInsolvencyEnded(event: InsolvencyEnded): void {
+    let sponsorshipAddress = event.address.toHexString()
+    let endTimestamp = event.params.endTimeStamp.toHexString()
+    log.info('handleInsolvencyStarted: sponsorship={} endTimeStamp={} now={}', [sponsorshipAddress, endTimestamp])
+    let network = loadOrCreateNetwork()
+    network.payingSponsorshipsCount -= 1
+    network.save()
 }
 
 export function handleFlagged(event: Flagged): void {
