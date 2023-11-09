@@ -95,6 +95,7 @@ export function loadOrCreateNetwork(): Network {
     if (network == null) {
         network = new Network(NETWORK_ENTITY_ID)
 
+        network.totalStake = BigInt.zero()
         network.totalDelegation = BigInt.zero()
         network.sponsorshipsCount = 0
         network.operatorsCount = 0

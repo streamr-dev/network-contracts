@@ -224,6 +224,8 @@ type ProjectStakingDayBucket @entity {
 type Network @entity {
   id: ID! # StreamrConfig contract address
 
+  "Total DATA staked - slashed in all sponsorships"
+  totalStake: BigInt!
   "Total DATA delegated to all operators"
   totalDelegation: BigInt!
   "The number of all Sponsorships ever created through the SponsorshipFactory"

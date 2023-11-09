@@ -115,6 +115,7 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     log.info('handleOperatorValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
         [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
     let operator = loadOrCreateOperator(operatorContractAddress)
+    let stakeChange = event.params.totalStakeInSponsorshipsWei.minus(operator.totalStakeInSponsorshipsWei)
     operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
     operator.dataTokenBalanceWei = event.params.dataTokenBalanceWei
     operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
@@ -129,6 +130,9 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     bucket.valueWithoutEarnings = operator.valueWithoutEarnings
     bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
     bucket.save()
+
+    let network = loadOrCreateNetwork()
+    network.totalStake = network.totalStake.plus(stakeChange)
 }
 
 export function handleProfit(event: Profit): void {
