@@ -249,14 +249,20 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is locked to pay for flags */
     function forceUnstake() external returns (uint payoutWei) {
         address operator = _msgSender();
-        payoutWei = _removeOperator(operator);
+        uint penaltyWei = getLeavePenalty(operator);
+        if (penaltyWei > 0) {
+            uint slashedWei = _slash(operator, penaltyWei);
+            // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
+            token.transfer(streamrConfig.protocolFeeBeneficiary(), slashedWei);
+        }
+        payoutWei = _removeOperator(operator); // forfeits locked stake
     }
 
     /** Reduce your stake in the sponsorship without leaving */
     function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
         address operator = _msgSender();
         if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStakeUsingReduceStakeTo(); }
-        uint minimumStake = minimumStakeOf(operator); // takes locked stake into account
+        uint minimumStake = minimumStakeOf(operator);
         if (targetStakeWei < minimumStake) { revert MinimumStake(minimumStake); }
 
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
@@ -267,12 +273,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Slashing removes tokens from an operator's stake
-     * @return actualSlashingWei how stake was reduced. NOTE: The caller MUST ensure these tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
+     * Slashing removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
+     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
+        if (amountWei == 0) { return 0; }
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
-        if (actualSlashingWei == 0) { return 0; }
         if (operator.code.length > 0) {
             try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
         }
@@ -280,20 +286,25 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Kicking removes the operator, as if they'd forceUnstaked. If there's locked stake or penalty period is on, they're slashed first.
+     * Kicking does what slashing does, plus removes the operator
+     * NOTE: The caller MUST ensure that slashed tokens (if any) are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      */
-    function _kick(address operator) internal {
+    function _kick(address operator, uint slashingWei) internal returns (uint actualSlashingWei) {
+        if (slashingWei > 0) {
+            actualSlashingWei = _reduceStakeBy(operator, slashingWei);
+            emit OperatorSlashed(operator, actualSlashingWei);
+        }
         uint payoutWei = _removeOperator(operator);
         if (operator.code.length > 0) {
-            try IOperator(operator).onKick(0, payoutWei) {} catch {}
+            try IOperator(operator).onKick(actualSlashingWei, payoutWei) {} catch {}
         }
         emit OperatorKicked(operator);
     }
 
     /**
-     * Removes tokens from an operator's stake, down to lockedStakeWei (or zero).
+     * Removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
      * NOTE: Does not actually send out tokens, only does the accounting!
-     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
         if (lockedStakeWei[operator] >= stakedWei[operator]) { return 0; }
@@ -308,7 +319,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * If number of operators falls below minOperatorCount, the sponsorship will no longer be "running" and the stream will be closed.
      * If operator had any locked stake, it is accounted as "forfeited stake" and will henceforth be controlled by the VoteKickPolicy.
      */
-    function _removeOperator(address operator) private returns (uint payoutWei) {
+    function _removeOperator(address operator) internal returns (uint payoutWei) {
         if (joinTimeOfOperator[operator] == 0) { revert OperatorNotStaked(); }
 
         if (lockedStakeWei[operator] > 0) {
@@ -318,18 +329,12 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             emit StakeLockUpdate(operator, 0, 0);
         }
 
-        // send the leave penalty out of the contract in order to make it impossible for malicious operators to get them for themselves
-        uint penaltyWei = getLeavePenalty(operator);
-        if (penaltyWei > 0) {
-            token.transfer(streamrConfig.protocolFeeBeneficiary(), _slash(operator, penaltyWei));
-        }
-
         // send out both allocations and stake
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
 
-        operatorCount -= 1; // solhint-disable-line reentrancy
-        totalStakedWei -= paidOutStakeWei; // solhint-disable-line reentrancy
+        operatorCount -= 1;
+        totalStakedWei -= paidOutStakeWei;
         delete stakedWei[operator];
         delete joinTimeOfOperator[operator];
 
@@ -421,7 +426,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * Delegate-call ("library call") a module's method: it will use this Sponsorship's storage
      * When calling from a view function (staticcall context), use moduleGet instead
      */
-    function moduleCall(address moduleAddress, bytes memory callBytes) private returns (uint returnValue) {
+    function moduleCall(address moduleAddress, bytes memory callBytes) internal returns (uint returnValue) {
         (bool success, bytes memory returndata) = moduleAddress.delegatecall(callBytes);
         if (!success) {
             if (returndata.length == 0) { revert ModuleCallError(moduleAddress, callBytes); }
@@ -456,7 +461,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /** Call a module's view function (staticcall) */
-    function moduleGet(bytes memory callBytes) private view returns (uint returnValue) {
+    function moduleGet(bytes memory callBytes) internal view returns (uint returnValue) {
         // trampoline through the above callback
         (bool success, bytes memory returndata) = address(this).staticcall(callBytes);
         if (!success) {
@@ -482,11 +487,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)));
     }
 
-    /**
-     * The amount of stake you can't reduce below: you can't cash out the locked part of your stake, or go below the minimum stake.
-     * For most operators, the limit is the same minimumStakeWei that can cover the cost of flag review.
-     * If an operator is flagged, their individual minimum stake might be higher.
-     */
     function minimumStakeOf(address operator) public view returns (uint individualMinimumStakeWei) {
         if (address(kickPolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(kickPolicy.getMinimumStakeOf.selector, operator, address(kickPolicy)));

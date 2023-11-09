@@ -146,9 +146,9 @@ describe("StreamrConfig", (): void => {
             expect(await sharedConfig.flagReviewerSelectionIterations()).to.equal(10)
         })
         it("maxQueueSeconds >= maxPenaltyPeriodSeconds", async (): Promise<void> => {
-            await expect(sharedConfig.setMaxQueueSeconds(3600 * 24 * 14 - 1))
+            await expect(sharedConfig.setMaxQueueSeconds(3600 * 24 * 14))
                 .to.be.revertedWithCustomError(sharedConfig, "TooLow")
-            await (await sharedConfig.setMaxQueueSeconds(3600 * 24 * 14)).wait()
+            await (await sharedConfig.setMaxQueueSeconds(3600 * 24 * 14 + 1)).wait()
         })
         it("slashingFraction", async (): Promise<void> => {
             await expect(sharedConfig.setSlashingFraction("1000000000000000000"))

@@ -16,8 +16,9 @@ contract TestKickPolicy is IKickPolicy, Sponsorship {
         _addSponsorship(address(this), actualSlashingWei);
     }
 
-    function onVote(address operator, bytes32, address) external {
-        _kick(operator);
+    function onVote(address operator, bytes32 voteData, address) external {
+        uint actualSlashingWei = _kick(operator, uint(voteData));
+        _addSponsorship(address(this), actualSlashingWei);
     }
 
     function getFlagData(address operator) override external view returns (uint flagData) {
