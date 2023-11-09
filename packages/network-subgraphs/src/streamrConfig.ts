@@ -52,6 +52,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == "voterRegistry") { network.voterRegistry = newAddress }
     else if (key == "operatorContractOnlyJoinPolicy") { network.operatorContractOnlyJoinPolicy = newAddress }
     else if (key == "streamRegistryAddress") { network.streamRegistryAddress = newAddress }
+    else { log.error("handleConfigChanged: unknown key={}", [key]) }
     network.save()
 }
 
