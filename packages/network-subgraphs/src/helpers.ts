@@ -112,9 +112,9 @@ export function loadOrCreateNetwork(): Network {
         network.flaggerRewardWei = BigInt.zero()
         network.flagReviewerSelectionIterations = BigInt.zero()
         network.flagStakeWei = BigInt.zero()
-        network.reviewPeriodSeconds = BigInt.zero()
-        network.votingPeriodSeconds = BigInt.zero()
-        network.flagProtectionSeconds = BigInt.zero()
+        network.reviewPeriodSeconds = 0
+        network.votingPeriodSeconds = 0
+        network.flagProtectionSeconds = 0
 
         network.randomOracle = ''
         network.trustedForwarder = ''

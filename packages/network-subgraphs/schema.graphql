@@ -253,9 +253,9 @@ type Network @entity {
   flaggerRewardWei: BigInt!
   flagReviewerSelectionIterations: BigInt!
   flagStakeWei: BigInt!
-  reviewPeriodSeconds: BigInt!
-  votingPeriodSeconds: BigInt!
-  flagProtectionSeconds: BigInt!
+  reviewPeriodSeconds: Int!
+  votingPeriodSeconds: Int!
+  flagProtectionSeconds: Int!
   randomOracle: String
   trustedForwarder: String
   sponsorshipFactory: String

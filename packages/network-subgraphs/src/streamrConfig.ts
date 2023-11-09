@@ -42,9 +42,9 @@ export function handleConfigChanged(event: ConfigChanged): void {
     }
     else if (key == "flagReviewerSelectionIterations") { network.flagReviewerSelectionIterations = newValue }
     else if (key == "flagStakeWei") { network.flagStakeWei = newValue }
-    else if (key == "reviewPeriodSeconds") { network.reviewPeriodSeconds = newValue }
-    else if (key == "votingPeriodSeconds") { network.votingPeriodSeconds = newValue }
-    else if (key == "flagProtectionSeconds") { network.flagProtectionSeconds = newValue }
+    else if (key == "reviewPeriodSeconds") { network.reviewPeriodSeconds = newValue.toI32() }
+    else if (key == "votingPeriodSeconds") { network.votingPeriodSeconds = newValue.toI32() }
+    else if (key == "flagProtectionSeconds") { network.flagProtectionSeconds = newValue.toI32() }
     else if (key == "randomOracle") { network.randomOracle = newAddress }
     else if (key == "trustedForwarder") { network.trustedForwarder = newAddress }
     else if (key == "sponsorshipFactory") { network.sponsorshipFactory = newAddress }
