@@ -24,8 +24,12 @@ export function handleVoterUpdate(event: VoterUpdate): void {
     let voterRegistryAddress = event.address.toHexString()
     let voter = event.params.voterAddress.toHexString()
     let isVoter = event.params.isVoter
-    log.info('handleVoterUpdate: voterRegistryAddress={} voter={} isVoter={} blockNumber={}', 
+    log.info('handleVoterUpdate: voterRegistryAddress={} voterAddress={} isVoter={} blockNumber={}', 
         [voterRegistryAddress, voter, isVoter.toString(), event.block.number.toString()])
+
+    let operator = loadOrCreateOperator(voter)
+    operator.isEligibleToVote = isVoter
+    operator.save()
 
     let network = loadOrCreateNetwork()
     network.eligibleVotersCount = isVoter 

@@ -322,8 +322,8 @@ type Operator @entity {
   nodes: [String!]!
   operatorsCutFraction: BigInt!
 
-  flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
-  flagsTargeted: [Flag!]! @derivedFrom(field: "target")
+  isEligibleToVote: Boolean!
+
   votesOnFlags: [Vote!]! @derivedFrom(field: "voter")
 
   queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
