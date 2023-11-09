@@ -1,5 +1,7 @@
 #!/bin/sh
 
+node -p node -p "JSON.stringify(Object.fromEntries(Object.entries(require('.')).filter(([key, value]) => key.endsWith('Codehash'))), null, 4)" > codehashes.json
+
 cd ../..
 npx hardhat flatten packages/network-contracts/contracts/OperatorTokenomics/testcontracts/MockRandomOracle.sol > temp.sol
 grep -v SPDX-License-Identifier temp.sol > temp2.sol
