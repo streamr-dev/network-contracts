@@ -1276,6 +1276,33 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(s, "StakeLockUpdate").withArgs(a.address, parseEther("0"), parseEther("5000"))
             expect(await s.forfeitedStakeWei()).to.equal(parseEther("0"))
         })
+
+        // This is important for the non-broker staker punishment: they can't avoid slashing by anticipating/frontrunning the flag!
+        // So no matter how advanced a flashbot tries to milk the Sponsorship, if they're not running streamr nodes, they will get slashed.
+        it("slashes earlyLeaverPenaltyWei from an operator that gets kicked out", async function(): Promise<void> {
+            const {
+                token,
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter ],
+            } = await setupSponsorships(sharedContracts, [3], "kicked-early", {
+                sponsorshipSettings: { penaltyPeriodSeconds: VOTE_START + 1000 }
+            })
+            const start = await getBlockTimestamp(10)
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                .to.emit(sponsorship, "Flagged").withArgs(target.address, flagger.address, parseEther("1000"), 1, "{}")
+                .to.emit(voter, "ReviewRequest")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes to kick ${addr(target)}`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK))
+                .to.emit(sponsorship, "OperatorKicked").withArgs(target.address)
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("1000"))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(target.address, parseEther("5000"))
+
+            // kicked operator gets slashed the 10% slashingFraction + 5000 leave penalty
+            expect(formatEther(await token.balanceOf(target.address))).to.equal("4000.0")
+        })
     })
 
     describe("Access control", (): void => {
