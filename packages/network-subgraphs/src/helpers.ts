@@ -129,6 +129,7 @@ export function loadOrCreateNetwork(): Network {
         network.voterRegistry = ''
         network.operatorContractOnlyJoinPolicy = ''
         network.streamRegistryAddress = ''
+        network.minimumStakeWei = BigInt.zero()
     }
     return network
 }
@@ -171,12 +172,14 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.cumulativeOperatorsCutWei = BigInt.zero()
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
-        operator.operatorsCutFraction = BigInt.zero()
         operator.nodes = []
 
+        operator.isEligibleToVote = false
+        
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
         operator.owner = ""
         operator.metadataJsonString = ""
+        operator.operatorsCutFraction = BigInt.zero()
     }
     return operator
 }
