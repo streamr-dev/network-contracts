@@ -252,6 +252,33 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         payoutWei = _removeOperator(operator);
     }
 
+    /** Reduce your stake in the sponsorship without leaving */
+    function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
+        address operator = _msgSender();
+        if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStakeUsingReduceStakeTo(); }
+        uint minimumStake = minimumStakeOf(operator); // takes locked stake into account
+        if (targetStakeWei < minimumStake) { revert MinimumStake(minimumStake); }
+
+        payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
+        token.transfer(operator, payoutWei);
+
+        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
+        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
+    }
+
+    /**
+     * Slashing removes tokens from an operator's stake
+     * @return actualSlashingWei how stake was reduced. NOTE: The caller MUST ensure these tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
+     **/
+    function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
+        actualSlashingWei = _reduceStakeBy(operator, amountWei);
+        if (actualSlashingWei == 0) { return 0; }
+        if (operator.code.length > 0) {
+            try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
+        }
+        emit OperatorSlashed(operator, actualSlashingWei);
+    }
+
     /**
      * Kicking removes the operator, as if they'd forceUnstaked. If there's locked stake or penalty period is on, they're slashed first.
      */
@@ -261,6 +288,19 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             try IOperator(operator).onKick(0, payoutWei) {} catch {}
         }
         emit OperatorKicked(operator);
+    }
+
+    /**
+     * Removes tokens from an operator's stake, down to lockedStakeWei (or zero).
+     * NOTE: Does not actually send out tokens, only does the accounting!
+     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
+     **/
+    function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
+        if (lockedStakeWei[operator] >= stakedWei[operator]) { return 0; }
+        actualReductionWei = min(amountWei, stakedWei[operator] - lockedStakeWei[operator]);
+        stakedWei[operator] -= actualReductionWei;
+        totalStakedWei -= actualReductionWei;
+        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)));
     }
 
     /**
@@ -302,46 +342,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         try token.transferAndCall(operator, paidOutStakeWei, "stake") {} catch {}
 
         return paidOutEarningsWei + paidOutStakeWei;
-    }
-
-    /** Reduce your stake in the sponsorship without leaving */
-    function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
-        address operator = _msgSender();
-        if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStakeUsingReduceStakeTo(); }
-        uint minimumStake = minimumStakeOf(operator); // takes locked stake into account
-        if (targetStakeWei < minimumStake) { revert MinimumStake(minimumStake); }
-
-        payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
-        token.transfer(operator, payoutWei);
-
-        emit StakeUpdate(operator, stakedWei[operator], getEarnings(operator));
-        emit SponsorshipUpdate(totalStakedWei, remainingWei, uint32(operatorCount), isRunning());
-    }
-
-    /**
-     * Slashing removes tokens from an operator's stake
-     * @return actualSlashingWei how stake was reduced. NOTE: The caller MUST ensure these tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
-     **/
-    function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
-        actualSlashingWei = _reduceStakeBy(operator, amountWei);
-        if (actualSlashingWei == 0) { return 0; }
-        if (operator.code.length > 0) {
-            try IOperator(operator).onSlash(actualSlashingWei) {} catch {}
-        }
-        emit OperatorSlashed(operator, actualSlashingWei);
-    }
-
-    /**
-     * Removes tokens from an operator's stake, down to lockedStakeWei (or zero).
-     * NOTE: Does not actually send out tokens, only does the accounting!
-     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
-     **/
-    function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
-        if (lockedStakeWei[operator] >= stakedWei[operator]) { return 0; }
-        actualReductionWei = min(amountWei, stakedWei[operator] - lockedStakeWei[operator]);
-        stakedWei[operator] -= actualReductionWei;
-        totalStakedWei -= actualReductionWei;
-        moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)));
     }
 
     /** Get earnings out, leave stake in */
