@@ -224,6 +224,8 @@ dataSources:
       eventHandlers:
         - event: NewOperator(indexed address,indexed address)
           handler: handleNewOperator
+        - event: VoterUpdate(indexed address,indexed bool)
+          handler: handleVoterUpdate
 
 templates:
   - name: Sponsorship

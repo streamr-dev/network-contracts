@@ -234,6 +234,8 @@ type Network @entity {
   payingSponsorshipsCount: Int!
   "The number of all Operators ever created through the OperatorpFactory"
   operatorsCount: Int!
+  "The number of all Operators ever created through the OperatorpFactory that are eligible to vote"
+  eligibleVotersCount: Int!
 
   ## StreamrConfig values
 

@@ -98,8 +98,9 @@ export function loadOrCreateNetwork(): Network {
         network.totalStake = BigInt.zero()
         network.totalDelegation = BigInt.zero()
         network.sponsorshipsCount = 0
-        network.operatorsCount = 0
         network.payingSponsorshipsCount = 0
+        network.operatorsCount = 0
+        network.eligibleVotersCount = 0
 
         network.slashingFraction = BigInt.zero()
         network.earlyLeaverPenaltyWei = BigInt.zero()
@@ -121,7 +122,6 @@ export function loadOrCreateNetwork(): Network {
         network.reviewPeriodSeconds = 0
         network.votingPeriodSeconds = 0
         network.flagProtectionSeconds = 0
-
         network.randomOracle = ''
         network.trustedForwarder = ''
         network.sponsorshipFactory = ''
