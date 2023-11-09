@@ -95,22 +95,26 @@ export function loadOrCreateNetwork(): Network {
     if (network == null) {
         network = new Network(NETWORK_ENTITY_ID)
 
+        network.totalDelegation = BigInt.zero()
+        network.sponsorshipsCount = 0
+        network.operatorsCount = 0
+
         network.slashingFraction = BigInt.zero()
         network.earlyLeaverPenaltyWei = BigInt.zero()
         network.minimumDelegationWei = BigInt.zero()
         network.minimumSelfDelegationFraction = BigInt.zero()
-        network.maxPenaltyPeriodSeconds = BigInt.zero()
-        network.maxQueueSeconds = BigInt.zero()
+        network.maxPenaltyPeriodSeconds = 0
+        network.maxQueueSeconds = 0
         network.maxAllowedEarningsFraction = BigInt.zero()
         network.fishermanRewardFraction = BigInt.zero()
         network.protocolFeeFraction = BigInt.zero()
         network.protocolFeeBeneficiary = ''
-        network.minEligibleVoterAge = BigInt.zero()
+        network.minEligibleVoterAge = 0
         network.minEligibleVoterFractionOfAllStake = BigInt.zero()
-        network.flagReviewerCount = BigInt.zero()
+        network.flagReviewerCount = 0
         network.flagReviewerRewardWei = BigInt.zero()
         network.flaggerRewardWei = BigInt.zero()
-        network.flagReviewerSelectionIterations = BigInt.zero()
+        network.flagReviewerSelectionIterations = 0
         network.flagStakeWei = BigInt.zero()
         network.reviewPeriodSeconds = 0
         network.votingPeriodSeconds = 0

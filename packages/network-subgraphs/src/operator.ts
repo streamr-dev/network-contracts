@@ -25,7 +25,7 @@ export function handleDelegated(event: Delegated): void {
         operatorContract, delegator, newDelegation.toString()])
 
     let network = loadOrCreateNetwork()
-    network.totalDelegated = network.totalDelegated.plus(newDelegation)
+    network.totalDelegation = network.totalDelegation.plus(newDelegation)
     network.save()
 }
 

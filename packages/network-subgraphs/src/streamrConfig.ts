@@ -1,4 +1,4 @@
-import { log } from '@graphprotocol/graph-ts'
+import { BigInt, log } from '@graphprotocol/graph-ts'
 import { ConfigChanged } from '../generated/StreamrConfig/StreamrConfig'
 import { loadOrCreateNetwork } from './helpers'
 import { Network } from '../generated/schema'
@@ -20,16 +20,16 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == "earlyLeaverPenaltyWei") { network.earlyLeaverPenaltyWei = newValue }
     else if (key == "minimumSelfDelegationFraction") { network.minimumSelfDelegationFraction = newValue }
     else if (key == "minimumDelegationWei") { network.minimumDelegationWei = newValue }
-    else if (key == "maxPenaltyPeriodSeconds") { network.maxPenaltyPeriodSeconds = newValue }
-    else if (key == "maxQueueSeconds") { network.maxQueueSeconds = newValue }
+    else if (key == "maxPenaltyPeriodSeconds") { network.maxPenaltyPeriodSeconds = newValue.toI32() }
+    else if (key == "maxQueueSeconds") { network.maxQueueSeconds = newValue.toI32() }
     else if (key == "maxAllowedEarningsFraction") { network.maxAllowedEarningsFraction = newValue }
     else if (key == "fishermanRewardFraction") { network.fishermanRewardFraction = newValue }
     else if (key == "protocolFeeFraction") { network.protocolFeeFraction = newValue }
     else if (key == "protocolFeeBeneficiary") { network.protocolFeeBeneficiary = newAddress }
-    else if (key == "minEligibleVoterAge") { network.minEligibleVoterAge = newValue }
+    else if (key == "minEligibleVoterAge") { network.minEligibleVoterAge = newValue.toI32() }
     else if (key == "minEligibleVoterFractionOfAllStake") { network.minEligibleVoterFractionOfAllStake = newValue }
     else if (key == "flagReviewerCount") {
-        network.flagReviewerCount = newValue
+        network.flagReviewerCount = newValue.toI32()
         updateMinimumStake(network)
     }
     else if (key == "flagReviewerRewardWei") {
@@ -40,7 +40,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
         network.flaggerRewardWei = newValue
         updateMinimumStake(network)
     }
-    else if (key == "flagReviewerSelectionIterations") { network.flagReviewerSelectionIterations = newValue }
+    else if (key == "flagReviewerSelectionIterations") { network.flagReviewerSelectionIterations = newValue.toI32() }
     else if (key == "flagStakeWei") { network.flagStakeWei = newValue }
     else if (key == "reviewPeriodSeconds") { network.reviewPeriodSeconds = newValue.toI32() }
     else if (key == "votingPeriodSeconds") { network.votingPeriodSeconds = newValue.toI32() }
@@ -58,5 +58,5 @@ export function handleConfigChanged(event: ConfigChanged): void {
 
 function updateMinimumStake(network: Network): void {
     network.minimumStakeWei = 
-        (network.flaggerRewardWei.plus(network.flagReviewerCount.times(network.flagReviewerRewardWei))).div(network.slashingFraction)
+        (network.flaggerRewardWei.plus(BigInt.fromI32(network.flagReviewerCount).times(network.flagReviewerRewardWei))).div(network.slashingFraction)
 }

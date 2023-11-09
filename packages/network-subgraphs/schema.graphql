@@ -1,7 +1,4 @@
-# TODO: how to define dates/timestamps? This was suggested in https://graphql.org/learn/schema/
-# scalar Date
-# for now, use BigInt because that's what the events return
-# TODO: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
+# @dev: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes
@@ -228,7 +225,7 @@ type Network @entity {
   id: ID! # StreamrConfig contract address
 
   "Total DATA delegated to all operators"
-  totalDelegated: BigInt!
+  totalDelegation: BigInt!
   "The number of all Sponsorships ever created through the SponsorshipFactory"
   sponsorshipsCount: Int!
   "The number of all Operators ever created through the OperatorpFactory"
@@ -240,18 +237,18 @@ type Network @entity {
   earlyLeaverPenaltyWei: BigInt!
   minimumDelegationWei: BigInt!
   minimumSelfDelegationFraction: BigInt!
-  maxPenaltyPeriodSeconds: BigInt!
-  maxQueueSeconds: BigInt!
+  maxPenaltyPeriodSeconds: Int!
+  maxQueueSeconds: Int!
   maxAllowedEarningsFraction: BigInt!
   fishermanRewardFraction: BigInt!
   protocolFeeFraction: BigInt!
   protocolFeeBeneficiary: String!
-  minEligibleVoterAge: BigInt!
+  minEligibleVoterAge: Int!
   minEligibleVoterFractionOfAllStake: BigInt!
-  flagReviewerCount: BigInt!
+  flagReviewerCount: Int!
   flagReviewerRewardWei: BigInt!
   flaggerRewardWei: BigInt!
-  flagReviewerSelectionIterations: BigInt!
+  flagReviewerSelectionIterations: Int!
   flagStakeWei: BigInt!
   reviewPeriodSeconds: Int!
   votingPeriodSeconds: Int!
