@@ -10,7 +10,7 @@ import {
     SponsorshipReceived
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
     "waiting",
@@ -136,6 +136,10 @@ export function handleFlagged(event: Flagged): void {
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
     flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+    let network = loadOrCreateNetwork()
+    flag.voteStartTimestamp = flag.flaggingTimestamp + network.reviewPeriodSeconds
+    flag.voteEndTimestamp = flag.voteStartTimestamp + network.votingPeriodSeconds
+    flag.protectionEndTimestamp = flag.voteEndTimestamp + network.flagProtectionSeconds
     flag.save()
 }
 

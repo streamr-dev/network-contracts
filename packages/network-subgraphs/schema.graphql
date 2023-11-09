@@ -510,6 +510,9 @@ type Flag @entity {
   reviewerCount: Int!
   targetStakeAtRiskWei: BigInt!
   metadata: String!
+  voteStartTimestamp: Int!
+  voteEndTimestamp: Int!
+  protectionEndTimestamp: Int!
 }
 
 type Vote @entity {
