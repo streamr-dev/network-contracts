@@ -1,6 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
 import { ConfigChanged } from '../generated/StreamrConfig/StreamrConfig'
 import { loadOrCreateNetwork } from './helpers'
+import { Network } from '../generated/schema'
 
 export function handleConfigChanged(event: ConfigChanged): void {
     let streamrConfigAddress = event.address.toHexString()
@@ -12,7 +13,10 @@ export function handleConfigChanged(event: ConfigChanged): void {
         [streamrConfigAddress, key, newValue.toString(), newAddress, event.block.number.toString()])
 
     let network = loadOrCreateNetwork()
-    if (key == "slashingFraction") { network.slashingFraction = newValue }
+    if (key == "slashingFraction") {
+        network.slashingFraction = newValue
+        updateMinimumStake(network)
+    }
     else if (key == "earlyLeaverPenaltyWei") { network.earlyLeaverPenaltyWei = newValue }
     else if (key == "minimumSelfDelegationFraction") { network.minimumSelfDelegationFraction = newValue }
     else if (key == "minimumDelegationWei") { network.minimumDelegationWei = newValue }
@@ -24,9 +28,18 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == "protocolFeeBeneficiary") { network.protocolFeeBeneficiary = newAddress }
     else if (key == "minEligibleVoterAge") { network.minEligibleVoterAge = newValue }
     else if (key == "minEligibleVoterFractionOfAllStake") { network.minEligibleVoterFractionOfAllStake = newValue }
-    else if (key == "flagReviewerCount") { network.flagReviewerCount = newValue }
-    else if (key == "flagReviewerRewardWei") { network.flagReviewerRewardWei = newValue }
-    else if (key == "flaggerRewardWei") { network.flaggerRewardWei = newValue }
+    else if (key == "flagReviewerCount") {
+        network.flagReviewerCount = newValue
+        updateMinimumStake(network)
+    }
+    else if (key == "flagReviewerRewardWei") {
+        network.flagReviewerRewardWei = newValue
+        updateMinimumStake(network)
+    }
+    else if (key == "flaggerRewardWei") {
+        network.flaggerRewardWei = newValue
+        updateMinimumStake(network)
+    }
     else if (key == "flagReviewerSelectionIterations") { network.flagReviewerSelectionIterations = newValue }
     else if (key == "flagStakeWei") { network.flagStakeWei = newValue }
     else if (key == "reviewPeriodSeconds") { network.reviewPeriodSeconds = newValue }
@@ -40,4 +53,9 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == "operatorContractOnlyJoinPolicy") { network.operatorContractOnlyJoinPolicy = newAddress }
     else if (key == "streamRegistryAddress") { network.streamRegistryAddress = newAddress }
     network.save()
+}
+
+function updateMinimumStake(network: Network): void {
+    network.minimumStakeWei = 
+        (network.flaggerRewardWei.plus(network.flagReviewerCount.times(network.flagReviewerRewardWei))).div(network.slashingFraction)
 }

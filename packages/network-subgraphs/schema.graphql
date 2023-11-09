@@ -263,6 +263,8 @@ type Network @entity {
   voterRegistry: String
   operatorContractOnlyJoinPolicy: String
   streamRegistryAddress: String
+  "Updated whenever one of flaggerRewardWei | flagReviewerCount | flagReviewerRewardWei | slashingFraction changes"
+  minimumStakeWei: BigInt!
 }
 
 type Operator @entity {
