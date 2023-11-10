@@ -325,6 +325,7 @@ type Operator @entity {
   operatorsCutFraction: BigInt!
 
   isEligibleToVote: Boolean!
+  protectionEndTimestamp: Int
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")

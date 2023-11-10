@@ -12,7 +12,7 @@ import {
     InsolvencyEnded
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateOperator, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
     "waiting",
@@ -181,6 +181,10 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let flagIndex = Flag.load(sponsorship + "-" + target + "-0")!.lastFlagIndex
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
     flag.result = flagResultStrings[statusCode]
+    if (flag.result == "failed") {
+        let targetOperator = loadOrCreateOperator(target)
+        targetOperator.protectionEndTimestamp = flag.protectionEndTimestamp
+    }
     flag.votesForKick = votesForKick
     flag.votesAgainstKick = votesAgainstKick
     flag.save()
