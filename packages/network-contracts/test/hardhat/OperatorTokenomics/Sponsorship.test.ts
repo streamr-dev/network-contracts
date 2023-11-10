@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
-import { advanceToTimestamp, getBlockTimestamp } from "./utils"
+import { VOTE_KICK, VOTE_NO_KICK, advanceToTimestamp, getBlockTimestamp } from "./utils"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
@@ -33,6 +33,12 @@ describe("Sponsorship contract", (): void => {
 
     // some test cases just want "any sponsorship", no need to deploy a new contract
     let defaultSponsorship: Sponsorship
+
+    enum FlagState {
+        VOTING = 1,
+        RESULT_KICK = 2,
+        RESULT_NO_KICK = 3,
+    }
 
     before(async (): Promise<void> => {
         [admin, operator, operator2, op1, op2] = await getSigners() as unknown as Wallet[]
@@ -425,6 +431,79 @@ describe("Sponsorship contract", (): void => {
 
             expect(badOperatorStakeBeforeKick).to.equal(parseEther("100"))
             expect(badOperatorStakeAfterKick).to.equal(parseEther("0")) // they're out
+        })
+
+        it("VoteKickPolicy works when TestBadOperator reverts on owner() call", async (): Promise<void> => {
+            const { streamrConfig, token, operatorFactory, nodeModule, queueModule, stakeModule,
+                defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy
+            } = contracts
+
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await (await token.transferAndCall(sponsorship.address, parseEther("100"), "0x")).wait() // sponsor
+
+            const badOperatorTemplate = await (await getContractFactory("TestBadOperator", admin)).deploy()
+            await expect(operatorFactory.updateTemplates(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
+                .to.emit(operatorFactory, "TemplateAddresses")
+                .withArgs(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address)
+
+            const badFlaggedReceipt = await (await operatorFactory.connect(op1).deployOperator(
+                parseEther("0.1"), "BadFlagged", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badFlaggedAddress = badFlaggedReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badFlagged = badOperatorTemplate.attach(badFlaggedAddress)
+
+            const badFlaggerReceipt = await (await operatorFactory.connect(op2).deployOperator(
+                parseEther("0.1"), "BadFlagger", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badFlaggerAddress = badFlaggerReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badFlagger = badOperatorTemplate.attach(badFlaggerAddress)
+
+            const badVoterReceipt = await (await operatorFactory.connect(operator).deployOperator(
+                parseEther("0.1"), "BadVoter", "{}",
+                [defaultDelegationPolicy.address, defaultExchangeRatePolicy.address, defaultUndelegationPolicy.address], [0, 0, 0])).wait()
+            const badVoterAddress = badVoterReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
+            const badVoter = badOperatorTemplate.attach(badVoterAddress)
+
+            await (await token.transfer(badFlagged.address, parseEther("5000"))).wait()
+            await (await badFlagged.connect(op1).stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badFlagger.address, parseEther("5000"))).wait()
+            await (await badFlagger.stake(sponsorship.address, parseEther("5000"))).wait()
+            await (await token.transfer(badVoter.address, parseEther("5000"))).wait()
+            await (await badVoter.stake(sponsorship.address, parseEther("5000"))).wait()
+
+            // flag will result in NO_KICK => voter will get rewarded
+            await (await badVoter.setShouldRevertGetOwner(true)).wait()
+
+            const start = await getBlockTimestamp()
+            advanceToTimestamp(start, "Flag bad operator")
+            await (await badFlagger.flag(sponsorship.address, badFlagged.address, "{}")).wait()
+
+            const reviewPeriod = (await streamrConfig.reviewPeriodSeconds()).toNumber()
+            advanceToTimestamp(start + reviewPeriod, "Vote for bad operator")
+            let badFlaggedStakeBeforeKick = await sponsorship.stakedWei(badFlagged.address)
+            await expect(badVoter.voteOnFlag(sponsorship.address, badFlagged.address, VOTE_NO_KICK))
+                .to.emit(sponsorship, "FlagUpdate").withArgs(badFlagged.address, FlagState.RESULT_NO_KICK, 0, parseEther("5000"), AddressZero, 0)
+            let badFlaggedStakeAfterKick = await sponsorship.stakedWei(badFlagged.address)
+
+            expect(badFlaggedStakeBeforeKick).to.equal(parseEther("5000"))
+            expect(badFlaggedStakeAfterKick).to.equal(parseEther("5000")) // NOT_KICKED
+
+            // flag will result in KICK => voter & flagger will get rewarded
+            await (await badFlagger.setShouldRevertGetOwner(true)).wait()
+
+            const votingPeriod = (await streamrConfig.votingPeriodSeconds()).toNumber()
+            const flagProtection = (await streamrConfig.flagProtectionSeconds()).toNumber()
+            advanceToTimestamp(start + reviewPeriod + votingPeriod + flagProtection, "Flag again bad operator")
+            await (await badFlagger.flag(sponsorship.address, badFlagged.address, "{}")).wait()
+
+            advanceToTimestamp(start + reviewPeriod + votingPeriod + flagProtection + reviewPeriod + 1, "Vote again bad operator")
+            badFlaggedStakeBeforeKick = await sponsorship.stakedWei(badFlagged.address)
+            await expect(badVoter.voteOnFlag(sponsorship.address, badFlagged.address, VOTE_KICK))
+                .to.emit(sponsorship, "FlagUpdate").withArgs(badFlagged.address, FlagState.RESULT_KICK, parseEther("5000"), 0, AddressZero, 0)
+            badFlaggedStakeAfterKick = await sponsorship.stakedWei(badFlagged.address)
+        
+            expect(badFlaggedStakeBeforeKick).to.equal(parseEther("5000"))
+            expect(badFlaggedStakeAfterKick).to.equal(parseEther("0")) // KICKED
         })
     })
 

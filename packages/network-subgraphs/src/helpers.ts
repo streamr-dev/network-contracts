@@ -207,27 +207,27 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
 
 export function loadOrCreateDelegator(delegator: string): Delegator {
     let delegatorEntity = Delegator.load(delegator)
-    log.info("loadOrCreateDelegator: delegator={}", [delegator])
     if (delegatorEntity == null) {
         log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
         delegatorEntity = new Delegator(delegator)
         delegatorEntity.numberOfDelegations = 0
         delegatorEntity.totalValueDataWei = BigInt.zero()
+        delegatorEntity.cumulativeEarningsWei = BigInt.zero()
     }
     return delegatorEntity
 }
 
-export function loadOrCreateDelegatorDailyBucket(delegator: string, timestamp: BigInt): DelegatorDailyBucket {
+export function loadOrCreateDelegatorDailyBucket(delegator: Delegator, timestamp: BigInt): DelegatorDailyBucket {
     let date = getBucketStartDate(timestamp)
-    let bucketId = delegator + "-" + date.toString()
+    let bucketId = delegator.id + "-" + date.toString()
     let bucket = DelegatorDailyBucket.load(bucketId)
     if (bucket == null) {
         bucket = new DelegatorDailyBucket(bucketId)
-        bucket.delegator = delegator
+        bucket.delegator = delegator.id
         bucket.date = date
         bucket.totalValueDataWei = BigInt.zero()
         bucket.operatorCount = 0
-        bucket.cumulativeEarningsWei = BigInt.zero()
+        bucket.cumulativeEarningsWei = delegator.cumulativeEarningsWei
     }
     return bucket
 }
