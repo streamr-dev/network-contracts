@@ -13,7 +13,7 @@ const {
     getSigners,
     getContractFactory,
     constants: { AddressZero },
-    utils: { defaultAbiCoder, parseEther, formatEther, hexZeroPad }
+    utils: { defaultAbiCoder, parseEther, formatEther }
 } = hardhatEthers
 
 describe("Sponsorship contract", (): void => {
@@ -375,12 +375,12 @@ describe("Sponsorship contract", (): void => {
     describe("Kicking/slashing", (): void => {
         it("can not slash more than you have staked", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, testKickPolicy)
-            await expect(token.transferAndCall(sponsorship.address, parseEther("70"), operator.address))
+            await expect(token.transferAndCall(sponsorship.address, parseEther("5"), operator.address))
                 .to.emit(sponsorship, "OperatorJoined").withArgs(operator.address)
 
-            // TestKickPolicy actually kicks and slashes given amount (here, 100)
-            await expect(sponsorship.voteOnFlag(operator.address, hexZeroPad(parseEther("100").toHexString(), 32)))
-                .to.emit(sponsorship, "OperatorSlashed").withArgs(operator.address, parseEther("70"))
+            // TestKickPolicy slashes 10 DATA
+            await expect(sponsorship.flag(operator.address, ""))
+                .to.emit(sponsorship, "OperatorSlashed").withArgs(operator.address, parseEther("5"))
         })
 
         it("bad operator (reverts upon transferAndCall) can't prevent getting kicked out of the sponsorship", async function(): Promise<void> {
@@ -501,7 +501,7 @@ describe("Sponsorship contract", (): void => {
             await expect(badVoter.voteOnFlag(sponsorship.address, badFlagged.address, VOTE_KICK))
                 .to.emit(sponsorship, "FlagUpdate").withArgs(badFlagged.address, FlagState.RESULT_KICK, parseEther("5000"), 0, AddressZero, 0)
             badFlaggedStakeAfterKick = await sponsorship.stakedWei(badFlagged.address)
-        
+
             expect(badFlaggedStakeBeforeKick).to.equal(parseEther("5000"))
             expect(badFlaggedStakeAfterKick).to.equal(parseEther("0")) // KICKED
         })
