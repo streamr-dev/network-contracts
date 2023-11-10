@@ -9,12 +9,23 @@ import {
     OperatorValueUpdate,
     Profit,
     QueueUpdated,
-    QueuedDataPayout
+    QueuedDataPayout,
+    Undelegated
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
     loadOrCreateNetwork,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
 import { QueueEntry } from '../generated/schema'
+
+/** Undelegated is used for tracking the total amount undelegated across all Operators */
+export function handleUndelegated(event: Undelegated): void {
+    let newUndelegation = event.params.amountDataWei
+    log.info('handleUndelegated: newUndelegation={}', [newUndelegation.toString()])
+
+    let network = loadOrCreateNetwork()
+    network.totalUndelegated = network.totalUndelegated.plus(newUndelegation)
+    network.save()
+}
 
 /** Delegated is used for tracking the total amount delegated across all Operators */
 export function handleDelegated(event: Delegated): void {

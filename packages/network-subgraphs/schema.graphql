@@ -228,6 +228,8 @@ type Network @entity {
   totalStake: BigInt!
   "Total DATA delegated to all operators"
   totalDelegated: BigInt!
+  "Total DATA undelegated from all operators"
+  totalUndelegated: BigInt!
   "The number of all Sponsorships ever created through the SponsorshipFactory"
   sponsorshipsCount: Int!
   "The number of all Sponsorships ever created through the SponsorshipFactory that are currently funded"
