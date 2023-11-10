@@ -10,12 +10,14 @@ import {
     Profit,
     QueueUpdated,
     QueuedDataPayout,
-    Undelegated
+    Undelegated,
+    ReviewRequest
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
     loadOrCreateNetwork,
+    loadOrCreateFlag,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
-import { QueueEntry } from '../generated/schema'
+import { Flag, QueueEntry } from '../generated/schema'
 
 /** Undelegated is used for tracking the total amount undelegated across all Operators */
 export function handleUndelegated(event: Undelegated): void {
@@ -249,4 +251,20 @@ export function handleNodesSet(event: NodesSet): void {
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.nodes = event.params.nodes.map<string>((node) => node.toHexString())
     operator.save()
+}
+
+export function handleReviewRequest(event: ReviewRequest): void {
+    let reviewer = event.address.toHexString()
+    let sponsorship = event.params.sponsorship.toHexString()
+    let targetOperator = event.params.targetOperator.toHexString()
+    log.info('handleReviewRequest: reviewer={} sponsorship={} targetOperator={} blockNumber={}', [
+        reviewer, event.block.number.toString(), sponsorship, targetOperator, event.block.number.toString()
+    ])
+
+    // don't save firstFlag.lastFlagIndex (sponsorship.handleFlagged does that)
+    let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
+    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
+    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
+    flag.reviewers.push(reviewer)
+    flag.save()
 }

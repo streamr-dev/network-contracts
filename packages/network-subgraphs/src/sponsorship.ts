@@ -12,7 +12,7 @@ import {
     InsolvencyEnded
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { loadOrCreateNetwork, loadOrCreateOperator, loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateFlag, loadOrCreateOperator, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
     "waiting",
@@ -92,7 +92,7 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     } else {
         sponsorship.projectedInsolvency = sponsorship.remainingWei.div(sponsorship.totalPayoutWeiPerSec)
             .plus(event.block.timestamp)
-    }        
+    }
     sponsorship.save()
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
@@ -136,22 +136,14 @@ export function handleFlagged(event: Flagged): void {
     // the reason why first flag is a good place is that there is a list of flags per Operator-Sponsorship pair,
     //   however Stake (which would be the natural place since it represents such pair) isn't a good place for the running index
     //   because when a vote concludes with VOTE_KICK (or Operator unstakes for whatever reason) the Stake entity is deleted
-    let flagIndex = 0
-    let firstFlag = Flag.load(sponsorship + "-" + target + "-0")
-    if (firstFlag !== null) {
-        flagIndex = firstFlag.lastFlagIndex + 1
-        firstFlag.lastFlagIndex = flagIndex
-        firstFlag.save()
-    }
+    let firstFlag = loadOrCreateFlag(sponsorship, target, 0) // loaded here, created in operator.handleReviewRequest
+    let flagIndex = firstFlag.lastFlagIndex + 1
+    firstFlag.lastFlagIndex = flagIndex
+    firstFlag.save()
 
-    let flag = new Flag(sponsorship + "-" + target + "-" + flagIndex.toString())
-    flag.sponsorship = sponsorship
-    flag.target = target
+    let flag = loadOrCreateFlag(sponsorship, target, flagIndex) // loaded here, created in operator.handleReviewRequest
     flag.flagger = flagger
     flag.flaggingTimestamp = now
-    flag.result = "waiting"
-    flag.votesForKick = BigInt.zero()
-    flag.votesAgainstKick = BigInt.zero()
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
