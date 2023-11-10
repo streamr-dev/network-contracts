@@ -140,6 +140,7 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
 
     let network = loadOrCreateNetwork()
     network.totalStake = network.totalStake.plus(stakeChange)
+    network.save()
 }
 
 export function handleProfit(event: Profit): void {
