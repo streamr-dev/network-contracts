@@ -116,12 +116,17 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
     let flag = Flag.load(flagId)
     if (flag === null) {
         flag = new Flag(flagId)
+        flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
         flag.sponsorship = sponsorshipAddress
         flag.target = targetAddress
+        flag.flagger = ""
+        flag.flaggingTimestamp = 0
         flag.result = "waiting"
         flag.votesForKick = BigInt.zero()
         flag.votesAgainstKick = BigInt.zero()
-        flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+        flag.reviewerCount = 0
+        flag.targetStakeAtRiskWei = BigInt.zero()
+        flag.metadata = ""
         flag.reviewers = []
     }
     return flag
