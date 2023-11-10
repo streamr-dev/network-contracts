@@ -22,7 +22,7 @@ export function handleDelegated(event: Delegated): void {
     log.info('handleDelegated: newDelegation={}', [newDelegation.toString()])
 
     let network = loadOrCreateNetwork()
-    network.totalDelegation = network.totalDelegation.plus(newDelegation)
+    network.totalDelegated = network.totalDelegated.plus(newDelegation)
     network.save()
 }
 

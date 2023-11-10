@@ -96,9 +96,9 @@ export function loadOrCreateNetwork(): Network {
         network = new Network(NETWORK_ENTITY_ID)
 
         network.totalStake = BigInt.zero()
-        network.totalDelegation = BigInt.zero()
+        network.totalDelegated = BigInt.zero()
         network.sponsorshipsCount = 0
-        network.payingSponsorshipsCount = 0
+        network.fundedSponsorshipsCount = 0
         network.operatorsCount = 0
         network.eligibleVotersCount = 0
 

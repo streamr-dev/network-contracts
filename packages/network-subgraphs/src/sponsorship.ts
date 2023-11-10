@@ -108,7 +108,7 @@ export function handleInsolvencyStarted(event: InsolvencyStarted): void {
     let startTimestamp = event.params.startTimeStamp.toHexString()
     log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} now={}', [sponsorshipAddress, startTimestamp])
     let network = loadOrCreateNetwork()
-    network.payingSponsorshipsCount += 1
+    network.fundedSponsorshipsCount += 1
     network.save()
 }
 
@@ -117,7 +117,7 @@ export function handleInsolvencyEnded(event: InsolvencyEnded): void {
     let endTimestamp = event.params.endTimeStamp.toHexString()
     log.info('handleInsolvencyStarted: sponsorship={} endTimeStamp={} now={}', [sponsorshipAddress, endTimestamp])
     let network = loadOrCreateNetwork()
-    network.payingSponsorshipsCount -= 1
+    network.fundedSponsorshipsCount -= 1
     network.save()
 }
 
