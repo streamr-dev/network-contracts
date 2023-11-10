@@ -18,11 +18,8 @@ import { QueueEntry } from '../generated/schema'
 
 /** Delegated is used for tracking the total amount delegated across all Operators */
 export function handleDelegated(event: Delegated): void {
-    let operatorContract = event.address.toHexString()
-    let delegator = event.params.delegator.toHexString()
     let newDelegation = event.params.amountDataWei
-    log.info('handleDelegated: operatorContract={} delegator={} amountDataWei={}', [
-        operatorContract, delegator, newDelegation.toString()])
+    log.info('handleDelegated: newDelegation={}', [newDelegation.toString()])
 
     let network = loadOrCreateNetwork()
     network.totalDelegation = network.totalDelegation.plus(newDelegation)
