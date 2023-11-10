@@ -224,6 +224,8 @@ dataSources:
       eventHandlers:
         - event: NewOperator(indexed address,indexed address)
           handler: handleNewOperator
+        - event: VoterUpdate(indexed address,indexed bool)
+          handler: handleVoterUpdate
 
 templates:
   - name: Sponsorship
@@ -250,6 +252,10 @@ templates:
             handler: handleStakeUpdated
           - event: StakeLockUpdate(indexed address,uint256,uint256)
             handler: handleStakeLockUpdated
+          - event: InsolvencyStarted(uint256)
+            handler: handleInsolvencyStarted
+          - event: InsolvencyEnded(uint256,uint256,uint256)
+            handler: handleInsolvencyEnded
           - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
             handler: handleSponsorshipUpdated
           - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)
@@ -286,6 +292,8 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
           - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
