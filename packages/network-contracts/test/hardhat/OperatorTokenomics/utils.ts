@@ -6,9 +6,13 @@ import Debug from "debug"
 export const log = Debug("Streamr::test")
 // export const { log } = console // TODO: use pino for logging?
 
-/** Block timestamp, rounded up to nearest million for test log readability */
-export async function getBlockTimestamp(): Promise<number> {
-    return Math.floor(((await hardhatProvider.getBlock("latest")).timestamp / 1000000) + 1) * 1000000
+/** Block timestamp, by default rounded up to nearest million for test log readability */
+export async function getBlockTimestamp(increment = -1): Promise<number> {
+    const { timestamp } = await hardhatProvider.getBlock("latest")
+    if (increment > 0) {
+        return timestamp + increment
+    }
+    return Math.floor((timestamp / 1000000) + 1) * 1000000
 }
 
 export async function advanceToTimestamp(timestamp: number, message?: string): Promise<void> {
