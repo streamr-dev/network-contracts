@@ -468,6 +468,7 @@ type Flag @entity {
   reviewerCount: Int!
   targetStakeAtRiskWei: BigInt!
   metadata: String!
+  reviewers: [Operator!]!
 }
 
 type Vote @entity {

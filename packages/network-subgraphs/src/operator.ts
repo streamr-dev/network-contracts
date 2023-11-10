@@ -8,11 +8,13 @@ import {
     OperatorValueUpdate,
     Profit,
     QueueUpdated,
-    QueuedDataPayout
+    QueuedDataPayout,
+    ReviewRequest
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
+    loadOrCreateFlag,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
-import { QueueEntry } from '../generated/schema'
+import { Flag, QueueEntry } from '../generated/schema'
 
 /** BalanceUpdate is used for tracking the internal Operator token's ERC20 balances */
 export function handleBalanceUpdate(event: BalanceUpdate): void {
@@ -221,4 +223,20 @@ export function handleNodesSet(event: NodesSet): void {
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.nodes = event.params.nodes.map<string>((node) => node.toHexString())
     operator.save()
+}
+
+export function handleReviewRequest(event: ReviewRequest): void {
+    let reviewer = event.address.toHexString()
+    let sponsorship = event.params.sponsorship.toHexString()
+    let targetOperator = event.params.targetOperator.toHexString()
+    log.info('handleReviewRequest: reviewer={} sponsorship={} targetOperator={} blockNumber={}', [
+        reviewer, event.block.number.toString(), sponsorship, targetOperator, event.block.number.toString()
+    ])
+
+    // don't save firstFlag.lastFlagIndex (sponsorship.handleFlagged does that)
+    let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
+    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
+    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
+    flag.reviewers.push(reviewer)
+    flag.save()
 }
