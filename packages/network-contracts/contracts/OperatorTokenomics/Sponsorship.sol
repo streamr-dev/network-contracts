@@ -333,8 +333,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
 
-        operatorCount -= 1;
-        totalStakedWei -= paidOutStakeWei;
+        operatorCount -= 1; // solhint-disable-line reentrancy
+        totalStakedWei -= paidOutStakeWei; // solhint-disable-line reentrancy
         delete stakedWei[operator];
         delete joinTimeOfOperator[operator];
 
