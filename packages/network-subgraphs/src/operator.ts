@@ -233,9 +233,10 @@ export function handleReviewRequest(event: ReviewRequest): void {
         reviewer, event.block.number.toString(), sponsorship, targetOperator, event.block.number.toString()
     ])
 
+    // don't save firstFlag.lastFlagIndex (sponsorship.handleFlagged does that)
     let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
-    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1) // don't update firstFlag.lastFlagIndex (Flagged handler does that)
-    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity created for first reviewer and loaded for remaining ones
+    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
+    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
     flag.reviewers.push(reviewer)
     flag.save()
 }

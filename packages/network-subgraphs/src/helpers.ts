@@ -116,7 +116,7 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
     let flag = Flag.load(flagId)
     if (flag === null) {
         flag = new Flag(flagId)
-        flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+        flag.lastFlagIndex = -1 // only the first flag use this value; and if this is the first flag, 0 is the correct value after +1
         flag.sponsorship = sponsorshipAddress
         flag.target = targetAddress
         flag.flagger = ""
