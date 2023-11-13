@@ -86,6 +86,21 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
     })
 
+    it("can get indexed network values", async () => {
+        const resultDynamicIds = await graphClient.queryEntity<any>({ query: `{
+            networks {
+                operatorsCount
+                eligibleVotersCount
+                flagReviewerCount
+            }
+        }`})
+        expect(resultDynamicIds.network).to.deep.equal([{
+            "operatorsCount": 3,
+            "eligibleVotersCount": 2,
+            "flagReviewerCount": 7,
+        }])
+    })
+    
     it("can get indexed example flagging", async () => {
         const resultDynamicIds = await graphClient.queryEntity<any>({ query: `{
             operators {
