@@ -7,7 +7,7 @@
     "clean": "rm -rf build generated",
     "codegen": "graph codegen",
     "graphbuild": "graph build",
-    "build": "./copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
+    "build": "./scripts/copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
     "docker:buildLocalArch": "npm run build && docker build . -t streamr/deploy-network-subgraphs:dev-fastchain",
     "docker:buildAndPushMultiArch": "npm run build && docker buildx build --platform linux/amd64,linux/arm64 . -t streamr/deploy-network-subgraphs:dev-fastchain --push",
     "create-docker-dev": "graph create streamr-dev/network-subgraphs --node http://streamr-dev-thegraph-node-fastchain:8020",
