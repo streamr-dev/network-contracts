@@ -174,6 +174,9 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
         flag.reviewerCount = 0
         flag.targetStakeAtRiskWei = BigInt.zero()
         flag.metadata = ""
+        flag.voteStartTimestamp = 0
+        flag.voteEndTimestamp = 0
+        flag.protectionEndTimestamp = 0
         flag.reviewers = []
     }
     return flag
