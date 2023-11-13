@@ -1,4 +1,4 @@
-import {ethers} from "ethers";
+import {ethers} from "ethers"
 
 const configKeys = [
     "slashingFraction",
@@ -28,13 +28,13 @@ const configKeys = [
     "voterRegistry",
     "operatorContractOnlyJoinPolicy",
     "streamRegistryAddress",
-];
+]
 
 let lines = ""
 
 for (const key of configKeys) {
-    const value = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(key));
-    lines += `const ${key}Key: string = "${value}"\n`;
+    const value = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(key))
+    lines += `const ${key}Key = "${value}"\n`
     
 }
 
