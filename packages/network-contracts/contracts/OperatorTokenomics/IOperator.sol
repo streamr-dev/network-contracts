@@ -8,5 +8,5 @@ interface IOperator {
     function onSlash(uint slashingWei) external;
 
     /** @param payoutWei how much the Operator received from the forced withdraw+unstaking (minus slashing or forfeited stake) */
-    function onKick(uint ignoredArgument, uint payoutWei) external;
+    function onKick(uint slashingWei, uint payoutWei) external;
 }
