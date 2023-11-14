@@ -265,6 +265,8 @@ export function handleReviewRequest(event: ReviewRequest): void {
     let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
     let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
     let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
-    flag.reviewers.push(reviewer)
+    let reviewers = flag.reviewers
+    reviewers.push(reviewer)
+    flag.reviewers = reviewers
     flag.save()
 }
