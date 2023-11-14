@@ -7,10 +7,12 @@ import {
     FlagUpdate,
     Flagged,
     OperatorSlashed,
-    SponsorshipReceived
+    SponsorshipReceived,
+    InsolvencyStarted,
+    InsolvencyEnded
 } from '../generated/templates/Sponsorship/Sponsorship'
 import { Sponsorship, Stake, Flag, Vote, SlashingEvent, StakingEvent, SponsoringEvent, Operator } from '../generated/schema'
-import { loadOrCreateFlag, loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateFlag, loadOrCreateOperator, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 let flagResultStrings = [
     "waiting",
@@ -101,6 +103,24 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     bucket.save()
 }
 
+export function handleInsolvencyStarted(event: InsolvencyStarted): void {
+    let sponsorshipAddress = event.address.toHexString()
+    let startTimestamp = event.params.startTimeStamp.toHexString()
+    log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} now={}', [sponsorshipAddress, startTimestamp])
+    let network = loadOrCreateNetwork()
+    network.fundedSponsorshipsCount += 1
+    network.save()
+}
+
+export function handleInsolvencyEnded(event: InsolvencyEnded): void {
+    let sponsorshipAddress = event.address.toHexString()
+    let endTimestamp = event.params.endTimeStamp.toHexString()
+    log.info('handleInsolvencyStarted: sponsorship={} endTimeStamp={} now={}', [sponsorshipAddress, endTimestamp])
+    let network = loadOrCreateNetwork()
+    network.fundedSponsorshipsCount -= 1
+    network.save()
+}
+
 export function handleFlagged(event: Flagged): void {
     let sponsorship = event.address.toHexString()
     let target = event.params.target.toHexString()
@@ -127,6 +147,11 @@ export function handleFlagged(event: Flagged): void {
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
     flag.metadata = flagMetadata
+    flag.lastFlagIndex = 0 // only the first flag will have this value updated (and if this is the first flag, 0 is the correct value)
+    let network = loadOrCreateNetwork()
+    flag.voteStartTimestamp = flag.flaggingTimestamp + network.reviewPeriodSeconds
+    flag.voteEndTimestamp = flag.voteStartTimestamp + network.votingPeriodSeconds
+    flag.protectionEndTimestamp = flag.voteEndTimestamp + network.flagProtectionSeconds
     flag.save()
 }
 
@@ -148,6 +173,10 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     let flagIndex = Flag.load(sponsorship + "-" + target + "-0")!.lastFlagIndex
     let flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
     flag.result = flagResultStrings[statusCode]
+    if (flag.result == "failed") {
+        let targetOperator = loadOrCreateOperator(target)
+        targetOperator.protectionEndTimestamp = flag.protectionEndTimestamp
+    }
     flag.votesForKick = votesForKick
     flag.votesAgainstKick = votesAgainstKick
     flag.save()
