@@ -163,11 +163,11 @@ dataSources:
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
     name: StreamrConfig
-    network: xDai
+    network: mumbai
     source:
-      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+      address: '0x4D3F744BC5614986c10aF8Bf36B15372c72252D7'
       abi: StreamrConfig
-      startBlock: 0
+      startBlock: 40534000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
