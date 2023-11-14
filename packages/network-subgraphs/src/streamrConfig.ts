@@ -88,6 +88,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
 
 function updateMinimumStake(network: Network): void {
     let oneEther = BigInt.fromString("1000000000000000000")
-    network.minimumStakeWei =
-        oneEther * (network.flaggerRewardWei + network.flagReviewerCount * network.flagReviewerRewardWei) / network.slashingFraction
+    network.minimumStakeWei = oneEther
+        * (network.flaggerRewardWei + BigInt.fromI32(network.flagReviewerCount) * network.flagReviewerRewardWei)
+        / network.slashingFraction
 }
