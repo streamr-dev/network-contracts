@@ -162,6 +162,26 @@ dataSources:
           handler: handleUnstake
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
+    name: StreamrConfig
+    network: xDai
+    source:
+      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+      abi: StreamrConfig
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/streamrConfig.ts
+      entities:
+        - Network
+      abis:
+        - name: StreamrConfig
+          file: ./abis/StreamrConfig.json
+      eventHandlers:
+        - event: ConfigChanged(indexed string,indexed uint256,indexed address)
+          handler: handleConfigChanged
+  - kind: ethereum/contract
     name: SponsorshipFactory
     network: mumbai
     source:
@@ -204,6 +224,8 @@ dataSources:
       eventHandlers:
         - event: NewOperator(indexed address,indexed address)
           handler: handleNewOperator
+        - event: VoterUpdate(indexed address,indexed bool)
+          handler: handleVoterUpdate
 
 templates:
   - name: Sponsorship
@@ -230,6 +252,10 @@ templates:
             handler: handleStakeUpdated
           - event: StakeLockUpdate(indexed address,uint256,uint256)
             handler: handleStakeLockUpdated
+          - event: InsolvencyStarted(uint256)
+            handler: handleInsolvencyStarted
+          - event: InsolvencyEnded(uint256,uint256,uint256)
+            handler: handleInsolvencyEnded
           - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
             handler: handleSponsorshipUpdated
           - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)
@@ -266,6 +292,10 @@ templates:
         - name: Operator
           file: ./abis/Operator.json
       eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
+          - event: Undelegated(indexed address,uint256)
+            handler: handleUndelegated
           - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
             handler: handleBalanceUpdate
           # Stake entity is kept up to date by sponsorship.ts via Sponsorship.StakeUpdate
@@ -287,3 +317,5 @@ templates:
             handler: handleHeartbeat
           - event: MetadataUpdated(string,indexed address,indexed uint256)
             handler: handleMetadataUpdate
+          - event: ReviewRequest(indexed address,indexed address,uint256,uint256,string)
+            handler: handleReviewRequest

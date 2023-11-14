@@ -249,12 +249,6 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /** Get both stake and allocations out, forfeitting leavePenalty and all stake that is locked to pay for flags */
     function forceUnstake() external returns (uint payoutWei) {
         address operator = _msgSender();
-        uint penaltyWei = getLeavePenalty(operator);
-        if (penaltyWei > 0) {
-            uint slashedWei = _slash(operator, penaltyWei);
-            // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
-            token.transfer(streamrConfig.protocolFeeBeneficiary(), slashedWei);
-        }
         payoutWei = _removeOperator(operator); // forfeits locked stake
     }
 
@@ -307,7 +301,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
-        actualReductionWei = min(amountWei, stakedWei[operator]);
+        if (lockedStakeWei[operator] >= stakedWei[operator]) { return 0; }
+        actualReductionWei = min(amountWei, stakedWei[operator] - lockedStakeWei[operator]);
         stakedWei[operator] -= actualReductionWei;
         totalStakedWei -= actualReductionWei;
         moduleCall(address(allocationPolicy), abi.encodeWithSelector(allocationPolicy.onStakeChange.selector, operator, -int(actualReductionWei)));
@@ -322,18 +317,24 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         if (joinTimeOfOperator[operator] == 0) { revert OperatorNotStaked(); }
 
         if (lockedStakeWei[operator] > 0) {
-            uint slashedWei = _slash(operator, lockedStakeWei[operator]);
-            forfeitedStakeWei += slashedWei;
-            lockedStakeWei[operator] = 0;
+            uint stakeToForfeit = lockedStakeWei[operator];
+            lockedStakeWei[operator] = 0; // unlock stake first so that it can be slashed
+            forfeitedStakeWei += _slash(operator, stakeToForfeit);
             emit StakeLockUpdate(operator, 0, 0);
+        }
+
+        // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
+        uint penaltyWei = getLeavePenalty(operator);
+        if (penaltyWei > 0) {
+            token.transfer(streamrConfig.protocolFeeBeneficiary(), _slash(operator, penaltyWei));
         }
 
         // send out both allocations and stake
         uint paidOutEarningsWei = _withdraw(operator);
         uint paidOutStakeWei = stakedWei[operator];
 
-        operatorCount -= 1;
-        totalStakedWei -= paidOutStakeWei;
+        operatorCount -= 1; // solhint-disable-line reentrancy
+        totalStakedWei -= paidOutStakeWei; // solhint-disable-line reentrancy
         delete stakedWei[operator];
         delete joinTimeOfOperator[operator];
 

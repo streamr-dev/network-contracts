@@ -1,7 +1,4 @@
-# TODO: how to define dates/timestamps? This was suggested in https://graphql.org/learn/schema/
-# scalar Date
-# for now, use BigInt because that's what the events return
-# TODO: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
+# @dev: frontend asked if we could give timestamps as numbers (not strings), so maybe try to use Int instead of BigInt?
 
 ######################################################################
 ##  NETWORK: streams, (storage) nodes
@@ -224,6 +221,57 @@ type ProjectStakingDayBucket @entity {
 ##  Delegators signal their trust by delegating tokens to Operators
 ############################################################
 
+type Network @entity {
+  id: ID! # StreamrConfig contract address
+
+  "Total DATA staked - slashed in all sponsorships"
+  totalStake: BigInt!
+  "Total DATA delegated to all operators"
+  totalDelegated: BigInt!
+  "Total DATA undelegated from all operators"
+  totalUndelegated: BigInt!
+  "The number of all Sponsorships ever created through the SponsorshipFactory"
+  sponsorshipsCount: Int!
+  "The number of all Sponsorships ever created through the SponsorshipFactory that are currently funded"
+  fundedSponsorshipsCount: Int!
+  "The number of all Operators ever created through the OperatorpFactory"
+  operatorsCount: Int!
+  "The number of all Operators ever created through the OperatorpFactory that are eligible to vote"
+  eligibleVotersCount: Int!
+
+  ## StreamrConfig values
+
+  slashingFraction: BigInt!
+  earlyLeaverPenaltyWei: BigInt!
+  minimumDelegationWei: BigInt!
+  minimumSelfDelegationFraction: BigInt!
+  maxPenaltyPeriodSeconds: Int!
+  maxQueueSeconds: Int!
+  maxAllowedEarningsFraction: BigInt!
+  fishermanRewardFraction: BigInt!
+  protocolFeeFraction: BigInt!
+  protocolFeeBeneficiary: String!
+  minEligibleVoterAge: Int!
+  minEligibleVoterFractionOfAllStake: BigInt!
+  flagReviewerCount: Int!
+  flagReviewerRewardWei: BigInt!
+  flaggerRewardWei: BigInt!
+  flagReviewerSelectionIterations: Int!
+  flagStakeWei: BigInt!
+  reviewPeriodSeconds: Int!
+  votingPeriodSeconds: Int!
+  flagProtectionSeconds: Int!
+  randomOracle: String
+  trustedForwarder: String
+  sponsorshipFactory: String
+  operatorFactory: String
+  voterRegistry: String
+  operatorContractOnlyJoinPolicy: String
+  streamRegistryAddress: String
+  "Updated whenever one of flaggerRewardWei | flagReviewerCount | flagReviewerRewardWei | slashingFraction changes"
+  minimumStakeWei: BigInt!
+}
+
 type Operator @entity {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
@@ -275,6 +323,9 @@ type Operator @entity {
   slashingsCount: Int!
   nodes: [String!]!
   operatorsCutFraction: BigInt!
+
+  isEligibleToVote: Boolean!
+  protectionEndTimestamp: Int
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
@@ -468,6 +519,10 @@ type Flag @entity {
   reviewerCount: Int!
   targetStakeAtRiskWei: BigInt!
   metadata: String!
+  voteStartTimestamp: Int!
+  voteEndTimestamp: Int!
+  protectionEndTimestamp: Int!
+  reviewers: [Operator!]!
 }
 
 type Vote @entity {

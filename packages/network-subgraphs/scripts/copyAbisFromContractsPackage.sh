@@ -10,6 +10,7 @@ jq .abi ../network-contracts/artifacts/contracts/NodeRegistry/NodeRegistry.sol/N
 jq .abi ../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json > abis/StreamRegistry.json
 jq .abi ../network-contracts/artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json > abis/StreamStorageRegistry.json
 
+jq .abi ../network-contracts/artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json > abis/StreamrConfig.json
 jq .abi ../network-contracts/artifacts/contracts/OperatorTokenomics/Sponsorship.sol/Sponsorship.json > abis/Sponsorship.json
 jq .abi ../network-contracts/artifacts/contracts/OperatorTokenomics/SponsorshipFactory.sol/SponsorshipFactory.json > abis/SponsorshipFactory.json
 jq .abi ../network-contracts/artifacts/contracts/OperatorTokenomics/Operator.sol/Operator.json > abis/Operator.json

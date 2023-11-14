@@ -1,6 +1,7 @@
 import { BigDecimal, BigInt, log, store } from '@graphprotocol/graph-ts'
 import {
     BalanceUpdate,
+    Delegated,
     Heartbeat,
     Loss,
     MetadataUpdated,
@@ -8,11 +9,35 @@ import {
     OperatorValueUpdate,
     Profit,
     QueueUpdated,
-    QueuedDataPayout
+    QueuedDataPayout,
+    Undelegated,
+    ReviewRequest
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
+    loadOrCreateNetwork,
+    loadOrCreateFlag,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
-import { QueueEntry } from '../generated/schema'
+import { Flag, QueueEntry } from '../generated/schema'
+
+/** Undelegated is used for tracking the total amount undelegated across all Operators */
+export function handleUndelegated(event: Undelegated): void {
+    let newUndelegation = event.params.amountDataWei
+    log.info('handleUndelegated: newUndelegation={}', [newUndelegation.toString()])
+
+    let network = loadOrCreateNetwork()
+    network.totalUndelegated = network.totalUndelegated.plus(newUndelegation)
+    network.save()
+}
+
+/** Delegated is used for tracking the total amount delegated across all Operators */
+export function handleDelegated(event: Delegated): void {
+    let newDelegation = event.params.amountDataWei
+    log.info('handleDelegated: newDelegation={}', [newDelegation.toString()])
+
+    let network = loadOrCreateNetwork()
+    network.totalDelegated = network.totalDelegated.plus(newDelegation)
+    network.save()
+}
 
 /** BalanceUpdate is used for tracking the internal Operator token's ERC20 balances */
 export function handleBalanceUpdate(event: BalanceUpdate): void {
@@ -110,6 +135,7 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     log.info('handleOperatorValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
         [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
     let operator = loadOrCreateOperator(operatorContractAddress)
+    let stakeChange = event.params.totalStakeInSponsorshipsWei.minus(operator.totalStakeInSponsorshipsWei)
     operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
     operator.dataTokenBalanceWei = event.params.dataTokenBalanceWei
     operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
@@ -124,6 +150,10 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
     bucket.valueWithoutEarnings = operator.valueWithoutEarnings
     bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
     bucket.save()
+
+    let network = loadOrCreateNetwork()
+    network.totalStake = network.totalStake.plus(stakeChange)
+    network.save()
 }
 
 export function handleProfit(event: Profit): void {
@@ -221,4 +251,20 @@ export function handleNodesSet(event: NodesSet): void {
     let operator = loadOrCreateOperator(operatorContractAddress)
     operator.nodes = event.params.nodes.map<string>((node) => node.toHexString())
     operator.save()
+}
+
+export function handleReviewRequest(event: ReviewRequest): void {
+    let reviewer = event.address.toHexString()
+    let sponsorship = event.params.sponsorship.toHexString()
+    let targetOperator = event.params.targetOperator.toHexString()
+    log.info('handleReviewRequest: reviewer={} sponsorship={} targetOperator={} blockNumber={}', [
+        reviewer, event.block.number.toString(), sponsorship, targetOperator, event.block.number.toString()
+    ])
+
+    // don't save firstFlag.lastFlagIndex (sponsorship.handleFlagged does that)
+    let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
+    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
+    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
+    flag.reviewers.push(reviewer)
+    flag.save()
 }

@@ -1,7 +1,7 @@
 import { log } from '@graphprotocol/graph-ts'
-import { NewOperator } from '../generated/OperatorFactory/OperatorFactory'
+import { NewOperator, VoterUpdate } from '../generated/OperatorFactory/OperatorFactory'
 import { Operator as OperatorTemplate } from '../generated/templates'
-import { loadOrCreateOperator } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateOperator } from './helpers'
 
 export function handleNewOperator(event: NewOperator): void {
     let contractAddress = event.params.operatorContractAddress
@@ -14,4 +14,26 @@ export function handleNewOperator(event: NewOperator): void {
     let operator = loadOrCreateOperator(contractAddressString)
     operator.save()
     log.info('handleNewOperator: operatorId={}', [operator.id])
+
+    let network = loadOrCreateNetwork()
+    network.operatorsCount = network.operatorsCount + 1
+    network.save()
+}
+
+export function handleVoterUpdate(event: VoterUpdate): void {
+    let voterRegistryAddress = event.address.toHexString()
+    let voter = event.params.voterAddress.toHexString()
+    let isVoter = event.params.isVoter
+    log.info('handleVoterUpdate: voterRegistryAddress={} voterAddress={} isVoter={} blockNumber={}', 
+        [voterRegistryAddress, voter, isVoter.toString(), event.block.number.toString()])
+
+    let operator = loadOrCreateOperator(voter)
+    operator.isEligibleToVote = isVoter
+    operator.save()
+
+    let network = loadOrCreateNetwork()
+    network.eligibleVotersCount = isVoter 
+        ? network.eligibleVotersCount + 1
+        : network.eligibleVotersCount - 1
+    network.save()
 }
