@@ -38,4 +38,5 @@ for (const key of configKeys) {
     
 }
 
+// eslint-disable-next-line no-console
 console.log(lines)
