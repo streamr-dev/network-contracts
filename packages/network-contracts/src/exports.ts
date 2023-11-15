@@ -64,7 +64,7 @@ export { abi as defaultUndelegationPolicyABI, bytecode as defaultUndelegationPol
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
 export type { DefaultUndelegationPolicy } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy"
 
-export { abi as operatorContractOnlyJoinPolicy, bytecode as operatorContractOnlyJoinPolicyBytecode }
+export { abi as operatorContractOnlyJoinPolicyABI, bytecode as operatorContractOnlyJoinPolicyBytecode }
     from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
 export type { OperatorContractOnlyJoinPolicy }
     from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
