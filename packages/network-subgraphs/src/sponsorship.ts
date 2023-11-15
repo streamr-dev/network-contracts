@@ -179,6 +179,9 @@ export function handleFlagUpdate(event: FlagUpdate): void {
         let targetOperator = loadOrCreateOperator(target)
         targetOperator.protectionEndTimestamp = flag.protectionEndTimestamp
     }
+    if (flag.result == "kicked" || flag.result == "failed") {
+        flag.flagResolutionTimestamp = now
+    }
     flag.votesForKick = votesForKick
     flag.votesAgainstKick = votesAgainstKick
     flag.save()

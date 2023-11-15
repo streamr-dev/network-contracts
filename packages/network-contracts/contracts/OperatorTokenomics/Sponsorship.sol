@@ -256,7 +256,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     function reduceStakeTo(uint targetStakeWei) external returns (uint payoutWei) {
         address operator = _msgSender();
         if (targetStakeWei >= stakedWei[operator]) { revert CannotIncreaseStakeUsingReduceStakeTo(); }
-        uint minimumStake = minimumStakeOf(operator);
+        uint minimumStake = minimumStakeOf(operator); // takes locked stake into account
         if (targetStakeWei < minimumStake) { revert MinimumStake(minimumStake); }
 
         payoutWei = _reduceStakeBy(operator, stakedWei[operator] - targetStakeWei);
@@ -269,7 +269,10 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Slashing removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
      * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
-     **/
+     * @param operator to slash
+     * @param amountWei to attempt to slash
+     * @return actualSlashingWei the amount of tokens actually slashed (can't slash below locked stake)
+     */
     function _slash(address operator, uint amountWei) internal returns (uint actualSlashingWei) {
         if (amountWei == 0) { return 0; }
         actualSlashingWei = _reduceStakeBy(operator, amountWei);
@@ -296,9 +299,9 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     }
 
     /**
-     * Removes tokens from an operator's stake (and does NOT put them e.g. into remainingWei!)
+     * Removes tokens from an operator's stake, down to lockedStakeWei (or zero).
      * NOTE: Does not actually send out tokens, only does the accounting!
-     * NOTE: The caller MUST ensure those tokens are added to some other account, e.g. remainingWei, via _addSponsorship
+     * NOTE: The caller MUST ensure those tokens are sent out or added to some other account, e.g. remainingWei, via _addSponsorship
      **/
     function _reduceStakeBy(address operator, uint amountWei) private returns (uint actualReductionWei) {
         if (lockedStakeWei[operator] >= stakedWei[operator]) { return 0; }
@@ -323,7 +326,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             emit StakeLockUpdate(operator, 0, 0);
         }
 
-        // send these tokens out of the contract in order to make it impossible for malicious operators to get them for themselves
+        // send the leave penalty out of the contract in order to make it impossible for malicious operators to get them for themselves
         uint penaltyWei = getLeavePenalty(operator);
         if (penaltyWei > 0) {
             token.transfer(streamrConfig.protocolFeeBeneficiary(), _slash(operator, penaltyWei));
@@ -487,6 +490,11 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return moduleGet(abi.encodeWithSelector(leavePolicy.getLeavePenaltyWei.selector, operator, address(leavePolicy)));
     }
 
+    /**
+     * The amount of stake you can't reduce below: you can't cash out the locked part of your stake, or go below the minimum stake.
+     * For most operators, the limit is the same minimumStakeWei that can cover the cost of flag review.
+     * If an operator is flagged, their individual minimum stake might be higher.
+     */
     function minimumStakeOf(address operator) public view returns (uint individualMinimumStakeWei) {
         if (address(kickPolicy) == address(0)) { return 0; }
         return moduleGet(abi.encodeWithSelector(kickPolicy.getMinimumStakeOf.selector, operator, address(kickPolicy)));
