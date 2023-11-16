@@ -22,6 +22,7 @@ const {
     Contract,
     getContractFactory,
     utils: { formatEther, formatUnits, getAddress },
+    getContractAt,
 } = hardhatEthers
 
 export type StreamrTokenomicsContracts = {
@@ -135,8 +136,10 @@ export default async function deployTokenomicsContracts(
         throw new Error(`StreamRegistry must be set in the config! Not found in chain "${CHAIN}".
             Check CHAIN environment variable, or deploy StreamRegistry first.`)
     }
-    const registry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, provider) as StreamRegistry
-    await registry.TRUSTED_ROLE().catch(() => { throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}`) })
+    const registry = await getContractAt("StreamRegistryV4", STREAM_REGISTRY_ADDRESS, signer) as StreamRegistry
+    await registry.deployed().catch((e: Error) => {
+        throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}; Error = ${e.message}`)
+    })
     log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
 
     if (STREAMR_CONFIG_ADDRESS && await provider.getCode(STREAMR_CONFIG_ADDRESS) !== "0x") {
