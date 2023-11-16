@@ -53,17 +53,17 @@ const config: HardhatUserConfig = {
             chainId: 31337,
             url: "http://localhost:8547",
             gasPrice: 1000000000,
-            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
         dev1: {
             chainId: 8997,
             url: "http://localhost:8546",
-            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
         dev0: {
             chainId: 8995,
             url: "http://localhost:8545",
-            accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
         gnosis: {
             chainId: 100,

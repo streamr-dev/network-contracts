@@ -4,7 +4,7 @@ import { config } from "@streamr/config"
 import { abi as ERC20ABI } from "../artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
 import { StreamRegistry, operatorFactoryABI, sponsorshipFactoryABI, streamRegistryABI, streamrConfigABI } from "../src/exports"
 
-import type { Overrides, Wallet } from "ethers"
+import type { Wallet } from "ethers"
 import type {
     IERC20Metadata, IERC677, StreamrConfig,
     SponsorshipFactory, StakeWeightedAllocationPolicy, VoteKickPolicy,
@@ -21,7 +21,7 @@ const {
     getSigners, // specified in hardhat.config.ts, read from environment variable KEY
     Contract,
     getContractFactory,
-    utils: { formatEther, formatUnits, parseUnits, getAddress },
+    utils: { formatEther, formatUnits, getAddress },
 } = hardhatEthers
 
 export type StreamrTokenomicsContracts = {
@@ -44,18 +44,12 @@ export type StreamrTokenomicsContracts = {
 
 const {
     CHAIN,
-    GAS_PRICE_GWEI,
 
     IGNORE_BALANCE,
     IGNORE_TOKEN_SYMBOL, // set to bypass token check for testing
 } = process.env
 if (!CHAIN) {
     throw new Error("Must set CHAIN environment variable, e.g. CHAIN=dev2")
-}
-
-const ethersOptions: Overrides = {}
-if (GAS_PRICE_GWEI) {
-    ethersOptions.gasPrice = parseUnits(GAS_PRICE_GWEI, "gwei")
 }
 
 const {
