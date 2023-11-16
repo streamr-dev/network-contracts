@@ -82,6 +82,8 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
     }
     log("Found SponsorshipFactory at %s", sponsorshipFactory.address)
 
+    const tr0 = await (await streamrConfig.setProtocolFeeBeneficiary(targetAddress)).wait()
+    log("Set StreamrConfig.protocolFeeBeneficiary to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr0.transactionHash)
     const tr1 = await (await streamrConfig.grantRole(await streamrConfig.ADMIN_ROLE(), targetAddress)).wait()
     log("Granted StreamrConfig.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr1.transactionHash)
     const tr2 = await (await streamrConfig.grantRole(await streamrConfig.CONFIGURATOR_ROLE(), targetAddress)).wait()
