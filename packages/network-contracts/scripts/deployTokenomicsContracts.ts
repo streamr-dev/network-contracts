@@ -168,16 +168,23 @@ export default async function deployTokenomicsContracts(
         })
         log("Found OperatorFactory at %s", contracts.operatorFactory.address)
     } else {
+        log("Deploying Operator policies...")
         contracts.operatorDefaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
+        log("Deployed DefaultDelegationPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.operatorDefaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
+        log("Deployed DefaultExchangeRatePolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.operatorDefaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
-        log("Streamr tokenomics contract addresses so far:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
+        log("Operator policies deployed; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
+        log("Deployed NodeModule at %s", nodeModule.address)
         const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
+        log("Deployed QueueModule at %s", queueModule.address)
         const stakeModule = await (await getContractFactory("StakeModule", { signer })).deploy() as StakeModule
-
+        log("Deployed StakeModule at %s", stakeModule.address)
         const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy() as Operator
+        log("Deployed Operator template at %s", operatorTemplate.address)
+
         const operatorFactoryCF = await getContractFactory("OperatorFactory", signer)
         contracts.operatorFactory = await(await upgrades.deployProxy(operatorFactoryCF, [
             operatorTemplate.address,
@@ -207,14 +214,20 @@ export default async function deployTokenomicsContracts(
         })
         log("Found SponsorshipFactory at %s", contracts.sponsorshipFactory.address)
     } else {
+        log("Deploying Sponsorship policies...")
         contracts.sponsorshipMaxOperatorsJoinPolicy = await (await getContractFactory("MaxOperatorsJoinPolicy", { signer })).deploy()
+        log("Deployed MaxOperatorsJoinPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.sponsorshipOperatorContractOnlyJoinPolicy = await (await getContractFactory("OperatorContractOnlyJoinPolicy", { signer })).deploy()
+        log("Deployed OperatorContractOnlyJoinPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.sponsorshipStakeWeightedAllocationPolicy = await (await getContractFactory("StakeWeightedAllocationPolicy", { signer })).deploy()
+        log("Deployed StakeWeightedAllocationPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.sponsorshipDefaultLeavePolicy = await (await getContractFactory("DefaultLeavePolicy", { signer })).deploy()
+        log("Deployed DefaultLeavePolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         contracts.sponsorshipVoteKickPolicy = await (await getContractFactory("VoteKickPolicy", { signer })).deploy()
+        log("Deployed VoteKickPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
         const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
         await sponsorshipTemplate.deployed()
-        log("Deployed Sponsorship policies; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
+        log("Deployed Sponsorship template at %s", sponsorshipTemplate.address)
 
         const sponsorshipFactoryCF = await getContractFactory("SponsorshipFactory", signer)
         contracts.sponsorshipFactory = await(await upgrades.deployProxy(sponsorshipFactoryCF, [
