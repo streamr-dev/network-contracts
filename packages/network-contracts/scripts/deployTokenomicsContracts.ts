@@ -102,7 +102,11 @@ async function main() {
     const gasSpent = balanceBefore.sub(balanceAfter)
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
-    const addresses = {
+    log("All done! Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
+}
+
+function getAddresses(contracts: Partial<StreamrTokenomicsContracts>) {
+    return {
         "StreamrConfig": contracts.streamrConfig?.address,
         "SponsorshipOperatorContractOnlyJoinPolicy": contracts.sponsorshipOperatorContractOnlyJoinPolicy?.address,
         "SponsorshipMaxOperatorsJoinPolicy": contracts.sponsorshipMaxOperatorsJoinPolicy?.address,
@@ -115,7 +119,6 @@ async function main() {
         "OperatorDefaultUndelegationPolicy": contracts.operatorDefaultUndelegationPolicy?.address,
         "OperatorFactory": contracts.operatorFactory?.address,
     }
-    log("Streamr tokenomics contract addresses:\n%s", JSON.stringify(addresses, null, 4))
 }
 
 export default async function deployTokenomicsContracts(
@@ -162,6 +165,7 @@ export default async function deployTokenomicsContracts(
         }) as StreamrConfig
         await contracts.streamrConfig.deployed()
         log("Deployed StreamrConfig to %s", contracts.streamrConfig.address)
+        log("Streamr tokenomics contract addresses so far:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const tr = await (await contracts.streamrConfig.setStreamRegistryAddress(STREAM_REGISTRY_ADDRESS)).wait()
         log("Done setting StreamrConfig.streamRegistryAddress (%s/tx/%s )", blockExplorerUrl, tr.transactionHash)
@@ -177,6 +181,7 @@ export default async function deployTokenomicsContracts(
         contracts.operatorDefaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
         contracts.operatorDefaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
         contracts.operatorDefaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
+        log("Streamr tokenomics contract addresses so far:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
         const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
@@ -192,7 +197,7 @@ export default async function deployTokenomicsContracts(
             queueModule.address,
             stakeModule.address,
         ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as OperatorFactory
-        log("Deployed OperatorFactory to %s", contracts.operatorFactory.address)
+        log("Deployed OperatorFactory; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const tr1 = await (await contracts.operatorFactory.addTrustedPolicies([
             contracts.operatorDefaultDelegationPolicy!.address,
@@ -219,6 +224,7 @@ export default async function deployTokenomicsContracts(
         contracts.sponsorshipVoteKickPolicy = await (await getContractFactory("VoteKickPolicy", { signer })).deploy()
         const sponsorshipTemplate = await (await getContractFactory("Sponsorship", { signer })).deploy()
         await sponsorshipTemplate.deployed()
+        log("Deployed Sponsorship policies; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const sponsorshipFactoryCF = await getContractFactory("SponsorshipFactory", signer)
         contracts.sponsorshipFactory = await(await upgrades.deployProxy(sponsorshipFactoryCF, [
@@ -226,7 +232,7 @@ export default async function deployTokenomicsContracts(
             DATA_TOKEN_ADDRESS,
             contracts.streamrConfig.address
         ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as SponsorshipFactory
-        log("Deployed SponsorshipFactory to %s", contracts.sponsorshipFactory.address)
+        log("Deployed SponsorshipFactory; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
         const tr1 = await (await contracts.sponsorshipFactory.addTrustedPolicies([
             contracts.sponsorshipStakeWeightedAllocationPolicy!.address,
