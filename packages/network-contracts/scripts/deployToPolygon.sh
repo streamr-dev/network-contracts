@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
 export CHAIN=polygon
 npm run deployTokenomicsContracts
 
