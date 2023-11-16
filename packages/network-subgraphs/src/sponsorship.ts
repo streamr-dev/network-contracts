@@ -106,7 +106,8 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
 export function handleInsolvencyStarted(event: InsolvencyStarted): void {
     let sponsorshipAddress = event.address.toHexString()
     let startTimestamp = event.params.startTimeStamp.toHexString()
-    log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} now={}', [sponsorshipAddress, startTimestamp])
+    log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} blockNumber={}',
+        [sponsorshipAddress, startTimestamp, event.block.number.toString()])
     let network = loadOrCreateNetwork()
     network.fundedSponsorshipsCount += 1
     network.save()
@@ -115,7 +116,8 @@ export function handleInsolvencyStarted(event: InsolvencyStarted): void {
 export function handleInsolvencyEnded(event: InsolvencyEnded): void {
     let sponsorshipAddress = event.address.toHexString()
     let endTimestamp = event.params.endTimeStamp.toHexString()
-    log.info('handleInsolvencyStarted: sponsorship={} endTimeStamp={} now={}', [sponsorshipAddress, endTimestamp])
+    log.info('handleInsolvencyEnded: sponsorship={} endTimeStamp={} blockNumber={}',
+        [sponsorshipAddress, endTimestamp, event.block.number.toString()])
     let network = loadOrCreateNetwork()
     network.fundedSponsorshipsCount -= 1
     network.save()
@@ -176,6 +178,9 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     if (flag.result == "failed") {
         let targetOperator = loadOrCreateOperator(target)
         targetOperator.protectionEndTimestamp = flag.protectionEndTimestamp
+    }
+    if (flag.result == "kicked" || flag.result == "failed") {
+        flag.flagResolutionTimestamp = now
     }
     flag.votesForKick = votesForKick
     flag.votesAgainstKick = votesAgainstKick

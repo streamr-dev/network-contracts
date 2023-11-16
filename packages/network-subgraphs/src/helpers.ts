@@ -169,6 +169,7 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
         flag.flagger = ""
         flag.flaggingTimestamp = 0
         flag.result = "waiting"
+        flag.flagResolutionTimestamp = 0
         flag.votesForKick = BigInt.zero()
         flag.votesAgainstKick = BigInt.zero()
         flag.reviewerCount = 0
