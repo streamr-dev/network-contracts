@@ -109,6 +109,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await (await streamrConfig.setOperatorContractOnlyJoinPolicy(operatorContractOnlyJoinPolicy.address)).wait()
     await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
     await (await streamrConfig.setTrustedForwarder(minimalForwarder.address)).wait()
+
     // operator contract and policies
     const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
     const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()

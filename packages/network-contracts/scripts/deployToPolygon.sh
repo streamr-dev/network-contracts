@@ -1,0 +1,6 @@
+export CHAIN=polygon
+npm run deployTokenomicsContracts
+
+export SCRIPT_FILE=scripts/handoverTo.ts
+export TARGET_ADDRESS=0x63f74A64fd334122aB5D29760C6E72Fb4b752208
+npm run hardhatScript

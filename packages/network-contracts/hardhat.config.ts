@@ -52,6 +52,7 @@ const config: HardhatUserConfig = {
         dev2: {
             chainId: 31337,
             url: "http://localhost:8547",
+            gasPrice: 1000000000,
             accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
         dev1: {
@@ -73,6 +74,10 @@ const config: HardhatUserConfig = {
             chainId: 137,
             url: "https://polygon-rpc.com",
             // gasPrice: 80000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
+        mumbai: {
+            url: "https://rpc-mumbai.maticvigil.com",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
         ethereum: {
