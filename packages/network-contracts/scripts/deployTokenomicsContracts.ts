@@ -61,9 +61,6 @@ const {
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
     }
 } = (config as any)[CHAIN]
-if (!DATA_TOKEN_ADDRESS) {
-    throw new Error(`DATA must be set in the config! Not found in chain "${CHAIN}". Check CHAIN environment variable.`)
-}
 
 // TODO: add to @streamr/config
 const blockExplorerUrl = "https://polygonscan.com"
@@ -121,26 +118,26 @@ export default async function deployTokenomicsContracts(
 ): Promise<StreamrTokenomicsContracts> {
     const { provider } = signer
 
-    if (DATA_TOKEN_ADDRESS && await provider.getCode(DATA_TOKEN_ADDRESS) !== "0x") {
-        const token = new Contract(DATA_TOKEN_ADDRESS, ERC20ABI, provider) as IERC20Metadata
-        const tokenSymbol = await token.symbol()
-            .catch(() => { throw "[call failed]" })
-            .then((sym) => { if (!IGNORE_TOKEN_SYMBOL && sym !== "DATA") { throw sym } return sym })
-            .catch((badSymbol: string) => { throw new Error(
-                `Doesn't seem to be Streamr DATAv2 token: symbol="${badSymbol}" DATA=${DATA_TOKEN_ADDRESS}.
-                If this is ok, bypass this check with IGNORE_TOKEN_SYMBOL=1.`
-            ) })
-        log("Found %s token at %s", tokenSymbol, DATA_TOKEN_ADDRESS)
+    if (!DATA_TOKEN_ADDRESS || await provider.getCode(DATA_TOKEN_ADDRESS) === "0x") {
+        throw new Error(`DATA must be set in the config! Not found in chain "${CHAIN}". Check CHAIN environment variable.`)
     }
+    const token = new Contract(DATA_TOKEN_ADDRESS, ERC20ABI, provider) as IERC20Metadata
+    const tokenSymbol = await token.symbol()
+        .catch(() => { throw "[call failed]" })
+        .then((sym) => { if (!IGNORE_TOKEN_SYMBOL && sym !== "DATA") { throw sym } return sym })
+        .catch((badSymbol: string) => { throw new Error(
+            `Doesn't seem to be Streamr DATAv2 token: symbol="${badSymbol}" DATA=${DATA_TOKEN_ADDRESS}.
+            If this is ok, bypass this check with IGNORE_TOKEN_SYMBOL=1.`
+        ) })
+    log("Found %s token at %s", tokenSymbol, token.address)
 
-    if (STREAM_REGISTRY_ADDRESS && await provider.getCode(STREAM_REGISTRY_ADDRESS) !== "0x") {
-        const registry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, provider) as StreamRegistry
-        await registry.TRUSTED_ROLE().catch(() => { throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}`) })
-        log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
-    } else {
+    if (!STREAM_REGISTRY_ADDRESS || await provider.getCode(STREAM_REGISTRY_ADDRESS) === "0x") {
         throw new Error(`StreamRegistry must be set in the config! Not found in chain "${CHAIN}".
             Check CHAIN environment variable, or deploy StreamRegistry first.`)
     }
+    const registry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, provider) as StreamRegistry
+    await registry.TRUSTED_ROLE().catch(() => { throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}`) })
+    log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
 
     if (STREAMR_CONFIG_ADDRESS && await provider.getCode(STREAMR_CONFIG_ADDRESS) !== "0x") {
         contracts.streamrConfig = new Contract(STREAMR_CONFIG_ADDRESS, streamrConfigABI, signer) as StreamrConfig
