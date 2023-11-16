@@ -71,6 +71,9 @@ if (!DATA_TOKEN_ADDRESS) {
     throw new Error(`DATA must be set in the config! Not found in chain "${CHAIN}". Check CHAIN environment variable.`)
 }
 
+// TODO: add to @streamr/config
+const blockExplorerUrl = "https://polygonscan.com"
+
 async function main() {
     const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts
     console.log("Connected to network %o", await provider.getNetwork())
@@ -160,8 +163,8 @@ export default async function deployTokenomicsContracts(
         await contracts.streamrConfig.deployed()
         log("Deployed StreamrConfig to %s", contracts.streamrConfig.address)
 
-        await (await contracts.streamrConfig.setStreamRegistryAddress(STREAM_REGISTRY_ADDRESS)).wait()
-        log("Done setting StreamrConfig.streamRegistryAddress")
+        const tr = await (await contracts.streamrConfig.setStreamRegistryAddress(STREAM_REGISTRY_ADDRESS)).wait()
+        log("Done setting StreamrConfig.streamRegistryAddress (%s/tx/%s )", blockExplorerUrl, tr.transactionHash)
     }
 
     if (OPERATOR_FACTORY_ADDRESS && await provider.getCode(OPERATOR_FACTORY_ADDRESS) !== "0x") {
@@ -191,15 +194,15 @@ export default async function deployTokenomicsContracts(
         ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as OperatorFactory
         log("Deployed OperatorFactory to %s", contracts.operatorFactory.address)
 
-        await (await contracts.operatorFactory.addTrustedPolicies([
+        const tr1 = await (await contracts.operatorFactory.addTrustedPolicies([
             contracts.operatorDefaultDelegationPolicy!.address,
             contracts.operatorDefaultExchangeRatePolicy!.address,
             contracts.operatorDefaultUndelegationPolicy!.address,
         ])).wait()
-        log("Done adding trusted policies")
+        log("Done adding trusted policies (%s/tx/%s )", blockExplorerUrl, tr1.transactionHash)
 
-        await (await contracts.streamrConfig.setOperatorFactory(contracts.operatorFactory.address)).wait()
-        log("Done setting StreamrConfig.operatorFactory")
+        const tr2 = await (await contracts.streamrConfig.setOperatorFactory(contracts.operatorFactory.address)).wait()
+        log("Done setting StreamrConfig.operatorFactory (%s/tx/%s )", blockExplorerUrl, tr2.transactionHash)
     }
 
     if (SPONSORSHIP_FACTORY_ADDRESS && await provider.getCode(SPONSORSHIP_FACTORY_ADDRESS) !== "0x") {
@@ -225,18 +228,20 @@ export default async function deployTokenomicsContracts(
         ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as SponsorshipFactory
         log("Deployed SponsorshipFactory to %s", contracts.sponsorshipFactory.address)
 
-        await (await contracts.sponsorshipFactory.addTrustedPolicies([
+        const tr1 = await (await contracts.sponsorshipFactory.addTrustedPolicies([
             contracts.sponsorshipStakeWeightedAllocationPolicy!.address,
             contracts.sponsorshipDefaultLeavePolicy!.address,
             contracts.sponsorshipVoteKickPolicy!.address,
             contracts.sponsorshipMaxOperatorsJoinPolicy!.address,
             contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address,
         ])).wait()
-        log("Done adding trusted policies")
+        log("Done adding trusted policies (%s/tx/%s )", blockExplorerUrl, tr1.transactionHash)
 
-        await (await contracts.streamrConfig.setOperatorContractOnlyJoinPolicy(contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address)).wait()
-        await (await contracts.streamrConfig.setSponsorshipFactory(contracts.sponsorshipFactory.address)).wait()
-        log("Done setting StreamrConfig.sponsorshipFactory")
+        const tr2 = await (await contracts.streamrConfig.setOperatorContractOnlyJoinPolicy(
+            contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address)).wait()
+        log("Done setting StreamrConfig.operatorContractOnlyJoinPolicy (%s/tx/%s )", blockExplorerUrl, tr2.transactionHash)
+        const tr3 = await (await contracts.streamrConfig.setSponsorshipFactory(contracts.sponsorshipFactory.address)).wait()
+        log("Done setting StreamrConfig.sponsorshipFactory (%s/tx/%s )", blockExplorerUrl, tr3.transactionHash)
     }
 
     return contracts as StreamrTokenomicsContracts

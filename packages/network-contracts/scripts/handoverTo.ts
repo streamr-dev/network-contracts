@@ -32,6 +32,9 @@ const {
     rpcEndpoints: [{ url: ETHEREUM_RPC_URL }],
 } = (config as any)[CHAIN]
 
+// TODO: add to @streamr/config
+const blockExplorerUrl = "https://polygonscan.com"
+
 const lastArg = process.argv[process.argv.length - 1]
 const targetAddress = isAddress(lastArg) ? getAddress(lastArg) : isAddress(TARGET_ADDRESS) ? getAddress(TARGET_ADDRESS) : null
 if (targetAddress === null) {
@@ -53,7 +56,7 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
         throw new Error(`StreamrConfig must be set in the config! Not found in chain "${CHAIN}".
             Check CHAIN environment variable, or deploy StreamrConfig first.`)
     }
-    const streamrConfig = new Contract(STREAMR_CONFIG_ADDRESS, streamrConfigABI, provider) as StreamrConfig
+    const streamrConfig = new Contract(STREAMR_CONFIG_ADDRESS, streamrConfigABI, currentAdminWallet) as StreamrConfig
     if (!await streamrConfig.hasRole(await streamrConfig.ADMIN_ROLE(), currentAdminWallet.address)) {
         throw new Error(`${currentAdminWallet.address} doesn't have StreamrConfig.ADMIN_ROLE`)
     }
@@ -63,7 +66,7 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
         throw new Error(`OperatorFactory must be set in the config! Not found in chain "${CHAIN}".
             Check CHAIN environment variable, or deploy OperatorFactory first.`)
     }
-    const operatorFactory = new Contract(OPERATOR_FACTORY_ADDRESS, operatorFactoryABI, provider) as OperatorFactory
+    const operatorFactory = new Contract(OPERATOR_FACTORY_ADDRESS, operatorFactoryABI, currentAdminWallet) as OperatorFactory
     if (!await operatorFactory.hasRole(await operatorFactory.ADMIN_ROLE(), currentAdminWallet.address)) {
         throw new Error(`${currentAdminWallet.address} doesn't have OperatorFactory.ADMIN_ROLE`)
     }
@@ -73,36 +76,36 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
         throw new Error(`SponsorshipFactory must be set in the config! Not found in chain "${CHAIN}".
             Check CHAIN environment variable, or deploy SponsorshipFactory first.`)
     }
-    const sponsorshipFactory = new Contract(SPONSORSHIP_FACTORY_ADDRESS, sponsorshipFactoryABI, provider) as SponsorshipFactory
+    const sponsorshipFactory = new Contract(SPONSORSHIP_FACTORY_ADDRESS, sponsorshipFactoryABI, currentAdminWallet) as SponsorshipFactory
     if (!await sponsorshipFactory.hasRole(await sponsorshipFactory.ADMIN_ROLE(), currentAdminWallet.address)) {
         throw new Error(`${currentAdminWallet.address} doesn't have SponsorshipFactory.ADMIN_ROLE`)
     }
     log("Found SponsorshipFactory at %s", sponsorshipFactory.address)
 
     const tr1 = await (await streamrConfig.grantRole(await streamrConfig.ADMIN_ROLE(), targetAddress)).wait()
-    log("Granted StreamrConfig.ADMIN_ROLE to %s (https://polygonscan.com/tx/%s)", targetAddress, tr1.transactionHash)
+    log("Granted StreamrConfig.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr1.transactionHash)
     const tr2 = await (await streamrConfig.grantRole(await streamrConfig.CONFIGURATOR_ROLE(), targetAddress)).wait()
-    log("Granted StreamrConfig.CONFIGURATOR_ROLE to %s (https://polygonscan.com/tx/%s)", targetAddress, tr2.transactionHash)
+    log("Granted StreamrConfig.CONFIGURATOR_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr2.transactionHash)
     const tr3 = await (await streamrConfig.grantRole(await streamrConfig.UPGRADER_ROLE(), targetAddress)).wait()
-    log("Granted StreamrConfig.UPGRADER_ROLE to %s (https://polygonscan.com/tx/%s)", targetAddress, tr3.transactionHash)
+    log("Granted StreamrConfig.UPGRADER_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr3.transactionHash)
     if (!SKIP_REVOKE_CONFIGURATOR) {
         const tr4 = await (await streamrConfig.revokeRole(await streamrConfig.CONFIGURATOR_ROLE(), myAddress)).wait()
-        log("Revoked StreamrConfig.CONFIGURATOR_ROLE from %s (https://polygonscan.com/tx/%s)", myAddress, tr4.transactionHash)
+        log("Revoked StreamrConfig.CONFIGURATOR_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr4.transactionHash)
     }
     const tr5 = await (await streamrConfig.revokeRole(await streamrConfig.UPGRADER_ROLE(), myAddress)).wait()
-    log("Revoked StreamrConfig.UPGRADER_ROLE from %s (https://polygonscan.com/tx/%s)", myAddress, tr5.transactionHash)
+    log("Revoked StreamrConfig.UPGRADER_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr5.transactionHash)
     const tr6 = await (await streamrConfig.revokeRole(await streamrConfig.ADMIN_ROLE(), myAddress)).wait()
-    log("Revoked StreamrConfig.ADMIN_ROLE from %s (https://polygonscan.com/tx/%s)", myAddress, tr6.transactionHash)
+    log("Revoked StreamrConfig.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr6.transactionHash)
 
     const tr7 = await (await operatorFactory.grantRole(await operatorFactory.ADMIN_ROLE(), targetAddress)).wait()
-    log("Granted OperatorFactory.ADMIN_ROLE to %s (https://polygonscan.com/tx/%s)", targetAddress, tr7.transactionHash)
+    log("Granted OperatorFactory.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr7.transactionHash)
     const tr8 = await (await operatorFactory.revokeRole(await operatorFactory.ADMIN_ROLE(), myAddress)).wait()
-    log("Revoked OperatorFactory.ADMIN_ROLE from %s (https://polygonscan.com/tx/%s)", myAddress, tr8.transactionHash)
+    log("Revoked OperatorFactory.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr8.transactionHash)
 
     const tr9 = await (await sponsorshipFactory.grantRole(await sponsorshipFactory.ADMIN_ROLE(), targetAddress)).wait()
-    log("Granted SponsorshipFactory.ADMIN_ROLE to %s (https://polygonscan.com/tx/%s)", targetAddress, tr9.transactionHash)
+    log("Granted SponsorshipFactory.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr9.transactionHash)
     const tr10 = await (await sponsorshipFactory.revokeRole(await sponsorshipFactory.ADMIN_ROLE(), myAddress)).wait()
-    log("Revoked SponsorshipFactory.ADMIN_ROLE from %s (https://polygonscan.com/tx/%s)", myAddress, tr10.transactionHash)
+    log("Revoked SponsorshipFactory.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr10.transactionHash)
 }
 
 if (require.main === module) {
