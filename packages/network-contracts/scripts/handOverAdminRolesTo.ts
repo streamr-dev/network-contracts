@@ -12,7 +12,7 @@ const { JsonRpcProvider } = providers
 const {
     CHAIN,
     KEY = "",
-    TARGET_ADDRESS = "",
+    NEW_ADMIN_ADDRESS = "",
 
     SKIP_REVOKE_CONFIGURATOR,
 } = process.env
@@ -36,7 +36,7 @@ const {
 const blockExplorerUrl = "https://polygonscan.com"
 
 const lastArg = process.argv[process.argv.length - 1]
-const targetAddress = isAddress(lastArg) ? getAddress(lastArg) : isAddress(TARGET_ADDRESS) ? getAddress(TARGET_ADDRESS) : null
+const targetAddress = isAddress(lastArg) ? getAddress(lastArg) : isAddress(NEW_ADMIN_ADDRESS) ? getAddress(NEW_ADMIN_ADDRESS) : null
 if (targetAddress === null) {
     log("Target address can be given as command-line argument, or as TARGET_ADDRESS environment variable.")
     throw new Error("Must give target address!")
