@@ -1,3 +1,4 @@
+/* eslint-disable require-atomic-updates */
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
 import { abi as ERC20ABI } from "../artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
@@ -89,7 +90,8 @@ async function main() {
         }
     }
 
-    await deployTokenomicsContracts(deployer).catch((e) => {
+    const contracts: Partial<StreamrTokenomicsContracts> = {}
+    await deployTokenomicsContracts(deployer, contracts).catch((e) => {
         log("Error deploying tokenomics contracts: %o", e)
     })
 
@@ -98,23 +100,25 @@ async function main() {
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
     const addresses = {
-        "StreamrConfig": contracts.streamrConfig.address,
-        "SponsorshipOperatorContractOnlyJoinPolicy": contracts.sponsorshipOperatorContractOnlyJoinPolicy.address,
-        "SponsorshipMaxOperatorsJoinPolicy": contracts.sponsorshipMaxOperatorsJoinPolicy.address,
-        "SponsorshipStakeWeightedAllocationPolicy": contracts.sponsorshipStakeWeightedAllocationPolicy.address,
-        "SponsorshipDefaultLeavePolicy": contracts.sponsorshipDefaultLeavePolicy.address,
-        "SponsorshipVoteKickPolicy": contracts.sponsorshipVoteKickPolicy.address,
-        "SponsorshipFactory": contracts.sponsorshipFactory.address,
-        "OperatorDefaultDelegationPolicy": contracts.operatorDefaultDelegationPolicy.address,
-        "OperatorDefaultExchangeRatePolicy": contracts.operatorDefaultExchangeRatePolicy.address,
-        "OperatorDefaultUndelegationPolicy": contracts.operatorDefaultUndelegationPolicy.address,
-        "OperatorFactory": contracts.operatorFactory.address,
+        "StreamrConfig": contracts.streamrConfig?.address,
+        "SponsorshipOperatorContractOnlyJoinPolicy": contracts.sponsorshipOperatorContractOnlyJoinPolicy?.address,
+        "SponsorshipMaxOperatorsJoinPolicy": contracts.sponsorshipMaxOperatorsJoinPolicy?.address,
+        "SponsorshipStakeWeightedAllocationPolicy": contracts.sponsorshipStakeWeightedAllocationPolicy?.address,
+        "SponsorshipDefaultLeavePolicy": contracts.sponsorshipDefaultLeavePolicy?.address,
+        "SponsorshipVoteKickPolicy": contracts.sponsorshipVoteKickPolicy?.address,
+        "SponsorshipFactory": contracts.sponsorshipFactory?.address,
+        "OperatorDefaultDelegationPolicy": contracts.operatorDefaultDelegationPolicy?.address,
+        "OperatorDefaultExchangeRatePolicy": contracts.operatorDefaultExchangeRatePolicy?.address,
+        "OperatorDefaultUndelegationPolicy": contracts.operatorDefaultUndelegationPolicy?.address,
+        "OperatorFactory": contracts.operatorFactory?.address,
     }
     log("Streamr tokenomics contract addresses:\n%s", JSON.stringify(addresses, null, 4))
 }
 
-const contracts = {} as StreamrTokenomicsContracts
-export default async function deployTokenomicsContracts(signer: Wallet): Promise<StreamrTokenomicsContracts> {
+export default async function deployTokenomicsContracts(
+    signer: Wallet,
+    contracts: Partial<StreamrTokenomicsContracts> = {}
+): Promise<StreamrTokenomicsContracts> {
     const { provider } = signer
 
     if (DATA_TOKEN_ADDRESS && await provider.getCode(DATA_TOKEN_ADDRESS) !== "0x") {
@@ -188,9 +192,9 @@ export default async function deployTokenomicsContracts(signer: Wallet): Promise
         log("Deployed OperatorFactory to %s", contracts.operatorFactory.address)
 
         await (await contracts.operatorFactory.addTrustedPolicies([
-            contracts.operatorDefaultDelegationPolicy.address,
-            contracts.operatorDefaultExchangeRatePolicy.address,
-            contracts.operatorDefaultUndelegationPolicy.address,
+            contracts.operatorDefaultDelegationPolicy!.address,
+            contracts.operatorDefaultExchangeRatePolicy!.address,
+            contracts.operatorDefaultUndelegationPolicy!.address,
         ])).wait()
         log("Done adding trusted policies")
 
@@ -222,20 +226,20 @@ export default async function deployTokenomicsContracts(signer: Wallet): Promise
         log("Deployed SponsorshipFactory to %s", contracts.sponsorshipFactory.address)
 
         await (await contracts.sponsorshipFactory.addTrustedPolicies([
-            contracts.sponsorshipStakeWeightedAllocationPolicy.address,
-            contracts.sponsorshipDefaultLeavePolicy.address,
-            contracts.sponsorshipVoteKickPolicy.address,
-            contracts.sponsorshipMaxOperatorsJoinPolicy.address,
-            contracts.sponsorshipOperatorContractOnlyJoinPolicy.address,
+            contracts.sponsorshipStakeWeightedAllocationPolicy!.address,
+            contracts.sponsorshipDefaultLeavePolicy!.address,
+            contracts.sponsorshipVoteKickPolicy!.address,
+            contracts.sponsorshipMaxOperatorsJoinPolicy!.address,
+            contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address,
         ])).wait()
         log("Done adding trusted policies")
 
-        await (await contracts.streamrConfig.setOperatorContractOnlyJoinPolicy(contracts.sponsorshipOperatorContractOnlyJoinPolicy.address)).wait()
+        await (await contracts.streamrConfig.setOperatorContractOnlyJoinPolicy(contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address)).wait()
         await (await contracts.streamrConfig.setSponsorshipFactory(contracts.sponsorshipFactory.address)).wait()
         log("Done setting StreamrConfig.sponsorshipFactory")
     }
 
-    return contracts
+    return contracts as StreamrTokenomicsContracts
 }
 
 if (require.main === module) {
