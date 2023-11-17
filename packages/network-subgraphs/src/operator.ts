@@ -64,38 +64,37 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     )
 
     let delegator = loadOrCreateDelegator(delegatorAddress)
-    let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
+    let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress)
     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
     let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
         // delegation is new
-        delegation.operatorTokenBalanceWei = newBalance
         operator.delegatorCount = operator.delegatorCount + 1
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
-        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei)
+        operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange + 1
     }
+    if (newBalanceDataWei > delegation.valueDataWei) {
+        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+    } else {
+        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalanceDataWei))
+    }
+    delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+    delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     if (newBalance.gt(BigInt.zero())) {
         // delegation updated
-        delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
-        if (newBalanceDataWei > delegation.valueDataWei) {
-            operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
-        } else {
-            operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalanceDataWei))
-        }
         delegation.valueDataWei = newBalanceDataWei
-        delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
+        delegation.operatorTokenBalanceWei = newBalance
+        delegation.save()
     } else {
         // delegator left
         // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
-        delegator.numberOfDelegations = delegator.numberOfDelegations - 1
         store.remove('Delegation', delegation.id)
         operator.delegatorCount = operator.delegatorCount - 1
-        operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange - 1
-        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei)
+        delegator.numberOfDelegations = delegator.numberOfDelegations - 1
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount - 1
+        operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange - 1
     }
-    delegation.save()
     delegator.save()
     delegatorDailyBucket.save()
     operatorBucket.save()
