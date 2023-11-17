@@ -240,7 +240,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
     return bucket
 }
 
-export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string, timestamp: BigInt): Delegation {
+export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string): Delegation {
     let delegationId = operatorContractAddress + "-" + delegator
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {

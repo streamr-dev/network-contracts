@@ -64,7 +64,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     )
 
     let delegator = loadOrCreateDelegator(delegatorAddress)
-    let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress, event.block.timestamp)
+    let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress)
     let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
     let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
