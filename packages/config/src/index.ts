@@ -266,7 +266,7 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://poly-rpc.gateway.pokt.network/"
+                "url": "https://polygon-pokt.nodies.app"
             }
         ],
         "contracts": {
