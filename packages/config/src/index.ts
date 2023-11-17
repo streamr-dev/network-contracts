@@ -266,7 +266,7 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://poly-rpc.gateway.pokt.network/"
+                "url": "https://polygon-pokt.nodies.app"
             }
         ],
         "contracts": {
@@ -305,6 +305,7 @@ export const config = {
             }
         ],
         "contracts": {
+            "DATA": "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20",
             "ENS": "0x0fEC601fD12fBB544f5fDCc489fb0641B2178954",
             "FIFSRegistrar": "0x9f7251cc9A04Cb0dA4107Ea979ECBe5112A0fE69",
             "PublicResolver": "0x3d381a2B2c588C891BD4986b52255336a267df3e",
@@ -314,7 +315,6 @@ export const config = {
             "ENSCacheV2": "0x5eeb458843D4dE852f295ED8cb01BAd3b464bB67",
             "StreamStorageRegistry": "0xA5a2298c9b48C08DaBF5D76727620d898FD2BEc1",
             "StreamrConfig": "0x4D3F744BC5614986c10aF8Bf36B15372c72252D7",
-            "DATA": "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20",
             "SponsorshipMaxOperatorsJoinPolicy": "0xFCa3ec6c20EeA8E60A631700a42A8B14dA8408D8",
             "SponsorshipStakeWeightedAllocationPolicy": "0x500046908D2C478f71D8788A20d7f9A5c71b892c",
             "SponsorshipDefaultLeavePolicy": "0x002f203d68BB30b00C72D65f7Ad468f138315b11",

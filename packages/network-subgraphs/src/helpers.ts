@@ -240,7 +240,7 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
     return bucket
 }
 
-export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string, timestamp: BigInt): Delegation {
+export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string): Delegation {
     let delegationId = operatorContractAddress + "-" + delegator
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {
@@ -249,15 +249,6 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
         delegation.delegator = delegator
         delegation.valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
-
-        // creating a Delegation means a new delegator has joined the operator => increase delegator count
-        let operator = loadOrCreateOperator(operatorContractAddress)
-        operator.delegatorCount = operator.delegatorCount + 1
-        operator.save()
-
-        let operatorDailyBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, timestamp)
-        operatorDailyBucket.delegatorCountChange = operatorDailyBucket.delegatorCountChange + 1
-        operatorDailyBucket.save()
     }
 
     return delegation

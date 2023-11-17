@@ -36,7 +36,8 @@
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
     "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
-    "deployTatum": "hardhat run --network dev1 scripts/tatum/1_deploySponsorshipFactory.ts && hardhat run --network dev1 scripts/tatum/2_deployNewSponsorship.ts && hardhat run --network dev1 scripts/tatum/3_deployOperatorFactory.ts && hardhat run --network dev1 scripts/tatum/4_deployNewOperator.ts",
+    "deployTokenomicsContracts": "hardhat run --network $CHAIN scripts/deployTokenomicsContracts.ts",
+    "hardhatScript": "hardhat run --network $CHAIN $SCRIPT_FILE",
     "streamrEnvDeployer": "npx tsx scripts/tatum/streamrEnvDeployer.ts",
     "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
   },
