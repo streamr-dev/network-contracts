@@ -1,4 +1,4 @@
-/* eslint-disable require-atomic-updates */
+/* eslint-disable require-atomic-updates,max-len */
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
 import { abi as ERC20ABI } from "../artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
@@ -169,20 +169,20 @@ export default async function deployTokenomicsContracts(
         log("Found OperatorFactory at %s", contracts.operatorFactory.address)
     } else {
         log("Deploying Operator policies...")
-        contracts.operatorDefaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
+        contracts.operatorDefaultDelegationPolicy = await (await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()).deployed()
         log("Deployed DefaultDelegationPolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
-        contracts.operatorDefaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
+        contracts.operatorDefaultExchangeRatePolicy = await (await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()).deployed()
         log("Deployed DefaultExchangeRatePolicy; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
-        contracts.operatorDefaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
+        contracts.operatorDefaultUndelegationPolicy = await (await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()).deployed()
         log("Operator policies deployed; Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 
-        const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
+        const nodeModule = await (await (await getContractFactory("NodeModule", { signer })).deploy()).deployed() as NodeModule
         log("Deployed NodeModule at %s", nodeModule.address)
-        const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
+        const queueModule = await (await (await getContractFactory("QueueModule", { signer })).deploy()).deployed() as QueueModule
         log("Deployed QueueModule at %s", queueModule.address)
-        const stakeModule = await (await getContractFactory("StakeModule", { signer })).deploy() as StakeModule
+        const stakeModule = await (await (await getContractFactory("StakeModule", { signer })).deploy()).deployed() as StakeModule
         log("Deployed StakeModule at %s", stakeModule.address)
-        const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy() as Operator
+        const operatorTemplate = await (await (await getContractFactory("Operator", { signer })).deploy()).deployed() as Operator
         log("Deployed Operator template at %s", operatorTemplate.address)
 
         const operatorFactoryCF = await getContractFactory("OperatorFactory", signer)

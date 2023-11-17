@@ -1,4 +1,4 @@
-import { utils, Contract, providers, Wallet } from "ethers"
+import { utils, Contract, providers, Wallet, Overrides } from "ethers"
 import { config } from "@streamr/config"
 
 import { operatorFactoryABI, sponsorshipFactoryABI, streamrConfigABI } from "../src/exports"
@@ -6,13 +6,14 @@ import type { StreamrConfig, SponsorshipFactory, OperatorFactory } from "../type
 
 const { log } = console
 
-const { isAddress, getAddress } = utils
+const { isAddress, getAddress, parseUnits } = utils
 const { JsonRpcProvider } = providers
 
 const {
     CHAIN,
     KEY = "",
     NEW_ADMIN_ADDRESS = "",
+    GAS_PRICE_GWEI,
 
     SKIP_REVOKE_CONFIGURATOR,
 } = process.env
@@ -34,6 +35,11 @@ const {
 
 // TODO: add to @streamr/config
 const blockExplorerUrl = "https://polygonscan.com"
+
+const ethersOptions: Overrides = {}
+if (GAS_PRICE_GWEI) {
+    ethersOptions.gasPrice = parseUnits(GAS_PRICE_GWEI, "gwei")
+}
 
 const lastArg = process.argv[process.argv.length - 1]
 const targetAddress = isAddress(lastArg) ? getAddress(lastArg) : isAddress(NEW_ADMIN_ADDRESS) ? getAddress(NEW_ADMIN_ADDRESS) : null
@@ -82,31 +88,31 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
     }
     log("Found SponsorshipFactory at %s", sponsorshipFactory.address)
 
-    const tr0 = await (await streamrConfig.setProtocolFeeBeneficiary(targetAddress)).wait()
+    const tr0 = await (await streamrConfig.setProtocolFeeBeneficiary(targetAddress, ethersOptions)).wait()
     log("Set StreamrConfig.protocolFeeBeneficiary to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr0.transactionHash)
-    const tr1 = await (await streamrConfig.grantRole(await streamrConfig.ADMIN_ROLE(), targetAddress)).wait()
+    const tr1 = await (await streamrConfig.grantRole(await streamrConfig.ADMIN_ROLE(), targetAddress, ethersOptions)).wait()
     log("Granted StreamrConfig.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr1.transactionHash)
-    const tr2 = await (await streamrConfig.grantRole(await streamrConfig.CONFIGURATOR_ROLE(), targetAddress)).wait()
+    const tr2 = await (await streamrConfig.grantRole(await streamrConfig.CONFIGURATOR_ROLE(), targetAddress, ethersOptions)).wait()
     log("Granted StreamrConfig.CONFIGURATOR_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr2.transactionHash)
-    const tr3 = await (await streamrConfig.grantRole(await streamrConfig.UPGRADER_ROLE(), targetAddress)).wait()
+    const tr3 = await (await streamrConfig.grantRole(await streamrConfig.UPGRADER_ROLE(), targetAddress, ethersOptions)).wait()
     log("Granted StreamrConfig.UPGRADER_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr3.transactionHash)
     if (!SKIP_REVOKE_CONFIGURATOR) {
-        const tr4 = await (await streamrConfig.revokeRole(await streamrConfig.CONFIGURATOR_ROLE(), myAddress)).wait()
+        const tr4 = await (await streamrConfig.revokeRole(await streamrConfig.CONFIGURATOR_ROLE(), myAddress, ethersOptions)).wait()
         log("Revoked StreamrConfig.CONFIGURATOR_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr4.transactionHash)
     }
-    const tr5 = await (await streamrConfig.revokeRole(await streamrConfig.UPGRADER_ROLE(), myAddress)).wait()
+    const tr5 = await (await streamrConfig.revokeRole(await streamrConfig.UPGRADER_ROLE(), myAddress, ethersOptions)).wait()
     log("Revoked StreamrConfig.UPGRADER_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr5.transactionHash)
-    const tr6 = await (await streamrConfig.revokeRole(await streamrConfig.ADMIN_ROLE(), myAddress)).wait()
+    const tr6 = await (await streamrConfig.revokeRole(await streamrConfig.ADMIN_ROLE(), myAddress, ethersOptions)).wait()
     log("Revoked StreamrConfig.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr6.transactionHash)
 
-    const tr7 = await (await operatorFactory.grantRole(await operatorFactory.ADMIN_ROLE(), targetAddress)).wait()
+    const tr7 = await (await operatorFactory.grantRole(await operatorFactory.ADMIN_ROLE(), targetAddress, ethersOptions)).wait()
     log("Granted OperatorFactory.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr7.transactionHash)
-    const tr8 = await (await operatorFactory.revokeRole(await operatorFactory.ADMIN_ROLE(), myAddress)).wait()
+    const tr8 = await (await operatorFactory.revokeRole(await operatorFactory.ADMIN_ROLE(), myAddress, ethersOptions)).wait()
     log("Revoked OperatorFactory.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr8.transactionHash)
 
-    const tr9 = await (await sponsorshipFactory.grantRole(await sponsorshipFactory.ADMIN_ROLE(), targetAddress)).wait()
+    const tr9 = await (await sponsorshipFactory.grantRole(await sponsorshipFactory.ADMIN_ROLE(), targetAddress, ethersOptions)).wait()
     log("Granted SponsorshipFactory.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr9.transactionHash)
-    const tr10 = await (await sponsorshipFactory.revokeRole(await sponsorshipFactory.ADMIN_ROLE(), myAddress)).wait()
+    const tr10 = await (await sponsorshipFactory.revokeRole(await sponsorshipFactory.ADMIN_ROLE(), myAddress, ethersOptions)).wait()
     log("Revoked SponsorshipFactory.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr10.transactionHash)
 }
 
