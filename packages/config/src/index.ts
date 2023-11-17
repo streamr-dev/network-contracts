@@ -300,7 +300,26 @@ export const config = {
             "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
-        }
+        },
+        "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
+        "entryPoints": [
+            {
+                "id": "ee1",
+                "websocket": {
+                    "host": "polygon-entrypoint-1.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            },
+            {
+                "id": "ee2",
+                "websocket": {
+                    "host": "polygon-entrypoint-2.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            }
+        ]
     },
     "mumbai": {
         "id": 80001,
