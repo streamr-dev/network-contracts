@@ -304,7 +304,7 @@ export const config = {
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
-                "id": "ee1",
+                "id": "eee1",
                 "websocket": {
                     "host": "polygon-entrypoint-1.streamr.network",
                     "port": 40401,
@@ -312,7 +312,7 @@ export const config = {
                 }
             },
             {
-                "id": "ee2",
+                "id": "eee2",
                 "websocket": {
                     "host": "polygon-entrypoint-2.streamr.network",
                     "port": 40401,
