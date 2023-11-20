@@ -3,36 +3,27 @@ import { Logger, TheGraphClient } from '@streamr/utils'
 import  fetch  from 'node-fetch'
 import { Sponsorship, sponsorshipABI } from '@streamr/network-contracts'
 import { JsonRpcProvider } from '@ethersproject/providers'
-import { Signer } from '@ethersproject/abstract-signer'
 import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
 
 const { ENV, PRIVKEY, INTERVALSEC } = process.env
 
-let graphClient: TheGraphClient
-let provider: JsonRpcProvider
-let signer: Signer
 const flagLifetime = 60 * 75 // 75 minutes
 
-if (ENV === 'test') {
-    graphClient = new TheGraphClient({
-        serverUrl: config.dev2.theGraphUrl,
-        fetch,
-        logger: new Logger(module)
-    })
-    provider = new JsonRpcProvider(config.dev2.rpcEndpoints[0].url)
-    signer = new Wallet("0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0")
-        .connect(provider)
-} else {
-    graphClient = new TheGraphClient({
-        serverUrl: config.mumbai.theGraphUrl,
-        fetch,
-        logger: new Logger(module)
-    })
-    provider = new JsonRpcProvider(config.mumbai.rpcEndpoints[0].url)
-    signer = new Wallet(PRIVKEY || "", provider).connect(provider)
+if (!ENV || !(config as {[index: string]: any})[ENV]) {
+    throw new Error(`Unknown ENV: ${ENV}`)
 }
+
+const envConfig = (config as {[index: string]: any})[ENV]
+
+const graphClient = new TheGraphClient({
+    serverUrl: envConfig.theGraphUrl,
+    fetch,
+    logger: new Logger(module)
+})
+const provider = new JsonRpcProvider(envConfig.rpcEndpoints[0].url)
+const signer = new Wallet(PRIVKEY || "", provider).connect(provider)
 
 async function checkForFlags() {
     console.log('checking, flag lifetime is', flagLifetime, 'seconds')
