@@ -126,7 +126,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     const pricePerSecond = event.params.pricePerSecond.toString()
     log.info('handlePaymentDetailsByChainUpdate: projectId={} domainId={} beneficiary={} pricingTokenAddress={} pricePerSecond={} blockNumber={}',
         [projectId, domainId, beneficiary, pricingTokenAddress, pricePerSecond, event.block.number.toString()])
-    
+
     let paymentDetailsId = projectId + '-' + domainId
     let paymentDetails = new ProjectPaymentDetails(paymentDetailsId)
     paymentDetails.project = projectId
@@ -135,7 +135,7 @@ export function handlePaymentDetailsByChainUpdate(event: PaymentDetailsByChainUp
     paymentDetails.pricingTokenAddress = event.params.pricingTokenAddress
     paymentDetails.pricePerSecond = event.params.pricePerSecond
     paymentDetails.save()
-    
+
     let project = loadOrCreateProject(event.params.id)
     let i = project.paymentDetails.indexOf(paymentDetailsId)
     if (i < 0) {

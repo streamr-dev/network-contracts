@@ -165,6 +165,11 @@ const config: HardhatUserConfig = {
         disambiguatePaths: false,
         runOnCompile: true,
         strict: true,
-    }
+    },
+    etherscan: {
+        apiKey: {
+            polygon: process.env.ETHERSCAN_KEY || "",
+        }
+    },
 }
 export default config
