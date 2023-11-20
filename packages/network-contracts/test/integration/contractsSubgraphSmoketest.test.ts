@@ -158,14 +158,14 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.networks[0].flagProtectionSeconds).to.equal(3600) // 1 hour
         expect(resultDynamicIds.networks[0].randomOracle).to.equal(null) // TODO: not yet implemented
         expect(resultDynamicIds.networks[0].trustedForwarder).to.equal(null) // TODO: not yet supported
-        expect(resultDynamicIds.networks[0].sponsorshipFactory).to.equal("0x75cb7ca52637991a3f166b8546542b3f6d712fd4")
-        expect(resultDynamicIds.networks[0].operatorFactory).to.equal("0x0bada0ace1d16abf1ce1aaed9bc7ce231ecc35b5")
-        expect(resultDynamicIds.networks[0].voterRegistry).to.equal("0x0bada0ace1d16abf1ce1aaed9bc7ce231ecc35b5") // same as operator factory
+        expect(resultDynamicIds.networks[0].sponsorshipFactory).to.equal(config.dev2.contracts.SponsorshipFactory)
+        expect(resultDynamicIds.networks[0].operatorFactory).to.equal(config.dev2.contracts.OperatorFactory)
+        expect(resultDynamicIds.networks[0].voterRegistry).to.equal(config.dev2.contracts.OperatorFactory)
         expect(resultDynamicIds.networks[0].operatorContractOnlyJoinPolicy).to.equal(null) // TODO: must be fixed ASAP
-        expect(resultDynamicIds.networks[0].streamRegistryAddress).to.equal("0xd04af489677001444280366dd0885b03daade71d")
+        expect(resultDynamicIds.networks[0].streamRegistryAddress).to.equal(config.dev2.contracts.StreamRegistry)
         expect(resultDynamicIds.networks[0].minimumStakeWei).to.equal("5000000000000000000000") // 5000
     })
-    
+
     it("can get indexed example flagging", async () => {
         const resultDynamicIds = await graphClient.queryEntity<any>({ query: `{
             operators {
