@@ -161,7 +161,9 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.networks[0].sponsorshipFactory).to.equal(config.dev2.contracts.SponsorshipFactory.toLowerCase())
         expect(resultDynamicIds.networks[0].operatorFactory).to.equal(config.dev2.contracts.OperatorFactory.toLowerCase())
         expect(resultDynamicIds.networks[0].voterRegistry).to.equal(config.dev2.contracts.OperatorFactory.toLowerCase())
-        expect(resultDynamicIds.networks[0].operatorContractOnlyJoinPolicy).to.equal(null) // TODO: must be fixed ASAP
+        expect(resultDynamicIds.networks[0].operatorContractOnlyJoinPolicy).to.equal(
+            config.dev2.contracts.SponsorshipOperatorContractOnlyJoinPolicy.toLowerCase()
+        )
         expect(resultDynamicIds.networks[0].streamRegistryAddress).to.equal(config.dev2.contracts.StreamRegistry.toLowerCase())
         expect(resultDynamicIds.networks[0].minimumStakeWei).to.equal("5000000000000000000000") // 5000
     })
