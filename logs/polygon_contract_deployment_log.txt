@@ -1,0 +1,224 @@
+$ ./scripts/deployToPolygon.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ npm run deployTokenomicsContracts
+
+> @streamr/network-contracts@7.0.5 deployTokenomicsContracts
+> hardhat run --network $CHAIN scripts/deployTokenomicsContracts.ts
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Connected to network {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: null
+}
+Estimated gas cost: 19.41259036326 ETH (gas price 323.543172721 gwei)
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 744.693407159524177937 ETH
+Found DATA token at 0x3a9A81d576d83FF21f26f325066054540720fC34
+Found StreamRegistry at 0x0D483E10612F327FC11965Fc82E90dC19b141641
+Found StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+Found OperatorFactory at 0x935734e66729b69260543Cf6e5EfeB42AC962183
+Deploying Sponsorship policies...
+Deployed MaxOperatorsJoinPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Deployed OperatorContractOnlyJoinPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Deployed StakeWeightedAllocationPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Deployed DefaultLeavePolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+    "SponsorshipDefaultLeavePolicy": "0xa953D590098A3d56304a12A8e929D63748D90AAC",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Deployed VoteKickPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+    "SponsorshipDefaultLeavePolicy": "0xa953D590098A3d56304a12A8e929D63748D90AAC",
+    "SponsorshipVoteKickPolicy": "0xeF3F567D7328849c1130CBCBF8Cd9feB42eA5dB5",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Deployed Sponsorship template at 0xFF70ed337b6362Db3644Baf0edf985e0Cc5686A6
+Warning: Potentially unsafe deployment of contracts/OperatorTokenomics/SponsorshipFactory.sol:SponsorshipFactory
+
+    You are using the `unsafeAllow.delegatecall` flag.
+
+Deployed SponsorshipFactory; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+    "SponsorshipDefaultLeavePolicy": "0xa953D590098A3d56304a12A8e929D63748D90AAC",
+    "SponsorshipVoteKickPolicy": "0xeF3F567D7328849c1130CBCBF8Cd9feB42eA5dB5",
+    "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+Done adding trusted policies (https://polygonscan.com/tx/0xb6b92eca7bbcc82675a807a6428ed602792bdbc1f3b2b73eeedd8eedc8d6252b )
+Done setting StreamrConfig.operatorContractOnlyJoinPolicy (https://polygonscan.com/tx/0x0218fd41b1ede7a2d13a56f3a008ad5c2b61eb7964a53d238dc69e2eae1f9c27 )
+Done setting StreamrConfig.sponsorshipFactory (https://polygonscan.com/tx/0x093602afbb126df51ac0629ae7b2db26e256efc4608a3f9a7e09ffbba3dd8d1d )
+Spent 8.3293984 ETH for gas
+All done! Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+    "SponsorshipDefaultLeavePolicy": "0xa953D590098A3d56304a12A8e929D63748D90AAC",
+    "SponsorshipVoteKickPolicy": "0xeF3F567D7328849c1130CBCBF8Cd9feB42eA5dB5",
+    "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
+
+
+
+
+
+$ ./scripts/deployToPolygon.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ npm run deployTokenomicsContracts
+
+> @streamr/network-contracts@7.0.5 deployTokenomicsContracts
+> hardhat run --network $CHAIN scripts/deployTokenomicsContracts.ts
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Connected to network {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: null
+}
+Estimated gas cost: 50.4614980797 ETH (gas price 841.024967995 gwei)
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 736.194997689228581937 ETH
+Found DATA token at 0x3a9A81d576d83FF21f26f325066054540720fC34
+Found StreamRegistry at 0x0D483E10612F327FC11965Fc82E90dC19b141641
+Found StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+Found OperatorFactory at 0x935734e66729b69260543Cf6e5EfeB42AC962183
+Found SponsorshipFactory at 0x820b2f9a15ed45F9802c59d0CC77C22C81755e45
+Spent 0.0 ETH for gas
+All done! Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
++ export NEW_ADMIN_ADDRESS=0x63f74A64fd334122aB5D29760C6E72Fb4b752208
++ NEW_ADMIN_ADDRESS=0x63f74A64fd334122aB5D29760C6E72Fb4b752208
++ export SCRIPT_FILE=scripts/handOverAdminRolesTo.ts
++ SCRIPT_FILE=scripts/handOverAdminRolesTo.ts
++ npm run hardhatScript
+
+> @streamr/network-contracts@7.0.5 hardhatScript
+> hardhat run --network $CHAIN $SCRIPT_FILE
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Found StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+Found OperatorFactory at 0x935734e66729b69260543Cf6e5EfeB42AC962183
+Found SponsorshipFactory at 0x820b2f9a15ed45F9802c59d0CC77C22C81755e45
+Set StreamrConfig.protocolFeeBeneficiary to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0x16540cb250b8a8a9d2c6a1ac9aa56e3b80a1c250b4b3adba05a264716bc8e013 )
+Granted StreamrConfig.ADMIN_ROLE to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0x56c47262739e3f6f24e72c0713245c4cfc3a69c2f8359b78ec35ca3309f4038c )
+Granted StreamrConfig.CONFIGURATOR_ROLE to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0x7f6ba133bc3f1d7000740a4c0e25ca31797ed08d03c6b9ad4dcaf09d8cb2e985 )
+Granted StreamrConfig.UPGRADER_ROLE to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0x10001473b93a682c2e5e7f371908b1494db54ee17bcc7f9c075ee2138ba17295 )
+Revoked StreamrConfig.CONFIGURATOR_ROLE from 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f (https://polygonscan.com/tx/0x2709e9a9ae4416446510609fb5a09c894841dc8a1f91b702b775fa5041edfbad )
+Revoked StreamrConfig.UPGRADER_ROLE from 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f (https://polygonscan.com/tx/0x142463b86570452f39f70373354a7e69371f191892273a4e64c7d6428760c8b2 )
+Revoked StreamrConfig.ADMIN_ROLE from 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f (https://polygonscan.com/tx/0xcc16881adb8d8404ca8599d26bdd6635a0ac4e146ed9ad9e59318692f5770559 )
+Granted OperatorFactory.ADMIN_ROLE to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0xa8405eb1f3ca39045c4f6b8061567939129b5219b7ec974fc25826be6ed3792e )
+Revoked OperatorFactory.ADMIN_ROLE from 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f (https://polygonscan.com/tx/0xb7e392fb08f3bb2f4d0ca5e7d46bd0e1310561c6625613f9d95a7421eacd7a13 )
+Granted SponsorshipFactory.ADMIN_ROLE to 0x63f74A64fd334122aB5D29760C6E72Fb4b752208 (https://polygonscan.com/tx/0x13a27e1055b84f096afe418219d556c0e9b69d8d05a5c57538994b50e25f4a0c )
+Revoked SponsorshipFactory.ADMIN_ROLE from 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f (https://polygonscan.com/tx/0xe0293ee1a40923eba5fa3d6a77b5450cad3ec1f34c7ba1c66a1878d418c212fd )
+
+
+
+
+
+$ ./scripts/deployToPolygon.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ npm run deployTokenomicsContracts
+
+> @streamr/network-contracts@7.0.5 deployTokenomicsContracts
+> hardhat run --network $CHAIN scripts/deployTokenomicsContracts.ts
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Connected to network {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: null
+}
+Estimated gas cost: 55.96795065978 ETH (gas price 932.799177663 gwei)
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 735.453045189228581937 ETH
+Found DATA token at 0x3a9A81d576d83FF21f26f325066054540720fC34
+Found StreamRegistry at 0x0D483E10612F327FC11965Fc82E90dC19b141641
+Found StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+Found OperatorFactory at 0x935734e66729b69260543Cf6e5EfeB42AC962183
+Found SponsorshipFactory at 0x820b2f9a15ed45F9802c59d0CC77C22C81755e45
+Spent 0.0 ETH for gas
+All done! Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+    "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+    "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183"
+}
++ export NEW_ADMIN_ADDRESS=0x63f74A64fd334122aB5D29760C6E72Fb4b752208
++ NEW_ADMIN_ADDRESS=0x63f74A64fd334122aB5D29760C6E72Fb4b752208
++ export SCRIPT_FILE=scripts/handOverAdminRolesTo.ts
++ SCRIPT_FILE=scripts/handOverAdminRolesTo.ts
++ npm run hardhatScript
+
+> @streamr/network-contracts@7.0.5 hardhatScript
+> hardhat run --network $CHAIN $SCRIPT_FILE
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Error: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f doesn't have StreamrConfig.ADMIN_ROLE
+    at handover (/Users/jtakalai/Documents/workspace/network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:67:15)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async main (/Users/jtakalai/Documents/workspace/network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:54:5)

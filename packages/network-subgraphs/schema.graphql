@@ -513,6 +513,7 @@ type Flag @entity {
   flagger: Operator!
   flaggingTimestamp: Int!
   result: String! # "waiting", "voting", "kicked", or "failed"
+  flagResolutionTimestamp: Int! # the flag was resolved, either by "kicked" or "failed"
   votesForKick: BigInt!
   votesAgainstKick: BigInt!
   votes: [Vote!]! @derivedFrom(field: "flag")

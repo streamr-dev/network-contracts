@@ -167,7 +167,7 @@ dataSources:
     source:
       address: '0x4D3F744BC5614986c10aF8Bf36B15372c72252D7'
       abi: StreamrConfig
-      startBlock: 41860451
+      startBlock: 40534000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6

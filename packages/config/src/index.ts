@@ -267,7 +267,7 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://poly-rpc.gateway.pokt.network/"
+                "url": "https://polygon-pokt.nodies.app"
             }
         ],
         "contracts": {
@@ -287,10 +287,41 @@ export const config = {
             "StorageNodeRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
             "StreamRegistry": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
             "StreamStorageRegistry": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
+            "StreamrConfig": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+            "SponsorshipOperatorContractOnlyJoinPolicy": "0xa1F3c94A682Cb43d26AcC40dA1Dc31f49e4dA466",
+            "SponsorshipMaxOperatorsJoinPolicy": "0x27448061420bAccAE8c84DDC3E7e2e8B2aE4977E",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x1Dd16E748308E9f259f3D6097d00e1793BfBdcDB",
+            "SponsorshipDefaultLeavePolicy": "0xa953D590098A3d56304a12A8e929D63748D90AAC",
+            "SponsorshipVoteKickPolicy": "0xeF3F567D7328849c1130CBCBF8Cd9feB42eA5dB5",
+            "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+            "OperatorDefaultDelegationPolicy": "0x8e449F0B1AFAD807135B5Ea829F41851d5DE1426",
+            "OperatorDefaultExchangeRatePolicy": "0xE8F511bB4888D16D81acab7ab1c05A356E37237f",
+            "OperatorDefaultUndelegationPolicy": "0xd8b272DCBaAA206E3607220789890113c79C9212",
+            "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183",
             "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
-        }
+        },
+        // eslint-disable-next-line max-len        
+        "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
+        "entryPoints": [
+            {
+                "id": "eee1",
+                "websocket": {
+                    "host": "polygon-entrypoint-1.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            },
+            {
+                "id": "eee2",
+                "websocket": {
+                    "host": "polygon-entrypoint-2.streamr.network",
+                    "port": 40401,
+                    "tls": true
+                }
+            }
+        ]
     },
     "mumbai": {
         "id": 80001,
@@ -306,6 +337,7 @@ export const config = {
             }
         ],
         "contracts": {
+            "DATA": "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20",
             "ENS": "0x0fEC601fD12fBB544f5fDCc489fb0641B2178954",
             "FIFSRegistrar": "0x9f7251cc9A04Cb0dA4107Ea979ECBe5112A0fE69",
             "PublicResolver": "0x3d381a2B2c588C891BD4986b52255336a267df3e",
@@ -315,7 +347,6 @@ export const config = {
             "ENSCacheV2": "0x5eeb458843D4dE852f295ED8cb01BAd3b464bB67",
             "StreamStorageRegistry": "0xA5a2298c9b48C08DaBF5D76727620d898FD2BEc1",
             "StreamrConfig": "0x4D3F744BC5614986c10aF8Bf36B15372c72252D7",
-            "DATA": "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20",
             "SponsorshipMaxOperatorsJoinPolicy": "0xFCa3ec6c20EeA8E60A631700a42A8B14dA8408D8",
             "SponsorshipStakeWeightedAllocationPolicy": "0x500046908D2C478f71D8788A20d7f9A5c71b892c",
             "SponsorshipDefaultLeavePolicy": "0x002f203d68BB30b00C72D65f7Ad468f138315b11",

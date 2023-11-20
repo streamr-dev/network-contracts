@@ -60,15 +60,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     uint public maxQueueSeconds;
 
     /**
-     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can slash an operator for leaving any Sponsorship early.
-     *
-     * For a given Sponsorship b, b. is the minimum time an operator has to be in a sponsorship without being slashed.
-     * This value can vary from sponsorship to sponsorship, and it can be 0, then the operator can leave immediately
-     * without being slashed.
-     *
-     * maxPenaltyPeriodSeconds is the global maximum value that MIN_JOIN_TIME can have across all sponsorships.
-     * This garuantees that every operator can get the money back from any and all sponsorships
-     * without being slashed (provided it does the work) in a fixed maximum time.
+     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can require an operator to stay under threat of earlyLeaverPenalty.
+     * Penalty period can vary from sponsorship to sponsorship, or it can also be 0, in which case
+     *   the operators can unstake immediately after staking without being slashed.
      */
     uint public maxPenaltyPeriodSeconds;
 
@@ -235,11 +229,22 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
         emit ConfigChanged("minimumSelfDelegationFraction", newMinimumSelfDelegationFraction, address(0));
     }
 
+    /**
+     * maxPenaltyPeriodSeconds is the global maximum time a sponsorship can require an operator to stay under threat of earlyLeaverPenalty.
+     * Penalty period can vary from sponsorship to sponsorship, or it can also be 0, in which case
+     *   the operators can unstake immediately after staking without being slashed.
+     * Can't be more than maxQueueSeconds. This guarantees that forceUnstake due to queue age can never slash earlyLeaverPenaltyWei.
+     */
     function setMaxPenaltyPeriodSeconds(uint newMaxPenaltyPeriodSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         maxPenaltyPeriodSeconds = newMaxPenaltyPeriodSeconds;
         emit ConfigChanged("maxPenaltyPeriodSeconds", newMaxPenaltyPeriodSeconds, address(0));
     }
 
+    /**
+     * The time the operator is given for paying out the undelegation queue.
+     * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
+     * Can't be less than maxPenaltyPeriodSeconds. This guarantees that forceUnstake due to queue age can never slash earlyLeaverPenaltyWei.
+     **/
     function setMaxQueueSeconds(uint newMaxQueueSeconds) public onlyRole(CONFIGURATOR_ROLE) {
         if (newMaxQueueSeconds <= maxPenaltyPeriodSeconds) {
             revert TooLow({
