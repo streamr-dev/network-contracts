@@ -738,7 +738,63 @@ describe("StakeWeightedAllocationPolicy", (): void => {
     })
 
     it("allocates correctly when number of operators is below minOperatorCount at times", async function(): Promise<void> {
-        // TODO
+        // t0            : operator1 joins, stakes 500 tokens
+        // t1 = t0 + 1200: operator2 joins, stakes 500 tokens // sponsorship starts paying out since minOperatorCount >= 2
+        // t2 = t0 + 2400: operator3 joins, stakes 500 tokens
+        // t3 = t0 + 3600: operator1 leaves
+        // t4 = t0 + 4800: operator2 leaves // sponsorship stops paying out since minOperatorCount < 2
+        // t5 = t0 + 6000: operator3 leaves
+        //                        t0    t1    t2    t3     t4    t5
+        // operator1 has earned   0     0 + 600 + 400 +    0 +   0 = 1000
+        // operator2 has earned   0     0 + 600 + 400 +  600 +   0 = 1600
+        // operator3 has earned   0     0 +   0 + 400 +  600 +   0 = 1000
+        const { token } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts, {
+            minOperatorCount: 2
+        })
+        await (await sponsorship.sponsor(parseEther("5000"))).wait()
+
+        const tokensOperator1Before = await token.balanceOf(operator.address)
+        const tokensOperator2Before = await token.balanceOf(operator2.address)
+        const tokensOperator3Before = await token.balanceOf(operator3.address)
+        const timeAtStart = await getBlockTimestamp()
+
+        expect(await sponsorship.isRunning()).to.be.false
+
+        await advanceToTimestamp(timeAtStart, "Operator 1 joins")
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("500"), operator.address)).wait()
+        expect(await sponsorship.isRunning()).to.be.false
+
+        await advanceToTimestamp(timeAtStart + 1200, "Operator 2 joins")
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("500"), operator2.address)).wait()
+        expect(await sponsorship.isRunning()).to.be.true
+
+        await advanceToTimestamp(timeAtStart + 2400, "Operator 3 joins")
+        await (await token.connect(operator3).transferAndCall(sponsorship.address, parseEther("500"), operator3.address)).wait()
+        expect(await sponsorship.isRunning()).to.be.true
+
+        await advanceToTimestamp(timeAtStart + 3600, "Operator 1 leaves")
+        await (await sponsorship.connect(operator).unstake()).wait()
+        expect(await sponsorship.isRunning()).to.be.true
+
+        await advanceToTimestamp(timeAtStart + 4800, "Operator 2 leaves")
+        await (await sponsorship.connect(operator2).unstake()).wait()
+        expect(await sponsorship.isRunning()).to.be.false
+
+        await advanceToTimestamp(timeAtStart + 6000, "Operator 3 leaves")
+        await (await sponsorship.connect(operator3).unstake()).wait()
+        expect(await sponsorship.isRunning()).to.be.false
+
+        const tokensOperator1 = (await token.balanceOf(operator.address)).sub(tokensOperator1Before)
+        const tokensOperator2 = (await token.balanceOf(operator2.address)).sub(tokensOperator2Before)
+        const tokensOperator3 = (await token.balanceOf(operator3.address)).sub(tokensOperator3Before)
+
+        expect(tokensOperator1).to.equal(parseEther("1000.0"))
+        expect(tokensOperator2).to.equal(parseEther("1600.0"))
+        expect(tokensOperator3).to.equal(parseEther("1000.0"))
+
+        // 5000 + 500 + 500 + 500 - (1000 + 500) - (1600 + 500) - (1000 + 500) = 1400
+        expect(await token.balanceOf(sponsorship.address)).to.equal(parseEther("1400.0"))
     })
 
     it("gets allocation 0 from unjoined operator", async function(): Promise<void> {
