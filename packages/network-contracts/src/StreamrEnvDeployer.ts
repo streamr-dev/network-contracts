@@ -1,7 +1,8 @@
 import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
 
 import debug from "debug"
-import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy, DefaultUndelegationPolicy,
+import {
+    DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy, DefaultUndelegationPolicy,
     ENSCacheV2, ENSCacheV2ABI, ENSCacheV2Bytecode, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
     OperatorFactory, Sponsorship, SponsorshipFactory, StakeWeightedAllocationPolicy, StreamRegistry,
     StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
@@ -15,7 +16,8 @@ import { DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy,
     sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
     sponsorshipFactoryBytecode, stakeModuleABI, stakeModuleBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
-    tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode } from "./exports"
+    tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode, operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode
+} from "./exports"
 import { parseEther } from "ethers/lib/utils"
 
 const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
@@ -299,6 +301,13 @@ export class StreamrEnvDeployer {
         log(`streamrConfig address ${streamrConfig.address}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
 
+        const operatorsOnlyJoinPolicy = await (new ContractFactory(operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode,
+            this.adminWallet)).deploy() as OperatorContractOnlyJoinPolicy
+        await operatorsOnlyJoinPolicy.deployed()
+        this.addresses.SponsorshipOperatorContractOnlyJoinPolicy = operatorsOnlyJoinPolicy.address
+        this.contracts.sponsorshipOperatorContractOnlyJoinPolicy = operatorsOnlyJoinPolicy
+        log(`operatorsOnlyJoinPolicy address ${operatorsOnlyJoinPolicy.address}`)
+
         const maxOperatorsJoinPolicy = await (new ContractFactory(maxOperatorsJoinPolicyABI, maxOperatorsJoinPolicyBytecode,
             this.adminWallet)).deploy() as MaxOperatorsJoinPolicy
         await maxOperatorsJoinPolicy.deployed()
@@ -344,6 +353,7 @@ export class StreamrEnvDeployer {
         await (await sponsorshipFactory.addTrustedPolicies([maxOperatorsJoinPolicy.address,
             allocationPolicy.address, leavePolicy.address, voteKickPolicy.address])).wait()
 
+        await (await streamrConfig.setOperatorContractOnlyJoinPolicy(operatorsOnlyJoinPolicy.address)).wait()
         await (await streamrConfig.setSponsorshipFactory(sponsorshipFactory.address)).wait()
         this.addresses.SponsorshipFactory = sponsorshipFactory.address
         this.contracts.sponsorshipFactory = sponsorshipFactory
