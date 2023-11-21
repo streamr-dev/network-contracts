@@ -11,11 +11,11 @@ features:
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
-    network: xDai
+    network: matic
     source:
-      address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
+      address: "0x0D483E10612F327FC11965Fc82E90dC19b141641"
       abi: StreamRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 23586970
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -38,11 +38,11 @@ dataSources:
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
-    network: xDai
+    network: matic
     source:
-      address: "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0"
+      address: "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6"
       abi: NodeRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 23562860
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -60,11 +60,11 @@ dataSources:
       file: ./src/nodeRegistry.ts
   - kind: ethereum/contract
     name: StreamStorageRegistry
-    network: xDai
+    network: matic
     source:
-      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
+      address: "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
       abi: StreamStorageRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 23586997
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -82,11 +82,11 @@ dataSources:
       file: ./src/streamStorageRegistry.ts
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: xDai # xDai means dev1
+    network: matic
     source:
-      address: "0x4D563c20DB87a4EC4989607cD0Fdf4C95eD14d13"
+      address: "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1"
       abi: ProjectRegistryV1
-      startBlock: 0
+      startBlock: 38700927
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -117,11 +117,11 @@ dataSources:
       file: ./src/projectRegistry.ts
   - kind: ethereum/contract
     name: MarketplaceV4
-    network: xDai
+    network: matic
     source:
-      address: "0x05784c543C5155979f82Ece2FbB4cE356181D30e"
+      address: "0xdF8b74D735197dCD5C94bE933db080E69A958de6"
       abi: MarketplaceV4
-      startBlock: 0
+      startBlock: 39591312
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -138,11 +138,11 @@ dataSources:
       file: ./src/marketplaceV4.ts
   - kind: ethereum/contract
     name: ProjectStakingV1
-    network: xDai
+    network: matic
     source:
-      address: "0xd73437154Ef05167a083ed8Fe839db4fB076A1A3"
+      address: "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE"
       abi: ProjectStakingV1
-      startBlock: 0
+      startBlock: 38701363
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -164,11 +164,11 @@ dataSources:
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
     name: StreamrConfig
-    network: xDai
+    network: matic
     source:
-      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+      address: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f'
       abi: StreamrConfig
-      startBlock: 0
+      startBlock: 50000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -184,12 +184,12 @@ dataSources:
           handler: handleConfigChanged
   - kind: ethereum/contract
     name: SponsorshipFactory
-    network: xDai
+    network: matic
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x75Cb7CA52637991A3f166B8546542B3F6D712fd4'
+      address: '0x820b2f9a15ed45F9802c59d0CC77C22C81755e45'
       abi: SponsorshipFactory
-      startBlock: 0
+      startBlock: 50000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -207,12 +207,12 @@ dataSources:
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
-    network: xDai
+    network: matic
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x0bADa0acE1d16ABf1ce1aAED9Bc7Ce231ECc35b5'
+      address: '0x935734e66729b69260543Cf6e5EfeB42AC962183'
       abi: OperatorFactory
-      startBlock: 0
+      startBlock: 50000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -233,7 +233,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: xDai
+    network: matic
     source:
       abi: Sponsorship
     mapping:
@@ -275,7 +275,7 @@ templates:
             handler: handleSponsorshipReceived
   - name: Operator
     kind: ethereum/contract
-    network: xDai
+    network: matic
     source:
       abi: Operator
     mapping:

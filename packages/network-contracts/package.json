@@ -34,7 +34,7 @@
     "interactThroughGSN": "hardhat run --network polygon scripts/transactThroughGSN.ts",
     "deployliveProd": "hardhat run --network polygon scripts/deployToLivenet/1_deployContracts.ts",
     "sstest": "hardhat run --network dev1 scripts/registerStorageNode.ts",
-    "verifyPolygonscan": "hardhat verify [DEPLOYED_CONTRACT_ADDRESS] --network polygon",
+    "verify": "hardhat verify $ADDRESS --network polygon",
     "deployTokenomicsContracts": "hardhat run --network $CHAIN scripts/deployTokenomicsContracts.ts",
     "hardhatScript": "hardhat run --network $CHAIN $SCRIPT_FILE",
     "streamrEnvDeployer": "npx tsx scripts/tatum/streamrEnvDeployer.ts",
