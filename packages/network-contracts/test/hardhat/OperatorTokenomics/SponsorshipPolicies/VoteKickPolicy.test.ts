@@ -457,7 +457,32 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Vote resolution", function(): void {
         it("cleans up all the values correctly after a flag (successive flags with same flagger and target)", async function(): Promise<void> {
-            // TODO
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter, voter2, voter3 ]
+            } = await setupSponsorships(sharedContracts, [2, 3], "flag-successive") // 2 sponsorships with 2 & 3 operators each
+            const start = await getBlockTimestamp()
+            
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            const flagDataAfterNoKick = (await sponsorship.getFlag(target.address)).flagData//.to.equal("0") // flag is resolved
+
+            advanceToTimestamp(start + VOTE_START + VOTE_END, `${addr(voter)} flags ${addr(target)} again`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+            
+            advanceToTimestamp(start + VOTE_START + VOTE_END + VOTE_START, `${addr(voter)} flags ${addr(target)} again`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            const flagDataAfterKick = (await sponsorship.getFlag(target.address)).flagData//.to.equal("0") // flag is resolved
+
+            expect(flagDataAfterNoKick).to.equal("0") // flag is resolved
+            expect(flagDataAfterKick).to.equal("0") // flag is resolved
         })
 
         it("results in NO_KICK if there was a tie", async function(): Promise<void> {
