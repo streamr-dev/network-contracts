@@ -233,7 +233,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: matic
+    network: xDai
     source:
       abi: Sponsorship
     mapping:
@@ -275,7 +275,7 @@ templates:
             handler: handleSponsorshipReceived
   - name: Operator
     kind: ethereum/contract
-    network: matic
+    network: xDai
     source:
       abi: Operator
     mapping:
