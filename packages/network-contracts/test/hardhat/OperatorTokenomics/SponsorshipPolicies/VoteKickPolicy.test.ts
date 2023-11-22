@@ -913,11 +913,15 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
-            // TODO: check that slashingFraction of minimumStakeWei is enough to pay reviewers
-            // I.e. minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
-
+            // check that slashingFraction of minimumStakeWei is enough to pay reviewers
             const reviewerCount = +await sharedContracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await sharedContracts.streamrConfig.minimumStakeWei()
+            const flaggerRewardWei = await sharedContracts.streamrConfig.flaggerRewardWei()
+            const flagReviewerCount = await sharedContracts.streamrConfig.flagReviewerCount()
+            const flagReviewerRewardWei = await sharedContracts.streamrConfig.flagReviewerRewardWei()
+            const slashingFraction = await sharedContracts.streamrConfig.slashingFraction()
+            expect(minimumStakeWei).to.be.greaterThan(flaggerRewardWei.add(flagReviewerCount.mul(flagReviewerRewardWei)).div(slashingFraction))
+
             const {
                 token,
                 sponsorships: [ sponsorship ],
