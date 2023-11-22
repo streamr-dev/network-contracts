@@ -203,6 +203,22 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(flagger2.address))).to.equal("380.0")  // voter 20 + flagger 360
             expect(formatEther(await token.balanceOf(voter.address))).to.equal("40.0")  // voter + voter
         })
+
+        it("flag reverts if no operators are eligible to vote", async function(): Promise<void> {
+            const start = await getBlockTimestamp()
+            const { streamrConfig } = sharedContracts
+            await (await streamrConfig.setMinEligibleVoterAge(100)).wait() // 100 seconds
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target ]
+            } = await setupSponsorships(sharedContracts, [2], "no-eligible-voters")
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                .to.be.revertedWith("error_noEligibleVoters")
+            
+            await (await streamrConfig.setMinEligibleVoterAge(0)).wait() // revert to default
+        })
     })
 
     describe("Reviewer selection / IVoterRegistry", function(): void {
