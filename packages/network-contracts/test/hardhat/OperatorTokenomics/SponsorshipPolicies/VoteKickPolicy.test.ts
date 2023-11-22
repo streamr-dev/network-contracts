@@ -694,6 +694,32 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("0.0") // both flagger and target are gone, so no stakes left
         })
 
+        it("target forceUnstaking + staking back gets kicked only once (slashed only once during forceUnstake)", async function(): Promise<void> {
+            const {
+                token, sponsorships: [ sponsorship ],
+                operatorsPerSponsorship: [ [flagger, target], voters ]
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstakeAndStake", { sponsor: false })
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(sponsorship.address, target.address, "")).wait()
+
+            await advanceToTimestamp(start + 10, `${addr(target)} forceUnstakes and stakes back`)
+            await (await target.forceUnstake(sponsorship.address, "1")).wait()
+            await (await target.stake(sponsorship.address, parseEther("9000"))).wait()
+
+            await advanceToTimestamp(start + VOTE_START + 50, `Voting to kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[3].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[4].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
+                .to.emit(sponsorship, "FlagUpdate")
+                .withArgs(target.address, FlagState.RESULT_KICK, parseEther("30000"), parseEther("20000"), AddressZero, 0)
+
+            expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("19000.0") // flagger & target are still staked
+        })
+
         it("can be triggered by anyone after the voting period is over", async function(): Promise<void> {
             const {
                 sponsorships: [ sponsorship ],
