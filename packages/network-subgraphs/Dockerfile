@@ -1,4 +1,4 @@
-FROM node:16-buster
+FROM node:20-buster
 
 # RUN apk add libsecret-dev
 RUN apt update
