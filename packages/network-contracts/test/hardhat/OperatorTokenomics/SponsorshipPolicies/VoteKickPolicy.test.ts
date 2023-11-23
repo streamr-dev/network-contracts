@@ -205,18 +205,16 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("flag reverts if no operators are eligible to vote", async function(): Promise<void> {
-            const start = await getBlockTimestamp()
             const { streamrConfig } = sharedContracts
-            await (await streamrConfig.setMinEligibleVoterAge(100)).wait() // 100 seconds
+            await (await streamrConfig.setMinEligibleVoterAge("10000000")).wait()
             const {
                 sponsorships: [ sponsorship ],
                 operators: [ flagger, target ]
             } = await setupSponsorships(sharedContracts, [2], "no-eligible-voters")
 
-            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "{}"))
                 .to.be.revertedWith("error_noEligibleVoters")
-            
+
             await (await streamrConfig.setMinEligibleVoterAge(0)).wait() // revert to default
         })
     })
@@ -478,7 +476,7 @@ describe("VoteKickPolicy", (): void => {
                 operators: [ flagger, target, voter, voter2, voter3 ]
             } = await setupSponsorships(sharedContracts, [2, 3], "flag-successive") // 2 sponsorships with 2 & 3 operators each
             const start = await getBlockTimestamp()
-            
+
             await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
             await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
 
@@ -490,7 +488,7 @@ describe("VoteKickPolicy", (): void => {
 
             advanceToTimestamp(start + VOTE_START + VOTE_END, `${addr(voter)} flags ${addr(target)} again`)
             await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
-            
+
             advanceToTimestamp(start + VOTE_START + VOTE_END + VOTE_START, `${addr(voter)} flags ${addr(target)} again`)
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
             await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
