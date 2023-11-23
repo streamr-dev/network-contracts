@@ -203,6 +203,20 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(flagger2.address))).to.equal("380.0")  // voter 20 + flagger 360
             expect(formatEther(await token.balanceOf(voter.address))).to.equal("40.0")  // voter + voter
         })
+
+        it("flag reverts if no operators are eligible to vote", async function(): Promise<void> {
+            const { streamrConfig } = sharedContracts
+            await (await streamrConfig.setMinEligibleVoterAge("10000000")).wait()
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target ]
+            } = await setupSponsorships(sharedContracts, [2], "no-eligible-voters")
+
+            await expect(flagger.flag(sponsorship.address, target.address, "{}"))
+                .to.be.revertedWith("error_noEligibleVoters")
+
+            await (await streamrConfig.setMinEligibleVoterAge(0)).wait() // revert to default
+        })
     })
 
     describe("Reviewer selection / IVoterRegistry", function(): void {
@@ -457,7 +471,32 @@ describe("VoteKickPolicy", (): void => {
 
     describe("Vote resolution", function(): void {
         it("cleans up all the values correctly after a flag (successive flags with same flagger and target)", async function(): Promise<void> {
-            // TODO
+            const {
+                sponsorships: [ sponsorship ],
+                operators: [ flagger, target, voter, voter2, voter3 ]
+            } = await setupSponsorships(sharedContracts, [2, 3], "flag-successive") // 2 sponsorships with 2 & 3 operators each
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+
+            await advanceToTimestamp(start + VOTE_START, `${addr(voter)} votes`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
+            const flagDataAfterNoKick = (await sponsorship.getFlag(target.address)).flagData
+
+            advanceToTimestamp(start + VOTE_START + VOTE_END, `${addr(voter)} flags ${addr(target)} again`)
+            await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
+
+            advanceToTimestamp(start + VOTE_START + VOTE_END + VOTE_START, `${addr(voter)} flags ${addr(target)} again`)
+            await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
+            const flagDataAfterKick = (await sponsorship.getFlag(target.address)).flagData
+
+            expect(flagDataAfterNoKick).to.equal("0") // flag is resolved
+            expect(flagDataAfterKick).to.equal("0") // flag is resolved
         })
 
         it("results in NO_KICK if there was a tie", async function(): Promise<void> {
@@ -577,6 +616,32 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(flaggerBalanceAfter)).to.equal("9500.0") // flag-stake 500 was forfeited
         })
 
+        it("pays reviewers who correctly voted NO_KICK even if target already forceUnstaked", async function(): Promise<void> {
+            const {
+                token, sponsorships: [ sponsorship ],
+                operatorsPerSponsorship: [ [flagger, target], voters ]
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstakeNoKick", { sponsor: false })
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(sponsorship.address, target.address, "")).wait()
+
+            await advanceToTimestamp(start + 10, `${addr(target)} forceUnstakes`)
+            await (await target.forceUnstake(sponsorship.address, "1")).wait()
+
+            await advanceToTimestamp(start + VOTE_START + 50, `Voting no kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
+            await (await voters[3].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[4].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
+                .to.emit(sponsorship, "FlagUpdate")
+                .withArgs(target.address, FlagState.RESULT_NO_KICK, parseEther("20000"), parseEther("30000"), AddressZero, 0)
+
+            // flagger is still staked and paid reviewers who correctly voted NO_KICK (10000 - 3 * 20)
+            expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("9940.0")
+        })
+
         it("pays flagger and reviewers who correctly voted KICK even if target already forceUnstaked", async function(): Promise<void> {
             const {
                 token, sponsorships: [ sponsorship ],
@@ -613,6 +678,32 @@ describe("VoteKickPolicy", (): void => {
             expect(formatEther(await token.balanceOf(voters[3].address))).to.equal("0.0")
             expect(formatEther(await token.balanceOf(voters[4].address))).to.equal("0.0")
             expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("10000.0") // flagger is still staked
+        })
+
+        it("target forceUnstaking + staking back gets kicked only once (slashed only once during forceUnstake)", async function(): Promise<void> {
+            const {
+                token, sponsorships: [ sponsorship ],
+                operatorsPerSponsorship: [ [flagger, target], voters ]
+            } = await setupSponsorships(sharedContracts, [2, 5], "target-forceUnstakeAndStake", { sponsor: false })
+            const start = await getBlockTimestamp()
+
+            await advanceToTimestamp(start, `${addr(flagger)} flags ${addr(target)}`)
+            await (await flagger.flag(sponsorship.address, target.address, "")).wait()
+
+            await advanceToTimestamp(start + 10, `${addr(target)} forceUnstakes and stakes back`)
+            await (await target.forceUnstake(sponsorship.address, "1")).wait()
+            await (await target.stake(sponsorship.address, parseEther("9000"))).wait()
+
+            await advanceToTimestamp(start + VOTE_START + 50, `Voting to kick ${addr(target)}`)
+            await (await voters[0].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[1].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[2].voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).wait()
+            await (await voters[3].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()
+            await expect(voters[4].voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK))
+                .to.emit(sponsorship, "FlagUpdate")
+                .withArgs(target.address, FlagState.RESULT_KICK, parseEther("30000"), parseEther("20000"), AddressZero, 0)
+
+            expect(formatEther(await token.balanceOf(sponsorship.address))).to.equal("19000.0") // flagger & target are still staked
         })
 
         it("pays reviewers who correctly voted KICK when flagger forceUnstaked", async function(): Promise<void> {
@@ -888,11 +979,15 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("ensures enough tokens to pay reviewers if flagger reduces stake to minimum then gets kicked", async function(): Promise<void> {
-            // TODO: check that slashingFraction of minimumStakeWei is enough to pay reviewers
-            // I.e. minimumStakeWei >= (flaggerRewardWei + flagReviewerCount * flagReviewerRewardWei) / slashingFraction
-
+            // check that slashingFraction of minimumStakeWei is enough to pay reviewers
             const reviewerCount = +await sharedContracts.streamrConfig.flagReviewerCount()
             const minimumStakeWei = await sharedContracts.streamrConfig.minimumStakeWei()
+            const flaggerRewardWei = await sharedContracts.streamrConfig.flaggerRewardWei()
+            const flagReviewerCount = await sharedContracts.streamrConfig.flagReviewerCount()
+            const flagReviewerRewardWei = await sharedContracts.streamrConfig.flagReviewerRewardWei()
+            const slashingFraction = await sharedContracts.streamrConfig.slashingFraction()
+            expect(minimumStakeWei).to.be.greaterThan(flaggerRewardWei.add(flagReviewerCount.mul(flagReviewerRewardWei)).div(slashingFraction))
+
             const {
                 token,
                 sponsorships: [ sponsorship ],

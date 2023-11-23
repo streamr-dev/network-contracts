@@ -122,6 +122,14 @@ describe("Sponsorship contract", (): void => {
     })
 
     describe("Sponsoring", (): void => {
+        it("can sponsor zero amount", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            await expect(sponsorship.sponsor(parseEther("0")))
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, "0")
+                .to.emit(sponsorship, "SponsorshipReceived").withArgs(admin.address, parseEther("0"))
+                .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("0"), 0, false)
+        })
+
         it("will FAIL if sponsor called with no allowance", async function(): Promise<void> {
             expect(await token.allowance(operator.address, defaultSponsorship.address)).to.equal(0)
             await expect(defaultSponsorship.connect(operator).sponsor(parseEther("1"))).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
