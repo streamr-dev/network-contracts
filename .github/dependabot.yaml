@@ -1,5 +1,6 @@
 #
 # https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#docker
 #
 ---
 version: 2
@@ -19,45 +20,6 @@ updates:
       - DaisyDomergue
 
   - package-ecosystem: npm
-    directory: /packages/chainlink-ens-external-adapter
-    schedule:
-      interval: daily
-      time: '08:00'
-      timezone: Europe/Helsinki
-    open-pull-requests-limit: 2
-    commit-message:
-      prefix: build
-      include: scope
-    labels:
-      - build
-
-  - package-ecosystem: npm
-    directory: /packages/smartcontracts
-    schedule:
-      interval: daily
-      time: '08:00'
-      timezone: Europe/Helsinki
-    open-pull-requests-limit: 2
-    commit-message:
-      prefix: build
-      include: scope
-    labels:
-      - build
-
-  - package-ecosystem: npm
-    directory: /packages/streamregistry-thegraph-subgraph
-    schedule:
-      interval: daily
-      time: '08:00'
-      timezone: Europe/Helsinki
-    open-pull-requests-limit: 2
-    commit-message:
-      prefix: build
-      include: scope
-    labels:
-      - build
-
-  - package-ecosystem: npm
     directory: /packages/config
     schedule:
       interval: daily
@@ -71,7 +33,20 @@ updates:
       - build
 
   - package-ecosystem: npm
-    directory: /packages/docker-dev-chain-init
+    directory: /packages/network-contracts
+    schedule:
+      interval: daily
+      time: '08:00'
+      timezone: Europe/Helsinki
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: build
+      include: scope
+    labels:
+      - build
+
+  - package-ecosystem: npm
+    directory: /packages/network-subgraphs
     schedule:
       interval: daily
       time: '08:00'
@@ -84,7 +59,7 @@ updates:
       - build
 
   - package-ecosystem: docker
-    directory: /packages/docker-dev-chain-init
+    directory: /packages/network-subgraphs
     schedule:
       interval: daily
       time: "08:00"
@@ -96,19 +71,7 @@ updates:
       - build
 
   - package-ecosystem: docker
-    directory: /packages/streamregistry-thegraph-subgraph
-    schedule:
-      interval: daily
-      time: "08:00"
-      timezone: Europe/Helsinki
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build(docker)
-    labels:
-      - build
-
-  - package-ecosystem: docker
-    directory: ./packages/chainlink-ens-external-adapter
+    directory: ./packages/dev-chain-fast
     schedule:
       interval: daily
       time: "08:00"
