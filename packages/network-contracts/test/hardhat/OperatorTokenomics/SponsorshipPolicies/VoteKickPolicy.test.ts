@@ -484,7 +484,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
             await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
             await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).to.emit(sponsorship, "FlagUpdate")
-            const flagDataAfterNoKick = (await sponsorship.getFlag(target.address)).flagData//.to.equal("0") // flag is resolved
+            const flagDataAfterNoKick = (await sponsorship.getFlag(target.address)).flagData
 
             advanceToTimestamp(start + VOTE_START + VOTE_END, `${addr(voter)} flags ${addr(target)} again`)
             await expect(flagger.flag(sponsorship.address, target.address, "")).to.emit(voter, "ReviewRequest")
@@ -493,7 +493,7 @@ describe("VoteKickPolicy", (): void => {
             await expect(voter.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
             await expect(voter2.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
             await expect(voter3.voteOnFlag(sponsorship.address, target.address, VOTE_KICK)).to.emit(sponsorship, "FlagUpdate")
-            const flagDataAfterKick = (await sponsorship.getFlag(target.address)).flagData//.to.equal("0") // flag is resolved
+            const flagDataAfterKick = (await sponsorship.getFlag(target.address)).flagData
 
             expect(flagDataAfterNoKick).to.equal("0") // flag is resolved
             expect(flagDataAfterKick).to.equal("0") // flag is resolved
