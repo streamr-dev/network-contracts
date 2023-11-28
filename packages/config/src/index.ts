@@ -128,7 +128,7 @@ export const config = {
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs",
         "entryPoints": [
             {
-                "id": "eeeeeeeeee",
+                "nodeId": "eeeeeeeeee",
                 "websocket": {
                     "host": "10.200.10.1",
                     "port": 40500,
@@ -306,7 +306,7 @@ export const config = {
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
-                "id": "eee1",
+                "nodeId": "eee1",
                 "websocket": {
                     "host": "polygon-entrypoint-1.streamr.network",
                     "port": 40401,
@@ -314,7 +314,7 @@ export const config = {
                 }
             },
             {
-                "id": "eee2",
+                "nodeId": "eee2",
                 "websocket": {
                     "host": "polygon-entrypoint-2.streamr.network",
                     "port": 40401,
@@ -365,7 +365,7 @@ export const config = {
         "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs",
         "entryPoints": [
             {
-                "id": "e1",
+                "nodeId": "e1",
                 "websocket": {
                     "host": "entrypoint-1.streamr.network",
                     "port": 40401,
@@ -373,7 +373,7 @@ export const config = {
                 }
             },
             {
-                "id": "e2",
+                "nodeId": "e2",
                 "websocket": {
                     "host": "entrypoint-2.streamr.network",
                     "port": 40401,
