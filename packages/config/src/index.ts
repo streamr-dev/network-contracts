@@ -306,17 +306,17 @@ export const config = {
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
-                "nodeId": "eee1",
+                "nodeId": "eee3",
                 "websocket": {
-                    "host": "polygon-entrypoint-1.streamr.network",
+                    "host": "polygon-entrypoint-3.streamr.network",
                     "port": 40401,
                     "tls": true
                 }
             },
             {
-                "nodeId": "eee2",
+                "nodeId": "eee4",
                 "websocket": {
-                    "host": "polygon-entrypoint-2.streamr.network",
+                    "host": "polygon-entrypoint-4.streamr.network",
                     "port": 40401,
                     "tls": true
                 }
