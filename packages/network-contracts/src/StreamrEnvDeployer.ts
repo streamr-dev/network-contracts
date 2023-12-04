@@ -1,4 +1,11 @@
-import { Contract, ContractFactory, Wallet, ethers, providers } from "ethers"
+import { JsonRpcProvider } from "@ethersproject/providers"
+import { Wallet } from "@ethersproject/wallet"
+import { Contract, ContractFactory } from "@ethersproject/contracts"
+import { parseEther } from "@ethersproject/units"
+import { namehash } from "@ethersproject/hash"
+import { keccak256 } from "@ethersproject/keccak256"
+import { toUtf8Bytes } from "@ethersproject/strings"
+import { AddressZero, MaxUint256 } from "@ethersproject/constants"
 
 import debug from "debug"
 import {
@@ -18,9 +25,8 @@ import {
     streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
     tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode, operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode
 } from "./exports"
-import { parseEther } from "ethers/lib/utils"
 
-const VOTE_KICK    = "0x0000000000000000000000000000000000000000000000000000000000000001"
+const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
 
 export type StreamrContractAddresses = {
     // DATA token
@@ -102,10 +108,10 @@ export class StreamrEnvDeployer {
     sponsorship?: Sponsorship
     operatorAddress: any
     operator?: Operator
-    provider: providers.JsonRpcProvider
+    provider: JsonRpcProvider
 
     constructor(key: string, chainEndpointUrl: string) {
-        this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
+        this.provider = new JsonRpcProvider(chainEndpointUrl)
         this.adminWallet = new Wallet(key, this.provider)
         this.addresses = {} as StreamrContractAddresses
         this.contracts = {} as StreamrContracts
@@ -156,8 +162,8 @@ export class StreamrEnvDeployer {
         log(`ENS registry deployed at ${this.contracts.ENS.address}`)
 
         const rootNode = "eth"
-        const rootNodeNamehash = ethers.utils.namehash(rootNode)
-        const rootNodeSha3 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(rootNode))
+        const rootNodeNamehash = namehash(rootNode)
+        const rootNodeSha3 = keccak256(toUtf8Bytes(rootNode))
         const fifsDeploy = new ContractFactory(fifsRegistrarABI, fifsRegistrarBytecode, this.adminWallet)
         const fifsDeployTx = await fifsDeploy.deploy(this.contracts.ENS.address, rootNodeNamehash)
         this.contracts.FIFSRegistrar = await fifsDeployTx.deployed()
@@ -175,11 +181,11 @@ export class StreamrEnvDeployer {
 
     async registerEnsName(domain: string, newOwner: Wallet): Promise<void> {
         newOwner = newOwner.connect(this.provider)
-        await (await this.adminWallet.sendTransaction({to: newOwner.address, value: ethers.utils.parseEther("1")})).wait()
+        await (await this.adminWallet.sendTransaction({to: newOwner.address, value: parseEther("1")})).wait()
 
         const ensName = domain + ".eth"
-        const hashedDomain = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(domain))
-        const nameHashedENSName = ethers.utils.namehash(ensName)
+        const hashedDomain = keccak256(toUtf8Bytes(domain))
+        const nameHashedENSName = namehash(ensName)
         let tx = await this.contracts.FIFSRegistrar.register(hashedDomain, newOwner.address)
         await tx.wait()
 
@@ -236,7 +242,7 @@ export class StreamrEnvDeployer {
         log(`streamRegistry address ${this.addresses.StreamRegistry}`)
 
         const storageNodePk = "0xaa7a3b3bb9b4a662e756e978ad8c6464412e7eef1b871f19e5120d4747bce966"
-        const storageNodeWallet = new ethers.Wallet(storageNodePk, this.provider)
+        const storageNodeWallet = new Wallet(storageNodePk, this.provider)
         const streamRegistry2 = streamRegistry.connect(storageNodeWallet)
 
         log("Create storage node assignment stream")
@@ -244,7 +250,7 @@ export class StreamrEnvDeployer {
         const storageNodeAssignmentsStreamId = "0xde1112f631486cfc759a50196853011528bc5fa0/assignments"
         await (await streamRegistry2.createStream(storageNodeAssignmentPath, JSON.stringify({ partitions: 1}))).wait()
         await (await streamRegistry2.setPublicPermission(storageNodeAssignmentsStreamId,
-            ethers.constants.MaxUint256, ethers.constants.MaxUint256)).wait()
+            MaxUint256, MaxUint256)).wait()
         log("Storage node assignment stream created: " + storageNodeAssignmentsStreamId)
 
         const scriptKeyAddress = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1"
@@ -254,7 +260,7 @@ export class StreamrEnvDeployer {
         await (await ensCacheV2.initialize(
             scriptKeyAddress,
             streamRegistry.address,
-            ethers.constants.AddressZero, // # ENSCacheV1, do we need this in dev env?
+            AddressZero, // # ENSCacheV1, do we need this in dev env?
         )).wait()
         this.addresses.ENSCacheV2 = ensCacheV2.address
         this.contracts.eNSCacheV2 = ensCacheV2
@@ -277,7 +283,7 @@ export class StreamrEnvDeployer {
         await (await streamStorageRegistry.initialize(
             streamRegistry.address,
             nodeRegistry.address,
-            ethers.constants.AddressZero
+            AddressZero
         )).wait()
         this.addresses.StreamStorageRegistry = streamStorageRegistry.address
         this.contracts.streamStorageRegistry = streamStorageRegistry
@@ -359,7 +365,7 @@ export class StreamrEnvDeployer {
         this.contracts.sponsorshipFactory = sponsorshipFactory
         log(`sponsorshipFactory address ${sponsorshipFactory.address}`)
 
-        await (await this.contracts.DATA.mint(this.adminWallet.address, ethers.utils.parseEther("1000000000"))).wait()
+        await (await this.contracts.DATA.mint(this.adminWallet.address, parseEther("1000000000"))).wait()
         log(`minted 1000000 tokens to ${this.adminWallet.address}`)
     }
 
@@ -368,11 +374,11 @@ export class StreamrEnvDeployer {
             1, this.streamId, "metadata",
             [
                 this.addresses.SponsorshipStakeWeightedAllocationPolicy,
-                ethers.constants.AddressZero,
+                AddressZero,
                 this.addresses.SponsorshipVoteKickPolicy,
                 this.addresses.SponsorshipMaxOperatorsJoinPolicy
             ], [
-                ethers.utils.parseEther("0.01"),
+                parseEther("0.01"),
                 "0",
                 "0",
                 "3"
@@ -386,8 +392,8 @@ export class StreamrEnvDeployer {
     }
 
     async sponsorNewSponsorship(): Promise<void> {
-        await (await this.contracts.DATA.approve(this.sponsorshipAddress, ethers.utils.parseEther("7"))).wait()
-        const sponsorTx = await this.sponsorship!.sponsor(ethers.utils.parseEther("7"))
+        await (await this.contracts.DATA.approve(this.sponsorshipAddress, parseEther("7"))).wait()
+        const sponsorTx = await this.sponsorship!.sponsor(parseEther("7"))
         await sponsorTx.wait()
         log("sponsored through token approval")
     }
@@ -499,7 +505,7 @@ export class StreamrEnvDeployer {
 
     async delegate(): Promise<void> {
         log("Sending delegation to %s", this.operatorAddress)
-        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, ethers.utils.parseEther("5003"),
+        const tx = await this.contracts.DATA.connect(this.adminWallet).transferAndCall(this.operatorAddress, parseEther("5003"),
             this.adminWallet.address)
         await tx.wait()
         log("    Delegation sent")
@@ -507,7 +513,7 @@ export class StreamrEnvDeployer {
 
     async stakeIntoSponsorship(): Promise<void> {
         // stake prime number to have decimal APY
-        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, ethers.utils.parseEther("5003"))
+        const tx = await this.operator!.connect(this.adminWallet).stake(this.sponsorshipAddress, parseEther("5003"))
         await tx.wait()
         log("Staked into sponsorship from pool ", this.operatorAddress)
     }
@@ -531,7 +537,7 @@ export class StreamrEnvDeployer {
     }
 
     async preloadDATAToken(): Promise<void> {
-        const preloadAmount = ethers.utils.parseEther("1000000")
+        const preloadAmount = parseEther("1000000")
         const preloadPrivkeys = [
             "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
             "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb",
