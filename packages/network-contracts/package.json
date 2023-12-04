@@ -66,7 +66,7 @@
     "@streamr/utils": "8.5.5",
     "@types/debug": "4.1.7",
     "debug": "4.3.3",
-    "ethers": "5.7.0",
+    "ethers": "5.7.2",
     "hardhat": "2.13.1",
     "hardhat-contract-sizer": "2.10.0",
     "hardhat-dependency-compiler": "1.1.3",
