@@ -67,8 +67,17 @@ async function checkForFlags() {
         // console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagStartTime)
         if (flag.flaggingTimestamp < minFlagStartTime) {
             try {
+                let opts = {}
+                if (ENV === 'polygon') {
+                    // https://wiki.polygon.technology/docs/tools/faucets/polygon-gas-station/
+                    const gasPrice = await fetch('https://gasstation.polygon.technology/v2').then((response) => response.json())
+                    opts = {
+                        maxFeePerGas: gasPrice.fast.maxFee,
+                        maxPriorityFeePerGas: gasPrice.fast.maxPriorityFee,
+                    }
+                }
                 console.log('flag id:', flagID, 'sending close flag tx')
-                const tx = await sponsorshipContract.voteOnFlag(operatorAddress, randomBytes(32))
+                const tx = await sponsorshipContract.voteOnFlag(operatorAddress, randomBytes(32), opts)
                 console.log('flag id:', flagID, 'sent tx, tx hash: ', tx.hash)
                 const receipt = await tx.wait()
                 console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
