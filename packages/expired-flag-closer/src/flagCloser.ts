@@ -5,7 +5,6 @@ import { Sponsorship, sponsorshipABI } from '@streamr/network-contracts'
 import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
-import { randomBytes } from '@ethersproject/random'
 import { formatUnits, parseUnits } from '@ethersproject/units'
 import { BigNumber } from 'ethers'
 
@@ -22,6 +21,9 @@ const flagLifetimeSeconds = 60 * 75 // 75 minutes
 if (!ENV || !(config as {[index: string]: any})[ENV]) {
     throw new Error(`Unknown ENV: ${ENV}`)
 }
+if (!PRIVKEY) {
+    throw new Error('Missing PRIVKEY')
+}
 
 const envConfig = (config as {[index: string]: any})[ENV]
 
@@ -33,9 +35,13 @@ const graphClient = new TheGraphClient({
 
 const rpcUrl = ETHEREUM_RPC_URL || envConfig.rpcEndpoints[0].url
 const provider = new JsonRpcProvider(rpcUrl)
-const signer = new Wallet(PRIVKEY || "", provider).connect(provider)
+const flagCloserWallet = new Wallet(PRIVKEY, provider)
 
 const getGasPrice = async (): Promise<BigNumber> => {
+    // https://wiki.polygon.technology/docs/tools/faucets/polygon-gas-station/
+    // const gasPrice = await fetch('https://gasstation.polygon.technology/v2').then((response) => response.json())
+    // return parseUnits((gasPrice.fast.maxFee).toString(), "gwei")
+
     const gasPrice = await provider.getGasPrice()
     console.log(`Got gas price: ${formatUnits(gasPrice, 'gwei')} gwei`)
     const newGasPrice: BigNumber = gasPrice.add(parseUnits('10', 'gwei'))
@@ -72,9 +78,9 @@ async function checkForFlags() {
     for (const flag of flags.flags) {
         // console.log('flag', flag)
         const flagID = flag.id
-        const operatorAddress = flag.target.id
-        const sponsorship = flag.sponsorship.id
-        const sponsorshipContract = new Contract(sponsorship, sponsorshipABI, signer) as unknown as Sponsorship
+        const targetAddress = flag.target.id
+        const sponsorshipAddress = flag.sponsorship.id
+        const sponsorshipContract = new Contract(sponsorshipAddress, sponsorshipABI, flagCloserWallet) as unknown as Sponsorship
         // console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagStartTime)
         if (flag.flaggingTimestamp < minFlagStartTime) {
             try {
@@ -84,13 +90,17 @@ async function checkForFlags() {
                         gasPrice: await getGasPrice()
                     }
                 }
-                console.log('flag id:', flagID, 'sending close flag tx')
-                const tx = await sponsorshipContract.voteOnFlag(operatorAddress, randomBytes(32), opts)
-                console.log('flag id:', flagID, 'sent tx, tx hash: ', tx.hash)
+                console.log('flag id: %s | sending close flag tx, opts: %o', flagID, opts)
+                const tx = await sponsorshipContract.voteOnFlag(
+                    targetAddress,
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    opts
+                )
+                console.log('flag id: %s | sent tx, tx hash: %s', flagID, tx.hash)
                 const receipt = await tx.wait()
-                console.log('flag id:', flagID, 'tx mined', receipt.transactionHash)
+                console.log('flag id: %s | tx mined: %o', flagID, receipt.transactionHash)
             } catch (e) {
-                console.log('flag id:', flagID, 'failed to send tx', e)
+                console.log('flag id: %s | failed to send tx: %o', flagID, e)
             }
         }
     }

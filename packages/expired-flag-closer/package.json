@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "testrun": "tsx deploy.ts",
+    "start": "tsx src/flagCloser.ts",
     "clean": "rm -fr node_modules dist",
     "build": "tsc -p tsconfig.build.json"
   },
