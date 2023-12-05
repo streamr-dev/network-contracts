@@ -6,6 +6,7 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
+import { parseEther } from '@ethersproject/units'
 
 const {
     ENV,
@@ -72,8 +73,8 @@ async function checkForFlags() {
                     // https://wiki.polygon.technology/docs/tools/faucets/polygon-gas-station/
                     const gasPrice = await fetch('https://gasstation.polygon.technology/v2').then((response) => response.json())
                     opts = {
-                        maxFeePerGas: gasPrice.fast.maxFee,
-                        maxPriorityFeePerGas: gasPrice.fast.maxPriorityFee,
+                        maxFeePerGas: parseEther(gasPrice.fast.maxFee.toString()),
+                        maxPriorityFeePerGas: parseEther(gasPrice.fast.maxPriorityFee.toString()),
                     }
                 }
                 console.log('flag id:', flagID, 'sending close flag tx')
