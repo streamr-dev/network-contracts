@@ -7,7 +7,13 @@ import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
 
-const { ENV, PRIVKEY, INTERVALSEC } = process.env
+const {
+    ENV,
+    ETHEREUM_RPC_URL,
+    THEGRAPH_URL,
+    PRIVKEY,
+    INTERVALSEC
+} = process.env
 
 const flagLifetime = 60 * 75 // 75 minutes
 
@@ -18,11 +24,11 @@ if (!ENV || !(config as {[index: string]: any})[ENV]) {
 const envConfig = (config as {[index: string]: any})[ENV]
 
 const graphClient = new TheGraphClient({
-    serverUrl: envConfig.theGraphUrl,
+    serverUrl: THEGRAPH_URL || envConfig.theGraphUrl,
     fetch,
     logger: new Logger(module)
 })
-const provider = new JsonRpcProvider(envConfig.rpcEndpoints[0].url)
+const provider = new JsonRpcProvider(ETHEREUM_RPC_URL || envConfig.rpcEndpoints[0].url)
 const signer = new Wallet(PRIVKEY || "", provider).connect(provider)
 
 async function checkForFlags() {
