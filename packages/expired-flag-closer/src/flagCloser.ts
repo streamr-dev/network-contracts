@@ -6,7 +6,8 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
-import { parseEther } from '@ethersproject/units'
+import { formatUnits, parseUnits } from '@ethersproject/units'
+import { BigNumber } from 'ethers'
 
 const {
     ENV,
@@ -29,9 +30,18 @@ const graphClient = new TheGraphClient({
     fetch,
     logger: new Logger(module)
 })
+
 const rpcUrl = ETHEREUM_RPC_URL || envConfig.rpcEndpoints[0].url
 const provider = new JsonRpcProvider(rpcUrl)
 const signer = new Wallet(PRIVKEY || "", provider).connect(provider)
+
+const getGasPrice = async (): Promise<BigNumber> => {
+    const gasPrice = await provider.getGasPrice()
+    console.log(`Got gas price: ${formatUnits(gasPrice, 'gwei')} gwei`)
+    const newGasPrice: BigNumber = gasPrice.add(parseUnits('10', 'gwei'))
+    console.log(`New gas price: ${formatUnits(newGasPrice, 'gwei')} gwei`)
+    return newGasPrice
+}
 
 async function checkForFlags() {
     console.log('checking, flag lifetime is %d seconds', flagLifetimeSeconds)
@@ -70,11 +80,8 @@ async function checkForFlags() {
             try {
                 let opts = {}
                 if (ENV === 'polygon') {
-                    // https://wiki.polygon.technology/docs/tools/faucets/polygon-gas-station/
-                    const gasPrice = await fetch('https://gasstation.polygon.technology/v2').then((response) => response.json())
                     opts = {
-                        maxFeePerGas: parseEther(gasPrice.fast.maxFee.toString()),
-                        maxPriorityFeePerGas: parseEther(gasPrice.fast.maxPriorityFee.toString()),
+                        gasPrice: await getGasPrice()
                     }
                 }
                 console.log('flag id:', flagID, 'sending close flag tx')
