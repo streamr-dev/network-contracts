@@ -144,3 +144,6 @@ export const queueModuleCodehash = keccak256(queueModuleBytecode)
 export const stakeModuleCodehash = keccak256(stakeModuleBytecode)
 
 export * from "./StreamrEnvDeployer"
+
+export { deployOperator } from "./deployOperator"
+export { deploySponsorship } from "./deploySponsorship"

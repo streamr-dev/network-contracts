@@ -4,7 +4,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK } from "../utils"
 
-import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
+import { deploySponsorshipWithoutFactory } from "../deploySponsorshipWithoutFactory"
 
 import type { Wallet } from "ethers"
 

@@ -3,7 +3,7 @@ import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
-import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
+import { deploySponsorshipWithoutFactory } from "../deploySponsorshipWithoutFactory"
 
 import type { Wallet } from "ethers"
 

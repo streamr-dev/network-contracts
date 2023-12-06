@@ -1,35 +1,51 @@
-import { ethers as hardhatEthers, upgrades } from "hardhat"
-import type { Wallet } from "ethers"
+import type { Wallet } from "@ethersproject/wallet"
 
-import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
-    StreamRegistryV4,
-    IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
-    StreamrConfig, NodeModule, QueueModule, StakeModule, MinimalForwarder } from "../../../typechain"
+// TODO: avoid hardhat direct dependency. Take deployFunc as argument maybe.
+import { ethers as hardhatEthers, upgrades } from "hardhat"
+
+import type {
+    Sponsorship, SponsorshipFactory, Operator, OperatorFactory,
+    StreamRegistryV4, IKickPolicy,
+    StreamrConfig, NodeModule, QueueModule, StakeModule, MinimalForwarder
+} from "../../../typechain"
+
+import type { StreamrContracts } from "../../../src/StreamrEnvDeployer"
 
 const { getContractFactory } = hardhatEthers
 
-export type TestContracts = {
-    token: TestToken;
-    streamrConfig: StreamrConfig;
-    maxOperatorsJoinPolicy: IJoinPolicy;
-    operatorContractOnlyJoinPolicy: IJoinPolicy
-    allocationPolicy: IAllocationPolicy;
-    leavePolicy: ILeavePolicy;
-    adminKickPolicy: IKickPolicy;
-    voteKickPolicy: IKickPolicy;
-    sponsorshipFactory: SponsorshipFactory;
+// export type TestContracts = {
+//     token: TestToken;
+//     streamrConfig: StreamrConfig;
+//     maxOperatorsJoinPolicy: IJoinPolicy;
+//     operatorContractOnlyJoinPolicy: IJoinPolicy
+//     allocationPolicy: IAllocationPolicy;
+//     leavePolicy: ILeavePolicy;
+//     adminKickPolicy: IKickPolicy;
+//     voteKickPolicy: IKickPolicy;
+//     sponsorshipFactory: SponsorshipFactory;
+//     sponsorshipTemplate: Sponsorship;
+//     operatorFactory: OperatorFactory;
+//     operatorTemplate: Operator;
+//     defaultDelegationPolicy: IDelegationPolicy;
+//     defaultExchangeRatePolicy: IExchangeRatePolicy;
+//     defaultUndelegationPolicy: IUndelegationPolicy;
+//     nodeModule: NodeModule;
+//     queueModule: QueueModule;
+//     stakeModule: StakeModule;
+//     minimalForwarder: MinimalForwarder;
+//     deployer: Wallet;
+//     streamRegistry: StreamRegistryV4;
+// }
+
+export type TestContracts = StreamrContracts & {
     sponsorshipTemplate: Sponsorship;
-    operatorFactory: OperatorFactory;
     operatorTemplate: Operator;
-    defaultDelegationPolicy: IDelegationPolicy;
-    defaultExchangeRatePolicy: IExchangeRatePolicy;
-    defaultUndelegationPolicy: IUndelegationPolicy;
+    adminKickPolicy: IKickPolicy;
     nodeModule: NodeModule;
     queueModule: QueueModule;
     stakeModule: StakeModule;
     minimalForwarder: MinimalForwarder;
     deployer: Wallet;
-    streamRegistry: StreamRegistryV4;
 }
 
 export async function deployOperatorFactory(contracts: Partial<TestContracts>, signer: Wallet): Promise<{
@@ -37,8 +53,11 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     operatorTemplate: Operator
 }> {
     const {
-        token, streamrConfig,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
+        DATA: token, streamrConfig,
+        defaultDelegationPolicy: delegationPolicy,
+        defaultExchangeRatePolicy: ratePolicy,
+        defaultUndelegationPolicy: undelegPolicy,
+        nodeModule, queueModule, stakeModule
     } = contracts
     const operatorTemplate = await (await getContractFactory("Operator", { signer })).deploy()
     const contractFactory = await getContractFactory("OperatorFactory", signer)
@@ -46,15 +65,15 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
         operatorTemplate!.address,
         token!.address,
         streamrConfig!.address,
-        contracts.nodeModule!.address,
-        contracts.queueModule!.address,
-        contracts.stakeModule!.address,
+        nodeModule!.address,
+        queueModule!.address,
+        stakeModule!.address,
         // { gasLimit: 500000 } // solcover makes the gas estimation require 1000+ ETH for transaction, this fixes it
     ], { kind: "uups", unsafeAllow: ["delegatecall"] })).deployed() as OperatorFactory
     await (await operatorFactory.addTrustedPolicies([
-        defaultDelegationPolicy!.address,
-        defaultExchangeRatePolicy!.address,
-        defaultUndelegationPolicy!.address
+        delegationPolicy!.address,
+        ratePolicy!.address,
+        undelegPolicy!.address
     ], { gasLimit: 500000 })).wait()
     await (await streamrConfig!.setOperatorFactory(operatorFactory.address)).wait()
     return { operatorFactory, operatorTemplate }
@@ -111,17 +130,17 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await (await streamrConfig.setTrustedForwarder(minimalForwarder.address)).wait()
 
     // operator contract and policies
-    const defaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
-    const defaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
-    const defaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
+    const operatorDefaultDelegationPolicy = await (await getContractFactory("DefaultDelegationPolicy", { signer })).deploy()
+    const operatorDefaultExchangeRatePolicy = await (await getContractFactory("DefaultExchangeRatePolicy", { signer })).deploy()
+    const operatorDefaultUndelegationPolicy = await (await getContractFactory("DefaultUndelegationPolicy", { signer })).deploy()
 
     const nodeModule = await (await getContractFactory("NodeModule", { signer })).deploy() as NodeModule
     const queueModule = await (await getContractFactory("QueueModule", { signer })).deploy() as QueueModule
     const stakeModule = await (await getContractFactory("StakeModule", { signer })).deploy() as StakeModule
 
     const { operatorFactory, operatorTemplate } = await deployOperatorFactory({
-        token, streamrConfig,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy,
+        DATA: token, streamrConfig,
+        defaultDelegationPolicy: operatorDefaultDelegationPolicy, defaultExchangeRatePolicy: operatorDefaultExchangeRatePolicy, defaultUndelegationPolicy: operatorDefaultUndelegationPolicy,
         nodeModule, queueModule, stakeModule
     }, signer)
 
@@ -132,10 +151,28 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
     await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
     return {
-        token, streamrConfig, streamRegistry,
-        sponsorshipTemplate, sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy,
-        leavePolicy, adminKickPolicy, voteKickPolicy, operatorTemplate, operatorFactory,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy, nodeModule, queueModule, stakeModule, minimalForwarder,
-        deployer: signer
+        DATA: token, streamrConfig, streamRegistry,
+        sponsorshipTemplate, sponsorshipFactory,
+        maxOperatorsJoinPolicy: maxOperatorsJoinPolicy,
+        operatorContractOnlyJoinPolicy: operatorContractOnlyJoinPolicy,
+        stakeWeightedAllocationPolicy: allocationPolicy,
+        defaultLeavePolicy: leavePolicy,
+        voteKickPolicy: voteKickPolicy,
+        adminKickPolicy,
+        operatorTemplate, operatorFactory,
+        defaultDelegationPolicy: operatorDefaultDelegationPolicy, defaultExchangeRatePolicy: operatorDefaultExchangeRatePolicy, defaultUndelegationPolicy: operatorDefaultUndelegationPolicy,
+        nodeModule, queueModule, stakeModule, minimalForwarder,
+        deployer: signer,
+
+        // TODO: these here now just to make ts happy. Tokenomics tests don't use them.
+        // TODO: Probably should include in a full-setup script, like streamrEnvDeployer?
+        // TODO: maybe split StreamsContracts into TokenomicsContracts etc.
+        ENS: token,
+        FIFSRegistrar: token,
+        publicResolver: token,
+        trackerRegistry: token,
+        storageNodeRegistry: token,
+        ensCacheV2: token,
+        streamStorageRegistry: token,
     }
 }

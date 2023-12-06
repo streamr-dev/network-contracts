@@ -1,8 +1,8 @@
 import { ethers as hardhatEthers } from "hardhat"
 
 import { deployOperatorFactory, TestContracts } from "./deployTestContracts"
-import { deploySponsorship } from "./deploySponsorshipContract"
-import { deployOperatorContract } from "./deployOperatorContract"
+import { deploySponsorship } from "../../../src/deploySponsorship"
+import { deployOperator } from "../../../src/deployOperator"
 
 import type { Wallet, BigNumber } from "ethers"
 import type { Sponsorship, Operator, TestToken } from "../../../typechain"
@@ -88,7 +88,7 @@ export async function setupSponsorships(originalContracts: TestContracts, operat
     // no risk of nonce collisions in Promise.all since each operator has their own separate nonce
     // see OperatorFactory:_deployOperator for how saltSeed is used in CREATE2
     const operators = await Promise.all(signers.map((signer) =>
-        deployOperatorContract(newContracts, signer, operatorsCutFraction, {}, saltSeed)))
+        deployOperator(newContracts, signer, operatorsCutFraction, {}, saltSeed)))
     const operatorsPerSponsorship = splitBy(operators, operatorCounts)
 
     // add operator also as the (only) node, so that flag/vote functions Just Work

@@ -7,7 +7,7 @@ import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_NO_KICK, VOTE_ST
 
 import type { MockRandomOracle, TestBadOperator, Operator } from "../../../../typechain"
 import type { BigNumber, Wallet } from "ethers"
-import { deployOperatorContract } from "../deployOperatorContract"
+import { deployOperator } from "../../../../src/deployOperator"
 
 const {
     getContractFactory,
@@ -79,7 +79,7 @@ describe("VoteKickPolicy", (): void => {
         const { operatorFactory, operatorTemplate, nodeModule, queueModule, stakeModule } = contracts
         await expect(operatorFactory.updateTemplates(badOperatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
             .to.emit(operatorFactory, "TemplateAddresses")
-        const badOperator = await deployOperatorContract(contracts, deployer)
+        const badOperator = await deployOperator(contracts, deployer)
         await expect(operatorFactory.updateTemplates(operatorTemplate.address, nodeModule.address, queueModule.address, stakeModule.address))
             .to.emit(operatorFactory, "TemplateAddresses")
         return badOperatorTemplate.attach(badOperator.address).connect(deployer)

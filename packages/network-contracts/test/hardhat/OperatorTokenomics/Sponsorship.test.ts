@@ -3,7 +3,7 @@ import { expect } from "chai"
 
 import { VOTE_KICK, VOTE_NO_KICK, advanceToTimestamp, getBlockTimestamp } from "./utils"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
+import { deploySponsorshipWithoutFactory } from "./deploySponsorshipWithoutFactory"
 
 import type { Sponsorship, IAllocationPolicy, IJoinPolicy, TestToken, IKickPolicy } from "../../../typechain"
 import { Wallet } from "ethers"

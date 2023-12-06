@@ -2,8 +2,8 @@ import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deploySponsorship } from "./deploySponsorshipContract"
-import { deployOperatorContract } from "./deployOperatorContract"
+import { deploySponsorship } from "../../../src/deploySponsorship"
+import { deployOperator } from "../../../src/deployOperator"
 import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
 
 import type { Wallet } from "ethers"
@@ -97,7 +97,7 @@ describe("SponsorshipFactory", () => {
     it("can deploy a Sponsorship; then Operator can join, increase stake (happy path)", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorship(contracts)
-        const operator = await deployOperatorContract(contracts, admin)
+        const operator = await deployOperator(contracts, admin)
         await (await token.approve(operator.address, parseEther("10000"))).wait()
         await (await operator.delegate(parseEther("10000"))).wait()
         await expect(operator.stake(sponsorship.address, parseEther("5000")))

@@ -1,18 +1,20 @@
-import { Wallet, utils } from "ethers"
-import { Operator } from "../../../typechain"
-import { TestContracts } from "./deployTestContracts"
+import { Contract } from "@ethersproject/contracts"
+import { parseEther } from "@ethersproject/units"
+import type { Wallet } from "@ethersproject/wallet"
 
-const { parseEther } = utils
+import { Operator } from "../typechain"
+import type { StreamrContracts } from "./StreamrEnvDeployer"
+import { operatorABI } from "./exports"
 
-let poolindex = 0
+let operatorCounter = 0
 
 /**
  * @param deployer should be the operator's Wallet
  * @param operatorsCutFraction as a fraction of 10^18, like ether
  * @returns Promise<Operator>
  */
-export async function deployOperatorContract(
-    contracts: TestContracts,
+export async function deployOperator(
+    contracts: StreamrContracts,
     deployer: Wallet,
     operatorsCutFraction = parseEther("0"),
     opts: {
@@ -24,17 +26,13 @@ export async function deployOperatorContract(
     salt?: string
 ): Promise<Operator> {
     const {
-        operatorFactory, operatorTemplate,
-        defaultDelegationPolicy, defaultExchangeRatePolicy, defaultUndelegationPolicy
+        operatorFactory,
+        defaultDelegationPolicy,
+        defaultExchangeRatePolicy,
+        defaultUndelegationPolicy,
     } = contracts
-    const operatorTokenName = salt ?? `Pool-${Date.now()}-${poolindex++}`
+    const operatorTokenName = salt ?? `Operator-${Date.now()}-${operatorCounter++}`
 
-    /**
-     * @param operatorsCutFraction as a fraction of 10^18, like ether (use parseEther)
-     * @param stringArgs [0] operatorTokenName, [1] streamMetadata
-     * @param policies smart contract addresses, must be in the trustedPolicies: [0] delegation, [1] exchange rate, [2] undelegation policy
-     * @param policyParams not used for default policies: [0] delegation, [1] exchange rate, [2] undelegation policy param
-     */
     const operatorReceipt = await (await operatorFactory.connect(deployer).deployOperator(
         operatorsCutFraction,
         operatorTokenName,
@@ -45,7 +43,7 @@ export async function deployOperatorContract(
             opts?.overrideUndelegationPolicy || defaultUndelegationPolicy.address
         ],
         [ 0, 0, 0 ]
-    )).wait()
+    )).wait() // as ContractReceipt
     const newOperatorAddress = operatorReceipt.events?.find((e) => e.event === "NewOperator")?.args?.operatorContractAddress
-    return operatorTemplate.attach(newOperatorAddress).connect(deployer)
+    return new Contract(newOperatorAddress, operatorABI, deployer) as Operator
 }

@@ -2,7 +2,7 @@ import { expect } from "chai"
 import { ethers as hardhatEthers, upgrades } from "hardhat"
 
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
-import { deployOperatorContract } from "./deployOperatorContract"
+import { deployOperator } from "../../../src/deployOperator"
 
 import { Wallet } from "ethers"
 import { OperatorFactory } from "../../../typechain"
@@ -54,7 +54,7 @@ describe("OperatorFactory", function(): void {
             const { operatorFactory } = sharedContracts
             const randomAddress = Wallet.createRandom().address
             await (await operatorFactory.addTrustedPolicy(randomAddress)).wait()
-            const operator = await deployOperatorContract(sharedContracts, operator2Wallet)
+            const operator = await deployOperator(sharedContracts, operator2Wallet)
 
             const newContractFactory = await getContractFactory("OperatorFactory") // e.g. OperatorFactoryV2
             const newOperatorFactoryTx = await upgrades.upgradeProxy(operatorFactory.address, newContractFactory, { unsafeAllow: ["delegatecall"] })
@@ -89,15 +89,15 @@ describe("OperatorFactory", function(): void {
     })
 
     it("does NOT allow same operator signer deploy a second Operator contract", async function(): Promise<void> {
-        await deployOperatorContract(sharedContracts, operatorWallet)
-        await expect(deployOperatorContract(sharedContracts, operatorWallet))
+        await deployOperator(sharedContracts, operatorWallet)
+        await expect(deployOperator(sharedContracts, operatorWallet))
             .to.be.revertedWithCustomError(sharedContracts.operatorFactory, "OperatorAlreadyDeployed")
     })
 
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
         const {
             operatorFactory,
-            token,
+            DATA: token,
             defaultDelegationPolicy,
             defaultExchangeRatePolicy,
             defaultUndelegationPolicy
@@ -189,7 +189,7 @@ describe("OperatorFactory", function(): void {
     it("predicts the correct address for a new operator contract", async function(): Promise<void> {
         const contracts = await deployTestContracts(deployer)
         const predictedOperatorAddress = await contracts.operatorFactory.predictAddress(deployer.address, "PredictTest")
-        const operator = await deployOperatorContract(contracts, deployer, parseEther("0"), {}, "PredictTest")
+        const operator = await deployOperator(contracts, deployer, parseEther("0"), {}, "PredictTest")
         expect(predictedOperatorAddress).to.equal(operator.address)
     })
 

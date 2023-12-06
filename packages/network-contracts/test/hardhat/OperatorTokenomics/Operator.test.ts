@@ -3,9 +3,9 @@ import { expect } from "chai"
 
 import { deployOperatorFactory, deployTestContracts, TestContracts } from "./deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START, log } from "./utils"
-import { deployOperatorContract } from "./deployOperatorContract"
+import { deployOperator as deployOperatorContract } from "../../../src/deployOperator"
 
-import { deploySponsorship } from "./deploySponsorshipContract"
+import { deploySponsorship } from "../../../src/deploySponsorship"
 import { IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship, TestToken } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
@@ -79,7 +79,7 @@ describe("Operator contract", (): void => {
             admin, sponsor, operatorWallet, operator2Wallet, delegator, delegator2, delegator3, controller, protocolFeeBeneficiary
         ] = await getSigners() as unknown as Wallet[]
         sharedContracts = await deployTestContracts(admin)
-        token = sharedContracts.token
+        token = sharedContracts.DATA
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
         await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
@@ -382,7 +382,7 @@ describe("Operator contract", (): void => {
             await setTokens(delegator, "10000")
             await setTokens(operatorWallet, "10000") // operator must self-delegate at least minDelegationWei to accept external delegations
             const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            const operator2 = await deployOperator(contracts, operator2Wallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
             await (await token.connect(delegator).approve(operator.address, parseEther("10000"))).wait()
             await expect(operator.connect(delegator).delegate(parseEther("10000")))
@@ -752,7 +752,7 @@ describe("Operator contract", (): void => {
             await setTokens(operator2Wallet, "20000000")
             const sponsorship = await deploySponsorship(sharedContracts)
             const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            const operator2 = await deployOperator(contracts, operator2Wallet)
             await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("20000000"), "0x")).wait()
             await (await token.connect(operator2Wallet).transferAndCall(operator2.address, parseEther("20000000"), "0x")).wait()
             const { operatorFactory } = contracts
@@ -937,7 +937,7 @@ describe("Operator contract", (): void => {
             await setTokens(operatorWallet, STAKE_AMOUNT)
 
             await setTokens(sponsor, "250")
-            const operatorContract = await deployOperatorContract(sharedContracts, operatorWallet, operatorsCutFraction)
+            const operatorContract = await deployOperator(sharedContracts, operatorWallet, operatorsCutFraction)
             const sponsorship = await deploySponsorship(sharedContracts)
             await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("250"), "0x")).wait()
             await (await token.connect(operatorWallet).transferAndCall(operatorContract.address, STAKE_AMOUNT_WEI, "0x")).wait()
@@ -1056,7 +1056,7 @@ describe("Operator contract", (): void => {
 
         it("rewards fisherman and slashes operator if too much earnings withdrawn", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet, { operatorsCutPercent: 40 })
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet) // operator's cut doesn't affect calculations
+            const operator2 = await deployOperator(contracts, operator2Wallet) // operator's cut doesn't affect calculations
             const sponsorship1 = await deploySponsorship(contracts)
             const sponsorship2 = await deploySponsorship(contracts)
 
@@ -1138,7 +1138,7 @@ describe("Operator contract", (): void => {
 
         it("can update operator cut fraction for himself, but NOT for others (and not >100%)", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            const operator2 = await deployOperator(contracts, operator2Wallet)
 
             await expect(operator2.connect(operatorWallet).updateOperatorsCutFraction(parseEther("0.2")))
                 .to.be.revertedWithCustomError(operator, "AccessDeniedOperatorOnly")
@@ -1888,7 +1888,7 @@ describe("Operator contract", (): void => {
 
         it("onReviewRequest can only be called by a Sponsorship created by SponsorshipFactory", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet)
-            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            const operator2 = await deployOperator(contracts, operator2Wallet)
             await expect(operator.onReviewRequest(operator2.address))
                 .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrSponsorshipOnly")
         })

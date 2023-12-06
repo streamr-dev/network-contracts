@@ -4,7 +4,7 @@ import { utils, Wallet, BigNumberish } from "ethers"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
 import { advanceToTimestamp, getBlockTimestamp } from "../utils"
-import { deploySponsorshipWithoutFactory } from "../deploySponsorshipContract"
+import { deploySponsorshipWithoutFactory } from "../deploySponsorshipWithoutFactory"
 
 const { parseEther, formatEther } = utils
 

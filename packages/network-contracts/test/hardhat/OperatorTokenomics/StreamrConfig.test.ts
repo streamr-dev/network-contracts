@@ -2,8 +2,8 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
 import { TestContracts, deployTestContracts, deployStreamrConfig } from "./deployTestContracts"
-import { deployOperatorContract } from "./deployOperatorContract"
-import { deploySponsorship } from "./deploySponsorshipContract"
+import { deployOperator } from "../../../src/deployOperator"
+import { deploySponsorship } from "../../../src/deploySponsorship"
 
 import type { BigNumber, ContractFactory, Wallet } from "ethers"
 import type { StreamrConfig, Operator } from "../../../typechain"
@@ -33,7 +33,7 @@ describe("StreamrConfig", (): void => {
         async function deployOperator(deployer: Wallet, selfDelegationWei: BigNumber): Promise<Operator> {
             const { token } = sharedContracts
             await (await token.mint(deployer.address, selfDelegationWei)).wait()
-            const operator = await deployOperatorContract(sharedContracts, deployer)
+            const operator = await deployOperator(sharedContracts, deployer)
             await (await token.connect(deployer).transferAndCall(operator.address, selfDelegationWei, "0x")).wait()
             await (await operator.setNodeAddresses([deployer.address])).wait()
             return operator

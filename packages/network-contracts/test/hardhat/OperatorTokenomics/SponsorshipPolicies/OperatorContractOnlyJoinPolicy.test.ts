@@ -2,8 +2,8 @@ import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
 import { deployTestContracts, TestContracts } from "../deployTestContracts"
-import { deployOperatorContract } from "../deployOperatorContract"
-import { deploySponsorship } from "../deploySponsorshipContract"
+import { deployOperator } from "../../../../src/deployOperator"
+import { deploySponsorship } from "../../../../src/deploySponsorship"
 
 import type { Wallet } from "ethers"
 import type { Operator } from "../../../../typechain"
@@ -44,7 +44,7 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         await expect(badOp.stake(sponsorship.address, parseEther("5000")))
             .to.be.revertedWith("error_onlyOperators")
 
-        const goodOp = await deployOperatorContract(contracts, operator)
+        const goodOp = await deployOperator(contracts, operator)
         await (await token.connect(operator).transferAndCall(goodOp.address, parseEther("5000"), "0x")).wait()
         await expect(goodOp.stake(sponsorship.address, parseEther("5000")))
             .to.emit(sponsorship, "OperatorJoined").withArgs(goodOp.address)

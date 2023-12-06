@@ -3,8 +3,8 @@ import { expect } from "chai"
 
 import { advanceToTimestamp, getBlockTimestamp, log } from "../hardhat/OperatorTokenomics/utils"
 import { deployTestContracts } from "../hardhat/OperatorTokenomics/deployTestContracts"
-import { deployOperatorContract } from "../hardhat/OperatorTokenomics/deployOperatorContract"
-import { deploySponsorship } from "../hardhat/OperatorTokenomics/deploySponsorshipContract"
+import { deployOperator } from "../../src/deployOperator"
+import { deploySponsorship } from "../../src/deploySponsorship"
 
 import type { TestToken } from "../../typechain"
 import type { Wallet } from "ethers"
@@ -37,7 +37,7 @@ describe("Operator", (): void => {
         const timeAtStart = await getBlockTimestamp()
 
         const sponsorship = await deploySponsorship(contracts,  { allocationWeiPerSecond: BigNumber.from("0") })
-        const operator = await deployOperatorContract(contracts, operatorWallet)
+        const operator = await deployOperator(contracts, operatorWallet)
         await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("5000"), "0x")).wait()
 
         await advanceToTimestamp(timeAtStart, "Stake to sponsorship and queue payouts")
@@ -82,7 +82,7 @@ describe("Operator", (): void => {
         const { token, streamrConfig } = contracts
         await (await streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await setTokens(token, operatorWallet, totalTokens)
-        const operator = await deployOperatorContract(contracts, operatorWallet)
+        const operator = await deployOperator(contracts, operatorWallet)
         await (await token.connect(operatorWallet).transferAndCall(operator.address, totalWei, "0x")).wait()
         const timeAtStart = await getBlockTimestamp()
 
