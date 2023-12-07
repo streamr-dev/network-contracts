@@ -97,7 +97,7 @@ describe("OperatorFactory", function(): void {
     it("can create an Operator with transferAndCall (atomic fund and deploy operator)", async function(): Promise<void> {
         const {
             operatorFactory,
-            DATA: token,
+            token,
             defaultDelegationPolicy,
             defaultExchangeRatePolicy,
             defaultUndelegationPolicy

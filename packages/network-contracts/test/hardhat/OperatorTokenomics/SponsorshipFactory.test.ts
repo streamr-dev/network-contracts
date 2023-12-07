@@ -107,7 +107,7 @@ describe("SponsorshipFactory", () => {
     })
 
     it("can create a Sponsorship with transferAndCall (atomic fund and deploy sponsorship)", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
+        const { stakeWeightedAllocationPolicy, defaultLeavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
 
         // uint minOperatorCount,
         // string memory streamId,
@@ -117,7 +117,7 @@ describe("SponsorshipFactory", () => {
         const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(
             ["uint", "string", "string", "address[]", "uint[]"],
-            [1, streamId, "{}", [allocationPolicy.address, leavePolicy.address, AddressZero], ["2000000000000000000", "0", "0"]]
+            [1, streamId, "{}", [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, AddressZero], ["2000000000000000000", "0", "0"]]
         )
         const sponsorshipDeployTx = await token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data)
         const sponsorshipDeployReceipt = await sponsorshipDeployTx.wait()
@@ -134,15 +134,15 @@ describe("SponsorshipFactory", () => {
     })
 
     it("transferAndCall reverts for wrong token", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, deployer, streamRegistry } = contracts
+        const { stakeWeightedAllocationPolicy, defaultLeavePolicy, sponsorshipFactory, deployer, streamRegistry } = contracts
         const wrongToken = await (await getContractFactory("TestToken", { deployer })).deploy("TestToken", "TEST")
         await (await wrongToken.mint(deployer.address, parseEther("1000"))).wait()
 
         const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(["uint", "string", "string", "address[]", "uint[]"],
             [1, streamId, "{}", [
-                allocationPolicy.address,
-                leavePolicy.address,
+                stakeWeightedAllocationPolicy.address,
+                defaultLeavePolicy.address,
                 "0x0000000000000000000000000000000000000000",
             ], [
                 "2000000000000000000",
@@ -155,18 +155,18 @@ describe("SponsorshipFactory", () => {
     })
 
     it("will NOT create a Sponsorship with zero minOperatorCount", async function(): Promise<void> {
-        const { allocationPolicy, leavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
+        const { stakeWeightedAllocationPolicy, defaultLeavePolicy, sponsorshipFactory, token, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
         const data = defaultAbiCoder.encode(
             ["uint", "string", "string", "address[]", "uint[]"],
-            [0, streamId, "{}", [allocationPolicy.address, leavePolicy.address, AddressZero], ["2000000000000000000", "0", "0"]]
+            [0, streamId, "{}", [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, AddressZero], ["2000000000000000000", "0", "0"]]
         )
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
             .to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "MinOperatorCountZero")
     })
 
     it("will NOT create a Sponsorship with untrusted policies", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, maxOperatorsJoinPolicy, deployer, streamRegistry } = contracts
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy, maxOperatorsJoinPolicy, deployer, streamRegistry } = contracts
         /**
          * Policies array is interpreted as follows:
          *   0: allocation policy (address(0) for none)
@@ -179,48 +179,48 @@ describe("SponsorshipFactory", () => {
         // allocationpolicy
         const streamId1 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId1, "{}",
-            [untrustedAddress, leavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
+            [untrustedAddress, defaultLeavePolicy.address, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         const streamId2 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId2, "{}",
-            [allocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
+            [stakeWeightedAllocationPolicy.address, untrustedAddress, kickPolicyAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // kickpolicy
         const streamId3 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId3, "{}",
-            [allocationPolicy.address, leavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
+            [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, untrustedAddress, maxOperatorsJoinPolicy.address],
             ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
         // joinpolicy
         const streamId4 = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(1, streamId4, "{}",
-            [allocationPolicy.address, leavePolicy.address, kickPolicyAddress, untrustedAddress],
+            [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, kickPolicyAddress, untrustedAddress],
             ["0", "0", "0", "0"])).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "PolicyNotTrusted")
     })
 
     it("will NOT create a Sponsorship with mismatching number of policies and params", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
         const kickPolicyAddress = AddressZero
         await expect(sponsorshipFactory.deploySponsorship(
             1, streamId, "{}",
-            [allocationPolicy.address, leavePolicy.address, kickPolicyAddress],
+            [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, kickPolicyAddress],
             ["0", "0", "0", "0"]
         )).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "BadArguments")
     })
 
     it("will NOT create a Sponsorship if the stream does not exist", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy } = contracts
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy } = contracts
         await expect(sponsorshipFactory.deploySponsorship(
-            1, "0xnonexistingstreamid", "{}", [allocationPolicy.address, leavePolicy.address, AddressZero], ["0", "0", "0"]
+            1, "0xnonexistingstreamid", "{}", [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, AddressZero], ["0", "0", "0"]
         )).to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
     })
 
     it("will NOT create a Sponsorship using transferAndCall if the stream does not exist", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, token } = contracts
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy, token } = contracts
 
         const data = defaultAbiCoder.encode(
             ["uint", "string", "string", "address[]", "uint[]"],
-            [1, "0xnonexistingstreamid", "{}", [allocationPolicy.address, leavePolicy.address, AddressZero], ["0", "0", "0"]]
+            [1, "0xnonexistingstreamid", "{}", [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, AddressZero], ["0", "0", "0"]]
         )
         await expect(token.transferAndCall(sponsorshipFactory.address, parseEther("100"), data))
             .to.be.revertedWithCustomError(contracts.sponsorshipFactory, "StreamNotFound")
@@ -241,49 +241,55 @@ describe("SponsorshipFactory", () => {
     })
 
     it("is possible to have multiple join policies", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy, voteKickPolicy, maxOperatorsJoinPolicy,
             operatorContractOnlyJoinPolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
         await expect(sponsorshipFactory.deploySponsorship(
             1, streamId, "{}",
-            [allocationPolicy.address, leavePolicy.address, voteKickPolicy.address,
+            [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address, voteKickPolicy.address,
                 maxOperatorsJoinPolicy.address, operatorContractOnlyJoinPolicy.address, AddressZero],
             ["0", "0", "0", "0", "0", "0"]
         )).to.emit(sponsorshipFactory, "NewSponsorship")
     })
 
     it("is ok to leave out policies with shorter arrays", async function(): Promise<void> {
-        const { sponsorshipFactory, allocationPolicy, leavePolicy, deployer, streamRegistry } = contracts
+        const { sponsorshipFactory, stakeWeightedAllocationPolicy, defaultLeavePolicy, deployer, streamRegistry } = contracts
         const streamId = await createStream(deployer.address, streamRegistry)
-        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address, leavePolicy.address], ["0", "0"]))
-            .to.emit(sponsorshipFactory, "NewSponsorship")
-        await expect(sponsorshipFactory.deploySponsorship(1, streamId, "{}", [allocationPolicy.address], ["0"]))
-            .to.emit(sponsorshipFactory, "NewSponsorship")
+        await expect(sponsorshipFactory.deploySponsorship(
+            1, streamId, "{}", [stakeWeightedAllocationPolicy.address, defaultLeavePolicy.address], ["0", "0"]
+        )).to.emit(sponsorshipFactory, "NewSponsorship")
+        await expect(sponsorshipFactory.deploySponsorship(
+            1, streamId, "{}", [stakeWeightedAllocationPolicy.address], ["0"]
+        )).to.emit(sponsorshipFactory, "NewSponsorship")
     })
 
     it("positivetest remove trusted policies", async function(): Promise<void> {
-        const { sponsorshipFactory, maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, allocationPolicy, leavePolicy } = contracts
+        const {
+            sponsorshipFactory,
+            maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, stakeWeightedAllocationPolicy, defaultLeavePolicy
+        } = contracts
         expect(await sponsorshipFactory.isTrustedPolicy(maxOperatorsJoinPolicy.address)).to.be.true
-        expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.true
-        expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.true
+        expect(await sponsorshipFactory.isTrustedPolicy(stakeWeightedAllocationPolicy.address)).to.be.true
+        expect(await sponsorshipFactory.isTrustedPolicy(defaultLeavePolicy.address)).to.be.true
         expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.true
         await (await sponsorshipFactory.removeTrustedPolicy(maxOperatorsJoinPolicy.address)).wait()
-        await (await sponsorshipFactory.removeTrustedPolicy(allocationPolicy.address)).wait()
-        await (await sponsorshipFactory.removeTrustedPolicy(leavePolicy.address)).wait()
+        await (await sponsorshipFactory.removeTrustedPolicy(stakeWeightedAllocationPolicy.address)).wait()
+        await (await sponsorshipFactory.removeTrustedPolicy(defaultLeavePolicy.address)).wait()
         await (await sponsorshipFactory.removeTrustedPolicy(operatorContractOnlyJoinPolicy.address)).wait()
         expect(await sponsorshipFactory.isTrustedPolicy(maxOperatorsJoinPolicy.address)).to.be.false
-        expect(await sponsorshipFactory.isTrustedPolicy(allocationPolicy.address)).to.be.false
-        expect(await sponsorshipFactory.isTrustedPolicy(leavePolicy.address)).to.be.false
+        expect(await sponsorshipFactory.isTrustedPolicy(stakeWeightedAllocationPolicy.address)).to.be.false
+        expect(await sponsorshipFactory.isTrustedPolicy(defaultLeavePolicy.address)).to.be.false
         expect(await sponsorshipFactory.isTrustedPolicy(operatorContractOnlyJoinPolicy.address)).to.be.false
     })
 
     describe("SponsorshipFactory access control", () => {
         it("non-admin can't add trusted policies", async function(): Promise<void> {
-            const { sponsorshipFactory, maxOperatorsJoinPolicy, allocationPolicy } = contracts
+            const { sponsorshipFactory, maxOperatorsJoinPolicy, stakeWeightedAllocationPolicy } = contracts
             await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicy(maxOperatorsJoinPolicy.address))
                 .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
-            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([maxOperatorsJoinPolicy.address, allocationPolicy.address]))
-                .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
+            await expect(sponsorshipFactory.connect(notAdmin).addTrustedPolicies([
+                maxOperatorsJoinPolicy.address, stakeWeightedAllocationPolicy.address
+            ])).to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${adminRole}`)
         })
 
         it("non-admin can't remove trusted policies", async function(): Promise<void> {

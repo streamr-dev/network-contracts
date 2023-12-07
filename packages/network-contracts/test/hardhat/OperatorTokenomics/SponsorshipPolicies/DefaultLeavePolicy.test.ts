@@ -8,10 +8,6 @@ import { deploySponsorshipWithoutFactory } from "../deploySponsorshipWithoutFact
 
 const { parseEther, formatEther } = utils
 
-// this disables the "Duplicate definition of Transfer" error message from ethers
-// @ts-expect-error should use LogLevel.ERROR
-utils.Logger.setLogLevel("ERROR")
-
 describe("DefaultLeavePolicy", (): void => {
     let admin: Wallet
     let operator: Wallet
@@ -60,7 +56,7 @@ describe("DefaultLeavePolicy", (): void => {
             .to.be.revertedWith("error_leavePenalty")
 
         // lose earlyLeaverPenaltyWei because leaving a "running" sponsorship too early
-        await (await sponsorship.connect(operator).forceUnstake()).wait()
+        await (await sponsorship.connect(operator).forceUnstake({ gasLimit: 1000000 })).wait()
         const tokensAfterLeaving = await token.balanceOf(operator.address)
 
         expect(tokensAfterStaking).to.equal(0)
@@ -98,7 +94,7 @@ describe("DefaultLeavePolicy", (): void => {
         expect(await sponsorship.isFunded())
 
         await advanceToTimestamp(timeAtStart + 200, "operator 1 tries to unstake too early, fails")
-        expect(sponsorship.connect(operator).unstake())
+        expect(sponsorship.connect(operator).unstake({ gasLimit: 1000000 }))
             .to.be.revertedWith("error_leavePenalty")
 
         // TODO: for some reason advanceToTimestamp goes to 300 when I set 299?! So next tx is at 301, which would be correct

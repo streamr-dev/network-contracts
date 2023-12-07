@@ -375,7 +375,7 @@ describe("VoteKickPolicy", (): void => {
         })
 
         it("FAILS to flag if modules are not set", async function(): Promise<void> {
-            const { streamrConfig, token, allocationPolicy } = sharedContracts
+            const { streamrConfig, token, stakeWeightedAllocationPolicy } = sharedContracts
             const sponsorship = await (await hardhatEthers.getContractFactory("Sponsorship", { signer: admin })).deploy()
             await sponsorship.deployed()
             await sponsorship.initialize(
@@ -388,7 +388,7 @@ describe("VoteKickPolicy", (): void => {
                     1,
                     parseEther("1").toString()
                 ],
-                allocationPolicy.address
+                stakeWeightedAllocationPolicy.address
             )
             await expect(sponsorship.flag(AddressZero, ""))
                 .to.be.revertedWithCustomError(sponsorship, "FlaggingNotSupported")
@@ -1017,7 +1017,9 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(voters[0], "ReviewRequest")
 
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
-            await Promise.all(voters.map(async (voter) => (await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK)).wait()))
+            await Promise.all(voters.map(async (voter) => (
+                await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK, { gasLimit: 1000000 })
+            ).wait()))
 
             expect(await sponsorship.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
 
@@ -1058,7 +1060,7 @@ describe("VoteKickPolicy", (): void => {
             await advanceToTimestamp(start + VOTE_START, "Targets vote NO_KICK")
             for (const target of targets) {
                 await Promise.all(targets.map(async (voter) => {
-                    const tx = await (voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).catch(() => null)
+                    const tx = await (voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK, { gasLimit: 1000000 })).catch(() => null)
                     if (tx) { return tx.wait() }
                 }))
             }
