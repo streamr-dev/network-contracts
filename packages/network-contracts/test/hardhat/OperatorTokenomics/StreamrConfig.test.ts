@@ -30,7 +30,7 @@ describe("StreamrConfig", (): void => {
             sharedContracts = await deployTestContracts(admin)
         })
 
-        async function deployOperator(deployer: Wallet, selfDelegationWei: BigNumber): Promise<Operator> {
+        async function newOperator(deployer: Wallet, selfDelegationWei: BigNumber): Promise<Operator> {
             const { token } = sharedContracts
             await (await token.mint(deployer.address, selfDelegationWei)).wait()
             const operator = await deployOperator(sharedContracts, deployer)
@@ -47,8 +47,8 @@ describe("StreamrConfig", (): void => {
             it("causes minimum-stakers to get kicked out without vote", async (): Promise<void> => {
                 const { token, streamrConfig } = sharedContracts
                 const minimumStakeWei = await streamrConfig.minimumStakeWei()
-                const flagger = await deployOperator(operatorWallet, parseEther("100000"))
-                const target = await deployOperator(operator2Wallet, minimumStakeWei)
+                const flagger = await newOperator(operatorWallet, parseEther("100000"))
+                const target = await newOperator(operator2Wallet, minimumStakeWei)
 
                 const sponsorship = await deploySponsorship(sharedContracts, { allocationWeiPerSecond: parseEther("0") })
                 await expect(token.transferAndCall(sponsorship.address, parseEther("1000"), "0x"))
