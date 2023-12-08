@@ -539,7 +539,7 @@ describe("Sponsorship contract", (): void => {
                 testAllocationPolicy.address,
             )
 
-            await expect(sponsorship.setLeavePolicy(contracts.leavePolicy.address, 14 * 24 * 60 * 60 + 1))
+            await expect(sponsorship.setLeavePolicy(contracts.defaultLeavePolicy.address, 14 * 24 * 60 * 60 + 1))
                 .to.be.revertedWith("error_penaltyPeriodTooLong")
         })
     })

@@ -1,8 +1,9 @@
-import type { Wallet } from "@ethersproject/wallet"
 
 // TODO: avoid hardhat direct dependency. Take deployFunc as argument maybe.
 // This whole file should ideally be mostly DRYed up with StreamrEnvDeployer.
 import { ethers as hardhatEthers, upgrades } from "hardhat"
+import Debug from "debug"
+import type { Wallet } from "@ethersproject/wallet"
 
 import type {
     TestToken,
@@ -12,8 +13,10 @@ import type {
 } from "../../../typechain"
 
 import type { StreamrContracts } from "../../../src/StreamrEnvDeployer"
+import { Contract } from "ethers"
 
 const { getContractFactory } = hardhatEthers
+const log = Debug("Streamr:deployTestContracts")
 
 // export type TestContracts = {
 //     token: TestToken;
@@ -153,7 +156,7 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
 
     await (await streamrConfig!.setStreamRegistryAddress(streamRegistry.address)).wait()
 
-    return {
+    const contracts: TestContracts = {
         token, DATA: token, streamrConfig, streamRegistry,
         sponsorshipTemplate, sponsorshipFactory,
         maxOperatorsJoinPolicy, operatorContractOnlyJoinPolicy, stakeWeightedAllocationPolicy,
@@ -174,4 +177,6 @@ export async function deployTestContracts(signer: Wallet): Promise<TestContracts
         ensCacheV2: token,
         streamStorageRegistry: token,
     }
+    log(JSON.stringify(Object.fromEntries(Object.entries(contracts).map(([name, contract]) => [ name, contract.address ])), null, 2))
+    return contracts
 }

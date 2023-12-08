@@ -1008,7 +1008,9 @@ describe("VoteKickPolicy", (): void => {
                 .to.emit(voters[0], "ReviewRequest")
 
             await advanceToTimestamp(start + VOTE_START, `${voters.map(addr).join(", ")} vote NO_KICK`)
-            await Promise.all(voters.map(async (voter) => (await voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK)).wait()))
+            await Promise.all(voters.map(async (voter) => (
+                await voter.voteOnFlag(sponsorship.address, target.address, VOTE_NO_KICK, { gasLimit: 1200000 })
+            ).wait()))
 
             expect((await sponsorship.getFlag(target.address)).flagData).to.equal("0") // flag is resolved
 
@@ -1018,13 +1020,16 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(voters.map(async (voter) => (
-                await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK, { gasLimit: 1000000 })
+                await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK, { gasLimit: 1200000 })
             ).wait()))
 
-            expect(await sponsorship.stakedWei(flagger.address)).to.equal("0") // flagger is kicked
+            // flagger is kicked, only one operator left
+            expect(await sponsorship.stakedWei(flagger.address)).to.equal("0")
+            expect(await sponsorship.totalStakedWei()).to.equal(await sponsorship.stakedWei(target.address))
 
             await advanceToTimestamp(start2 + VOTE_START + 1000, "Everyone unstakes")
             await expect(target.unstake(sponsorship.address))
+                .to.emit(sponsorship, "OperatorLeft").withArgs(target.address, parseEther("10000"))
             expect(await sponsorship.totalStakedWei()).to.equal("0")
 
             // reviewers got paid for 2 reviews
@@ -1076,8 +1081,9 @@ describe("VoteKickPolicy", (): void => {
 
             await advanceToTimestamp(start2 + VOTE_START, `Voters vote to KICK ${addr(flagger)}`)
             await Promise.all(targets.slice(1).map(async (voter) => {
-                const tx = await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK).catch(() => null)
-                if (tx) { return tx.wait() }
+                await voter.voteOnFlag(sponsorship.address, flagger.address, VOTE_KICK, { gasLimit: 1000000 })
+                    .then((tx) => tx.wait())
+                    .catch(() => null)
             }))
 
             expect(formatEther(await sponsorship.stakedWei(flagger.address))).to.equal("0.0") // flagger is kicked
