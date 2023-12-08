@@ -1,4 +1,3 @@
-
 // TODO: avoid hardhat direct dependency. Take deployFunc as argument maybe.
 // This whole file should ideally be mostly DRYed up with StreamrEnvDeployer.
 import { ethers as hardhatEthers, upgrades } from "hardhat"
@@ -13,7 +12,6 @@ import type {
 } from "../../../typechain"
 
 import type { StreamrContracts } from "../../../src/StreamrEnvDeployer"
-import { Contract } from "ethers"
 
 const { getContractFactory } = hardhatEthers
 const log = Debug("Streamr:deployTestContracts")
