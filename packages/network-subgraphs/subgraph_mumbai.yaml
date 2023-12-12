@@ -199,6 +199,8 @@ dataSources:
       abis:
         - name: SponsorshipFactory
           file: ./abis/SponsorshipFactory.json
+        - name: Sponsorship
+          file: ./abis/Sponsorship.json
       eventHandlers:
         - event: NewSponsorship(indexed address,string,string,address[],uint256[],indexed address)
           handler: handleNewSponsorship
