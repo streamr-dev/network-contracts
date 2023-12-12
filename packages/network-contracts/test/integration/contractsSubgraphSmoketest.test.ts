@@ -27,7 +27,8 @@ describe("docker image integration test", () => {
         {
             sponsorships {
                 id,
-                maxOperators
+                maxOperators,
+                minOperators
             }
             sponsorshipDailyBuckets {
                 id
@@ -66,6 +67,7 @@ describe("docker image integration test", () => {
         }
         `})
         expect(resultDynamicIds.sponsorships.length).to.equal(1)
+        expect(resultDynamicIds.sponsorships[0].minOperators).to.equal(1)
         expect(resultDynamicIds.sponsorships[0].maxOperators).to.equal(3)
         expect(resultDynamicIds.sponsorshipDailyBuckets.length).to.equal(1)
         expect(resultDynamicIds.sponsoringEvents.length).to.equal(1)

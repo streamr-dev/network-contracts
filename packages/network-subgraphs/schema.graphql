@@ -439,6 +439,9 @@ type Sponsorship @entity {
   "how many stakers are accepted (if MaxOperatorsJoinPolicy is used)"
   maxOperators: Int
 
+  "how many stakers are required so that Sponsorship isRunning(), i.e. starts paying"
+  minOperators: Int
+
 
   ## Sponsorship state: live / updated after relevant transactions
 
