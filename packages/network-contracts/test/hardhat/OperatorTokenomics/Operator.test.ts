@@ -90,6 +90,7 @@ describe("Operator contract", (): void => {
 
         await (await sharedContracts.streamrConfig.setMinimumSelfDelegationFraction("0")).wait()
         await (await sharedContracts.streamrConfig.setProtocolFeeBeneficiary(protocolFeeBeneficiary.address)).wait()
+        await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("0")).wait()
 
         defaultOperator = (await deployOperator(operatorWallet)).operator
         defaultSponsorship = await deploySponsorship(sharedContracts)
@@ -700,6 +701,30 @@ describe("Operator contract", (): void => {
             await expect(operator.unstake(sponsorship.address)).to.emit(operator, "Unstaked").withArgs(sponsorship.address)
             await expect(operator.undelegate(parseEther("1000000")))
                 .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("10000"))
+        })
+
+        it("prevents too fast undelegation", async function(): Promise<void> {
+            // TODO: fix tests to tolerate undelegation limit, then remove this
+            await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("2000")).wait()
+            const timeAtStart = await getBlockTimestamp()
+
+            await advanceToTimestamp(timeAtStart, "Deploy and delegate")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
+
+            await advanceToTimestamp(timeAtStart + 1000, "Try to undelegate")
+            await expect(operator.undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.connect(delegator).undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
+
+            await advanceToTimestamp(timeAtStart + 3000, "Try to undelegate")
+            await expect(operator.connect(delegator).undelegate(parseEther("500")))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"))
+            await expect(operator.undelegate(parseEther("500")))
+                .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
+
+            // TODO: fix tests to tolerate undelegation limit, then remove this
+            await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("0")).wait()
         })
     })
 

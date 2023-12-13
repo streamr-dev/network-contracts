@@ -53,6 +53,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     /** Prevent "sand delegations" that could mess with rounding errors */
     uint public minimumDelegationWei;
 
+    /** Prevent "skimming the earnings" by delegating, withdrawing and instantly undelegating */
+    uint public minimumDelegationSeconds;
+
     /**
      * The time the operator is given for paying out the undelegation queue.
      * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
@@ -172,6 +175,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // Prevent "sand delegations", set minimum delegation to 1 full operator token (1e18)
         setMinimumDelegationWei(1 ether);
+        setMinimumDelegationSeconds(1 days);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
@@ -218,6 +222,11 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(CONFIGURATOR_ROLE) {
         minimumDelegationWei = newMinimumDelegationWei;
         emit ConfigChanged("minimumDelegationWei", newMinimumDelegationWei, address(0));
+    }
+
+    function setMinimumDelegationSeconds(uint newMinimumDelegationSeconds) public onlyRole(CONFIGURATOR_ROLE) {
+        minimumDelegationSeconds = newMinimumDelegationSeconds;
+        emit ConfigChanged("minimumDelegationSeconds", newMinimumDelegationSeconds, address(0));
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(CONFIGURATOR_ROLE) {

@@ -27,17 +27,23 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
      * @dev   Minimum delegation is handled when paying out the queue, and checked separately on _transfer.
      **/
     function onUndelegate(address delegator, uint amountDataWei) external {
-        // limitation only applies to the operator, others can always undelegate
-        if (delegator != owner) { return; }
 
-        // if all has been unstaked, no slashing can be coming that requires self-stake => allow self-undelegation ("rapid shutdown")
-        // otherwise the operator would have to wait for all delegators to undelegate first
-        if (totalStakedIntoSponsorshipsWei == 0) { return; }
+        require(
+            block.timestamp > latestDelegationTimestamp[delegator] + streamrConfig.minimumDelegationSeconds(),
+            "error_undelegateTooSoon"
+        );
 
-        uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
-        uint actualAmount = min(amountOperatorTokens, balanceOf(owner));
-        uint balanceAfter = balanceOf(owner) - actualAmount;
-        uint totalSupplyAfter = totalSupply() - actualAmount;
-        require(1 ether * balanceAfter >= totalSupplyAfter * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+        // self-delegation limitations only apply to the operator
+        if (delegator == owner) {
+            // if all has been unstaked, no slashing can be coming that requires self-stake => allow self-undelegation ("rapid shutdown")
+            // otherwise the operator would have to wait for all delegators to undelegate first
+            if (totalStakedIntoSponsorshipsWei == 0) { return; }
+
+            uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
+            uint actualAmount = min(amountOperatorTokens, balanceOf(owner));
+            uint balanceAfter = balanceOf(owner) - actualAmount;
+            uint totalSupplyAfter = totalSupply() - actualAmount;
+            require(1 ether * balanceAfter >= totalSupplyAfter * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+        }
     }
 }
