@@ -1,26 +1,36 @@
 # Subgraph definitions for streamr network
 
-## Start containers
-Everything is already included in the streamr-docker-dev environment
-Run `streamr-docker-dev start deploy-network-subgraphs`
+Everything is already included in the streamr-docker-dev environment:
+* Run `streamr-docker-dev start deploy-network-subgraphs`
+* Test queries at http://127.0.0.1:8000/subgraphs/name/streamr-dev/network-subgraphs/graphql
+* It's generally best to build the queries using the browser UI.
 
-## Build & publish the image
+# Deployments
 
+## Dev-docker deployment: Build & publish the image
 The container and thus image that initially compiles and pushes the subgraph to the graph node
 can be recreated with the Dockerfile. To do so:
-- build image: `docker:buildLocalArch`
-- publish image: `docker:buildAndPushMultiArch`
+- build image for local testing first: `docker:buildLocalArch`
+- build & publish image: `docker:buildAndPushMultiArch`
 
-## Prod deployment to the hosted service
-Follow the steps below (build it then set token, then deploy). The token can be found on the theGraph dashboard https://thegraph.com/hosted-service/dashboard?account=streamr-dev
-Log in with your github user, then set the user to the streamr-dev user in the dashboard, not your github user!
-```
-cd packages/network-subgraphs
-npm i
-npm run build
-npx graph auth --product hosted-service <TOKEN>
-npm run deploy-production
-```
+## Mainnet deployment to the Arbitrum / decentralized service (indexing Polygon MATIC)
+1. Authenticate: Log into `https://thegraph.com/studio/subgraph/streamr/` using "Streamr subgraph owner" key from 1password. On the right hand side, look for "Auth & Deploy" and "Authenticate in CLI". Copy the command and run it in the terminal: `npx graph auth --studio DEPLOY_KEY`
+1. `cp subgraph_matic.yaml subgraph.yaml`
+1. `npm run build`
+1. `graph deploy --studio streamr`
+    * check version number from browser UI, bump it when asked
+1. Follow progress and look at https://thegraph.com/studio/subgraph/streamr/logs for errors
+
+## Testnet deployment to the hosted service (indexing Polygon Mumbai)
+1. Authenticate: Copy token from "The Graph (Streamr admin)" in 1password: `npx graph auth --product hosted-service KEY`
+1. `cp subgraph_mumbai.yaml subgraph.yaml`
+1. `npm run build`
+1. `npx graph deploy --product hosted-service streamr-dev/network`
+1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?selected=logs for errors
+``
+
+# Developer notes
+
 ## Setup locally without the streamr-docker-dev environment
 
 first run a local eth blockchain (ganache, ganache-cli, harhat, ...) and deploy the contracts into that blockchain. You should also be abple to interact with the contract, for example with the REMIX IDE
@@ -39,12 +49,6 @@ npm run build
 npm run create-local
 npm run deploy-local
 
-(attention: create and deploy without '-local' will publish to the official The Graph API. And you can't ever delete a subgraph; )
-
-You can test and build GraphQL queries at http://127.0.0.1:8000/subgraphs/name/streamr-dev/network-subgraphs/graphql
-
-It's generally best to build the queries using the browser UI.
-
 Streams example query:
 ```
 {
@@ -60,7 +64,7 @@ Streams example query:
       id
     }
   }
-}
+}``
 ```
 
 Projects example query:
