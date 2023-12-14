@@ -15,8 +15,6 @@
     "create-local": "graph create streamr-dev/network-subgraphs --node http://localhost:8820",
     "deploy-local": "graph deploy streamr-dev/network-subgraphs --version-label v0.0.1 --ipfs http://localhost:5001 --node http://localhost:8820",
     "redeploy-local": "npm run clean && npm run build && npm run create-local && npm run deploy-local",
-    "create-production": "graph create streamr-dev/network-subgraphs subgraph_matic.yaml --node https://api.thegraph.com/deploy/",
-    "deploy-production": "graph deploy streamr-dev/network-subgraphs subgraph_matic.yaml --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
     "test": "cd ../../ && graph test -d --version 0.5.4",
     "coverage": "cd ../../ && graph test -d -- -c"
   },
