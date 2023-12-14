@@ -362,7 +362,7 @@ export const config = {
             "DataUnionFactory": "0xc7e4042f801A86538c48761bEfCb05b846ab756C",
             "DataUnionTemplate": "0x8d3dc2a15283C0af16895aD27253B9e1A777E789"
         },
-        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs",
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
         "entryPoints": [
             {
                 "nodeId": "e1",
