@@ -726,6 +726,40 @@ describe("Operator contract", (): void => {
             // TODO: fix tests to tolerate undelegation limit, then remove this
             await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("0")).wait()
         })
+
+        // this could be used to circumvent minimumDelegationSeconds: transfer to another account and undelegate from there
+        it("prevents too fast transfer away", async function(): Promise<void> {
+            // TODO: fix tests to tolerate undelegation limit, then remove this
+            await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("2000")).wait()
+            const timeAtStart = await getBlockTimestamp()
+            const delegationAmount = parseEther("1000")
+            const amount = parseEther("500")
+            const totalSupply = parseEther("2000")
+
+            await advanceToTimestamp(timeAtStart, "Deploy and delegate")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, delegationAmount, "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, delegationAmount, "0x")).wait()
+
+            await advanceToTimestamp(timeAtStart + 1000, "Try to transfer")
+            await expect(operator.transfer(operatorWallet.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.connect(delegator).transfer(operatorWallet.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.connect(delegator).transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            await expect(operator.connect(delegator).transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+
+            await advanceToTimestamp(timeAtStart + 3000, "Try to undelegate")
+            await expect(operator.connect(delegator).transfer(delegator2.address, amount))
+                .to.emit(operator, "BalanceUpdate").withArgs(delegator.address, amount, totalSupply, totalSupply)
+                .to.emit(operator, "BalanceUpdate").withArgs(delegator2.address, amount, totalSupply, totalSupply)
+            await expect(operator.transfer(delegator2.address, amount))
+                .to.emit(operator, "BalanceUpdate").withArgs(delegator2.address, delegationAmount, totalSupply, totalSupply)
+                .to.emit(operator, "BalanceUpdate").withArgs(operatorWallet.address, amount, totalSupply, totalSupply)
+
+            // TODO: fix tests to tolerate undelegation limit, then remove this
+            await (await sharedContracts.streamrConfig.setMinimumDelegationSeconds("0")).wait()
+        })
     })
 
     describe("Stake management", (): void => {
