@@ -365,18 +365,18 @@ export const config = {
         "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
         "entryPoints": [
             {
-                "nodeId": "e1",
+                "nodeId": "d48787fc36eaed43770ec84947ef8155",
                 "websocket": {
-                    "host": "entrypoint-1.streamr.network",
-                    "port": 40401,
+                    "host": "mumbai-entrypoint-1.streamr.network",
+                    "port": 40402,
                     "tls": true
                 }
             },
             {
-                "nodeId": "e2",
+                "nodeId": "24395826687b099fd735a730219ba750",
                 "websocket": {
-                    "host": "entrypoint-2.streamr.network",
-                    "port": 40401,
+                    "host": "mumbai-entrypoint-2.streamr.network",
+                    "port": 40402,
                     "tls": true
                 }
             }
