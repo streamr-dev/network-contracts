@@ -717,7 +717,7 @@ describe("Operator contract", (): void => {
             await expect(operator.undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
 
-            await advanceToTimestamp(timeAtStart + 3000, "Try to undelegate")
+            await advanceToTimestamp(timeAtStart + 3000, "Try again to undelegate")
             await expect(operator.connect(delegator).undelegate(parseEther("500")))
                 .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"))
             await expect(operator.undelegate(parseEther("500")))
@@ -749,7 +749,7 @@ describe("Operator contract", (): void => {
             await expect(operator.connect(delegator).transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
 
-            await advanceToTimestamp(timeAtStart + 3000, "Try to undelegate")
+            await advanceToTimestamp(timeAtStart + 3000, "Try again to transfer")
             await expect(operator.connect(delegator).transfer(delegator2.address, amount))
                 .to.emit(operator, "BalanceUpdate").withArgs(delegator.address, amount, totalSupply, totalSupply)
                 .to.emit(operator, "BalanceUpdate").withArgs(delegator2.address, amount, totalSupply, totalSupply)
