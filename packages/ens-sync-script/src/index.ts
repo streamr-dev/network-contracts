@@ -131,7 +131,7 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
         const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
         if(ENVIRONMENT === 'prod') {
             log("getting gasprice from polygonscan")
-            const pscanAnswer = await fetch('https://gasstation-mainnet.matic.network/v2')
+            const pscanAnswer = await fetch('https://gasstation.polygon.technology/v2')
             const pscanJson: any = await pscanAnswer.json()
 
             const maxFee = Math.floor(pscanJson.fast.maxFee)
