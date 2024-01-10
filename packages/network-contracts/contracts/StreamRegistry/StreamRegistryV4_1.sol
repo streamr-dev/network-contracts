@@ -1,5 +1,8 @@
 /**
- * Deployed on polygon on 2022-09-08
+ * Polygon deployment tx hash: TODO
+ *
+ * Changes in V4_1:
+ * - bugfix: setExpirationTime emits PermissionUpdated correctly
  */
 
 // SPDX-License-Identifier: MIT
@@ -12,7 +15,7 @@ import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
-contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract StreamRegistryV4_1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
     uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -45,8 +48,11 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         _;
     }
     modifier hasSharePermissionOrIsRemovingOwn(string calldata streamId, address user) {
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canGrant ||
-            _msgSender() == user, "error_noSharePermission"); //||
+        require(
+            streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canGrant
+            || _msgSender() == user,
+            "error_noSharePermission"
+        );
         _;
     }
     modifier hasDeletePermission(string calldata streamId) {
@@ -77,8 +83,7 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function _authorizeUpgrade(address) internal override isTrusted() {}
 
-
-     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
@@ -179,6 +184,10 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         emit StreamDeleted(streamId);
     }
 
+    /**
+     * Get user's permissions to stream.
+     * For publish/subscribe expiration, if public permission has a longer validity, use that.
+     **/
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
         Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
@@ -233,17 +242,13 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
         if (permissionType == PermissionType.Edit) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canEdit;
-        }
-        else if (permissionType == PermissionType.Delete) {
+        } else if (permissionType == PermissionType.Delete) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete;
-        }
-        else if (permissionType == PermissionType.Publish) {
+        } else if (permissionType == PermissionType.Publish) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration >= block.timestamp;
-        }
-        else if (permissionType == PermissionType.Subscribe) {
+        } else if (permissionType == PermissionType.Subscribe) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration >= block.timestamp;
-        }
-        else if (permissionType == PermissionType.Grant) {
+        } else if (permissionType == PermissionType.Grant) {
             return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canGrant;
         }
     }
@@ -284,17 +289,13 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             "error_publicCanOnlySubsPubl");
         if (permissionType == PermissionType.Edit) {
            streamIdToPermissions[streamId][getAddressKey(streamId, user)].canEdit = grant;
-        }
-        else if (permissionType == PermissionType.Delete) {
+        } else if (permissionType == PermissionType.Delete) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete = grant;
-        }
-        else if (permissionType == PermissionType.Publish) {
+        } else if (permissionType == PermissionType.Publish) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration = grant ? MAX_INT : 0;
-        }
-        else if (permissionType == PermissionType.Subscribe) {
+        } else if (permissionType == PermissionType.Subscribe) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration = grant ? MAX_INT : 0;
-        }
-        else if (permissionType == PermissionType.Grant) {
+        } else if (permissionType == PermissionType.Grant) {
             streamIdToPermissions[streamId][getAddressKey(streamId, user)].canGrant = grant;
         }
         Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
@@ -310,11 +311,14 @@ contract StreamRegistryV4 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function setExpirationTime(string calldata streamId, address user, PermissionType permissionType, uint256 expirationTime) public hasGrantPermission(streamId) {
         require(permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_timeOnlyObPubSub");
+        Permission storage perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        Permission memory p = perm;
         if (permissionType == PermissionType.Publish) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration = expirationTime;
-        }
-        else if (permissionType == PermissionType.Subscribe) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration = expirationTime;
+            perm.publishExpiration = expirationTime;
+            emit PermissionUpdated(streamId, user, p.canEdit, p.canDelete, expirationTime, p.subscribeExpiration, p.canGrant);
+        } else if (permissionType == PermissionType.Subscribe) {
+            perm.subscribeExpiration = expirationTime;
+            emit PermissionUpdated(streamId, user, p.canEdit, p.canDelete, p.publishExpiration, expirationTime, p.canGrant);
         }
     }
 
