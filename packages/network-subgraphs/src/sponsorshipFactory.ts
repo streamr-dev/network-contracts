@@ -1,19 +1,21 @@
 import { BigDecimal, BigInt, log } from '@graphprotocol/graph-ts'
 
+import { Sponsorship as SponsorshipContract } from '../generated/templates/Sponsorship/Sponsorship'
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
 import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
-    let sponsorshipContractAddress = event.params.sponsorshipContract.toHexString()
-    let creator = event.params.creator.toHexString()
+    const sponsorshipContractAddress = event.params.sponsorshipContract
+    const sponsorshipContractAddressString = sponsorshipContractAddress.toHexString()
+    const creator = event.params.creator.toHexString()
     log.info('handleNewSponsorship: blockNumber={} sponsorshipContract={} policies=[{}] policyParams={} creator={}',
-        [event.block.number.toString(), sponsorshipContractAddress,
+        [event.block.number.toString(), sponsorshipContractAddressString,
             event.params.policies.map<string>((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
     )
 
-    let sponsorship = new Sponsorship(sponsorshipContractAddress)
+    const sponsorship = new Sponsorship(sponsorshipContractAddressString)
     sponsorship.totalStakedWei = BigInt.zero()
     sponsorship.remainingWei = BigInt.zero()
     sponsorship.spotAPY = BigDecimal.zero()
@@ -26,6 +28,9 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.creator = creator
     sponsorship.cumulativeSponsoring = BigInt.zero()
 
+    // TODO: once it's possible to add minOperatorCount to NewSponsorship event, get rid of this smart contract call
+    sponsorship.minOperators = SponsorshipContract.bind(sponsorshipContractAddress).minOperatorCount().toI32()
+
     // The standard ordering is: allocation, leave, kick, join policies
     // "Operator-only join policy" is always set, so we check if we have 5 policies,
     //   and in that case we assume the 4th policy is the "max-operators join policy"
@@ -35,7 +40,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.save()
 
     // try to load stream entity
-    let stream = Stream.load(event.params.streamId.toString())
+    const stream = Stream.load(event.params.streamId.toString())
     if (stream != null) {
         sponsorship.stream = stream.id
         sponsorship.save()
@@ -44,7 +49,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // start listening to events from the newly created Sponsorship contract
     SponsorshipTemplate.create(event.params.sponsorshipContract)
 
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddress, event.block.timestamp)
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipContractAddressString, event.block.timestamp)
     bucket.save()
 
     const network = loadOrCreateNetwork()
