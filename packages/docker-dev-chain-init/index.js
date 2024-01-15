@@ -281,7 +281,8 @@ async function deployStreamRegistries() {
     initialNodes = []
     initialMetadata = []
     initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
+    // the "http" is a legacy definition, used only in Brubeck (NET-1251)
+    initialMetadata.push('{"urls":["http://10.200.10.1:8891"],"http":"http://10.200.10.1:8891"}')
     const strDeploy = await ethers.getContractFactory("NodeRegistry", sidechainWalletStreamReg)
     // const strDeploy = await ethers.getContractFactory('NodeRegistry')
     const strDeployTx = await upgrades.deployProxy(strDeploy,
@@ -702,8 +703,6 @@ async function smartContractInitialization() {
     log(`Deploying OLD UNUSED NodeRegistry contract 2 (storage node registry) to sidechain from ${sidechainWallet.address}`)
     initialNodes = []
     initialMetadata = []
-    initialNodes.push('0xde1112f631486CfC759A50196853011528bC5FA0')
-    initialMetadata.push('{"http": "http://10.200.10.1:8891"}')
     await deployNodeRegistry(sidechainWallet, initialNodes, initialMetadata)
 
     log(`deploy Uniswap2 mainnet`)
