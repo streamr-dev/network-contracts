@@ -34,6 +34,7 @@ contract StreamrPreferences is Initializable, UUPSUpgradeable, ERC2771ContextUpg
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _setupRole(ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
     }
 
     function isTrustedForwarder(address forwarder) public view override(ERC2771ContextUpgradeable) returns (bool) {
