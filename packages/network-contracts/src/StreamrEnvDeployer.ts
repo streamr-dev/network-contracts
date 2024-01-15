@@ -222,7 +222,8 @@ export class StreamrEnvDeployer {
         const initialStorageNodes = []
         const initialStorageMetadata = []
         initialStorageNodes.push("0xde1112f631486CfC759A50196853011528bC5FA0")
-        initialStorageMetadata.push("{\"http\": \"http://10.200.10.1:8891\"}")
+        // the "http" is a legacy definition, used only in Brubeck (NET-1251)
+        initialStorageMetadata.push('{"urls":["http://10.200.10.1:8891"],"http":"http://10.200.10.1:8891"}')
         const nodeRegistry = await nodeRegistryFactory.deploy() as NodeRegistry
         await nodeRegistry.deployed()
         await (await nodeRegistry.initialize(this.adminWallet.address, false, initialStorageNodes, initialStorageMetadata)).wait()
