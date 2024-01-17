@@ -70,7 +70,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             streamregistryFactoryV3)
         await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
         //also upgrade the registry to V4
-        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4", wallets[0])
+        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4_1", wallets[0])
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address,
             streamregistryFactoryV4)
         await registryV2FromAdmin.revokeRole(await registryV2FromAdmin.TRUSTED_ROLE(), wallets[0].address)
@@ -854,12 +854,13 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     it("positivetest setExpirationTime", async (): Promise<void> => {
-        await registryFromAdmin.setPermissionsForUser(streamId1, user0Address,
-            true, true, MAX_INT, MAX_INT, true)
-        await registryFromAdmin.setExpirationTime(streamId1, user0Address, PermissionType.Publish, 7)
+        await registryFromAdmin.setPermissionsForUser(streamId1, user0Address, true, true, MAX_INT, MAX_INT, true)
+        await expect(registryFromAdmin.setExpirationTime(streamId1, user0Address, PermissionType.Publish, 7))
+            .to.emit(registry, "PermissionUpdated").withArgs(streamId1, user0Address, true, true, 7, MAX_INT, true)
         expect((await registry.getPermissionsForUser(streamId1, user0Address)).toString())
             .to.equal([true, true, BigNumber.from(7), BigNumber.from(MAX_INT), true].toString())
-        await registryFromAdmin.setExpirationTime(streamId1, user0Address, PermissionType.Subscribe, 7)
+        await expect(registryFromAdmin.setExpirationTime(streamId1, user0Address, PermissionType.Subscribe, 7))
+            .to.emit(registry, "PermissionUpdated").withArgs(streamId1, user0Address, true, true, 7, 7, true)
         expect((await registry.getPermissionsForUser(streamId1, user0Address)).toString())
             .to.equal([true, true, BigNumber.from(7), BigNumber.from(7), true].toString())
     })
