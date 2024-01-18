@@ -74,10 +74,15 @@ export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomic
 
 export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+export type { ENS } from "../typechain/@ensdomains/ens-contracts/contracts/registry/ENS"
+
 export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
     from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+export type { FIFSRegistrar } from "../typechain/@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar"
+
 export { abi as publicResolverABI, bytecode as publicResolverBytecode }
     from "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json"
+export type { Resolver } from "../typechain/@ensdomains/ens-contracts/contracts/resolvers/Resolver"
 
 export { abi as nodeModuleABI, bytecode as nodeModuleBytecode }
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/NodeModule.sol/NodeModule.json"
