@@ -53,6 +53,7 @@ npm run localUpgradeImpl
 
 # Changelog
 
+7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
 
 
