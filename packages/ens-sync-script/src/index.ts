@@ -1,74 +1,77 @@
 /* eslint-disable no-console */
-import { Contract } from "@ethersproject/contracts"
-import { JsonRpcProvider, Provider } from "@ethersproject/providers"
-import { parseUnits } from "@ethersproject/units"
-import { Wallet } from "@ethersproject/wallet"
-import { config } from "@streamr/config"
-import { createRequire } from "module"
-import fetch from "node-fetch"
 import fs from "fs"
 
-// TODO: use import?
-const require = createRequire(import.meta.url)
-const streamRegistryAbi = require("../../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json").abi
-const namehash = require('eth-ens-namehash')
-const ensCacheAbi = require("../../network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json").abi
-const ensAbi = require('@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json').abi
+import { Contract } from "@ethersproject/contracts"
+import { JsonRpcProvider } from "@ethersproject/providers"
+import { Wallet } from "@ethersproject/wallet"
+
+import * as namehash from "eth-ens-namehash"
+
+import { config } from "@streamr/config"
+import { streamRegistryABI, ensRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
+import type { ENS, StreamRegistry, ENSCacheV2 } from "@streamr/network-contracts"
+
+// import debug from "debug"
+// const log = debug("log:streamr:ens-sync-script")
+const { log } = console
 
 const {
-    DELAY = "",
-    ENVIRONMENT = "",
-    RPC_URL = "",
-    RPC_URL_MAINNET = "",
-    PRIVATE_KEY = "",
+    KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
+    DELAY = "0",
+    GAS_PRICE_MULTIPLIER,
+
+    // Easy setting: read addresses and URLs from @streamr/config
+    ENS_CHAIN = "dev2",
+    REGISTRY_CHAIN = "dev2",
+
+    // Individual overrides
+    ENS_RPC_URL,
+    REGISTRY_RPC_URL,
+    ENS_ADDRESS,
+    REGISTRY_ADDRESS,
+    ENS_CACHE_ADDRESS,
 } = process.env
-let {
-    ENSCacheV2Address = ""
-} = process.env
+
+if (isNaN(parseFloat(GAS_PRICE_MULTIPLIER || "1.0"))) {
+    throw new Error(`GAS_PRICE_MULTIPLIER="${GAS_PRICE_MULTIPLIER}" is not a valid number! Try e.g. "1.5"`)
+}
+
+const ensChainRpc = ENS_RPC_URL ?? (config as any)[ENS_CHAIN]?.rpcEndpoints?.[0]?.url
+if (!ensChainRpc) { throw new Error(`Either ENS_CHAIN or ENS_RPC_URL must be set in environment`) }
+const ensChainProvider = new JsonRpcProvider(ensChainRpc)
+
+const registryChainRpc = REGISTRY_RPC_URL ?? (config as any)[REGISTRY_CHAIN]?.rpcEndpoints?.[0]?.url
+if (!registryChainRpc) { throw new Error(`Either REGISTRY_CHAIN or REGISTRY_RPC_URL must be set in environment`) }
+const registryChainProvider = new JsonRpcProvider(registryChainRpc)
+const registryChainWallet = new Wallet(KEY, registryChainProvider)
+log("Wallet address used by script: ", registryChainWallet.address)
+
+const ensAddress = ENS_ADDRESS ?? (config as any)[ENS_CHAIN]?.contracts?.ENS
+if (!ensAddress) { throw new Error(`Either ENS_CHAIN or ENS_ADDRESS must be set in environment`) }
+const ensContract = new Contract(ensAddress, ensRegistryABI, ensChainProvider) as ENS
+
+const registryAddress = REGISTRY_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.StreamRegistry
+if (!registryAddress) { throw new Error(`Either REGISTRY_CHAIN or REGISTRY_ADDRESS must be set in environment`) }
+const streamRegistryContract = new Contract(registryAddress, streamRegistryABI, registryChainProvider) as StreamRegistry
+
+const ensCacheAddress = ENS_CACHE_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.ENSCacheV2
+if (!ensCacheAddress) { throw new Error(`Either REGISTRY_CHAIN or ENS_CACHE_ADDRESS must be set in environment`) }
+const ensCacheContract = new Contract(ensCacheAddress, ENSCacheV2ABI, registryChainWallet) as ENSCacheV2
+
 const delay = (parseInt(DELAY) || 0) * 1000
-const log = require("debug")("log:streamr:ens-sync-script")
-log.log = console.log.bind(console)
-log.error = console.error.bind(console)
-let streamRegistryContract: Contract
-let privateKey: string
-let ensCacheContract: Contract
-let ensContract: Contract
-let mainnetProvider: Provider
-let sidechainProvider: Provider
+if (delay > 0) { log(`Starting with answer delay ${delay} milliseconds`) }
+
 let mutex = Promise.resolve(true)
-let domainOwnerSidechain: Wallet
 
+const AddressZero = "0x0000000000000000000000000000000000000000"
+const Bytes32Zero = "0x0000000000000000000000000000000000000000000000000000000000000000"
 async function main() {
+    log("Checking the network setup: %o", await ensChainProvider.getNetwork())
+    log("ENS contract at: %s (deployer %s)", ensContract.address, await ensContract.owner(Bytes32Zero))
+    log("StreamRegistry contract at: %s (%s)", streamRegistryContract.address, await streamRegistryContract.TRUSTED_ROLE())
+    log("ENSCacheV2 contract at: %s (%s)", ensCacheContract.address, await ensCacheContract.owners(AddressZero))
 
-    if (delay) {
-        log(`starting with answer delay ${delay} milliseconds`)
-    }
-
-    let mainnetConfig
-    let sidechainConfig
-    if (ENVIRONMENT === 'prod') {
-        mainnetConfig = config.ethereum
-        sidechainConfig = config.polygon
-        mainnetProvider = new JsonRpcProvider(RPC_URL_MAINNET)
-        sidechainProvider = new JsonRpcProvider(RPC_URL)
-        privateKey = PRIVATE_KEY
-    } else {
-        mainnetConfig = config.dev2
-        sidechainConfig = config.dev2
-        mainnetProvider = new JsonRpcProvider(mainnetConfig.rpcEndpoints[0].url)
-        sidechainProvider = new JsonRpcProvider(sidechainConfig.rpcEndpoints[0].url)
-        privateKey = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
-        ENSCacheV2Address = sidechainConfig.contracts.ENSCacheV2
-    }
-
-    const ensAddress = mainnetConfig.contracts.ENS
-
-    streamRegistryContract = new Contract(sidechainConfig.contracts.StreamRegistry, streamRegistryAbi, sidechainProvider)
-    domainOwnerSidechain = new Wallet(privateKey, sidechainProvider)
-    log("wallet address: ", domainOwnerSidechain.address)
-    ensCacheContract = new Contract(ENSCacheV2Address, ensCacheAbi, domainOwnerSidechain) // TODO
-    ensContract = new Contract(ensAddress, ensAbi, mainnetProvider)
-    log("starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
+    log("Starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
         log("Got RequestENSOwnerAndCreateStream event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
         if (delay) {
@@ -90,7 +93,7 @@ async function main() {
 
     // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
     setTimeout(() => {
-        log("sending initial heartbeat")
+        log("Sending initial heartbeat")
         fs.writeFileSync("heartbeat", "")
     }, 5 * 1000)
     // thereafter send heartbeat every 2 minutes
@@ -101,8 +104,9 @@ async function main() {
 }
 
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
-    log("handling event params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
+    log("handleEvent params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     const ensHashedName = namehash.hash(ensName)
+    log("Hashed name: ", ensHashedName)
     const owner = await ensContract.owner(ensHashedName)
     log("ENS owner queried from mainnet: ", owner)
 
@@ -129,18 +133,18 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
         const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
-        if(ENVIRONMENT === 'prod') {
-            log("getting gasprice from polygonscan")
-            const pscanAnswer = await fetch('https://gasstation.polygon.technology/v2')
-            const pscanJson: any = await pscanAnswer.json()
 
-            const maxFee = Math.floor(pscanJson.fast.maxFee)
-            const maxPriorityFee = Math.floor(pscanJson.fast.maxPriorityFee)
-            log("result: maxFee: ", maxFee, "maxPriorityFee: ", maxPriorityFee)
-            tx.maxFeePerGas = parseUnits(maxFee.toString(), "gwei").mul(2)
-            tx.maxPriorityFeePerGas = parseUnits(maxPriorityFee.toString(), "gwei")
+        if (GAS_PRICE_MULTIPLIER) {
+            const recommended = await registryChainProvider.getFeeData()
+            const multiplier = parseFloat(GAS_PRICE_MULTIPLIER)
+            if (recommended.maxFeePerGas && recommended.maxPriorityFeePerGas) {
+                tx.maxFeePerGas = recommended.maxFeePerGas.mul(multiplier)
+                tx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(multiplier)
+            } else if (recommended.gasPrice) {
+                tx.gasPrice = recommended.gasPrice.mul(multiplier)
+            }
         }
-        const tr = await domainOwnerSidechain.sendTransaction(tx)
+        const tr = await registryChainWallet.sendTransaction(tx)
         log("createStreamFromENS tx: ", tr.hash)
     } catch (e) {
         log("creating stream failed, createStreamFromENS error: ", e)
@@ -152,10 +156,9 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
 }
 
 main().then(() => {
-    // debug('done')
-    log("listening for events")
+    log("listening for events...")
     return void 0
 }).catch((err: any) => {
-    log.error("error: ", err)
+    log("error: ", err)
     process.exit(1)
 })
