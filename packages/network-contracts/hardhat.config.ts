@@ -95,6 +95,9 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
             "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
             "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
+            "@ensdomains/ens-contracts/contracts/registry/ENS.sol",
+            "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
+            "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
         ],
     },
     solidity: {
