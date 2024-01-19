@@ -30,6 +30,7 @@ const {
     ENS_ADDRESS,
     REGISTRY_ADDRESS,
     ENS_CACHE_ADDRESS,
+    HEARTBEAT_FILENAME,
 } = process.env
 
 if (isNaN(parseFloat(GAS_PRICE_MULTIPLIER || "1.0"))) {
@@ -48,7 +49,7 @@ log("Wallet address used by script: ", registryChainWallet.address)
 
 const ensAddress = ENS_ADDRESS ?? (config as any)[ENS_CHAIN]?.contracts?.ENS
 if (!ensAddress) { throw new Error(`Either ENS_CHAIN or ENS_ADDRESS must be set in environment`) }
-const ensContract = new Contract(ensAddress, ensRegistryABI, ensChainProvider) as ENS
+const ensContract = new Contract(ensAddress, ensRegistryABI, ensChainProvider) as unknown as ENS
 
 const registryAddress = REGISTRY_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.StreamRegistry
 if (!registryAddress) { throw new Error(`Either REGISTRY_CHAIN or REGISTRY_ADDRESS must be set in environment`) }
@@ -94,12 +95,12 @@ async function main() {
     // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
     setTimeout(() => {
         log("Sending initial heartbeat")
-        fs.writeFileSync("heartbeat", "")
+        fs.writeFileSync(HEARTBEAT_FILENAME || `heartbeat-${ENS_CHAIN}-${REGISTRY_CHAIN}`, "")
     }, 5 * 1000)
     // thereafter send heartbeat every 2 minutes
     setInterval(() => {
         log("sending heartbeat")
-        fs.writeFileSync("heartbeat", "")
+        fs.writeFileSync(HEARTBEAT_FILENAME || `heartbeat-${ENS_CHAIN}-${REGISTRY_CHAIN}`, "")
     }, 2 * 60 * 1000)
 }
 
