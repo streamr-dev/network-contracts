@@ -53,11 +53,11 @@ const ensContract = new Contract(ensAddress, ensRegistryABI, ensChainProvider) a
 
 const registryAddress = REGISTRY_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.StreamRegistry
 if (!registryAddress) { throw new Error(`Either REGISTRY_CHAIN or REGISTRY_ADDRESS must be set in environment`) }
-const streamRegistryContract = new Contract(registryAddress, streamRegistryABI, registryChainProvider) as StreamRegistry
+const streamRegistryContract = new Contract(registryAddress, streamRegistryABI, registryChainProvider) as unknown as StreamRegistry
 
 const ensCacheAddress = ENS_CACHE_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.ENSCacheV2
 if (!ensCacheAddress) { throw new Error(`Either REGISTRY_CHAIN or ENS_CACHE_ADDRESS must be set in environment`) }
-const ensCacheContract = new Contract(ensCacheAddress, ENSCacheV2ABI, registryChainWallet) as ENSCacheV2
+const ensCacheContract = new Contract(ensCacheAddress, ENSCacheV2ABI, registryChainWallet) as unknown as ENSCacheV2
 
 const delay = (parseInt(DELAY) || 0) * 1000
 if (delay > 0) { log(`Starting with answer delay ${delay} milliseconds`) }
@@ -145,8 +145,9 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
                 tx.gasPrice = recommended.gasPrice.mul(multiplier)
             }
         }
+        log("Sending fulfillENSOwner transaction: %o", tx)
         const tr = await registryChainWallet.sendTransaction(tx)
-        log("createStreamFromENS tx: ", tr.hash)
+        log("Receipt: %o", tr)
     } catch (e) {
         log("creating stream failed, createStreamFromENS error: ", e)
         if (retry) {
