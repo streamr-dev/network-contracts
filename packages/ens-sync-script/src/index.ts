@@ -18,7 +18,7 @@ const { log } = console
 const {
     KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
     DELAY = "0",
-    GAS_PRICE_MULTIPLIER,
+    GAS_PRICE_BUMP_PERCENT,
 
     // Easy setting: read addresses and URLs from @streamr/config
     ENS_CHAIN = "dev2",
@@ -33,9 +33,12 @@ const {
     HEARTBEAT_FILENAME,
 } = process.env
 
-if (isNaN(parseFloat(GAS_PRICE_MULTIPLIER || "1.0"))) {
-    throw new Error(`GAS_PRICE_MULTIPLIER="${GAS_PRICE_MULTIPLIER}" is not a valid number! Try e.g. "1.5"`)
-}
+const gasPriceBumpPercent = parseInt(GAS_PRICE_BUMP_PERCENT ?? "0")
+if (isNaN(gasPriceBumpPercent)) { throw new Error(`GAS_PRICE_BUMP_PERCENT="${GAS_PRICE_BUMP_PERCENT}" is not a valid number! Try e.g. 20`) }
+if (gasPriceBumpPercent > 0) { log(`Will bump gas price by ${gasPriceBumpPercent}%`) }
+
+const delay = (parseInt(DELAY) || 0) * 1000
+if (delay > 0) { log(`Starting with answer delay ${delay} milliseconds`) }
 
 const ensChainRpc = ENS_RPC_URL ?? (config as any)[ENS_CHAIN]?.rpcEndpoints?.[0]?.url
 if (!ensChainRpc) { throw new Error(`Either ENS_CHAIN or ENS_RPC_URL must be set in environment`) }
@@ -58,9 +61,6 @@ const streamRegistryContract = new Contract(registryAddress, streamRegistryABI, 
 const ensCacheAddress = ENS_CACHE_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.contracts?.ENSCacheV2
 if (!ensCacheAddress) { throw new Error(`Either REGISTRY_CHAIN or ENS_CACHE_ADDRESS must be set in environment`) }
 const ensCacheContract = new Contract(ensCacheAddress, ENSCacheV2ABI, registryChainWallet) as unknown as ENSCacheV2
-
-const delay = (parseInt(DELAY) || 0) * 1000
-if (delay > 0) { log(`Starting with answer delay ${delay} milliseconds`) }
 
 let mutex = Promise.resolve(true)
 
@@ -125,7 +125,6 @@ async function sleep(ms: number) {
 }
 
 async function createStream(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string, retry = false) {
-
     if (await streamRegistryContract.exists(ensName + streamIdPath)) {
         log("stream already exists, not creating")
         return
@@ -135,14 +134,13 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
     try {
         const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
 
-        if (GAS_PRICE_MULTIPLIER) {
+        if (gasPriceBumpPercent > 0) {
             const recommended = await registryChainProvider.getFeeData()
-            const multiplier = parseFloat(GAS_PRICE_MULTIPLIER)
             if (recommended.maxFeePerGas && recommended.maxPriorityFeePerGas) {
-                tx.maxFeePerGas = recommended.maxFeePerGas.mul(multiplier)
-                tx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(multiplier)
+                tx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                tx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
             } else if (recommended.gasPrice) {
-                tx.gasPrice = recommended.gasPrice.mul(multiplier)
+                tx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
             }
         }
         log("Sending fulfillENSOwner transaction: %o", tx)
