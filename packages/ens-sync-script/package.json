@@ -8,9 +8,8 @@
   "main": "index.ts",
   "scripts": {
     "start": "tsx ./src/index.ts",
-    "prepareArtifacts": "./prepare.sh",
-    "buildLocalArch": "npm run prepareArtifacts && docker build -t streamr/ens-sync-script:dev-fastchain .",
-    "buildMultiarchAndPush": "npm run prepareArtifacts && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/ens-sync-script:dev-fastchain --push ."
+    "buildLocalArch": "docker build -t streamr/ens-sync-script:dev-fastchain .",
+    "buildMultiarchAndPush": "docker buildx build --platform linux/amd64,linux/arm64 -t streamr/ens-sync-script:dev-fastchain --push ."
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "^0.0.22",

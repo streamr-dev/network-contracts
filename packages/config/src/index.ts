@@ -187,6 +187,7 @@ export const config = {
             "AMB": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
             "DATA": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
             "ENS": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+            "PublicResolver": "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63",
             "Marketplace": "0xdc8d23092b93f9bb7416f45dea36f55996f34867",
             "MediatorDATA": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
             "MediatorXDATA": "0x2eeeDdeECe91c9F4c5bA4C8E1d784A0234C6d015",
@@ -279,6 +280,7 @@ export const config = {
             "GSNPayMaster": "0x43E69adABC664617EB9C5E19413a335e9cd4A243",
             "GSNForwarder": "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d",
             "ENSCache": "0xEd9d3D29c25e197677DD84E3f7D81cCCD613B2bF",
+            "ENSCacheV2": "0xEd9d3D29c25e197677DD84E3f7D81cCCD613B2bF",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
             "MarketplaceV4": "0xdF8b74D735197dCD5C94bE933db080E69A958de6",
@@ -302,7 +304,7 @@ export const config = {
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         },
-        // eslint-disable-next-line max-len        
+        // eslint-disable-next-line max-len
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
