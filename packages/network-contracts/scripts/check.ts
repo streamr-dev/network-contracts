@@ -5,8 +5,8 @@ import { Contract } from "@ethersproject/contracts"
 import { JsonRpcProvider } from "@ethersproject/providers"
 
 import { config } from "@streamr/config"
-import { streamRegistryABI, ensRegistryABI, fifsRegistrarABI, ENSCacheV2ABI } from "@streamr/network-contracts"
-import type { ENS, StreamRegistry, ENSCacheV2, FIFSRegistrar } from "@streamr/network-contracts"
+import { streamRegistryABI, ensRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
+import type { ENS, StreamRegistry, ENSCacheV2 } from "@streamr/network-contracts"
 
 // import debug from "debug"
 // const log = debug("log:streamr:ens-sync-script")
@@ -27,7 +27,7 @@ const {
     REGISTRY_ADDRESS,
     ENS_CACHE_ADDRESS,
 
-    ENS_REGISTRAR_ADDRESS,
+    // ENS_REGISTRAR_ADDRESS,
     ENS_RESOLVER_ADDRESS,
 } = process.env
 
@@ -53,11 +53,6 @@ const ensCacheAddress = ENS_CACHE_ADDRESS ?? (config as any)[REGISTRY_CHAIN]?.co
 if (!ensCacheAddress) { throw new Error("Either REGISTRY_CHAIN or ENS_CACHE_ADDRESS must be set in environment") }
 const ensCacheContract = new Contract(ensCacheAddress, ENSCacheV2ABI, registryChainProvider) as ENSCacheV2
 
-// "first-in-first-served registrar" in testing environment
-// const regAddress = ENS_REGISTRAR_ADDRESS ?? (config as any)[ENS_CHAIN]?.contracts?.FIFSRegistrar
-// if (!regAddress) { throw new Error("Either CHAIN (with FIFSRegistrar address) or ENS_REGISTRAR_ADDRESS must be set in environment") }
-// const ensRegistrarContract = new Contract(regAddress, fifsRegistrarABI, ensChainProvider) as FIFSRegistrar
-
 const ensResolverAddress = ENS_RESOLVER_ADDRESS ?? (config as any)[ENS_CHAIN]?.contracts?.PublicResolver
 if (!ensResolverAddress) { throw new Error("Either CHAIN (with PublicResolver address) or ENS_RESOLVER_ADDRESS must be set in environment") }
 
@@ -69,7 +64,6 @@ async function main() {
     log("ENS contract at: %s (deployer %s)", ensContract.address, await ensContract.owner(Bytes32Zero))
     log("StreamRegistry contract at: %s (%s)", streamRegistryContract.address, await streamRegistryContract.TRUSTED_ROLE())
     log("ENSCacheV2 contract at: %s (%s)", ensCacheContract.address, await ensCacheContract.owners(AddressZero))
-    // log("ENSRegistrar contract at: %s", ensRegistrarContract.address)
 
     if (STREAM_ID) {
         log("Checking stream '%s'", STREAM_ID)
