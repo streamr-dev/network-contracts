@@ -128,7 +128,7 @@ export const config = {
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs",
         "entryPoints": [
             {
-                "nodeId": "eeeeeeeeee",
+                "nodeId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "websocket": {
                     "host": "10.200.10.1",
                     "port": 40500,
