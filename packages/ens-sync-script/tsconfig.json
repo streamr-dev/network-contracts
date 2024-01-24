@@ -5,7 +5,7 @@
         "lib": ["ESNext", "es2019", "es2020.promise", "es2020.bigint", "es2020.string"],
         "module": "ESNext",
         "moduleResolution": "Node",
-        "target": "ES2022",
+        "target": "es2020",
         "preserveSymlinks": true,
         "strict": true,
         "esModuleInterop": true,
