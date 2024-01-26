@@ -51,7 +51,7 @@ describe("docker image integration test", () => {
             stakes {
                 id
             }
-            delegations {
+            delegators {
                 id
             }
             streams {
@@ -63,6 +63,7 @@ describe("docker image integration test", () => {
             delegations {
                 valueDataWei
                 operatorTokenBalanceWei
+                earliestUndelegationTimestamp
             }
         }
         `})
@@ -74,6 +75,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.nodes.length).to.equal(1)
 
         expect(resultDynamicIds.operators.length).to.equal(3)
+        expect(resultDynamicIds.delegators.length).to.equal(3)
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.stakingEvents.length).to.equal(4) // 3 operators staked + 1 got kicked out
         expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators staked - 1 got kicked out
@@ -87,6 +89,7 @@ describe("docker image integration test", () => {
 
         expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
         expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
+        expect(resultDynamicIds.delegations[0].earliestUndelegationTimestamp).to.be.greaterThan(0)
     })
 
     it("can get indexed network values", async () => {

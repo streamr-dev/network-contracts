@@ -105,6 +105,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
 
     /**
+     * Bitfield of features supported by this version
+     *  0: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
+     */
+    uint public version = 0x1;
+
+    /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
      * DATA value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
      */
