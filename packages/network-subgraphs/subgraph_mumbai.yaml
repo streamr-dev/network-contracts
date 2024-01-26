@@ -2,8 +2,8 @@
 # if you deploy locally use the npm task or scripts/generateYaml.sh to re-generate/update this file
 
 specVersion: 0.0.4
-description: Subgraph definitions for the stream permission registry
-repository:
+description: The Streamr Network is a peer-to-peer network for publishing and subscribing to data in real-time. Read more at https://docs.streamr.network/
+repository: https://github.com/streamr-dev/network-contracts/tree/master/packages/network-subgraphs
 schema:
   file: ./schema.graphql
 features:

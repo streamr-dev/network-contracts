@@ -1,6 +1,6 @@
 {
     "$schema": "https://json.schemastore.org/tsconfig",
-    "display": "Node 18",
+    "display": "Node 20",
     "compilerOptions": {
         "lib": ["ESNext", "es2019", "es2020.promise", "es2020.bigint", "es2020.string"],
         "module": "ESNext",
@@ -17,8 +17,6 @@
         "strictPropertyInitialization": false
     },
     "include": [
-        "../packages/network-contracts/typechain",
-        "../packages/network-contracts/artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/",
         "./src"
     ]
 }

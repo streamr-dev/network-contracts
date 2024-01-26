@@ -128,7 +128,7 @@ export const config = {
         "theGraphUrl": "http://10.200.10.1:8800/subgraphs/name/streamr-dev/network-subgraphs",
         "entryPoints": [
             {
-                "nodeId": "eeeeeeeeee",
+                "nodeId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "websocket": {
                     "host": "10.200.10.1",
                     "port": 40500,
@@ -306,18 +306,18 @@ export const config = {
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
-                "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8b",
+                "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8ba5497596",
                 "websocket": {
                     "host": "polygon-entrypoint-3.streamr.network",
-                    "port": 40401,
+                    "port": 40402,
                     "tls": true
                 }
             },
             {
-                "nodeId": "6f5b53812fd9cc07f225a0b3a6aa5b96",
+                "nodeId": "6f5b53812fd9cc07f225a0b3a6aa5b96672e852e",
                 "websocket": {
                     "host": "polygon-entrypoint-4.streamr.network",
-                    "port": 40401,
+                    "port": 40402,
                     "tls": true
                 }
             }
@@ -362,21 +362,21 @@ export const config = {
             "DataUnionFactory": "0xc7e4042f801A86538c48761bEfCb05b846ab756C",
             "DataUnionTemplate": "0x8d3dc2a15283C0af16895aD27253B9e1A777E789"
         },
-        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/samt1803/network-subgraphs",
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
         "entryPoints": [
             {
-                "nodeId": "e1",
+                "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
                 "websocket": {
-                    "host": "entrypoint-1.streamr.network",
-                    "port": 40401,
+                    "host": "mumbai-entrypoint-1.streamr.network",
+                    "port": 40402,
                     "tls": true
                 }
             },
             {
-                "nodeId": "e2",
+                "nodeId": "24395826687b099fd735a730219ba750169c4f40",
                 "websocket": {
-                    "host": "entrypoint-2.streamr.network",
-                    "port": 40401,
+                    "host": "mumbai-entrypoint-2.streamr.network",
+                    "port": 40402,
                     "tls": true
                 }
             }

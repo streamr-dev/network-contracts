@@ -11,13 +11,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable {
-    
+
     event RequestENSOwnerAndCreateStream(string ensName, string streamIdPath, string metadataJsonString, address requestorAddress);
-    
+
     mapping(string => address) public owners;
-    address private streamrScript;
-    IStreamRegistry private streamRegistry;
-    ENSCacheV1 private ensCacheV1;
+    address private streamrScript; // TODO: make public
+    IStreamRegistry private streamRegistry; // TODO: make public
+    ENSCacheV1 private ensCacheV1; // TODO: make public
 
     modifier onlyStreamr() {
         require(msg.sender == address(streamrScript), "onlyStreamrScript");
@@ -48,13 +48,13 @@ contract ENSCacheV2Streamr is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function setENSCacheV1(address ensCacheV1Address) public onlyOwner {
         ensCacheV1 = ENSCacheV1(ensCacheV1Address);
     }
-    
+
     function setStreamrScript(address _streamrScript) public onlyOwner {
         streamrScript = _streamrScript;
     }
 
     /** Update cache and create a stream */
-    function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath, 
+    function requestENSOwnerAndCreateStream(string calldata ensName, string calldata streamIdPath,
         string calldata metadataJsonString, address requestorAddress) public onlyStreamRegistry() {
         address ownerAddress = address(ensCacheV1) != address(0) ? ensCacheV1.owners(ensName) : address(0);
         if (ownerAddress == requestorAddress) {

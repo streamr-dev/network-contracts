@@ -9,7 +9,7 @@
   "scripts": {
     "start": "tsx ./src/index.ts",
     "prepareArtifacts": "./prepare.sh",
-    "buildlocalArch": "npm run prepareArtifacts && docker build -t streamr/ens-sync-script:dev-fastchain .",
+    "buildLocalArch": "npm run prepareArtifacts && docker build -t streamr/ens-sync-script:dev-fastchain .",
     "buildMultiarchAndPush": "npm run prepareArtifacts && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/ens-sync-script:dev-fastchain --push ."
   },
   "dependencies": {
@@ -19,10 +19,11 @@
     "@ethersproject/units": "^5.7.0",
     "@ethersproject/wallet": "^5.7.0",
     "@streamr/config": "4.0.10",
+    "@streamr/network-contracts": "^7.0.8",
     "debug": "^4.3.4",
     "eth-ens-namehash": "^2.0.8",
     "node-fetch": "2.6.7",
-    "tsx": "^3.12.6"
+    "tsx": "^4.7.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.57.1",
