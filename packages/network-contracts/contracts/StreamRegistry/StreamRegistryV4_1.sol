@@ -1,5 +1,6 @@
 /**
  * Polygon deployment tx hash: TODO
+ * deployed to Mumbai 2024-01-17 (ETH-720)
  *
  * Changes in V4_1:
  * - bugfix: setExpirationTime emits PermissionUpdated correctly

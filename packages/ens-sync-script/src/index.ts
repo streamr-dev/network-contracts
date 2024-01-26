@@ -31,6 +31,8 @@ const {
     REGISTRY_ADDRESS,
     ENS_CACHE_ADDRESS,
     HEARTBEAT_FILENAME,
+
+    SKIP_CHECKS, // on linux machines, hardhat node + ethers gets stuck in a weird way
 } = process.env
 
 const gasPriceBumpPercent = parseInt(GAS_PRICE_BUMP_PERCENT ?? "0")
