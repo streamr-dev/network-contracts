@@ -84,13 +84,11 @@ async function checkForFlags() {
         // console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagStartTime)
         if (flag.flaggingTimestamp < minFlagStartTime) {
             try {
-                let opts: Overrides = {
+                const opts: Overrides = {
                     gasLimit: 1000000
                 }
                 if (ENV === 'polygon') {
-                    opts = {
-                        gasPrice: await getGasPrice()
-                    }
+                    opts.gasPrice = await getGasPrice()
                 }
                 console.log('flag id: %s | sending close flag tx, opts: %o', flagID, opts)
                 const tx = await sponsorshipContract.voteOnFlag(
