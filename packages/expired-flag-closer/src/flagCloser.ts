@@ -6,7 +6,7 @@ import { JsonRpcProvider } from '@ethersproject/providers'
 import { Wallet } from '@ethersproject/wallet'
 import { Contract } from '@ethersproject/contracts'
 import { formatUnits, parseUnits } from '@ethersproject/units'
-import { BigNumber } from 'ethers'
+import { BigNumber, Overrides } from 'ethers'
 
 const {
     ENV,
@@ -84,7 +84,9 @@ async function checkForFlags() {
         // console.log('flag timestamp', flag.flaggingTimestamp, 'min flag age', minFlagStartTime)
         if (flag.flaggingTimestamp < minFlagStartTime) {
             try {
-                let opts = {}
+                let opts: Overrides = {
+                    gasLimit: 1000000
+                }
                 if (ENV === 'polygon') {
                     opts = {
                         gasPrice: await getGasPrice()
