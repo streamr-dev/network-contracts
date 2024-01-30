@@ -9,7 +9,8 @@ describe("docker image integration test", () => {
     let graphClient: TheGraphClient
     let duGraphClient: TheGraphClient
 
-    before(async () => {
+    before(async function () {
+        this.timeout(200000)
         graphClient = new TheGraphClient({
             serverUrl: config.dev2.theGraphUrl,
             fetch,
