@@ -20,6 +20,24 @@ describe("docker image integration test", () => {
             fetch,
             logger: new Logger(module)
         })
+
+        // wait for thegraph to be ready (time out after 1 minute)
+        let retries = 0
+        while (true) {
+            try {
+                await graphClient.queryEntity<any>({ query: `{
+                    networks {
+                        id
+                    }
+                }`})
+                break
+            } catch (e) {
+                if (retries++ > 60) {
+                    throw e
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1000))
+            }
+        }
     })
 
     it("can get all the indexed example data from thegraph", async () => {
