@@ -154,7 +154,8 @@ export const config = {
             "ProjectRegistryV1": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
             "MarketplaceV4": "0x14577e0D5BD77536E073712d98E471edDaFAE8b4",
             "cUSD": "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
-        }
+        },
+        "blockExplorerUrl": "https://alfajores.celoscan.io"
     },
     "optGoerli": {
         "id": 420,
@@ -172,7 +173,8 @@ export const config = {
         "contracts": {
             "RemoteMarketplaceV1": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
             "DAI": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
-        }
+        },
+        "blockExplorerUrl": "https://goerli-optimism.etherscan.io"
     },
     "ethereum": {
         "id": 1,
@@ -195,7 +197,8 @@ export const config = {
             "UniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
             "XDATA": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
             "core-api": "0xf3E5A65851C3779f468c9EcB32E6f25D9D68601a"
-        }
+        },
+        "blockExplorerUrl": "https://etherscan.io"
     },
     "gnosis": {
         "id": 100,
@@ -231,7 +234,8 @@ export const config = {
             "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
             "Uniswap2AdapterForMarketplaceV3": "0xec92c5f94d45D1a4D917f2E07dD959b33e1AFe38",
             "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548"
-        }
+        },
+        "blockExplorerUrl": "https://gnosisscan.io"
     },
     "binance": {
         "id": 56,
@@ -252,7 +256,8 @@ export const config = {
         "contracts": {
             "DATA": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
             "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
-        }
+        },
+        "blockExplorerUrl": "https://bscscan.com"
     },
     "polygon": {
         "id": 137,
@@ -279,6 +284,7 @@ export const config = {
             "GSNPayMaster": "0x43E69adABC664617EB9C5E19413a335e9cd4A243",
             "GSNForwarder": "0xdA78a11FD57aF7be2eDD804840eA7f4c2A38801d",
             "ENSCache": "0xEd9d3D29c25e197677DD84E3f7D81cCCD613B2bF",
+            "ENSCacheV2": "0xEd9d3D29c25e197677DD84E3f7D81cCCD613B2bF",
             "Marketplace": "0x058FbB3Cf628EE51CE8864C9Ee8350f81E495A7D",
             "MarketplaceV3": "0x1e9c22B4C92ce78Fe489C72f9D070C583D8359C3",
             "MarketplaceV4": "0xdF8b74D735197dCD5C94bE933db080E69A958de6",
@@ -302,7 +308,8 @@ export const config = {
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         },
-        // eslint-disable-next-line max-len        
+        "blockExplorerUrl": "https://polygonscan.com",
+        // eslint-disable-next-line max-len
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
@@ -363,6 +370,7 @@ export const config = {
             "DataUnionTemplate": "0x8d3dc2a15283C0af16895aD27253B9e1A777E789"
         },
         "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
+        "blockExplorerUrl": "https://mumbai.polygonscan.com",
         "entryPoints": [
             {
                 "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
