@@ -53,9 +53,6 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     /** Prevent "sand delegations" that could mess with rounding errors */
     uint public minimumDelegationWei;
 
-    /** Prevent "skimming the earnings" by delegating, withdrawing and instantly undelegating */
-    uint public minimumDelegationSeconds;
-
     /**
      * The time the operator is given for paying out the undelegation queue.
      * If the front of the queue is older than maxQueueSeconds, anyone can call forceUnstake to pay out the queue.
@@ -156,6 +153,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      * Zero by default; in the case, use fallback to give back cheap pseudorandom numbers.
      **/
     address public randomOracle;
+
+    /** Prevent "skimming the earnings" by delegating, withdrawing and instantly undelegating */
+    uint public minimumDelegationSeconds;
 
     function initialize() public initializer {
         __AccessControl_init();
