@@ -76,6 +76,11 @@ async function main() {
     //         )
     //     }
     // }
+    // old mumbai operator template, for rollbacks:
+    // const operatorTemplate = new Contract("0xbf4a0c165abcdc81ca7ffa222361e5ae891249c5", operatorABI, wallet)
+    // old polygon operator template, for rollbacks:
+    // const operatorTemplate = new Contract("0x0723Ef021BF630868764b3EC0fd210173ea0a5ef", operatorABI, wallet)
+
     const operatorTemplate = await (new ContractFactory(operatorABI, operatorBytecode, wallet)).deploy(txOverrides)
     await operatorTemplate.deployed()
     log("Deployed Operator template at %s", operatorTemplate.address)
