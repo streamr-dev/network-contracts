@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  * `ADMIN_ROLE()` can grant `CONFIGURATOR_ROLE()` to others, who can then change the parameters.
  * `ADMIN_ROLE()` can grant `UPGRADER_ROLE()` to others, who can then upgrade this contract.
  */
-contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
+contract StreamrConfigV1_1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -154,6 +154,9 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
      **/
     address public randomOracle;
 
+    /** Prevent "skimming the earnings" by delegating, withdrawing and instantly undelegating */
+    uint public minimumDelegationSeconds;
+
     function initialize() public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -172,6 +175,7 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
 
         // Prevent "sand delegations", set minimum delegation to 1 full operator token (1e18)
         setMinimumDelegationWei(1 ether);
+        setMinimumDelegationSeconds(1 days);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
@@ -218,6 +222,11 @@ contract StreamrConfig is Initializable, AccessControlUpgradeable, UUPSUpgradeab
     function setMinimumDelegationWei(uint newMinimumDelegationWei) public onlyRole(CONFIGURATOR_ROLE) {
         minimumDelegationWei = newMinimumDelegationWei;
         emit ConfigChanged("minimumDelegationWei", newMinimumDelegationWei, address(0));
+    }
+
+    function setMinimumDelegationSeconds(uint newMinimumDelegationSeconds) public onlyRole(CONFIGURATOR_ROLE) {
+        minimumDelegationSeconds = newMinimumDelegationSeconds;
+        emit ConfigChanged("minimumDelegationSeconds", newMinimumDelegationSeconds, address(0));
     }
 
     function setMinimumSelfDelegationFraction(uint newMinimumSelfDelegationFraction) public onlyRole(CONFIGURATOR_ROLE) {

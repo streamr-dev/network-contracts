@@ -3,7 +3,7 @@
 pragma solidity ^0.8.13;
 
 import "./IUndelegationPolicy.sol";
-import "../StreamrConfig.sol";
+import "../StreamrConfigV1_1.sol";
 import "../Operator.sol";
 
 contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
@@ -27,7 +27,7 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
      * @dev   Minimum delegation is handled when paying out the queue, and checked separately on _transfer.
      **/
     function onUndelegate(address delegator, uint amountDataWei) external {
-
+        StreamrConfigV1_1 streamrConfig = StreamrConfigV1_1(address(streamrConfig));
         require(
             block.timestamp > latestDelegationTimestamp[delegator] + streamrConfig.minimumDelegationSeconds(),
             "error_undelegateTooSoon"
