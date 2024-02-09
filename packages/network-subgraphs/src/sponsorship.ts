@@ -78,24 +78,25 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     sponsorship.operatorCount = event.params.operatorCount.toI32()
     sponsorship.isRunning = event.params.isRunning
 
-    const isPaying =
-        sponsorship.remainingWei > BigInt.zero() &&
-        sponsorship.totalPayoutWeiPerSec > BigInt.zero() &&
-        sponsorship.totalStakedWei > BigInt.zero() &&
-        sponsorship.isRunning
+    // Calculate spotAPY and projectedInsolvency ASSUMING that the sponsorship is paying i.e. ignore isRunning
+    // This makes the values more useful for sorting the sponsorships: not-yet-running but funded will show up on top
+    if (sponsorship.remainingWei > BigInt.zero() && sponsorship.totalPayoutWeiPerSec > BigInt.zero()) {
+        const remainingSeconds = sponsorship.remainingWei / sponsorship.totalPayoutWeiPerSec
+        sponsorship.projectedInsolvency = remainingSeconds + event.block.timestamp
 
-    sponsorship.spotAPY = isPaying
-        ? sponsorship.totalPayoutWeiPerSec.toBigDecimal()
-            .times((BigInt.fromI32(60 * 60 * 24 * 365)).toBigDecimal())
-            .div(sponsorship.totalStakedWei.toBigDecimal())
-        : BigDecimal.zero()
-
-    sponsorship.projectedInsolvency = isPaying
-        ? sponsorship.projectedInsolvency = sponsorship.remainingWei
-            .div(sponsorship.totalPayoutWeiPerSec)
-            .plus(event.block.timestamp)
-        : null
-
+        // If the sponsorship is funded for less than a day, then consider that's all the tokens the stakers would ever get.
+        // This defends against super high APY numbers for sponsorships that promise to pay out a lot but aren't really funded
+        // Also, to handle the case where sponsorship doesn't have any stakers yet, add minimum stake for the "maximal APY *after* staking"
+        const SECONDS_IN_DAY = BigInt.fromI32(60 * 60 * 24)
+        const SECONDS_IN_YEAR = BigInt.fromI32(60 * 60 * 24 * 365)
+        const network = loadOrCreateNetwork()
+        const annualPayout = (remainingSeconds < SECONDS_IN_DAY) ? sponsorship.remainingWei : (sponsorship.totalPayoutWeiPerSec * SECONDS_IN_YEAR)
+        const totalStakeAfterStaking = sponsorship.totalStakedWei + network.minimumStakeWei
+        sponsorship.spotAPY = annualPayout.toBigDecimal() / totalStakeAfterStaking.toBigDecimal()
+    } else {
+        sponsorship.spotAPY = BigDecimal.zero()
+        // projectedInsolvency is left unchanged, so that if the sponsorship runs out, projectedInsolvency shows when it did
+    }
     sponsorship.save()
 
     const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
