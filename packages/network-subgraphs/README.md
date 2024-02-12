@@ -26,7 +26,7 @@ can be recreated with the Dockerfile. To do so:
 1. `cp subgraph_mumbai.yaml subgraph.yaml`
 1. `npm run build`
 1. `npx graph deploy --product hosted-service streamr-dev/network`
-1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?selected=logs for errors
+1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?version=pending&selected=logs for errors
 ``
 
 # Developer notes
