@@ -29,6 +29,11 @@ can be recreated with the Dockerfile. To do so:
 1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?version=pending&selected=logs for errors
 ``
 
+# Changelog
+
+* v0.0.3
+  * Sponsorhip.spotAPY and .projectedInsolvency changes (ETH-736)
+
 # Developer notes
 
 ## Setup locally without the streamr-docker-dev environment
