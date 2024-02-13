@@ -6,7 +6,7 @@ import { Contract } from "@ethersproject/contracts"
 import { Wallet } from "@ethersproject/wallet"
 import { JsonRpcProvider } from "@ethersproject/providers"
 
-import type { StreamRegistry, NodeRegistry, StreamStorageRegistry } from "../typechain"
+import type { StreamRegistry, NodeRegistry, StreamStorageRegistry } from "@streamr/network-contracts"
 
 import { address as streamRegistryAddress, abi as streamRegistryAbi } from "../deployments/localsidechain/StreamRegistry.json"
 import { address as nodeRegistryAddress, abi as nodeRegistryAbi } from "../deployments/localsidechain/NodeRegistry.json"
