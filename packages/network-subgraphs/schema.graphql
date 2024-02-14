@@ -326,6 +326,9 @@ type Operator @entity {
   nodes: [String!]!
   operatorsCutFraction: BigInt!
 
+  "Version is a bitfield of supported features. Generally, so far, higher version supports lower versions' features, so normal number comparison works."
+  contractVersion: BigInt!
+
   isEligibleToVote: Boolean!
   protectionEndTimestamp: Int
 
