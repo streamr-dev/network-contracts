@@ -39,7 +39,10 @@ export function handleDelegated(event: Delegated): void {
     network.save()
 }
 
-/** BalanceUpdate is used for tracking the internal Operator token's ERC20 balances */
+/**
+ * BalanceUpdate is used for tracking the internal Operator token's ERC20 balances
+ * AND also delegators joining/leaving the Operator
+ **/
 export function handleBalanceUpdate(event: BalanceUpdate): void {
     let operatorContractAddress = event.address.toHexString()
     let delegatorAddress = event.params.delegator.toHexString()
@@ -70,9 +73,9 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
         // delegation is new
         operator.delegatorCount = operator.delegatorCount + 1
+        operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange + 1
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
-        operatorBucket.delegatorCountChange = operatorBucket.delegatorCountChange + 1
     }
     if (newBalanceDataWei > delegation.valueDataWei) {
         operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
@@ -82,7 +85,11 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
     delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     if (newBalance.gt(BigInt.zero())) {
-        // delegation updated
+        // delegation created or updated
+        let network = loadOrCreateNetwork()
+        const now = event.block.timestamp.toU32()
+        delegation.latestDelegationTimestamp = now
+        delegation.earliestUndelegationTimestamp = now + network.minimumDelegationSeconds
         delegation.valueDataWei = newBalanceDataWei
         delegation.operatorTokenBalanceWei = newBalance
         delegation.save()

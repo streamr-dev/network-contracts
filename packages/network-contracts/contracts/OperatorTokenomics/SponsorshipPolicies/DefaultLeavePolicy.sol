@@ -7,6 +7,7 @@ import "../Sponsorship.sol";
 
 contract DefaultLeavePolicy is ILeavePolicy, Sponsorship {
 
+    // TODO: use LocalStorage pattern for this
     uint public penaltyPeriodSeconds; // = 0
 
     function setParam(uint penaltyPeriod) external {

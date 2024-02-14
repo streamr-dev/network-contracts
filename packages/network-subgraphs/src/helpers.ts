@@ -132,6 +132,7 @@ export function loadOrCreateNetwork(): Network {
         network.operatorContractOnlyJoinPolicy = ''
         network.streamRegistryAddress = ''
         network.minimumStakeWei = BigInt.zero()
+        network.minimumDelegationSeconds = 0
     }
     return network
 }
@@ -202,7 +203,7 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.nodes = []
 
         operator.isEligibleToVote = false
-        
+
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
         operator.owner = ""
         operator.metadataJsonString = ""

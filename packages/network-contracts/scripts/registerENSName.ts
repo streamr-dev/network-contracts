@@ -20,7 +20,7 @@ import { abi as fifsAbi } from "@ensdomains/ens-contracts/artifacts/contracts/re
 const { log } = console
 
 const {
-    NAME,
+    ENS_NAME,
 
     KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
     CHAIN = "dev2",
@@ -31,8 +31,8 @@ const {
 } = process.env
 
 const lastArg = process.argv[process.argv.length - 1]
-const ensNameRaw = lastArg.endsWith(".ts") ? NAME : lastArg // ".ts" is this file, means no args given
-if (!ensNameRaw) { throw new Error("Missing argument (or environment variable NAME)") }
+const ensNameRaw = lastArg.endsWith(".ts") ? ENS_NAME : lastArg // ".ts" is this file, means no args given
+if (!ensNameRaw) { throw new Error("Missing argument (or environment variable ENS_NAME)") }
 const ensName = ensNameRaw.endsWith(".eth") ? ensNameRaw : ensNameRaw + ".eth"
 const ensNameParts = ensName.split(".")
 if (ensNameParts.length !== 2) { throw new Error("No subdomains allowed in ENS name: " + ensName) }

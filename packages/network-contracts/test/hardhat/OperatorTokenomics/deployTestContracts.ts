@@ -4,13 +4,13 @@ import type { Wallet } from "ethers"
 import type { Sponsorship, SponsorshipFactory, Operator, OperatorFactory, IAllocationPolicy, TestToken,
     StreamRegistryV4,
     IJoinPolicy, IKickPolicy, ILeavePolicy, IDelegationPolicy, IExchangeRatePolicy, IUndelegationPolicy,
-    StreamrConfig, NodeModule, QueueModule, StakeModule, MinimalForwarder } from "../../../typechain"
+    StreamrConfigV1_1, NodeModule, QueueModule, StakeModule, MinimalForwarder } from "../../../typechain"
 
 const { getContractFactory } = hardhatEthers
 
 export type TestContracts = {
     token: TestToken;
-    streamrConfig: StreamrConfig;
+    streamrConfig: StreamrConfigV1_1;
     maxOperatorsJoinPolicy: IJoinPolicy;
     operatorContractOnlyJoinPolicy: IJoinPolicy
     allocationPolicy: IAllocationPolicy;
@@ -60,9 +60,9 @@ export async function deployOperatorFactory(contracts: Partial<TestContracts>, s
     return { operatorFactory, operatorTemplate }
 }
 
-export async function deployStreamrConfig(deployer: Wallet): Promise<StreamrConfig> {
-    const streamrConfigFactory = await getContractFactory("StreamrConfig", deployer)
-    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfig
+export async function deployStreamrConfig(deployer: Wallet): Promise<StreamrConfigV1_1> {
+    const streamrConfigFactory = await getContractFactory("StreamrConfigV1_1", deployer)
+    return await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfigV1_1
 }
 
 /**

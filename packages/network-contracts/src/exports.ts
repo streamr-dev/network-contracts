@@ -13,8 +13,8 @@ export { abi as sponsorshipFactoryABI, bytecode as sponsorshipFactoryBytecode }
 export type { SponsorshipFactory } from "../typechain/contracts/OperatorTokenomics/SponsorshipFactory"
 
 export { abi as streamrConfigABI, bytecode as streamrConfigBytecode }
-    from "../artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json"
-export type { StreamrConfig } from "../typechain/contracts/OperatorTokenomics/StreamrConfig"
+    from "../artifacts/contracts/OperatorTokenomics/StreamrConfigV1_1.sol/StreamrConfigV1_1.json"
+export type { StreamrConfigV1_1 as StreamrConfig } from "../typechain/contracts/OperatorTokenomics/StreamrConfigV1_1"
 
 export { abi as streamRegistryABI, bytecode as streamRegistryBytecode }
     from "../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"

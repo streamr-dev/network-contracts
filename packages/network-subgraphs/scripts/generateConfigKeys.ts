@@ -1,4 +1,6 @@
-import {ethers} from "ethers"
+#!npx ts-node
+
+import { ethers } from "ethers"
 
 const configKeys = [
     "slashingFraction",
@@ -28,6 +30,7 @@ const configKeys = [
     "voterRegistry",
     "operatorContractOnlyJoinPolicy",
     "streamRegistryAddress",
+    "minimumDelegationSeconds", // added 2024-01-26 (ETH-717)
 ]
 
 let lines = ""
@@ -35,7 +38,7 @@ let lines = ""
 for (const key of configKeys) {
     const value = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(key))
     lines += `const ${key}Key = "${value}"\n`
-    
+
 }
 
 // eslint-disable-next-line no-console

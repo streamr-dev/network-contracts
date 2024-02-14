@@ -105,6 +105,12 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
 
     /**
+     * Bitfield of features supported by this version
+     *  0: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
+     */
+    uint public version = 0x1;
+
+    /**
      * totalStakedIntoSponsorshipsWei is the DATA staked in all sponsorships, used for tracking the Operator contract DATA value:
      * DATA value = DATA in contract (available for staking) + DATA staked + DATA earnings in sponsorships
      */
@@ -139,6 +145,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     mapping(Sponsorship => uint) public stakedInto;
     /** slashed in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public slashedIn;
+
+    /** Delegators are prevented from undelegating right after delegating, so remember when they last delegated */
+    mapping(address => uint) public latestDelegationTimestamp;
 
     struct UndelegationQueueEntry {
         address delegator;
@@ -327,6 +336,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
         }
 
+        latestDelegationTimestamp[delegator] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
