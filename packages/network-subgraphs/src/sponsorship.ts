@@ -22,15 +22,15 @@ const flagResultStrings = [
 ]
 
 export function handleStakeUpdated(event: StakeUpdate): void {
-    const sponsorshipAddress = event.address.toHexString()
-    const operatorAddress = event.params.operator.toHexString()
+    const sponsorshipId = event.address.toHexString()
+    const operatorId = event.params.operator.toHexString()
     const stakedWei = event.params.stakedWei
     const earningsWei = event.params.earningsWei
     const now = event.block.timestamp.toU32()
     log.info('handleStakeUpdated: sponsorship={} operator={} stakedWei={} earningsWei={}, now={}',
-        [sponsorshipAddress, operatorAddress, stakedWei.toString(), earningsWei.toString(), now.toString()])
+        [sponsorshipId, operatorId, stakedWei.toString(), earningsWei.toString(), now.toString()])
 
-    const stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
+    const stake = loadOrCreateStake(sponsorshipId, operatorId)
     if (stakedWei == BigInt.zero()) {
         store.remove('Stake', stake.id)
         return
@@ -42,23 +42,23 @@ export function handleStakeUpdated(event: StakeUpdate): void {
     stake.save()
 
     // also save StakingEvent, TODO: do we need them?
-    const stakingEvent = new StakingEvent(sponsorshipAddress + "-" + event.transaction.hash.toHexString())
-    stakingEvent.sponsorship = sponsorshipAddress
-    stakingEvent.operator = operatorAddress
+    const stakingEvent = new StakingEvent(sponsorshipId + "-" + event.transaction.hash.toHexString())
+    stakingEvent.sponsorship = sponsorshipId
+    stakingEvent.operator = operatorId
     stakingEvent.date = event.block.timestamp
     stakingEvent.amount = event.params.stakedWei
     stakingEvent.save()
 }
 
 export function handleStakeLockUpdated(event: StakeLockUpdate): void {
-    const sponsorshipAddress = event.address.toHexString()
-    const operatorAddress = event.params.operator.toHexString()
+    const sponsorshipId = event.address.toHexString()
+    const operatorId = event.params.operator.toHexString()
     const lockedStakeWei = event.params.lockedStakeWei
     const minimumStakeWei = event.params.minimumStakeWei
     log.info('handleStakeLockUpdated: sponsorship={} operator={} lockedStakeWei={} minimumStakeWei={}',
-        [sponsorshipAddress, operatorAddress, lockedStakeWei.toString(), minimumStakeWei.toString()])
+        [sponsorshipId, operatorId, lockedStakeWei.toString(), minimumStakeWei.toString()])
 
-    const stake = loadOrCreateStake(sponsorshipAddress, operatorAddress)
+    const stake = loadOrCreateStake(sponsorshipId, operatorId)
     stake.lockedWei = lockedStakeWei
     stake.minimumStakeWei = minimumStakeWei
     stake.save()
@@ -70,8 +70,8 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
         event.params.operatorCount.toString(), event.params.isRunning.toString()
     ])
 
-    const sponsorshipAddress = event.address.toHexString()
-    const sponsorship = Sponsorship.load(sponsorshipAddress)!
+    const sponsorshipId = event.address.toHexString()
+    const sponsorship = Sponsorship.load(sponsorshipId)!
     sponsorship.totalStakedWei = event.params.totalStakedWei
     sponsorship.remainingWei = event.params.remainingWei
     sponsorship.remainingWeiUpdateTimestamp = event.block.timestamp
@@ -99,7 +99,7 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     }
     sponsorship.save()
 
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipAddress, event.block.timestamp)
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipId, event.block.timestamp)
     bucket.totalStakedWei = sponsorship.totalStakedWei
     bucket.remainingWei = sponsorship.remainingWei
     bucket.operatorCount = sponsorship.operatorCount
@@ -108,47 +108,47 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
 }
 
 export function handleInsolvencyStarted(event: InsolvencyStarted): void {
-    const sponsorshipAddress = event.address.toHexString()
+    const sponsorshipId = event.address.toHexString()
     const startTimestamp = event.params.startTimeStamp.toHexString()
     log.info('handleInsolvencyStarted: sponsorship={} startTimestamp={} blockNumber={}',
-        [sponsorshipAddress, startTimestamp, event.block.number.toString()])
+        [sponsorshipId, startTimestamp, event.block.number.toString()])
     const network = loadOrCreateNetwork()
     network.fundedSponsorshipsCount += 1
     network.save()
 }
 
 export function handleInsolvencyEnded(event: InsolvencyEnded): void {
-    const sponsorshipAddress = event.address.toHexString()
+    const sponsorshipId = event.address.toHexString()
     const endTimestamp = event.params.endTimeStamp.toHexString()
     log.info('handleInsolvencyEnded: sponsorship={} endTimeStamp={} blockNumber={}',
-        [sponsorshipAddress, endTimestamp, event.block.number.toString()])
+        [sponsorshipId, endTimestamp, event.block.number.toString()])
     const network = loadOrCreateNetwork()
     network.fundedSponsorshipsCount -= 1
     network.save()
 }
 
 export function handleFlagged(event: Flagged): void {
-    const sponsorship = event.address.toHexString()
-    const target = event.params.target.toHexString()
-    const flagger = event.params.flagger.toHexString()
+    const sponsorshipId = event.address.toHexString()
+    const targetId = event.params.target.toHexString()
+    const flaggerId = event.params.flagger.toHexString()
     const targetStakeAtRiskWei = event.params.targetStakeAtRiskWei
     const reviewerCount = event.params.reviewerCount.toI32()
     const flagMetadata = event.params.flagMetadata
     const now = event.block.timestamp.toI32()
     log.info('handleFlagged: sponsorship={} flagger={} target={} targetStakeAtRiskWei={} reviewerCount={} flagMetadata={} now={}',
-        [ sponsorship, flagger, target, targetStakeAtRiskWei.toString(), reviewerCount.toString(), flagMetadata, now.toString() ])
+        [ sponsorshipId, flaggerId, targetId, targetStakeAtRiskWei.toString(), reviewerCount.toString(), flagMetadata, now.toString() ])
 
     // keep the running flagIndex in the first flag, set it to always point to the latest flag
     // the reason why first flag is a good place is that there is a list of flags per Operator-Sponsorship pair,
     //   however Stake (which would be the natural place since it represents such pair) isn't a good place for the running index
     //   because when a vote concludes with VOTE_KICK (or Operator unstakes for whatever reason) the Stake entity is deleted
-    const firstFlag = loadOrCreateFlag(sponsorship, target, 0) // loaded here, created in operator.handleReviewRequest
+    const firstFlag = loadOrCreateFlag(sponsorshipId, targetId, 0) // loaded here, created in operator.handleReviewRequest
     const flagIndex = firstFlag.lastFlagIndex + 1
     firstFlag.lastFlagIndex = flagIndex
     firstFlag.save()
 
-    const flag = loadOrCreateFlag(sponsorship, target, flagIndex) // loaded here, created in operator.handleReviewRequest
-    flag.flagger = flagger
+    const flag = loadOrCreateFlag(sponsorshipId, targetId, flagIndex) // loaded here, created in operator.handleReviewRequest
+    flag.flagger = flaggerId
     flag.flaggingTimestamp = now
     flag.reviewerCount = reviewerCount
     flag.targetStakeAtRiskWei = targetStakeAtRiskWei
@@ -162,25 +162,26 @@ export function handleFlagged(event: Flagged): void {
 }
 
 export function handleFlagUpdate(event: FlagUpdate): void {
-    const sponsorship = event.address.toHexString()
-    const target = event.params.target.toHexString()
+    const sponsorshipId = event.address.toHexString()
+    const targetAddress = event.params.target
+    const targetId = targetAddress.toHexString()
     const statusCode = event.params.status
     const votesForKick = event.params.votesForKick
     const votesAgainstKick = event.params.votesAgainstKick
-    const voter = event.params.voter.toHexString()
+    const voterId = event.params.voter.toHexString()
     const weight = event.params.voterWeight.abs()
     const votedKick = event.params.voterWeight.gt(BigInt.zero())
     const now = event.block.timestamp.toI32()
     log.info('handleFlagUpdate: sponsorship={} target={} status={}, voter={}, vote={}, weight={}, votesFor={} votesAgainst={}', [
-        sponsorship, target, statusCode.toString(), voter, votedKick ? "kick" : "no kick", weight.toString(),
+        sponsorshipId, targetId, statusCode.toString(), voterId, votedKick ? "kick" : "no kick", weight.toString(),
         votesForKick.toString(), votesAgainstKick.toString()
     ])
 
-    const flagIndex = Flag.load(sponsorship + "-" + target + "-0")!.lastFlagIndex
-    const flag = Flag.load(sponsorship + "-" + target + "-" + flagIndex.toString())!
+    const flagIndex = Flag.load(sponsorshipId + "-" + targetId + "-0")!.lastFlagIndex
+    const flag = Flag.load(sponsorshipId + "-" + targetId + "-" + flagIndex.toString())!
     flag.result = flagResultStrings[statusCode]
     if (flag.result == "failed") {
-        const targetOperator = loadOrCreateOperator(target)
+        const targetOperator = loadOrCreateOperator(targetAddress)
         targetOperator.protectionEndTimestamp = flag.protectionEndTimestamp
     }
     if (flag.result == "kicked" || flag.result == "failed") {
@@ -191,9 +192,9 @@ export function handleFlagUpdate(event: FlagUpdate): void {
     flag.save()
 
     if (weight.gt(BigInt.zero())) {
-        const vote = new Vote(sponsorship + "-" + target + "-" + flagIndex.toString() + "-" + voter)
+        const vote = new Vote(sponsorshipId + "-" + targetId + "-" + flagIndex.toString() + "-" + voterId)
         vote.flag = flag.id
-        vote.voter = voter
+        vote.voter = voterId
         vote.voterWeight = weight
         vote.votedKick = votedKick
         vote.timestamp = now
@@ -202,22 +203,22 @@ export function handleFlagUpdate(event: FlagUpdate): void {
 }
 
 export function handleOperatorSlashed(event: OperatorSlashed): void {
-    const sponsorshipAddress = event.address.toHexString()
-    const operatorAddress = event.params.operator.toHexString()
+    const sponsorshipId = event.address.toHexString()
+    const operatorId = event.params.operator.toHexString()
     const slashingAmount = event.params.amountWei
     log.info('handleOperatorSlashed: sponsorship={} operator={} slashingAmount={}',
-        [ sponsorshipAddress, operatorAddress, slashingAmount.toString() ])
+        [ sponsorshipId, operatorId, slashingAmount.toString() ])
 
-    const slashID = sponsorshipAddress + "-" + event.transaction.hash.toHexString()
-    const slashingEvent = new SlashingEvent(slashID)
-    slashingEvent.sponsorship = sponsorshipAddress
-    slashingEvent.operator = operatorAddress
+    const slashingEventId = sponsorshipId + "-" + event.transaction.hash.toHexString()
+    const slashingEvent = new SlashingEvent(slashingEventId)
+    slashingEvent.sponsorship = sponsorshipId
+    slashingEvent.operator = operatorId
     slashingEvent.date = event.block.timestamp
     slashingEvent.amount = slashingAmount
     slashingEvent.save()
 
     // update Operator
-    const operator = Operator.load(operatorAddress)
+    const operator = Operator.load(operatorId)
     if (operator !== null) {
         operator.slashingsCount = operator.slashingsCount + 1
         operator.save()
@@ -225,16 +226,16 @@ export function handleOperatorSlashed(event: OperatorSlashed): void {
 }
 
 export function handleSponsorshipReceived(event: SponsorshipReceived): void {
-    log.info('handleSponsorshipReceived: sponsor={} amount={}', [event.params.sponsor.toHexString(),
-        event.params.amount.toString()
-    ])
-    const sponsorship = Sponsorship.load(event.address.toHexString())
+    const sponsorshipId = event.address.toHexString()
+    const sponsorId = event.params.sponsor.toHexString()
+    log.info('handleSponsorshipReceived: sponsor={} amount={}', [ sponsorId, event.params.amount.toString() ])
+    const sponsorship = Sponsorship.load(sponsorshipId)
     sponsorship!.cumulativeSponsoring = sponsorship!.cumulativeSponsoring.plus(event.params.amount)
     sponsorship!.save()
 
-    const sponsoringEvent = new SponsoringEvent(event.address.toHexString() + event.transaction.hash.toHexString())
-    sponsoringEvent.sponsorship = event.address.toHexString()
-    sponsoringEvent.sponsor = event.params.sponsor.toHexString()
+    const sponsoringEvent = new SponsoringEvent(sponsorshipId + event.transaction.hash.toHexString())
+    sponsoringEvent.sponsorship = sponsorshipId
+    sponsoringEvent.sponsor = sponsorId
     sponsoringEvent.date = event.block.timestamp
     sponsoringEvent.amount = event.params.amount
     sponsoringEvent.save()

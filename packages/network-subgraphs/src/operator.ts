@@ -11,7 +11,7 @@ import {
     QueueUpdated,
     QueuedDataPayout,
     Undelegated,
-    ReviewRequest
+    ReviewRequest,
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
     loadOrCreateNetwork,
@@ -21,20 +21,20 @@ import { Flag, QueueEntry } from '../generated/schema'
 
 /** Undelegated is used for tracking the total amount undelegated across all Operators */
 export function handleUndelegated(event: Undelegated): void {
-    let newUndelegation = event.params.amountDataWei
+    const newUndelegation = event.params.amountDataWei
     log.info('handleUndelegated: newUndelegation={}', [newUndelegation.toString()])
 
-    let network = loadOrCreateNetwork()
+    const network = loadOrCreateNetwork()
     network.totalUndelegated = network.totalUndelegated.plus(newUndelegation)
     network.save()
 }
 
 /** Delegated is used for tracking the total amount delegated across all Operators */
 export function handleDelegated(event: Delegated): void {
-    let newDelegation = event.params.amountDataWei
+    const newDelegation = event.params.amountDataWei
     log.info('handleDelegated: newDelegation={}', [newDelegation.toString()])
 
-    let network = loadOrCreateNetwork()
+    const network = loadOrCreateNetwork()
     network.totalDelegated = network.totalDelegated.plus(newDelegation)
     network.save()
 }
@@ -44,32 +44,32 @@ export function handleDelegated(event: Delegated): void {
  * AND also delegators joining/leaving the Operator
  **/
 export function handleBalanceUpdate(event: BalanceUpdate): void {
-    let operatorContractAddress = event.address.toHexString()
-    let delegatorAddress = event.params.delegator.toHexString()
-    let newBalance = event.params.balanceWei
-    let totalSupply = event.params.totalSupplyWei
-    let valueWithoutEarnings = event.params.dataValueWithoutEarnings
+    const operatorContractAddress = event.address
+    const delegatorId = event.params.delegator.toHexString()
+    const newBalance = event.params.balanceWei
+    const totalSupply = event.params.totalSupplyWei
+    const valueWithoutEarnings = event.params.dataValueWithoutEarnings
     log.info('handleBalanceUpdate: operator={} delegatorAddress={} newBalance={} totalSupply={} valueWithoutEarnings={}', [
-        operatorContractAddress, delegatorAddress, newBalance.toString(), totalSupply.toString(), valueWithoutEarnings.toString()
+        operatorContractAddress.toHexString(), delegatorId, newBalance.toString(), totalSupply.toString(), valueWithoutEarnings.toString()
     ])
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
+    const operator = loadOrCreateOperator(operatorContractAddress)
     operator.operatorTokenTotalSupplyWei = totalSupply
     operator.exchangeRate = totalSupply.gt(BigInt.zero())
         ? valueWithoutEarnings.toBigDecimal().div(totalSupply.toBigDecimal())
         : BigInt.fromU32(1).toBigDecimal()
 
-    let newBalanceDataWei = BigInt.fromString(newBalance
+    const newBalanceDataWei = BigInt.fromString(newBalance
         .toBigDecimal()
         .times(operator.exchangeRate)
         .plus(BigDecimal.fromString("0.0000001"))   // fix rounding error
         .toString().split('.')[0]                   // truncate to int
     )
 
-    let delegator = loadOrCreateDelegator(delegatorAddress)
-    let delegation = loadOrCreateDelegation(operatorContractAddress, delegatorAddress)
-    let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
-    let operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    const delegator = loadOrCreateDelegator(delegatorId)
+    const delegation = loadOrCreateDelegation(operatorContractAddress, delegatorId)
+    const delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
+    const operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
         // delegation is new
         operator.delegatorCount = operator.delegatorCount + 1
@@ -86,7 +86,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     if (newBalance.gt(BigInt.zero())) {
         // delegation created or updated
-        let network = loadOrCreateNetwork()
+        const network = loadOrCreateNetwork()
         const now = event.block.timestamp.toU32()
         delegation.latestDelegationTimestamp = now
         delegation.earliestUndelegationTimestamp = now + network.minimumDelegationSeconds
@@ -109,14 +109,14 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
 }
 
 export function handleMetadataUpdate(event: MetadataUpdated): void {
-    let operatorContractAddress = event.address.toHexString()
-    let operatorAddress = event.params.operatorAddress.toHexString()
-    let metadataJsonString = event.params.metadataJsonString
+    const operatorContractAddress = event.address
+    const operatorAddress = event.params.operatorAddress.toHexString()
+    const metadataJsonString = event.params.metadataJsonString
     log.info('handleMetadataUpdate: operatorContractAddress={} blockNumber={} operatorAddress={} metadataJsonString={}', [
-        operatorContractAddress, event.block.number.toString(), operatorAddress, metadataJsonString
+        operatorContractAddress.toHexString(), event.block.number.toString(), operatorAddress, metadataJsonString
     ])
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
+    const operator = loadOrCreateOperator(operatorContractAddress)
     operator.owner = operatorAddress
     // TODO: parse metadataJsonString once we know what to look for
     operator.metadataJsonString = metadataJsonString
@@ -125,11 +125,11 @@ export function handleMetadataUpdate(event: MetadataUpdated): void {
 }
 
 export function handleHeartbeat(event: Heartbeat): void {
-    let operatorContractAddress = event.address.toHexString()
-    // let nodeAddress = event.params.nodeAddress.toHexString()
-    let metadataJsonString = event.params.jsonData
+    const operatorContractAddress = event.address
+    // const nodeAddress = event.params.nodeAddress.toHexString()
+    const metadataJsonString = event.params.jsonData
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
+    const operator = loadOrCreateOperator(operatorContractAddress)
     operator.latestHeartbeatMetadata = metadataJsonString
     operator.latestHeartbeatTimestamp = event.block.timestamp
     operator.save()
@@ -137,11 +137,11 @@ export function handleHeartbeat(event: Heartbeat): void {
 
 /** event emits DATA values in sponsorships */
 export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
-    let operatorContractAddress = event.address.toHexString()
+    const operatorContractAddress = event.address
     log.info('handleOperatorValueUpdate: operatorContractAddress={} blockNumber={} totalStakeInSponsorshipsWei={}',
-        [operatorContractAddress, event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
-    let operator = loadOrCreateOperator(operatorContractAddress)
-    let stakeChange = event.params.totalStakeInSponsorshipsWei.minus(operator.totalStakeInSponsorshipsWei)
+        [operatorContractAddress.toHexString(), event.block.number.toString(), event.params.totalStakeInSponsorshipsWei.toString()])
+    const operator = loadOrCreateOperator(operatorContractAddress)
+    const stakeChange = event.params.totalStakeInSponsorshipsWei.minus(operator.totalStakeInSponsorshipsWei)
     operator.totalStakeInSponsorshipsWei = event.params.totalStakeInSponsorshipsWei
     operator.dataTokenBalanceWei = event.params.dataTokenBalanceWei
     operator.valueWithoutEarnings = event.params.totalStakeInSponsorshipsWei.plus(event.params.dataTokenBalanceWei)
@@ -152,24 +152,24 @@ export function handleOperatorValueUpdate(event: OperatorValueUpdate): void {
         : BigInt.fromU32(1).toBigDecimal()
     operator.save()
 
-    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    const bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.valueWithoutEarnings = operator.valueWithoutEarnings
     bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
     bucket.save()
 
-    let network = loadOrCreateNetwork()
+    const network = loadOrCreateNetwork()
     network.totalStake = network.totalStake.plus(stakeChange)
     network.save()
 }
 
 export function handleProfit(event: Profit): void {
-    let operatorContractAddress = event.address.toHexString()
-    let valueIncreaseWei = event.params.valueIncreaseWei // earningsWei - oeratorsShareWei
-    let operatorsCutDataWei = event.params.operatorsCutDataWei
+    const operatorContractAddress = event.address
+    const valueIncreaseWei = event.params.valueIncreaseWei // earningsWei - oeratorsShareWei
+    const operatorsCutDataWei = event.params.operatorsCutDataWei
     log.info('handleProfit: operatorContractAddress={} blockNumber={} valueIncreaseWei={} operatorsCutDataWei={}',
-        [operatorContractAddress, event.block.number.toString(), valueIncreaseWei.toString(), operatorsCutDataWei.toString()])
+        [operatorContractAddress.toHexString(), event.block.number.toString(), valueIncreaseWei.toString(), operatorsCutDataWei.toString()])
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
+    const operator = loadOrCreateOperator(operatorContractAddress)
     operator.cumulativeProfitsWei = operator.cumulativeProfitsWei.plus(valueIncreaseWei)
     operator.cumulativeOperatorsCutWei = operator.cumulativeOperatorsCutWei.plus(operatorsCutDataWei)
     operator.cumulativeEarningsWei = operator.cumulativeProfitsWei.plus(operator.cumulativeOperatorsCutWei)
@@ -178,11 +178,11 @@ export function handleProfit(event: Profit): void {
     ])
     operator.save()
 
-    let delegations = operator.delegations.load()
+    const delegations = operator.delegations.load()
     for (let i = 0; i < delegations.length; i++) {
-        let delegator = loadOrCreateDelegator(delegations[i].delegator)
-        let delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
-        let fractionOfProfitsFloor = BigInt.fromString(delegations[i].operatorTokenBalanceWei.toBigDecimal()
+        const delegator = loadOrCreateDelegator(delegations[i].delegator)
+        const delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
+        const fractionOfProfitsFloor = BigInt.fromString(delegations[i].operatorTokenBalanceWei.toBigDecimal()
             .div(operator.operatorTokenTotalSupplyWei.toBigDecimal())   // fraction of token supply
             .times(valueIncreaseWei.toBigDecimal())                     // profit is divided equally to delegators
             .toString().split('.')[0]                                   // truncate to int
@@ -196,7 +196,7 @@ export function handleProfit(event: Profit): void {
         delegatorDailyBucket.save()
     }
 
-    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+    const bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.profitsWei = bucket.profitsWei.plus(valueIncreaseWei)
     bucket.operatorsCutWei = bucket.operatorsCutWei.plus(operatorsCutDataWei)
     bucket.cumulativeEarningsWei = operator.cumulativeEarningsWei
@@ -204,40 +204,40 @@ export function handleProfit(event: Profit): void {
 }
 
 export function handleLoss(event: Loss): void {
-    let operatorContractAddress = event.address.toHexString()
-    let valueDecreaseWei = event.params.valueDecreaseWei
+    const operatorContractAddress = event.address
+    const valueDecreaseWei = event.params.valueDecreaseWei
     log.info('handleLoss: operatorContractAddress={} blockNumber={} valueDecreaseWei={}',
-        [operatorContractAddress, event.block.number.toString(), valueDecreaseWei.toString()])
-    let bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
+        [operatorContractAddress.toHexString(), event.block.number.toString(), valueDecreaseWei.toString()])
+    const bucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     bucket.lossesWei = bucket.lossesWei.plus(valueDecreaseWei)
     bucket.save()
 }
 
 export function handleQueuedDataPayout(event: QueuedDataPayout): void {
-    let operatorContractAddress = event.address.toHexString()
-    let amountPT = event.params.amountWei
+    const operatorId = event.address.toHexString()
+    const queuedAmount = event.params.amountWei
     log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
-        operatorContractAddress, event.block.number.toString(), amountPT.toString()
+        operatorId, event.block.number.toString(), queuedAmount.toString()
     ])
 
-    let queueEntry = new QueueEntry(operatorContractAddress + "-" + event.params.queueIndex.toString())
-    queueEntry.operator = operatorContractAddress
-    queueEntry.amount = amountPT
+    const queueEntry = new QueueEntry(operatorId + "-" + event.params.queueIndex.toString())
+    queueEntry.operator = operatorId
+    queueEntry.amount = queuedAmount
     queueEntry.date = event.block.timestamp
     queueEntry.delegator = event.params.delegator.toHexString()
     queueEntry.save()
 }
 
 export function handleQueueUpdated(event: QueueUpdated): void {
-    let operatorContractAddress = event.address.toHexString()
+    const operatorId = event.address.toHexString()
     log.info('handleQueueUpdated: operatorContractAddress={} blockNumber={}', [
-        operatorContractAddress, event.block.number.toString()
+        operatorId, event.block.number.toString()
     ])
 
-    let queueEntry = QueueEntry.load(operatorContractAddress + "-" + event.params.queueIndex.toString())
+    const queueEntry = QueueEntry.load(operatorId + "-" + event.params.queueIndex.toString())
     if (queueEntry === null) {
         log.warning('handleQueueUpdated: queueEntry not found for operatorContractAddress={} queueIndex={}', [
-            operatorContractAddress, event.params.queueIndex.toString()])
+            operatorId, event.params.queueIndex.toString()])
         return
     }
     if (event.params.amountWei.equals(BigInt.fromI32(0))) {
@@ -249,30 +249,30 @@ export function handleQueueUpdated(event: QueueUpdated): void {
 }
 
 export function handleNodesSet(event: NodesSet): void {
-    let operatorContractAddress = event.address.toHexString()
+    const operatorContractAddress = event.address
     log.info('handleNodesSet: operatorContractAddress={} blockNumber={}', [
-        operatorContractAddress, event.block.number.toString()
+        operatorContractAddress.toHexString(), event.block.number.toString()
     ])
 
-    let operator = loadOrCreateOperator(operatorContractAddress)
+    const operator = loadOrCreateOperator(operatorContractAddress)
     operator.nodes = event.params.nodes.map<string>((node) => node.toHexString())
     operator.save()
 }
 
 export function handleReviewRequest(event: ReviewRequest): void {
-    let reviewer = event.address.toHexString()
-    let sponsorship = event.params.sponsorship.toHexString()
-    let targetOperator = event.params.targetOperator.toHexString()
+    const reviewerId = event.address.toHexString()
+    const sponsorshipId = event.params.sponsorship.toHexString()
+    const targetId = event.params.targetOperator.toHexString()
     log.info('handleReviewRequest: reviewer={} sponsorship={} targetOperator={} blockNumber={}', [
-        reviewer, event.block.number.toString(), sponsorship, targetOperator, event.block.number.toString()
+        reviewerId, event.block.number.toString(), sponsorshipId, targetId, event.block.number.toString()
     ])
 
     // don't save firstFlag.lastFlagIndex (sponsorship.handleFlagged does that)
-    let firstFlag = Flag.load(sponsorship + "-" + targetOperator + "-0")
-    let flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
-    let flag = loadOrCreateFlag(sponsorship, targetOperator, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
-    let reviewers = flag.reviewers
-    reviewers.push(reviewer)
+    const firstFlag = Flag.load(sponsorshipId + "-" + targetId + "-0")
+    const flagIndex = firstFlag == null ? 0 : (firstFlag.lastFlagIndex + 1)
+    const flag = loadOrCreateFlag(sponsorshipId, targetId, flagIndex) // Flag entity is created for first reviewer and loaded for remaining ones
+    const reviewers = flag.reviewers
+    reviewers.push(reviewerId)
     flag.reviewers = reviewers
     flag.save()
 }

@@ -60,6 +60,7 @@ describe("docker image integration test", () => {
             }
             operators {
                 id
+                contractVersion
             }
             operatorDailyBuckets {
                 id
