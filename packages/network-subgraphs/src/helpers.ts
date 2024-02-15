@@ -198,8 +198,10 @@ export function loadOrCreateOperator(operatorContractAddress: Address): Operator
         operator.slashingsCount = 0
         operator.nodes = []
 
+        log.info("loadOrCreateOperator: querying version from operator={}", [operatorId])
         const maybeVersion = OperatorContract.bind(operatorContractAddress).try_version()
         operator.contractVersion = maybeVersion.reverted ? BigInt.zero() : maybeVersion.value
+        log.info("loadOrCreateOperator: got version={}", [operator.contractVersion.toString()])
 
         operator.isEligibleToVote = false
 
