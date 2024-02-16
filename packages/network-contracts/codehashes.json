@@ -15,7 +15,7 @@
     "voteKickPolicyCodehash": "0xbae2aea568f5ef6417b997f783fb449aa84906d728120468d029bb860909e74c",
     "defaultDelegationPolicyCodehash": "0x3dac57b9aa5dccfc9bc4bb2f0cac6be7c1f164444d49fa81a1dceac945a41938",
     "defaultExchangeRatePolicyCodehash": "0x83763ad25f063b490095a9010b76334b822baccdc6c80332b9147b1537e01a81",
-    "defaultUndelegationPolicyCodehash": "0xae079e5083f5f00b8f05ec024c101b8f1dced5d7726450e1b39dd8504ee73fa3",
+    "defaultUndelegationPolicyCodehash": "0x0cedc43cedef8b62f396e33d295537a9c4b1e033d683836ac2b84f85012f3b1f",
     "operatorContractOnlyJoinPolicyCodehash": "0xa7649ddd5422d615a36ee6ace0bd9aa2518e92dc585153d92e33a4ba7e7dab5c",
     "ensRegistryCodehash": "0x4a3706b775790bb304fc45d82e1e29d2550d954e157e4f7afd58321f63df781d",
     "fifsRegistrarCodehash": "0x3b48dc0632139deb5e8fb3396d19a836fb7f294e6ac2a677392111833ee41745",

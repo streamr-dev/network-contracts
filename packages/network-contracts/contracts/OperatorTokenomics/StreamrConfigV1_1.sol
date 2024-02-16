@@ -175,7 +175,9 @@ contract StreamrConfigV1_1 is Initializable, AccessControlUpgradeable, UUPSUpgra
 
         // Prevent "sand delegations", set minimum delegation to 1 full operator token (1e18)
         setMinimumDelegationWei(1 ether);
-        setMinimumDelegationSeconds(1 days);
+
+        // Prevent "skimming the earnings" by delegating, withdrawing and instantly undelegating
+        setMinimumDelegationSeconds(2 days);
 
         // Sponsorship leave penalty parameter limit
         setMaxPenaltyPeriodSeconds(14 days);
