@@ -33,6 +33,9 @@ can be recreated with the Dockerfile. To do so:
 
 * v0.0.3
   * Sponsorhip.spotAPY and .projectedInsolvency changes (ETH-736)
+* v0.0.4
+  * Operator.contractVersion and .earliestUndelegationTimestamp (ETH-728)
+  * StreamrConfig.minimumDelegationSeconds (ETH-717)
 
 # Developer notes
 
