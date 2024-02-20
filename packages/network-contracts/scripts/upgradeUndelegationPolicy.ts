@@ -77,7 +77,10 @@ async function main() {
     //     }
     // }
     const newUndelegationPolicy = await new ContractFactory(defaultDelegationPolicyABI, defaultUndelegationPolicyBytecode, wallet).deploy(txOverrides)
+    await newUndelegationPolicy.deployed()
     log("Deployed new undelegation policy at %s", newUndelegationPolicy.address)
+
+    await sleep(1000)
 
     const whitelistTx = await operatorFactory.addTrustedPolicy(newUndelegationPolicy.address, txOverrides)
     log("Whitelist policy tx: %s/tx/%s", blockExplorerUrl, whitelistTx.hash)
@@ -91,6 +94,12 @@ async function main() {
     if (OUTPUT_FILE) {
         writeFileSync(OUTPUT_FILE, newUndelegationPolicy.address)
     }
+}
+
+async function sleep(ms: number) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms)
+    })
 }
 
 if (require.main === module) {

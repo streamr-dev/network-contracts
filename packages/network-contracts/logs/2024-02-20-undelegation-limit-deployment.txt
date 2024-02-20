@@ -1,0 +1,213 @@
+$ ./scripts/2024-02-20-undelegation-limit-deployment.sh            [14:53:30]
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ export OUTPUT_FILE=operatorTemplate.txt
++ OUTPUT_FILE=operatorTemplate.txt
++ ./scripts/upgradeOperatorTemplate.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 179.152718396181342555 ETH
+Deployed Operator template at 0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6
+Setting template (nodeModule 0x5E3a031B0474C6c8Af9E15A3348DF1DB458A45E7, queueModule 0x7D3eDa9a378d44B21B03576491553a543B4ba3D9, stakeModule 0x045FC7FF0C55c1E14E73f9EfC57dC95F6871dc8b)
+Set template tx: https://polygonscan.com/tx/0x5f5003bff12c0d491c0501dc9e03b25af8ab9f9edcc020c983b634ee4fe67867
+Set template receipt: {
+  blockNumber: 53753644,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0x5f5003bff12c0d491c0501dc9e03b25af8ab9f9edcc020c983b634ee4fe67867',
+  events: [
+    {
+      event: 'TemplateAddresses',
+      args: {
+        operatorTemplate: '0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6',
+        nodeModuleTemplate: '0x5E3a031B0474C6c8Af9E15A3348DF1DB458A45E7',
+        queueModuleTemplate: '0x7D3eDa9a378d44B21B03576491553a543B4ba3D9',
+        stakeModuleTemplate: '0x045FC7FF0C55c1E14E73f9EfC57dC95F6871dc8b'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 0.63847275 ETH for gas
+++ cat operatorTemplate.txt
++ export ADDRESS=0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6
++ ADDRESS=0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6
++ npm run verify
+
+> @streamr/network-contracts@7.0.8 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/Operator.sol:Operator at 0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract Operator on Etherscan.
+https://polygonscan.com/address/0x6Be5f57B66313f7800cAF7FcFAE3e686668093b6#code
++ export OUTPUT_FILE=undelegationPolicy.txt
++ OUTPUT_FILE=undelegationPolicy.txt
++ ./scripts/upgradeUndelegationPolicy.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 177.863537546181342555 ETH
+Deployed new undelegation policy at 0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e
+Whitelist policy tx: https://polygonscan.com/tx/0xff185c2303316347906daf4699079dbb02549e9639e754b596c627bdb01af440
+Tx receipt: {
+  blockNumber: 53753783,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0xff185c2303316347906daf4699079dbb02549e9639e754b596c627bdb01af440',
+  events: [
+    {
+      event: 'PolicyWhitelisted',
+      args: {
+        policyAddress: '0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e',
+        isWhitelisted: 'true'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 0.6605514 ETH for gas
+++ cat undelegationPolicy.txt
++ export ADDRESS=0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e
++ ADDRESS=0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e
++ npm run verify
+
+> @streamr/network-contracts@7.0.8 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol:DefaultUndelegationPolicy at 0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract DefaultUndelegationPolicy on Etherscan.
+https://polygonscan.com/address/0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e#code
++ export OUTPUT_FILE=streamrConfig.txt
++ OUTPUT_FILE=streamrConfig.txt
++ export SCRIPT_FILE=./scripts/upgradeStreamrConfig.ts
++ SCRIPT_FILE=./scripts/upgradeStreamrConfig.ts
++ npm run hardhatScript
+
+> @streamr/network-contracts@7.0.8 hardhatScript
+> hardhat run --network $CHAIN $SCRIPT_FILE
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Checking network polygon
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: null
+}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 177.077362342389503843 ETH
+Checking new StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0 [OK]
+Spent 0.0078968 ETH for gas
+++ cat streamrConfig.txt
++ export ADDRESS=0x869e88dB146ECAF20dDf199a12684cD80c263c8f
++ ADDRESS=0x869e88dB146ECAF20dDf199a12684cD80c263c8f
++ npm run verify
+
+> @streamr/network-contracts@7.0.8 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Verifying implementation: 0xFAAB082dA568d3a00Ad19957E9c72E014315E46a
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/StreamrConfigV1_1.sol:StreamrConfigV1_1 at 0xFAAB082dA568d3a00Ad19957E9c72E014315E46a
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract StreamrConfigV1_1 on Etherscan.
+https://polygonscan.com/address/0xFAAB082dA568d3a00Ad19957E9c72E014315E46a#code
+Verifying proxy: 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+Contract at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f already verified.
+Linking proxy 0x869e88dB146ECAF20dDf199a12684cD80c263c8f with implementation
+Successfully linked proxy to implementation.
+
+Proxy fully verified.
++ ./scripts/streamrConfig.ts setMinimumDelegationSeconds 172800
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of minimumDelegationSeconds: 0
+Setting setMinimumDelegationSeconds to 172800 (172800)
+Transaction: https://polygonscan.com/tx/0xfa8b4d3be1c3d95d4f844360b04319d40c7deb493c28421f80c95ff9751e0a7b
