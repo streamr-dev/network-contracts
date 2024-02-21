@@ -1,4 +1,4 @@
-#!npx ts-node
+#!/usr/bin/env npx ts-node
 
 // Before running this file, start dev env: streamr-docker-dev start dev-chain-fast
 // Setter example: ./scripts/streamrConfig.ts setVotingPeriodSeconds 900
@@ -6,10 +6,10 @@
 // Getter example: ./scripts/streamrConfig.ts minimumStakeWei
 
 import { writeFileSync } from "fs"
-import { Contract } from "@ethersproject/contracts"
+import { Contract, Overrides } from "@ethersproject/contracts"
 import { Wallet } from "@ethersproject/wallet"
 import { JsonRpcProvider } from "@ethersproject/providers"
-import { parseEther, formatEther } from "@ethersproject/units"
+import { parseEther, formatEther, parseUnits } from "@ethersproject/units"
 
 import { config } from "@streamr/config"
 
@@ -27,6 +27,7 @@ const {
     KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
     CHAIN = "dev2",
     ETHEREUM_RPC,
+    GAS_PRICE_GWEI,
 
     STREAMR_CONFIG_ADDRESS,
     OUTPUT_FILE,
@@ -54,6 +55,11 @@ const provider = new JsonRpcProvider(ethereumRpcUrl)
 const wallet = new Wallet(KEY, provider)
 log("Wallet address used: %s", wallet.address)
 
+const txOverrides: Overrides = {}
+if (GAS_PRICE_GWEI) {
+    txOverrides.gasPrice = parseUnits(GAS_PRICE_GWEI, "gwei")
+}
+
 const streamrConfigAddress = STREAMR_CONFIG_ADDRESS ?? streamrConfigAddressFromConfig
 if (!streamrConfigAddress) { throw new Error("Either CHAIN (with StreamrConfig address) or STREAMR_CONFIG_ADDRESS must be set in environment") }
 const streamrConfig = new Contract(streamrConfigAddress, streamrConfigABI, wallet)
@@ -79,8 +85,8 @@ async function main() {
 
         const newValue = valueIsTokens && parseFloat(valueRaw!) < 1e10 ? parseEther(valueRaw!) : valueRaw
 
-        log("Setting %s to %s (%s)", methodName, newValue, valueRaw)
-        const tx = await method(newValue)
+        log("Setting %s to %s (%s), overrides: %s", methodName, newValue, valueRaw, JSON.stringify(txOverrides))
+        const tx = await method(newValue, txOverrides)
         log("Transaction: %s/tx/%s", blockExplorerUrl, tx.hash)
         const tr = await tx.wait()
         log("Transaction receipt: %o", formatReceipt(tr))
