@@ -1,7 +1,7 @@
 {
-    "operatorCodehash": "0x1c8e1ec61207506d690feff6a56a22a33992ea5a127b3a974c61cf57d89a1aaf",
+    "operatorCodehash": "0x4f3049f671fed7e02aff03eae984690677f26d34a1fb84fb5d888929bda2d683",
     "sponsorshipCodehash": "0x398601f506244cf0f1dc694983866c7d6ecf13f11935d3da50a80fd7c5b0fb5c",
-    "operatorFactoryCodehash": "0x2ffc0e64c2b27d4940564dd0f410ceac9609957fbcebe9def9fcc0c6f673a815",
+    "operatorFactoryCodehash": "0x8d76afc3d72f5738887ce733cf1f37bf3e5c43cbc813ba4a6cb3ee0707320f3c",
     "sponsorshipFactoryCodehash": "0x41b49904ee915c85e75964b0d52702c887bc1d36741bf6e79511500f0d2fe7f5",
     "streamrConfigCodehash": "0x25b96501de716d696d6a0d15c60af8bff1b3431ba8ad48014d6cc8ada5e9524b",
     "streamRegistryCodehash": "0xb493610c72da13b0fd0a8864cedfec5e9e776faaf5e11e9c14f4ceaf462a8f15",
@@ -12,15 +12,15 @@
     "maxOperatorsJoinPolicyCodehash": "0xa9e01518e32ea611e3ac566171fcf65a37540d9b7a6d8fe2801c8f5c503c2cf3",
     "stakeWeightedAllocationPolicyCodehash": "0xfc291761d4e5e8951b93239dfcc917471b2186c8adc52a6a116d291cba9e27b6",
     "defaultLeavePolicyCodehash": "0x56014e2bf6f67ec57ceeae6975985795f730fa127efcd5564a66744dc0bad669",
-    "voteKickPolicyCodehash": "0xbae2aea568f5ef6417b997f783fb449aa84906d728120468d029bb860909e74c",
-    "defaultDelegationPolicyCodehash": "0x3dac57b9aa5dccfc9bc4bb2f0cac6be7c1f164444d49fa81a1dceac945a41938",
-    "defaultExchangeRatePolicyCodehash": "0x83763ad25f063b490095a9010b76334b822baccdc6c80332b9147b1537e01a81",
-    "defaultUndelegationPolicyCodehash": "0x0cedc43cedef8b62f396e33d295537a9c4b1e033d683836ac2b84f85012f3b1f",
+    "voteKickPolicyCodehash": "0x798c034cd694124d29b9f233b688a3e60b530bb3ee4ec5a1e3d01cb838d6d87e",
+    "defaultDelegationPolicyCodehash": "0x73af7e8a9129dbd19b3ad6544ad205eb7cb0b5c8dfa623da56c2429ad56f2205",
+    "defaultExchangeRatePolicyCodehash": "0x99ffa0c2db5367894f99a4ae77f97578a6bd9cbc5229ff4eee4d7b754e95b2cd",
+    "defaultUndelegationPolicyCodehash": "0xffd8b8c988314f00a0f475bebf97cab64dabb773bb9022e71686d9604d7a9641",
     "operatorContractOnlyJoinPolicyCodehash": "0xa7649ddd5422d615a36ee6ace0bd9aa2518e92dc585153d92e33a4ba7e7dab5c",
     "ensRegistryCodehash": "0x4a3706b775790bb304fc45d82e1e29d2550d954e157e4f7afd58321f63df781d",
     "fifsRegistrarCodehash": "0x3b48dc0632139deb5e8fb3396d19a836fb7f294e6ac2a677392111833ee41745",
     "publicResolverCodehash": "0x7b500f287f93150f14d27dfaedfb137aa22765ac69ad05e7c5c18306e0181df9",
-    "nodeModuleCodehash": "0x8b3661b372f2c3f1697bd340a7bf5315961986f099a808c1c26451ef5e298008",
-    "queueModuleCodehash": "0x3129785e7836dd4744680cdffefeeded1bab5f2026fd18872a1a5b7159234428",
-    "stakeModuleCodehash": "0x2b5acc32a0f33620f4739eb98d9a1cf926ec60e525f8e17a6cc71ba041f6340d"
+    "nodeModuleCodehash": "0x42f53cdda2cd33f754aa29336fa4695850c34e811f226ab590adeec5156aed2f",
+    "queueModuleCodehash": "0x22578b624e3c7a937a64dc7104088561dd4181b3d513d800c686351e26b22baa",
+    "stakeModuleCodehash": "0xf4c163abb2b29ca43f04da5864b3b94a72ca29088cf22b633cee0126c02b8925"
 }

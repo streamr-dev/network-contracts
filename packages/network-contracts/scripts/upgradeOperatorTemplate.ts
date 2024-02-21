@@ -7,7 +7,13 @@ import { JsonRpcProvider } from "@ethersproject/providers"
 import { formatEther, parseUnits } from "@ethersproject/units"
 
 import { config } from "@streamr/config"
-import { operatorFactoryABI, operatorABI, operatorBytecode } from "@streamr/network-contracts"
+import {
+    operatorFactoryABI,
+    operatorABI, operatorBytecode,
+    nodeModuleABI, nodeModuleBytecode,
+    queueModuleABI, queueModuleBytecode,
+    stakeModuleABI, stakeModuleBytecode,
+} from "@streamr/network-contracts"
 import { formatReceipt } from "./prettyPrint"
 
 import type { Overrides } from "@ethersproject/contracts"
@@ -85,16 +91,29 @@ async function main() {
     await operatorTemplate.deployed()
     log("Deployed Operator template at %s", operatorTemplate.address)
 
-    const nodeModuleAddress = await operatorFactory.nodeModuleTemplate()
-    const queueModuleAddress = await operatorFactory.queueModuleTemplate()
-    const stakeModuleAddress = await operatorFactory.stakeModuleTemplate()
-    log("Setting template (nodeModule %s, queueModule %s, stakeModule %s)", nodeModuleAddress, queueModuleAddress, stakeModuleAddress)
+    // const nodeModuleAddress = await operatorFactory.nodeModuleTemplate()
+    // const queueModuleAddress = await operatorFactory.queueModuleTemplate()
+    // const stakeModuleAddress = await operatorFactory.stakeModuleTemplate()
+    const nodeModule = await (new ContractFactory(nodeModuleABI, nodeModuleBytecode, wallet)).deploy(txOverrides)
+    await nodeModule.deployed()
+    log("Deployed Node module at %s", nodeModule.address)
 
+    const queueModule = await (new ContractFactory(queueModuleABI, queueModuleBytecode, wallet)).deploy(txOverrides)
+    await queueModule.deployed()
+    log("Deployed Queue module at %s", queueModule.address)
+
+    const stakeModule = await (new ContractFactory(stakeModuleABI, stakeModuleBytecode, wallet)).deploy(txOverrides)
+    await stakeModule.deployed()
+    log("Deployed Stake module at %s", stakeModule.address)
+
+    await sleep(1000)
+
+    log("Setting template, overrides: %s", JSON.stringify(txOverrides))
     const setTemplateTx = await operatorFactory.updateTemplates(
         operatorTemplate.address,
-        nodeModuleAddress,
-        queueModuleAddress,
-        stakeModuleAddress,
+        nodeModule.address,
+        queueModule.address,
+        stakeModule.address,
         txOverrides
     )
     log("Set template tx: %s/tx/%s", blockExplorerUrl, setTemplateTx.hash)
@@ -106,8 +125,17 @@ async function main() {
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
     if (OUTPUT_FILE) {
-        writeFileSync(OUTPUT_FILE, operatorTemplate.address)
+        writeFileSync("operatorTemplate-" + OUTPUT_FILE, operatorTemplate.address)
+        writeFileSync("nodeModule-" + OUTPUT_FILE, nodeModule.address)
+        writeFileSync("queueModule-" + OUTPUT_FILE, queueModule.address)
+        writeFileSync("stakeModule-" + OUTPUT_FILE, stakeModule.address)
     }
+}
+
+async function sleep(ms: number) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms)
+    })
 }
 
 if (require.main === module) {

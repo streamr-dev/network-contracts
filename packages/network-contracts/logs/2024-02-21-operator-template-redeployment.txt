@@ -1,0 +1,131 @@
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ export OUTPUT_FILE=address.txt
++ OUTPUT_FILE=address.txt
++ ./scripts/upgradeOperatorTemplate.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 117.184549570143421843 ETH
+Deployed Operator template at 0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5
+Deployed Node module at 0x73f57d87cC18F4a81397858AF06A85115Fe6b02f
+Deployed Queue module at 0xf20E1dc5c32310900bD1F2B327295eF12d73fB91
+Deployed Stake module at 0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b
+Setting template, overrides: {"gasPrice":{"type":"BigNumber","hex":"0x22ecb25c00"}}
+Set template tx: https://polygonscan.com/tx/0xa23e82d0b8cbe3d8bdd22577816e0a55f49e370f4d363599d4065c696bb00396
+Set template receipt: {
+  blockNumber: 53798661,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0xa23e82d0b8cbe3d8bdd22577816e0a55f49e370f4d363599d4065c696bb00396',
+  events: [
+    {
+      event: 'TemplateAddresses',
+      args: {
+        operatorTemplate: '0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5',
+        nodeModuleTemplate: '0x73f57d87cC18F4a81397858AF06A85115Fe6b02f',
+        queueModuleTemplate: '0xf20E1dc5c32310900bD1F2B327295eF12d73fB91',
+        stakeModuleTemplate: '0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 2.81296845 ETH for gas
+++ cat operatorTemplate-address.txt
++ export ADDRESS=0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5
++ ADDRESS=0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5
++ npm run verify
+
+> @streamr/network-contracts@7.1.0 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/Operator.sol:Operator at 0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract Operator on Etherscan.
+https://polygonscan.com/address/0xfC59e2Bc1609c6A9Cba713780613435BC8FcfBf5#code
+++ cat nodeModule-address.txt
++ export ADDRESS=0x73f57d87cC18F4a81397858AF06A85115Fe6b02f
++ ADDRESS=0x73f57d87cC18F4a81397858AF06A85115Fe6b02f
++ npm run verify
+
+> @streamr/network-contracts@7.1.0 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/NodeModule.sol:NodeModule at 0x73f57d87cC18F4a81397858AF06A85115Fe6b02f
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract NodeModule on Etherscan.
+https://polygonscan.com/address/0x73f57d87cC18F4a81397858AF06A85115Fe6b02f#code
+++ cat queueModule-address.txt
++ export ADDRESS=0xf20E1dc5c32310900bD1F2B327295eF12d73fB91
++ ADDRESS=0xf20E1dc5c32310900bD1F2B327295eF12d73fB91
++ npm run verify
+
+> @streamr/network-contracts@7.1.0 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/QueueModule.sol:QueueModule at 0xf20E1dc5c32310900bD1F2B327295eF12d73fB91
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract QueueModule on Etherscan.
+https://polygonscan.com/address/0xf20E1dc5c32310900bD1F2B327295eF12d73fB91#code
+++ cat stakeModule-address.txt
++ export ADDRESS=0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b
++ ADDRESS=0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b
++ npm run verify
+
+> @streamr/network-contracts@7.1.0 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/StakeModule.sol:StakeModule at 0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract StakeModule on Etherscan.
+https://polygonscan.com/address/0x82A62ecc8976B50a35fCC490Fbf360bC22Dc349b#code
