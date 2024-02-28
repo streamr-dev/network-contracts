@@ -8,6 +8,7 @@ import { Wallet } from "@ethersproject/wallet"
 import * as namehash from "eth-ens-namehash"
 
 import { config } from "@streamr/config"
+import { abi as ensNameWrapperABI } from "@ensdomains/ens-contracts/artifacts/contracts/wrapper/INameWrapper.sol/INameWrapper.json"
 import { streamRegistryABI, ensRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
 import type { ENS, StreamRegistry, ENSCacheV2 } from "@streamr/network-contracts"
 
@@ -107,9 +108,17 @@ async function main() {
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
     log("handleEvent params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     const ensHashedName = namehash.hash(ensName)
-    log("Hashed name: ", ensHashedName)
-    const owner = await ensContract.owner(ensHashedName)
-    log("ENS owner queried from mainnet: ", owner)
+    log("Hashed name: %s", ensHashedName)
+
+    let owner = await ensContract.owner(ensHashedName)
+    log("Testing if %s is NameWrapper...", owner)
+    try {
+        const nameWrapper = new Contract(owner, ensNameWrapperABI, ensChainProvider)
+        owner = await nameWrapper.ownerOf(ensHashedName)
+        log("Real owner resolved from NameWrapper: %s", owner)
+    } catch {
+        log("    %s is not a NameWrapper contract", owner)
+    }
 
     if (requestorAddress === owner) {
         await createStream(ensName, streamIdPath, metadataJsonString, requestorAddress, true)
