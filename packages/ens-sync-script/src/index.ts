@@ -141,19 +141,20 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
 
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
-        const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
+        const unsentTx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
 
         if (gasPriceBumpPercent > 0) {
             const recommended = await registryChainProvider.getFeeData()
             if (recommended.maxFeePerGas && recommended.maxPriorityFeePerGas) {
-                tx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
-                tx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
             } else if (recommended.gasPrice) {
-                tx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
             }
         }
-        log("Sending fulfillENSOwner transaction: %o", tx)
-        const tr = await registryChainWallet.sendTransaction(tx)
+        log("Sending fulfillENSOwner transaction: %o", unsentTx)
+        const tx = await registryChainWallet.sendTransaction(unsentTx)
+        const tr = await tx.wait()
         log("Receipt: %o", tr)
     } catch (e) {
         log("creating stream failed, createStreamFromENS error: ", e)
