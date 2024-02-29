@@ -44,7 +44,7 @@ const minimumPriorityFeeGwei = parseInt(GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI ?? "
 if (isNaN(minimumPriorityFeeGwei)) {
     throw new Error(`GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI="${GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI}" is not an integer number! Try e.g. 20`)
 }
-if (minimumPriorityFeeGwei > 0) { log(`Will set minimum priority fee to ${minimumPriorityFeeGwei} Gwei`)
+if (minimumPriorityFeeGwei > 0) { log(`Will set minimum priority fee to ${minimumPriorityFeeGwei} Gwei`) }
 const minimumPriorityFee = parseUnits(minimumPriorityFeeGwei.toString(), "gwei")
 
 const delay = (parseInt(DELAY) || 0) * 1000
