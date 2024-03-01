@@ -101,16 +101,12 @@ async function main() {
         })
     })
 
-    // log("starting listening for createstream events on StreamRegistry contract: ", streamRegistryContract.address)
-    // streamRegistryContract.on("StreamCreated", async (streamId, metadataJsonString) => {
-    //     log("Got StreamCreated event params: ", streamId, metadataJsonString)
-    // })
-
     // initial heartbeat (5 seconds safety margin to wait for contract listener to be active)
     setTimeout(() => {
         log("Sending initial heartbeat")
         fs.writeFileSync(HEARTBEAT_FILENAME || `heartbeat-${ENS_CHAIN}-${REGISTRY_CHAIN}`, "")
     }, 5 * 1000)
+
     // thereafter send heartbeat every 2 minutes
     setInterval(() => {
         log("sending heartbeat")
