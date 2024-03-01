@@ -226,6 +226,8 @@ dataSources:
       abis:
         - name: OperatorFactory
           file: ./abis/OperatorFactory.json
+        - name: Operator
+          file: ./abis/Operator.json
       eventHandlers:
         - event: NewOperator(indexed address,indexed address)
           handler: handleNewOperator

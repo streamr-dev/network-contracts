@@ -40,10 +40,11 @@ describe("Operator", (): void => {
         const operator = await deployOperatorContract(contracts, operatorWallet)
         await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("5000"), "0x")).wait()
 
-        await advanceToTimestamp(timeAtStart, "Stake to sponsorship and queue payouts")
+        await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
         await expect(operator.stake(sponsorship.address, parseEther("5000")))
             .to.emit(operator, "Staked").withArgs(sponsorship.address)
 
+        await advanceToTimestamp(timeAtStart + 3600 * 25, "Queue payouts")
         const queueLength = 1000
         for (let i = 0; i < queueLength; i++) {
             if (i % 10 === 0) { log("undelegate %d / %d", i, queueLength) }
@@ -51,7 +52,7 @@ describe("Operator", (): void => {
         }
 
         // doing it in one go with 1000 slots in the queue will fail...
-        await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
+        await advanceToTimestamp(timeAtStart + 3600 * 50, "Start paying out the queue by unstaking from sponsorship")
 
         // "reasonable gas limit" that is enough for await payOutQueue(10) which needs between 519306...554575 gas + unstaking ~300000
         const gasLimit = 1000000
@@ -86,7 +87,7 @@ describe("Operator", (): void => {
         await (await token.connect(operatorWallet).transferAndCall(operator.address, totalWei, "0x")).wait()
         const timeAtStart = await getBlockTimestamp()
 
-        await advanceToTimestamp(timeAtStart, "Stake to sponsorships and queue the payout")
+        await advanceToTimestamp(timeAtStart, "Stake to sponsorships")
         const totalStaked = parseEther("5000").mul(numberOfSponsorships)
         const sponsorships = []
         for (let i = 0; i < numberOfSponsorships; i++) {
@@ -95,10 +96,12 @@ describe("Operator", (): void => {
             await (await operator.stake(sponsorship.address, parseEther("5000"))).wait()
             sponsorships.push(sponsorship)
         }
+
+        await advanceToTimestamp(timeAtStart + 3600 * 25, "Queue the payout")
         await operator.undelegate(totalStaked)
         expect(await operator.balanceOf(operatorWallet.address)).to.equal(totalWei)
 
-        await advanceToTimestamp(timeAtStart + 100000, "Start paying out the queue by unstaking from sponsorship")
+        await advanceToTimestamp(timeAtStart + 3600 * 50, "Start paying out the queue by unstaking from sponsorship")
         for (let i = 0; i < numberOfSponsorships; i++) {
             if (i % 10 === 0) { log("unstake %d / %d", i, numberOfSponsorships) }
             await (await operator.unstake(sponsorships[i].address)).wait()

@@ -9,7 +9,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
     let newValue = event.params.newValue
     let newAddress = event.params.newAddress.toHexString()
 
-    log.info('handleConfigChanged: streamrConfigAddress={} key={} newValue={} newAddress={} blockNumber={}', 
+    log.info('handleConfigChanged: streamrConfigAddress={} key={} newValue={} newAddress={} blockNumber={}',
         [streamrConfigAddress, key, newValue.toString(), newAddress, event.block.number.toString()])
 
     let network = loadOrCreateNetwork()
@@ -42,7 +42,8 @@ export function handleConfigChanged(event: ConfigChanged): void {
     const voterRegistryKey = "0x58254c54e86123cf819eedb7cf9d7a61ccb21b76f62320eab4f0b7d49507ad79"
     const operatorContractOnlyJoinPolicyKey = "0x38a6f03e6bd2acd4fe1e3d4e6c3860c1deef0ead9032a8c7ec7cff906d4e8e03"
     const streamRegistryAddressKey = "0x9a1da2e2aa2cee6990886343b189f55e5cde5dc6bf4330bc5c18cbfba119da57"
-    
+    const minimumDelegationSecondsKey = "0xdb586e43230e1ebdce5737a4e15eb3da19b485d51047df5232361de0b9deb607"
+
     if (key == slashingFractionKey) {
         network.slashingFraction = newValue
         updateMinimumStake(network)
@@ -82,6 +83,7 @@ export function handleConfigChanged(event: ConfigChanged): void {
     else if (key == voterRegistryKey) { network.voterRegistry = newAddress }
     else if (key == operatorContractOnlyJoinPolicyKey) { network.operatorContractOnlyJoinPolicy = newAddress }
     else if (key == streamRegistryAddressKey) { network.streamRegistryAddress = newAddress }
+    else if (key == minimumDelegationSecondsKey) { network.minimumDelegationSeconds = newValue.toI32() }
     else { log.error("handleConfigChanged: unknown key={}", [key]) }
     network.save()
 }

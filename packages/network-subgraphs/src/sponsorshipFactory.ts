@@ -19,7 +19,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.totalStakedWei = BigInt.zero()
     sponsorship.remainingWei = BigInt.zero()
     sponsorship.spotAPY = BigDecimal.zero()
-    sponsorship.projectedInsolvency = BigInt.zero()
+    sponsorship.projectedInsolvency = event.block.timestamp
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata

@@ -140,6 +140,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** slashed in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public slashedIn;
 
+    /** Delegators are prevented from undelegating right after delegating, so remember when they last delegated */
+    mapping(address => uint) public latestDelegationTimestamp;
+
     struct UndelegationQueueEntry {
         address delegator;
         uint amountWei;
@@ -327,6 +330,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
             }
         }
 
+        latestDelegationTimestamp[delegator] = block.timestamp; // solhint-disable-line not-rely-on-time
         emit Delegated(delegator, amountDataWei);
         emit BalanceUpdate(delegator, balanceOf(delegator), totalSupply(), valueWithoutEarnings());
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
@@ -749,5 +753,13 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
 
     function min(uint a, uint b) internal pure returns (uint) {
         return a < b ? a : b;
+    }
+
+    /**
+     * Bitfield of features supported by this version
+     *  0: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
+     */
+    function version() public pure returns (uint) {
+        return 0x1;
     }
 }

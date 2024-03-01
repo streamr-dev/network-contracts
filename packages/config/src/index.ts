@@ -154,7 +154,8 @@ export const config = {
             "ProjectRegistryV1": "0x32A142A27A595DC75aD1443728fecCbD5650446A",
             "MarketplaceV4": "0x14577e0D5BD77536E073712d98E471edDaFAE8b4",
             "cUSD": "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
-        }
+        },
+        "blockExplorerUrl": "https://alfajores.celoscan.io"
     },
     "optGoerli": {
         "id": 420,
@@ -172,7 +173,8 @@ export const config = {
         "contracts": {
             "RemoteMarketplaceV1": "0xBef916b1EC6EAA3F522368f75094DAed5c228aF6",
             "DAI": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
-        }
+        },
+        "blockExplorerUrl": "https://goerli-optimism.etherscan.io"
     },
     "ethereum": {
         "id": 1,
@@ -196,7 +198,8 @@ export const config = {
             "UniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
             "XDATA": "0x0cf0ee63788a0849fe5297f3407f701e122cc023",
             "core-api": "0xf3E5A65851C3779f468c9EcB32E6f25D9D68601a"
-        }
+        },
+        "blockExplorerUrl": "https://etherscan.io"
     },
     "gnosis": {
         "id": 100,
@@ -232,7 +235,8 @@ export const config = {
             "UniswapAdapter": "0xc5Cd4900841a849d798725441b54fB0fec0d0f5b",
             "Uniswap2AdapterForMarketplaceV3": "0xec92c5f94d45D1a4D917f2E07dD959b33e1AFe38",
             "XDATA": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548"
-        }
+        },
+        "blockExplorerUrl": "https://gnosisscan.io"
     },
     "binance": {
         "id": 56,
@@ -253,7 +257,8 @@ export const config = {
         "contracts": {
             "DATA": "0x0864c156b3c5f69824564dec60c629ae6401bf2a",
             "xdaiBridge": "0xa93ee7b4a7215f7e725437a6b6d7a4e7fe1dd8f0"
-        }
+        },
+        "blockExplorerUrl": "https://bscscan.com"
     },
     "polygon": {
         "id": 137,
@@ -298,12 +303,13 @@ export const config = {
             "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
             "OperatorDefaultDelegationPolicy": "0x8e449F0B1AFAD807135B5Ea829F41851d5DE1426",
             "OperatorDefaultExchangeRatePolicy": "0xE8F511bB4888D16D81acab7ab1c05A356E37237f",
-            "OperatorDefaultUndelegationPolicy": "0xd8b272DCBaAA206E3607220789890113c79C9212",
+            "OperatorDefaultUndelegationPolicy": "0x61Ef59166b12B5ECe6DE8083B9d2c050036C557e",
             "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183",
             "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",
             "Uniswap2AdapterForMarketplaceV3": "0x83C42F77c6dD09A1A93A7834be65b3bB891106bE"
         },
+        "blockExplorerUrl": "https://polygonscan.com",
         // eslint-disable-next-line max-len
         "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
@@ -365,6 +371,7 @@ export const config = {
             "DataUnionTemplate": "0x8d3dc2a15283C0af16895aD27253B9e1A777E789"
         },
         "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
+        "blockExplorerUrl": "https://mumbai.polygonscan.com",
         "entryPoints": [
             {
                 "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",

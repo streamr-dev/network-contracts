@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
+import { Address, BigDecimal, BigInt, Bytes, json, JSONValue, JSONValueKind, log, Result } from "@graphprotocol/graph-ts"
 import {
     Delegation,
     Delegator,
@@ -13,6 +13,7 @@ import {
     Sponsorship,
     SponsorshipDailyBucket
 } from '../generated/schema'
+import { Operator as OperatorContract } from '../generated/templates/Operator/Operator'
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 const NETWORK_ENTITY_ID = "network-entity-id"
@@ -21,10 +22,11 @@ const NETWORK_ENTITY_ID = "network-entity-id"
  * Helper function to load a project or create a project with default values. It will probably silence some errors.
  * @dev toHexString() will automatically lowercase the projectId
  */
-export function loadOrCreateProject(projectId: Bytes): Project {
-    let project = Project.load(projectId.toHexString())
+export function loadOrCreateProject(projectIdBytes: Bytes): Project {
+    const projectId = projectIdBytes.toHexString()
+    let project = Project.load(projectId)
     if (project == null) {
-        project = new Project(projectId.toHexString())
+        project = new Project(projectId)
         project.domainIds = []
         project.minimumSubscriptionSeconds = BigInt.zero()
         project.metadata = ""
@@ -47,15 +49,11 @@ export function loadOrCreateProjectStakingBucket(projectId: string, timestamp: B
     const bucketId = projectId + '-' + bucketStartDate.toString()
     let bucket = ProjectStakingDayBucket.load(bucketId)
     if (bucket === null) {
+        const project = Project.load(projectId)
         bucket = new ProjectStakingDayBucket(bucketId)
         bucket.project = projectId
         bucket.date = bucketStartDate
-        let bucketStakeAtStart = BigInt.zero()
-        let project = Project.load(projectId)
-        if (project !== null) {
-            bucketStakeAtStart = project.stakedWei
-        }
-        bucket.stakeAtStart = bucketStakeAtStart
+        bucket.stakeAtStart = project !== null ? project.stakedWei : BigInt.zero()
         bucket.stakeChange = BigInt.zero()
         bucket.stakingsWei = BigInt.zero()
         bucket.unstakingsWei = BigInt.zero()
@@ -80,10 +78,10 @@ export function loadOrCreateProjectStake(projectId: string, user: Bytes): Projec
  * @dev https://thegraph.com/docs/en/developing/assemblyscript-api/#json-api
  */
 export function getIsDataUnionValue(jsonString: string): boolean {
-    let result: Result<JSONValue, boolean> = json.try_fromString(jsonString)
+    const result: Result<JSONValue, boolean> = json.try_fromString(jsonString)
     if (result.isOk && result.value.kind == JSONValueKind.OBJECT) {
-        let resultObj = result.value.toObject()
-        let isDataUnionOrNull: JSONValue | null = resultObj.get("isDataUnion")
+        const resultObj = result.value.toObject()
+        const isDataUnionOrNull: JSONValue | null = resultObj.get("isDataUnion")
         return isDataUnionOrNull == null
             ? false
             : isDataUnionOrNull.toBool()
@@ -132,22 +130,20 @@ export function loadOrCreateNetwork(): Network {
         network.operatorContractOnlyJoinPolicy = ''
         network.streamRegistryAddress = ''
         network.minimumStakeWei = BigInt.zero()
+        network.minimumDelegationSeconds = 0
     }
     return network
 }
 
-export function loadOrCreateSponsorshipDailyBucket(
-    sponsorshipAddress: string,
-    timestamp: BigInt,
-): SponsorshipDailyBucket {
-    let date = getBucketStartDate(timestamp)
-    let bucketId = sponsorshipAddress + "-" + date.toString()
+export function loadOrCreateSponsorshipDailyBucket(sponsorshipId: string, timestamp: BigInt): SponsorshipDailyBucket {
+    const date = getBucketStartDate(timestamp)
+    const bucketId = sponsorshipId + "-" + date.toString()
     let bucket = SponsorshipDailyBucket.load(bucketId)
     if (bucket === null) {
         log.info("loadOrCreateSponsorshipDailyBucket: creating new bucketId={}", [bucketId])
-        let sponsorship = Sponsorship.load(sponsorshipAddress)
+        const sponsorship = Sponsorship.load(sponsorshipId)
         bucket = new SponsorshipDailyBucket(bucketId)
-        bucket.sponsorship = sponsorshipAddress
+        bucket.sponsorship = sponsorshipId
         bucket.date = date
         bucket.projectedInsolvency = sponsorship!.projectedInsolvency
         bucket.totalStakedWei = sponsorship!.totalStakedWei
@@ -158,14 +154,14 @@ export function loadOrCreateSponsorshipDailyBucket(
     return bucket
 }
 
-export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: string, flagIndex: i32): Flag {
-    let flagId = sponsorshipAddress + "-" + targetAddress + "-" + flagIndex.toString()
+export function loadOrCreateFlag(sponsorshipId: string, targetOperatorId: string, flagIndex: i32): Flag {
+    const flagId = sponsorshipId + "-" + targetOperatorId + "-" + flagIndex.toString()
     let flag = Flag.load(flagId)
     if (flag === null) {
         flag = new Flag(flagId)
         flag.lastFlagIndex = -1 // only the first flag use this value; and if this is the first flag, 0 is the correct value after +1
-        flag.sponsorship = sponsorshipAddress
-        flag.target = targetAddress
+        flag.sponsorship = sponsorshipId
+        flag.target = targetOperatorId
         flag.flagger = ""
         flag.flaggingTimestamp = 0
         flag.result = "waiting"
@@ -183,7 +179,8 @@ export function loadOrCreateFlag(sponsorshipAddress: string, targetAddress: stri
     return flag
 }
 
-export function loadOrCreateOperator(operatorId: string): Operator {
+export function loadOrCreateOperator(operatorContractAddress: Address): Operator {
+    const operatorId = operatorContractAddress.toHexString()
     let operator = Operator.load(operatorId)
     if (operator == null) {
         operator = new Operator(operatorId)
@@ -201,8 +198,13 @@ export function loadOrCreateOperator(operatorId: string): Operator {
         operator.slashingsCount = 0
         operator.nodes = []
 
+        log.info("loadOrCreateOperator: querying version from operator={}", [operatorId])
+        const maybeVersion = OperatorContract.bind(operatorContractAddress).try_version()
+        operator.contractVersion = maybeVersion.reverted ? BigInt.zero() : maybeVersion.value
+        log.info("loadOrCreateOperator: got version={}", [operator.contractVersion.toString()])
+
         operator.isEligibleToVote = false
-        
+
         // populated in handleMetadataUpdated, emitted from Operator.initialize()
         operator.owner = ""
         operator.metadataJsonString = ""
@@ -211,18 +213,19 @@ export function loadOrCreateOperator(operatorId: string): Operator {
     return operator
 }
 
-export function loadOrCreateOperatorDailyBucket(contractAddress: string, timestamp: BigInt): OperatorDailyBucket {
-    let date = getBucketStartDate(timestamp)
-    let bucketId = contractAddress + "-" + date.toString()
+export function loadOrCreateOperatorDailyBucket(contractAddress: Address, timestamp: BigInt): OperatorDailyBucket {
+    const date = getBucketStartDate(timestamp)
+    const operatorId = contractAddress.toHexString()
+    const bucketId = operatorId + "-" + date.toString()
     let bucket = OperatorDailyBucket.load(bucketId)
     if (bucket == null) {
         // absolute values, set at bucket creation time
         bucket = new OperatorDailyBucket(bucketId)
-        bucket.operator = contractAddress
+        bucket.operator = operatorId
         bucket.date = date
 
         // populate with current absolute values from Operator entity
-        let operator = loadOrCreateOperator(contractAddress)
+        const operator = loadOrCreateOperator(contractAddress)
         bucket.valueWithoutEarnings = operator.valueWithoutEarnings
         bucket.totalStakeInSponsorshipsWei = operator.totalStakeInSponsorshipsWei
         bucket.dataTokenBalanceWei = operator.dataTokenBalanceWei
@@ -240,13 +243,14 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: string, timesta
     return bucket
 }
 
-export function loadOrCreateDelegation(operatorContractAddress: string, delegator: string): Delegation {
-    let delegationId = operatorContractAddress + "-" + delegator
+export function loadOrCreateDelegation(operatorContractAddress: Address, delegatorId: string): Delegation {
+    const operatorId = operatorContractAddress.toHexString()
+    const delegationId = operatorId + "-" + delegatorId
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {
         delegation = new Delegation(delegationId)
-        delegation.operator = operatorContractAddress
-        delegation.delegator = delegator
+        delegation.operator = operatorId
+        delegation.delegator = delegatorId
         delegation.valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
     }
@@ -254,11 +258,11 @@ export function loadOrCreateDelegation(operatorContractAddress: string, delegato
     return delegation
 }
 
-export function loadOrCreateDelegator(delegator: string): Delegator {
-    let delegatorEntity = Delegator.load(delegator)
+export function loadOrCreateDelegator(delegatorId: string): Delegator {
+    let delegatorEntity = Delegator.load(delegatorId)
     if (delegatorEntity == null) {
-        log.info("loadOrCreateDelegator: creating new delegator={}", [delegator])
-        delegatorEntity = new Delegator(delegator)
+        log.info("loadOrCreateDelegator: creating new delegator={}", [delegatorId])
+        delegatorEntity = new Delegator(delegatorId)
         delegatorEntity.numberOfDelegations = 0
         delegatorEntity.totalValueDataWei = BigInt.zero()
         delegatorEntity.cumulativeEarningsWei = BigInt.zero()
@@ -267,8 +271,8 @@ export function loadOrCreateDelegator(delegator: string): Delegator {
 }
 
 export function loadOrCreateDelegatorDailyBucket(delegator: Delegator, timestamp: BigInt): DelegatorDailyBucket {
-    let date = getBucketStartDate(timestamp)
-    let bucketId = delegator.id + "-" + date.toString()
+    const date = getBucketStartDate(timestamp)
+    const bucketId = delegator.id + "-" + date.toString()
     let bucket = DelegatorDailyBucket.load(bucketId)
     if (bucket == null) {
         bucket = new DelegatorDailyBucket(bucketId)

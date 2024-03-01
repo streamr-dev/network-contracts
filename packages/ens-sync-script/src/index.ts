@@ -8,8 +8,10 @@ import { Wallet } from "@ethersproject/wallet"
 import * as namehash from "eth-ens-namehash"
 
 import { config } from "@streamr/config"
+import { abi as ensNameWrapperABI } from "@ensdomains/ens-contracts/artifacts/contracts/wrapper/INameWrapper.sol/INameWrapper.json"
 import { streamRegistryABI, ensRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
 import type { ENS, StreamRegistry, ENSCacheV2 } from "@streamr/network-contracts"
+import { parseUnits } from "@ethersproject/units"
 
 // import debug from "debug"
 // const log = debug("log:streamr:ens-sync-script")
@@ -19,6 +21,7 @@ const {
     KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
     DELAY = "0",
     GAS_PRICE_BUMP_PERCENT,
+    GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI,
 
     // Easy setting: read addresses and URLs from @streamr/config
     ENS_CHAIN = "dev2",
@@ -36,8 +39,15 @@ const {
 } = process.env
 
 const gasPriceBumpPercent = parseInt(GAS_PRICE_BUMP_PERCENT ?? "0")
-if (isNaN(gasPriceBumpPercent)) { throw new Error(`GAS_PRICE_BUMP_PERCENT="${GAS_PRICE_BUMP_PERCENT}" is not a valid number! Try e.g. 20`) }
+if (isNaN(gasPriceBumpPercent)) { throw new Error(`GAS_PRICE_BUMP_PERCENT="${GAS_PRICE_BUMP_PERCENT}" is not an integer number! Try e.g. 20`) }
 if (gasPriceBumpPercent > 0) { log(`Will bump gas price by ${gasPriceBumpPercent}%`) }
+
+const minimumPriorityFeeGwei = parseInt(GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI ?? "0")
+if (isNaN(minimumPriorityFeeGwei)) {
+    throw new Error(`GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI="${GAS_PRICE_MINIMUM_PRIORITY_FEE_GWEI}" is not an integer number! Try e.g. 20`)
+}
+if (minimumPriorityFeeGwei > 0) { log(`Will set minimum priority fee to ${minimumPriorityFeeGwei} Gwei`) }
+const minimumPriorityFee = parseUnits(minimumPriorityFeeGwei.toString(), "gwei")
 
 const delay = (parseInt(DELAY) || 0) * 1000
 if (delay > 0) { log(`Starting with answer delay ${delay} milliseconds`) }
@@ -109,9 +119,17 @@ async function main() {
 async function handleEvent(ensName: string, streamIdPath: string, metadataJsonString: string, requestorAddress: string) {
     log("handleEvent params: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     const ensHashedName = namehash.hash(ensName)
-    log("Hashed name: ", ensHashedName)
-    const owner = await ensContract.owner(ensHashedName)
-    log("ENS owner queried from mainnet: ", owner)
+    log("Hashed name: %s", ensHashedName)
+
+    let owner = await ensContract.owner(ensHashedName)
+    log("Testing if %s is NameWrapper...", owner)
+    try {
+        const nameWrapper = new Contract(owner, ensNameWrapperABI, ensChainProvider)
+        owner = await nameWrapper.ownerOf(ensHashedName)
+        log("Real owner resolved from NameWrapper: %s", owner)
+    } catch {
+        log("    %s is not a NameWrapper contract", owner)
+    }
 
     if (requestorAddress === owner) {
         await createStream(ensName, streamIdPath, metadataJsonString, requestorAddress, true)
@@ -134,19 +152,23 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
 
     log("creating stream from ENS name: ", ensName, streamIdPath, metadataJsonString, requestorAddress)
     try {
-        const tx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
+        const unsentTx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
 
-        if (gasPriceBumpPercent > 0) {
+        if (gasPriceBumpPercent > 0 || minimumPriorityFeeGwei > 0) {
             const recommended = await registryChainProvider.getFeeData()
             if (recommended.maxFeePerGas && recommended.maxPriorityFeePerGas) {
-                tx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
-                tx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                if (unsentTx.maxPriorityFeePerGas.lt(minimumPriorityFee)) {
+                    unsentTx.maxPriorityFeePerGas = minimumPriorityFee
+                }
             } else if (recommended.gasPrice) {
-                tx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
+                unsentTx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
             }
         }
-        log("Sending fulfillENSOwner transaction: %o", tx)
-        const tr = await registryChainWallet.sendTransaction(tx)
+        log("Sending fulfillENSOwner transaction: %o", unsentTx)
+        const tx = await registryChainWallet.sendTransaction(unsentTx)
+        const tr = await tx.wait()
         log("Receipt: %o", tr)
     } catch (e) {
         log("creating stream failed, createStreamFromENS error: ", e)

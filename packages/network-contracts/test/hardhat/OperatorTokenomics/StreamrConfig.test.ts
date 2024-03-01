@@ -77,45 +77,41 @@ describe("StreamrConfig", (): void => {
     })
 
     describe("UUPS upgradeability", () => {
-        let streamrConfigFactory: ContractFactory
         let upgraderRole: string
+        let oldStreamrConfig: StreamrConfig
+        let newStreamrConfigFactory: ContractFactory
         before(async () => {
             // this would be the upgraded version (e.g. StreamrConfigV2), and notAdmin would be attempting the upgrade
-            streamrConfigFactory = await getContractFactory("StreamrConfig", notAdmin)
-            upgraderRole = await sharedConfig.UPGRADER_ROLE()
+            const streamrConfigFactory = await getContractFactory("StreamrConfig", admin)
+            oldStreamrConfig = await(await upgrades.deployProxy(streamrConfigFactory, [], { kind: "uups" })).deployed() as StreamrConfig
+            newStreamrConfigFactory = await getContractFactory("StreamrConfigV1_1", notAdmin)
+            upgraderRole = await oldStreamrConfig.UPGRADER_ROLE()
         })
 
-        it("does not allow upgrade without UPGRADER_ROLE", async () => {
-            await expect(upgrades.upgradeProxy(sharedConfig.address, streamrConfigFactory))
+        it("does NOT allow upgrade without UPGRADER_ROLE", async () => {
+            await expect(upgrades.upgradeProxy(oldStreamrConfig.address, newStreamrConfigFactory))
                 .to.be.revertedWith(`AccessControl: account ${notAdmin.address.toLowerCase()} is missing role ${upgraderRole.toLowerCase()}`)
         })
 
-        it("allows upgrade with UPGRADER_ROLE", async () => {
-            await (await sharedConfig.grantRole(await sharedConfig.UPGRADER_ROLE(), notAdmin.address)).wait()
-
-            const newStreamrConfig = await upgrades.upgradeProxy(sharedConfig.address, streamrConfigFactory) as StreamrConfig
-            await newStreamrConfig.deployed()
-            expect(sharedConfig.address).to.equal(newStreamrConfig.address)
-
-            await (await sharedConfig.revokeRole(await sharedConfig.UPGRADER_ROLE(), notAdmin.address)).wait()
+        it("does NOT allow calling initialize()", async () => {
+            await expect(oldStreamrConfig.initialize())
+                .to.be.revertedWith("Initializable: contract is already initialized")
         })
 
         it("storage is preserved after the upgrade", async () => {
-            const slashingFractionBeforeUpdate = await sharedConfig.slashingFraction()
-            await (await sharedConfig.setSlashingFraction(parseEther("0.2"))).wait()
+            await (await oldStreamrConfig.grantRole(upgraderRole, notAdmin.address)).wait()
+            const slashingFractionBeforeUpdate = await oldStreamrConfig.slashingFraction()
 
-            const newStreamrConfigFactory = await getContractFactory("StreamrConfig") // this the upgraded version (e.g. StreamrConfigV2)
-            const newStreamrConfigTx = await upgrades.upgradeProxy(sharedConfig.address, newStreamrConfigFactory)
+            await (await oldStreamrConfig.setSlashingFraction(parseEther("0.2"))).wait()
+
+            const newStreamrConfigTx = await upgrades.upgradeProxy(oldStreamrConfig.address, newStreamrConfigFactory)
             const newStreamrConfig = await newStreamrConfigTx.deployed() as StreamrConfig
 
             expect(await newStreamrConfig.slashingFraction()).to.equal(parseEther("0.2"))
-            // restore the slashingFraction modification
-            await (await sharedConfig.setSlashingFraction(slashingFractionBeforeUpdate)).wait()
-        })
 
-        it("reverts if trying to call initialize()", async () => {
-            await expect(sharedConfig.initialize())
-                .to.be.revertedWith("Initializable: contract is already initialized")
+            // restore the modifications
+            await (await oldStreamrConfig.setSlashingFraction(slashingFractionBeforeUpdate)).wait()
+            await (await oldStreamrConfig.revokeRole(upgraderRole, notAdmin.address)).wait()
         })
     })
 

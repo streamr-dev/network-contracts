@@ -268,6 +268,8 @@ type Network @entity {
   voterRegistry: String
   operatorContractOnlyJoinPolicy: String
   streamRegistryAddress: String
+  minimumDelegationSeconds: Int!
+
   "Updated whenever one of flaggerRewardWei | flagReviewerCount | flagReviewerRewardWei | slashingFraction changes"
   minimumStakeWei: BigInt!
 }
@@ -323,6 +325,9 @@ type Operator @entity {
   slashingsCount: Int!
   nodes: [String!]!
   operatorsCutFraction: BigInt!
+
+  "Version is a bitfield of supported features. Generally, so far, higher version supports lower versions' features, so normal number comparison works."
+  contractVersion: BigInt!
 
   isEligibleToVote: Boolean!
   protectionEndTimestamp: Int
@@ -393,6 +398,12 @@ type Delegation @entity {
 
   "DATA value of the Operator tokens this delegator holds"
   valueDataWei: BigInt!
+
+  "latest delegation done by the delegator to this operator"
+  latestDelegationTimestamp: Int!
+
+  "earliest time this delegator can undelegate from this operator"
+  earliestUndelegationTimestamp: Int!
 }
 
 type Delegator @entity {

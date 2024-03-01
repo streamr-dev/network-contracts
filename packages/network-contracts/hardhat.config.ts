@@ -77,7 +77,13 @@ const config: HardhatUserConfig = {
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
         mumbai: {
-            url: "https://rpc-mumbai.maticvigil.com",
+            chainId: 80001,
+            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
+        polygonMumbai: {
+            chainId: 80001,
+            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
         ethereum: {
@@ -172,6 +178,7 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: {
             polygon: process.env.ETHERSCAN_KEY || "",
+            polygonMumbai: process.env.ETHERSCAN_KEY || "",
         }
     },
 }

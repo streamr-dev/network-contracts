@@ -1,0 +1,83 @@
+$ ./scripts/2024-02-22-sip-20.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=200
++ GAS_PRICE_GWEI=200
++ ./scripts/streamrConfig.ts setFlagStakeWei 50
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flagStakeWei: 5000000000000000000 (5.0)
+Setting setFlagStakeWei to 50000000000000000000 (50), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2e90edd000"}}
+Transaction: https://polygonscan.com/tx/0xdfe57ec6e653166596c5cc405efa3d89e3c834ba9ee7b467ac2c324979638d96
+^C
+
+...[ ended up doing this one manually: https://polygonscan.com/tx/0x52c808ad61a712a35fe1886d39aa2bb5c301798b9b2be2204431e51298646227 ]...
+
+$ ./scripts/2024-02-22-sip-20.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=200
++ GAS_PRICE_GWEI=200
++ ./scripts/streamrConfig.ts setEarlyLeaverPenaltyWei 5000
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of earlyLeaverPenaltyWei: 50000000000000000000 (50.0)
+Setting setEarlyLeaverPenaltyWei to 5000000000000000000000 (5000), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2e90edd000"}}
+Transaction: https://polygonscan.com/tx/0xe790a7f1430df7ac6933774446fd15a30b07c33eab0aa478f19f2266176f9b39
+Transaction receipt: {
+  blockNumber: 53800868,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0xe790a7f1430df7ac6933774446fd15a30b07c33eab0aa478f19f2266176f9b39'
+}
++ ./scripts/streamrConfig.ts setSlashingFraction 0.01
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of slashingFraction: 1000000000000000 (0.001)
+Setting setSlashingFraction to 10000000000000000 (0.01), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2e90edd000"}}
+Transaction: https://polygonscan.com/tx/0x525981c3a225e78d1e3af4c3d5ea9da59a67a58c48b523e579d94a1ec870bfcc
+Transaction receipt: {
+  blockNumber: 53800874,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x525981c3a225e78d1e3af4c3d5ea9da59a67a58c48b523e579d94a1ec870bfcc'
+}
++ ./scripts/streamrConfig.ts setFlaggerRewardWei 36
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flaggerRewardWei: 1500000000000000000 (1.5)
+Setting setFlaggerRewardWei to 36000000000000000000 (36), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2e90edd000"}}
+Transaction: https://polygonscan.com/tx/0xbddf0d5b1af77cfe63a1a34a91bff45fde766417641d1cc347666fdb27b4dc31
+Transaction receipt: {
+  blockNumber: 53800878,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0xbddf0d5b1af77cfe63a1a34a91bff45fde766417641d1cc347666fdb27b4dc31'
+}
++ ./scripts/streamrConfig.ts setFlagReviewerRewardWei 2
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flagReviewerRewardWei: 500000000000000000 (0.5)
+Setting setFlagReviewerRewardWei to 2000000000000000000 (2), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2e90edd000"}}
+Transaction: https://polygonscan.com/tx/0xdac687ea51fa9898351d51d52a17d1aa3799dddd801d0a898eb1bb89513a57d8
+Transaction receipt: {
+  blockNumber: 53800882,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0xdac687ea51fa9898351d51d52a17d1aa3799dddd801d0a898eb1bb89513a57d8'
+}

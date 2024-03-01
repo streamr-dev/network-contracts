@@ -6,12 +6,16 @@ import { StreamRegistry, operatorFactoryABI, sponsorshipFactoryABI, streamRegist
 
 import type { Wallet } from "ethers"
 import type {
-    IERC20Metadata, IERC677, StreamrConfig,
+    StreamrConfig,
     SponsorshipFactory, StakeWeightedAllocationPolicy, VoteKickPolicy,
     MaxOperatorsJoinPolicy, OperatorContractOnlyJoinPolicy, DefaultLeavePolicy,
     Operator, OperatorFactory,
     NodeModule, StakeModule, QueueModule,
     DefaultDelegationPolicy, DefaultExchangeRatePolicy, DefaultUndelegationPolicy,
+} from "../src/exports"
+
+import type {
+    IERC20Metadata, IERC677,
 } from "../typechain"
 
 const { log } = console

@@ -1,3 +1,5 @@
+#!/usr/bin/env npx ts-node
+
 // Steps for running this file:
 //   start dev env: streamr-docker-dev start dev-chain-fast
 //   Optional: `export ENS_NAME=my-ens-name.eth`
@@ -10,11 +12,13 @@ import { Wallet } from "@ethersproject/wallet"
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { namehash } from "@ethersproject/hash"
 import type { Listener } from "@ethersproject/abstract-provider"
-import type { ContractReceipt, Event } from "@ethersproject/contracts"
+import type { Event } from "@ethersproject/contracts"
 
 import { config } from "@streamr/config"
 import { streamRegistryABI, ensRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
 import type { StreamRegistry, ENS, ENSCacheV2 } from "@streamr/network-contracts"
+
+import { formatReceipt, formatEvent, formatPermissions } from "./prettyPrint"
 
 // import debug from "debug"
 // const log = debug("log:streamr:ens-sync-script")
@@ -145,48 +149,11 @@ function untilEvent(contract: Contract, eventName: string): Promise<Event> {
     })
 }
 
-function formatReceipt(receipt: ContractReceipt) {
-    return {
-        blockNumber: receipt.blockNumber,
-        from: receipt.from,
-        to: receipt.to,
-        transactionHash: receipt.transactionHash,
-        events: receipt.events?.map(formatEvent),
-    }
+if (require.main === module) {
+    main()
+        .then(() => process.exit(0))
+        .catch((error) => {
+            console.error(error)
+            process.exit(1)
+        })
 }
-
-type FormattedEvent = {
-    event: string,
-    args: Record<string, string>,
-    address?: string,
-}
-function formatEvent(e: Event): FormattedEvent {
-    return e.event ? {
-        event: e.event,
-        args: !e.args ? {} : Object.fromEntries(
-            Object.keys(e.args).filter((k) => isNaN(parseInt(k))).map((k) => [k, e.args![k].toString() as string])
-        ),
-    } : {
-        event: "unknown",
-        args: {},
-        address: e.address,
-    }
-}
-
-function formatPermissions(permissions: StreamRegistry.PermissionStructOutput): string[] {
-    const now = Math.floor(Date.now() / 1000)
-    return [
-        permissions.canGrant ? "grant" : "",
-        permissions.canEdit ? "edit" : "",
-        permissions.canDelete ? "delete" : "",
-        permissions.publishExpiration.gt(now) ? "publish" : "",
-        permissions.subscribeExpiration.gt(now) ? "subscribe" : "",
-    ].filter((x) => x)
-}
-
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error)
-        process.exit(1)
-    })
