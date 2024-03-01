@@ -79,10 +79,12 @@ let mutex = Promise.resolve(true)
 const AddressZero = "0x0000000000000000000000000000000000000000"
 const Bytes32Zero = "0x0000000000000000000000000000000000000000000000000000000000000000"
 async function main() {
-    log("Checking the network setup: %o", await ensChainProvider.getNetwork())
-    log("ENS contract at: %s (deployer %s)", ensContract.address, await ensContract.owner(Bytes32Zero))
-    log("StreamRegistry contract at: %s (%s)", streamRegistryContract.address, await streamRegistryContract.TRUSTED_ROLE())
-    log("ENSCacheV2 contract at: %s (%s)", ensCacheContract.address, await ensCacheContract.owners(AddressZero))
+    if (SKIP_CHECKS) {
+        log("Checking the network setup: %o", await ensChainProvider.getNetwork())
+        log("ENS contract at: %s (deployer %s)", ensContract.address, await ensContract.owner(Bytes32Zero))
+        log("StreamRegistry contract at: %s (%s)", streamRegistryContract.address, await streamRegistryContract.TRUSTED_ROLE())
+        log("ENSCacheV2 contract at: %s (%s)", ensCacheContract.address, await ensCacheContract.owners(AddressZero))
+    }
 
     log("Starting listening for events on ENSCacheV2 contract: ", ensCacheContract.address)
     ensCacheContract.on("RequestENSOwnerAndCreateStream", async (ensName, streamIdPath, metadataJsonString, requestorAddress) => {
