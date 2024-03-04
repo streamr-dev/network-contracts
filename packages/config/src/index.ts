@@ -310,7 +310,7 @@ export const config = {
         },
         "blockExplorerUrl": "https://polygonscan.com",
         // eslint-disable-next-line max-len
-        "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/dd0022f5d4d06f3bd55e0c757912fb7d/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
+        "theGraphUrl": "https://gateway-arbitrum.network.thegraph.com/api/a971cec07440a9ec63cd806c06ccc990/subgraphs/id/EGWFdhhiWypDuz22Uy7b3F69E9MEkyfU9iAQMttkH5Rj",
         "entryPoints": [
             {
                 "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8ba5497596",
