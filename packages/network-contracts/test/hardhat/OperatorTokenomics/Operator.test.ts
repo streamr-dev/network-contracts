@@ -714,12 +714,14 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("500"), "0x")).wait()
 
             await advanceToTimestamp(timeAtStart + 1000, "Try to undelegate")
-            await expect(operator.undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
+            // since ETH-748: undelegation time limit doesn't apply to contract owner
+            // await expect(operator.undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).undelegate(parseEther("500"))).to.be.revertedWith("error_undelegateTooSoon")
 
             await advanceToTimestamp(timeAtStart + 3000, "Try again to undelegate")
-            await expect(operator.connect(delegator).undelegate(parseEther("500")))
-                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"))
+            // since ETH-748: undelegation time limit doesn't apply to contract owner
+            // await expect(operator.connect(delegator).undelegate(parseEther("500")))
+            //     .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("500"))
             await expect(operator.undelegate(parseEther("500")))
                 .to.emit(operator, "Undelegated").withArgs(operatorWallet.address, parseEther("500"))
 
@@ -742,9 +744,10 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, delegationAmount, "0x")).wait()
 
             await advanceToTimestamp(timeAtStart + 1000, "Try to transfer")
-            await expect(operator.transfer(operatorWallet.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
-            await expect(operator.transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
-            await expect(operator.transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            // since ETH-748: undelegation time limit doesn't apply to contract owner
+            // await expect(operator.transfer(operatorWallet.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            // await expect(operator.transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
+            // await expect(operator.transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).transfer(operatorWallet.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).transfer(delegator.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
             await expect(operator.connect(delegator).transfer(delegator2.address, amount)).to.be.revertedWith("error_undelegateTooSoon")
