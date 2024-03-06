@@ -756,10 +756,11 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     }
 
     /**
-     * Bitfield of features supported by this version
-     *  0: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
+     * Version number
+     *  1: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
+     *  2: recompilation and redeployment (ETH-748)
      */
     function version() public pure returns (uint) {
-        return 0x1;
+        return 2;
     }
 }
