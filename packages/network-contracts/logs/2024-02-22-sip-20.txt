@@ -5,7 +5,7 @@ $ ./scripts/2024-02-22-sip-20.sh
 + GAS_PRICE_GWEI=200
 + ./scripts/streamrConfig.ts setFlagStakeWei 50
 Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
-Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
     {"name":"matic","chainId":137,"ensAddress":null}
 Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
     0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
@@ -23,7 +23,7 @@ $ ./scripts/2024-02-22-sip-20.sh
 + GAS_PRICE_GWEI=200
 + ./scripts/streamrConfig.ts setEarlyLeaverPenaltyWei 5000
 Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
-Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
     {"name":"matic","chainId":137,"ensAddress":null}
 Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
     0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
@@ -38,7 +38,7 @@ Transaction receipt: {
 }
 + ./scripts/streamrConfig.ts setSlashingFraction 0.01
 Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
-Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
     {"name":"matic","chainId":137,"ensAddress":null}
 Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
     0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
@@ -53,7 +53,7 @@ Transaction receipt: {
 }
 + ./scripts/streamrConfig.ts setFlaggerRewardWei 36
 Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
-Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
     {"name":"matic","chainId":137,"ensAddress":null}
 Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
     0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
@@ -68,7 +68,7 @@ Transaction receipt: {
 }
 + ./scripts/streamrConfig.ts setFlagReviewerRewardWei 2
 Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
-Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
     {"name":"matic","chainId":137,"ensAddress":null}
 Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
     0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]

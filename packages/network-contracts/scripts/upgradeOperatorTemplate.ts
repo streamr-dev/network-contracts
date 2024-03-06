@@ -89,6 +89,8 @@ async function main() {
 
     const operatorTemplate = await (new ContractFactory(operatorABI, operatorBytecode, wallet)).deploy(txOverrides)
     await operatorTemplate.deployed()
+    await sleep(1000)
+    await checkAddressHasContract(operatorTemplate.address)
     log("Deployed Operator template at %s", operatorTemplate.address)
 
     // const nodeModuleAddress = await operatorFactory.nodeModuleTemplate()
@@ -96,17 +98,21 @@ async function main() {
     // const stakeModuleAddress = await operatorFactory.stakeModuleTemplate()
     const nodeModule = await (new ContractFactory(nodeModuleABI, nodeModuleBytecode, wallet)).deploy(txOverrides)
     await nodeModule.deployed()
+    await sleep(1000)
+    await checkAddressHasContract(nodeModule.address)
     log("Deployed Node module at %s", nodeModule.address)
 
     const queueModule = await (new ContractFactory(queueModuleABI, queueModuleBytecode, wallet)).deploy(txOverrides)
     await queueModule.deployed()
+    await sleep(1000)
+    await checkAddressHasContract(queueModule.address)
     log("Deployed Queue module at %s", queueModule.address)
 
     const stakeModule = await (new ContractFactory(stakeModuleABI, stakeModuleBytecode, wallet)).deploy(txOverrides)
     await stakeModule.deployed()
-    log("Deployed Stake module at %s", stakeModule.address)
-
     await sleep(1000)
+    await checkAddressHasContract(stakeModule.address)
+    log("Deployed Stake module at %s", stakeModule.address)
 
     log("Setting template, overrides: %s", JSON.stringify(txOverrides))
     const setTemplateTx = await operatorFactory.updateTemplates(
@@ -130,6 +136,14 @@ async function main() {
         writeFileSync("queueModule-" + OUTPUT_FILE, queueModule.address)
         writeFileSync("stakeModule-" + OUTPUT_FILE, stakeModule.address)
     }
+}
+
+async function checkAddressHasContract(address: string) {
+    const code = await provider.getCode(address)
+    if (code === "0x") {
+        throw new Error(`No contract at address ${address}`)
+    }
+    log("OK (%s)", code.slice(0, 20))
 }
 
 async function sleep(ms: number) {

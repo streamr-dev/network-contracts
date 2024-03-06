@@ -1,0 +1,113 @@
+$ ./scripts/2024-03-06-operator-template-redeployment.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ export OUTPUT_FILE=undelegationPolicy.txt
++ OUTPUT_FILE=undelegationPolicy.txt
++ ./scripts/upgradeUndelegationPolicy.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 109.279348159699638308 ETH
+Deployed new undelegation policy at 0xC31c0d639d1923EF834597343C1380594C7dC0B8
+Whitelist policy tx: https://polygonscan.com/tx/0x899432babf9702018b5334a21932b8da29fb1effd72e92cddb2b6dff6994b896
+Tx receipt: {
+  blockNumber: 54338384,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0x899432babf9702018b5334a21932b8da29fb1effd72e92cddb2b6dff6994b896',
+  events: [
+    {
+      event: 'PolicyWhitelisted',
+      args: {
+        policyAddress: '0xC31c0d639d1923EF834597343C1380594C7dC0B8',
+        isWhitelisted: 'true'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 0.6568779 ETH for gas
+
+
+... verification manually
+
+
+$ ./scripts/2024-03-06-operator-template-redeployment.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ export OUTPUT_FILE=address.txt
++ OUTPUT_FILE=address.txt
++ ./scripts/upgradeOperatorTemplate.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/[REDACTED]
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 100.183559509699638308 ETH
+Deployed Operator template at 0x0C354bEfd8Eb82c4342475E13f965Ae9044F9c51
+Deployed Node module at 0x62a05Ec5c3D02c0Bf2FaFcbb3727D34e72A9e0CC
+Deployed Queue module at 0xb570a57B74D52141A84c6ff997FfF56E23fcD050
+Deployed Stake module at 0x1Dfdb077DB9f1228Ec64D499B1E969b8752E0e55
+Setting template, overrides: {"gasPrice":{"type":"BigNumber","hex":"0x22ecb25c00"}}
+Set template tx: https://polygonscan.com/tx/0xf5f7e91c86924877ed7cf22431c24886b6f64074319703ee7eb243b24469fb5b
+Set template receipt: {
+  blockNumber: 54341204,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0xf5f7e91c86924877ed7cf22431c24886b6f64074319703ee7eb243b24469fb5b',
+  events: [
+    {
+      event: 'TemplateAddresses',
+      args: {
+        operatorTemplate: '0x0C354bEfd8Eb82c4342475E13f965Ae9044F9c51',
+        nodeModuleTemplate: '0x62a05Ec5c3D02c0Bf2FaFcbb3727D34e72A9e0CC',
+        queueModuleTemplate: '0xb570a57B74D52141A84c6ff997FfF56E23fcD050',
+        stakeModuleTemplate: '0x1Dfdb077DB9f1228Ec64D499B1E969b8752E0e55'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 2.81297025 ETH for gas
+
+... verification of template contract manually
