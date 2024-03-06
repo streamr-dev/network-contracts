@@ -6,7 +6,7 @@ import "./IUndelegationPolicy.sol";
 import "../StreamrConfigV1_1.sol";
 import "../Operator.sol";
 
-contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
+contract DefaultUndelegationPolicy is Operator, IUndelegationPolicy {
 
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IUndelegationPolicy).interfaceId;
@@ -27,23 +27,30 @@ contract DefaultUndelegationPolicy is IUndelegationPolicy, Operator {
      * @dev   Minimum delegation is handled when paying out the queue, and checked separately on _transfer.
      **/
     function onUndelegate(address delegator, uint amountDataWei) external {
-        StreamrConfigV1_1 streamrConfig = StreamrConfigV1_1(address(streamrConfig));
-        require(
-            block.timestamp > latestDelegationTimestamp[delegator] + streamrConfig.minimumDelegationSeconds(),
-            "error_undelegateTooSoon"
-        );
+        StreamrConfigV1_1 config = StreamrConfigV1_1(address(streamrConfig));
+        if (delegator == owner) {
+            // if all has been unstaked, no slashing can be coming that requires self-stake => allow self-undelegation ("rapid shutdown")
+            // otherwise the operator would have to wait for all delegators to undelegate first
+            if (totalStakedIntoSponsorshipsWei == 0) { return; }
 
-        // self-delegation limitation only applies to the operator, it doesn't affect others
-        if (delegator != owner) { return; }
-
-        // if all has been unstaked, no slashing can be coming that requires self-stake => allow self-undelegation ("rapid shutdown")
-        // otherwise the operator would have to wait for all delegators to undelegate first
-        if (totalStakedIntoSponsorshipsWei == 0) { return; }
-
-        uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
-        uint actualAmount = min(amountOperatorTokens, balanceOf(owner));
-        uint balanceAfter = balanceOf(owner) - actualAmount;
-        uint totalSupplyAfter = totalSupply() - actualAmount;
-        require(1 ether * balanceAfter >= totalSupplyAfter * streamrConfig.minimumSelfDelegationFraction(), "error_selfDelegationTooLow");
+            uint amountOperatorTokens = moduleCall(address(exchangeRatePolicy), abi.encodeWithSelector(exchangeRatePolicy.operatorTokenToDataInverse.selector, amountDataWei));
+            uint actualAmount = min(amountOperatorTokens, balanceOf(owner));
+            uint balanceAfter = balanceOf(owner) - actualAmount;
+            uint totalSupplyAfter = totalSupply() - actualAmount;
+            uint minimumFraction = 0;
+            try config.minimumSelfDelegationFraction() returns (uint f) {
+                minimumFraction = f;
+            } catch {}
+            require(1 ether * balanceAfter >= totalSupplyAfter * minimumFraction, "error_selfDelegationTooLow");
+        } else {
+            uint minimumSeconds = 0;
+            try config.minimumDelegationSeconds() returns (uint s) {
+                minimumSeconds = s;
+            } catch {}
+            require(
+                block.timestamp > latestDelegationTimestamp[delegator] + minimumSeconds,
+                "error_undelegateTooSoon"
+            );
+        }
     }
 }
