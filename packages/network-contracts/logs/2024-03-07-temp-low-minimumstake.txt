@@ -1,0 +1,63 @@
+$ ./scripts/2024-03-07-temp-low-minimumstake.sh
+
+[[ the 1G early leaver penalty was set earlier ]]
+
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ ./scripts/streamrConfig.ts setFlaggerRewardWei 0.003
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flaggerRewardWei: 36000000000000000000 (36.0)
+Setting setFlaggerRewardWei to 3000000000000000 (0.003), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x22ecb25c00"}}
+Transaction: https://polygonscan.com/tx/0x6c904c584d52ff85ca6f0bdf3fe4ad095e170f0d97f9c1ea9253f07b9dd8c486
+Transaction receipt: {
+  blockNumber: 54366623,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x6c904c584d52ff85ca6f0bdf3fe4ad095e170f0d97f9c1ea9253f07b9dd8c486',
+  events: [
+    { event: 'ConfigChanged', args: {} },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
++ ./scripts/streamrConfig.ts setFlagReviewerRewardWei 0.001
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flagReviewerRewardWei: 2000000000000000000 (2.0)
+Setting setFlagReviewerRewardWei to 1000000000000000 (0.001), overrides: {"gasPrice":{"type":"BigNumber","hex":"0x22ecb25c00"}}
+Transaction: https://polygonscan.com/tx/0x9389a66e7cf5cd56c8f9c72208bd5744c43cc170c0ad2bbae23857181509786c
+Transaction receipt: {
+  blockNumber: 54366633,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x9389a66e7cf5cd56c8f9c72208bd5744c43cc170c0ad2bbae23857181509786c',
+  events: [
+    { event: 'ConfigChanged', args: {} },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
++ ./scripts/streamrConfig.ts minimumStakeWei
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+minimumStakeWei: 1000000000000000000 (1.0)
