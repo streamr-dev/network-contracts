@@ -12,7 +12,7 @@ import { div, mul } from "./utils/bigint"
 const { log } = console
 
 const {
-    START = "1709650000",
+    START = "1709733209",
     END,
 
     // KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
@@ -64,7 +64,8 @@ async function getSlashings(): Promise<SlashingEvent[]> {
             filterString += `date_lte: "${END}"`
         }
         filterString += "}"
-        filterString += ", first: 3" // max COUNT that thegraph allows
+        filterString += ", first: 1000" // max COUNT that thegraph allows
+        filterString += ", orderBy: date"
         filterString += ")"
     }
 
@@ -202,7 +203,7 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
         operatorName: metadata.name,
         owner,
         totalOperatorTokensBeforeWei: totalSupplyBefore,
-        delegatorsOperatorTokensBeforeWei: delegatorTotalTokens,
+        delegatorsOperatorTokensBeforeWei: tokens,
         delegator,
         delegatorDataLostWei: delegatorTotalLoss * tokens / delegatorTotalTokens,
     }))
