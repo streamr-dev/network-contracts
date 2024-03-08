@@ -97,6 +97,8 @@ type SlashingRow = {
     /** contract address */
     operator: string
     operatorName: string
+    date: number
+    blockNumber: number
     owner: string
     totalOperatorTokensBeforeWei: bigint
     delegatorsOperatorTokensBeforeWei: bigint
@@ -184,6 +186,8 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
         return [{
             operator: slashingEvent.operator,
             operatorName: metadata.name,
+            date: slashingEvent.date,
+            blockNumber: eventBlockNumber,
             owner,
             totalOperatorTokensBeforeWei: totalSupplyBefore,
             delegatorsOperatorTokensBeforeWei: ownersTokensBefore,
@@ -201,23 +205,29 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
     const delegatorSlashings = delegatorList.map(([ delegator, tokens ]) => ({
         operator: slashingEvent.operator,
         operatorName: metadata.name,
+        date: slashingEvent.date,
+        blockNumber: eventBlockNumber,
         owner,
         totalOperatorTokensBeforeWei: totalSupplyBefore,
         delegatorsOperatorTokensBeforeWei: tokens,
         delegator,
         delegatorDataLostWei: delegatorTotalLoss * tokens / delegatorTotalTokens,
     }))
-    delegatorSlashings.sort((a, b) => a.delegator.localeCompare(b.delegator))
 
-    return [{
+    const allSlashings = [{
         operator: slashingEvent.operator,
         operatorName: metadata.name,
+        date: slashingEvent.date,
+        blockNumber: eventBlockNumber,
         owner,
         totalOperatorTokensBeforeWei: totalSupplyBefore,
         delegatorsOperatorTokensBeforeWei: ownersTokensBefore,
         delegator: owner,
         delegatorDataLostWei: ownerLoss,
     }, ...delegatorSlashings]
+
+    allSlashings.sort((a, b) => a.delegator.localeCompare(b.delegator))
+    return allSlashings
 }
 
 async function main() {
@@ -228,10 +238,15 @@ async function main() {
     log("Got %d rows", rows.flat().length)
     log("%o", rows[0][0])
     if (OUTPUT_FILE) {
-        const headerString = "OperatorId;OperatorName;Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
+        const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
+            "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
         const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n")
         writeFileSync(OUTPUT_FILE, headerString)
         writeFileSync(OUTPUT_FILE, rowsString, { flag: "a" })
+
+        const shortRowsString = rows.flat().map((s) => `${s.delegator},${s.delegatorDataLostWei}`).join("\n")
+        const outputFileName = OUTPUT_FILE + ".short.csv"
+        writeFileSync(outputFileName, shortRowsString, { flag: "a" })
     }
 }
 
