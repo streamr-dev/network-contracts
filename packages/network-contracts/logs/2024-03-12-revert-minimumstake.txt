@@ -1,0 +1,84 @@
+$ ./scripts/2024-03-12-revert-minimumstake.sh
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=1000
++ GAS_PRICE_GWEI=1000
++ ./scripts/streamrConfig.ts setEarlyLeaverPenaltyWei 5000
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of earlyLeaverPenaltyWei: 1000000000000000000000000000 (1000000000.0)
+Setting setEarlyLeaverPenaltyWei to 5000000000000000000000 (5000), overrides: {"gasPrice":{"type":"BigNumber","hex":"0xe8d4a51000"}}
+Transaction: https://polygonscan.com/tx/0x6050be1620046297bb8ee980413043ccc395f2687f4d332c0000aacaa35dae92
+Transaction receipt: {
+  blockNumber: 54572453,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x6050be1620046297bb8ee980413043ccc395f2687f4d332c0000aacaa35dae92',
+  events: [
+    { event: 'ConfigChanged', args: {} },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
++ ./scripts/streamrConfig.ts setFlaggerRewardWei 36
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flaggerRewardWei: 3000000000000000 (0.003)
+Setting setFlaggerRewardWei to 36000000000000000000 (36), overrides: {"gasPrice":{"type":"BigNumber","hex":"0xe8d4a51000"}}
+Transaction: https://polygonscan.com/tx/0x679db9920a6dbcdd8da4f3b5961d950f717f06af12e3c2f26e21e14b3287a405
+Transaction receipt: {
+  blockNumber: 54572459,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x679db9920a6dbcdd8da4f3b5961d950f717f06af12e3c2f26e21e14b3287a405',
+  events: [
+    { event: 'ConfigChanged', args: {} },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
++ ./scripts/streamrConfig.ts setFlagReviewerRewardWei 2
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+Current value of flagReviewerRewardWei: 1000000000000000 (0.001)
+Setting setFlagReviewerRewardWei to 2000000000000000000 (2), overrides: {"gasPrice":{"type":"BigNumber","hex":"0xe8d4a51000"}}
+Transaction: https://polygonscan.com/tx/0x5d8888565e9b2312eeb35c7a744a9651530733fb70d18ac451b2efb0bbee58ab
+Transaction receipt: {
+  blockNumber: 54572464,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f',
+  transactionHash: '0x5d8888565e9b2312eeb35c7a744a9651530733fb70d18ac451b2efb0bbee58ab',
+  events: [
+    { event: 'ConfigChanged', args: {} },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
++ ./scripts/streamrConfig.ts minimumStakeWei
+Wallet address used: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {"name":"matic","chainId":137,"ensAddress":null}
+Checking StreamrConfig at 0x869e88dB146ECAF20dDf199a12684cD80c263c8f
+    0x3b49a237fe2d18fa4d9642b8a0e065923cceb71b797783b619a030a61d848bf0 [OK]
+minimumStakeWei: 5000000000000000000000 (5000.0)

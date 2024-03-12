@@ -219,6 +219,6 @@ You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers install
 
 We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
 Error: 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f doesn't have StreamrConfig.ADMIN_ROLE
-    at handover (/Users/jtakalai/Documents/workspace/network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:67:15)
+    at handover (.../network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:67:15)
     at processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async main (/Users/jtakalai/Documents/workspace/network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:54:5)
+    at async main (.../network-contracts/packages/network-contracts/scripts/handOverAdminRolesTo.ts:54:5)
