@@ -667,6 +667,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         if (amountSlashedDataWei > 0) {
             // simulate a slash BEFORE returning stake + earnings (during _removeOperator)
             //   by reverting valueBeforeEarnings (and exchange rate) to what it was before DATA was sent
+            //   totalSlashedInSponsorshipsWei is used to counter-act the increased token.balanceOf(this)
+            //   in `valueWithoutEarnings() = token.balanceOf(this) + totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei`
             totalSlashedInSponsorshipsWei += receivedPayoutWei;
             _slashSelfDelegation(amountSlashedDataWei);
             totalSlashedInSponsorshipsWei -= receivedPayoutWei;
@@ -778,8 +780,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      * Version number
      *  1: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
      *  2: recompilation and redeployment (ETH-748)
+     *  3: slash self-delegation when getting kicked (ETH-754)
      */
     function version() public pure returns (uint) {
-        return 2;
+        return 3;
     }
 }
