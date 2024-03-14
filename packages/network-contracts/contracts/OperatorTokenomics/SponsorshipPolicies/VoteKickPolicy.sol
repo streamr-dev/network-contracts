@@ -257,7 +257,8 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         uint slashingWei = targetStakeAtRiskWei[target];
         if (lockedStakeWei[target] >= slashingWei) {
             lockedStakeWei[target] -= slashingWei;
-            _kick(target, slashingWei); // ignore return value, there should be enough (now unlocked) stake to slash
+            _slash(target, slashingWei); // ignore return value, there should be enough (now unlocked) stake to slash
+            _kick(target, 0);
         } else {
             //...unless target has forceUnstaked, in which case the locked stake was moved into forfeited stake, and they already paid for the KICK
             forfeitedStakeWei -= slashingWei - lockedStakeWei[target];

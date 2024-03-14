@@ -1767,7 +1767,7 @@ describe("Operator contract", (): void => {
 
     describe("Kick/slash handler", () => {
 
-        it.only("burns operator's tokens on slashing", async function(): Promise<void> {
+        it("burns operator's tokens on slashing", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")
 
@@ -1795,7 +1795,7 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
         })
 
-        it.only("burns operator's tokens on kicking (with slashing)", async function(): Promise<void> {
+        it("burns operator's tokens on kicking (with slashing)", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")
 
@@ -1824,7 +1824,7 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000")) // 1995 +  995 -
         })
 
-        it.only("doesn't burn operator's tokens on kicking (without slashing)", async function(): Promise<void> {
+        it("doesn't burn operator's tokens on kicking (without slashing)", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")
 
