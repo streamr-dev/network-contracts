@@ -1767,7 +1767,7 @@ describe("Operator contract", (): void => {
 
     describe("Kick/slash handler", () => {
 
-        it("burns operator's tokens on slashing", async function(): Promise<void> {
+        it.only("burns operator's tokens on slashing", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")
 
@@ -1776,26 +1776,83 @@ describe("Operator contract", (): void => {
             await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
             const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
 
-            await (await operator.stake(sponsorship.address, parseEther("1000"))).wait()
+            await (await operator.stake(sponsorship.address, parseEther("2000"))).wait()
 
-            const balanceBefore = await operator.balanceOf(operatorWallet.address)
-            const balanceInDataBefore = await operator.balanceInData(operatorWallet.address)
-            const delegationInDataBefore = await operator.balanceInData(delegator.address)
-            await (await sponsorship.connect(admin).flag(operator.address, "")).wait() // TestKickPolicy slashes 10 ether without kicking
-            const balanceAfter = await operator.balanceOf(operatorWallet.address)
-            const balanceInDataAfter = await operator.balanceInData(operatorWallet.address)
-            const delegationInDataAfter = await operator.balanceInData(delegator.address)
+            // TestKickPolicy slashes 10 ether without kicking
+            await (await sponsorship.connect(admin).flag(operator.address, "")).wait()
+
+            // we're still staked (though slashed)
+            expect(await sponsorship.stakedWei(operator.address)).to.equal(parseEther("1990"))
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("0"))
 
             // operator's tokens are burned
-            expect(balanceBefore).to.equal(parseEther("1000"))
-            expect(balanceInDataBefore).to.equal(parseEther("1000"))
-            expect(balanceAfter).to.equal(parseEther("990"))
-            expect(balanceInDataAfter).to.equal(parseEther("990"))
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("990"))
+            expect(await operator.balanceInData(operatorWallet.address)).to.equal(parseEther("990"))
+            expect(await operator.totalSupply()).to.equal(parseEther("1990"))
 
             // DATA value held by delegator doesn't change
-            expect(delegationInDataBefore).to.equal(parseEther("1000"))
-            expect(delegationInDataAfter).to.equal(parseEther("1000"))
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
         })
+
+        it.only("burns operator's tokens on kicking (with slashing)", async function(): Promise<void> {
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "1000")
+
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+
+            await (await operator.stake(sponsorship.address, parseEther("2000"))).wait()
+
+            // TestKickPolicy kicks and slashes
+            const tenTokens = hexZeroPad(parseEther("10"), 32)
+            await (await sponsorship.connect(admin).voteOnFlag(operator.address, tenTokens)).wait()
+
+            // we're no longer staked (and stake was returned minus the slashing)
+            expect(await sponsorship.stakedWei(operator.address)).to.equal(0)
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("1990"))
+
+            // operator's tokens are burned
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("990"))     // 1000 +   1000 -
+            expect(await operator.balanceInData(operatorWallet.address)).to.equal(parseEther("990")) // 1995 +    995 -
+            expect(await operator.totalSupply()).to.equal(parseEther("1990"))
+
+            // DATA value held by delegator doesn't change
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000")) // 1995 +  995 -
+        })
+
+        it.only("doesn't burn operator's tokens on kicking (without slashing)", async function(): Promise<void> {
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "1000")
+
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            const sponsorship = await deploySponsorship(sharedContracts, {}, [], [], undefined, undefined, testKickPolicy)
+
+            await (await operator.stake(sponsorship.address, parseEther("2000"))).wait()
+
+            // TestKickPolicy kicks and slashes (zero)
+            const zeroTokens = hexZeroPad("0x0", 32)
+            await (await sponsorship.connect(admin).voteOnFlag(operator.address, zeroTokens)).wait()
+
+            // we're no longer staked (and all DATA was returned)
+            expect(await sponsorship.stakedWei(operator.address)).to.equal(0)
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("2000"))
+
+            // operator's tokens are NOT burned
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000"))
+            expect(await operator.balanceInData(operatorWallet.address)).to.equal(parseEther("1000"))
+            expect(await operator.totalSupply()).to.equal(parseEther("2000"))
+
+            // DATA value held by delegator doesn't change
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("1000"))
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
+        })
+
 
         it("if operator runs out of tokens, slashing will reduce the delegator' value", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
