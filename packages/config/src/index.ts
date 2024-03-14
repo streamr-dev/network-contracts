@@ -189,6 +189,7 @@ export const config = {
             "AMB": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
             "DATA": "0x8f693ca8D21b157107184d29D398A8D082b38b76",
             "ENS": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+            "PublicResolver": "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63",
             "Marketplace": "0xdc8d23092b93f9bb7416f45dea36f55996f34867",
             "MediatorDATA": "0x29e572d45cC33D5a68DCc8f92bfc7ded0017Bc59",
             "MediatorXDATA": "0x2eeeDdeECe91c9F4c5bA4C8E1d784A0234C6d015",

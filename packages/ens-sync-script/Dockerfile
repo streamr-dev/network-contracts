@@ -11,8 +11,6 @@ USER node
 
 COPY --chown=node:node . .
 
-RUN mv network-contracts ../
-
-RUN npm i
+RUN npm i --omit=dev
 ENV DEBUG=*
 CMD [ "npm", "run", "start" ]
