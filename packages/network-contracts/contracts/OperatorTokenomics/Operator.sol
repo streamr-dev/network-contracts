@@ -632,6 +632,10 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     // SPONSORSHIP CALLBACKS
     /////////////////////////////////////////
 
+    /**
+     * Slash handler: Operator.owner() pays for the slashing, delegators do not
+     * @param amountSlashed amount of DATA tokens removed from the stake in Sponsorship that calls this
+     */
     function onSlash(uint amountSlashed) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
@@ -648,11 +652,26 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    function onKick(uint, uint receivedPayoutWei) external {
+    /**
+     * Kick handler: Operator.owner() pays for the kick, delegators do not
+     * @dev NOTE that since we already got the DATA back, we need to subtract those DATA from the valueBeforeEarnings
+     * @dev      in order to simulate a slash on the exchange rates BEFORE returning stake + earnings
+     * @param amountSlashedDataWei amount of DATA tokens removed from the stake in Sponsorship that calls this
+     * @param receivedPayoutWei stake + earnings received during the kick
+     */
+    function onKick(uint amountSlashedDataWei, uint receivedPayoutWei) external {
         Sponsorship sponsorship = Sponsorship(msg.sender);
         if (indexOfSponsorships[sponsorship] == 0) {
             revert NotMyStakedSponsorship();
         }
+        if (amountSlashedDataWei > 0) {
+            // simulate a slash BEFORE returning stake + earnings (during _removeOperator)
+            //   by reverting valueBeforeEarnings (and exchange rate) to what it was before DATA was sent
+            totalSlashedInSponsorshipsWei += receivedPayoutWei;
+            _slashSelfDelegation(amountSlashedDataWei);
+            totalSlashedInSponsorshipsWei -= receivedPayoutWei;
+        }
+
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._removeSponsorship.selector, sponsorship, receivedPayoutWei));
     }
 
