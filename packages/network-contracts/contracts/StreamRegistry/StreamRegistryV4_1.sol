@@ -15,6 +15,7 @@ import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
+// solhint-disable-next-line contract-name-camelcase
 contract StreamRegistryV4_1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");

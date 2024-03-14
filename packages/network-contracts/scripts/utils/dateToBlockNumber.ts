@@ -1,6 +1,6 @@
 #!/usr/bin/env npx ts-node
 
-import { Provider } from "@ethersproject/providers"
+// import { Provider } from "@ethersproject/providers"
 
 /** [date, blockNumber] pairs */
 type DateToBlockNumber = [number, number]
@@ -31,6 +31,7 @@ function addToCache(date: number, blockNumber: number) {
     dateToBlockNumberCache.splice(index, 0, [date, blockNumber])
 }
 
+/*
 export async function dateToBlockNumber(date: number, provider?: Provider): Promise<number> {
     const { before, after } = findClosestCacheItems(date)
     if (before[0] === date) {
@@ -44,6 +45,7 @@ export async function dateToBlockNumber(date: number, provider?: Provider): Prom
     // const block = await provider.getBlock(mid)
     return 0
 }
+*/
 
 if (require.main === module) {
     const { log } = console

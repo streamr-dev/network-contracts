@@ -47,10 +47,8 @@ contract DefaultUndelegationPolicy is Operator, IUndelegationPolicy {
             try config.minimumDelegationSeconds() returns (uint s) {
                 minimumSeconds = s;
             } catch {}
-            require(
-                block.timestamp > latestDelegationTimestamp[delegator] + minimumSeconds,
-                "error_undelegateTooSoon"
-            );
+            // solhint-disable-next-line not-rely-on-time
+            require(block.timestamp > latestDelegationTimestamp[delegator] + minimumSeconds, "error_undelegateTooSoon");
         }
     }
 }

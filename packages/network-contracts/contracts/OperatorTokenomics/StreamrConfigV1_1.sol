@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  * `ADMIN_ROLE()` can grant `CONFIGURATOR_ROLE()` to others, who can then change the parameters.
  * `ADMIN_ROLE()` can grant `UPGRADER_ROLE()` to others, who can then upgrade this contract.
  */
+// solhint-disable-next-line contract-name-camelcase
 contract StreamrConfigV1_1 is Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant CONFIGURATOR_ROLE = keccak256("CONFIGURATOR_ROLE");
