@@ -108,7 +108,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3*3 + 2 + 1
 
         expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
-        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("5003000000000000000000")
+        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("4502700000000000000000") // 5003 - 10% slashing
         expect(resultDynamicIds.delegations[0].earliestUndelegationTimestamp).to.be.greaterThan(0)
     })
 
