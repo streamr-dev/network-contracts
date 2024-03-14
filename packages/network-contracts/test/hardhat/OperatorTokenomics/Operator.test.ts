@@ -1853,7 +1853,6 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("1000"))
         })
 
-
         it("if operator runs out of tokens, slashing will reduce the delegator' value", async function(): Promise<void> {
             await setTokens(operatorWallet, "1000")
             await setTokens(delegator, "1000")

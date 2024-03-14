@@ -41,11 +41,6 @@ contract MockERC1271 is IERC1271 {
         bytes32 _hash,
         bytes memory _signature
     ) internal pure returns (address signer) {
-        require(
-            _signature.length == 65,
-            "SignatureValidator#recoverSigner: invalid signature length"
-        );
-
         require(_signature.length == 65, "error_badSignatureLength");
 
         bytes32 r; bytes32 s; uint8 v;
@@ -78,19 +73,14 @@ contract MockERC1271 is IERC1271 {
             uint256(s) >
             0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
         ) {
-            revert(
-                "SignatureValidator#recoverSigner: invalid signature 's' value"
-            );
+            revert("error_badSignatureSValue");
         }
 
         // Recover ECDSA signer
         signer = ecrecover(_hash, v, r, s);
 
         // Prevent signer from being 0x0
-        require(
-            signer != address(0x0),
-            "SignatureValidator#recoverSigner: INVALID_SIGNER"
-        );
+        require(signer != address(0x0), "error_zeroSigner");
 
         return signer;
     }
