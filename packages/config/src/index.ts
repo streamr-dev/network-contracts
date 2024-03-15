@@ -302,7 +302,7 @@ export const config = {
             "SponsorshipFactory": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
             "OperatorDefaultDelegationPolicy": "0x8e449F0B1AFAD807135B5Ea829F41851d5DE1426",
             "OperatorDefaultExchangeRatePolicy": "0xE8F511bB4888D16D81acab7ab1c05A356E37237f",
-            "OperatorDefaultUndelegationPolicy": "0xC31c0d639d1923EF834597343C1380594C7dC0B8",
+            "OperatorDefaultUndelegationPolicy": "0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45",
             "OperatorFactory": "0x935734e66729b69260543Cf6e5EfeB42AC962183",
             "Uniswap2Router": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
             "UniswapAdapter": "0xAd54A57383EcA2D4f0D22337A96A7c4f6Bd51A13",

@@ -1,0 +1,290 @@
+$ ./scripts/2024-03-15-operator-template-v3.sh                                     [9:50:43]
++ npm run build
+
+> @streamr/network-contracts@7.1.1 build
+> rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json && ./generateSelectorsTxt.sh
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @ensdomains/ens-contracts/contracts/registry/ENS.sol
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol
+
+
+Warning: Visibility for constructor is ignored. If you want the contract to be non-deployable, making it "abstract" is sufficient.
+  --> @ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol:25:5:
+   |
+25 |     constructor(ENS ensAddr, bytes32 node) public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:15:63:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |                                                               ^^^^
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:15:63:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |                                                               ^^^^
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:21:69:
+   |
+21 |     function dataToOperatorToken(uint, uint) external view returns (uint) {
+   |                                                                     ^^^^
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:22:5:
+   |
+22 |     function dataToOperatorToken(uint dataWei, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:21:5:
+   |
+21 |     function dataToOperatorToken(uint dataWei, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint tokenWei) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:21:5:
+   |
+21 |     function dataToOperatorToken(uint, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Generating typings for: 171 artifacts in dir: ./typechain for target: ethers-v5
+Successfully generated 442 typings!
+Compiled 179 Solidity files successfully
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
++ export CHAIN=polygon
++ CHAIN=polygon
++ export GAS_PRICE_GWEI=150
++ GAS_PRICE_GWEI=150
++ export OUTPUT_FILE=undelegationPolicy.txt
++ OUTPUT_FILE=undelegationPolicy.txt
++ ./scripts/upgradeUndelegationPolicy.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon-rpc.com
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 80.675480528265588081 ETH
+Deployed new undelegation policy at 0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45
+Whitelist policy tx: https://polygonscan.com/tx/0x3217f241daf6aaddff2e15972c17ea1f2a77ac3a5392722d08fa5ac62c9dac51
+Tx receipt: {
+  blockNumber: 54679671,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0x3217f241daf6aaddff2e15972c17ea1f2a77ac3a5392722d08fa5ac62c9dac51',
+  events: [
+    {
+      event: 'PolicyWhitelisted',
+      args: {
+        policyAddress: '0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45',
+        isWhitelisted: 'true'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 0.65890245 ETH for gas
+++ cat undelegationPolicy.txt
++ export ADDRESS=0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45
++ ADDRESS=0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45
++ npm run verify
+
+> @streamr/network-contracts@7.1.1 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol:DefaultUndelegationPolicy at 0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract DefaultUndelegationPolicy on Etherscan.
+https://polygonscan.com/address/0x5c81fA1e79318386Dd82Ef059bCB194DbA87De45#code
++ export OUTPUT_FILE=address.txt
++ OUTPUT_FILE=address.txt
++ ./scripts/upgradeOperatorTemplate.ts
+Wallet address used transaction:  0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f
+Checking network polygon: https://polygon.blockpi.network/v1/rpc/22cfa7d5969f936a6ec52eb58e9c32d7a207b45d
+    {
+  name: 'matic',
+  chainId: 137,
+  ensAddress: null,
+  _defaultProvider: <ref *1> [Function: func] {
+    [length]: 2,
+    [name]: 'func',
+    [prototype]: { [constructor]: [Circular *1] },
+    renetwork: <ref *2> [Function (anonymous)] {
+      [length]: 1,
+      [name]: '',
+      [prototype]: { [constructor]: [Circular *2] }
+    }
+  }
+}
+Balance of 0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f: 75.168557888265588081 ETH
+OK (0x608060405234801561)
+Deployed Operator template at 0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9
+OK (0x608060405234801561)
+Deployed Node module at 0x201131604faa911299F4eE28961BD0947219658C
+OK (0x608060405234801561)
+Deployed Queue module at 0xe629ee2276Ee63016CCef9fC7381D817005971D4
+OK (0x608060405234801561)
+Deployed Stake module at 0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85
+Setting template, overrides: {"gasPrice":{"type":"BigNumber","hex":"0x2794ca2400"}}
+Set template tx: https://polygonscan.com/tx/0x8511e17e5b26b5d0f68dc37fd5ad58d79eec05ee9e4f7d2b2050fc4c13bb5ea8
+Set template receipt: {
+  blockNumber: 54679862,
+  from: '0x41e36D4fFb5B443B20f55bcFf27c68fF086Fe06f',
+  to: '0x935734e66729b69260543Cf6e5EfeB42AC962183',
+  transactionHash: '0x8511e17e5b26b5d0f68dc37fd5ad58d79eec05ee9e4f7d2b2050fc4c13bb5ea8',
+  events: [
+    {
+      event: 'TemplateAddresses',
+      args: {
+        operatorTemplate: '0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9',
+        nodeModuleTemplate: '0x201131604faa911299F4eE28961BD0947219658C',
+        queueModuleTemplate: '0xe629ee2276Ee63016CCef9fC7381D817005971D4',
+        stakeModuleTemplate: '0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85'
+      }
+    },
+    {
+      event: 'unknown',
+      args: {},
+      address: '0x0000000000000000000000000000000000001010'
+    },
+    [length]: 2
+  ]
+}
+Spent 3.19733552 ETH for gas
+++ cat operatorTemplate-address.txt
++ export ADDRESS=0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9
++ ADDRESS=0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9
++ npm run verify
+
+> @streamr/network-contracts@7.1.1 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/Operator.sol:Operator at 0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract Operator on Etherscan.
+https://polygonscan.com/address/0xcB1eEad3297BCd5afccE86Ce5Fe02A5d8dd0EfD9#code
+++ cat nodeModule-address.txt
++ export ADDRESS=0x201131604faa911299F4eE28961BD0947219658C
++ ADDRESS=0x201131604faa911299F4eE28961BD0947219658C
++ npm run verify
+
+> @streamr/network-contracts@7.1.1 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/NodeModule.sol:NodeModule at 0x201131604faa911299F4eE28961BD0947219658C
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract NodeModule on Etherscan.
+https://polygonscan.com/address/0x201131604faa911299F4eE28961BD0947219658C#code
+++ cat queueModule-address.txt
++ export ADDRESS=0xe629ee2276Ee63016CCef9fC7381D817005971D4
++ ADDRESS=0xe629ee2276Ee63016CCef9fC7381D817005971D4
++ npm run verify
+
+> @streamr/network-contracts@7.1.1 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/QueueModule.sol:QueueModule at 0xe629ee2276Ee63016CCef9fC7381D817005971D4
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract QueueModule on Etherscan.
+https://polygonscan.com/address/0xe629ee2276Ee63016CCef9fC7381D817005971D4#code
+++ cat stakeModule-address.txt
++ export ADDRESS=0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85
++ ADDRESS=0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85
++ npm run verify
+
+> @streamr/network-contracts@7.1.1 verify
+> hardhat verify $ADDRESS --network $CHAIN --show-stack-traces
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/OperatorTokenomics/OperatorPolicies/StakeModule.sol:StakeModule at 0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract StakeModule on Etherscan.
+https://polygonscan.com/address/0x8DDf296fCC6687569df8B8aa3CC2e2B829792E85#code

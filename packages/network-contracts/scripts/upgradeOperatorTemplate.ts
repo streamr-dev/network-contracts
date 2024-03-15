@@ -92,6 +92,7 @@ async function main() {
     await sleep(1000)
     await checkAddressHasContract(operatorTemplate.address)
     log("Deployed Operator template at %s", operatorTemplate.address)
+    await sleep(1000)
 
     // const nodeModuleAddress = await operatorFactory.nodeModuleTemplate()
     // const queueModuleAddress = await operatorFactory.queueModuleTemplate()
