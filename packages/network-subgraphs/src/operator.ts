@@ -12,6 +12,8 @@ import {
     QueuedDataPayout,
     Undelegated,
     ReviewRequest,
+    RoleGranted,
+    RoleRevoked,
 } from '../generated/templates/Operator/Operator'
 import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDailyBucket,
     loadOrCreateNetwork,
@@ -275,4 +277,40 @@ export function handleReviewRequest(event: ReviewRequest): void {
     reviewers.push(reviewerId)
     flag.reviewers = reviewers
     flag.save()
+}
+
+/** Update the controllers list. Don't include owner! */
+export function handleRoleGranted(event: RoleGranted): void {
+    const operatorContractAddress = event.address
+    const role = event.params.role.toHexString()
+    const account = event.params.account.toHexString()
+    log.info('handleRoleGranted: operatorContractAddress={} role={} account={} blockNumber={}', [
+        operatorContractAddress.toHexString(), role, account, event.block.number.toString()
+    ])
+
+    const operator = loadOrCreateOperator(operatorContractAddress)
+    if (role == "0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357" && account != operator.owner) {
+        operator.controllers.push(account)
+        operator.save()
+    }
+}
+
+/** Update the controllers list. Don't include owner! */
+export function handleRoleRevoked(event: RoleRevoked): void {
+    const operatorContractAddress = event.address
+    const role = event.params.role.toHexString()
+    const account = event.params.account.toHexString()
+    log.info('handleRoleRevoked: operatorContractAddress={} role={} account={} blockNumber={}', [
+        operatorContractAddress.toHexString(), role, account, event.block.number.toString()
+    ])
+
+    const operator = loadOrCreateOperator(operatorContractAddress)
+    if (role == "0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357" && account != operator.owner) {
+        let i = operator.controllers.indexOf(account)
+        while (i > -1) {
+            operator.controllers.splice(i, 1)
+            i = operator.controllers.indexOf(account)
+        }
+        operator.save()
+    }
 }

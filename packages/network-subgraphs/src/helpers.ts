@@ -197,6 +197,7 @@ export function loadOrCreateOperator(operatorContractAddress: Address): Operator
         operator.exchangeRate = BigDecimal.fromString("0")
         operator.slashingsCount = 0
         operator.nodes = []
+        operator.controllers = []
 
         log.info("loadOrCreateOperator: querying version from operator={}", [operatorId])
         const maybeVersion = OperatorContract.bind(operatorContractAddress).try_version()

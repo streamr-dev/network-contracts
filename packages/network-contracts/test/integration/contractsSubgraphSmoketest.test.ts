@@ -61,6 +61,7 @@ describe("docker image integration test", () => {
             operators {
                 id
                 contractVersion
+                controllers
             }
             operatorDailyBuckets {
                 id
@@ -100,6 +101,10 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.stakingEvents.length).to.equal(4) // 3 operators staked + 1 got kicked out
         expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators staked - 1 got kicked out
         expect(resultDynamicIds.delegations.length).to.equal(3) // notice how delegations != stakes
+
+        resultDynamicIds.operators.forEach((operator: any) => {
+            expect(operator.controllers.length).to.equal(0)
+        })
 
         // 3 operator coordination streams, each has 3 permissions (public + owner + ?)
         // 1 storage node assignment stream, each has 2 permissions (public + owner)
