@@ -1,12 +1,21 @@
 #!/usr/bin/env npx ts-node
 
+/**
+ * This script was written to find out how much DATA was slashed during RECOVERY of tokens that were locked in Operator version 1 contracts.
+ *   Ticket is https://linear.app/streamr/issue/ETH-750/script-for-computing-returned-slashed-tokens
+ * Operator version 1 unfortunately misallocated tokens after kick (did not slash owner's self-delegation),
+ *   so while this script performed as expected, the results were off in sponsorships that had had kick-slashings.
+ *   This was fixed in https://linear.app/streamr/issue/ETH-754/selfdelegation-slashing-in-operatoronkick
+ *   Script analyzeKicks.ts was written to find out how to distribute kick-slashings to delegators
+ */
+
 import fetch from "node-fetch"
 import { writeFileSync } from "fs"
 
 import { Logger, TheGraphClient } from "@streamr/utils"
 import { config } from "@streamr/config"
 
-import { dateToBlockNumber } from "./utils/dateToBlockNumberPolygonSubgraph"
+import { dateToBlockNumber, loadCache } from "./utils/dateToBlockNumberPolygonApi"
 import { div, mul } from "./utils/bigint"
 
 const { log } = console
@@ -16,12 +25,12 @@ const {
     END,
 
     // KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
-    CHAIN = "dev2",
+    CHAIN = "polygon",
     // ETHEREUM_RPC,
     // GAS_PRICE_GWEI,
     GRAPH_URL,
 
-    OUTPUT_FILE,
+    OUTPUT_FILE = "slashings.csv",
 } = process.env
 
 const {
@@ -183,6 +192,7 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
     // if there are any left, then delegators didn't lose anything (yet)
     // the whole slashing will then be allocated to the owner
     if (ownersTokensAfter > 0) {
+        log("DONE %s %s", slashingEvent.operator, doneSlashings++)
         return [{
             operator: slashingEvent.operator,
             operatorName: metadata.name,
@@ -227,13 +237,17 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
     }, ...delegatorSlashings]
 
     allSlashings.sort((a, b) => a.delegator.localeCompare(b.delegator))
+    log("DONE %s %s", slashingEvent.operator, doneSlashings++)
     return allSlashings
 }
+
+let doneSlashings = 0
 
 async function main() {
     const slashings = await getSlashings()
     log("Got %d slashings", slashings.length)
     log("%o", slashings[0])
+    await loadCache()
     const rows = await Promise.all(slashings.map(splitSlashing))
     log("Got %d rows", rows.flat().length)
     log("%o", rows[0][0])
@@ -241,6 +255,9 @@ async function main() {
         const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
             "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
         const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n")
+        log("Writing to %s", OUTPUT_FILE)
+        log(headerString)
+        log(rowsString)
         writeFileSync(OUTPUT_FILE, headerString)
         writeFileSync(OUTPUT_FILE, rowsString, { flag: "a" })
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 import fetch from "node-fetch"
+import { writeFileSync, readFileSync } from "fs"
 
 import { Logger, TheGraphClient } from "@streamr/utils"
 
@@ -11,6 +12,18 @@ function addToCache(date: number, blockNumber: number) {
         throw new Error("Date already in cache")
     }
     dateToBlockNumberCache.set(date, blockNumber)
+}
+
+export function storeCache(): void {
+    writeFileSync("dateToBlockNumberCache.json", JSON.stringify(dateToBlockNumberCache.entries()))
+}
+
+export function loadCache(): void {
+    const rawCache = readFileSync("dateToBlockNumberCache.json", "utf-8")
+    const entries = JSON.parse(rawCache)
+    entries.forEach(([date, blockNumber]: [number, number]) => {
+        dateToBlockNumberCache.set(date, blockNumber)
+    })
 }
 
 export async function dateToBlockNumber(date: number): Promise<number> {
