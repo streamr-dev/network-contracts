@@ -248,22 +248,22 @@ async function main() {
     log("Got %d slashings", slashings.length)
     log("%o", slashings[0])
     await loadCache()
-    const rows = await Promise.all(slashings.map(splitSlashing))
-    log("Got %d rows", rows.flat().length)
-    log("%o", rows[0][0])
-    if (OUTPUT_FILE) {
-        const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
-            "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
-        const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n")
-        log("Writing to %s", OUTPUT_FILE)
+
+    const shortOutputFileName = OUTPUT_FILE + ".short.csv"
+    log("Writing to %s and %s", OUTPUT_FILE, shortOutputFileName)
+    const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
+    "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
+    writeFileSync(OUTPUT_FILE, headerString)
+
+    for (const slashing of slashings) {
+        const rows = await splitSlashing(slashing)
+        const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n") + "\n"
         log(headerString)
         log(rowsString)
-        writeFileSync(OUTPUT_FILE, headerString)
         writeFileSync(OUTPUT_FILE, rowsString, { flag: "a" })
 
-        const shortRowsString = rows.flat().map((s) => `${s.delegator},${s.delegatorDataLostWei}`).join("\n")
-        const outputFileName = OUTPUT_FILE + ".short.csv"
-        writeFileSync(outputFileName, shortRowsString, { flag: "a" })
+        const shortRowsString = rows.flat().map((s) => `${s.delegator},${s.delegatorDataLostWei}`).join("\n") + "\n"
+        writeFileSync(shortOutputFileName, shortRowsString, { flag: "a" })
     }
 }
 
