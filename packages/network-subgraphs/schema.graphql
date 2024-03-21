@@ -332,6 +332,9 @@ type Operator @entity {
   isEligibleToVote: Boolean!
   protectionEndTimestamp: Int
 
+  "Addresses that can call all owner/admin methods in the Operator contract on behalf of the owner (owner not included in this list)"
+  controllers: [String!]!
+
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
   flagsTargeted: [Flag!]! @derivedFrom(field: "target")
   votesOnFlags: [Vote!]! @derivedFrom(field: "voter")
@@ -396,7 +399,7 @@ type Delegation @entity {
   "Amount of internal Operator tokens this delegator holds"
   operatorTokenBalanceWei: BigInt!
 
-  "DATA value of the Operator tokens this delegator holds"
+  "Past value of DATA value of the Operator tokens this delegator holds, at latestDelegationTimestamp. Calculate current value using operatorTokenBalanceWei and operator.exchangeRate."
   valueDataWei: BigInt!
 
   "latest delegation done by the delegator to this operator"

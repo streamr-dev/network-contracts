@@ -323,3 +323,7 @@ templates:
             handler: handleMetadataUpdate
           - event: ReviewRequest(indexed address,indexed address,uint256,uint256,string)
             handler: handleReviewRequest
+          - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+            handler: handleRoleGranted
+          - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+            handler: handleRoleRevoked
