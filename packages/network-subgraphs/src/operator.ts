@@ -290,7 +290,10 @@ export function handleRoleGranted(event: RoleGranted): void {
 
     const operator = loadOrCreateOperator(operatorContractAddress)
     if (role == "0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357" && account != operator.owner) {
-        operator.controllers.push(account)
+        log.debug("Adding controller {} to operator {}", [ account, operator.id ])
+        const controllers = operator.controllers
+        controllers.push(account)
+        operator.controllers = controllers
         operator.save()
     }
 }
@@ -306,11 +309,14 @@ export function handleRoleRevoked(event: RoleRevoked): void {
 
     const operator = loadOrCreateOperator(operatorContractAddress)
     if (role == "0x7b765e0e932d348852a6f810bfa1ab891e259123f02db8cdcde614c570223357" && account != operator.owner) {
-        let i = operator.controllers.indexOf(account)
+        log.debug("Removing controller {} from operator {}", [ account, operator.id ])
+        const controllers = operator.controllers
+        let i = controllers.indexOf(account)
         while (i > -1) {
-            operator.controllers.splice(i, 1)
-            i = operator.controllers.indexOf(account)
+            controllers.splice(i, 1)
+            i = controllers.indexOf(account)
         }
+        operator.controllers = controllers
         operator.save()
     }
 }
