@@ -109,6 +109,7 @@ export class StreamrEnvDeployer {
     operatorAddress: any
     operator?: Operator
     provider: JsonRpcProvider
+    controller?: Wallet
 
     constructor(key: string, chainEndpointUrl: string) {
         this.provider = new JsonRpcProvider(chainEndpointUrl)
@@ -127,6 +128,7 @@ export class StreamrEnvDeployer {
         await this.deploySponsorshipFactory()
         await this.deployOperatorFactory()
         await this.preloadDATAToken()
+        this.controller = this.preloadedDATAWallets[4]
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -502,6 +504,10 @@ export class StreamrEnvDeployer {
         // add self as node
         log("    Adding self as node")
         await (await operator.setNodeAddresses([deployer.address])).wait()
+
+        // add a controller
+        log("    Adding controller role")
+        await (await operator.grantRole(await operator.CONTROLLER_ROLE(), this.controller!.address)).wait()
 
         return operator
     }
