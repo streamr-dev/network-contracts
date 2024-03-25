@@ -103,7 +103,8 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.delegations.length).to.equal(3) // notice how delegations != stakes
 
         resultDynamicIds.operators.forEach((operator: any) => {
-            expect(operator.controllers.length).to.equal(1)
+            expect(operator.controllers.length).to.equal(2)
+            expect(operator.controllers[0]).to.equal("0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1")
             expect(operator.controllers[0]).to.equal("0xa6743286b55f36afa5f4e7e35b6a80039c452dbd")
         })
 
