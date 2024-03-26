@@ -272,7 +272,10 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://polygon.llamarpc.com"
+                "url": "https://polygon.gateway.tenderly.co"
+            },
+            {
+                "url": "https://polygon-pokt.nodies.app"
             }
         ],
         "contracts": {
