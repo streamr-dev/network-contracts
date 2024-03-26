@@ -332,7 +332,7 @@ type Operator @entity {
   isEligibleToVote: Boolean!
   protectionEndTimestamp: Int
 
-  "Addresses that can call all owner/admin methods in the Operator contract on behalf of the owner (owner not included in this list)"
+  "Addresses that can call all owner/admin methods in the Operator contract (owner alone in this list initially)"
   controllers: [String!]!
 
   flagsOpened: [Flag!]! @derivedFrom(field: "flagger")
