@@ -82,9 +82,9 @@ describe("docker image integration test", () => {
                 id
             }
             delegations {
-                valueDataWei
                 operatorTokenBalanceWei
                 earliestUndelegationTimestamp
+                isSelfDelegation
             }
         }
         `})
@@ -100,7 +100,7 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.operatorDailyBuckets.length).to.equal(3)
         expect(resultDynamicIds.stakingEvents.length).to.equal(4) // 3 operators staked + 1 got kicked out
         expect(resultDynamicIds.stakes.length).to.equal(2) // 3 operators staked - 1 got kicked out
-        expect(resultDynamicIds.delegations.length).to.equal(3) // notice how delegations != stakes
+        expect(resultDynamicIds.delegations.length).to.equal(5) // 3 self-delegations + 2 delegations; NOTE how delegations != stakes
 
         resultDynamicIds.operators.forEach((operator: any) => {
             expect(operator.controllers.length).to.equal(2)
@@ -114,9 +114,17 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.streams.length).to.equal(5)
         expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3*3 + 2 + 1
 
-        expect(resultDynamicIds.delegations[0].valueDataWei).to.equal("5003000000000000000000")
-        expect(resultDynamicIds.delegations[0].operatorTokenBalanceWei).to.equal("4502700000000000000000") // 5003 - 10% slashing
-        expect(resultDynamicIds.delegations[0].earliestUndelegationTimestamp).to.be.greaterThan(0)
+        let selfDelegationCount = 0
+        resultDynamicIds.delegations.forEach((delegation: any) => {
+            if (delegation.isSelfDelegation) {
+                expect(delegation.earliestUndelegationTimestamp).to.equal(0)
+                selfDelegationCount++
+            } else {
+                expect(delegation.earliestUndelegationTimestamp).to.be.gt(0)
+                expect(delegation.operatorTokenBalanceWei.toString()).to.equal("5007000000000000000000")
+            }
+        })
+        expect(selfDelegationCount).to.equal(3)
     })
 
     it("can get indexed network values", async () => {
@@ -160,7 +168,7 @@ describe("docker image integration test", () => {
             }
         }`})
         expect(resultDynamicIds.networks.length).to.equal(1)
-        expect(resultDynamicIds.networks[0].totalStake).to.equal("10006000000000000000000")
+        expect(resultDynamicIds.networks[0].totalStake).to.equal("10008000000000000000000")
         expect(BigNumber.from(resultDynamicIds.networks[0].totalDelegated).gt(0)).to.be.true // unable to do exact comparison due to time dependence
         expect(resultDynamicIds.networks[0].totalUndelegated).to.equal("0")
         expect(resultDynamicIds.networks[0].sponsorshipsCount).to.equal(1)

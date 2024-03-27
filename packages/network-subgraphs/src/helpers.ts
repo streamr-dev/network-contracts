@@ -244,16 +244,18 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: Address, timest
     return bucket
 }
 
-export function loadOrCreateDelegation(operatorContractAddress: Address, delegatorId: string): Delegation {
-    const operatorId = operatorContractAddress.toHexString()
-    const delegationId = operatorId + "-" + delegatorId
+export function loadOrCreateDelegation(operator: Operator, delegatorId: string): Delegation {
+    const delegationId = operator.id + "-" + delegatorId
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {
         delegation = new Delegation(delegationId)
-        delegation.operator = operatorId
+        delegation.operator = operator.id
         delegation.delegator = delegatorId
-        delegation.valueDataWei = BigInt.zero()
+        delegation._valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
+        delegation.earliestUndelegationTimestamp = 0
+        delegation.latestDelegationTimestamp = 0
+        delegation.isSelfDelegation = delegatorId == operator.owner
     }
 
     return delegation
