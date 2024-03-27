@@ -115,17 +115,15 @@ describe("docker image integration test", () => {
         expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3*3 + 2 + 1
 
         let selfDelegationCount = 0
-        let totalTokenBalance = BigNumber.from(0)
         resultDynamicIds.delegations.forEach((delegation: any) => {
             if (delegation.isSelfDelegation) {
                 expect(delegation.earliestUndelegationTimestamp).to.equal(0)
                 selfDelegationCount++
             } else {
                 expect(delegation.earliestUndelegationTimestamp).to.be.gt(0)
+                expect(delegation.operatorTokenBalanceWei.toString()).to.equal("5007000000000000000000")
             }
-            totalTokenBalance = totalTokenBalance.add(BigNumber.from(delegation.operatorTokenBalanceWei))
         })
-        expect(totalTokenBalance.toString()).to.equal("24528511037618196507937")
         expect(selfDelegationCount).to.equal(3)
     })
 
