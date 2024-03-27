@@ -343,7 +343,10 @@ export const config = {
         },
         "rpcEndpoints": [
             {
-                "url": "https://rpc-mumbai.maticvigil.com"
+                "url": "https://gateway.tenderly.co/public/polygon-mumbai"
+            },
+            {
+                "url": "https://rpc.ankr.com/polygon_mumbai"
             }
         ],
         "contracts": {
