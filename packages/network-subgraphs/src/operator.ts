@@ -69,7 +69,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
     )
 
     const delegator = loadOrCreateDelegator(delegatorId)
-    const delegation = loadOrCreateDelegation(operatorContractAddress, delegatorId)
+    const delegation = loadOrCreateDelegation(operator, delegatorId)
     const delegatorDailyBucket = loadOrCreateDelegatorDailyBucket(delegator, event.block.timestamp)
     const operatorBucket = loadOrCreateOperatorDailyBucket(operatorContractAddress, event.block.timestamp)
     if (delegation.operatorTokenBalanceWei.equals(BigInt.zero())) {
@@ -91,7 +91,7 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         const network = loadOrCreateNetwork()
         const now = event.block.timestamp.toU32()
         delegation.latestDelegationTimestamp = now
-        if (delegation.operator != operator.owner) {
+        if (!delegation.isSelfDelegation) {
             delegation.earliestUndelegationTimestamp = now + network.minimumDelegationSeconds
         }
         delegation._valueDataWei = newBalanceDataWei
