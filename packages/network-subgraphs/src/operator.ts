@@ -79,20 +79,22 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         delegator.numberOfDelegations = delegator.numberOfDelegations + 1
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount + 1
     }
-    if (newBalanceDataWei > delegation.valueDataWei) {
-        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+    if (newBalanceDataWei > delegation._valueDataWei) {
+        operatorBucket.totalDelegatedWei = operatorBucket.totalDelegatedWei.plus(newBalanceDataWei.minus(delegation._valueDataWei))
     } else {
-        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation.valueDataWei.minus(newBalanceDataWei))
+        operatorBucket.totalUndelegatedWei = operatorBucket.totalUndelegatedWei.plus(delegation._valueDataWei.minus(newBalanceDataWei))
     }
-    delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation.valueDataWei))
+    delegator.totalValueDataWei = delegator.totalValueDataWei.plus(newBalanceDataWei.minus(delegation._valueDataWei))
     delegatorDailyBucket.totalValueDataWei = delegator.totalValueDataWei
     if (newBalance.gt(BigInt.zero())) {
         // delegation created or updated
         const network = loadOrCreateNetwork()
         const now = event.block.timestamp.toU32()
         delegation.latestDelegationTimestamp = now
-        delegation.earliestUndelegationTimestamp = now + network.minimumDelegationSeconds
-        delegation.valueDataWei = newBalanceDataWei
+        if (delegation.operator != operator.owner) {
+            delegation.earliestUndelegationTimestamp = now + network.minimumDelegationSeconds
+        }
+        delegation._valueDataWei = newBalanceDataWei
         delegation.operatorTokenBalanceWei = newBalance
         delegation.save()
     } else {

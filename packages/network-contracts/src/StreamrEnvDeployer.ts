@@ -494,11 +494,17 @@ export class StreamrEnvDeployer {
         } else {
             // add self-delegation
             log("    Adding self-delegation")
-            await (await this.contracts.DATA.connect(deployer).transferAndCall(operator.address, parseEther("5003"), deployer.address)).wait()
+            await (await this.contracts.DATA.connect(deployer).transferAndCall(
+                operator.address, parseEther("5006"), deployer.address)).wait()
+
+            log("    %s delegates as well", this.adminWallet.address)
+            await (await this.contracts.DATA.connect(this.adminWallet).transferAndCall(
+                operator.address, parseEther("5007"), this.adminWallet.address)).wait()
+            log("    Delegation sent")
 
             // stake to the sponsorship
             log("    Staking into sponsorship")
-            await (await operator.stake(this.sponsorshipAddress, parseEther("5003"))).wait()
+            await (await operator.stake(this.sponsorshipAddress, parseEther("5005"))).wait()
         }
 
         // add self as node

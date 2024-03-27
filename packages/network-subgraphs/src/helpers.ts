@@ -252,8 +252,10 @@ export function loadOrCreateDelegation(operatorContractAddress: Address, delegat
         delegation = new Delegation(delegationId)
         delegation.operator = operatorId
         delegation.delegator = delegatorId
-        delegation.valueDataWei = BigInt.zero()
+        delegation._valueDataWei = BigInt.zero()
         delegation.operatorTokenBalanceWei = BigInt.zero()
+        delegation.earliestUndelegationTimestamp = null
+        delegation.latestDelegationTimestamp = 0
     }
 
     return delegation

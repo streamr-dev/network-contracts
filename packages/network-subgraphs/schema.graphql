@@ -400,13 +400,13 @@ type Delegation @entity {
   operatorTokenBalanceWei: BigInt!
 
   "Past value of DATA value of the Operator tokens this delegator holds, at latestDelegationTimestamp. Calculate current value using operatorTokenBalanceWei and operator.exchangeRate."
-  valueDataWei: BigInt!
+  _valueDataWei: BigInt!
 
   "latest delegation done by the delegator to this operator"
   latestDelegationTimestamp: Int!
 
-  "earliest time this delegator can undelegate from this operator"
-  earliestUndelegationTimestamp: Int!
+  "earliest time this delegator can undelegate from this operator (null for owner since it doesn't apply)"
+  earliestUndelegationTimestamp: Int
 }
 
 type Delegator @entity {
