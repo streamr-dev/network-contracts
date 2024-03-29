@@ -64,7 +64,7 @@
     "@opengsn/provider": "2.2.6",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
     "@streamr/config": "^5.0.0",
-    "@streamr/utils": "8.5.5",
+    "@streamr/utils": "100.2.0",
     "@types/debug": "4.1.7",
     "debug": "4.3.3",
     "ethers": "5.7.0",
