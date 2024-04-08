@@ -6,7 +6,6 @@
  * Operator version 1 unfortunately misallocated tokens after kick (did not slash owner's self-delegation),
  *   so while this script performed as expected, the results were off in sponsorships that had had kick-slashings.
  *   This was fixed in https://linear.app/streamr/issue/ETH-754/selfdelegation-slashing-in-operatoronkick
- *   Script analyzeKicks.ts was written to find out how to distribute kick-slashings to delegators
  */
 
 import fetch from "node-fetch"
@@ -16,7 +15,7 @@ import { Logger, TheGraphClient } from "@streamr/utils"
 import { config } from "@streamr/config"
 
 import { dateToBlockNumber, loadCache } from "./utils/dateToBlockNumberPolygonApi"
-import { div, mul } from "./utils/bigint"
+import { mul } from "./utils/bigint"
 
 const { log } = console
 
@@ -57,6 +56,8 @@ type SlashingEvent = {
     operator: string
     /** after the slashing, staked + held DATA */
     operatorDataLeftWei: bigint
+    operatorContractVersion: string
+    sponsorship: string
 }
 
 async function getSlashings(): Promise<SlashingEvent[]> {
@@ -87,6 +88,10 @@ async function getSlashings(): Promise<SlashingEvent[]> {
           operator {
             id
             valueWithoutEarnings
+            contractVersion
+          }
+          sponsorship {
+            id
           }
         }
       }`
@@ -99,6 +104,8 @@ async function getSlashings(): Promise<SlashingEvent[]> {
         amount: BigInt(e.amount),
         operator: e.operator.id,
         operatorDataLeftWei: BigInt(e.operator.valueWithoutEarnings),
+        operatorContractVersion: e.operator.contractVersion,
+        sponsorship: e.sponsorship?.id,
     }))
 }
 
@@ -138,17 +145,23 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
     log("Response from block %s: %o", eventBlockNumber - 1, res1)
     const { operator: {
         delegations: delegationsBeforeArray,
-        operatorTokenTotalSupplyWei: totalSupplyBefore,
-        valueWithoutEarnings: dataWeiBefore,
+        operatorTokenTotalSupplyWei: totalSupplyBeforeRaw,
+        // valueWithoutEarnings: dataWeiBefore,
         owner,
         exchangeRate, // DATA / operator token
         metadataJsonString,
     } } = res1
     const { operator: {
         delegations: delegationsAfterArray,
-        operatorTokenTotalSupplyWei: totalSupplyAfter,
-        valueWithoutEarnings: dataWeiAfter,
+        // operatorTokenTotalSupplyWei: totalSupplyAfter,
+        // valueWithoutEarnings: dataWeiAfter,
     } } = await graphClient.queryEntity<any>({ query: operatorAt(eventBlockNumber + 1) })
+
+    const totalSupplyBefore = BigInt(totalSupplyBeforeRaw)
+
+    if (typeof exchangeRate !== "string" || isNaN(parseFloat(exchangeRate))) {
+        throw new Error(`Bad exchange rate: "${exchangeRate}"`)
+    }
 
     let metadata: any = { name: slashingEvent.operator }
     try {
@@ -157,87 +170,98 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
         log("Failed to parse metadata string '%s'", metadataJsonString)
     }
 
-    const delegationsBefore = Object.fromEntries<bigint>(delegationsBeforeArray.map((d: any) => [
+    const delegationsBefore: [string, bigint][] = delegationsBeforeArray.map((d: any) => [
         d.delegator.id, BigInt(d.operatorTokenBalanceWei)
-    ]))
-    const delegationsAfter = Object.fromEntries<bigint>(delegationsAfterArray.map((d: any) => [
+    ])
+    const delegationsAfter: [string, bigint][] = delegationsAfterArray.map((d: any) => [
         d.delegator.id, BigInt(d.operatorTokenBalanceWei)
-    ]))
+    ])
 
-    const slashedOperatorTokens = Object.fromEntries(Object.entries(delegationsBefore).map(([delegator, before]) => {
-        const after = delegationsAfter[delegator] ?? BigInt(0)
+    let selfDelegationBefore = BigInt(0)
+    let selfDelegationAfter = BigInt(0)
+    const slashedOperatorTokens = delegationsBefore.map<[string, bigint]>(([delegator, before]) => {
+        const after = delegationsAfter.find(([address, _]) => address === delegator)?.[1] ?? BigInt(0)
+        if (delegator === owner) {
+            selfDelegationBefore = before
+            selfDelegationAfter = after
+        }
         return [delegator, before - after]
-    }))
+    }).filter(([_, slashed]) => slashed > BigInt(0))
+    log("Slashed operator tokens: %o", slashedOperatorTokens)
 
-    Object.keys(slashedOperatorTokens).forEach((d) => {
-        log("Delegator %s lost %s tokens", d, slashedOperatorTokens[d])
-    })
-    const totalSlashedOperatorTokens = Object.values(slashedOperatorTokens).reduce((a, b) => a + b, BigInt(0))
-    log("Summed:     %s", totalSlashedOperatorTokens)
-    log("Multiplied: %s", div(slashingEvent.amount, exchangeRate))
-    log("Difference: %s", BigInt(totalSupplyBefore) - BigInt(totalSupplyAfter))
+    const totalTokens = delegationsBefore.reduce((acc, [ _delegator, tokens ]) => acc + tokens, BigInt(0))
+    log("Total operator tokens before slashing: %s, %s", totalTokens, totalSupplyBefore)
 
-    const valueDifferenceWei = dataWeiBefore - dataWeiAfter
-
-    log("Slashing amount DATA from event:      %s", slashingEvent.amount)
-    log("Slashing amount DATA from difference: %s", valueDifferenceWei)
-
-    log("Exchange rate from subgraph: %s", exchangeRate)
-    log("Exchange rate calculated:     %s", BigInt(dataWeiBefore) * BigInt(1e36) / BigInt(totalSupplyBefore))
-
-    const ownersTokensBefore = delegationsBefore[owner] ?? 0
-    const ownersTokensAfter = delegationsAfter[owner] ?? 0
-
-    // slashing first takes owner's tokens
-    // if there are any left, then delegators didn't lose anything (yet)
-    // the whole slashing will then be allocated to the owner
-    if (ownersTokensAfter > 0) {
-        log("DONE %s %s", slashingEvent.operator, doneSlashings++)
-        return [{
+    // for contractVersion < 3, the self-delegation burning was omitted on kick
+    // this means the losses were borne on all delegators equally, return in straight proportion to operator tokens
+    if (slashedOperatorTokens.length === 0) {
+        log("No operator tokens slashed, operator version: %s", slashingEvent.operatorContractVersion)
+        const losses = delegationsBefore.map(([ delegator, tokens ]) => ({
             operator: slashingEvent.operator,
             operatorName: metadata.name,
             date: slashingEvent.date,
             blockNumber: eventBlockNumber,
             owner,
             totalOperatorTokensBeforeWei: totalSupplyBefore,
-            delegatorsOperatorTokensBeforeWei: ownersTokensBefore,
-            delegator: owner,
-            delegatorDataLostWei: slashingEvent.amount,
-        }]
+            delegatorsOperatorTokensBeforeWei: tokens,
+            delegator,
+            delegatorDataLostWei: slashingEvent.amount * tokens / totalSupplyBefore,
+        }))
+        losses.sort((a, b) => a.delegator.localeCompare(b.delegator))
+        return losses
     }
 
-    log("Owner lost %s operator tokens", slashedOperatorTokens[owner])
-    const ownerLoss = mul(slashedOperatorTokens[owner], exchangeRate)
-    log("Owner lost %s DATA", ownerLoss)
-    const delegatorTotalLoss = slashingEvent.amount - ownerLoss
-    const delegatorList = Object.entries(delegationsBefore).filter(([ delegator ]) => delegator !== owner)
-    const delegatorTotalTokens = delegatorList.reduce((acc, [ _delegator, tokens ]) => acc + tokens, BigInt(0))
-    const delegatorSlashings = delegatorList.map(([ delegator, tokens ]) => ({
-        operator: slashingEvent.operator,
-        operatorName: metadata.name,
-        date: slashingEvent.date,
-        blockNumber: eventBlockNumber,
-        owner,
-        totalOperatorTokensBeforeWei: totalSupplyBefore,
-        delegatorsOperatorTokensBeforeWei: tokens,
-        delegator,
-        delegatorDataLostWei: delegatorTotalLoss * tokens / delegatorTotalTokens,
-    }))
+    if (slashedOperatorTokens.length > 1) {
+        throw new Error("Unexpected: Multiple delegators slashed")
+    }
+    if (slashedOperatorTokens[0][0] !== owner) {
+        throw new Error("Unexpected: Non-owner slashed")
+    }
+    const slashedSelfDelegation = slashedOperatorTokens[0][1]
 
-    const allSlashings = [{
+    // slashing first takes owner's tokens
+    // if there are any left, then delegators didn't lose anything (yet), because
+    //   the whole slashing would then have been allocated to the owner
+    // if there are none left, then all delegators took the remaining DATA value loss, in proportion to their tokens
+    const ownerSlashing: SlashingRow = {
         operator: slashingEvent.operator,
         operatorName: metadata.name,
         date: slashingEvent.date,
         blockNumber: eventBlockNumber,
         owner,
         totalOperatorTokensBeforeWei: totalSupplyBefore,
-        delegatorsOperatorTokensBeforeWei: ownersTokensBefore,
+        delegatorsOperatorTokensBeforeWei: selfDelegationBefore,
         delegator: owner,
-        delegatorDataLostWei: ownerLoss,
-    }, ...delegatorSlashings]
+        delegatorDataLostWei: mul(slashedSelfDelegation, exchangeRate),
+    }
+    let delegatorSlashings: SlashingRow[] = []
+    if (selfDelegationAfter === BigInt(0)) {
+        log("Owner lost ALL %s operator tokens", slashedSelfDelegation)
+        log("Owner lost %s DATA", ownerSlashing.delegatorDataLostWei)
+        const delegatorTotalLoss = slashingEvent.amount - ownerSlashing.delegatorDataLostWei
+        const delegatorList = delegationsBefore.filter(([ delegator ]) => delegator !== owner)
+        const delegatorTotalTokens = delegatorList.reduce((acc, [ _delegator, tokens ]) => acc + tokens, BigInt(0))
+        delegatorSlashings = delegatorList.map(([ delegator, tokens ]) => ({
+            operator: slashingEvent.operator,
+            operatorName: metadata.name,
+            date: slashingEvent.date,
+            blockNumber: eventBlockNumber,
+            owner,
+            totalOperatorTokensBeforeWei: totalSupplyBefore,
+            delegatorsOperatorTokensBeforeWei: tokens,
+            delegator,
+            delegatorDataLostWei: delegatorTotalLoss * tokens / delegatorTotalTokens,
+        }))
+    } else {
+        log("Owner lost %s operator tokens, left with %s", slashedSelfDelegation, selfDelegationAfter)
+        // correct the owner's slashing to "all of DATA lost", to avoid rounding errors
+        ownerSlashing.delegatorDataLostWei = slashingEvent.amount
+    }
+
+    const allSlashings = [ownerSlashing, ...delegatorSlashings]
 
     allSlashings.sort((a, b) => a.delegator.localeCompare(b.delegator))
-    log("DONE %s %s", slashingEvent.operator, doneSlashings++)
+    log("DONE %s %s (%s rows)", slashingEvent.operator, doneSlashings++, allSlashings.length)
     return allSlashings
 }
 
@@ -250,12 +274,16 @@ async function main() {
     await loadCache()
 
     const shortOutputFileName = OUTPUT_FILE + ".short.csv"
+    const transferOutputFileName = OUTPUT_FILE + ".transfers.csv"
     log("Writing to %s and %s", OUTPUT_FILE, shortOutputFileName)
     const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
     "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
     writeFileSync(OUTPUT_FILE, headerString)
 
     for (const slashing of slashings) {
+        const transferString = `${slashing.date},${slashing.sponsorship},${slashing.amount},${slashing.operator}`
+        writeFileSync(transferOutputFileName, transferString + "\n", { flag: "a" })
+
         const rows = await splitSlashing(slashing)
         const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n") + "\n"
         log(headerString)
