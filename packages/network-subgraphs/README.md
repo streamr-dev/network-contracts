@@ -36,8 +36,9 @@ can be recreated with the Dockerfile. To do so:
 * v0.0.4
   * Operator.contractVersion and .earliestUndelegationTimestamp (ETH-728)
   * StreamrConfig.minimumDelegationSeconds (ETH-717)
-* v0.0.5 [BROKEN!]
+* v0.0.5
   * Added controllers to Operator entity (ETH-753)
+  * BROKEN: controllers weren't actually added
 * v0.0.6
   * Fixed controllers not getting added
   * Added Delegation.isSelfDelegation, zeroed earliestUndelegationTimestamp for self-delegations

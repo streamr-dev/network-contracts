@@ -25,6 +25,7 @@ const { log } = console
 const {
     OPERATOR = "",
     AMOUNT = "",
+    GIFT_TO_OWNER = "", // send as self-delegation; if self-delegation is low, this is the only way to send in tokens
 
     KEY = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
     CHAIN = "dev2",
@@ -81,12 +82,18 @@ async function main() {
     log("Checking Operator at %s", operator.address)
     const codeLength = await provider.getCode(operator.address).then((code) => code.length)
     if (codeLength < 3) { throw new Error("No contract found at " + operator.address) }
-    log("    Owner: %s", await operator.owner())
+    const ownerAddress = await operator.owner()
+    log("    Owner: %s", ownerAddress)
     log("    Balance: %s DATA", formatEther(await token.balanceOf(operator.address)))
     log("    Value: %s DATA", formatEther(await operator.valueWithoutEarnings()))
 
-    log("Delegating %s DATA to %s", formatEther(amountWei), operator.address)
-    const tx = await token.transferAndCall(operator.address, amountWei, "0x", txOverrides)
+    log("Delegating %s DATA into %s", formatEther(amountWei), operator.address)
+    let target = "0x"
+    if (GIFT_TO_OWNER) {
+        log("Sending as self-delegation to owner (gifting tokens!) %s", ownerAddress)
+        target = ownerAddress
+    }
+    const tx = await token.transferAndCall(operator.address, amountWei, target, txOverrides)
     log("Transaction: %s/tx/%s", blockExplorerUrl, tx.hash)
     const tr = await tx.wait()
     log("Transaction receipt: %o", formatReceipt(tr))
