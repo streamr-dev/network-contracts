@@ -29,7 +29,7 @@ const {
     // GAS_PRICE_GWEI,
     GRAPH_URL,
 
-    OUTPUT_FILE = "slashings.csv",
+    OUTPUT_FILE = "scripts/data/slashings.csv",
 } = process.env
 
 const {
@@ -109,7 +109,7 @@ async function getSlashings(): Promise<SlashingEvent[]> {
     }))
 }
 
-type SlashingRow = {
+export type SlashingRow = {
     /** contract address */
     operator: string
     operatorName: string
@@ -120,6 +120,7 @@ type SlashingRow = {
     delegatorsOperatorTokensBeforeWei: bigint
     delegator: string
     delegatorDataLostWei: bigint
+    sponsorship: string
 }
 async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[]> {
     const eventBlockNumber = await dateToBlockNumber(slashingEvent.date)
@@ -151,11 +152,12 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
         exchangeRate, // DATA / operator token
         metadataJsonString,
     } } = res1
+    const res2 = await graphClient.queryEntity<any>({ query: operatorAt(eventBlockNumber + 1) })
     const { operator: {
         delegations: delegationsAfterArray,
         // operatorTokenTotalSupplyWei: totalSupplyAfter,
         // valueWithoutEarnings: dataWeiAfter,
-    } } = await graphClient.queryEntity<any>({ query: operatorAt(eventBlockNumber + 1) })
+    } } = res2
 
     const totalSupplyBefore = BigInt(totalSupplyBeforeRaw)
 
@@ -206,16 +208,31 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
             delegatorsOperatorTokensBeforeWei: tokens,
             delegator,
             delegatorDataLostWei: slashingEvent.amount * tokens / totalSupplyBefore,
+            sponsorship: slashingEvent.sponsorship,
         }))
         losses.sort((a, b) => a.delegator.localeCompare(b.delegator))
         return losses
     }
 
     if (slashedOperatorTokens.length > 1) {
-        throw new Error("Unexpected: Multiple delegators slashed")
+        // throw new Error("Unexpected: Multiple delegators slashed")
+        log("---------------------------------------")
+        log("Unexpected: Multiple delegators slashed")
+        log("---------------------------------------")
+        log("Slashing event: %o", slashingEvent)
+        log("Query before: %o", res1)
+        log("Query after: %o", res2)
+        return []
     }
     if (slashedOperatorTokens[0][0] !== owner) {
-        throw new Error("Unexpected: Non-owner slashed")
+        // throw new Error("Unexpected: Non-owner slashed")
+        log("-----------------------------")
+        log("Unexpected: Non-owner slashed")
+        log("-----------------------------")
+        log("Slashing event: %o", slashingEvent)
+        log("Query before: %o", res1)
+        log("Query after: %o", res2)
+        return []
     }
     const slashedSelfDelegation = slashedOperatorTokens[0][1]
 
@@ -233,6 +250,7 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
         delegatorsOperatorTokensBeforeWei: selfDelegationBefore,
         delegator: owner,
         delegatorDataLostWei: mul(slashedSelfDelegation, exchangeRate),
+        sponsorship: slashingEvent.sponsorship,
     }
     let delegatorSlashings: SlashingRow[] = []
     if (selfDelegationAfter === BigInt(0)) {
@@ -251,6 +269,7 @@ async function splitSlashing(slashingEvent: SlashingEvent): Promise<SlashingRow[
             delegatorsOperatorTokensBeforeWei: tokens,
             delegator,
             delegatorDataLostWei: delegatorTotalLoss * tokens / delegatorTotalTokens,
+            sponsorship: slashingEvent.sponsorship,
         }))
     } else {
         log("Owner lost %s operator tokens, left with %s", slashedSelfDelegation, selfDelegationAfter)
@@ -277,14 +296,17 @@ async function main() {
     const transferOutputFileName = OUTPUT_FILE + ".transfers.csv"
     log("Writing to %s and %s", OUTPUT_FILE, shortOutputFileName)
     const headerString = "OperatorId;OperatorName;Timestamp;BlockNumber;" +
-    "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost\n"
+    "Owner;TotalOperatorTokens;DelegatorsOperatorTokens;Delegator;DelegatorDataLost;Sponsorship\n"
     writeFileSync(OUTPUT_FILE, headerString)
+    writeFileSync(shortOutputFileName, "") // empty the short-form file
+    writeFileSync(transferOutputFileName, "") // empty the short-form file
 
     for (const slashing of slashings) {
         const transferString = `${slashing.date},${slashing.sponsorship},${slashing.amount},${slashing.operator}`
         writeFileSync(transferOutputFileName, transferString + "\n", { flag: "a" })
 
         const rows = await splitSlashing(slashing)
+        if (rows.length === 0) { continue }
         const rowsString = rows.flat().map((row) => Object.values(row).join(";")).join("\n") + "\n"
         log(headerString)
         log(rowsString)
