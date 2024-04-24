@@ -84,13 +84,10 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
         const remainingSeconds = sponsorship.remainingWei / sponsorship.totalPayoutWeiPerSec
         sponsorship.projectedInsolvency = remainingSeconds + event.block.timestamp
 
-        // If the sponsorship is funded for less than a day, then consider that's all the tokens the stakers would ever get.
-        // This defends against super high APY numbers for sponsorships that promise to pay out a lot but aren't really funded
         // Also, to handle the case where sponsorship doesn't have any stakers yet, add minimum stake for the "maximal APY *after* staking"
-        const SECONDS_IN_DAY = BigInt.fromI32(60 * 60 * 24)
         const SECONDS_IN_YEAR = BigInt.fromI32(60 * 60 * 24 * 365)
         const network = loadOrCreateNetwork()
-        const annualPayout = (remainingSeconds < SECONDS_IN_DAY) ? sponsorship.remainingWei : (sponsorship.totalPayoutWeiPerSec * SECONDS_IN_YEAR)
+        const annualPayout = sponsorship.totalPayoutWeiPerSec * SECONDS_IN_YEAR
         const totalStakeAfterStaking = sponsorship.totalStakedWei + network.minimumStakeWei
         sponsorship.spotAPY = annualPayout.toBigDecimal() / totalStakeAfterStaking.toBigDecimal()
     } else {
@@ -99,11 +96,15 @@ export function handleSponsorshipUpdated(event: SponsorshipUpdate): void {
     }
     sponsorship.save()
 
-    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorshipId, event.block.timestamp)
+    const bucket = loadOrCreateSponsorshipDailyBucket(sponsorship, event.block.timestamp)
     bucket.totalStakedWei = sponsorship.totalStakedWei
     bucket.remainingWei = sponsorship.remainingWei
     bucket.operatorCount = sponsorship.operatorCount
-    bucket.spotAPY = sponsorship.spotAPY
+    // only update spotAPY if we weren't out of money, to leave the last "good" value into the bucket
+    //   otherwise, in historical data, the last day APY would always be zero (for the whole day)
+    if (sponsorship.spotAPY > BigDecimal.zero()) {
+        bucket.spotAPY = sponsorship.spotAPY
+    }
     bucket.save()
 }
 

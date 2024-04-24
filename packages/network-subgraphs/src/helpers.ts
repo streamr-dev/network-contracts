@@ -135,21 +135,20 @@ export function loadOrCreateNetwork(): Network {
     return network
 }
 
-export function loadOrCreateSponsorshipDailyBucket(sponsorshipId: string, timestamp: BigInt): SponsorshipDailyBucket {
+export function loadOrCreateSponsorshipDailyBucket(sponsorship: Sponsorship, timestamp: BigInt): SponsorshipDailyBucket {
     const date = getBucketStartDate(timestamp)
-    const bucketId = sponsorshipId + "-" + date.toString()
+    const bucketId = sponsorship.id + "-" + date.toString()
     let bucket = SponsorshipDailyBucket.load(bucketId)
     if (bucket === null) {
         log.info("loadOrCreateSponsorshipDailyBucket: creating new bucketId={}", [bucketId])
-        const sponsorship = Sponsorship.load(sponsorshipId)
         bucket = new SponsorshipDailyBucket(bucketId)
-        bucket.sponsorship = sponsorshipId
+        bucket.sponsorship = sponsorship.id
         bucket.date = date
-        bucket.projectedInsolvency = sponsorship!.projectedInsolvency
-        bucket.totalStakedWei = sponsorship!.totalStakedWei
-        bucket.remainingWei = sponsorship!.remainingWei
-        bucket.spotAPY = sponsorship!.spotAPY
-        bucket.operatorCount = sponsorship!.operatorCount
+        bucket.projectedInsolvency = sponsorship.projectedInsolvency
+        bucket.totalStakedWei = sponsorship.totalStakedWei
+        bucket.remainingWei = sponsorship.remainingWei
+        bucket.spotAPY = sponsorship.spotAPY
+        bucket.operatorCount = sponsorship.operatorCount
     }
     return bucket
 }
