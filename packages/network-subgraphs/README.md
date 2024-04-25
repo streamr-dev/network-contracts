@@ -42,6 +42,8 @@ can be recreated with the Dockerfile. To do so:
 * v0.0.6
   * Fixed controllers not getting added
   * Added Delegation.isSelfDelegation, zeroed earliestUndelegationTimestamp for self-delegations
+* v0.0.7
+  * Sponsorship APY fix (ETH-759)
 
 # Developer notes
 
