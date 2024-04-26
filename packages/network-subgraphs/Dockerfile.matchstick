@@ -1,4 +1,4 @@
-FROM --platform=linux/x86_64 ubuntu:20.04
+FROM --platform=linux/x86_64 ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
