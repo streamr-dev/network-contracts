@@ -427,7 +427,7 @@ export const config = {
             "OperatorDefaultUndelegationPolicy": "0xf64626f9052F441F7396CbFDA10120617b6e6A7d",
             "OperatorFactory": "0x6486Bc9c505bdb331aFd57C80023692E6417d58A"
         },
-        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
+        "theGraphUrl": "https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/v1.0.0",
         "blockExplorerUrl": "https://amoy.polygonscan.com",
         "entryPoints": [
         ]
