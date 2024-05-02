@@ -392,5 +392,44 @@ export const config = {
                 }
             }
         ]
+    },
+    "polygonAmoy": {
+        "id": 80002,
+        "name": "Polygon Amoy testnet",
+        "nativeCurrency": {
+            "symbol": "MATIC",
+            "name": "Amoy MATIC",
+            "decimals": 18
+        },
+        "rpcEndpoints": [
+            {
+                "url": "https://polygon-amoy-bor-rpc.publicnode.com"
+            },
+            {
+                "url": "https://rpc-amoy.polygon.technology"
+            }
+        ],
+        "contracts": {
+            "DATA": "0xBc10cE0e1e40a1da923E8C37C402ea693640E3aE",
+            "StreamRegistry": "0xE9C98bdE63248e58E9137Db8270D9675B9E34b93",
+            "ENSCacheV2": "0x6a81414936868fdcF4f077e2a0B24879e2871016",
+            "NodeRegistry": "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820",
+            "StreamStorageRegistry": "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78",
+            "StreamrConfig": "0x0B1C21ba7148362CD29Caf1044feCD900C7772D1",
+            "SponsorshipOperatorContractOnlyJoinPolicy": "0x76C22277e1D48260e2e696F9d6262787150298E2",
+            "SponsorshipMaxOperatorsJoinPolicy": "0x76C22277e1D48260e2e696F9d6262787150298E2",
+            "SponsorshipStakeWeightedAllocationPolicy": "0x5D095A60700925Aeb567268527822cC9ff20e4a4",
+            "SponsorshipDefaultLeavePolicy": "0x86Fa6f4843Ee97E5854B0EC5F36A369ea9380284",
+            "SponsorshipVoteKickPolicy": "0xCbf30DD77Cd5C24DEd09D92e0F9eB25c31705A15",
+            "SponsorshipFactory": "0xe57728160198E00c46999614C6F1317Df3d0cE38",
+            "OperatorDefaultDelegationPolicy": "0xa43282B8FDe06133c4EA551F18E6aD6c8F580722",
+            "OperatorDefaultExchangeRatePolicy": "0x3182D63a9Ca25a137b351f16A112EbbcB60F1074",
+            "OperatorDefaultUndelegationPolicy": "0xf64626f9052F441F7396CbFDA10120617b6e6A7d",
+            "OperatorFactory": "0x6486Bc9c505bdb331aFd57C80023692E6417d58A"
+        },
+        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
+        "blockExplorerUrl": "https://amoy.polygonscan.com",
+        "entryPoints": [
+        ]
     }
 }

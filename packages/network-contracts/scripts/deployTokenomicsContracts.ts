@@ -63,11 +63,9 @@ const {
         OperatorFactory: OPERATOR_FACTORY_ADDRESS,
         SponsorshipFactory: SPONSORSHIP_FACTORY_ADDRESS,
         StreamRegistry: STREAM_REGISTRY_ADDRESS,
-    }
+    },
+    blockExplorerUrl = "https://polygonscan.com",
 } = (config as any)[CHAIN]
-
-// TODO: add to @streamr/config
-const blockExplorerUrl = "https://polygonscan.com"
 
 async function main() {
     const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts

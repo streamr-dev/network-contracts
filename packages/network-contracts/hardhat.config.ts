@@ -86,6 +86,12 @@ const config: HardhatUserConfig = {
             url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
+        polygonAmoy: {
+            chainId: 80002,
+            // chainId: 31337,
+            url: process.env.ETHEREUM_RPC || "https://rpc-amoy.polygon.technology",
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
         ethereum: {
             chainId: 1,
             url: "https://mainnet.infura.io/v3/" + process.env.INFURA_KEY || "",
@@ -179,7 +185,16 @@ const config: HardhatUserConfig = {
         apiKey: {
             polygon: process.env.ETHERSCAN_KEY || "",
             polygonMumbai: process.env.ETHERSCAN_KEY || "",
-        }
+            polygonAmoy: process.env.ETHERSCAN_KEY || "",
+        },
+        customChains: [{
+            network: "polygonAmoy",
+            chainId: 80002,
+            urls: {
+                apiURL: "https://api-amoy.polygonscan.com/api",
+                browserURL: "https://amoy.polygonscan.com"
+            },
+        }]
     },
 }
 export default config
