@@ -433,6 +433,22 @@ export const config = {
         "theGraphUrl": "https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/v1.0.0",
         "blockExplorerUrl": "https://amoy.polygonscan.com",
         "entryPoints": [
+            {
+                "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
+                "websocket": {
+                    "host": "amoy-entrypoint-1.streamr.network",
+                    "port": 40402,
+                    "tls": true
+                }
+            },
+            {
+                "nodeId": "24395826687b099fd735a730219ba750169c4f40",
+                "websocket": {
+                    "host": "amoy-entrypoint-2.streamr.network",
+                    "port": 40402,
+                    "tls": true
+                }
+            }
         ]
     }
 }
