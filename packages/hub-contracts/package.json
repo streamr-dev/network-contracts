@@ -18,7 +18,9 @@
     "eslint": "eslint {src,scripts,test}/**/*.ts",
     "lint": "solhint contracts/**/*.sol",
     "test": "hardhat test test/contracts/*",
-    "deploy": "hardhat run --network $CHAIN scripts/deployProjectRegistry.ts",
+    "deploy-registry": "hardhat run --network $CHAIN scripts/deployProjectRegistry.ts",
+    "deploy-staking": "hardhat run --network $CHAIN scripts/deployProjectStakingV1.ts",
+    "deploy-marketplace": "hardhat run --network $CHAIN scripts/deployMarketplaceV4.ts",
     "interact": "hardhat run --network $CHAIN scripts/interactProjectRegistry.ts",
     "upgrade": "hardhat run --network $CHAIN scripts/upgradeMarketplaceV3.ts",
     "hubEnvDeployer": "npx tsx scripts/hubEnvDeployer.ts"
@@ -29,7 +31,7 @@
     "@openzeppelin/contracts": "~4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",
     "@streamr/network-contracts": "3.0.0",
-    "@streamr/config": "latest"
+    "@streamr/config": "5.3.2"
   },
   "devDependencies": {
     "@uniswap/v2-core": "^1.0.1",

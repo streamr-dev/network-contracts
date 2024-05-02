@@ -425,7 +425,10 @@ export const config = {
             "OperatorDefaultDelegationPolicy": "0xa43282B8FDe06133c4EA551F18E6aD6c8F580722",
             "OperatorDefaultExchangeRatePolicy": "0x3182D63a9Ca25a137b351f16A112EbbcB60F1074",
             "OperatorDefaultUndelegationPolicy": "0xf64626f9052F441F7396CbFDA10120617b6e6A7d",
-            "OperatorFactory": "0x6486Bc9c505bdb331aFd57C80023692E6417d58A"
+            "OperatorFactory": "0x6486Bc9c505bdb331aFd57C80023692E6417d58A",
+            "ProjectRegistryV1": "0x1500d2BdEae453D5Ec466f3D21Bff65959480200",
+            "ProjectStakingV1": "0xfE778f1b9C2275332d6778451Dd2f0c2d48d1b46",
+            "MarketplaceV4": "0xbb2674dEEde9963c3C1434be295a42db9BB03a40",
         },
         "theGraphUrl": "https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/v1.0.0",
         "blockExplorerUrl": "https://amoy.polygonscan.com",

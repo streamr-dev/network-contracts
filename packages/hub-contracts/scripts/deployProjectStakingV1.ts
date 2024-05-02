@@ -22,7 +22,7 @@ if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in 
  */
 async function main() {
     log(`ProjectRegistryV1 address: ${PROJECT_REGISTRY_ADDRESS}`)
-    log(`Staking token address: ${PROJECT_REGISTRY_ADDRESS}`)
+    log(`Staking token address: ${STAKING_TOKEN_ADDRESS}`)
     log(`Deploying ProjectStakingV1 to "${CHAIN}" chain:`)
     const projectStakingFactory = await hhEthers.getContractFactory("ProjectStakingV1")
     const projectStakingFactoryTx = await upgrades.deployProxy(projectStakingFactory, [

@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
 import { utils } from "ethers"
-import { chainToDomainId, chainToMailboxAddress } from "../utils"
+import { chainToMailboxAddress } from "../utils"
 
 const { getContractFactory } = hardhatEthers
 const { id } = utils
@@ -12,6 +12,7 @@ const {
 } = process.env
 
 const {
+    id: CHAIN_ID,
     contracts: {
         ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
     }
@@ -19,7 +20,6 @@ const {
 if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
 // const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 
-const destinationDomainId = chainToDomainId(CHAIN)
 const interchainMailbox = chainToMailboxAddress(CHAIN)
 
 /**
@@ -37,7 +37,7 @@ async function main() {
 
     log(`Deploying MarketplaceV4 to ${CHAIN}:`)
     const Marketplace = await getContractFactory("MarketplaceV4")
-    const marketplace = await upgrades.deployProxy(Marketplace, [projectRegistry.address, destinationDomainId], { kind: 'uups' })
+    const marketplace = await upgrades.deployProxy(Marketplace, [projectRegistry.address, CHAIN_ID], { kind: 'uups' })
     await marketplace.deployed()
     log(`MarketplaceV4 deployed on ${CHAIN} at: ${marketplace.address}`)
 

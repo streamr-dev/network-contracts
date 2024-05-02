@@ -1,4 +1,4 @@
-const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli']
+const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy']
 const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
 
 /**
@@ -102,7 +102,7 @@ export function chainToEthereumRpcUrl(name: string): string {
             return `https://avalanche-fuji.infura.io/v3/${process.env.FUJI_API_KEY}`
         case 'dev1':
             return 'http://10.200.10.1:8546'
-        
+
         default:
             throw new Error('Unknown ethereum RPC URL for the given chain name.')
     }
