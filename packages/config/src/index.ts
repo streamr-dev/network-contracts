@@ -416,7 +416,7 @@ export const config = {
             "NodeRegistry": "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820",
             "StreamStorageRegistry": "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78",
             "StreamrConfig": "0x0B1C21ba7148362CD29Caf1044feCD900C7772D1",
-            "SponsorshipOperatorContractOnlyJoinPolicy": "0x76C22277e1D48260e2e696F9d6262787150298E2",
+            "SponsorshipOperatorContractOnlyJoinPolicy": "0xe3561f669D855699FD964f991402B8BF51276139",
             "SponsorshipMaxOperatorsJoinPolicy": "0x76C22277e1D48260e2e696F9d6262787150298E2",
             "SponsorshipStakeWeightedAllocationPolicy": "0x5D095A60700925Aeb567268527822cC9ff20e4a4",
             "SponsorshipDefaultLeavePolicy": "0x86Fa6f4843Ee97E5854B0EC5F36A369ea9380284",

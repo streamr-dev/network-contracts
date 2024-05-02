@@ -5,4 +5,5 @@ export CHAIN=polygonAmoy
 export SCRIPT_FILE=scripts/deployStreamrContracts.ts
 npm run hardhatScript
 
-npm run deployTokenomicsContracts
+export SCRIPT_FILE=scripts/deployTokenomicsContracts.ts
+npm run hardhatScript
