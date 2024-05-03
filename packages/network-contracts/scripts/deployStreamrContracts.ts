@@ -35,10 +35,9 @@ const {
 export type StreamrBaseContracts = {
     token: IERC677,
     // trackerRegistry: NodeRegistry,
-    storageNodeRegistry: NodeRegistry,
     streamRegistry: StreamRegistry,
     ENSCacheV2: ENSCacheV2,
-    nodeRegistry: NodeRegistry,
+    storageNodeRegistry: NodeRegistry,
     streamStorageRegistry: StreamStorageRegistry,
 }
 
@@ -98,10 +97,9 @@ async function main() {
 function getAddresses(contracts: Partial<StreamrBaseContracts>) {
     return {
         "DATA": contracts.token?.address,
-        "StorageNodeRegistry": contracts.storageNodeRegistry?.address,
         "StreamRegistry": contracts.streamRegistry?.address,
         "ENSCacheV2": contracts.ENSCacheV2?.address,
-        "NodeRegistry": contracts.nodeRegistry?.address,
+        "StorageNodeRegistry": contracts.storageNodeRegistry?.address,
         "StreamStorageRegistry": contracts.streamStorageRegistry?.address,
     }
 }
