@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/types"
 
 import '@nomicfoundation/hardhat-toolbox'
 import '@openzeppelin/hardhat-upgrades'
+import "@nomiclabs/hardhat-etherscan"
 
 require('hardhat-dependency-compiler')
 // require('dotenv').config()
@@ -104,6 +105,21 @@ const config: HardhatUserConfig = {
     //     token: 'MATIC',
     //     coinmarketcap: process.env.COINMARKETCAP_KEY,
     //     showMethodSig: true,
-    // }
+    // },
+    etherscan: {
+        apiKey: {
+            polygon: process.env.ETHERSCAN_KEY || "",
+            polygonMumbai: process.env.ETHERSCAN_KEY || "",
+            polygonAmoy: process.env.ETHERSCAN_KEY || "",
+        },
+        customChains: [{
+            network: "polygonAmoy",
+            chainId: 80002,
+            urls: {
+                apiURL: "https://api-amoy.polygonscan.com/api",
+                browserURL: "https://amoy.polygonscan.com"
+            },
+        }]
+    },
 }
 export default config

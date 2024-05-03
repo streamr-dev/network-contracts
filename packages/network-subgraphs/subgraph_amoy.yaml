@@ -84,7 +84,7 @@ dataSources:
     name: ProjectRegistryV1
     network: polygon-amoy
     source:
-      address: "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1"
+      address: "0xc5e1434d35c0c7291c7032Fd9C4096b4876C6823"
       abi: ProjectRegistryV1
       startBlock: 6550000
     mapping:
@@ -119,7 +119,7 @@ dataSources:
     name: MarketplaceV4
     network: polygon-amoy
     source:
-      address: "0xdF8b74D735197dCD5C94bE933db080E69A958de6"
+      address: "0x6C8eaA8e0bF605469c15b6F9106387B4cEC99976"
       abi: MarketplaceV4
       startBlock: 6550000
     mapping:
@@ -140,7 +140,7 @@ dataSources:
     name: ProjectStakingV1
     network: polygon-amoy
     source:
-      address: "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE"
+      address: "0x3A27A16770477EbcFb4B81cE462F4f12591767A0"
       abi: ProjectStakingV1
       startBlock: 6550000
     mapping:
@@ -166,7 +166,7 @@ dataSources:
     name: StreamrConfig
     network: polygon-amoy
     source:
-      address: '0x0B1C21ba7148362CD29Caf1044feCD900C7772D1'
+      address: '0x835bC97D2a61bbF5d05932C5105Ca34e1b815F94'
       abi: StreamrConfig
       startBlock: 6550000
     mapping:
@@ -187,7 +187,7 @@ dataSources:
     network: polygon-amoy
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xe57728160198E00c46999614C6F1317Df3d0cE38'
+      address: '0xb194a68b166f2e3074B551393fA61490D19c69f8'
       abi: SponsorshipFactory
       startBlock: 6550000
     mapping:
@@ -212,7 +212,7 @@ dataSources:
     network: polygon-amoy
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0x6486Bc9c505bdb331aFd57C80023692E6417d58A'
+      address: '0xE02E8E9fF5ea6a58F34D00C0e4B091e066B9fA81'
       abi: OperatorFactory
       startBlock: 6550000
     mapping:

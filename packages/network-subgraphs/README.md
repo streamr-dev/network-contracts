@@ -21,11 +21,12 @@ can be recreated with the Dockerfile. To do so:
     * check version number from browser UI, bump it when asked
 1. Follow progress and look at https://thegraph.com/studio/subgraph/streamr/logs for errors
 
-## Testnet deployment to the hosted service (indexing Polygon Mumbai)
-1. Authenticate: Copy token from "The Graph (Streamr admin)" in 1password: `npx graph auth --product hosted-service KEY`
-1. `cp subgraph_mumbai.yaml subgraph.yaml`
+## Testnet deployment to Studio (indexing Polygon Amoy)
+1. Log into: `https://thegraph.com/studio/subgraph/streamr-amoy-testnet/`
+1. `npx graph auth --studio <KEY>`
+1. `cp subgraph_amoy.yaml subgraph.yaml`
 1. `npm run build`
-1. `npx graph deploy --product hosted-service streamr-dev/network`
+1. `npx graph deploy --studio streamr-amoy-testnet`
 1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?version=pending&selected=logs for errors
 ``
 

@@ -430,7 +430,7 @@ export const config = {
             "ProjectStakingV1": "0x3A27A16770477EbcFb4B81cE462F4f12591767A0",
             "MarketplaceV4": "0x6C8eaA8e0bF605469c15b6F9106387B4cEC99976",
         },
-        "theGraphUrl": "https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/v1.0.0",
+        "theGraphUrl": "https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/version/latest",
         "blockExplorerUrl": "https://amoy.polygonscan.com",
         "entryPoints": [
             {
