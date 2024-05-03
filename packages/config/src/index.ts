@@ -413,7 +413,7 @@ export const config = {
             "DATA": "0xBc10cE0e1e40a1da923E8C37C402ea693640E3aE",
             "StreamRegistry": "0xE9C98bdE63248e58E9137Db8270D9675B9E34b93",
             "ENSCacheV2": "0x6a81414936868fdcF4f077e2a0B24879e2871016",
-            "NodeRegistry": "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820",
+            "StorageNodeRegistry": "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820",
             "StreamStorageRegistry": "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78",
             "StreamrConfig": "0x0B1C21ba7148362CD29Caf1044feCD900C7772D1",
             "SponsorshipOperatorContractOnlyJoinPolicy": "0xe3561f669D855699FD964f991402B8BF51276139",
