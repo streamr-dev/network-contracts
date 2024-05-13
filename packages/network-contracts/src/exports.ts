@@ -17,8 +17,8 @@ export { abi as streamrConfigABI, bytecode as streamrConfigBytecode }
 export type { StreamrConfigV1_1 as StreamrConfig } from "../typechain/contracts/OperatorTokenomics/StreamrConfigV1_1"
 
 export { abi as streamRegistryABI, bytecode as streamRegistryBytecode }
-    from "../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
-export type { StreamRegistryV4 as StreamRegistry } from "../typechain/contracts/StreamRegistry/StreamRegistryV4"
+    from "../artifacts/contracts/StreamRegistry/StreamRegistryV5.sol/StreamRegistryV5.json"
+export type { StreamRegistryV5 as StreamRegistry } from "../typechain/contracts/StreamRegistry/StreamRegistryV5"
 
 export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytecode }
     from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json"
