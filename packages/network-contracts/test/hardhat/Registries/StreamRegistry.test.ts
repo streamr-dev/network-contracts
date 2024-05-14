@@ -2,7 +2,7 @@ import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 import Debug from "debug"
 
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import type { Wallet } from "@ethersproject/wallet"
 
 import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 import type { MinimalForwarder } from "../../../typechain"
@@ -22,7 +22,7 @@ const getBlocktime = async (): Promise<number> => {
 }
 
 describe("StreamRegistry", async (): Promise<void> => {
-    let wallets: SignerWithAddress[]
+    let wallets: Wallet[]
     // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry
     let registryFromAdmin: StreamRegistry
@@ -91,6 +91,15 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         await registryFromAdmin.createStream(streamPath1, metadata1)
     })
+
+    let streamIndex = 0
+    async function createStream(owner = wallets[0]): Promise<string> {
+        const streamPath = "/test-" + (streamIndex++)
+        const streamId = owner.address.toLowerCase() + streamPath
+        const metadata = `{"meta":"${Date.now()}"}`
+        await registry.connect(owner).createStream(streamPath, metadata)
+        return streamId
+    }
 
     describe("Stream creation", () => {
 
@@ -310,6 +319,10 @@ describe("StreamRegistry", async (): Promise<void> => {
     })
 
     describe("Permissions setters", () => {
+        it("grantPermissionForUserId happy path", async (): Promise<void> => {
+
+        })
+
         it("positivetest setPermissionForUser", async (): Promise<void> => {
             // user0 has no permissions on stream0
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
@@ -853,9 +866,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     describe("Transfer permissions", () => {
         it("positivetest transferAllPermissionsToUser", async (): Promise<void> => {
-            const streamPath = "/test-" + Date.now()
-            const streamId = adminAddress.toLowerCase() + streamPath
-            await registryFromAdmin.createStream(streamPath, metadata0)
+            const streamId = await createStream()
             await registryFromAdmin.setPermissionsForUser(streamId, user0Address, true, true, 0, 0, true)
 
             expect((await registry.getPermissionsForUser(streamId, adminAddress)).toString())
