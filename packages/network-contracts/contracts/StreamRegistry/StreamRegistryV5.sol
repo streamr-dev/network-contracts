@@ -490,8 +490,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function transferAllPermissionsToUserId(string calldata streamId, bytes calldata recipient) public {
         Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())];
-        require(permSender.canEdit || permSender.canDelete || permSender.publishExpiration > 0 || permSender.subscribeExpiration > 0 ||
-        permSender.canGrant, "error_noPermissionToTransfer");
+        require(permSender.canEdit || permSender.canDelete || permSender.publishExpiration > 0 || permSender.subscribeExpiration > 0 || permSender.canGrant, "error_noPermissionToTransfer");
         Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, recipient)];
         uint256 publishExpiration = permSender.publishExpiration > permRecipient.publishExpiration ? permSender.publishExpiration : permRecipient.publishExpiration;
         uint256 subscribeExpiration = permSender.subscribeExpiration > permRecipient.subscribeExpiration ? permSender.subscribeExpiration : permRecipient.subscribeExpiration;
