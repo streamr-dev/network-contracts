@@ -31,7 +31,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe.only("StreamRegistry", async (): Promise<void> => {
+describe("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry
