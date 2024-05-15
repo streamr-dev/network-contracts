@@ -4,7 +4,7 @@ import { expect } from "chai"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorship } from "./deploySponsorshipContract"
 import { deployOperatorContract } from "./deployOperatorContract"
-import { SponsorshipFactory, StreamRegistryV4 } from "../../../typechain"
+import { SponsorshipFactory, StreamRegistry } from "../../../src/exports"
 
 import type { Wallet } from "ethers"
 
@@ -17,7 +17,7 @@ const {
 
 let sponsorshipCounter = 0
 
-async function createStream(deployerAddress: string, streamRegistry: StreamRegistryV4): Promise<string> {
+async function createStream(deployerAddress: string, streamRegistry: StreamRegistry): Promise<string> {
     const streamPath = "/sponsorships/" + sponsorshipCounter++
     const streamId = deployerAddress.toLowerCase() + streamPath
     await (await streamRegistry.createStream(streamPath, streamId)).wait()

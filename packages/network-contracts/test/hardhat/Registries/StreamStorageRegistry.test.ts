@@ -5,13 +5,14 @@ import Debug from "debug"
 
 import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 
-import type { MinimalForwarder, StreamStorageRegistryV2, StreamRegistry, NodeRegistry } from "../../../typechain"
+import type { MinimalForwarder, NodeRegistry } from "../../../typechain"
+import type { StreamRegistry, StreamStorageRegistry } from "../../../src/exports"
 
 const { parseEther } = utils
-const log = Debug("Streamr::test::StreamRegistryV4")
+const log = Debug("Streamr::test::StreamStorageRegistry")
 
 describe("StreamStorageRegistry", () => {
-    let registry: StreamStorageRegistryV2
+    let registry: StreamStorageRegistry
 
     let streamRegistry: StreamRegistry
     let nodeRegistry: NodeRegistry
@@ -55,7 +56,7 @@ describe("StreamStorageRegistry", () => {
         const forwarderFromMetatxSenderFactory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
         forwarder = await forwarderFromMetatxSenderFactory.deploy() as MinimalForwarder
         forwarderFromMetatxSender = forwarder.connect(metaTxSender)
-        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV4", { signer: admin })
+        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", { signer: admin })
         const streamRegistryFactoryTx = await upgrades.deployProxy(streamRegistryFactory, [
             "0x0000000000000000000000000000000000000000",
             forwarder.address
@@ -80,7 +81,7 @@ describe("StreamStorageRegistry", () => {
         const strV2DeployTx = await upgrades.upgradeProxy(strDeployTx.address, strV2Deploy, {
             kind: "uups"
         })
-        registry = await strV2DeployTx.deployed() as StreamStorageRegistryV2
+        registry = await strV2DeployTx.deployed() as StreamStorageRegistry
         await streamRegistry.revokeRole(await streamRegistry.TRUSTED_ROLE(), admin.address)
     })
 

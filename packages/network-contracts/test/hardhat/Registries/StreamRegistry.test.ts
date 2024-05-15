@@ -9,7 +9,7 @@ import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 import type { MinimalForwarder } from "../../../typechain"
 import type { StreamRegistry } from "../../../src/exports"
 
-const log = Debug("Streamr::test::StreamRegistryV4")
+const log = Debug("Streamr::test::StreamRegistry")
 
 const { Wallet, BigNumber, constants: { AddressZero } } = ethers
 
@@ -31,7 +31,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe("StreamRegistry", async (): Promise<void> => {
+describe.only("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry

@@ -87,18 +87,12 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
-    function _authorizeUpgrade(address) internal override isTrusted() {}
-
     function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
         return super._msgSender();
     }
 
     function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
         return super._msgData();
-    }
-
-    function setEnsCache(address ensCacheAddr) public isTrusted() {
-        ensCache = ENSCache(ensCacheAddr);
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
@@ -128,15 +122,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
-    }
-
-    /**
-     * Called by the ENSCache when the lookup / update is complete
-     */
-    // solhint-disable-next-line func-name-mixedcase
-    function ENScreateStreamCallback(address ownerAddress, string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
-        require(ensCache.owners(ensName) == ownerAddress, "error_notOwnerOfENSName");
-        _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
     }
 
     function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal returns (string memory) {
@@ -369,10 +354,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
        return string(_string);
     }
 
-    function setTrustedForwarder(address forwarder) public isTrusted() {
-        _setTrustedForwarder(forwarder);
-    }
-
     //////////////////////////////////////////////////////////////////////////////////
     // *forUserId functions: replace user as address with user as bytes calldata
     //////////////////////////////////////////////////////////////////////////////////
@@ -523,5 +504,58 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function getDirectPermissionsForUserId(string calldata streamId, bytes calldata user) public view streamExists(streamId) returns (Permission memory permission) {
         return streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // TRUSTED_ROLE functions: admin, integrations to known other smart contracts
+    //////////////////////////////////////////////////////////////////////////////////
+
+    function _authorizeUpgrade(address) internal override isTrusted() {}
+
+    function setEnsCache(address ensCacheAddr) public isTrusted() {
+        ensCache = ENSCache(ensCacheAddr);
+    }
+
+    function setTrustedForwarder(address forwarder) public isTrusted() {
+        _setTrustedForwarder(forwarder);
+    }
+
+    /** used by StreamStorageRegistry when checking if caller has the trusted role */
+    function getTrustedRole() public pure returns (bytes32) {
+        return TRUSTED_ROLE;
+    }
+
+    /**
+     * Called by the ENSCache when the lookup / update is complete
+     */
+    // solhint-disable-next-line func-name-mixedcase
+    function ENScreateStreamCallback(address ownerAddress, string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public isTrusted() {
+        require(ensCache.owners(ensName) == ownerAddress, "error_notOwnerOfENSName");
+        _createStreamAndPermission(ownerAddress, ensName, streamIdPath, metadataJsonString);
+    }
+
+    /** used by ProjectRegistry._grantSubscribeForStream when someone subscribes to a project */
+    function trustedSetPermissionsForUser(
+        string calldata streamId,
+        address user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        _setPermissionBooleans(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    }
+
+    function trustedSetPermissionsForUserId(
+        string calldata streamId,
+        bytes calldata user,
+        bool canEdit,
+        bool deletePerm,
+        uint256 publishExpiration,
+        uint256 subscribeExpiration,
+        bool canGrant
+    ) public isTrusted() {
+        _setPermissionsForUserId(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     }
 }
