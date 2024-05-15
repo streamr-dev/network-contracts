@@ -224,7 +224,7 @@ describe('ProjectRegistryV1', (): void => {
             expect(await registry.canBuyProject(id, user1.address))
                 .to.be.true
         })
-        
+
         it("canBuyProject - positivetest - non-public purchable", async () => {
             const projectId = await createProject({ isPublicPurchable: false })
             await registry.enablePermissionType(projectId, user1.address, permissionType.Buy)
@@ -527,12 +527,12 @@ describe('ProjectRegistryV1', (): void => {
             await expect(registry.removeStream(projectId, streamId))
                 .to.be.revertedWith('error_streamNotFound')
         })
-        
+
         it('setStreams - negativetest - fails if project does not exist', async (): Promise<void> => {
             await expect(registry.setStreams(projectIdbytesNonExistent, [streamId]))
                 .to.be.revertedWith('error_projectDoesNotExist')
         })
-        
+
         it('setStreams - negativetest - fails if user does not have Edit permission', async (): Promise<void> => {
             const projectId = await createProject()
             await expect(registry.connect(user1).setStreams(projectId, [streamId]))
@@ -1005,8 +1005,8 @@ describe('ProjectRegistryV1', (): void => {
             // enable Edit permission on the project and Grant permission on the stream to signer
             await registry.enablePermissionType(projectIdbytes, signerAddress, permissionType.Edit)
             await streamRegistry.grantPermission(streamIdMetatx, signerAddress, StreamRegistryPermissionType.Grant)
-            
-            return { projectIdbytes, streamIdMetatx }            
+
+            return { projectIdbytes, streamIdMetatx }
         }
 
         async function prepareAddStreamMetatx(minimalForwarder: MinimalForwarder, signerWallet: Wallet, signKey: string, gas = '1000000') {
@@ -1049,7 +1049,7 @@ describe('ProjectRegistryV1', (): void => {
         it('addStream - positivetest', async (): Promise<void> => {
             const signer = hardhatEthers.Wallet.createRandom()
             const { req, sign, projectIdbytes, streamIdMetatx } = await prepareAddStreamMetatx(minimalForwarder, signer, signer.privateKey)
-            
+
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 

@@ -3,18 +3,19 @@ import { expect } from "chai"
 import { BigNumber, utils, constants, Wallet } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
+import { MockMailbox } from "@hyperlane-xyz/core"
+import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
+import { types } from "../constants"
+
 import type {
     DATAv2,
     ERC20Mintable,
     GasReporter,
     MarketplaceV4,
     MinimalForwarder,
-    ProjectRegistryV1,
-    StreamRegistryV4,
 } from "../../typechain"
-import { MockMailbox } from "@hyperlane-xyz/core"
-import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
-import { types } from "../constants"
+import type { StreamRegistry } from "@streamr/network-contracts"
+import type { ProjectRegistry } from "../../src/exports"
 
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
@@ -38,8 +39,8 @@ describe("MarketplaceV4", () => {
     let otherToken: ERC20Mintable
     let marketplace: MarketplaceV4
     let minimalForwarder: MinimalForwarder
-    let projectRegistry: ProjectRegistryV1
-    let streamRegistry: StreamRegistryV4
+    let projectRegistry: ProjectRegistry
+    let streamRegistry: StreamRegistry
     const streamIds: string[] = []
     let gasReporter: GasReporter
 
@@ -108,12 +109,12 @@ describe("MarketplaceV4", () => {
 
     async function deployStreamRegistry(): Promise<void> {
         log("Deploying StreamRegistry: ")
-        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV5", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistry
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
 
     }
@@ -128,7 +129,7 @@ describe("MarketplaceV4", () => {
         log('Stream created (streamId: %s)', streamId)
         return streamId
     }
-    
+
     async function deployProjectRegistry(): Promise<void> {
         log("Deploying ProjectRegistryV1: ")
         const contractFactory = await getContractFactory("ProjectRegistryV1", admin)
@@ -406,7 +407,7 @@ describe("MarketplaceV4", () => {
         it('buy - positivetest - marketplace owner can buy project on halted market', async () => {
             const projectId = await createProject()
             await token.connect(admin).approve(marketplace.address, 200) // admin is also the marketplace owner
-            
+
             await marketplace.halt()
             await expect(marketplace.connect(admin).buy(projectId, 100))
                 .to.emit(projectRegistry, 'Subscribed')
@@ -415,7 +416,7 @@ describe("MarketplaceV4", () => {
 
         it('buy - negativetest - reverts if marketplace is halted', async () => {
             const projectId = await createProject()
-            
+
             await marketplace.halt()
             await expect(marketplace.connect(other).buy(projectId, 100))
                 .to.be.revertedWith("error_halted")
@@ -424,21 +425,21 @@ describe("MarketplaceV4", () => {
 
         it('buy - negativetest - unable to purchase free projects (pricePerSecond=0)', async () => {
             const freeProjectId = await createProject({ payment: paymentDetailsFreeProject })
-            
+
             await expect(marketplace.buy(freeProjectId, 100))
                 .to.be.revertedWith("error_freeProjectsNotSupportedOnMarketplace")
         })
 
         it('buy - negativetest - unable to purchase private projects', async () => {
             const projectId = await createProject({ isPublicPurchable: false })
-            
+
             await expect(marketplace.connect(other).buy(projectId, 100))
                 .to.be.revertedWith("error_unableToBuyProject")
         })
 
         it('buyFor - negativetest - reverts if marketplace is halted', async () => {
             const projectId = await createProject()
-            
+
             await marketplace.halt()
             await expect(marketplace.connect(other).buyFor(projectId, 100, admin.address))
                 .to.be.revertedWith("error_halted")
@@ -678,7 +679,7 @@ describe("MarketplaceV4", () => {
                 .to.be.false
 
             // check that metatx does NOT works with old forwarder
-            const { req: reqOld, sign: signOld, projectId: projectIdOld }: any = 
+            const { req: reqOld, sign: signOld, projectId: projectIdOld }: any =
                 await prepareBuyMetatx(minimalForwarder, signer, signerWallet.privateKey)
             expect(await projectRegistry.hasValidSubscription(projectIdOld, buyer.address))
                 .to.be.false
@@ -725,10 +726,10 @@ describe("MarketplaceV4", () => {
             const fee = BigNumber.from(0)
             const streamsCount = BigNumber.from(0)
             const purchaseId = BigNumber.from(1)
-            
+
             const projectId = await createProject({ payment })
             const purchaseInfo = await marketplace.getPurchaseInfo(projectId, subscriptionSeconds, chainId, purchaseId)
-            
+
             expect(purchaseInfo[0]).to.equal(beneficiaryAddress)
             expect(purchaseInfo[1]).to.equal(pricingTokenAddress)
             expect(purchaseInfo[2]).to.equal(price)
@@ -741,7 +742,7 @@ describe("MarketplaceV4", () => {
             const projectId = await createProject()
             const purchaseId = BigNumber.from(1)
             const subscriptionInfoBefore = await marketplace.getSubscriptionInfo(projectId, other.address, purchaseId)
-            
+
             expect(subscriptionInfoBefore[0]).to.be.false // isValid
             expect(subscriptionInfoBefore[1]).to.equal(0) // subEndTimestamp
             expect(subscriptionInfoBefore[2]).to.equal(purchaseId) // purchaseId
@@ -771,14 +772,14 @@ describe("MarketplaceV4", () => {
                     const beneficiary = admin.address
                     const price = 100
                     const fee = 0
-    
+
                     let prevGasUsed = 0
                     log('%s streams:', streamIds.length)
                     const projectId0 = await createProject()
                     let tx = await(await gasReporter.handle(projectId0, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
                     log('Gas used for handle function is %s wei (with overhead )', tx.gasUsed.toNumber())
                     prevGasUsed = tx.gasUsed.toNumber()
-    
+
                     for (let i = 0; i < 3; i++) {
                         const s = await createStream(i.toString())
                         streamIds.push(s)
@@ -793,14 +794,14 @@ describe("MarketplaceV4", () => {
                 it('getPurchaseInfo()', async () => {
                     const subscriptionSeconds = 100
                     const purchaseId = 1
-        
+
                     const projectId = await createProject()
                     await gasReporter.getPurchaseInfo(projectId, subscriptionSeconds, purchaseId)
                 })
-        
+
                 it('getSubscriptionInfo()', async () => {
                     const purchaseId = 1
-        
+
                     const projectId = await createProject()
                     await gasReporter.getSubscriptionInfo(projectId, buyer.address, purchaseId)
                 })
@@ -818,7 +819,7 @@ describe("MarketplaceV4", () => {
             destinationMailbox = await MockMailbox.deploy(destinationDomain)
             await originMailbox.addRemoteMailbox(destinationDomain, destinationMailbox.address)
             await destinationMailbox.addRemoteMailbox(originDomain, originMailbox.address)
-    
+
             await marketplace.addMailbox(destinationMailbox.address)
             await marketplace.addRemoteMarketplace(originDomain, other.address) // other acts as the remote contract
         })
