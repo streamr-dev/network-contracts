@@ -35,6 +35,8 @@ dataSources:
           handler: handleStreamUpdate
         - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
           handler: handlePermissionUpdate
+        - event: PermissionUpdatedForUserId(string,bytes,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdateForUserId
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry

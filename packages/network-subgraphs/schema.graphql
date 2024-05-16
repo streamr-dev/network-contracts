@@ -14,8 +14,10 @@ type _Schema_
 
 type StreamPermission @entity {
   id: ID!
-  "Ethereum address, owner of this permission"
-  userAddress: Bytes!
+  "[DEPRECATED] Ethereum address, owner of this permission; only if permission granting didn't use *forUserId functions"
+  userAddress: Bytes
+  "Ethereum address or other ID, owner of this permission"
+  userId: Bytes!
   "Target stream this permission applies to"
   stream: Stream
   "Edit permission enables changing the stream's metadata"

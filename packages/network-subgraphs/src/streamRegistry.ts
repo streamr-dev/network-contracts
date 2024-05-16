@@ -37,18 +37,41 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     let stream = Stream.load(event.params.streamId)
-    if (stream !== null) {
-        let permissionId = event.params.streamId + '-' + event.params.user.toHex()
-        let permission = new StreamPermission(permissionId)
-        permission.userAddress = event.params.user
-        permission.stream = event.params.streamId
-        permission.canEdit = event.params.canEdit
-        permission.canDelete = event.params.canDelete
-        permission.publishExpiration = event.params.publishExpiration
-        permission.subscribeExpiration = event.params.subscribeExpiration
-        permission.canGrant = event.params.canGrant
-        permission.save()
-        stream.updatedAt = event.block.timestamp
-        stream.save()
-    }
+    if (stream == null) { return }
+
+    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+    let permission = new StreamPermission(permissionId)
+    permission.userAddress = event.params.user
+    permission.userId = event.params.user
+    permission.stream = event.params.streamId
+    permission.canEdit = event.params.canEdit
+    permission.canDelete = event.params.canDelete
+    permission.publishExpiration = event.params.publishExpiration
+    permission.subscribeExpiration = event.params.subscribeExpiration
+    permission.canGrant = event.params.canGrant
+    permission.save()
+
+    stream.updatedAt = event.block.timestamp
+    stream.save()
+}
+
+export function handlePermissionUpdateForUserId(event: PermissionUpdated): void {
+    log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
+        [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
+    let stream = Stream.load(event.params.streamId)
+    if (stream == null) { return }
+
+    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+    let permission = new StreamPermission(permissionId)
+    permission.userId = event.params.user
+    permission.stream = event.params.streamId
+    permission.canEdit = event.params.canEdit
+    permission.canDelete = event.params.canDelete
+    permission.publishExpiration = event.params.publishExpiration
+    permission.subscribeExpiration = event.params.subscribeExpiration
+    permission.canGrant = event.params.canGrant
+    permission.save()
+
+    stream.updatedAt = event.block.timestamp
+    stream.save()
 }

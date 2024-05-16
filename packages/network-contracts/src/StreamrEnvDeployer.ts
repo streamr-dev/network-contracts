@@ -300,6 +300,7 @@ export class StreamrEnvDeployer {
         await ((await this.contracts.streamRegistry.createStream(streampath, "{}")).wait())
         this.streamId = this.adminWallet.address.toLowerCase() + streampath
         log(`streamId ${this.streamId}`)
+        await ((await this.contracts.streamRegistry.grantPermissionForUserId(this.streamId, "0x54455354", 3))) // "TEST", Subscribe
     }
 
     async deploySponsorshipFactory(): Promise<void> {
