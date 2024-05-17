@@ -119,9 +119,9 @@ export const config = {
             "OperatorDefaultExchangeRatePolicy": "0xD13D34d37e2c94cb35EA8D5DE7498Cb7830d26e0",
             "OperatorDefaultUndelegationPolicy": "0x1Cc93b7f91727e7c9bC86025C622A664e93DFb29",
             "OperatorFactory": "0x3AE0ad89b0e094fD09428589849C161f0F7f4E6A",
-            "ProjectRegistryV1": "0x73a9310C43621B853C508902bb8c1DA8f1240EaE",
-            "MarketplaceV4": "0x9472993E43dea67bB82B46Cc71Ef9570f83A8049",
-            "ProjectStakingV1": "0x2e426B42bfc5512fFACa7Dd8a3Bd89f05dCe2eBE",
+            "ProjectRegistryV1": "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022",
+            "MarketplaceV4": "0x8015bb1954FaF2A6109F5c41b2086B250A6769A0",
+            "ProjectStakingV1": "0x3Dd18E5E8C4f6291Db26795CC154918f7Ac1D875",
             "DataUnionFactory": "0xdc5F6368cd31330adC259386e78604a5E29E9415",
             "DataUnionTemplate": "0xEAA002f7Dc60178B6103f8617Be45a9D3df659B6"
         },
