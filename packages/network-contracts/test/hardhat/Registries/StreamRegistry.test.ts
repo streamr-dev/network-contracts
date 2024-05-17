@@ -676,6 +676,8 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.deep.equal([false, false, MAX_INT, ZERO, false])
             expect(await registry.getDirectPermissionsForUserId(streamId, userBytesId))
                 .to.deep.equal([false, false, MAX_INT, ZERO, false])
+            expect(await registry.userIdHasPermission(streamId, userBytesId, PermissionType.Publish)).to.equal(true)
+            expect(await registry.userIdHasDirectPermission(streamId, userBytesId, PermissionType.Publish)).to.equal(true)
         })
 
         it("revokePermissionForUserId happy path", async (): Promise<void> => {

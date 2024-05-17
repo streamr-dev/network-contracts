@@ -230,16 +230,17 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
+        bytes32 key = getAddressKey(streamId, user);
         if (permissionType == PermissionType.Edit) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canEdit;
+            return streamIdToPermissions[streamId][key].canEdit;
         } else if (permissionType == PermissionType.Delete) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete;
+            return streamIdToPermissions[streamId][key].canDelete;
         } else if (permissionType == PermissionType.Publish) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration >= block.timestamp;
+            return streamIdToPermissions[streamId][key].publishExpiration >= block.timestamp;
         } else if (permissionType == PermissionType.Subscribe) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration >= block.timestamp;
+            return streamIdToPermissions[streamId][key].subscribeExpiration >= block.timestamp;
         } else if (permissionType == PermissionType.Grant) {
-            return streamIdToPermissions[streamId][getAddressKey(streamId, user)].canGrant;
+            return streamIdToPermissions[streamId][key].canGrant;
         }
     }
 
@@ -274,20 +275,20 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function _setPermission(string calldata streamId, address user, PermissionType permissionType, bool grant) private {
-        require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish,
-            "error_publicCanOnlySubsPubl");
+        require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_publicCanOnlySubsPubl");
+        bytes32 key = getAddressKey(streamId, user);
         if (permissionType == PermissionType.Edit) {
-           streamIdToPermissions[streamId][getAddressKey(streamId, user)].canEdit = grant;
+           streamIdToPermissions[streamId][key].canEdit = grant;
         } else if (permissionType == PermissionType.Delete) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].canDelete = grant;
+            streamIdToPermissions[streamId][key].canDelete = grant;
         } else if (permissionType == PermissionType.Publish) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].publishExpiration = grant ? MAX_INT : 0;
+            streamIdToPermissions[streamId][key].publishExpiration = grant ? MAX_INT : 0;
         } else if (permissionType == PermissionType.Subscribe) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].subscribeExpiration = grant ? MAX_INT : 0;
+            streamIdToPermissions[streamId][key].subscribeExpiration = grant ? MAX_INT : 0;
         } else if (permissionType == PermissionType.Grant) {
-            streamIdToPermissions[streamId][getAddressKey(streamId, user)].canGrant = grant;
+            streamIdToPermissions[streamId][key].canGrant = grant;
         }
-        Permission memory perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        Permission memory perm = streamIdToPermissions[streamId][key];
         _cleanUpIfAllFalse(streamId, user, perm);
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
@@ -362,6 +363,25 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function getAddressKeyForUserId(string memory streamId, bytes calldata user) public view returns (bytes32) {
         return keccak256(abi.encode(streamIdToVersion[streamId], user));
+    }
+
+    function userIdHasPermission(string calldata streamId, bytes calldata user, PermissionType permissionType) public view returns (bool userHasPermission) {
+        return userIdHasDirectPermission(streamId, user, permissionType) || hasDirectPermission(streamId, address(0), permissionType);
+    }
+
+    function userIdHasDirectPermission(string calldata streamId, bytes calldata user, PermissionType permissionType) public view returns (bool userHasPermission) {
+        bytes32 key = getAddressKeyForUserId(streamId, user);
+        if (permissionType == PermissionType.Edit) {
+            return streamIdToPermissions[streamId][key].canEdit;
+        } else if (permissionType == PermissionType.Delete) {
+            return streamIdToPermissions[streamId][key].canDelete;
+        } else if (permissionType == PermissionType.Publish) {
+            return streamIdToPermissions[streamId][key].publishExpiration >= block.timestamp;
+        } else if (permissionType == PermissionType.Subscribe) {
+            return streamIdToPermissions[streamId][key].subscribeExpiration >= block.timestamp;
+        } else if (permissionType == PermissionType.Grant) {
+            return streamIdToPermissions[streamId][key].canGrant;
+        }
     }
 
     function grantPermissionForUserId(string calldata streamId, bytes calldata user, PermissionType permissionType) public hasGrantPermission(streamId) {
