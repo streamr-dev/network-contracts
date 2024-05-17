@@ -1,6 +1,6 @@
 import { log, store } from '@graphprotocol/graph-ts'
 
-import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated }
+import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated, PermissionUpdatedForUserId }
     from '../generated/StreamRegistry/StreamRegistry'
 import { Stream, StreamPermission } from '../generated/schema'
 
@@ -55,7 +55,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     stream.save()
 }
 
-export function handlePermissionUpdateForUserId(event: PermissionUpdated): void {
+export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserId): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     let stream = Stream.load(event.params.streamId)
