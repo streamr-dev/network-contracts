@@ -40,10 +40,10 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     // streamid -> keccak256(version, useraddress) -> permission struct above
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     mapping (string => string) public streamIdToMetadata;
-    ENSCache private ensCache;
+    ENSCache public ensCache;
 
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
-    mapping (string => uint32) private streamIdToVersion;
+    mapping (string => uint32) public streamIdToVersion;
 
     modifier streamExists(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
