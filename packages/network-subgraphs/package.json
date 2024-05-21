@@ -19,7 +19,7 @@
     "coverage": "cd ../../ && graph test -d -- -c"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "0.71.0",
+    "@graphprotocol/graph-cli": "0.72.0",
     "matchstick-as": "0.5.0"
   },
   "dependencies": {
