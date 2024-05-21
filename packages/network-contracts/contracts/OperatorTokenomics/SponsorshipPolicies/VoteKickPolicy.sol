@@ -130,7 +130,7 @@ contract VoteKickPolicy is IKickPolicy, Sponsorship {
         // If we don't have a good randomness source set in streamrConfig, we generate the outcome from a seed deterministically.
         // Set the seed to only depend on target (until a voter (dis)appears), so that attacker who simulates transactions
         //   can't "re-roll" the reviewers e.g. once per block; instead, they only get to "re-roll" once every voter-set change
-        bytes32 randomBytes32 = bytes32((voterCount << 160) | uint160(target));
+        bytes32 randomBytes32 = bytes32((voterCount << 160) | uint160(target) | uint160(address(this)));
         uint totalValueWei; // = 0
         uint biggestVoterWeight; // = 0
         Operator biggestVoter;
