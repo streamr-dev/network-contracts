@@ -343,7 +343,7 @@ describe("VoteKickPolicy", (): void => {
                 sponsorships: [ s1, s2 ],
                 operators: [ flagger, target, ...voters ],
                 token,
-            } = await setupSponsorships(sharedContracts, [2, 0, 9], "different-reviewers")
+            } = await setupSponsorships(sharedContracts, [2, 0, 13], "different-reviewers")
             const isVoter = Object.fromEntries(voters.map((v) => [ v.address, true ]))
 
             // stake into both Sponsorships, to create as similar selection as possible
@@ -363,7 +363,7 @@ describe("VoteKickPolicy", (): void => {
             expect(reviewers2).to.have.lengthOf(7)
 
             // before ETH-774, it would produce the same set of reviewers
-            // NB: it still randomly might! If this test is flaky, increase 9->13, or higher as desired.
+            // NB: it still randomly might! If this test is flaky, increase 13->15, or higher as desired.
             expect(reviewers1).to.not.deep.equal(reviewers2)
         })
 
