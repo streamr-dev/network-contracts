@@ -15,6 +15,7 @@
   "main": "./dist/src/exports.js",
   "types": "./dist/src/exports.d.ts",
   "scripts": {
+    "compile": "hardhat compile",
     "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json && ./generateSelectorsTxt.sh",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
