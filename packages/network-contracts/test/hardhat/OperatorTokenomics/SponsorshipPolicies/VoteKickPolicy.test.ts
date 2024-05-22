@@ -341,9 +341,12 @@ describe("VoteKickPolicy", (): void => {
         it("default PRNG will pick different reviewers for same flagger+target in different sponsorship", async function(): Promise<void> {
             const {
                 sponsorships: [ s1, s2 ],
-                operators: [ flagger, target,, voter3, voter4, voter5,, voter7, voter8, voter9 ],
+                operators: [ flagger, target, ...voters ],
                 token,
-            } = await setupSponsorships(sharedContracts, [6, 5], "different-reviewers")
+            } = await setupSponsorships(sharedContracts, [2, 0, 9], "different-reviewers")
+            const isVoter = Object.fromEntries(voters.map((v) => [ v.address, true ]))
+
+            // stake into both Sponsorships, to create as similar selection as possible
             await (await token.mint(flagger.address, parseEther("10000"))).wait()
             await (await token.mint(target.address, parseEther("10000"))).wait()
             await (await flagger.stake(s2.address, parseEther("10000"))).wait()
@@ -351,24 +354,21 @@ describe("VoteKickPolicy", (): void => {
 
             await (await sharedContracts.streamrConfig.setRandomOracle(AddressZero)).wait()
 
-            // default PRNG produces 7 4 4 1 7 1 3 9 8 3 9 7 9 10 0 5. Reject 0, 1, and repeating numbers to find the selected reviewers.
-            // before ETH-774, it would produce 0 2 9 9 7 8 1 5 9 0 10 8 5 10 7 10 0 9 8 3
-            await expect(flagger.flag(s1.address, target.address, ""))
-                .to.emit(voter7, "ReviewRequest")
-                .to.emit(voter4, "ReviewRequest")
-                .to.emit(voter3, "ReviewRequest")
-                .to.emit(voter9, "ReviewRequest")
-                .to.emit(voter8, "ReviewRequest")
+            const tr1 = await (await flagger.flag(s1.address, target.address, "")).wait()
+            const reviewers1 = await tr1.logs.filter((log) => isVoter[log.address]).map((log) => log.address)
+            expect(reviewers1).to.have.lengthOf(7)
 
-            // default PRNG produces 5 8 7 9 4 4 0 4 6 5 5 8 4 5 5 4 9 3
-            // before ETH-774, it would again produce 0 2 9 9 7 8 1 5 9 0 10 8 5 10 7 10 0 9 8 3
-            await expect(flagger.flag(s2.address, target.address, ""))
-                .to.emit(voter5, "ReviewRequest")
-                .to.emit(voter8, "ReviewRequest")
-                .to.emit(voter7, "ReviewRequest")
-                .to.emit(voter9, "ReviewRequest")
-                .to.emit(voter4, "ReviewRequest")
+            const tr2 = await (await flagger.flag(s2.address, target.address, "")).wait()
+            const reviewers2 = await tr2.logs.filter((log) => isVoter[log.address]).map((log) => log.address)
+            expect(reviewers2).to.have.lengthOf(7)
 
+            // before ETH-774, it would produce the same set of reviewers
+            // NB: it still randomly might! If this test is flaky, increase 9->13, or higher as desired.
+            expect(reviewers1).to.not.deep.equal(reviewers2)
+        })
+
+        // cleanup of "default PRNG..." test case, in case it fails
+        afterEach(async function(): Promise<void> {
             await (await sharedContracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
         })
     })
