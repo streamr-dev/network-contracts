@@ -42,7 +42,7 @@
     "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
   },
   "dependencies": {
-    "@chainlink/contracts": "0.3.1",
+    "@chainlink/contracts": "1.1.1",
     "@ensdomains/ens-contracts": "0.0.22",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
