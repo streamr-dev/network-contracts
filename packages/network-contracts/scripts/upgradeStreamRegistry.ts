@@ -72,19 +72,19 @@ async function main() {
     // }
 
     // see https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades
-    const upgradedStreamrConfig = await upgrades.upgradeProxy(
+    const upgradedStreamRegistry = await upgrades.upgradeProxy(
         streamRegistry.address,
         await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
     ) as StreamRegistry
-    log("Checking new StreamrConfig at %s", upgradedStreamrConfig.address)
-    log("    %s [OK]", await upgradedStreamrConfig.getAddressKeyForUserId("test.eth/1", "0x1234"))
+    log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
+    log("    %s [OK]", await upgradedStreamRegistry.getAddressKeyForUserId("test.eth/1", "0x1234"))
 
     const balanceAfter = await provider.getBalance(signer.address)
     const gasSpent = balanceBefore.sub(balanceAfter)
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
     if (OUTPUT_FILE) {
-        writeFileSync(OUTPUT_FILE, upgradedStreamrConfig.address)
+        writeFileSync(OUTPUT_FILE, upgradedStreamRegistry.address)
     }
 }
 
