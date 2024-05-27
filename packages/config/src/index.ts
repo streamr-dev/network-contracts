@@ -420,7 +420,7 @@ export const config = {
             "SponsorshipMaxOperatorsJoinPolicy": "0xd640C2C5102953d122759826daa6Aec25eC98ca5",
             "SponsorshipStakeWeightedAllocationPolicy": "0xaC80c738FCF8d259F07C82eAD68B75aF4DF82223",
             "SponsorshipDefaultLeavePolicy": "0x16Ba0F2793Da54b67717c6bAD471624C6628F2aa",
-            "SponsorshipVoteKickPolicy": "0xf9Aad3bf4F6D682b9c04Ee3812B88B379b238d13",
+            "SponsorshipVoteKickPolicy": "0xA73aDbEC14be2D3628CeAD022243f080CB162955",
             "SponsorshipFactory": "0xb194a68b166f2e3074B551393fA61490D19c69f8",
             "OperatorDefaultDelegationPolicy": "0x78f29fF290148e83795393f1858DC540D8cB046b",
             "OperatorDefaultExchangeRatePolicy": "0x48d25dd5731AD644613b67E4281C505Ef392Dd70",

@@ -22,7 +22,7 @@
     "@streamr/hub-contracts": "file:../hub-contracts",
     "@streamr/network-contracts": "file:../network-contracts",
     "@dataunions/contracts": "^3.0.8",
-    "hardhat": "^2.17.1"
+    "hardhat": "2.22.4"
   },
   "devDependencies": {
     "tsx": "^3.12.7",

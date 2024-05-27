@@ -337,6 +337,40 @@ describe("VoteKickPolicy", (): void => {
 
             await expect(streamrConfig.setMinEligibleVoterAge(originalAgeLimit)).to.emit(streamrConfig, "ConfigChanged")
         })
+
+        it("default PRNG will pick different reviewers for same flagger+target in different sponsorship", async function(): Promise<void> {
+            const {
+                sponsorships: [ s1, s2 ],
+                operators: [ flagger, target, ...voters ],
+                token,
+            } = await setupSponsorships(sharedContracts, [2, 0, 13], "different-reviewers")
+            const isVoter = Object.fromEntries(voters.map((v) => [ v.address, true ]))
+
+            // stake into both Sponsorships, to create as similar selection as possible
+            await (await token.mint(flagger.address, parseEther("10000"))).wait()
+            await (await token.mint(target.address, parseEther("10000"))).wait()
+            await (await flagger.stake(s2.address, parseEther("10000"))).wait()
+            await (await target.stake(s2.address, parseEther("10000"))).wait()
+
+            await (await sharedContracts.streamrConfig.setRandomOracle(AddressZero)).wait()
+
+            const tr1 = await (await flagger.flag(s1.address, target.address, "")).wait()
+            const reviewers1 = await tr1.logs.filter((log) => isVoter[log.address]).map((log) => log.address)
+            expect(reviewers1).to.have.lengthOf(7)
+
+            const tr2 = await (await flagger.flag(s2.address, target.address, "")).wait()
+            const reviewers2 = await tr2.logs.filter((log) => isVoter[log.address]).map((log) => log.address)
+            expect(reviewers2).to.have.lengthOf(7)
+
+            // before ETH-774, it would produce the same set of reviewers
+            // NB: it still randomly might! If this test is flaky, increase 13->15, or higher as desired.
+            expect(reviewers1).to.not.deep.equal(reviewers2)
+        })
+
+        // cleanup of "default PRNG..." test case, in case it fails
+        afterEach(async function(): Promise<void> {
+            await (await sharedContracts.streamrConfig.setRandomOracle(mockRandomOracle.address)).wait()
+        })
     })
 
     describe("Flagging", function(): void {
