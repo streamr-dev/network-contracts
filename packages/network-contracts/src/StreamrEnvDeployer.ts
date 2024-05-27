@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
-import { Contract, ContractFactory } from "@ethersproject/contracts"
+import { Contract, ContractFactory, Event } from "@ethersproject/contracts"
 import { parseEther } from "@ethersproject/units"
 import { namehash } from "@ethersproject/hash"
 import { keccak256 } from "@ethersproject/keccak256"
@@ -391,7 +391,7 @@ export class StreamrEnvDeployer {
             ]
         )
         const sponsorshipReceipt = await sponsorshiptx.wait()
-        this.sponsorshipAddress = sponsorshipReceipt.events?.filter((e) => e.event === "NewSponsorship")[0]?.args?.sponsorshipContract
+        this.sponsorshipAddress = sponsorshipReceipt.events?.filter((e: Event) => e.event === "NewSponsorship")[0]?.args?.sponsorshipContract
         this.sponsorship = new Contract(this.sponsorshipAddress, sponsorshipABI, this.adminWallet) as Sponsorship
         log("new sponsorship address: " + this.sponsorshipAddress)
         return this.sponsorship
