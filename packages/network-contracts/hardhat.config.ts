@@ -5,7 +5,7 @@ import "hardhat-ignore-warnings"
 import "solidity-coverage"
 import "hardhat-dependency-compiler"
 import "@nomiclabs/hardhat-etherscan"
-// import "hardhat-contract-sizer"
+import "hardhat-contract-sizer"
 // import "hardhat-gas-reporter"
 
 import { HardhatUserConfig } from "hardhat/types"

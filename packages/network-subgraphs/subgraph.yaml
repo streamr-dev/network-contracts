@@ -35,6 +35,8 @@ dataSources:
           handler: handleStreamUpdate
         - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
           handler: handlePermissionUpdate
+        - event: PermissionUpdatedForUserId(string,bytes,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdateForUserId
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
@@ -84,7 +86,7 @@ dataSources:
     name: ProjectRegistryV1
     network: xDai # xDai means dev1
     source:
-      address: "0x73a9310C43621B853C508902bb8c1DA8f1240EaE"
+      address: "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022"
       abi: ProjectRegistryV1
       startBlock: 0
     mapping:
@@ -119,7 +121,7 @@ dataSources:
     name: MarketplaceV4
     network: xDai
     source:
-      address: "0x9472993E43dea67bB82B46Cc71Ef9570f83A8049"
+      address: "0x8015bb1954FaF2A6109F5c41b2086B250A6769A0"
       abi: MarketplaceV4
       startBlock: 0
     mapping:
@@ -140,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: xDai
     source:
-      address: "0x2e426B42bfc5512fFACa7Dd8a3Bd89f05dCe2eBE"
+      address: "0x3Dd18E5E8C4f6291Db26795CC154918f7Ac1D875"
       abi: ProjectStakingV1
       startBlock: 0
     mapping:

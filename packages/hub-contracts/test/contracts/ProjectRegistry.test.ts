@@ -3,7 +3,8 @@ import { expect } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4 } from "../../typechain"
+import type { DATAv2, MinimalForwarder, ProjectRegistryV1 } from "../../typechain"
+import type { StreamRegistry } from "@streamr/network-contracts"
 import { types } from "../constants"
 
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
@@ -45,7 +46,7 @@ describe('ProjectRegistryV1', (): void => {
 
     let registry: ProjectRegistryV1
     let minimalForwarder: MinimalForwarder
-    let streamRegistry: StreamRegistryV4
+    let streamRegistry: StreamRegistry
     let token: DATAv2
 
     before(async (): Promise<void> => {
@@ -95,12 +96,12 @@ describe('ProjectRegistryV1', (): void => {
     }
 
     async function deployStreamRegistryAndCreateStreams(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV5", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             ["0x0000000000000000000000000000000000000000", minimalForwarder.address],
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistry
 
         for (let i = 0; i < 10; i++) {
             const s = await createStream(i.toString())
@@ -224,7 +225,7 @@ describe('ProjectRegistryV1', (): void => {
             expect(await registry.canBuyProject(id, user1.address))
                 .to.be.true
         })
-        
+
         it("canBuyProject - positivetest - non-public purchable", async () => {
             const projectId = await createProject({ isPublicPurchable: false })
             await registry.enablePermissionType(projectId, user1.address, permissionType.Buy)
@@ -527,12 +528,12 @@ describe('ProjectRegistryV1', (): void => {
             await expect(registry.removeStream(projectId, streamId))
                 .to.be.revertedWith('error_streamNotFound')
         })
-        
+
         it('setStreams - negativetest - fails if project does not exist', async (): Promise<void> => {
             await expect(registry.setStreams(projectIdbytesNonExistent, [streamId]))
                 .to.be.revertedWith('error_projectDoesNotExist')
         })
-        
+
         it('setStreams - negativetest - fails if user does not have Edit permission', async (): Promise<void> => {
             const projectId = await createProject()
             await expect(registry.connect(user1).setStreams(projectId, [streamId]))
@@ -1005,8 +1006,8 @@ describe('ProjectRegistryV1', (): void => {
             // enable Edit permission on the project and Grant permission on the stream to signer
             await registry.enablePermissionType(projectIdbytes, signerAddress, permissionType.Edit)
             await streamRegistry.grantPermission(streamIdMetatx, signerAddress, StreamRegistryPermissionType.Grant)
-            
-            return { projectIdbytes, streamIdMetatx }            
+
+            return { projectIdbytes, streamIdMetatx }
         }
 
         async function prepareAddStreamMetatx(minimalForwarder: MinimalForwarder, signerWallet: Wallet, signKey: string, gas = '1000000') {
@@ -1049,7 +1050,7 @@ describe('ProjectRegistryV1', (): void => {
         it('addStream - positivetest', async (): Promise<void> => {
             const signer = hardhatEthers.Wallet.createRandom()
             const { req, sign, projectIdbytes, streamIdMetatx } = await prepareAddStreamMetatx(minimalForwarder, signer, signer.privateKey)
-            
+
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
 

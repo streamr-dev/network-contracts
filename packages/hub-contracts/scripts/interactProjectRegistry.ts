@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { config } from "@streamr/config"
 // import { chainToDomainId, chainToMailboxAddress } from "../utils"
-import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV4, ProjectStakingV1 } from "../typechain"
+import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV5, ProjectStakingV1 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils
@@ -36,7 +36,7 @@ const {
 
 let projectRegistry: ProjectRegistryV1
 let projectStaking: ProjectStakingV1
-let streamRegistry: StreamRegistryV4
+let streamRegistry: StreamRegistryV5
 let marketplace: MarketplaceV4
 let dataToken: DATAv2
 let linkToken: any
@@ -71,10 +71,10 @@ const connectContracts = async () => {
     projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistryV1
     log("ProjectRegistry deployed at: ", projectRegistry.address)
 
-    const streamRegistryFactory = await getContractFactory("StreamRegistryV4", deployerWallet)
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV5", deployerWallet)
     const streamRegistryFactoryTx = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS)
-    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
-    log("StreamRegistryV4 deployed at: ", streamRegistry.address)
+    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV5
+    log("StreamRegistryV5 deployed at: ", streamRegistry.address)
 
     const marketplaceV4Factory = await getContractFactory("MarketplaceV4", deployerWallet)
     const marketplaceV4FactoryTx = await marketplaceV4Factory.attach(MARKETPLACE_ADDRESS)
@@ -207,7 +207,7 @@ async function main() {
     log(`CHAIN: ${CHAIN}, REMOTE_CHAIN: ${REMOTE_CHAIN}`)
     connectWallets()
     await connectContracts()
-    
+
     updatePaymentDetails(8997, adminWallet.address, linkToken.address, 2) // dev1
 
     const streamId1 = await createStream()

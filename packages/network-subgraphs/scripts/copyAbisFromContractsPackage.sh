@@ -7,7 +7,7 @@ popd
 
 mkdir -p abis
 jq .abi ../network-contracts/artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json > abis/NodeRegistry.json
-jq .abi ../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistry.sol/StreamRegistry.json > abis/StreamRegistry.json
+jq .abi ../network-contracts/artifacts/contracts/StreamRegistry/StreamRegistryV5.sol/StreamRegistryV5.json > abis/StreamRegistry.json
 jq .abi ../network-contracts/artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json > abis/StreamStorageRegistry.json
 
 jq .abi ../network-contracts/artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json > abis/StreamrConfig.json

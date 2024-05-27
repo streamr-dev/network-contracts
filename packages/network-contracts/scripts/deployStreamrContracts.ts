@@ -134,7 +134,7 @@ export default async function deployBaseContracts(
         log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
         contracts.streamRegistry = registry
     } else {
-        const registryCF = await getContractFactory("StreamRegistryV4_1", { signer })
+        const registryCF = await getContractFactory("StreamRegistryV5", { signer })
         contracts.streamRegistry = await upgrades.deployProxy(registryCF, [ AddressZero, AddressZero ], {
             kind: "uups", unsafeAllow: ["delegatecall"], timeout: 600000,
         }) as StreamRegistry

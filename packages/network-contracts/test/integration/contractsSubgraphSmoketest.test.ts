@@ -79,7 +79,7 @@ describe("docker image integration test", () => {
                 id
             }
             streamPermissions {
-                id
+                userId
             }
             delegations {
                 operatorTokenBalanceWei
@@ -112,7 +112,7 @@ describe("docker image integration test", () => {
         // 1 storage node assignment stream, each has 2 permissions (public + owner)
         // 1 test stream, only owner permission
         expect(resultDynamicIds.streams.length).to.equal(5)
-        expect(resultDynamicIds.streamPermissions.length).to.equal(12) // 3*3 + 2 + 1
+        expect(resultDynamicIds.streamPermissions.length).to.equal(13) // 3*3 + 2 + 1 + userId
 
         let selfDelegationCount = 0
         resultDynamicIds.delegations.forEach((delegation: any) => {

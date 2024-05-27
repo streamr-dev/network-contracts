@@ -1,6 +1,6 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
-import { ProjectRegistryV1, StreamRegistryV4 } from "../typechain"
+import { ProjectRegistryV1, StreamRegistryV5 } from "../typechain"
 
 const { getContractFactory } = hardhatEthers
 
@@ -19,7 +19,7 @@ const {
 } = (config as any)[CHAIN]
 
 let projectRegistry: ProjectRegistryV1
-let streamRegistry: StreamRegistryV4
+let streamRegistry: StreamRegistryV5
 
 const connectContracts = async () => {
     const projectRegistryFactory = await getContractFactory("ProjectRegistryV1")
@@ -27,10 +27,10 @@ const connectContracts = async () => {
     projectRegistry = await projectRegistryFactoryTx.deployed() as ProjectRegistryV1
     log("ProjectRegistryV1 deployed at: ", projectRegistry.address)
 
-    const streamRegistryFactory = await getContractFactory("StreamRegistryV4")
+    const streamRegistryFactory = await getContractFactory("StreamRegistryV5")
     const streamRegistryFactoryTx = await streamRegistryFactory.attach(STREAM_REGISTRY_ADDRESS)
-    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV4
-    log("StreamRegistryV4 deployed at: ", streamRegistry.address)
+    streamRegistry = await streamRegistryFactoryTx.deployed() as StreamRegistryV5
+    log("StreamRegistryV5 deployed at: ", streamRegistry.address)
 
     const latestBlock = await hardhatEthers.provider.getBlock("latest")
     log('latestBlock', latestBlock.number)

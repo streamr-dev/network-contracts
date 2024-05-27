@@ -4,7 +4,7 @@ import { constants, utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV4, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV5, Uniswap2Adapter } from "../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { hexlify, id, parseEther, toUtf8Bytes, zeroPad } = utils
@@ -63,7 +63,7 @@ describe("Uniswap2AdapterV4", () => {
     let erc677Token: DATAv2
     let fromToken: ERC20Mintable
     let market: MarketplaceV4
-    let streamRegistry: StreamRegistryV4
+    let streamRegistry: StreamRegistryV5
     let projectRegistry: ProjectRegistryV1
     let minimalForwarder: MinimalForwarder
     let uniswap2Adapter: Uniswap2Adapter
@@ -105,7 +105,7 @@ describe("Uniswap2AdapterV4", () => {
         const dataTokenFactory = await getContractFactory("DATAv2", admin)
         dataToken = await dataTokenFactory.deploy() as DATAv2
         await dataToken.grantRole(id("MINTER_ROLE"), admin.address)
-        
+
         erc677Token = await dataTokenFactory.deploy() as DATAv2
         await erc677Token.grantRole(id("MINTER_ROLE"), admin.address)
 
@@ -155,12 +155,12 @@ describe("Uniswap2AdapterV4", () => {
     }
 
     async function deployStreamRegistry(): Promise<void> {
-        const contractFactory = await getContractFactory("StreamRegistryV4", admin)
+        const contractFactory = await getContractFactory("StreamRegistryV5", admin)
         const contractFactoryTx = await upgrades.deployProxy(
             contractFactory,
             [constants.AddressZero, constants.AddressZero], // ensCacheAddr & trustedForwarderAddress can be zero address while testing this adapter
             { kind: 'uups' })
-        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV4
+        streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV5
         log("StreamRegistry was deployed at address: ", streamRegistry.address)
     }
 
@@ -319,7 +319,7 @@ describe("Uniswap2AdapterV4", () => {
                 .withArgs(productIdbytes, admin.address, expectedEndTimestamp)
         })
     })
-    
+
     describe('Metatransactions', (): void => {
         let trustedForwarderRole: string
         before(async () => {
@@ -360,7 +360,7 @@ describe("Uniswap2AdapterV4", () => {
             const sign = signTypedData(options) // forwarder
             return {req, sign, value}
         }
-        
+
         it('isTrustedForwarder - positivetest', async (): Promise<void> => {
             expect(await projectRegistry.isTrustedForwarder(minimalForwarder.address))
                 .to.be.true
@@ -397,7 +397,7 @@ describe("Uniswap2AdapterV4", () => {
             // check that the project doesn't have a valid subscription
             expect(await projectRegistry.hasValidSubscription(productIdbytes, signer.address))
                 .to.be.false
-            
+
             await wrongForwarder.connect(forwarder).execute(req, sign)
 
             // internal call will have failed => subscription not extended
@@ -436,7 +436,7 @@ describe("Uniswap2AdapterV4", () => {
             await projectRegistry.revokeRole(trustedForwarderRole, minimalForwarder.address)
             expect(await projectRegistry.isTrustedForwarder(minimalForwarder.address))
                 .to.be.false
-            
+
             // deploy second minimal forwarder
             const factory = await getContractFactory('MinimalForwarder', forwarder2)
             const newForwarder = await factory.deploy() as MinimalForwarder
@@ -447,7 +447,7 @@ describe("Uniswap2AdapterV4", () => {
             await projectRegistry.grantRole(trustedForwarderRole, newForwarder.address)
             expect(await projectRegistry.isTrustedForwarder(newForwarder.address))
                 .to.be.true
-                
+
             // check that metatx works with new forwarder
             // const signer = hardhatEthers.Wallet.createRandom()
             const {req, sign, value} = await prepareBuyWithERC20Metatx(newForwarder, signer, signerWallet.privateKey)
