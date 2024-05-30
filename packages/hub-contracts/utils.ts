@@ -1,5 +1,5 @@
 const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy']
-const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
+const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum', 'peaq']
 
 /**
  * Maps the chain name to a unique hyperlane domain id

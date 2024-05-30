@@ -450,5 +450,58 @@ export const config = {
                 }
             }
         ]
+    },
+    "peaq": {
+        "id": 3338,
+        "name": "Peaq EVM chain",
+        "nativeCurrency": {
+            "symbol": "PEAQ",
+            "name": "PEAQ",
+            "decimals": 18
+        },
+        "rpcEndpoints": [
+            {
+                "url": "https://peaq.api.onfinality.io/public"
+            }
+        ],
+        "contracts": {
+            "DATA": "0xdCB1EcdD509c61De5C3B672fDD2335AC750142c9",
+            "StreamRegistry": "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c",
+            "ENSCacheV2": "0x4A71d0FA9e3326E830048B1423d7010fB9343071",
+            "StreamStorageRegistry": "0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db",
+            "StreamrConfig": "0xc81Fa3Cc3E81dF24D21bfc608f8FB06262Da4F8c",
+            "SponsorshipOperatorContractOnlyJoinPolicy": "0xF655955dc561356851e95a6D0febeB0BAc955Ab5",
+            "SponsorshipMaxOperatorsJoinPolicy": "0xE41439BF434F9CfBF0153f5231C205d4ae0C22e3",
+            "SponsorshipStakeWeightedAllocationPolicy": "0xC8E8efAF4CE7bCcFc87878631BC64A1FAe63dc5D",
+            "SponsorshipDefaultLeavePolicy": "0xDa579a9a55158Bc57389f1b05F553DEf38a121c1",
+            "SponsorshipVoteKickPolicy": "0xdc8d23092b93F9BB7416F45dEa36f55996f34867",
+            "SponsorshipFactory": "0xdaF0905e19C45b9Fea7E60D232061edF78E9F570",
+            "OperatorDefaultDelegationPolicy": "0xD3329a2FC8194f0F96749275FF5162f7f2F031F7",
+            "OperatorDefaultExchangeRatePolicy": "0xA3D82B569ab0dEF86935fCf4e7714626a608CF81",
+            "OperatorDefaultUndelegationPolicy": "0x3EF89eF888721446Cf373C5070399B8225C9E936",
+            "OperatorFactory": "0x6d201374D7c28EF1c3cc1b6FA300f06110B597A3",
+            "ProjectRegistryV1": "0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA",
+            "ProjectStakingV1": "0xd1cBD6b1Be710C41c01A9613802209843407b8b9",
+            "MarketplaceV4": "0x959684926448296ea72BD4B05593426A3cD3F0dF"
+        },
+        "blockExplorerUrl": "https://peaq.subscan.io",
+        "entryPoints": [
+            {
+                "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
+                "websocket": {
+                    "host": "amoy-entrypoint-1.streamr.network",
+                    "port": 40402,
+                    "tls": true
+                }
+            },
+            {
+                "nodeId": "24395826687b099fd735a730219ba750169c4f40",
+                "websocket": {
+                    "host": "amoy-entrypoint-2.streamr.network",
+                    "port": 40402,
+                    "tls": true
+                }
+            }
+        ]
     }
 }

@@ -94,6 +94,11 @@ const config: HardhatUserConfig = {
             url: process.env.ETHEREUM_RPC || "https://rpc-amoy.polygon.technology",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
+        peaq: {
+            chainId: 3338,
+            url: "https://peaq.api.onfinality.io/public",
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
     },
     typechain: {
         outDir: "./typechain",
