@@ -190,6 +190,7 @@ const config: HardhatUserConfig = {
             polygon: process.env.ETHERSCAN_KEY || "",
             polygonMumbai: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
+            peaq: process.env.ETHERSCAN_KEY || "",
         },
         customChains: [{
             network: "polygonAmoy",
@@ -197,6 +198,13 @@ const config: HardhatUserConfig = {
             urls: {
                 apiURL: "https://api-amoy.polygonscan.com/api",
                 browserURL: "https://amoy.polygonscan.com"
+            },
+        }, {
+            network: "peaq",
+            chainId: 3338,
+            urls: {
+                apiURL: "https://peaq-testnet.api.subscan.io",
+                browserURL: "https://peaq.subscan.io/"
             },
         }]
     },
