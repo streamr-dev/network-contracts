@@ -273,6 +273,36 @@ export const config = {
             },
             {
                 "url": "https://polygon.gateway.tenderly.co"
+            },
+            {
+                "url": "https://polygon.meowrpc.com"
+            },
+            {
+                "url": "https://polygon.llamarpc.com"
+            },
+            {
+                "url": "https://polygon-pokt.nodies.app"
+            },
+            {
+                "url": "https://polygon.blockpi.network/v1/rpc/public"
+            },
+            {
+                "url": "https://rpc.ankr.com/polygon"
+            },
+            {
+                "url": "https://polygon.drpc.org"
+            },
+            {
+                "url": "https://polygon-mainnet.public.blastapi.io"
+            },
+            {
+                "url": "https://polygon.rpc.blxrbdn.com"
+            },
+            {
+                "url": "https://api.tatum.io/v3/blockchain/node/polygon-mainnet"
+            },
+            {
+                "url": "https://rpc-mainnet.matic.quiknode.pro"
             }
         ],
         "contracts": {
