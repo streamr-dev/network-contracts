@@ -42,6 +42,10 @@ const {
 const txOverrides: Overrides = {}
 if (GAS_PRICE_GWEI) {
     txOverrides.gasPrice = parseUnits(GAS_PRICE_GWEI, "gwei")
+    if (CHAIN === "polygonAmoy") {
+        // 2024-07-03: amoy wanted that tip be 30gwei specifically
+        txOverrides.maxPriorityFeePerGas = parseUnits(GAS_PRICE_GWEI, "gwei")
+    }
 }
 
 async function main() {
