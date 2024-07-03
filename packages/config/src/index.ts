@@ -278,9 +278,6 @@ export const config = {
                 "url": "https://polygon.meowrpc.com"
             },
             {
-                "url": "https://polygon.llamarpc.com"
-            },
-            {
                 "url": "https://polygon-pokt.nodies.app"
             },
             {
@@ -288,12 +285,6 @@ export const config = {
             },
             {
                 "url": "https://rpc.ankr.com/polygon"
-            },
-            {
-                "url": "https://polygon.drpc.org"
-            },
-            {
-                "url": "https://polygon-mainnet.public.blastapi.io"
             },
             {
                 "url": "https://polygon.rpc.blxrbdn.com"
