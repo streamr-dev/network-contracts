@@ -151,7 +151,7 @@ export default async function deployTokenomicsContracts(
             )})
         log("Found StreamrConfig at %s", contracts.streamrConfig.address)
     } else {
-        const streamrConfigCF = await getContractFactory("StreamrConfig", { signer })
+        const streamrConfigCF = await getContractFactory("StreamrConfigV1_1", { signer })
         contracts.streamrConfig = await upgrades.deployProxy(streamrConfigCF, [], {
             kind: "uups", unsafeAllow: ["delegatecall"], timeout: 600000,
         }) as StreamrConfig
