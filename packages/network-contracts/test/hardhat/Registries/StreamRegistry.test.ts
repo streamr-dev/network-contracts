@@ -39,7 +39,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe.only("StreamRegistry", async (): Promise<void> => {
+describe("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry
@@ -814,6 +814,10 @@ describe.only("StreamRegistry", async (): Promise<void> => {
         //         [[perms], [perms, perms]])
         //     ).to.be.revertedWith("error_invalidInputArrayLengths")
         // })
+
+        it("should work with addresses just like non-bytes-id functions", async (): Promise<void> => {
+            // TODO
+        })
     })
 
     describe("Public permissions", () => {
