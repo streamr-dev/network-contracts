@@ -153,18 +153,25 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
         const unsentTx = await ensCacheContract.populateTransaction.fulfillENSOwner(ensName, streamIdPath, metadataJsonString, requestorAddress)
 
         if (gasPriceBumpPercent > 0 || minimumPriorityFeeGwei > 0) {
+            log("Setting gas price:")
             const recommended = await registryChainProvider.getFeeData()
+            log("  Received gas price recommendations: %o", recommended)
             if (recommended.maxFeePerGas && recommended.maxPriorityFeePerGas) {
                 unsentTx.maxFeePerGas = recommended.maxFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                log("  Set maxFeePerGas to %s", unsentTx.maxFeePerGas.toString())
                 unsentTx.maxPriorityFeePerGas = recommended.maxPriorityFeePerGas.mul(100 + gasPriceBumpPercent).div(100)
+                log("  Set maxPriorityFeePerGas to %s", unsentTx.maxPriorityFeePerGas.toString())
                 if (unsentTx.maxPriorityFeePerGas.lt(minimumPriorityFee)) {
                     unsentTx.maxPriorityFeePerGas = minimumPriorityFee
+                    log("  Set maxPriorityFeePerGas to %s", unsentTx.maxPriorityFeePerGas.toString())
                 }
                 if (unsentTx.maxFeePerGas.lte(unsentTx.maxPriorityFeePerGas)) {
                     unsentTx.maxFeePerGas = unsentTx.maxPriorityFeePerGas.add(1)
+                    log("  Set maxFeePerGas to %s", unsentTx.maxFeePerGas.toString())
                 }
             } else if (recommended.gasPrice) {
                 unsentTx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
+                log("  Set gasPrice to %s", unsentTx.gasPrice.toString())
             }
         }
         log("Sending fulfillENSOwner transaction: %o", unsentTx)
