@@ -160,6 +160,9 @@ async function createStream(ensName: string, streamIdPath: string, metadataJsonS
                 if (unsentTx.maxPriorityFeePerGas.lt(minimumPriorityFee)) {
                     unsentTx.maxPriorityFeePerGas = minimumPriorityFee
                 }
+                if (unsentTx.maxFeePerGas.lte(unsentTx.maxPriorityFeePerGas)) {
+                    unsentTx.maxFeePerGas = unsentTx.maxPriorityFeePerGas.add(1)
+                }
             } else if (recommended.gasPrice) {
                 unsentTx.gasPrice = recommended.gasPrice.mul(100 + gasPriceBumpPercent).div(100)
             }
