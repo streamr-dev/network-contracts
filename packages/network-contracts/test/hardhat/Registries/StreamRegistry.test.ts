@@ -11,7 +11,12 @@ import type { StreamRegistry } from "../../../src/exports"
 
 const log = Debug("Streamr::test::StreamRegistry")
 
-const { Wallet, BigNumber, constants: { AddressZero } } = ethers
+const {
+    Wallet,
+    BigNumber,
+    utils: { hexZeroPad },
+    constants: { AddressZero }
+} = ethers
 
 const ZERO = BigNumber.from(0) as BigNumberType
 const MAX_INT = BigNumber.from(2).pow(256).sub(1) as BigNumberType
@@ -117,7 +122,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         const streamPath = "/test-" + (streamIndex++)
         const streamId = owner.address.toLowerCase() + streamPath
         const metadata = `{"meta":"${Date.now()}"}`
-        await registry.connect(owner).createStream(streamPath, metadata)
+        await (await registry.connect(owner).createStream(streamPath, metadata)).wait()
         return streamId
     }
 
@@ -687,7 +692,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("revokePermissionForUserId happy path", async (): Promise<void> => {
             const streamId = await createStream()
-            await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Subscribe)
+            await (await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Subscribe)).wait()
             await expect(registry.revokePermissionForUserId(streamId, userBytesId, PermissionType.Publish))
                 .to.emit(registry, "PermissionUpdatedForUserId")
                 .withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
@@ -700,8 +705,8 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("revokeAllPermissionsForUserId happy path", async (): Promise<void> => {
             const streamId = await createStream()
-            await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Publish)
-            await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Subscribe)
+            await (await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Publish)).wait()
+            await (await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Subscribe)).wait()
             await expect(registry.revokeAllPermissionsForUserId(streamId, userBytesId))
                 .to.emit(registry, "PermissionUpdatedForUserId")
                 .withArgs(streamId, userBytesId, false, false, ZERO, ZERO, false)
@@ -816,7 +821,17 @@ describe("StreamRegistry", async (): Promise<void> => {
         // })
 
         it("should work with addresses just like non-bytes-id functions", async (): Promise<void> => {
-            // TODO
+            const streamId = await createStream()
+            const user0BytesId = hexZeroPad(user0Address, 32)
+            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, ZERO, false])
+            await (await registry.grantPermission(streamId, user0Address, PermissionType.Publish)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, MAX_INT, ZERO, false])
+            await (await registry.revokeAllPermissionsForUserId(streamId, user0BytesId)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, ZERO, false])
+            await (await registry.grantPermissionForUserId(streamId, user0BytesId, PermissionType.Subscribe)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, MAX_INT, false])
+            await (await registry.revokeAllPermissionsForUser(streamId, user0Address)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, ZERO, false])
         })
     })
 
