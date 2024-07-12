@@ -5,7 +5,7 @@ Solidity files plus Typescript interfaces for the Streamr Network smart contract
 ## Contracts
 
 Listed by file path:
-* [StreamRegistry](./contracts/StreamRegistry/StreamRegistryV4.sol): Streams are added here along with metadata how to join them
+* [StreamRegistry](./contracts/StreamRegistry/StreamRegistryV5.sol): Streams are added here along with metadata how to join them
 * [NodeRegistry](./contracts/NodeRegistry/NodeRegistry.sol): Storage nodes can register themselves here
 * [StreamStorageRegistry](./contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol): Connects storage nodes to streams that they store
 * OperatorTokenomics: [Operator](./contracts/OperatorTokenomics/Operator.sol) and [Sponsorship](./contracts/OperatorTokenomics/Sponsorship.sol) contracts that govern how to pay for better service in the Network, and how to get paid for providing it
@@ -28,6 +28,8 @@ contract.on("Staked", async (sponsorship: string) => {
     log(`got Staked event ${sponsorship}`)
 })
 ```
+
+The functions that end with `ForUserId` take an arbitrary `bytes` argument for the user ID. Addresses can also be given to these functions but they need to be padded to 32 bytes first, e.g.: `ethers.utils.hexZeroPad("0x1234567890123456789012345678901234567890", 32)` => `0x0000000000000000000000001234567890123456789012345678901234567890`.
 
 ## Developer notes
 
@@ -53,6 +55,7 @@ npm run localUpgradeImpl
 
 # Changelog
 
+StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only publish and subscribe, not grant/edit/delete)
 7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
 
