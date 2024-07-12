@@ -372,7 +372,8 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     event PermissionUpdatedForUserId(string streamId, bytes user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant);
 
     function getAddressKeyForUserId(string memory streamId, bytes calldata user) public view returns (bytes32) {
-        return keccak256(abi.encode(streamIdToVersion[streamId], user));
+        uint256 version32Bytes = streamIdToVersion[streamId];
+        return keccak256(abi.encodePacked(version32Bytes, user));
     }
 
     // function userIdHasPermission(string calldata streamId, bytes calldata user, PermissionType permissionType) public view returns (bool userHasPermission) {
