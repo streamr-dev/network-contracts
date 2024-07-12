@@ -1,4 +1,4 @@
-#!/bin/bash -euxo pipefail
+#!/bin/bash -e -u -o pipefail
 
 rm -rf artifacts
 hardhat compile
