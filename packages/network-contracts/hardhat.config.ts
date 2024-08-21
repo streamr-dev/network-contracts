@@ -104,6 +104,7 @@ const config: HardhatUserConfig = {
             "@ensdomains/ens-contracts/contracts/registry/ENS.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
+            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol", // exported in exports.ts
         ],
     },
     solidity: {
