@@ -95,4 +95,7 @@ async function deploy() {
     console.log(addressesJson)
 }
 
-main()
+main().catch((error) => {
+    console.error(error)
+    process.exit(1)
+}
