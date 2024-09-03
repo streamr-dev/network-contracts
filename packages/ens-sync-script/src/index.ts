@@ -57,6 +57,7 @@ const ensChainProvider = new JsonRpcProvider(ensChainRpc)
 const registryChainRpc = REGISTRY_RPC_URL ?? (config as any)[REGISTRY_CHAIN]?.rpcEndpoints?.[0]?.url
 if (!registryChainRpc) { throw new Error(`Either REGISTRY_CHAIN or REGISTRY_RPC_URL must be set in environment`) }
 const registryChainProvider = new JsonRpcProvider(registryChainRpc)
+registryChainProvider.polling = false
 const registryChainWallet = new Wallet(KEY, registryChainProvider)
 log("Wallet address used by script: ", registryChainWallet.address)
 
