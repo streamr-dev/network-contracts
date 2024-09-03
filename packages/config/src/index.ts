@@ -290,9 +290,6 @@ export const config = {
                 "url": "https://polygon.rpc.blxrbdn.com"
             },
             {
-                "url": "https://api.tatum.io/v3/blockchain/node/polygon-mainnet"
-            },
-            {
                 "url": "https://rpc-mainnet.matic.quiknode.pro"
             }
         ],
