@@ -1,20 +1,18 @@
 #!/usr/bin/env npx ts-node
 
-// Before running this file, start dev env: streamr-docker-dev start dev-chain-fast
-// Example: scripts/delegate.ts 123 0x1234567890123456789012345678901234567890
+// Example: KEY=0x123... scripts/unstake.ts 0x1234567890123456789012345678901234567890
 
 // import { writeFileSync } from "fs"
 import { Contract, Overrides } from "@ethersproject/contracts"
 import { Wallet } from "@ethersproject/wallet"
 import { JsonRpcProvider } from "@ethersproject/providers"
-import { parseEther, formatEther, parseUnits } from "@ethersproject/units"
+import { formatEther, parseUnits } from "@ethersproject/units"
 import { isAddress } from "@ethersproject/address"
-import { BigNumber } from "@ethersproject/bignumber"
 
 import { config } from "@streamr/config"
 
 import { ERC677ABI, operatorABI, operatorFactoryABI } from "@streamr/network-contracts"
-import { formatReceipt } from "./prettyPrint"
+// import { formatReceipt } from "./prettyPrint"
 
 import type { ERC677, Operator } from "@streamr/network-contracts"
 import { OperatorFactory } from "../typechain"
