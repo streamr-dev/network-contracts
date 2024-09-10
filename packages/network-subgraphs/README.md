@@ -45,6 +45,8 @@ can be recreated with the Dockerfile. To do so:
   * Added Delegation.isSelfDelegation, zeroed earliestUndelegationTimestamp for self-delegations
 * v0.0.7
   * Sponsorship APY fix (ETH-759)
+* v0.0.8
+  * Sponsorship initial sponsoring event fix (FRONT-1921)
 
 # Developer notes
 

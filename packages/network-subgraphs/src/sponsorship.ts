@@ -228,15 +228,23 @@ export function handleOperatorSlashed(event: OperatorSlashed): void {
 
 export function handleSponsorshipReceived(event: SponsorshipReceived): void {
     const sponsorshipId = event.address.toHexString()
-    const sponsorId = event.params.sponsor.toHexString()
-    log.info('handleSponsorshipReceived: sponsor={} amount={}', [ sponsorId, event.params.amount.toString() ])
+    const sponsorEventParam = event.params.sponsor.toHexString()
+    log.info('handleSponsorshipReceived: sponsor={} amount={}', [ sponsorEventParam, event.params.amount.toString() ])
+
+    const network = loadOrCreateNetwork()
+    const sponsorshipFactoryAddress = network.sponsorshipFactory
+    const isInitialSponsorship = (sponsorEventParam == sponsorshipFactoryAddress)
+    if (isInitialSponsorship) {
+        log.info('handleSponsorshipReceived: sponsor is SponsorshipFactory, setting sponsor to Sponsorship creator', [])
+    }
+
     const sponsorship = Sponsorship.load(sponsorshipId)
     sponsorship!.cumulativeSponsoring = sponsorship!.cumulativeSponsoring.plus(event.params.amount)
     sponsorship!.save()
 
     const sponsoringEvent = new SponsoringEvent(sponsorshipId + event.transaction.hash.toHexString())
     sponsoringEvent.sponsorship = sponsorshipId
-    sponsoringEvent.sponsor = sponsorId
+    sponsoringEvent.sponsor = isInitialSponsorship ? sponsorship!.creator : sponsorEventParam
     sponsoringEvent.date = event.block.timestamp
     sponsoringEvent.amount = event.params.amount
     sponsoringEvent.save()
