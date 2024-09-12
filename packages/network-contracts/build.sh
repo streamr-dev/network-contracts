@@ -2,7 +2,11 @@
 set -ex
 
 rm -rf artifacts
-hardhat compile
+npm run compile
+if [ $? -ne 0 ]; then
+    echo "Compilation failed, retrying"
+    npm run compile
+fi
 cp  ../../node_modules/@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json artifacts/PublicResolver_mainnet_9412610.json
 
 rm -rf dist
