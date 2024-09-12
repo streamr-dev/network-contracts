@@ -3,6 +3,10 @@ set -ex
 
 rm -rf artifacts
 npm run compile
+if [ ! -d artifacts ]; then
+    echo "Artifacts directory wasn't created!"
+    mkdir artifacts
+fi
 if [ $? -ne 0 ]; then
     echo "Compilation failed, retrying"
     npm run compile
