@@ -12,7 +12,7 @@
     "maxOperatorsJoinPolicyCodehash": "0xa9e01518e32ea611e3ac566171fcf65a37540d9b7a6d8fe2801c8f5c503c2cf3",
     "stakeWeightedAllocationPolicyCodehash": "0xfc291761d4e5e8951b93239dfcc917471b2186c8adc52a6a116d291cba9e27b6",
     "defaultLeavePolicyCodehash": "0x56014e2bf6f67ec57ceeae6975985795f730fa127efcd5564a66744dc0bad669",
-    "voteKickPolicyCodehash": "0x5087938193f210589222292747b00521044bfc698ecd61e8d041cbabb6d3fa92",
+    "voteKickPolicyCodehash": "0xe74fbdd03535f9de59363c32d9cd4214ff5c89ba29b959fb783f29319067d186",
     "defaultDelegationPolicyCodehash": "0x6ca95b0397edfc40bc945e6387f519d15e10d9fd506102ca34c670a7b7827ae3",
     "defaultExchangeRatePolicyCodehash": "0x7599e05762b64f68c7c14a11725c701b02fa0db0bfcff1be76ba4fb55772e57d",
     "defaultUndelegationPolicyCodehash": "0x01fea87a6509e5413bcf76ec87d021aa9689e7e9fc90166962e7e4573e9c1cbe",

@@ -73,15 +73,15 @@ export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC
 export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
 
 export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
-    from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+    from "../artifacts/@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
 export type { ENS } from "../typechain/@ensdomains/ens-contracts/contracts/registry/ENS"
 
 export { abi as fifsRegistrarABI, bytecode as fifsRegistrarBytecode }
-    from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+    from "../artifacts/@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
 export type { FIFSRegistrar } from "../typechain/@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar"
 
 export { abi as publicResolverABI, bytecode as publicResolverBytecode }
-    from "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json"
+    from "../artifacts/PublicResolver_mainnet_9412610.json"
 export type { Resolver } from "../typechain/@ensdomains/ens-contracts/contracts/resolvers/Resolver"
 
 export { abi as nodeModuleABI, bytecode as nodeModuleBytecode }
@@ -113,9 +113,9 @@ import { deployedBytecode as defaultDelegationPolicyBytecode } from "../artifact
 import { deployedBytecode as defaultExchangeRatePolicyBytecode } from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultExchangeRatePolicy.sol/DefaultExchangeRatePolicy.json"
 import { deployedBytecode as defaultUndelegationPolicyBytecode } from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/DefaultUndelegationPolicy.sol/DefaultUndelegationPolicy.json"
 import { deployedBytecode as operatorContractOnlyJoinPolicyBytecode } from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy.json"
-import { deployedBytecode as ensRegistryBytecode } from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
-import { deployedBytecode as fifsRegistrarBytecode } from "@ensdomains/ens-contracts/artifacts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
-import { deployedBytecode as publicResolverBytecode } from "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json"
+import { deployedBytecode as ensRegistryBytecode } from "../artifacts/@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
+import { deployedBytecode as fifsRegistrarBytecode } from "../artifacts/@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol/FIFSRegistrar.json"
+import { deployedBytecode as publicResolverBytecode } from "../artifacts/PublicResolver_mainnet_9412610.json"
 import { deployedBytecode as nodeModuleBytecode } from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/NodeModule.sol/NodeModule.json"
 import { deployedBytecode as queueModuleBytecode } from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/QueueModule.sol/QueueModule.json"
 import { deployedBytecode as stakeModuleBytecode } from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/StakeModule.sol/StakeModule.json"

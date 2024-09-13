@@ -13,7 +13,7 @@
   ],
   "main": "./dist/src/exports.js",
   "scripts": {
-    "build": "rm -rf artifacts && hardhat compile && rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "./build.sh",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "eslint": "eslint {src,scripts,test}/**/*.ts",
     "lint": "solhint contracts/**/*.sol",
