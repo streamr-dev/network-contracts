@@ -127,7 +127,7 @@ contract StakeModule is IStakeModule, Operator {
         uint protocolFee = earningsDataWei * streamrConfig.protocolFeeFraction() / 1 ether;
         token.transfer(streamrConfig.protocolFeeBeneficiary(), protocolFee);
 
-        // "self-delegate" the operator's share === mint new operator tokens
+        // Self-delegate the operator's cut === mint new operator tokens
         // because _delegate is assumed to be called AFTER the DATA token transfer, the result of calling it is equivalent to:
         //  1) send operator's cut in DATA tokens to the operator (removed from DATA balance, NO burning of tokens)
         //  2) the operator delegates them back to the contract (added back to DATA balance, minting new tokens)
