@@ -254,7 +254,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
-    function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
+    function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) external hasGrantPermission(streamId) {
         _setPermissionsBatch(streamId, users, permissions);
     }
 
@@ -273,7 +273,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
         uint arrayLength = streamIds.length;
         for (uint i=0; i<arrayLength; i++) {
-            setPermissions(streamIds[i], users[i], permissions[i]);
+            _setPermissionsBatch(streamIds[i], users[i], permissions[i]);
         }
     }
 
