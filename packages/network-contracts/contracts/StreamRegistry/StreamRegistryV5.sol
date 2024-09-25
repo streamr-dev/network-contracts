@@ -374,6 +374,10 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function getAddressKeyForUserId(string memory streamId, bytes calldata user) public view returns (bytes32) {
         uint256 version32Bytes = streamIdToVersion[streamId];
+        // Pad addresses to 32 bytes to remain compatible with getAddressKey function
+        if (user.length == 20) {
+            return keccak256(abi.encodePacked(version32Bytes, bytes12(0), user));
+        }
         return keccak256(abi.encodePacked(version32Bytes, user));
     }
 

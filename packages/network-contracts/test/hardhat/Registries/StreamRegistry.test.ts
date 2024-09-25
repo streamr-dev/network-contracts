@@ -14,7 +14,6 @@ const log = Debug("Streamr::test::StreamRegistry")
 const {
     Wallet,
     BigNumber,
-    utils: { hexZeroPad },
     constants: { AddressZero }
 } = ethers
 
@@ -44,7 +43,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe("StreamRegistry", async (): Promise<void> => {
+describe.only("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry
@@ -737,13 +736,13 @@ describe("StreamRegistry", async (): Promise<void> => {
         //         .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId + "01", false, false, MAX_INT, MAX_INT, false)
         // })
 
-        // it("setMultipleStreamPermissionsForUserIds happy path", async (): Promise<void> => {
-        //     const streamId = await createStream()
-        //     const perms = { ...zeroPermissionStruct, subscribeExpiration: MAX_INT }
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds([streamId, streamId], [[userBytesId], [userBytesId]], [[perms], [perms]]))
-        //         .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
-        //         .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
-        // })
+        it("setMultipleStreamPermissionsForUserIds happy path", async (): Promise<void> => {
+            const streamId = await createStream()
+            const perms = { ...zeroPermissionStruct, subscribeExpiration: MAX_INT }
+            await expect(registry.setMultipleStreamPermissionsForUserIds([streamId, streamId], [[userBytesId], [userBytesId]], [[perms], [perms]]))
+                .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
+                .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
+        })
 
         it("setPermissionsForUserIds happy path", async (): Promise<void> => {
             const streamId = await createStream()
@@ -781,57 +780,56 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.be.revertedWith("error_noSharePermission")
         })
 
-        // it("setMultiplePermissionsForUserIds FAILS for non-existent stream / no grantperm / arg-length mismatch", async (): Promise<void> => {
-        //     const perms = { ...zeroPermissionStruct, subscribeExpiration: MAX_INT }
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, "0x00"],
-        //         [[userBytesId], [userBytesId]],
-        //         [[perms], [perms]])
-        //     ).to.be.revertedWith("error_streamDoesNotExist")
-        //     await expect(registryFromUser1.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, "0x00"],
-        //         [[userBytesId], [userBytesId]],
-        //         [[perms], [perms]])
-        //     ).to.be.revertedWith("error_noSharePermission")
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1],
-        //         [[userBytesId], [userBytesId]],
-        //         [[perms], [perms]])
-        //     ).to.be.revertedWith("error_invalidInputArrayLengths")
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, streamId1],
-        //         [[userBytesId]],
-        //         [[perms], [perms]])
-        //     ).to.be.revertedWith("error_invalidInputArrayLengths")
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, streamId1],
-        //         [[userBytesId], [userBytesId]],
-        //         [[perms]])
-        //     ).to.be.revertedWith("error_invalidInputArrayLengths")
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, streamId1],
-        //         [[userBytesId, userBytesId], [userBytesId]],
-        //         [[perms], [perms]])
-        //     ).to.be.revertedWith("error_invalidInputArrayLengths")
-        //     await expect(registry.setMultipleStreamPermissionsForUserIds(
-        //         [streamId1, streamId1],
-        //         [[userBytesId], [userBytesId]],
-        //         [[perms], [perms, perms]])
-        //     ).to.be.revertedWith("error_invalidInputArrayLengths")
-        // })
+        it("setMultipleStreamPermissionsForUserIds FAILS for non-existent stream / no grantperm / arg-length mismatch", async (): Promise<void> => {
+            const perms = { ...zeroPermissionStruct, subscribeExpiration: MAX_INT }
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1, "0x00"],
+                [[userBytesId], [userBytesId]],
+                [[perms], [perms]])
+            ).to.be.revertedWith("error_streamDoesNotExist")
+            await expect(registryFromUser1.setMultipleStreamPermissionsForUserIds(
+                [streamId1, "0x00"],
+                [[userBytesId], [userBytesId]],
+                [[perms], [perms]])
+            ).to.be.revertedWith("error_noSharePermission")
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1],
+                [[userBytesId], [userBytesId]],
+                [[perms], [perms]])
+            ).to.be.revertedWith("error_invalidInputArrayLengths")
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1, streamId1],
+                [[userBytesId]],
+                [[perms], [perms]])
+            ).to.be.revertedWith("error_invalidInputArrayLengths")
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1, streamId1],
+                [[userBytesId], [userBytesId]],
+                [[perms]])
+            ).to.be.revertedWith("error_invalidInputArrayLengths")
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1, streamId1],
+                [[userBytesId, userBytesId], [userBytesId]],
+                [[perms], [perms]])
+            ).to.be.revertedWith("error_invalidInputArrayLengths")
+            await expect(registry.setMultipleStreamPermissionsForUserIds(
+                [streamId1, streamId1],
+                [[userBytesId], [userBytesId]],
+                [[perms], [perms, perms]])
+            ).to.be.revertedWith("error_invalidInputArrayLengths")
+        })
 
         it("should work with addresses just like non-bytes-id functions", async (): Promise<void> => {
             const streamId = await createStream()
-            const user0BytesId = hexZeroPad(user0Address, 32)
-            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, ZERO, false])
+            expect(await registry.getPermissionsForUserId(streamId, user0Address)).to.deep.equal([false, false, ZERO, ZERO, false])
             await (await registry.grantPermission(streamId, user0Address, PermissionType.Publish)).wait()
-            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, MAX_INT, ZERO, false])
-            await (await registry.revokeAllPermissionsForUserId(streamId, user0BytesId)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, user0Address)).to.deep.equal([false, false, MAX_INT, ZERO, false])
+            await (await registry.revokeAllPermissionsForUserId(streamId, user0Address)).wait()
             expect(await registry.getPermissionsForUser(streamId, user0Address)).to.deep.equal([false, false, ZERO, ZERO, false])
-            await (await registry.grantPermissionForUserId(streamId, user0BytesId, PermissionType.Subscribe)).wait()
+            await (await registry.grantPermissionForUserId(streamId, user0Address, PermissionType.Subscribe)).wait()
             expect(await registry.getPermissionsForUser(streamId, user0Address)).to.deep.equal([false, false, ZERO, MAX_INT, false])
             await (await registry.revokeAllPermissionsForUser(streamId, user0Address)).wait()
-            expect(await registry.getPermissionsForUserId(streamId, user0BytesId)).to.deep.equal([false, false, ZERO, ZERO, false])
+            expect(await registry.getPermissionsForUserId(streamId, user0Address)).to.deep.equal([false, false, ZERO, ZERO, false])
         })
     })
 
@@ -905,223 +903,6 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.equal([false, false, ZERO, ZERO, false].toString())
         })
     })
-
-    // removed from V5
-    describe("Trusted setters", () => {
-        it("positivetest grantRole, revokerole", async (): Promise<void> => {
-            await registry.grantRole(await registry.TRUSTED_ROLE(), adminAddress)
-            expect(await registry.hasRole(await registry.TRUSTED_ROLE(), adminAddress))
-                .to.equal(true)
-            await registry.revokeRole(await registry.TRUSTED_ROLE(), adminAddress)
-            expect(await registry.hasRole(await registry.TRUSTED_ROLE(), adminAddress))
-                .to.equal(false)
-        })
-
-        it("negativetest grantRole, revokerole", async (): Promise<void> => {
-            await expect(registryFromUser0.grantRole(await registry.TRUSTED_ROLE(), user0Address))
-                .to.be.revertedWith("AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing "
-                + "role 0x0000000000000000000000000000000000000000000000000000000000000000")
-        })
-
-        // // negativetest setPublicPermission is trivial, was tested in setPermissionsForUser negativetest
-        // it("positivetest trustedRoleSetStream", async (): Promise<void> => {
-        //     expect((await registry.getPermissionsForUser(streamId0, trustedAddress)).toString())
-        //         .to.equal([false, false, ZERO, ZERO, false].toString())
-        //     expect(await registry.getStreamMetadata(streamId0))
-        //         .to.deep.equal(metadata0)
-        //     await registryFromMigrator.trustedSetStreamMetadata(streamId0, metadata1)
-        //     expect(await registry.getStreamMetadata(streamId0))
-        //         .to.deep.equal(metadata1)
-        // })
-
-        // it("positivetest getTrustedRoleId", async (): Promise<void> => {
-        //     expect(await registryFromAdmin.getTrustedRole()).to.equal("0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7")
-        // })
-
-        // it("positivetest trustedRoleSetPermissionsForUser", async (): Promise<void> => {
-        //     expect((await registry.getPermissionsForUser(streamId0, trustedAddress)).toString())
-        //         .to.equal([false, false, ZERO, ZERO, false].toString())
-        //     expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-        //         .to.equal([false, false, ZERO, ZERO, false].toString())
-        //     await registryFromMigrator.trustedSetPermissionsForUser(streamId0, user0Address,
-        //         true, true, MAX_INT, MAX_INT, true)
-        //     expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-        //         .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-        // })
-
-        // it("negativetest trustedSetStream", async (): Promise<void> => {
-        //     await expect(registryFromAdmin.trustedSetStreamMetadata(streamId0, metadata1))
-        //         .to.be.revertedWith("error_mustBeTrustedRole")
-        // })
-
-        // it("positivetest trustedSetStreamWithPermissions", async (): Promise<void> => {
-        //     expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-        //         .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-        //     expect(await registry.getStreamMetadata(streamId0))
-        //         .to.deep.equal(metadata1)
-        //     await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata0, user0Address, false, false, 0, 0, false)
-        //     expect(await registry.getStreamMetadata(streamId0))
-        //         .to.deep.equal(metadata0)
-        //     expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-        //         .to.equal([false, false, ZERO, ZERO, false].toString())
-        //     await registryFromMigrator.trustedSetStreamWithPermission(streamId0, metadata1, user0Address, true, true, MAX_INT, MAX_INT, true)
-        //     expect(await registry.getStreamMetadata(streamId0))
-        //         .to.deep.equal(metadata1)
-        //     expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-        //         .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-        // })
-
-        // it("negativetest trustedSetPermissionsForUser", async (): Promise<void> => {
-        //     await expect(registryFromAdmin.trustedSetPermissionsForUser(streamId0,
-        //         user0Address, true, true, MAX_INT, MAX_INT, true))
-        //         .to.be.revertedWith("error_mustBeTrustedRole")
-        // })
-
-        // it("positiveTest trustedSetStreams", async (): Promise<void> => {
-        //     const STREAMS_TO_MIGRATE = 50
-        //     const streamIds: string[] = []
-        //     const users: string[] = []
-        //     const metadatas: string[] = []
-        //     const permissions = []
-        //     for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-        //         const user = Wallet.createRandom()
-        //         streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
-        //         users.push(user.address)
-        //         metadatas.push(`metadata-${i}`)
-        //         permissions.push({
-        //             canEdit: true,
-        //             canDelete: true,
-        //             publishExpiration: MAX_INT,
-        //             subscribeExpiration: MAX_INT,
-        //             canGrant: true
-        //         })
-        //     }
-        //     await registryFromMigrator.trustedSetStreams(streamIds, users, metadatas, permissions)
-        //     for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-        //         expect(await registry.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
-        //     }
-        // })
-
-        // it("positiveTest trustedSetPermissions", async (): Promise<void> => {
-        //     const STREAMS_TO_MIGRATE = 50
-        //     const streamIds: string[] = []
-        //     const users: string[] = []
-        //     const metadatas: string[] = []
-        //     const permissions = []
-        //     for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-        //         const user = Wallet.createRandom()
-        //         streamIds.push(`${user.address}/streamidbulkmigrate/id${i}`)
-        //         users.push(user.address)
-        //         metadatas.push(`metadata-${i}`)
-        //         permissions.push({
-        //             canEdit: true,
-        //             canDelete: true,
-        //             publishExpiration: MAX_INT,
-        //             subscribeExpiration: MAX_INT,
-        //             canGrant: true
-        //         })
-        //     }
-        //     await registryFromMigrator.trustedCreateStreams(streamIds, metadatas)
-        //     await registryFromMigrator.trustedSetPermissions(streamIds, users, permissions)
-        //     for (let i = 0; i < STREAMS_TO_MIGRATE; i++) {
-        //         expect(await registry.getStreamMetadata(streamIds[i])).to.equal(metadatas[i])
-        //     }
-        // })
-
-        // it("negativetest trustedSetPermissions", async (): Promise<void> => {
-        //     const permissions = {
-        //         canEdit: true,
-        //         canDelete: true,
-        //         publishExpiration: MAX_INT,
-        //         subscribeExpiration: MAX_INT,
-        //         canGrant: true
-        //     }
-        //     await expect(registryFromUser0.trustedCreateStreams([`${user0Address}/test`], ["meta"]))
-        //         .to.be.revertedWith("error_mustBeTrustedRole")
-        //     await expect(registryFromUser0.trustedSetPermissions([`${user0Address}/test`], [user0Address], [permissions]))
-        //         .to.be.revertedWith("error_mustBeTrustedRole")
-        // })
-    })
-
-    // removed in V5
-    // describe("Transfer permissions", () => {
-    //     it("positivetest transferAllPermissionsToUser", async (): Promise<void> => {
-    //         const streamId = await createStream()
-    //         await registry.setPermissionsForUser(streamId, user0Address, true, true, 0, 0, true)
-
-    //         expect((await registry.getPermissionsForUser(streamId, adminAddress)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId, user1Address)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, false].toString())
-    //         await registry.transferAllPermissionsToUser(streamId, user1Address)
-    //         expect((await registry.getPermissionsForUser(streamId, adminAddress)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, false].toString())
-    //         expect((await registry.getPermissionsForUser(streamId, user1Address)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-
-    //         // make sure positive ones are not overwritten
-    //         // user 0 and 1 both have all perms
-    //         await registryFromUser0.setPermissionsForUser(streamId, user0Address, true, false, 0, 0, false)
-    //         // it also tests that user0 can transfer away even though he does not have share permission
-    //         await registryFromUser0.transferAllPermissionsToUser(streamId, user1Address)
-    //         expect((await registry.getPermissionsForUser(streamId, user0Address)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, false].toString())
-    //         expect((await registry.getPermissionsForUser(streamId, user1Address)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-    //     })
-
-    //     it("negativetest transferAllPermissionsToUser", async (): Promise<void> => {
-    //         await expect(registryFromUser0.transferAllPermissionsToUser(streamId0, user1Address))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //     })
-
-    //     it("positivetest transferPermissionToUser", async (): Promise<void> => {
-    //         await registry.setPermissionsForUser(streamId0, user1Address, true, true, MAX_INT, MAX_INT, true)
-
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, false].toString())
-    //         await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Edit)
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([false, true, MAX_INT, MAX_INT, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([true, false, ZERO, ZERO, false].toString())
-    //         await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Delete)
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([false, false, MAX_INT, MAX_INT, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([true, true, ZERO, ZERO, false].toString())
-    //         await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Publish)
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([false, false, ZERO, MAX_INT, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([true, true, MAX_INT, ZERO, false].toString())
-    //         await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Subscribe)
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, true].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, false].toString())
-    //         await registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Share)
-    //         expect((await registry.getPermissionsForUser(streamId0, user1Address)).toString())
-    //             .to.equal([false, false, ZERO, ZERO, false].toString())
-    //         expect((await registry.getPermissionsForUser(streamId0, user0Address)).toString())
-    //             .to.equal([true, true, MAX_INT, MAX_INT, true].toString())
-    //     })
-
-    //     it("negativetest transferPermissionToUser", async (): Promise<void> => {
-    //         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Edit))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Delete))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Publish))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Subscribe))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //         await expect(registryFromUser1.transferPermissionToUser(streamId0, user0Address, PermissionType.Share))
-    //             .to.be.revertedWith("error_noPermissionToTransfer")
-    //     })
-    // })
 
     describe("EIP-2771 meta-transactions feature", () => {
         async function getCreateStreamMetaTx({
