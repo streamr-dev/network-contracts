@@ -6,7 +6,8 @@
  *   - this is to support permission targets longer than 20 bytes (different cryptography)
  *   - due to size concerns:
  *      - userIdHasPermission and userIdHasDirectPermission are not included in V5
- *      - setExpirationTimeForUserId not included
+ *      - createStreamWithPermissionsForUserIds, setExpirationTimeForUserId, setPermissionsForUserId not included
+ *      - transferPermissionToUserId, transferAllPermissionsToUserId not included
  *      - combined some internal functions to take userKey instead of address or bytes id
  * - Removed little used functions: transferAllPermissionsToUser, transferPermissionToUser
  */
@@ -446,13 +447,14 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             emit PermissionUpdatedForUserId(streamId, users[i], p.canEdit, p.canDelete, p.publishExpiration, p.subscribeExpiration, p.canGrant);
         }
     }
-    // function setMultipleStreamPermissionsForUserIds(string[] calldata streamIds, bytes[][] calldata users, Permission[][] calldata permissions) public {
-    //     require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
-    //     uint arrayLength = streamIds.length;
-    //     for (uint i = 0; i < arrayLength; i++) {
-    //         setPermissionsForUserIds(streamIds[i], users[i], permissions[i]);
-    //     }
-    // }
+
+    function setMultipleStreamPermissionsForUserIds(string[] calldata streamIds, bytes[][] calldata users, Permission[][] calldata permissions) public {
+        require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
+        uint arrayLength = streamIds.length;
+        for (uint i = 0; i < arrayLength; i++) {
+            setPermissionsForUserIds(streamIds[i], users[i], permissions[i]);
+        }
+    }
 
     // function setPermissionsForUserId(
     //     string calldata streamId, bytes calldata user, bool canEdit, bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
