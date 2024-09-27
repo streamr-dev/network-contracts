@@ -185,15 +185,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
      * For publish/subscribe expiration, if public permission has a longer validity, use that.
      **/
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
-        permission = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
-        if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
-            permission.publishExpiration = publicPermission.publishExpiration;
-        }
-        if (permission.subscribeExpiration < block.timestamp && publicPermission.subscribeExpiration >= block.timestamp) {
-            permission.subscribeExpiration = publicPermission.subscribeExpiration;
-        }
-        return permission;
+        return _getPermissionsForUser(streamId, getAddressKey(streamId, user));
     }
 
     function getDirectPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
@@ -505,7 +497,10 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
      * For publish/subscribe expiration, if public permission has a longer validity, use that.
      **/
     function getPermissionsForUserId(string calldata streamId, bytes calldata user) public view streamExists(streamId) returns (Permission memory permission) {
-        permission = streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
+        return _getPermissionsForUser(streamId, getAddressKeyForUserId(streamId, user)); // TODO don't cast streamId calldata->memory
+    }
+    function _getPermissionsForUser(string calldata streamId, bytes32 userKey) public view streamExists(streamId) returns (Permission memory permission) {
+        permission = streamIdToPermissions[streamId][userKey];
         Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
             permission.publishExpiration = publicPermission.publishExpiration;
