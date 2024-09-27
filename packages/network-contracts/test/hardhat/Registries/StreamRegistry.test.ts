@@ -33,6 +33,13 @@ const allPermissionsStruct: StreamRegistry.PermissionStruct = {
     subscribeExpiration: MAX_INT,
     canGrant: true,
 }
+const pubSubOnlyStruct: StreamRegistry.PermissionStruct = {
+    canEdit: false,
+    canDelete: false,
+    publishExpiration: MAX_INT,
+    subscribeExpiration: MAX_INT,
+    canGrant: false,
+}
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
@@ -713,17 +720,17 @@ describe.only("StreamRegistry", async (): Promise<void> => {
                 .to.deep.equal([false, false, ZERO, ZERO, false])
         })
 
-        // it("setExpirationTimeForUserId happy path", async (): Promise<void> => {
-        //     const streamId = await createStream()
-        //     const date = BigNumber.from(Date.now()).div(1000).add(10000)
-        //     await registry.grantPermissionForUserId(streamId, userBytesId, PermissionType.Publish)
-        //     await expect(registry.setExpirationTimeForUserId(streamId, userBytesId, PermissionType.Subscribe, date))
-        //         .to.emit(registry, "PermissionUpdatedForUserId")
-        //         .withArgs(streamId, userBytesId, false, false, MAX_INT, date, false)
-        //     await expect(registry.setExpirationTimeForUserId(streamId, userBytesId, PermissionType.Publish, date))
-        //         .to.emit(registry, "PermissionUpdatedForUserId")
-        //         .withArgs(streamId, userBytesId, false, false, date, date, false)
-        // })
+        it("setExpirationTimeForUserId happy path", async (): Promise<void> => {
+            const streamId = await createStream()
+            const date = BigNumber.from(Date.now()).div(1000).add(10000)
+            await registry.setPermissionsForUserIds(streamId, [ userBytesId ], [ pubSubOnlyStruct ])
+            await expect(registry.setExpirationTimeForUserId(streamId, userBytesId, PermissionType.Subscribe, date))
+                .to.emit(registry, "PermissionUpdatedForUserId")
+                .withArgs(streamId, userBytesId, false, false, MAX_INT, date, false)
+            await expect(registry.setExpirationTimeForUserId(streamId, userBytesId, PermissionType.Publish, date))
+                .to.emit(registry, "PermissionUpdatedForUserId")
+                .withArgs(streamId, userBytesId, false, false, date, date, false)
+        })
 
         // it("createStreamWithPermissionsForUserId happy path", async (): Promise<void> => {
         //     const streamPath = "/test-createStreamWithPermissionsForUserId-" + Date.now()
@@ -748,30 +755,18 @@ describe.only("StreamRegistry", async (): Promise<void> => {
             const streamId = await createStream()
             await expect(registry.setPermissionsForUserIds(streamId, [ userBytesId ], [ allPermissionsStruct ]))
                 .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, true, true, MAX_INT, MAX_INT, true)
+            await expect(registry.setPermissionsForUserIds(streamId, [ userBytesId ], [ zeroPermissionStruct ]))
+                .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, 0, 0, false)
+            await expect(registry.setPermissionsForUserIds(streamId, [ userBytesId ], [ pubSubOnlyStruct ]))
+                .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, MAX_INT, MAX_INT, false)
         })
 
-        // it("transferAllPermissionsToUserId happy path", async (): Promise<void> => {
-        //     const streamId = await createStream()
-        //     await registry.grantPermission(streamId, user0Address, PermissionType.Subscribe)
-        //     await expect(registryFromUser0.transferAllPermissionsToUserId(streamId, userBytesId))
-        //         .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
-        //         .to.emit(registry, "PermissionUpdated").withArgs(streamId, user0Address, false, false, ZERO, ZERO, false)
-        // })
-
-        // it("transferPermissionToUserId happy path", async (): Promise<void> => {
-        //     const streamId = await createStream()
-        //     await registry.grantPermission(streamId, user0Address, PermissionType.Subscribe)
-        //     await expect(registryFromUser0.transferPermissionToUserId(streamId, userBytesId, PermissionType.Subscribe))
-        //         .to.emit(registry, "PermissionUpdatedForUserId").withArgs(streamId, userBytesId, false, false, ZERO, MAX_INT, false)
-        //         .to.emit(registry, "PermissionUpdated").withArgs(streamId, user0Address, false, false, ZERO, ZERO, false)
-        // })
-
-        // it("setExpirationTimeForUserId FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
-        //     await expect(registry.setExpirationTimeForUserId("0x00", userBytesId, PermissionType.Publish, MAX_INT))
-        //         .to.be.revertedWith("error_streamDoesNotExist")
-        //     await expect(registry.connect(wallets[4]).setExpirationTimeForUserId(streamId1, userBytesId, PermissionType.Publish, MAX_INT))
-        //         .to.be.revertedWith("error_noSharePermission")
-        // })
+        it("setExpirationTimeForUserId FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
+            await expect(registry.setExpirationTimeForUserId("0x00", userBytesId, PermissionType.Publish, MAX_INT))
+                .to.be.revertedWith("error_streamDoesNotExist")
+            await expect(registry.connect(wallets[4]).setExpirationTimeForUserId(streamId1, userBytesId, PermissionType.Publish, MAX_INT))
+                .to.be.revertedWith("error_noSharePermission")
+        })
 
         it("setPermissionsForUserIds FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
             await expect(registry.setPermissionsForUserIds("0x00", [userBytesId], [zeroPermissionStruct]))
