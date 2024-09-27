@@ -52,14 +52,12 @@ const getBlocktime = async (): Promise<number> => {
 
 describe.only("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
-    // let ensCacheFromAdmin: ENSCache
     let registry: StreamRegistry
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
     let registryFromMigrator: StreamRegistry
     let minimalForwarderFromUser0: MinimalForwarder
     let blocktime: number
-    // let registryFromUser1: StreamRegistry
     let adminAddress: string
     let user0Address: string
     let user1Address: string
@@ -199,7 +197,6 @@ describe.only("StreamRegistry", async (): Promise<void> => {
             }
             await expect(await registry.createStreamWithPermissions(newStreamPath, metadata1,
                 [adminAddress, trustedAddress], [permissionA, permissionB]))
-                // [trustedAddress], [permissionB]))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId, metadata1)
                 .to.emit(registry, "PermissionUpdated")
