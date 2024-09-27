@@ -93,42 +93,9 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
-        return super._msgSender();
-    }
-
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
-        string memory ownerstring = addressToString(_msgSender());
-        _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
-    }
-
-    function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
-        if (ensCache.owners(ensName) == _msgSender()) {
-            _createStreamAndPermission(_msgSender(), ensName, streamIdPath, metadataJsonString);
-        } else {
-            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, _msgSender());
-        }
-    }
-
-    function createStreamWithPermissions(string calldata streamIdPath, string calldata metadataJsonString, address[] calldata users, Permission[] calldata permissions) public {
-        string memory ownerstring = addressToString(_msgSender());
-        string memory streamId = _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
-        _setPermissionsBatch(streamId, users, permissions);
-    }
-
-    function createMultipleStreamsWithPermissions(string[] calldata streamIdPaths, string[] calldata metadataJsonStrings, address[][] calldata users, Permission[][] calldata permissions) public {
-        for (uint i = 0; i < streamIdPaths.length; i++) {
-            createStreamWithPermissions(streamIdPaths[i], metadataJsonStrings[i], users[i], permissions[i]);
-        }
-    }
-
-    function exists(string calldata streamId) public view returns (bool) {
-        return bytes(streamIdToMetadata[streamId]).length != 0;
-    }
+    //////////////////////////////////////////////////////////////////////////////////
+    // STREAM MANAGEMENT
+    //////////////////////////////////////////////////////////////////////////////////
 
     function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal returns (string memory) {
         require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
@@ -162,8 +129,38 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         return streamId;
     }
 
-    function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
-        return keccak256(abi.encode(streamIdToVersion[streamId], user));
+    function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
+        string memory ownerstring = addressToString(_msgSender());
+        _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
+    }
+
+    function createStreamWithENS(string calldata ensName, string calldata streamIdPath, string calldata metadataJsonString) public {
+        if (ensCache.owners(ensName) == _msgSender()) {
+            _createStreamAndPermission(_msgSender(), ensName, streamIdPath, metadataJsonString);
+        } else {
+            ensCache.requestENSOwnerAndCreateStream(ensName, streamIdPath, metadataJsonString, _msgSender());
+        }
+    }
+
+    function createStreamWithPermissions(string calldata streamIdPath, string calldata metadataJsonString, address[] calldata users, Permission[] calldata permissions) public {
+        string memory ownerstring = addressToString(_msgSender());
+        string memory streamId = _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
+        _setPermissionsBatch(streamId, users, permissions);
+    }
+
+    function createMultipleStreamsWithPermissions(string[] calldata streamIdPaths, string[] calldata metadataJsonStrings, address[][] calldata users, Permission[][] calldata permissions) public {
+        for (uint i = 0; i < streamIdPaths.length; i++) {
+            createStreamWithPermissions(streamIdPaths[i], metadataJsonStrings[i], users[i], permissions[i]);
+        }
+    }
+
+    function deleteStream(string calldata streamId) public hasDeletePermission(streamId) {
+        delete streamIdToMetadata[streamId];
+        emit StreamDeleted(streamId);
+    }
+
+    function exists(string calldata streamId) public view returns (bool) {
+        return bytes(streamIdToMetadata[streamId]).length != 0;
     }
 
     function updateStreamMetadata(string calldata streamId, string calldata metadata) public hasEditPermission(streamId) {
@@ -175,9 +172,25 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         return streamIdToMetadata[streamId];
     }
 
-    function deleteStream(string calldata streamId) public hasDeletePermission(streamId) {
-        delete streamIdToMetadata[streamId];
-        emit StreamDeleted(streamId);
+    function addressToString(address _address) public pure returns(string memory) {
+       bytes32 _bytes = bytes32(uint256(uint160(_address)));
+       bytes memory _hex = "0123456789abcdef";
+       bytes memory _string = new bytes(42);
+       _string[0] = "0";
+       _string[1] = "x";
+       for(uint i = 0; i < 20; i++) {
+           _string[2+i*2] = _hex[uint8(_bytes[i + 12] >> 4)];
+           _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
+       }
+       return string(_string);
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // PERMISSIONS MANAGEMENT
+    //////////////////////////////////////////////////////////////////////////////////
+
+    function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
+        return keccak256(abi.encode(streamIdToVersion[streamId], user));
     }
 
     /**
@@ -344,19 +357,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     //     _setPermission(streamId, _msgSender(), permissionType, false);
     //     _setPermission(streamId, recipient, permissionType, true);
     // }
-
-    function addressToString(address _address) public pure returns(string memory) {
-       bytes32 _bytes = bytes32(uint256(uint160(_address)));
-       bytes memory _hex = "0123456789abcdef";
-       bytes memory _string = new bytes(42);
-       _string[0] = "0";
-       _string[1] = "x";
-       for(uint i = 0; i < 20; i++) {
-           _string[2+i*2] = _hex[uint8(_bytes[i + 12] >> 4)];
-           _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
-       }
-       return string(_string);
-    }
 
     //////////////////////////////////////////////////////////////////////////////////
     // *forUserId functions: replace user as address with user as bytes calldata
@@ -556,5 +556,13 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         bytes32 userKey = getAddressKey(streamId, user);
         _setAllPermissions(streamId, userKey, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
         emit PermissionUpdated(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    }
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
     }
 }
