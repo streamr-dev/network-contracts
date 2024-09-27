@@ -364,7 +364,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     event PermissionUpdatedForUserId(string streamId, bytes user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant);
 
-    function getAddressKeyForUserId(string memory streamId, bytes calldata user) public view returns (bytes32) {
+    function getAddressKeyForUserId(string calldata streamId, bytes calldata user) public view returns (bytes32) {
         uint256 version32Bytes = streamIdToVersion[streamId];
         // Pad addresses to 32 bytes to remain compatible with getAddressKey function
         if (user.length == 20) {
@@ -499,7 +499,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function getPermissionsForUserId(string calldata streamId, bytes calldata user) public view streamExists(streamId) returns (Permission memory permission) {
         return _getPermissionsForUser(streamId, getAddressKeyForUserId(streamId, user)); // TODO don't cast streamId calldata->memory
     }
-    function _getPermissionsForUser(string calldata streamId, bytes32 userKey) public view streamExists(streamId) returns (Permission memory permission) {
+    function _getPermissionsForUser(string calldata streamId, bytes32 userKey) private view returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][userKey];
         Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
