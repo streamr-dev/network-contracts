@@ -5,9 +5,12 @@
  * - Added *forUserId functions: replace user as address with user as bytes calldata
  *   - this is to support permission targets longer than 20 bytes (different cryptography)
  *   - due to size concerns:
- *      - userIdHasPermission and userIdHasDirectPermission are not included in V5
- *      - setExpirationTimeForUserId not included
- *      - combined some internal functions to take userKey instead of address or bytes id
+ *      - userIdHasPermission and userIdHasDirectPermission not included, can be done with getPermissionsForUserId
+ *      - setPermissionsForUserId not included, can be done via setPermissionsForUserIds
+ *      - createStreamWithPermissionsForUserIds not included because
+ *          it's the only thing that requires getUserKeyForUserId to take memory instead of calldata,
+ *          and anyway you'd probably want to give permissions to addresses upon creation probably, which is still supported
+ *      - DRY refactorings: combined some internal functions to take userKey instead of address or bytes id
  * - Removed little used functions: transferAllPermissionsToUser, transferPermissionToUser
  */
 
@@ -21,6 +24,14 @@ import "../chainlinkClient/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 
+/**
+ * @title StreamRegistry
+ * Streamr Network streams and associated permissions.
+ *
+ * Stream IDs are creator address or ENS name + path, e.g. 0x1234/my-stream or me.eth/my-stream.
+ *
+ * Permissions can be set for Ethereum addresses, or for arbitrary user IDs (bytes).
+ */
 // solhint-disable-next-line contract-name-camelcase
 contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
@@ -31,18 +42,21 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     event StreamDeleted(string id);
     event StreamUpdated(string id, string metadata);
     event PermissionUpdated(string streamId, address user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant);
+    event PermissionUpdatedForUserId(string streamId, bytes user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant);
 
     enum PermissionType { Edit, Delete, Publish, Subscribe, Grant }
 
     struct Permission {
-        bool canEdit;
-        bool canDelete;
+        bool canEdit;       // only for Ethereum addresses
+        bool canDelete;     // only for Ethereum addresses
         uint256 publishExpiration;
         uint256 subscribeExpiration;
-        bool canGrant;
+        bool canGrant;      // only for Ethereum addresses
     }
 
-    // streamid -> keccak256(version, useraddress) -> permission struct above
+    // streamid -> hash of (version + user) -> permission struct above
+    // user is an Ethereum address for functions that use `getUserKey` for hashing
+    //  and bytes for functions that use `getUserKeyForUserId`
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     mapping (string => string) public streamIdToMetadata;
     ENSCache public ensCache;
@@ -56,13 +70,13 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
     modifier hasGrantPermission(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canGrant, "error_noSharePermission");
+        require(streamIdToPermissions[streamId][getUserKey(streamId, _msgSender())].canGrant, "error_noSharePermission");
         _;
     }
     modifier hasSharePermissionOrIsRemovingOwn(string calldata streamId, address user) {
         require(exists(streamId), "error_streamDoesNotExist");
         require(
-            streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canGrant
+            streamIdToPermissions[streamId][getUserKey(streamId, _msgSender())].canGrant
             || _msgSender() == user,
             "error_noSharePermission"
         );
@@ -70,12 +84,12 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
     modifier hasDeletePermission(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canDelete, "error_noDeletePermission");
+        require(streamIdToPermissions[streamId][getUserKey(streamId, _msgSender())].canDelete, "error_noDeletePermission");
         _;
     }
     modifier hasEditPermission(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
-        require(streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())].canEdit, "error_noEditPermission");
+        require(streamIdToPermissions[streamId][getUserKey(streamId, _msgSender())].canEdit, "error_noEditPermission");
         _;
     }
     modifier isTrusted() {
@@ -92,12 +106,40 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
-        return super._msgSender();
-    }
+    //////////////////////////////////////////////////////////////////////////////////
+    // STREAM MANAGEMENT
+    //////////////////////////////////////////////////////////////////////////////////
 
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
+    function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal returns (string memory) {
+        require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
+
+        bytes memory pathBytes = bytes(streamIdPath);
+        for (uint i = 1; i < pathBytes.length; i++) {
+            //       - . / 0 1 2 ... 9
+            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) ||
+            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) ||
+            ((bytes1("a") <= pathBytes[i] && pathBytes[i] <= bytes1("z"))) ||
+            pathBytes[i] == "_"
+            , "error_invalidPathChars");
+        }
+        require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
+
+        // abi.encodePacked does simple string concatenation here
+        string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
+        require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
+
+        streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
+        streamIdToMetadata[streamId] = metadataJsonString;
+        streamIdToPermissions[streamId][getUserKey(streamId, ownerAddress)] = Permission({
+            canEdit: true,
+            canDelete: true,
+            publishExpiration: MAX_INT,
+            subscribeExpiration: MAX_INT,
+            canGrant: true
+        });
+        emit StreamCreated(streamId, metadataJsonString);
+        emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
+        return streamId;
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {
@@ -125,44 +167,13 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
+    function deleteStream(string calldata streamId) public hasDeletePermission(streamId) {
+        delete streamIdToMetadata[streamId];
+        emit StreamDeleted(streamId);
+    }
+
     function exists(string calldata streamId) public view returns (bool) {
         return bytes(streamIdToMetadata[streamId]).length != 0;
-    }
-
-    function _createStreamAndPermission(address ownerAddress, string memory ownerstring, string calldata streamIdPath, string calldata metadataJsonString) internal returns (string memory) {
-        require(bytes(metadataJsonString).length != 0, "error_metadataJsonStringIsEmpty");
-
-        bytes memory pathBytes = bytes(streamIdPath);
-        for (uint i = 1; i < pathBytes.length; i++) {
-            //       - . / 0 1 2 ... 9
-            require((bytes1("-") <= pathBytes[i] && pathBytes[i] <= bytes1("9")) ||
-            ((bytes1("A") <= pathBytes[i] && pathBytes[i] <= bytes1("Z"))) ||
-            ((bytes1("a") <= pathBytes[i] && pathBytes[i] <= bytes1("z"))) ||
-            pathBytes[i] == "_"
-            , "error_invalidPathChars");
-        }
-        require(pathBytes[0] == "/", "error_pathMustStartWithSlash");
-
-        // abi.encodePacked does simple string concatenation here
-        string memory streamId = string(abi.encodePacked(ownerstring, streamIdPath));
-        require(bytes(streamIdToMetadata[streamId]).length == 0, "error_streamAlreadyExists");
-
-        streamIdToVersion[streamId] = streamIdToVersion[streamId] + 1;
-        streamIdToMetadata[streamId] = metadataJsonString;
-        streamIdToPermissions[streamId][getAddressKey(streamId, ownerAddress)] = Permission({
-            canEdit: true,
-            canDelete: true,
-            publishExpiration: MAX_INT,
-            subscribeExpiration: MAX_INT,
-            canGrant: true
-        });
-        emit StreamCreated(streamId, metadataJsonString);
-        emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
-        return streamId;
-    }
-
-    function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
-        return keccak256(abi.encode(streamIdToVersion[streamId], user));
     }
 
     function updateStreamMetadata(string calldata streamId, string calldata metadata) public hasEditPermission(streamId) {
@@ -174,9 +185,28 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         return streamIdToMetadata[streamId];
     }
 
-    function deleteStream(string calldata streamId) public hasDeletePermission(streamId) {
-        delete streamIdToMetadata[streamId];
-        emit StreamDeleted(streamId);
+    function addressToString(address _address) public pure returns(string memory) {
+       bytes32 _bytes = bytes32(uint256(uint160(_address)));
+       bytes memory _hex = "0123456789abcdef";
+       bytes memory _string = new bytes(42);
+       _string[0] = "0";
+       _string[1] = "x";
+       for(uint i = 0; i < 20; i++) {
+           _string[2+i*2] = _hex[uint8(_bytes[i + 12] >> 4)];
+           _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
+       }
+       return string(_string);
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // PERMISSIONS MANAGEMENT
+    //////////////////////////////////////////////////////////////////////////////////
+
+    function getAddressKey(string memory streamId, address user) public view returns (bytes32) {
+        return getUserKey(streamId, user);
+    }
+    function getUserKey(string memory streamId, address user) internal view returns (bytes32) {
+        return keccak256(abi.encode(streamIdToVersion[streamId], user));
     }
 
     /**
@@ -184,26 +214,18 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
      * For publish/subscribe expiration, if public permission has a longer validity, use that.
      **/
     function getPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
-        permission = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
-        if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
-            permission.publishExpiration = publicPermission.publishExpiration;
-        }
-        if (permission.subscribeExpiration < block.timestamp && publicPermission.subscribeExpiration >= block.timestamp) {
-            permission.subscribeExpiration = publicPermission.subscribeExpiration;
-        }
-        return permission;
+        return _getPermissionsForUser(streamId, getUserKey(streamId, user));
     }
 
     function getDirectPermissionsForUser(string calldata streamId, address user) public view streamExists(streamId) returns (Permission memory permission) {
-        return streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        return streamIdToPermissions[streamId][getUserKey(streamId, user)];
     }
 
     function setPermissionsForUser(
         string calldata streamId, address user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
     ) public hasGrantPermission(streamId) {
         require(user != address(0) || !(canEdit || canDelete || canGrant), "error_publicCanOnlySubsPubl");
-        bytes32 userKey = getAddressKey(streamId, user);
+        bytes32 userKey = getUserKey(streamId, user);
         _setAllPermissions(streamId, userKey, canEdit, canDelete, publishExpiration, subscribeExpiration, canGrant);
         emit PermissionUpdated(streamId, user, canEdit, canDelete, publishExpiration, subscribeExpiration, canGrant);
     }
@@ -225,7 +247,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function revokeAllPermissionsForUser(string calldata streamId, address user) public hasSharePermissionOrIsRemovingOwn(streamId, user){
-        delete streamIdToPermissions[streamId][getAddressKey(streamId, user)];
+        delete streamIdToPermissions[streamId][getUserKey(streamId, user)];
         emit PermissionUpdated(streamId, user, false, false, 0, 0, false);
     }
 
@@ -239,7 +261,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
-        bytes32 key = getAddressKey(streamId, user);
+        bytes32 key = getUserKey(streamId, user);
         if (permissionType == PermissionType.Edit) {
             return streamIdToPermissions[streamId][key].canEdit;
         } else if (permissionType == PermissionType.Delete) {
@@ -253,7 +275,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         }
     }
 
-    function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
+    function setPermissions(string calldata streamId, address[] calldata users, Permission[] calldata permissions) external hasGrantPermission(streamId) {
         _setPermissionsBatch(streamId, users, permissions);
     }
 
@@ -262,7 +284,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         uint arrayLength = users.length;
         for (uint i = 0; i < arrayLength; i++) {
             Permission memory permission = permissions[i];
-            bytes32 userKey = getAddressKey(streamId, users[i]);
+            bytes32 userKey = getUserKey(streamId, users[i]);
             _setAllPermissions(streamId, userKey, permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
             emit PermissionUpdated(streamId, users[i], permission.canEdit, permission.canDelete, permission.publishExpiration, permission.subscribeExpiration, permission.canGrant);
         }
@@ -272,20 +294,20 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
         uint arrayLength = streamIds.length;
         for (uint i=0; i<arrayLength; i++) {
-            setPermissions(streamIds[i], users[i], permissions[i]);
+            _setPermissionsBatch(streamIds[i], users[i], permissions[i]);
         }
     }
 
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) public hasGrantPermission(streamId) {
         require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_publicCanOnlySubsPubl");
-        bytes32 userKey = getAddressKey(streamId, user);
+        bytes32 userKey = getUserKey(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, true);
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) public hasSharePermissionOrIsRemovingOwn(streamId, user) {
         require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_publicCanOnlySubsPubl");
-        bytes32 userKey = getAddressKey(streamId, user);
+        bytes32 userKey = getUserKey(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, false);
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
@@ -310,16 +332,18 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function setExpirationTime(string calldata streamId, address user, PermissionType permissionType, uint256 expirationTime) public hasGrantPermission(streamId) {
+        Permission memory p = _setExpirationTime(streamId, getUserKey(streamId, user), permissionType, expirationTime);
+        emit PermissionUpdated(streamId, user, p.canEdit, p.canDelete, p.publishExpiration, p.subscribeExpiration, p.canGrant);
+    }
+    function _setExpirationTime(string calldata streamId, bytes32 userKey, PermissionType permissionType, uint256 expirationTime) private returns (Permission memory p) {
         require(permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_timeOnlyObPubSub");
-        Permission storage perm = streamIdToPermissions[streamId][getAddressKey(streamId, user)];
-        Permission memory p = perm;
+        Permission storage perm = streamIdToPermissions[streamId][userKey];
         if (permissionType == PermissionType.Publish) {
             perm.publishExpiration = expirationTime;
-            emit PermissionUpdated(streamId, user, p.canEdit, p.canDelete, expirationTime, p.subscribeExpiration, p.canGrant);
         } else if (permissionType == PermissionType.Subscribe) {
             perm.subscribeExpiration = expirationTime;
-            emit PermissionUpdated(streamId, user, p.canEdit, p.canDelete, p.publishExpiration, expirationTime, p.canGrant);
         }
+        return perm;
     }
 
     function grantPublicPermission(string calldata streamId, PermissionType permissionType) public hasGrantPermission(streamId) {
@@ -334,173 +358,79 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         setPermissionsForUser(streamId, address(0), false, false, publishExpiration, subscribeExpiration, false);
     }
 
-    // function transferAllPermissionsToUser(string calldata streamId, address recipient) public {
-    //     Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())];
-    //     require(permSender.canEdit || permSender.canDelete || permSender.publishExpiration > 0 || permSender.subscribeExpiration > 0 ||
-    //     permSender.canGrant, "error_noPermissionToTransfer");
-    //     Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKey(streamId, recipient)];
-    //     uint256 publishExpiration = permSender.publishExpiration > permRecipient.publishExpiration ? permSender.publishExpiration : permRecipient.publishExpiration;
-    //     uint256 subscribeExpiration = permSender.subscribeExpiration > permRecipient.subscribeExpiration ? permSender.subscribeExpiration : permRecipient.subscribeExpiration;
-    //     _setAllPermissions(streamId, recipient, permSender.canEdit || permRecipient.canEdit, permSender.canDelete || permRecipient.canDelete,
-    //     publishExpiration, subscribeExpiration, permSender.canGrant || permRecipient.canGrant);
-    //     _setAllPermissions(streamId, _msgSender(), false, false, 0, 0, false);
-    // }
-
-    // function transferPermissionToUser(string calldata streamId, address recipient, PermissionType permissionType) public {
-    //     require(hasDirectPermission(streamId, _msgSender(), permissionType), "error_noPermissionToTransfer");
-    //     _setPermission(streamId, _msgSender(), permissionType, false);
-    //     _setPermission(streamId, recipient, permissionType, true);
-    // }
-
-    function addressToString(address _address) public pure returns(string memory) {
-       bytes32 _bytes = bytes32(uint256(uint160(_address)));
-       bytes memory _hex = "0123456789abcdef";
-       bytes memory _string = new bytes(42);
-       _string[0] = "0";
-       _string[1] = "x";
-       for(uint i = 0; i < 20; i++) {
-           _string[2+i*2] = _hex[uint8(_bytes[i + 12] >> 4)];
-           _string[3+i*2] = _hex[uint8(_bytes[i + 12] & 0x0f)];
-       }
-       return string(_string);
-    }
-
     //////////////////////////////////////////////////////////////////////////////////
     // *forUserId functions: replace user as address with user as bytes calldata
     //////////////////////////////////////////////////////////////////////////////////
 
-    event PermissionUpdatedForUserId(string streamId, bytes user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant);
-
-    function getAddressKeyForUserId(string memory streamId, bytes calldata user) public view returns (bytes32) {
+    function getUserKeyForUserId(string calldata streamId, bytes calldata user) public view returns (bytes32) {
         uint256 version32Bytes = streamIdToVersion[streamId];
-        return keccak256(abi.encodePacked(version32Bytes, user));
+        // Add the correct padding so that 20-byte addresses to become padded to 32 bytes, to remain compatible with getAddressKey function that uses abi.encode
+        return keccak256(abi.encodePacked(version32Bytes, bytes12(0), user));
     }
 
-    // function userIdHasPermission(string calldata streamId, bytes calldata user, PermissionType permissionType) public view returns (bool userHasPermission) {
-    //     return userIdHasDirectPermission(streamId, user, permissionType) || hasDirectPermission(streamId, address(0), permissionType);
-    // }
-
-    // function userIdHasDirectPermission(string calldata streamId, bytes calldata user, PermissionType permissionType) public view returns (bool userHasPermission) {
-    //     bytes32 key = getAddressKeyForUserId(streamId, user);
-    //     Permission storage p = streamIdToPermissions[streamId][key];
-    //     if (permissionType == PermissionType.Edit) {
-    //         return p.canEdit;
-    //     } else if (permissionType == PermissionType.Delete) {
-    //         return p.canDelete;
-    //     } else if (permissionType == PermissionType.Publish) {
-    //         return p.publishExpiration >= block.timestamp;
-    //     } else if (permissionType == PermissionType.Subscribe) {
-    //         return p.subscribeExpiration >= block.timestamp;
-    //     } else if (permissionType == PermissionType.Grant) {
-    //         return p.canGrant;
-    //     }
-    // }
-
     function grantPermissionForUserId(string calldata streamId, bytes calldata user, PermissionType permissionType) public hasGrantPermission(streamId) {
-        bytes32 userKey = getAddressKeyForUserId(streamId, user);
+        bytes32 userKey = getUserKeyForUserId(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, true);
         emit PermissionUpdatedForUserId(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
     function revokePermissionForUserId(string calldata streamId, bytes calldata user, PermissionType permissionType) public hasGrantPermission(streamId) {
-        bytes32 userKey = getAddressKeyForUserId(streamId, user);
+        bytes32 userKey = getUserKeyForUserId(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, false);
         emit PermissionUpdatedForUserId(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
     function revokeAllPermissionsForUserId(string calldata streamId, bytes calldata user) public hasGrantPermission(streamId) {
-        delete streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
+        delete streamIdToPermissions[streamId][getUserKeyForUserId(streamId, user)];
         emit PermissionUpdatedForUserId(streamId, user, false, false, 0, 0, false);
     }
 
-    // function setExpirationTimeForUserId(
-    //     string calldata streamId, bytes calldata user, PermissionType permissionType, uint256 expirationTime
-    // ) public hasGrantPermission(streamId) {
-    //     require(permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_timeOnlyObPubSub");
-    //     Permission storage perm = streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
-    //     Permission memory p = perm;
-    //     if (permissionType == PermissionType.Publish) {
-    //         perm.publishExpiration = expirationTime;
-    //         emit PermissionUpdatedForUserId(streamId, user, p.canEdit, p.canDelete, expirationTime, p.subscribeExpiration, p.canGrant);
-    //     } else if (permissionType == PermissionType.Subscribe) {
-    //         perm.subscribeExpiration = expirationTime;
-    //         emit PermissionUpdatedForUserId(streamId, user, p.canEdit, p.canDelete, p.publishExpiration, expirationTime, p.canGrant);
-    //     }
-    // }
-
-    // function createStreamWithPermissionsForUserIds(
-    //     string calldata streamIdPath, string calldata metadataJsonString, bytes[] calldata users, Permission[] calldata permissions
-    // ) public {
-    //     string memory ownerstring = addressToString(_msgSender());
-    //     string memory streamId = _createStreamAndPermission(_msgSender(), ownerstring, streamIdPath, metadataJsonString);
-    //     _setPermissionsForUserIds(streamId, users, permissions);
-    // }
+    function setExpirationTimeForUserId(
+        string calldata streamId, bytes calldata user, PermissionType permissionType, uint256 expirationTime
+    ) public hasGrantPermission(streamId) {
+        Permission memory p = _setExpirationTime(streamId, getUserKeyForUserId(streamId, user), permissionType, expirationTime);
+        emit PermissionUpdatedForUserId(streamId, user, p.canEdit, p.canDelete, p.publishExpiration, p.subscribeExpiration, p.canGrant);
+    }
 
     function setPermissionsForUserIds(string calldata streamId, bytes[] calldata users, Permission[] calldata permissions) public hasGrantPermission(streamId) {
         require(users.length == permissions.length, "error_invalidInputArrayLengths");
         uint arrayLength = users.length;
         for (uint i = 0; i < arrayLength; i++) {
-            bytes32 userKey = getAddressKeyForUserId(streamId, users[i]);
+            bytes32 userKey = getUserKeyForUserId(streamId, users[i]);
             Permission calldata p = permissions[i];
             _setAllPermissions(streamId, userKey, p.canEdit, p.canDelete, p.publishExpiration, p.subscribeExpiration, p.canGrant);
             emit PermissionUpdatedForUserId(streamId, users[i], p.canEdit, p.canDelete, p.publishExpiration, p.subscribeExpiration, p.canGrant);
         }
     }
-    // function setMultipleStreamPermissionsForUserIds(string[] calldata streamIds, bytes[][] calldata users, Permission[][] calldata permissions) public {
-    //     require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
-    //     uint arrayLength = streamIds.length;
-    //     for (uint i = 0; i < arrayLength; i++) {
-    //         setPermissionsForUserIds(streamIds[i], users[i], permissions[i]);
-    //     }
-    // }
 
+    function setMultipleStreamPermissionsForUserIds(string[] calldata streamIds, bytes[][] calldata users, Permission[][] calldata permissions) public {
+        require(users.length == permissions.length && permissions.length == streamIds.length, "error_invalidInputArrayLengths");
+        uint arrayLength = streamIds.length;
+        for (uint i = 0; i < arrayLength; i++) {
+            setPermissionsForUserIds(streamIds[i], users[i], permissions[i]);
+        }
+    }
+
+    // NOTE: commented out due to size concerns, can be done via setPermissionsForUserIds
     // function setPermissionsForUserId(
     //     string calldata streamId, bytes calldata user, bool canEdit, bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
     // ) public hasGrantPermission(streamId) {
-    //     _setPermissionsForUserId(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
-    // }
-
-    // function _setPermissionsForUserId(
-    //     string memory streamId, bytes calldata user, bool canEdit, bool deletePerm, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
-    // ) private {
-    //     bytes32 userKey = getAddressKeyForUserId(streamId, user);
-    //     if (!canEdit && !deletePerm && !canGrant && publishExpiration < block.timestamp && subscribeExpiration < block.timestamp) {
-    //         delete streamIdToPermissions[streamId][userKey];
-    //     } else {
-    //         Permission storage p = streamIdToPermissions[streamId][userKey];
-    //         p.canEdit = canEdit;
-    //         p.canDelete = deletePerm;
-    //         p.publishExpiration = publishExpiration;
-    //         p.subscribeExpiration = subscribeExpiration;
-    //         p.canGrant = canGrant;
-    //     }
+    //     bytes32 userKey = getUserKeyForUserId(streamId, user);
+    //     _setAllPermissions(streamId, userKey, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
     //     emit PermissionUpdatedForUserId(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
-    // }
-
-    // function transferAllPermissionsToUserId(string calldata streamId, bytes calldata recipient) public {
-    //     Permission memory permSender = streamIdToPermissions[streamId][getAddressKey(streamId, _msgSender())];
-    //     require(permSender.canEdit || permSender.canDelete || permSender.publishExpiration > 0 || permSender.subscribeExpiration > 0 || permSender.canGrant, "error_noPermissionToTransfer");
-    //     Permission memory permRecipient = streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, recipient)];
-    //     uint256 publishExpiration = permSender.publishExpiration > permRecipient.publishExpiration ? permSender.publishExpiration : permRecipient.publishExpiration;
-    //     uint256 subscribeExpiration = permSender.subscribeExpiration > permRecipient.subscribeExpiration ? permSender.subscribeExpiration : permRecipient.subscribeExpiration;
-    //     _setPermissionsForUserId(streamId, recipient, permSender.canEdit || permRecipient.canEdit, permSender.canDelete || permRecipient.canDelete,
-    //     publishExpiration, subscribeExpiration, permSender.canGrant || permRecipient.canGrant);
-    //     _setAllPermissions(streamId, _msgSender(), false, false, 0, 0, false);
-    // }
-
-    // function transferPermissionToUserId(string calldata streamId, bytes calldata recipient, PermissionType permissionType) public {
-    //     require(hasDirectPermission(streamId, _msgSender(), permissionType), "error_noPermissionToTransfer");
-    //     _setPermission(streamId, _msgSender(), permissionType, false);
-    //     _setPermissionForUserId(streamId, recipient, permissionType, true);
     // }
 
     /**
      * Get user's permissions to stream.
-     * For publish/subscribe expiration, if public permission has a longer validity, use that.
+     * If direct publish/subscribe has expired while public permission is valid, use the public permission.
+     * @dev since public permissions can only be publish/subscribe, the other permissions don't need to be checked (they should always be false)
      **/
     function getPermissionsForUserId(string calldata streamId, bytes calldata user) public view streamExists(streamId) returns (Permission memory permission) {
-        permission = streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
-        Permission memory publicPermission = streamIdToPermissions[streamId][getAddressKey(streamId, address(0))];
+        return _getPermissionsForUser(streamId, getUserKeyForUserId(streamId, user));
+    }
+    function _getPermissionsForUser(string calldata streamId, bytes32 userKey) private view returns (Permission memory permission) {
+        permission = streamIdToPermissions[streamId][userKey];
+        Permission memory publicPermission = streamIdToPermissions[streamId][getUserKey(streamId, address(0))];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
             permission.publishExpiration = publicPermission.publishExpiration;
         }
@@ -511,7 +441,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function getDirectPermissionsForUserId(string calldata streamId, bytes calldata user) public view streamExists(streamId) returns (Permission memory permission) {
-        return streamIdToPermissions[streamId][getAddressKeyForUserId(streamId, user)];
+        return streamIdToPermissions[streamId][getUserKeyForUserId(streamId, user)];
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -552,8 +482,16 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         uint256 subscribeExpiration,
         bool canGrant
     ) public isTrusted() {
-        bytes32 userKey = getAddressKey(streamId, user);
+        bytes32 userKey = getUserKey(streamId, user);
         _setAllPermissions(streamId, userKey, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
         emit PermissionUpdated(streamId, user, canEdit, deletePerm, publishExpiration, subscribeExpiration, canGrant);
+    }
+
+    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address sender) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
     }
 }
