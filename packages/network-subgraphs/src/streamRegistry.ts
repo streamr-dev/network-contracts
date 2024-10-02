@@ -63,6 +63,9 @@ export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserI
 
     let permissionId = event.params.streamId + '-' + event.params.user.toHex()
     let permission = new StreamPermission(permissionId)
+    if (event.params.user.byteLength == 20) {
+        permission.userAddress = event.params.user
+    }
     permission.userId = event.params.user
     permission.stream = event.params.streamId
     permission.canEdit = event.params.canEdit
