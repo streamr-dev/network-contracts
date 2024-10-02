@@ -1,10 +1,8 @@
-## This package directory is for smart contracts development.
-
-## The npm package published here should have version number 7.x.x, and it will export Typechain interfaces for Ethers v5. For later versions that use Ethers v6, look into the [npm-network-contracts](../npm-network-contracts) package.
-
 # Streamr Network contracts
 
 Solidity files plus Typescript interfaces for the Streamr Network smart contracts.
+
+Exported interfaces are Ethers v5 format for versions 7.x.x and below, and Ethers v6 format for versions 8.0.0 and above.
 
 ## Contracts
 
@@ -60,6 +58,7 @@ npm run localUpgradeImpl
 # Changelog
 
 StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only publish and subscribe, not grant/edit/delete)
+8.0.0 switch ethers v5 -> v6
 7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
 
