@@ -69,11 +69,6 @@ const config: HardhatUserConfig = {
             url: 'https://polygon-rpc.com',
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
-        mumbai: {
-            chainId: 80001,
-            url: 'https://rpc-mumbai.maticvigil.com/v1/' + process.env.MATIC_KEY || "",
-            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        },
         arbitrum: {
             chainId: 42161,
             url: 'https://arb1.arbitrum.io/rpc',
@@ -114,7 +109,6 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: {
             polygon: process.env.ETHERSCAN_KEY || "",
-            polygonMumbai: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
         },
         customChains: [{

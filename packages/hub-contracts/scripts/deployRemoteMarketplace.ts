@@ -6,7 +6,7 @@ const { log } = console
 
 const {
     REMOTE_CHAIN = 'goerli', // where RemoteMarketplace is deployed
-    CHAIN = 'mumbai', // where ProjectRegistryV1 & MarketplaceV4 is deployed
+    CHAIN = 'polygonAmoy', // where ProjectRegistryV1 & MarketplaceV4 is deployed
 } = process.env
 
 const originDomainId: number = chainToDomainId(REMOTE_CHAIN)

@@ -1,4 +1,4 @@
-const testnet = ['alfajores', 'fuji', 'mumbai', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy', 'peaq']
+const testnet = ['alfajores', 'fuji', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy', 'peaq']
 const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
 
 /**
@@ -12,12 +12,12 @@ export function chainToDomainId(name: string): number {
             return 43113
         case 'goerli':
             return 5
-        case 'mumbai':
-            return 80001
         case 'gnosis':
             return 100
         case 'polygon':
             return 137
+        case 'polygonAmoy':
+            return 80002
         case 'optGoerli':
             return 420
         case 'arbGoerli':
@@ -92,12 +92,12 @@ export function chainToQueryRouterAddress(name: string): string {
  */
 export function chainToEthereumRpcUrl(name: string): string {
     switch (name) {
-        case 'mumbai':
-            return `https://rpc-mumbai.maticvigil.com/v1/${process.env.MATIC_KEY}`
         case 'goerli':
             return `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`
         case 'optGoerli':
             return ``
+        case 'polyognAmoy':
+            return 'https://polygon-amoy-bor-rpc.publicnode.com'
         case 'fuji':
             return `https://avalanche-fuji.infura.io/v3/${process.env.FUJI_API_KEY}`
         case 'dev1':
@@ -115,8 +115,8 @@ export function chainToBlockExplorer(name: string): string {
     switch (name) {
         case 'polygon':
             return 'https://polygonscan.com'
-        case 'mumbai':
-            return 'https://mumbai.polygonscan.com'
+        case 'polygonAmoy':
+            return 'https://amoy.polygonscan.com'
         case 'gnosis':
             return 'https://gnosisscan.io'
         case 'goerli':
