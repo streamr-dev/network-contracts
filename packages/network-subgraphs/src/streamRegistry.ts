@@ -65,7 +65,7 @@ export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserI
     let permission = new StreamPermission(permissionId)
     // pad/concatenate to 20 bytes, Ethereum addresses remain Ethereum addresses
     permission.userAddress = Bytes.fromUint8Array(ByteArray
-        .fromHexString("0x00000000000000000000000000000000000000000000")
+        .fromHexString("0x0000000000000000000000000000000000000000")
         .concat(event.params.user)
         .slice(-20)
     )
