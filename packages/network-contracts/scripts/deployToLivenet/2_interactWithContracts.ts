@@ -25,13 +25,6 @@ const SIDECHAINURL = "http://localhost:8546"
 const LINKTOKEN = "0x3387F44140ea19100232873a5aAf9E46608c791E"
 const DEPLOYMENT_OWNER_KEY = "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae"
 
-// mumbai
-// const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
-// const MAINNETURL = 'http://localhost:8545'
-// const SIDECHAINURL = 'https://rpc-mumbai.maticvigil.com'
-// const LINKTOKEN = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
-// const DEPLOYMENT_OWNER_KEY = process.env.OCR_ADMIN_PRIVATEKEY || ''
-
 // Polygon mainet
 // const DEFAULTPRIVATEKEY = process.env.OCR_USER_PRIVATEKEY || ''
 // const MAINNETURL = 'http://localhost:8545'

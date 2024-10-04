@@ -29,15 +29,13 @@ const LINKTOKEN_ADDRESS = "0x3387F44140ea19100232873a5aAf9E46608c791E" // localc
 // const privKeyStreamRegistry = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' // hardhat
 // let LINKTOKEN_ADDRESS = ''
 
-// mumbai
-// const chainURL = 'https://matic-mumbai.chainstacklabs.com/'
-// const chainURL = 'https://rpc-mumbai.maticvigil.com'
-// const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// amoy
+// const chainURL = 'https://polygon-amoy-bor-rpc.publicnode.com'
+// const LINKTOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // TODO: deploy?
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
 // Polygon mainnet
 // const chainURL = 'https://polygon-rpc.com'
-// const LINKTOKEN_ADDRESS = '0xb0897686c545045afc77cf20ec7a532e3120e0f1' // mumbai
 // const privKeyStreamRegistry = process.env.OCR_ADMIN_PRIVATEKEY || '' // also set DEBUG="*"
 
 // this wallet will deploy all contracts and "own" them if applicable

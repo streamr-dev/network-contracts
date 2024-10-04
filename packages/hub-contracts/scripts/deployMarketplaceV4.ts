@@ -18,7 +18,6 @@ const {
     }
 } = (config as any)[CHAIN]
 if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
-// const PROJECT_REGISTRY_ADDRESS = "" // mumbai
 
 const interchainMailbox = chainToMailboxAddress(CHAIN)
 

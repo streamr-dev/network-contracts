@@ -76,16 +76,6 @@ const config: HardhatUserConfig = {
             // gasPrice: 80000000000,
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
-        mumbai: {
-            chainId: 80001,
-            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
-            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        },
-        polygonMumbai: {
-            chainId: 80001,
-            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
-            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        },
         polygonAmoy: {
             chainId: 80002,
             url: process.env.ETHEREUM_RPC || "https://rpc-amoy.polygon.technology",
@@ -188,7 +178,6 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: {
             polygon: process.env.ETHERSCAN_KEY || "",
-            polygonMumbai: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
             peaq: process.env.ETHERSCAN_KEY || "",
         },
