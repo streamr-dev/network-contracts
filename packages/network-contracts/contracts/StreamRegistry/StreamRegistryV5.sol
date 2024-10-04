@@ -64,6 +64,9 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) public streamIdToVersion;
 
+    // the key in `streamIdToPermissions` mapping that corresponds to address(0), used for public permissions
+    mapping (string => bytes32) public publicPermissionUserKey;
+
     modifier streamExists(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
         _;
@@ -137,6 +140,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             subscribeExpiration: MAX_INT,
             canGrant: true
         });
+        publicPermissionUserKey[streamId] = getUserKey(streamId, address(0));
         emit StreamCreated(streamId, metadataJsonString);
         emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
         return streamId;
@@ -224,7 +228,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function setPermissionsForUser(
         string calldata streamId, address user, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
     ) public hasGrantPermission(streamId) {
-        require(user != address(0) || !(canEdit || canDelete || canGrant), "error_publicCanOnlySubsPubl");
         bytes32 userKey = getUserKey(streamId, user);
         _setAllPermissions(streamId, userKey, canEdit, canDelete, publishExpiration, subscribeExpiration, canGrant);
         emit PermissionUpdated(streamId, user, canEdit, canDelete, publishExpiration, subscribeExpiration, canGrant);
@@ -233,10 +236,12 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function _setAllPermissions(
         string memory streamId, bytes32 userKey, bool canEdit, bool canDelete, uint256 publishExpiration, uint256 subscribeExpiration, bool canGrant
     ) private {
-        if (!canEdit && !canDelete && !canGrant && publishExpiration < block.timestamp && subscribeExpiration < block.timestamp) {
+        bool noNonPubSub = !canEdit && !canDelete && !canGrant;
+        if (noNonPubSub && publishExpiration < block.timestamp && subscribeExpiration < block.timestamp) {
             delete streamIdToPermissions[streamId][userKey];
             return;
         }
+        require(userKey != publicPermissionUserKey[streamId] || noNonPubSub, "error_publicCanOnlySubsPubl");
 
         Permission storage perm = streamIdToPermissions[streamId][userKey];
         perm.canEdit = canEdit;
@@ -299,33 +304,35 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function grantPermission(string calldata streamId, address user, PermissionType permissionType) public hasGrantPermission(streamId) {
-        require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_publicCanOnlySubsPubl");
         bytes32 userKey = getUserKey(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, true);
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) public hasSharePermissionOrIsRemovingOwn(streamId, user) {
-        require(user != address(0) || permissionType == PermissionType.Subscribe || permissionType == PermissionType.Publish, "error_publicCanOnlySubsPubl");
         bytes32 userKey = getUserKey(streamId, user);
         Permission memory perm = _setPermission(streamId, userKey, permissionType, false);
         emit PermissionUpdated(streamId, user, perm.canEdit, perm.canDelete, perm.publishExpiration, perm.subscribeExpiration, perm.canGrant);
     }
 
     function _setPermission(string calldata streamId, bytes32 userKey, PermissionType permissionType, bool grant) private returns (Permission memory perm) {
+        bool pubOrSub = false;
         if (permissionType == PermissionType.Edit) {
-           streamIdToPermissions[streamId][userKey].canEdit = grant;
+            streamIdToPermissions[streamId][userKey].canEdit = grant;
         } else if (permissionType == PermissionType.Delete) {
             streamIdToPermissions[streamId][userKey].canDelete = grant;
         } else if (permissionType == PermissionType.Publish) {
             streamIdToPermissions[streamId][userKey].publishExpiration = grant ? MAX_INT : 0;
+            pubOrSub = true;
         } else if (permissionType == PermissionType.Subscribe) {
             streamIdToPermissions[streamId][userKey].subscribeExpiration = grant ? MAX_INT : 0;
+            pubOrSub = true;
         } else if (permissionType == PermissionType.Grant) {
             streamIdToPermissions[streamId][userKey].canGrant = grant;
         }
+        require(userKey != publicPermissionUserKey[streamId] || pubOrSub, "error_publicCanOnlySubsPubl");
+
         perm = streamIdToPermissions[streamId][userKey];
-        // _cleanUpIfAllFalse(streamId, user, perm);
         if (!perm.canEdit && !perm.canDelete && !perm.canGrant && perm.publishExpiration < block.timestamp && perm.subscribeExpiration < block.timestamp) {
             delete streamIdToPermissions[streamId][userKey];
         }
@@ -430,7 +437,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
     function _getPermissionsForUser(string calldata streamId, bytes32 userKey) private view returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][userKey];
-        Permission memory publicPermission = streamIdToPermissions[streamId][getUserKey(streamId, address(0))];
+        Permission memory publicPermission = streamIdToPermissions[streamId][publicPermissionUserKey[streamId]];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
             permission.publishExpiration = publicPermission.publishExpiration;
         }

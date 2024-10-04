@@ -52,7 +52,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe.only("StreamRegistry", async (): Promise<void> => {
+describe("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     let registry: StreamRegistry
     let registryFromUser0: StreamRegistry
@@ -111,7 +111,8 @@ describe.only("StreamRegistry", async (): Promise<void> => {
         //also upgrade the registry to V5
         const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", wallets[0])
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
-        await registryV2.revokeRole(await registryV2.TRUSTED_ROLE(), wallets[0].address)
+        registry = (await streamRegistryDeployTx.deployed()).connect(admin) as StreamRegistry
+        await registry.revokeRole(await registry.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
 
         // cover also `initialize` of the newest version
@@ -120,8 +121,6 @@ describe.only("StreamRegistry", async (): Promise<void> => {
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
 
-        const registryContract = await streamRegistryDeployTx.deployed() as StreamRegistry
-        registry = registryContract.connect(admin)
         registryFromUser0 = registry.connect(wallets[1] as any)
         registryFromUser1 = registry.connect(wallets[2] as any)
         registryFromMigrator = registry.connect(wallets[3] as any)
