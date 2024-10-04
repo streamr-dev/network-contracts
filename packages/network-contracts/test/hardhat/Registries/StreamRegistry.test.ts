@@ -9,6 +9,8 @@ import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 import type { MinimalForwarder } from "../../../typechain"
 import type { StreamRegistry } from "../../../src/exports"
 
+import type { StreamRegistryV2, StreamRegistryV3 } from "../../../typechain"
+
 const log = Debug("Streamr::test::StreamRegistry")
 
 const {
@@ -50,7 +52,7 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-describe("StreamRegistry", async (): Promise<void> => {
+describe.only("StreamRegistry", async (): Promise<void> => {
     let wallets: WalletType[]
     let registry: StreamRegistry
     let registryFromUser0: StreamRegistry
@@ -91,17 +93,25 @@ describe("StreamRegistry", async (): Promise<void> => {
             "0x0000000000000000000000000000000000000000",
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
-        const registryV2FromAdmin = await streamRegistryFactoryV2Tx.deployed() as StreamRegistry
+        const registryV2 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV2
+
+        await (await registryV2.createStream(streamPath0, metadata0)).wait()
+        await (await registryV2.grantPermission(streamId0, user1Address, PermissionType.Edit)).wait()
+
         // to upgrade the deployer must also have the trusted role
         // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
-        await registryV2FromAdmin.grantRole(await registryV2FromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), wallets[0].address)
         const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", wallets[0])
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
-        await streamRegistryFactoryV3Tx.deployed() as StreamRegistry
+        const registryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
+
+        await (await registryV3.createStream(streamPath1, metadata1)).wait()
+        await (await registryV3.setExpirationTime(streamId1, user1Address, PermissionType.Publish, 1000000)).wait()
+
         //also upgrade the registry to V5
         const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", wallets[0])
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
-        await registryV2FromAdmin.revokeRole(await registryV2FromAdmin.TRUSTED_ROLE(), wallets[0].address)
+        await registryV2.revokeRole(await registryV2.TRUSTED_ROLE(), wallets[0].address)
         // eslint-disable-next-line require-atomic-updates
 
         // cover also `initialize` of the newest version
@@ -117,8 +127,6 @@ describe("StreamRegistry", async (): Promise<void> => {
         registryFromMigrator = registry.connect(wallets[3] as any)
         // MAX_INT = await registry.MAX_INT()
         await registry.grantRole(await registry.TRUSTED_ROLE(), trustedAddress)
-
-        await registry.createStream(streamPath1, metadata1)
     })
 
     let streamIndex = 0
@@ -130,30 +138,36 @@ describe("StreamRegistry", async (): Promise<void> => {
         return streamId
     }
 
-    describe("Stream creation", () => {
-
-        it("positivetest createStream + event, get description", async (): Promise<void> => {
-            await expect(await registry.createStream(streamPath0, metadata0))
-                .to.emit(registry, "StreamCreated")
-                .withArgs(streamId0, metadata0)
-                .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId0, adminAddress, true, true, MAX_INT, MAX_INT, true)
-            expect(await registry.streamIdToMetadata(streamId0)).to.equal(metadata0)
+    describe("After upgrading", () => {
+        it("successfully gets V2 stream and permission", async () => {
+            expect(await registry.getStreamMetadata(streamId0)).to.equal(metadata0)
+            expect(await registry.getPermissionsForUser(streamId0, user1Address)).to.deep.equal([true, false, 0, 0, false])
         })
 
-        it("positivetest createStream path character edgecases", async (): Promise<void> => {
+        it("successfully gets V3 stream and permission", async () => {
+            expect(await registry.getStreamMetadata(streamId1)).to.equal(metadata1)
+            expect(await registry.getPermissionsForUser(streamId1, user1Address)).to.deep.equal([false, false, 1000000, 0, false])
+        })
+    })
+
+    describe("Stream creation", () => {
+        it("works using createStream", async (): Promise<void> => {
+            const newStreamPath = "/" + Wallet.createRandom().address
+            const newStreamId = adminAddress.toLowerCase() + newStreamPath
+            await expect(await registry.createStream(newStreamPath, metadata0))
+                .to.emit(registry, "StreamCreated")
+                .withArgs(newStreamId, metadata0)
+                .to.emit(registry, "PermissionUpdated")
+                .withArgs(newStreamId, adminAddress, true, true, MAX_INT, MAX_INT, true)
+            expect(await registry.streamIdToMetadata(newStreamId)).to.equal(metadata0)
+        })
+
+        it("works when stream path uses only legal characters", async (): Promise<void> => {
             expect(await registry.createStream("/", metadata0))
                 .to.not.throw
             expect(await registry.createStream("/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-", metadata0))
                 .to.not.throw
-        })
 
-        it("FAILS for empty metadata", async (): Promise<void> => {
-            await expect(registry.createStream("/test", ""))
-                .to.be.revertedWith("error_metadataJsonStringIsEmpty")
-        })
-
-        it("negativetest createStream path character edgecases", async (): Promise<void> => {
             await expect(registry.createStream("/,", metadata0))
                 .to.be.revertedWith("error_invalidPathChars")
             await expect(registry.createStream("/:", metadata0))
@@ -168,17 +182,22 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.be.revertedWith("error_invalidPathChars")
         })
 
-        it("negativetest createStream, already exists error", async (): Promise<void> => {
+        it("FAILS for empty metadata", async (): Promise<void> => {
+            await expect(registry.createStream("/test", ""))
+                .to.be.revertedWith("error_metadataJsonStringIsEmpty")
+        })
+
+        it("FAILS if stream with that ID already exists", async (): Promise<void> => {
             await expect(registry.createStream(streamPath0, metadata0))
                 .to.be.revertedWith("error_streamAlreadyExists")
         })
 
-        it("negativetest createStream, path not starting with slash", async (): Promise<void> => {
-            await expect(registry.createStream("pathWithoutSalsh", metadata0))
+        it("FAILS if path not start with slash", async (): Promise<void> => {
+            await expect(registry.createStream("pathWithoutSlash", metadata0))
                 .to.be.revertedWith("error_pathMustStartWithSlash")
         })
 
-        it("positivetest createStreamWithPermissions", async (): Promise<void> => {
+        it("works using createStreamWithPermissions", async (): Promise<void> => {
             const newStreamPath = "/" + Wallet.createRandom().address
             const newStreamId = adminAddress.toLowerCase() + newStreamPath
             const permissionA = {
@@ -208,7 +227,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(await registry.getStreamMetadata(newStreamId)).to.equal(metadata1)
         })
 
-        it("positivetest createMultipleStreamsWithPermissions", async (): Promise<void> => {
+        it("works using createMultipleStreamsWithPermissions", async (): Promise<void> => {
             const newStreamPath1 = "/" + Wallet.createRandom().address
             const newStreamPath2 = "/" + Wallet.createRandom().address
             const newStreamId1 = adminAddress.toLowerCase() + newStreamPath1
@@ -252,7 +271,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         // test if create stream->delete stream->recreate stream with same id also wipes
         // all permissions (not trivial since you can't delete mappings)
-        it("recreate stream with same id wipes permissions", async (): Promise<void> => {
+        it("wipes permissions when you recreate stream with same ID", async (): Promise<void> => {
             await registry.deleteStream(streamId0)
             await registry.createStream(streamPath0, metadata0)
             // give user0 all permissions
@@ -825,8 +844,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
     })
 
-    describe("Public permissions", () => {
-        it("positivetest grantPublicPermission", async (): Promise<void> => {
+    describe("Public permission get/set", () => {
+        it("works using grantPublicPermission", async (): Promise<void> => {
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, ZERO, ZERO, false].toString())
             await registry.grantPublicPermission(streamId0, PermissionType.Publish)
@@ -842,25 +861,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(await registry.hasPublicPermission(streamId0, PermissionType.Share)).to.equal(false)
         })
 
-        it("negativetest grantPublicPermission", async (): Promise<void> => {
-            await expect(registry.grantPublicPermission(streamId0, PermissionType.Edit))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.grantPublicPermission(streamId0, PermissionType.Delete))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.grantPublicPermission(streamId0, PermissionType.Share))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-        })
-
-        it("FAILS if setting improper public permissions using setPermissionsForUser", async (): Promise<void> => {
-            await expect(registry.setPermissionsForUser(streamId0, AddressZero, true, false, 0, 0, false))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.setPermissionsForUser(streamId0, AddressZero, false, true, 0, 0, false))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.setPermissionsForUser(streamId0, AddressZero, false, false, 0, 0, true))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-        })
-
-        it("positivetest revokePublicPermission", async (): Promise<void> => {
+        it("works using revokePublicPermission", async (): Promise<void> => {
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, MAX_INT, MAX_INT, false].toString())
             await registry.revokePublicPermission(streamId0, PermissionType.Publish)
@@ -871,16 +872,7 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.equal([false, false, ZERO, ZERO, false].toString())
         })
 
-        it("negativetest revokePublicPermission", async (): Promise<void> => {
-            await expect(registry.revokePublicPermission(streamId0, PermissionType.Edit))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.revokePublicPermission(streamId0, PermissionType.Delete))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-            await expect(registry.revokePublicPermission(streamId0, PermissionType.Share))
-                .to.be.revertedWith("error_publicCanOnlySubsPubl")
-        })
-
-        it("positivetest setPublicPermission", async (): Promise<void> => {
+        it("works using setPublicPermission", async (): Promise<void> => {
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, ZERO, ZERO, false].toString())
             await registry.setPublicPermission(streamId0, MAX_INT, MAX_INT)
@@ -893,6 +885,97 @@ describe("StreamRegistry", async (): Promise<void> => {
             await registry.setPublicPermission(streamId0, 0, 0)
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, ZERO, ZERO, false].toString())
+        })
+
+        it("FAILS for edit/delete/share in grantPublicPermission", async (): Promise<void> => {
+            await expect(registry.grantPublicPermission(streamId0, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPublicPermission(streamId0, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPublicPermission(streamId0, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in setPermissionsForUser", async (): Promise<void> => {
+            await expect(registry.setPermissionsForUser(streamId0, AddressZero, true, false, 0, 0, false))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setPermissionsForUser(streamId0, AddressZero, false, true, 0, 0, false))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setPermissionsForUser(streamId0, AddressZero, false, false, 0, 0, true))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in revokePublicPermission", async (): Promise<void> => {
+            await expect(registry.revokePublicPermission(streamId0, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePublicPermission(streamId0, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePublicPermission(streamId0, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in setPermissions", async (): Promise<void> => {
+            await expect(registry.setPermissions(streamId0, [AddressZero], [allPermissionsStruct]))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setPermissions(streamId0, [AddressZero], [pubSubOnlyStruct]))
+                .to.not.be.reverted
+        })
+
+        it("FAILS for edit/delete/share in setPermissionsMultipleStreams", async (): Promise<void> => {
+            await expect(registry.setPermissionsMultipleStreams([streamId0], [[AddressZero]], [[allPermissionsStruct]]))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setPermissionsMultipleStreams([streamId0], [[AddressZero]], [[pubSubOnlyStruct]]))
+                .to.not.be.reverted
+        })
+
+        it("FAILS for edit/delete/share in grantPermission", async (): Promise<void> => {
+            await expect(registry.grantPermission(streamId0, AddressZero, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPermission(streamId0, AddressZero, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPermission(streamId0, AddressZero, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in revokePermission", async (): Promise<void> => {
+            await expect(registry.revokePermission(streamId0, AddressZero, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePermission(streamId0, AddressZero, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePermission(streamId0, AddressZero, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in grantPermissionForUserId", async (): Promise<void> => {
+            await expect(registry.grantPermissionForUserId(streamId0, AddressZero, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPermissionForUserId(streamId0, AddressZero, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.grantPermissionForUserId(streamId0, AddressZero, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in revokePermissionForUserId", async (): Promise<void> => {
+            await expect(registry.revokePermissionForUserId(streamId0, AddressZero, PermissionType.Edit))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePermissionForUserId(streamId0, AddressZero, PermissionType.Delete))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.revokePermissionForUserId(streamId0, AddressZero, PermissionType.Share))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+        })
+
+        it("FAILS for edit/delete/share in setPermissionsForUserIds", async (): Promise<void> => {
+            await expect(registry.setPermissionsForUserIds(streamId0, [AddressZero], [allPermissionsStruct]))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setPermissionsForUserIds(streamId0, [AddressZero], [pubSubOnlyStruct]))
+                .to.not.be.reverted
+        })
+
+        it("FAILS for edit/delete/share in setMultipleStreamPermissionsForUserIds", async (): Promise<void> => {
+            await expect(registry.setMultipleStreamPermissionsForUserIds([streamId0], [[AddressZero]], [[allPermissionsStruct]]))
+                .to.be.revertedWith("error_publicCanOnlySubsPubl")
+            await expect(registry.setMultipleStreamPermissionsForUserIds([streamId0], [[AddressZero]], [[pubSubOnlyStruct]]))
+                .to.not.be.reverted
         })
     })
 
