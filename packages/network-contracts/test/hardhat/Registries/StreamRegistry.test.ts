@@ -67,7 +67,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     let registryFromUser1: StreamRegistry
     let registryFromMigrator: StreamRegistry
     let minimalForwarderFromUser0: MinimalForwarder
-    let blocktime: number
     let adminAddress: string
     let user0Address: string
     let user1Address: string
@@ -532,7 +531,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest revokeAllPermissionsForUser, hasPermission", async (): Promise<void> => {
-            blocktime = await getBlocktime()
+            const blocktime = await getBlocktime()
             await registry.setPermissionsForUser(streamId0, user0Address, true, true, blocktime, blocktime, true)
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([true, true, BigNumber.from(blocktime), BigNumber.from(blocktime), true].toString())
@@ -660,7 +659,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("edgecases expirationtime", async (): Promise<void> => {
-            blocktime = await getBlocktime() + 1
+            const blocktime = await getBlocktime() + 1
             await registry.setPermissionsForUser(streamId1, user0Address, true, true, blocktime, blocktime, true)
             expect((await registry.getPermissionsForUser(streamId1, user0Address)).toString())
                 .to.equal([true, true, BigNumber.from(blocktime), BigNumber.from(blocktime), true].toString())
@@ -885,7 +884,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await registry.setPublicPermission(streamId0, MAX_INT, MAX_INT)
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, MAX_INT, MAX_INT, false].toString())
-            blocktime = await getBlocktime() + 1
+            const blocktime = await getBlocktime() + 1
             await registry.setPublicPermission(streamId0, blocktime, blocktime)
             expect(await (await registry.getPermissionsForUser(streamId0, user0Address)).toString())
                 .to.equal([false, false, BigNumber.from(blocktime), BigNumber.from(blocktime), false].toString())
