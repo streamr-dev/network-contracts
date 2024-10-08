@@ -10,6 +10,7 @@ import type { MinimalForwarder } from "../../../typechain"
 import type { StreamRegistry } from "../../../src/exports"
 
 import type { StreamRegistryV2, StreamRegistryV3, StreamRegistryV4 } from "../../../typechain"
+import { randomBytes } from 'crypto'
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
@@ -56,6 +57,14 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
+const getStreamId = (owner: { address: string }, path: string) => {
+    return `${owner.address.toLowerCase()}${path}`
+}
+
+const randomStreamPath = () => {
+    return `/${randomBytes(10).toString('hex')}`
+}
+
 describe("StreamRegistry", async (): Promise<void> => {
 
     let wallets: SignerWithAddress[]
@@ -80,9 +89,9 @@ describe("StreamRegistry", async (): Promise<void> => {
         user0Address = wallets[1].address
         user1Address = wallets[2].address
         trustedAddress = wallets[3].address
-        streamId0 = adminAddress.toLowerCase() + STREAM_0_PATH
-        streamId1 = adminAddress.toLowerCase() + STREAM_1_PATH
-        streamId2 = adminAddress.toLowerCase() + STREAM_2_PATH
+        streamId0 = getStreamId(admin, STREAM_0_PATH)
+        streamId1 = getStreamId(admin, STREAM_1_PATH)
+        streamId2 = getStreamId(admin, STREAM_2_PATH)
         const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", wallets[0])
@@ -132,10 +141,9 @@ describe("StreamRegistry", async (): Promise<void> => {
         await registry.grantRole(await registry.TRUSTED_ROLE(), trustedAddress)
     })
 
-    let streamIndex = 0
     async function createStream(owner = admin): Promise<string> {
-        const streamPath = "/test-" + (streamIndex++)
-        const streamId = owner.address.toLowerCase() + streamPath
+        const streamPath = randomStreamPath() 
+        const streamId = getStreamId(owner, streamPath)
         const metadata = `{"meta":"${Date.now()}"}`
         await (await registry.connect(owner).createStream(streamPath, metadata)).wait()
         return streamId
@@ -155,8 +163,8 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     describe("Stream creation", () => {
         it("works using createStream", async (): Promise<void> => {
-            const newStreamPath = "/" + Wallet.createRandom().address
-            const newStreamId = adminAddress.toLowerCase() + newStreamPath
+            const newStreamPath = randomStreamPath()
+            const newStreamId = getStreamId(admin, newStreamPath)
             await expect(await registry.createStream(newStreamPath, METADATA_0))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId, METADATA_0)
@@ -201,8 +209,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("works using createStreamWithPermissions", async (): Promise<void> => {
-            const newStreamPath = "/" + Wallet.createRandom().address
-            const newStreamId = adminAddress.toLowerCase() + newStreamPath
+            const newStreamPath = randomStreamPath()
+            const newStreamId = getStreamId(admin, newStreamPath)
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -231,10 +239,10 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("works using createMultipleStreamsWithPermissions", async (): Promise<void> => {
-            const newStreamPath1 = "/" + Wallet.createRandom().address
-            const newStreamPath2 = "/" + Wallet.createRandom().address
-            const newStreamId1 = adminAddress.toLowerCase() + newStreamPath1
-            const newStreamId2 = adminAddress.toLowerCase() + newStreamPath2
+            const newStreamPath1 = randomStreamPath()
+            const newStreamPath2 = randomStreamPath()
+            const newStreamId1 = getStreamId(admin, newStreamPath1)
+            const newStreamId2 = getStreamId(admin, newStreamPath2)
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -398,8 +406,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("setPermissionForUser FAILS for non-existent stream or if no GRANT permission", async (): Promise<void> => {
-            const streamPath = "/test-" + Date.now()
-            const streamId = adminAddress.toLowerCase() + streamPath
+            const streamPath = randomStreamPath()
+            const streamId = getStreamId(admin, streamPath)
             await expect(registry.getPermissionsForUser(streamId, adminAddress))
                 .to.be.revertedWith("error_streamDoesNotExist")
             await expect(registryFromUser0.setPermissionsForUser(streamId, user0Address, true, true, 0, 0, true))
@@ -1003,7 +1011,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await expect(signatureIsValid).to.be.true
             const receipt = await (await minimalForwarderFromUser0.execute(request, signature)).wait()
             expect(receipt.logs.length).to.equal(2)
-            const id = signer.address.toLowerCase() + path
+            const id = getStreamId(signer, path)
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
         })
 
@@ -1025,7 +1033,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(receipt.logs.length).to.equal(2)
 
             log("Tx failed, so stream wasn't created")
-            const id = signer.address.toLowerCase() + path
+            const id = getStreamId(signer, path)
             await expect(registry.getStreamMetadata(id)).to.be.revertedWith("error_streamDoesNotExist")
         })
 
@@ -1048,7 +1056,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(receipt.logs.length).to.equal(0)
 
             log("Tx failed, so stream wasn't created")
-            const id = adminAddress.toLowerCase() + path
+            const id = getStreamId(admin, path)
             await expect(registry.getStreamMetadata(id))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
@@ -1073,7 +1081,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await expect(signatureIsValid).to.be.true
             const receipt = await (await newForwarder.execute(request, signature)).wait()
             expect(receipt.logs.length).to.equal(2)
-            const id = signer.address.toLowerCase() + path
+            const id = getStreamId(signer, path)
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
 
             log("Set old forwarder back")
