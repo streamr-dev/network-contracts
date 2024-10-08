@@ -2,7 +2,8 @@ import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 import Debug from "debug"
 
-import type { Wallet as WalletType } from "@ethersproject/wallet"
+import { Wallet } from "@ethersproject/wallet"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 import type { MinimalForwarder } from "../../../typechain"
@@ -16,7 +17,6 @@ enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
 const log = Debug("Streamr::test::StreamRegistry")
 
 const {
-    Wallet,
     BigNumber,
     constants: { AddressZero, Zero, MaxUint256 }
 } = ethers
@@ -58,7 +58,7 @@ const getBlocktime = async (): Promise<number> => {
 
 describe("StreamRegistry", async (): Promise<void> => {
 
-    let wallets: WalletType[]
+    let wallets: SignerWithAddress[]
     let registry: StreamRegistry
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
@@ -71,7 +71,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     let streamId0: string
     let streamId1: string
     let streamId2: string
-    let admin: WalletType
+    let admin: SignerWithAddress
 
     before(async (): Promise<void> => {
         wallets = await ethers.getSigners()
@@ -546,8 +546,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest setPermissions", async (): Promise<void> => {
-            const userA = ethers.Wallet.createRandom().address
-            const userB = ethers.Wallet.createRandom().address
+            const userA = Wallet.createRandom().address
+            const userB = Wallet.createRandom().address
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -573,8 +573,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest setPermissionsMultipleStreams", async (): Promise<void> => {
-            const userA = ethers.Wallet.createRandom().address
-            const userB = ethers.Wallet.createRandom().address
+            const userA = Wallet.createRandom().address
+            const userB = Wallet.createRandom().address
             await registry.createStream(STREAM_2_PATH, METADATA_1)
             expect(await registry.getStreamMetadata(streamId2)).to.equal(METADATA_1)
             const permissionA = {
@@ -985,9 +985,9 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("EIP-2771 meta-transactions feature", () => {
         async function getCreateStreamMetaTx({
             forwarder = minimalForwarderFromUser0,
-            signer = ethers.Wallet.createRandom(),
+            signer = Wallet.createRandom(),
             gas
-        }: { forwarder?: MinimalForwarder; signer?: typeof Wallet; gas?: string } = {}) {
+        }: { forwarder?: MinimalForwarder; signer?: Wallet; gas?: string } = {}) {
             // signerWallet is creating and signing transaction, user0 is posting it and paying for gas
             // in the positive case signkey is the same as signerWallet.privateKey
             const path = "/path" + Wallet.createRandom().address
@@ -1030,7 +1030,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("FAILS with wrong signature (negativetest)", async (): Promise<void> => {
-            const wrongSigner = ethers.Wallet.createRandom()
+            const wrongSigner = Wallet.createRandom()
             const { request } = await getCreateStreamMetaTx()
             const { signature } = await getCreateStreamMetaTx({ signer: wrongSigner })
             const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
