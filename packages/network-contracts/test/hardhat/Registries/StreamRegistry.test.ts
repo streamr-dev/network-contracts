@@ -87,7 +87,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", wallets[0])
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
-            "0x0000000000000000000000000000000000000000",
+            AddressZero,
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
         const registryV2 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV2
@@ -121,7 +121,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         // cover also `initialize` of the newest version
         await upgrades.deployProxy(streamRegistryFactory, [
-            "0x0000000000000000000000000000000000000000",
+            AddressZero,
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
 
