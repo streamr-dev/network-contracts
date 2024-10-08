@@ -94,7 +94,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         streamId2 = getStreamId(admin, STREAM_2_PATH)
         const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
-        const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", wallets[0])
+        const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
             AddressZero,
             minimalForwarderFromUser0.address
@@ -108,24 +108,24 @@ describe("StreamRegistry", async (): Promise<void> => {
         //   we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         // go through the upgrade path here in the test setup; then all the tests will be run on an "upgraded" contract,
         //   which better mimics the situation of the production deployment
-        await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), wallets[0].address)
-        const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", wallets[0])
+        await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), adminAddress)
+        const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", admin)
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
         const registryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
 
         await (await registryV3.createStream(STREAM_1_PATH, METADATA_1)).wait()
         await (await registryV3.setExpirationTime(streamId1, user1Address, PermissionType.Publish, 1000000)).wait()
 
-        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4", wallets[0])
+        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4", admin)
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
         const registryV4 = await streamRegistryFactoryV4Tx.deployed() as StreamRegistryV4
 
         await (await registryV4.setExpirationTime(streamId1, user1Address, PermissionType.Subscribe, 2000000)).wait()
 
-        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", wallets[0])
+        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", admin)
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
         registry = (await streamRegistryDeployTx.deployed()).connect(admin) as StreamRegistry
-        await registry.revokeRole(await registry.TRUSTED_ROLE(), wallets[0].address)
+        await registry.revokeRole(await registry.TRUSTED_ROLE(), adminAddress)
         // eslint-disable-next-line require-atomic-updates
 
         // cover also `initialize` of the newest version
@@ -1068,7 +1068,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await newForwarder.deployed()
 
             log("Set new forwarder")
-            await registry.grantRole(await registry.TRUSTED_ROLE(), wallets[0].address)
+            await registry.grantRole(await registry.TRUSTED_ROLE(), adminAddress)
             await registry.setTrustedForwarder(newForwarder.address)
 
             log("Check that the correct forwarder is set")
@@ -1086,7 +1086,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
             log("Set old forwarder back")
             await registry.setTrustedForwarder(minimalForwarderFromUser0.address)
-            await registry.revokeRole(await registry.TRUSTED_ROLE(), wallets[0].address)
+            await registry.revokeRole(await registry.TRUSTED_ROLE(), adminAddress)
         })
 
         it("recognizes the trusted forwarder (positivetest)", async (): Promise<void> => {
