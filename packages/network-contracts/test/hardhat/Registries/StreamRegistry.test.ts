@@ -9,7 +9,7 @@ import { getEIP2771MetaTx } from "./getEIP2771MetaTx"
 import type { MinimalForwarder } from "../../../typechain"
 import type { StreamRegistry } from "../../../src/exports"
 
-import type { StreamRegistryV2, StreamRegistryV3 } from "../../../typechain"
+import type { StreamRegistryV2, StreamRegistryV3, StreamRegistryV4 } from "../../../typechain"
 
 const log = Debug("Streamr::test::StreamRegistry")
 
@@ -98,8 +98,10 @@ describe("StreamRegistry", async (): Promise<void> => {
         await (await registryV2.createStream(streamPath0, metadata0)).wait()
         await (await registryV2.grantPermission(streamId0, user1Address, PermissionType.Edit)).wait()
 
-        // to upgrade the deployer must also have the trusted role
-        // we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
+        // to upgrade the deployer must also have the trusted role, so
+        //   we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
+        // go through the upgrade path here in the test setup; then all the tests will be run on an "upgraded" contract,
+        //   which better mimics the situation of the production deployment
         await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), wallets[0].address)
         const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", wallets[0])
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
@@ -108,7 +110,12 @@ describe("StreamRegistry", async (): Promise<void> => {
         await (await registryV3.createStream(streamPath1, metadata1)).wait()
         await (await registryV3.setExpirationTime(streamId1, user1Address, PermissionType.Publish, 1000000)).wait()
 
-        //also upgrade the registry to V5
+        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4", wallets[0])
+        const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
+        const registryV4 = await streamRegistryFactoryV4Tx.deployed() as StreamRegistryV4
+
+        await (await registryV4.setExpirationTime(streamId1, user1Address, PermissionType.Subscribe, 2000000)).wait()
+
         const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", wallets[0])
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
         registry = (await streamRegistryDeployTx.deployed()).connect(admin) as StreamRegistry
@@ -145,7 +152,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("successfully gets V3 stream and permission", async () => {
             expect(await registry.getStreamMetadata(streamId1)).to.equal(metadata1)
-            expect(await registry.getPermissionsForUser(streamId1, user1Address)).to.deep.equal([false, false, 1000000, 0, false])
+            expect(await registry.getPermissionsForUser(streamId1, user1Address)).to.deep.equal([false, false, 1000000, 2000000, false])
         })
     })
 
