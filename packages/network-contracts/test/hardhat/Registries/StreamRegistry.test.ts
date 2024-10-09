@@ -11,6 +11,7 @@ import type { StreamRegistry } from "../../../src/exports"
 import type { StreamRegistryV2, StreamRegistryV3, StreamRegistryV4 } from "../../../typechain"
 import { randomBytes } from 'crypto'
 import { Signer } from 'ethers'
+import { parseEther } from '@ethersproject/units'
 
 // eslint-disable-next-line no-unused-vars
 enum PermissionType { Edit = 0, Delete, Publish, Subscribe, Share }
@@ -65,6 +66,14 @@ const randomStreamPath = (): string => {
     return `/${randomBytes(10).toString('hex')}`
 }
 
+const randomUser = async (): Promise<Wallet> => {
+    const user = Wallet.createRandom().connect(hardhatEthers.provider)
+    // send some token so that the user can execute transactions
+    const admin = (await hardhatEthers.getSigners())[0]
+    await admin.sendTransaction({ to: user.address, value: parseEther('10000') })
+    return user
+}
+
 describe("StreamRegistry", async (): Promise<void> => {
 
     let registry: StreamRegistry
@@ -87,13 +96,12 @@ describe("StreamRegistry", async (): Promise<void> => {
     let forwarderUser: Signer
 
     before(async (): Promise<void> => {
-        const wallets = await hardhatEthers.getSigners()
-        admin = wallets[0]
-        user0 = wallets[1]
-        user1 = wallets[2]
-        user2 = wallets[4]
-        trustedUser = wallets[3]
-        forwarderUser = wallets[9]
+        admin = (await hardhatEthers.getSigners())[0]
+        user0 = await randomUser()
+        user1 = await randomUser()
+        user2 = await randomUser()
+        trustedUser = await randomUser()
+        forwarderUser = await randomUser()
         adminAddress = await admin.getAddress()
         user0Address = await user0.getAddress()
         user1Address = await user1.getAddress()
