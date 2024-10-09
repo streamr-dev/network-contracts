@@ -57,11 +57,11 @@ const getBlocktime = async (): Promise<number> => {
     return block.timestamp
 }
 
-const getStreamId = async (owner: { getAddress: () => Promise<string> }, path: string) => {
+const getStreamId = async (owner: { getAddress: () => Promise<string> }, path: string): Promise<string> => {
     return `${(await owner.getAddress()).toLowerCase()}${path}`
 }
 
-const randomStreamPath = () => {
+const randomStreamPath = (): string => {
     return `/${randomBytes(10).toString('hex')}`
 }
 
