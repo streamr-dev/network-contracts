@@ -1,4 +1,4 @@
-import { upgrades, ethers } from "hardhat"
+import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import Debug from "debug"
 
@@ -20,7 +20,7 @@ const log = Debug("Streamr::test::StreamRegistry")
 const {
     BigNumber,
     constants: { AddressZero, Zero, MaxUint256 }
-} = ethers
+} = hardhatEthers
 
 const NO_PERMISSIONS_STRUCT: StreamRegistry.PermissionStruct = {
     canEdit: false,
@@ -53,7 +53,7 @@ const USER_ID = "0x" + Array(64).join("0123456789abcdef") // repeat string X tim
 
 const getBlocktime = async (): Promise<number> => {
     // const blocknumber = await ethers.provider.getBlockNumber()
-    const block = await ethers.provider.getBlock("latest")
+    const block = await hardhatEthers.provider.getBlock("latest")
     return block.timestamp
 }
 
@@ -83,7 +83,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     let admin: SignerWithAddress
 
     before(async (): Promise<void> => {
-        wallets = await ethers.getSigners()
+        wallets = await hardhatEthers.getSigners()
         admin = wallets[0]
         adminAddress = wallets[0].address
         user0Address = wallets[1].address
@@ -92,9 +92,9 @@ describe("StreamRegistry", async (): Promise<void> => {
         streamId0 = getStreamId(admin, STREAM_0_PATH)
         streamId1 = getStreamId(admin, STREAM_1_PATH)
         streamId2 = getStreamId(admin, STREAM_2_PATH)
-        const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
+        const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
-        const streamRegistryFactoryV2 = await ethers.getContractFactory("StreamRegistryV2", admin)
+        const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
             AddressZero,
             minimalForwarderFromUser0.address
@@ -109,20 +109,20 @@ describe("StreamRegistry", async (): Promise<void> => {
         // go through the upgrade path here in the test setup; then all the tests will be run on an "upgraded" contract,
         //   which better mimics the situation of the production deployment
         await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), adminAddress)
-        const streamregistryFactoryV3 = await ethers.getContractFactory("StreamRegistryV3", admin)
+        const streamregistryFactoryV3 = await hardhatEthers.getContractFactory("StreamRegistryV3", admin)
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
         const registryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
 
         await (await registryV3.createStream(STREAM_1_PATH, METADATA_1)).wait()
         await (await registryV3.setExpirationTime(streamId1, user1Address, PermissionType.Publish, 1000000)).wait()
 
-        const streamregistryFactoryV4 = await ethers.getContractFactory("StreamRegistryV4", admin)
+        const streamregistryFactoryV4 = await hardhatEthers.getContractFactory("StreamRegistryV4", admin)
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
         const registryV4 = await streamRegistryFactoryV4Tx.deployed() as StreamRegistryV4
 
         await (await registryV4.setExpirationTime(streamId1, user1Address, PermissionType.Subscribe, 2000000)).wait()
 
-        const streamRegistryFactory = await ethers.getContractFactory("StreamRegistryV5", admin)
+        const streamRegistryFactory = await hardhatEthers.getContractFactory("StreamRegistryV5", admin)
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
         registry = (await streamRegistryDeployTx.deployed()).connect(admin) as StreamRegistry
         await registry.revokeRole(await registry.TRUSTED_ROLE(), adminAddress)
@@ -1011,7 +1011,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("FAILS with wrong forwarder (negativetest)", async (): Promise<void> => {
             log("Deploy second minimal forwarder")
-            const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
+            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
             const wrongForwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
             await wrongForwarder.deployed()
 
@@ -1057,7 +1057,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("works after resetting trusted forwarder (positivetest)", async (): Promise<void> => {
             log("Deploy second minimal forwarder")
-            const minimalForwarderFromUser0Factory = await ethers.getContractFactory("MinimalForwarder", wallets[9])
+            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
             const newForwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
             await newForwarder.deployed()
 
