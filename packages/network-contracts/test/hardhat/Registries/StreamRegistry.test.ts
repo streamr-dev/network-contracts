@@ -67,7 +67,6 @@ const randomStreamPath = (): string => {
 
 describe("StreamRegistry", async (): Promise<void> => {
 
-    let wallets: Signer[]
     let registry: StreamRegistry
     let registryFromUser0: StreamRegistry
     let registryFromUser1: StreamRegistry
@@ -81,18 +80,28 @@ describe("StreamRegistry", async (): Promise<void> => {
     let streamId1: string
     let streamId2: string
     let admin: Signer
+    let user0: Signer
+    let user1: Signer
+    let user2: Signer
+    let trustedUser: Signer
+    let forwarderUser: Signer
 
     before(async (): Promise<void> => {
-        wallets = await hardhatEthers.getSigners()
+        const wallets = await hardhatEthers.getSigners()
         admin = wallets[0]
-        adminAddress = await wallets[0].getAddress()
-        user0Address = await wallets[1].getAddress()
-        user1Address = await wallets[2].getAddress()
-        trustedAddress = await wallets[3].getAddress()
+        user0 = wallets[1]
+        user1 = wallets[2]
+        user2 = wallets[4]
+        trustedUser = wallets[3]
+        forwarderUser = wallets[9]
+        adminAddress = await admin.getAddress()
+        user0Address = await user0.getAddress()
+        user1Address = await user1.getAddress()
+        trustedAddress = await trustedUser.getAddress()
         streamId0 = await getStreamId(admin, STREAM_0_PATH)
         streamId1 = await getStreamId(admin, STREAM_1_PATH)
         streamId2 = await getStreamId(admin, STREAM_2_PATH)
-        const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
+        const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
@@ -134,9 +143,9 @@ describe("StreamRegistry", async (): Promise<void> => {
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
 
-        registryFromUser0 = registry.connect(wallets[1] as any)
-        registryFromUser1 = registry.connect(wallets[2] as any)
-        registryFromMigrator = registry.connect(wallets[3] as any)
+        registryFromUser0 = registry.connect(user0 as any)
+        registryFromUser1 = registry.connect(user1 as any)
+        registryFromMigrator = registry.connect(trustedUser as any)
         // MaxUint256 = await registry.MaxUint256()
         await registry.grantRole(await registry.TRUSTED_ROLE(), trustedAddress)
     })
@@ -785,14 +794,14 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("setExpirationTimeForUserId FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
             await expect(registry.setExpirationTimeForUserId("0x00", USER_ID, PermissionType.Publish, MaxUint256))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registry.connect(wallets[4]).setExpirationTimeForUserId(streamId1, USER_ID, PermissionType.Publish, MaxUint256))
+            await expect(registry.connect(user2).setExpirationTimeForUserId(streamId1, USER_ID, PermissionType.Publish, MaxUint256))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("setPermissionsForUserIds FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
             await expect(registry.setPermissionsForUserIds("0x00", [USER_ID], [NO_PERMISSIONS_STRUCT]))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registry.connect(wallets[4]).setPermissionsForUserIds(streamId1, [USER_ID], [NO_PERMISSIONS_STRUCT]))
+            await expect(registry.connect(user2).setPermissionsForUserIds(streamId1, [USER_ID], [NO_PERMISSIONS_STRUCT]))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
@@ -1011,7 +1020,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("FAILS with wrong forwarder (negativetest)", async (): Promise<void> => {
             log("Deploy second minimal forwarder")
-            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
+            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
             const wrongForwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
             await wrongForwarder.deployed()
 
@@ -1057,7 +1066,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("works after resetting trusted forwarder (positivetest)", async (): Promise<void> => {
             log("Deploy second minimal forwarder")
-            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", wallets[9])
+            const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
             const newForwarder = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
             await newForwarder.deployed()
 
