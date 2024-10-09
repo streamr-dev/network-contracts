@@ -85,6 +85,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     let streamId1: string
     let streamId2: string
     let admin: Signer
+    let user: Signer
     let user0: Signer
     let user1: Signer
     let user2: Signer
@@ -93,14 +94,15 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     before(async (): Promise<void> => {
         admin = (await hardhatEthers.getSigners())[0]
+        user = await randomUser()
         user0 = await randomUser()
         user1 = await randomUser()
         user2 = await randomUser()
         trustedUser = await randomUser()
         forwarderUser = await randomUser()
-        streamId0 = await getStreamId(admin, STREAM_0_PATH)
-        streamId1 = await getStreamId(admin, STREAM_1_PATH)
-        streamId2 = await getStreamId(admin, STREAM_2_PATH)
+        streamId0 = await getStreamId(user, STREAM_0_PATH)
+        streamId1 = await getStreamId(user, STREAM_1_PATH)
+        streamId2 = await getStreamId(user, STREAM_2_PATH)
         const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
@@ -108,7 +110,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             AddressZero,
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
-        const registryV2 = await streamRegistryFactoryV2Tx.deployed() as StreamRegistryV2
+        const registryV2 = (await streamRegistryFactoryV2Tx.deployed()).connect(user) as StreamRegistryV2
 
         await (await registryV2.createStream(STREAM_0_PATH, METADATA_0)).wait()
         await (await registryV2.grantPermission(streamId0, await user1.getAddress(), PermissionType.Edit)).wait()
@@ -117,24 +119,24 @@ describe("StreamRegistry", async (): Promise<void> => {
         //   we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         // go through the upgrade path here in the test setup; then all the tests will be run on an "upgraded" contract,
         //   which better mimics the situation of the production deployment
-        await registryV2.grantRole(await registryV2.TRUSTED_ROLE(), await admin.getAddress())
+        await registryV2.connect(admin).grantRole(await registryV2.TRUSTED_ROLE(), await admin.getAddress())
         const streamregistryFactoryV3 = await hardhatEthers.getContractFactory("StreamRegistryV3", admin)
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
-        const registryV3 = await streamRegistryFactoryV3Tx.deployed() as StreamRegistryV3
+        const registryV3 = (await streamRegistryFactoryV3Tx.deployed()).connect(user) as StreamRegistryV3
 
         await (await registryV3.createStream(STREAM_1_PATH, METADATA_1)).wait()
         await (await registryV3.setExpirationTime(streamId1, await user1.getAddress(), PermissionType.Publish, 1000000)).wait()
 
         const streamregistryFactoryV4 = await hardhatEthers.getContractFactory("StreamRegistryV4", admin)
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
-        const registryV4 = await streamRegistryFactoryV4Tx.deployed() as StreamRegistryV4
+        const registryV4 = (await streamRegistryFactoryV4Tx.deployed()).connect(user) as StreamRegistryV4
 
         await (await registryV4.setExpirationTime(streamId1, await user1.getAddress(), PermissionType.Subscribe, 2000000)).wait()
 
         const streamRegistryFactory = await hardhatEthers.getContractFactory("StreamRegistryV5", admin)
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
-        registry = (await streamRegistryDeployTx.deployed()).connect(admin) as StreamRegistry
-        await registry.revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
+        registry = (await streamRegistryDeployTx.deployed()).connect(user) as StreamRegistry
+        await registry.connect(admin).revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
         // eslint-disable-next-line require-atomic-updates
 
         // cover also `initialize` of the newest version
@@ -147,14 +149,14 @@ describe("StreamRegistry", async (): Promise<void> => {
         registryFromUser1 = registry.connect(user1 as any)
         registryFromMigrator = registry.connect(trustedUser as any)
         // MaxUint256 = await registry.MaxUint256()
-        await registry.grantRole(await registry.TRUSTED_ROLE(), await trustedUser.getAddress())
+        await registry.connect(admin).grantRole(await registry.TRUSTED_ROLE(), await trustedUser.getAddress())
     })
 
-    async function createStream(owner = admin): Promise<string> {
+    async function createStream(): Promise<string> {
         const streamPath = randomStreamPath() 
-        const streamId = await getStreamId(owner, streamPath)
+        const streamId = await getStreamId(user, streamPath)
         const metadata = `{"meta":"${Date.now()}"}`
-        await (await registry.connect(owner).createStream(streamPath, metadata)).wait()
+        await (await registry.createStream(streamPath, metadata)).wait()
         return streamId
     }
 
@@ -173,12 +175,12 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("Stream creation", () => {
         it("works using createStream", async (): Promise<void> => {
             const newStreamPath = randomStreamPath()
-            const newStreamId = await getStreamId(admin, newStreamPath)
+            const newStreamId = await getStreamId(user, newStreamPath)
             await expect(await registry.createStream(newStreamPath, METADATA_0))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId, METADATA_0)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId, await admin.getAddress(), true, true, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
             expect(await registry.streamIdToMetadata(newStreamId)).to.equal(METADATA_0)
         })
 
@@ -219,7 +221,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("works using createStreamWithPermissions", async (): Promise<void> => {
             const newStreamPath = randomStreamPath()
-            const newStreamId = await getStreamId(admin, newStreamPath)
+            const newStreamId = await getStreamId(user, newStreamPath)
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -235,13 +237,13 @@ describe("StreamRegistry", async (): Promise<void> => {
                 canGrant: false
             }
             await expect(await registry.createStreamWithPermissions(newStreamPath, METADATA_1,
-                [await admin.getAddress(), await trustedUser.getAddress()], [permissionA, permissionB]))
+                [await user.getAddress(), await trustedUser.getAddress()], [permissionA, permissionB]))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId, METADATA_1)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId, await admin.getAddress(), true, true, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId, await admin.getAddress(), true, false, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await trustedUser.getAddress(), false, false, 7, 7, false)
             expect(await registry.getStreamMetadata(newStreamId)).to.equal(METADATA_1)
@@ -250,8 +252,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("works using createMultipleStreamsWithPermissions", async (): Promise<void> => {
             const newStreamPath1 = randomStreamPath()
             const newStreamPath2 = randomStreamPath()
-            const newStreamId1 = await getStreamId(admin, newStreamPath1)
-            const newStreamId2 = await getStreamId(admin, newStreamPath2)
+            const newStreamId1 = await getStreamId(user, newStreamPath1)
+            const newStreamId2 = await getStreamId(user, newStreamPath2)
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -267,20 +269,20 @@ describe("StreamRegistry", async (): Promise<void> => {
                 canGrant: false
             }
             await expect(await registry.createMultipleStreamsWithPermissions(
-                [newStreamPath1, newStreamPath2], [METADATA_1, METADATA_1], [[await admin.getAddress(), await trustedUser.getAddress()],
-                    [await admin.getAddress(), await trustedUser.getAddress()]], [[permissionA, permissionB], [permissionA, permissionB]]))
+                [newStreamPath1, newStreamPath2], [METADATA_1, METADATA_1], [[await user.getAddress(), await trustedUser.getAddress()],
+                    [await user.getAddress(), await trustedUser.getAddress()]], [[permissionA, permissionB], [permissionA, permissionB]]))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId1, METADATA_1)
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId2, METADATA_1)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId1, await admin.getAddress(), true, true, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId1, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId2, await admin.getAddress(), true, true, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId2, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId1, await admin.getAddress(), true, false, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId1, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId2, await admin.getAddress(), true, false, MaxUint256, MaxUint256, true)
+                .withArgs(newStreamId2, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId1, await trustedUser.getAddress(), false, false, 7, 7, false)
                 .to.emit(registry, "PermissionUpdated")
@@ -363,24 +365,24 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     describe("Permissions getters", () => {
         it("positivetest getDirectPermissionForUser", async (): Promise<void> => {
-            expect(await registry.getDirectPermissionsForUser(streamId0, await admin.getAddress()))
+            expect(await registry.getDirectPermissionsForUser(streamId0, await user.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, true])
         })
 
         it("positivetest getPermissionForUser", async (): Promise<void> => {
-            expect(await registry.getPermissionsForUser(streamId0, await admin.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId0, await user.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, true])
         })
 
         it("getPermissionForUser FAILS if stream not exist, or userentry not exist", async (): Promise<void> => {
-            await expect(registry.getPermissionsForUser("0x00", await admin.getAddress()))
+            await expect(registry.getPermissionsForUser("0x00", await user.getAddress()))
                 .to.be.revertedWith("error_streamDoesNotExist")
             expect(await registry.getPermissionsForUser(streamId0, await user0.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("FAILS for non-existing streams", async (): Promise<void> => {
-            await expect(registry.getPermissionsForUser("0x0", await admin.getAddress()))
+            await expect(registry.getPermissionsForUser("0x0", await user.getAddress()))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
     })
@@ -416,8 +418,8 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("setPermissionForUser FAILS for non-existent stream or if no GRANT permission", async (): Promise<void> => {
             const streamPath = randomStreamPath()
-            const streamId = await getStreamId(admin, streamPath)
-            await expect(registry.getPermissionsForUser(streamId, await admin.getAddress()))
+            const streamId = await getStreamId(user, streamPath)
+            await expect(registry.getPermissionsForUser(streamId, await user.getAddress()))
                 .to.be.revertedWith("error_streamDoesNotExist")
             await expect(registryFromUser0.setPermissionsForUser(streamId, await user0.getAddress(), true, true, 0, 0, true))
                 .to.be.revertedWith("error_streamDoesNotExist")
@@ -1059,7 +1061,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(receipt.logs.length).to.equal(0)
 
             log("Tx failed, so stream wasn't created")
-            const id = await getStreamId(admin, path)
+            const id = await getStreamId(user, path)
             await expect(registry.getStreamMetadata(id))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
@@ -1071,8 +1073,8 @@ describe("StreamRegistry", async (): Promise<void> => {
             await newForwarder.deployed()
 
             log("Set new forwarder")
-            await registry.grantRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
-            await registry.setTrustedForwarder(newForwarder.address)
+            await registry.connect(admin).grantRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
+            await registry.connect(admin).setTrustedForwarder(newForwarder.address)
 
             log("Check that the correct forwarder is set")
             expect(await registry.isTrustedForwarder(minimalForwarderFromUser0.address)).to.be.false
@@ -1088,8 +1090,8 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
 
             log("Set old forwarder back")
-            await registry.setTrustedForwarder(minimalForwarderFromUser0.address)
-            await registry.revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
+            await registry.connect(admin).setTrustedForwarder(minimalForwarderFromUser0.address)
+            await registry.connect(admin).revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
         })
 
         it("recognizes the trusted forwarder (positivetest)", async (): Promise<void> => {
