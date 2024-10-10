@@ -47,7 +47,6 @@ const PUB_SUB_ONLY_PERMISSIONS_STRUCT: StreamRegistry.PermissionStruct = {
 
 const STREAM_0_PATH = "/streamPath0"
 const STREAM_1_PATH = "/streamPath1"
-const STREAM_2_PATH = "/streamPath2"
 const METADATA_0 = "streammetadata0"
 const METADATA_1 = "streammetadata1"
 const USER_ID = "0x" + Array(64).join("0123456789abcdef") // repeat string X times
@@ -83,7 +82,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     let minimalForwarderFromUser0: MinimalForwarder
     let streamId0: string
     let streamId1: string
-    let streamId2: string
     let admin: Signer
     let user: Signer
     let user0: Signer
@@ -102,7 +100,6 @@ describe("StreamRegistry", async (): Promise<void> => {
         forwarderUser = await randomUser()
         streamId0 = await getStreamId(user, STREAM_0_PATH)
         streamId1 = await getStreamId(user, STREAM_1_PATH)
-        streamId2 = await getStreamId(user, STREAM_2_PATH)
         const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
@@ -596,8 +593,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("positivetest setPermissionsMultipleStreams", async (): Promise<void> => {
             const userA = Wallet.createRandom().address
             const userB = Wallet.createRandom().address
-            await registry.createStream(STREAM_2_PATH, METADATA_1)
-            expect(await registry.getStreamMetadata(streamId2)).to.equal(METADATA_1)
+            const otherStreamId = await createStream()
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -612,16 +608,15 @@ describe("StreamRegistry", async (): Promise<void> => {
                 subscribeExpiration: 1,
                 canGrant: true
             }
-
-            await registry.setPermissionsMultipleStreams([streamId0, streamId2],
+            await registry.setPermissionsMultipleStreams([streamId0, otherStreamId],
                 [[userA, userB], [userA, userB]], [[permissionA, permissionB], [permissionA, permissionB]])
             expect(await registry.getDirectPermissionsForUser(streamId0, userA))
                 .to.deep.equal([true, false, MaxUint256, MaxUint256, false])
             expect(await registry.getDirectPermissionsForUser(streamId0, userB))
                 .to.deep.equal([false, true, BigNumber.from(1), BigNumber.from(1), true])
-            expect(await registry.getDirectPermissionsForUser(streamId2, userA))
+            expect(await registry.getDirectPermissionsForUser(otherStreamId, userA))
                 .to.deep.equal([true, false, MaxUint256, MaxUint256, false])
-            expect(await registry.getDirectPermissionsForUser(streamId2, userB))
+            expect(await registry.getDirectPermissionsForUser(otherStreamId, userB))
                 .to.deep.equal([false, true, BigNumber.from(1), BigNumber.from(1), true])
         })
 
