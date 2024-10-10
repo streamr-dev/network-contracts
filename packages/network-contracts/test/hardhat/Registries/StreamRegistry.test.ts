@@ -87,7 +87,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     let streamId: string
     let admin: Signer
     let user: Signer
-    let trustedUser: Signer
     // for upgrade test
     let initialStream1: string
     let initialStream2: string
@@ -95,17 +94,20 @@ describe("StreamRegistry", async (): Promise<void> => {
     // for meta-transaction test
     let forwarderUser: Signer
     let minimalForwarder: MinimalForwarder
+    // for ENS test
+    let trustedUser: Signer
     
     before(async (): Promise<void> => {
         admin = (await hardhatEthers.getSigners())[0]
         user = await randomUser()
-        trustedUser = await randomUser()
-        forwarderUser = await randomUser()
         initialStream1 = await getStreamId(user, randomStreamPath())
         initialStream2 = await getStreamId(user, randomStreamPath())
         initialOtherUser = await randomUser()
+        forwarderUser = await randomUser()
         const minimalForwarderContractFactory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
         minimalForwarder = await minimalForwarderContractFactory.deploy() as MinimalForwarder
+        trustedUser = await randomUser()
+        
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
             AddressZero,
@@ -315,13 +317,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("Stream metadata", () => {
         it("positivetest getStreamMetadata", async (): Promise<void> => {
             expect(await registry.getStreamMetadata(streamId)).to.equal(METADATA)
-        })
-
-        it("positivetest setEnsCache", async (): Promise<void> => {
-            const role = await registry.TRUSTED_ROLE()
-            const has = await registry.hasRole(role, await trustedUser.getAddress())
-            expect(has).to.equal(true)
-            await registry.connect(trustedUser).setEnsCache("0x0000000000000000000000000000000000000000")
         })
 
         it("negativetest getStreamMetadata, stream doesn't exist", async (): Promise<void> => {
@@ -1106,6 +1101,15 @@ describe("StreamRegistry", async (): Promise<void> => {
             const otherUser = await randomUser()
             await expect(registry.connect(otherUser).setTrustedForwarder(Wallet.createRandom().address))
                 .to.be.revertedWith("error_mustBeTrustedRole")
+        })
+    })
+
+    describe('ENS cache', () => {
+        it("positivetest setEnsCache", async (): Promise<void> => {
+            const role = await registry.TRUSTED_ROLE()
+            const has = await registry.hasRole(role, await trustedUser.getAddress())
+            expect(has).to.equal(true)
+            await registry.connect(trustedUser).setEnsCache("0x0000000000000000000000000000000000000000")
         })
     })
 })
