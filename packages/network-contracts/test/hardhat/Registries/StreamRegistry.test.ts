@@ -51,7 +51,6 @@ const METADATA_1 = "streammetadata1"
 const USER_ID = "0x" + Array(64).join("0123456789abcdef") // repeat string X times
 
 const getBlocktime = async (): Promise<number> => {
-    // const blocknumber = await ethers.provider.getBlockNumber()
     const block = await hardhatEthers.provider.getBlock("latest")
     return block.timestamp
 }
