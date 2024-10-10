@@ -84,17 +84,18 @@ const randomAddress = (): string => {
 describe("StreamRegistry", async (): Promise<void> => {
 
     let registry: StreamRegistry
-    let minimalForwarderFromUser0: MinimalForwarder
     let streamId: string
     let admin: Signer
     let user: Signer
     let trustedUser: Signer
-    let forwarderUser: Signer
     // for upgrade test
     let initialStream1: string
     let initialStream2: string
     let initialOtherUser: Signer
-
+    // for meta-transaction test
+    let forwarderUser: Signer
+    let minimalForwarder: MinimalForwarder
+    
     before(async (): Promise<void> => {
         admin = (await hardhatEthers.getSigners())[0]
         user = await randomUser()
@@ -103,12 +104,12 @@ describe("StreamRegistry", async (): Promise<void> => {
         initialStream1 = await getStreamId(user, randomStreamPath())
         initialStream2 = await getStreamId(user, randomStreamPath())
         initialOtherUser = await randomUser()
-        const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
-        minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
+        const minimalForwarderContractFactory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
+        minimalForwarder = await minimalForwarderContractFactory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
             AddressZero,
-            minimalForwarderFromUser0.address
+            minimalForwarder.address
         ], { kind: "uups" })
         const registryV2 = (await streamRegistryFactoryV2Tx.deployed()).connect(user) as StreamRegistryV2
 
@@ -142,7 +143,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         // cover also `initialize` of the newest version
         await upgrades.deployProxy(streamRegistryFactory, [
             AddressZero,
-            minimalForwarderFromUser0.address
+            minimalForwarder.address
         ], { kind: "uups" })
 
         // MaxUint256 = await registry.MaxUint256()
@@ -999,7 +1000,7 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     describe("EIP-2771 meta-transactions feature", () => {
         async function getCreateStreamMetaTx({
-            forwarder = minimalForwarderFromUser0,
+            forwarder = minimalForwarder,
             signer = Wallet.createRandom(),
             gas
         }: { forwarder?: MinimalForwarder; signer?: Wallet; gas?: string } = {}) {
@@ -1014,9 +1015,9 @@ describe("StreamRegistry", async (): Promise<void> => {
 
         it("works as expected (happy path)", async (): Promise<void> => {
             const { request, signature, path, metadata, signer } = await getCreateStreamMetaTx()
-            const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
+            const signatureIsValid = await minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
-            const receipt = await (await minimalForwarderFromUser0.execute(request, signature)).wait()
+            const receipt = await (await minimalForwarder.execute(request, signature)).wait()
             expect(receipt.logs.length).to.equal(2)
             const id = await getStreamId(signer, path)
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
@@ -1029,7 +1030,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await wrongForwarder.deployed()
 
             log("Check that the correct forwarder is set")
-            expect(await registry.isTrustedForwarder(minimalForwarderFromUser0.address)).to.be.true
+            expect(await registry.isTrustedForwarder(minimalForwarder.address)).to.be.true
             expect(await registry.isTrustedForwarder(wrongForwarder.address)).to.be.false
 
             log("Metatx seems to succeed with the wrong forwarder")
@@ -1048,18 +1049,18 @@ describe("StreamRegistry", async (): Promise<void> => {
             const wrongSigner = Wallet.createRandom()
             const { request } = await getCreateStreamMetaTx()
             const { signature } = await getCreateStreamMetaTx({ signer: wrongSigner })
-            const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
+            const signatureIsValid = await minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.false
-            await expect(minimalForwarderFromUser0.execute(request, signature))
+            await expect(minimalForwarder.execute(request, signature))
                 .to.be.revertedWith("MinimalForwarder: signature does not match request")
         })
 
         it("FAILS with not enough gas in internal transaction call (negativetest)", async (): Promise<void> => {
             log("Create a valid signature with too little gas for the tx")
             const { request, signature, path } = await getCreateStreamMetaTx({ gas: "1000" })
-            const signatureIsValid = await minimalForwarderFromUser0.verify(request, signature)
+            const signatureIsValid = await minimalForwarder.verify(request, signature)
             await expect(signatureIsValid).to.be.true
-            const receipt = await (await minimalForwarderFromUser0.execute(request, signature)).wait()
+            const receipt = await (await minimalForwarder.execute(request, signature)).wait()
             expect(receipt.logs.length).to.equal(0)
 
             log("Tx failed, so stream wasn't created")
@@ -1079,7 +1080,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await registry.connect(admin).setTrustedForwarder(newForwarder.address)
 
             log("Check that the correct forwarder is set")
-            expect(await registry.isTrustedForwarder(minimalForwarderFromUser0.address)).to.be.false
+            expect(await registry.isTrustedForwarder(minimalForwarder.address)).to.be.false
             expect(await registry.isTrustedForwarder(newForwarder.address)).to.be.true
 
             log("Check that metatx works with new forwarder")
@@ -1092,12 +1093,12 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
 
             log("Set old forwarder back")
-            await registry.connect(admin).setTrustedForwarder(minimalForwarderFromUser0.address)
+            await registry.connect(admin).setTrustedForwarder(minimalForwarder.address)
             await registry.connect(admin).revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
         })
 
         it("recognizes the trusted forwarder (positivetest)", async (): Promise<void> => {
-            expect(await registry.isTrustedForwarder(minimalForwarderFromUser0.address))
+            expect(await registry.isTrustedForwarder(minimalForwarder.address))
                 .to.equal(true)
         })
 
