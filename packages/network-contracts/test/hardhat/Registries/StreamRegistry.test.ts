@@ -346,19 +346,23 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("Stream deletion", () => {
 
         it("positivetest deleteStream + event", async (): Promise<void> => {
-            expect(await registry.getStreamMetadata(streamId0)).to.equal(METADATA_1)
-            await expect(await registry.deleteStream(streamId0))
+            const path = randomStreamPath()
+            const streamId = await getStreamId(user, path)
+            await registry.createStream(path, METADATA_0)
+            await expect(await registry.deleteStream(streamId))
                 .to.emit(registry, "StreamDeleted")
-                .withArgs(streamId0)
-            await expect(registry.updateStreamMetadata(streamId0, METADATA_0))
+                .withArgs(streamId)
+            await expect(registry.updateStreamMetadata(streamId, METADATA_0))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
 
         it("FAILS if stream does not exist, or no delete permission", async (): Promise<void> => {
-            await registry.createStream(STREAM_0_PATH, METADATA_0)
+            const path = randomStreamPath()
+            const streamId = await getStreamId(user, path)
+            await registry.createStream(path, METADATA_0)
             await expect(registry.deleteStream("0x00"))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registryFromUser0.deleteStream(streamId0))
+            await expect(registryFromUser0.deleteStream(streamId))
                 .to.be.revertedWith("error_noDeletePermission")
         })
     })
