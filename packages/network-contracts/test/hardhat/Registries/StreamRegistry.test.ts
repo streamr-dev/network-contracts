@@ -95,6 +95,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     // for upgrade test
     let initialStream1: string
     let initialStream2: string
+    let initialOtherUser: Signer
 
     before(async (): Promise<void> => {
         admin = (await hardhatEthers.getSigners())[0]
@@ -106,6 +107,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         forwarderUser = await randomUser()
         initialStream1 = await getStreamId(user, randomStreamPath())
         initialStream2 = await getStreamId(user, randomStreamPath())
+        initialOtherUser = await randomUser()
         const minimalForwarderFromUser0Factory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
         minimalForwarderFromUser0 = await minimalForwarderFromUser0Factory.deploy() as MinimalForwarder
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
@@ -116,7 +118,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         const registryV2 = (await streamRegistryFactoryV2Tx.deployed()).connect(user) as StreamRegistryV2
 
         await (await registryV2.createStream(getStreamPath(initialStream1), METADATA_0)).wait()
-        await (await registryV2.grantPermission(initialStream1, await user1.getAddress(), PermissionType.Edit)).wait()
+        await (await registryV2.grantPermission(initialStream1, await initialOtherUser.getAddress(), PermissionType.Edit)).wait()
 
         // to upgrade the deployer must also have the trusted role, so
         //   we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
@@ -128,13 +130,13 @@ describe("StreamRegistry", async (): Promise<void> => {
         const registryV3 = (await streamRegistryFactoryV3Tx.deployed()).connect(user) as StreamRegistryV3
 
         await (await registryV3.createStream(getStreamPath(initialStream2), METADATA_1)).wait()
-        await (await registryV3.setExpirationTime(initialStream2, await user1.getAddress(), PermissionType.Publish, 1000000)).wait()
+        await (await registryV3.setExpirationTime(initialStream2, await initialOtherUser.getAddress(), PermissionType.Publish, 1000000)).wait()
 
         const streamregistryFactoryV4 = await hardhatEthers.getContractFactory("StreamRegistryV4", admin)
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
         const registryV4 = (await streamRegistryFactoryV4Tx.deployed()).connect(user) as StreamRegistryV4
 
-        await (await registryV4.setExpirationTime(initialStream2, await user1.getAddress(), PermissionType.Subscribe, 2000000)).wait()
+        await (await registryV4.setExpirationTime(initialStream2, await initialOtherUser.getAddress(), PermissionType.Subscribe, 2000000)).wait()
 
         const streamRegistryFactory = await hardhatEthers.getContractFactory("StreamRegistryV5", admin)
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
@@ -169,12 +171,12 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("After upgrading", () => {
         it("successfully gets V2 stream and permission", async () => {
             expect(await registry.getStreamMetadata(initialStream1)).to.equal(METADATA_0)
-            expect(await registry.getPermissionsForUser(initialStream1, await user1.getAddress())).to.deep.equal([true, false, 0, 0, false])
+            expect(await registry.getPermissionsForUser(initialStream1, await initialOtherUser.getAddress())).to.deep.equal([true, false, 0, 0, false])
         })
 
         it("successfully gets V3 stream and permission", async () => {
             expect(await registry.getStreamMetadata(initialStream2)).to.equal(METADATA_1)
-            expect(await registry.getPermissionsForUser(initialStream2, await user1.getAddress())).to.deep.equal([false, false, 1000000, 2000000, false])
+            expect(await registry.getPermissionsForUser(initialStream2, await initialOtherUser.getAddress())).to.deep.equal([false, false, 1000000, 2000000, false])
         })
     })
 
