@@ -72,7 +72,7 @@ const randomStreamPath = (): string => {
 const randomUser = async (): Promise<Wallet> => {
     const user = Wallet.createRandom().connect(hardhatEthers.provider)
     // send some token so that the user can execute transactions
-    const admin = (await hardhatEthers.getSigners())[0]
+    const admin = await getAdmin()
     await admin.sendTransaction({ to: user.address, value: parseEther('10000') })
     return user
 }
@@ -81,11 +81,14 @@ const randomAddress = (): string => {
     return Wallet.createRandom().address
 }
 
+const getAdmin = async (): Promise<Signer> => {
+    return (await hardhatEthers.getSigners())[0]
+}
+
 describe("StreamRegistry", async (): Promise<void> => {
 
     let registry: StreamRegistry
     let streamId: string
-    let admin: Signer
     let user: Signer
     // for upgrade test
     let initialStream1: string
@@ -98,7 +101,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     let trustedUser: Signer
     
     before(async (): Promise<void> => {
-        admin = (await hardhatEthers.getSigners())[0]
         user = await randomUser()
         initialStream1 = await getStreamId(user, randomStreamPath())
         initialStream2 = await getStreamId(user, randomStreamPath())
@@ -108,6 +110,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         minimalForwarder = await minimalForwarderContractFactory.deploy() as MinimalForwarder
         trustedUser = await randomUser()
         
+        const admin = await getAdmin()
         const streamRegistryFactoryV2 = await hardhatEthers.getContractFactory("StreamRegistryV2", admin)
         const streamRegistryFactoryV2Tx = await upgrades.deployProxy(streamRegistryFactoryV2, [
             AddressZero,
@@ -1071,6 +1074,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await newForwarder.deployed()
 
             log("Set new forwarder")
+            const admin = await getAdmin()
             await registry.connect(admin).grantRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
             await registry.connect(admin).setTrustedForwarder(newForwarder.address)
 
@@ -1087,7 +1091,8 @@ describe("StreamRegistry", async (): Promise<void> => {
             const id = await getStreamId(signer, path)
             expect(await registry.getStreamMetadata(id)).to.equal(metadata)
 
-            log("Set old forwarder back")
+            log("Set old forwarder ack")
+
             await registry.connect(admin).setTrustedForwarder(minimalForwarder.address)
             await registry.connect(admin).revokeRole(await registry.TRUSTED_ROLE(), await admin.getAddress())
         })
