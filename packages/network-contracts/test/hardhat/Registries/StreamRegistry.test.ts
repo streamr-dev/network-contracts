@@ -45,10 +45,9 @@ const PUB_SUB_ONLY_PERMISSIONS_STRUCT: StreamRegistry.PermissionStruct = {
     canGrant: false,
 }
 
-const METADATA = JSON.stringify({ foo: 'bar' })
-const METADATA_0 = "streammetadata0"
-const METADATA_1 = "streammetadata1"
 const USER_ID = "0x" + Array(64).join("0123456789abcdef") // repeat string X times
+const INITIAL_STREAM_1_METADATA = JSON.stringify({ foo: 'meta-for-stream-1' })
+const INITIAL_STREAM_2_METADATA = JSON.stringify({ foo: 'meta-for-stream-2' })
 
 const getBlocktime = async (): Promise<number> => {
     const block = await hardhatEthers.provider.getBlock("latest")
@@ -78,6 +77,10 @@ const randomUser = async (): Promise<Wallet> => {
 
 const randomAddress = (): string => {
     return Wallet.createRandom().address
+}
+
+const randomMetadata = (): string => {
+    return JSON.stringify({ foo: randomBytes(10).toString('hex') })
 }
 
 const getAdmin = async (): Promise<Signer> => {
@@ -117,7 +120,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         ], { kind: "uups" })
         const registryV2 = (await streamRegistryFactoryV2Tx.deployed()).connect(user) as StreamRegistryV2
 
-        await (await registryV2.createStream(getStreamPath(initialStream1), METADATA_0)).wait()
+        await (await registryV2.createStream(getStreamPath(initialStream1), INITIAL_STREAM_1_METADATA)).wait()
         await (await registryV2.grantPermission(initialStream1, await initialOtherUser.getAddress(), PermissionType.Edit)).wait()
 
         // to upgrade the deployer must also have the trusted role, so
@@ -129,7 +132,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
         const registryV3 = (await streamRegistryFactoryV3Tx.deployed()).connect(user) as StreamRegistryV3
 
-        await (await registryV3.createStream(getStreamPath(initialStream2), METADATA_1)).wait()
+        await (await registryV3.createStream(getStreamPath(initialStream2), INITIAL_STREAM_2_METADATA)).wait()
         await (await registryV3.setExpirationTime(initialStream2, await initialOtherUser.getAddress(), PermissionType.Publish, 1000000)).wait()
 
         const streamregistryFactoryV4 = await hardhatEthers.getContractFactory("StreamRegistryV4", admin)
@@ -160,18 +163,18 @@ describe("StreamRegistry", async (): Promise<void> => {
     async function createStream(): Promise<string> {
         const streamPath = randomStreamPath() 
         const streamId = await getStreamId(user, streamPath)
-        await (await registry.createStream(streamPath, METADATA)).wait()
+        await (await registry.createStream(streamPath, randomMetadata())).wait()
         return streamId
     }
 
     describe("After upgrading", () => {
         it("successfully gets V2 stream and permission", async () => {
-            expect(await registry.getStreamMetadata(initialStream1)).to.equal(METADATA_0)
+            expect(await registry.getStreamMetadata(initialStream1)).to.equal(INITIAL_STREAM_1_METADATA)
             expect(await registry.getPermissionsForUser(initialStream1, await initialOtherUser.getAddress())).to.deep.equal([true, false, 0, 0, false])
         })
 
         it("successfully gets V3 stream and permission", async () => {
-            expect(await registry.getStreamMetadata(initialStream2)).to.equal(METADATA_1)
+            expect(await registry.getStreamMetadata(initialStream2)).to.equal(INITIAL_STREAM_2_METADATA)
             expect(await registry.getPermissionsForUser(initialStream2, await initialOtherUser.getAddress())).to.deep.equal([false, false, 1000000, 2000000, false])
         })
     })
@@ -180,31 +183,32 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("works using createStream", async (): Promise<void> => {
             const newStreamPath = randomStreamPath()
             const newStreamId = await getStreamId(user, newStreamPath)
-            await expect(await registry.createStream(newStreamPath, METADATA_0))
+            const metadata = randomMetadata()
+            await expect(await registry.createStream(newStreamPath, metadata))
                 .to.emit(registry, "StreamCreated")
-                .withArgs(newStreamId, METADATA_0)
+                .withArgs(newStreamId, metadata)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
-            expect(await registry.streamIdToMetadata(newStreamId)).to.equal(METADATA_0)
+            expect(await registry.streamIdToMetadata(newStreamId)).to.equal(metadata)
         })
 
         it("works when stream path uses only legal characters", async (): Promise<void> => {
-            expect(await registry.createStream("/", METADATA_0))
+            expect(await registry.createStream("/", randomMetadata()))
                 .to.not.throw
-            expect(await registry.createStream("/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-", METADATA_0))
+            expect(await registry.createStream("/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./_-", randomMetadata()))
                 .to.not.throw
 
-            await expect(registry.createStream("/,", METADATA_0))
+            await expect(registry.createStream("/,", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
-            await expect(registry.createStream("/:", METADATA_0))
+            await expect(registry.createStream("/:", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
-            await expect(registry.createStream("/@", METADATA_0))
+            await expect(registry.createStream("/@", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
-            await expect(registry.createStream("/[", METADATA_0))
+            await expect(registry.createStream("/[", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
-            await expect(registry.createStream("/`", METADATA_0))
+            await expect(registry.createStream("/`", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
-            await expect(registry.createStream("/{", METADATA_0))
+            await expect(registry.createStream("/{", randomMetadata()))
                 .to.be.revertedWith("error_invalidPathChars")
         })
 
@@ -214,12 +218,12 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("FAILS if stream with that ID already exists", async (): Promise<void> => {
-            await expect(registry.createStream(getStreamPath(streamId), METADATA_0))
+            await expect(registry.createStream(getStreamPath(streamId), randomMetadata()))
                 .to.be.revertedWith("error_streamAlreadyExists")
         })
 
         it("FAILS if path not start with slash", async (): Promise<void> => {
-            await expect(registry.createStream("pathWithoutSlash", METADATA_0))
+            await expect(registry.createStream("pathWithoutSlash", randomMetadata()))
                 .to.be.revertedWith("error_pathMustStartWithSlash")
         })
 
@@ -241,17 +245,18 @@ describe("StreamRegistry", async (): Promise<void> => {
                 canGrant: false
             }
             const otherUser = await randomUser()
-            await expect(await registry.createStreamWithPermissions(newStreamPath, METADATA_1,
+            const metadata = randomMetadata()
+            await expect(await registry.createStreamWithPermissions(newStreamPath, metadata,
                 [await user.getAddress(), await otherUser.getAddress()], [permissionA, permissionB]))
                 .to.emit(registry, "StreamCreated")
-                .withArgs(newStreamId, METADATA_1)
+                .withArgs(newStreamId, metadata)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await otherUser.getAddress(), false, false, 7, 7, false)
-            expect(await registry.getStreamMetadata(newStreamId)).to.equal(METADATA_1)
+            expect(await registry.getStreamMetadata(newStreamId)).to.equal(metadata)
         })
 
         it("works using createMultipleStreamsWithPermissions", async (): Promise<void> => {
@@ -274,13 +279,15 @@ describe("StreamRegistry", async (): Promise<void> => {
                 canGrant: false
             }
             const otherUser = await randomUser()
+            const metadata1 = randomMetadata()
+            const metadata2 = randomMetadata()
             await expect(await registry.createMultipleStreamsWithPermissions(
-                [newStreamPath1, newStreamPath2], [METADATA_1, METADATA_1], [[await user.getAddress(), await otherUser.getAddress()],
+                [newStreamPath1, newStreamPath2], [metadata1, metadata2], [[await user.getAddress(), await otherUser.getAddress()],
                     [await user.getAddress(), await otherUser.getAddress()]], [[permissionA, permissionB], [permissionA, permissionB]]))
                 .to.emit(registry, "StreamCreated")
-                .withArgs(newStreamId1, METADATA_1)
+                .withArgs(newStreamId1, metadata1)
                 .to.emit(registry, "StreamCreated")
-                .withArgs(newStreamId2, METADATA_1)
+                .withArgs(newStreamId2, metadata2)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId1, await user.getAddress(), true, true, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
@@ -293,8 +300,8 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .withArgs(newStreamId1, await otherUser.getAddress(), false, false, 7, 7, false)
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId2, await otherUser.getAddress(), false, false, 7, 7, false)
-            expect(await registry.getStreamMetadata(newStreamId1)).to.equal(METADATA_1)
-            expect(await registry.getStreamMetadata(newStreamId2)).to.equal(METADATA_1)
+            expect(await registry.getStreamMetadata(newStreamId1)).to.equal(metadata1)
+            expect(await registry.getStreamMetadata(newStreamId2)).to.equal(metadata2)
         })
 
         // test if create stream->delete stream->recreate stream with same id also wipes
@@ -308,7 +315,7 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, true])
             // delete stream, and recreate with same id
             await registry.deleteStream(streamId)
-            await registry.createStream(getStreamPath(streamId), METADATA_0)
+            await registry.createStream(getStreamPath(streamId), randomMetadata())
             // check that other user has no permission
             expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
@@ -317,7 +324,11 @@ describe("StreamRegistry", async (): Promise<void> => {
 
     describe("Stream metadata", () => {
         it("positivetest getStreamMetadata", async (): Promise<void> => {
-            expect(await registry.getStreamMetadata(streamId)).to.equal(METADATA)
+            const newStreamPath = randomStreamPath()
+            const newStreamId = await getStreamId(user, newStreamPath)
+            const metadata = randomMetadata()
+            await registry.createStream(newStreamPath, metadata)
+            expect(await registry.getStreamMetadata(newStreamId)).to.equal(metadata)
         })
 
         it("negativetest getStreamMetadata, stream doesn't exist", async (): Promise<void> => {
@@ -325,17 +336,18 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest updateStreamMetadata + event", async (): Promise<void> => {
-            await expect(await registry.updateStreamMetadata(streamId, METADATA_1))
+            const metadata = randomMetadata()
+            await expect(await registry.updateStreamMetadata(streamId, metadata))
                 .to.emit(registry, "StreamUpdated")
-                .withArgs(streamId, METADATA_1)
-            expect(await registry.getStreamMetadata(streamId)).to.equal(METADATA_1)
+                .withArgs(streamId, metadata)
+            expect(await registry.getStreamMetadata(streamId)).to.equal(metadata)
         })
 
         it("negativetest updateStreamMetadata, not exist, no right", async (): Promise<void> => {
-            await expect(registry.updateStreamMetadata("0x00", METADATA_0))
+            await expect(registry.updateStreamMetadata("0x00", randomMetadata()))
                 .to.be.revertedWith("error_streamDoesNotExist")
             const otherUser = await randomUser()
-            await expect(registry.connect(otherUser).updateStreamMetadata(streamId, METADATA_0))
+            await expect(registry.connect(otherUser).updateStreamMetadata(streamId, randomMetadata()))
                 .to.be.revertedWith("error_noEditPermission")
         })
     })
@@ -346,7 +358,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await expect(await registry.deleteStream(streamId))
                 .to.emit(registry, "StreamDeleted")
                 .withArgs(streamId)
-            await expect(registry.updateStreamMetadata(streamId, METADATA_0))
+            await expect(registry.updateStreamMetadata(streamId, randomMetadata()))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
 
@@ -397,8 +409,9 @@ describe("StreamRegistry", async (): Promise<void> => {
             expect(await registry.getPermissionsForUser(streamId, otherUser1.address))
                 .to.deep.equal([true, true, blockTime, blockTime, true])
             // test if he can edit streammetadata
-            await registryConnectedToOtherUser1.updateStreamMetadata(streamId, METADATA_1)
-            expect(await registryConnectedToOtherUser1.getStreamMetadata(streamId)).to.equal(METADATA_1)
+            const metadata = randomMetadata()
+            await registryConnectedToOtherUser1.updateStreamMetadata(streamId, metadata)
+            expect(await registryConnectedToOtherUser1.getStreamMetadata(streamId)).to.equal(metadata)
             blockTime = blockTime.add(1)
             // test if he can share, edit other permissions
             const otherUser2 = await randomUser()
@@ -423,7 +436,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             await expect(registryConnectedToOtherUser.setPermissionsForUser(otherStreamId, randomAddress(), true, true, 0, 0, true))
                 .to.be.revertedWith("error_streamDoesNotExist")
 
-            await registry.createStream(otherStreamPath, METADATA_0)
+            await registry.createStream(otherStreamPath, randomMetadata())
             await expect(registryConnectedToOtherUser.setPermissionsForUser(otherStreamId, randomAddress(), true, true, 0, 0, true))
                 .to.be.revertedWith("error_noSharePermission")
         })
