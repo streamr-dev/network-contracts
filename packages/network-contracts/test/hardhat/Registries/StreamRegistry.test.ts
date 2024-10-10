@@ -151,7 +151,6 @@ describe("StreamRegistry", async (): Promise<void> => {
             minimalForwarder.address
         ], { kind: "uups" })
 
-        // MaxUint256 = await registry.MaxUint256()
         await registry.connect(admin).grantRole(await registry.TRUSTED_ROLE(), await trustedUser.getAddress())
     })
 
