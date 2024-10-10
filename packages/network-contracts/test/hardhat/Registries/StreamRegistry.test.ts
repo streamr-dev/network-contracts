@@ -77,19 +77,17 @@ const randomUser = async (): Promise<Wallet> => {
     return user
 }
 
+const randomAddress = (): string => {
+    return Wallet.createRandom().address
+}
+
 describe("StreamRegistry", async (): Promise<void> => {
 
     let registry: StreamRegistry
-    let registryFromUser0: StreamRegistry
-    let registryFromUser1: StreamRegistry
-    let registryFromMigrator: StreamRegistry
     let minimalForwarderFromUser0: MinimalForwarder
     let streamId: string
     let admin: Signer
     let user: Signer
-    let user0: Signer
-    let user1: Signer
-    let user2: Signer
     let trustedUser: Signer
     let forwarderUser: Signer
     // for upgrade test
@@ -100,9 +98,6 @@ describe("StreamRegistry", async (): Promise<void> => {
     before(async (): Promise<void> => {
         admin = (await hardhatEthers.getSigners())[0]
         user = await randomUser()
-        user0 = await randomUser()
-        user1 = await randomUser()
-        user2 = await randomUser()
         trustedUser = await randomUser()
         forwarderUser = await randomUser()
         initialStream1 = await getStreamId(user, randomStreamPath())
@@ -150,9 +145,6 @@ describe("StreamRegistry", async (): Promise<void> => {
             minimalForwarderFromUser0.address
         ], { kind: "uups" })
 
-        registryFromUser0 = registry.connect(user0 as any)
-        registryFromUser1 = registry.connect(user1 as any)
-        registryFromMigrator = registry.connect(trustedUser as any)
         // MaxUint256 = await registry.MaxUint256()
         await registry.connect(admin).grantRole(await registry.TRUSTED_ROLE(), await trustedUser.getAddress())
     })
@@ -244,8 +236,9 @@ describe("StreamRegistry", async (): Promise<void> => {
                 subscribeExpiration: 7,
                 canGrant: false
             }
+            const otherUser = await randomUser()
             await expect(await registry.createStreamWithPermissions(newStreamPath, METADATA_1,
-                [await user.getAddress(), await trustedUser.getAddress()], [permissionA, permissionB]))
+                [await user.getAddress(), await otherUser.getAddress()], [permissionA, permissionB]))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId, METADATA_1)
                 .to.emit(registry, "PermissionUpdated")
@@ -253,7 +246,7 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId, await trustedUser.getAddress(), false, false, 7, 7, false)
+                .withArgs(newStreamId, await otherUser.getAddress(), false, false, 7, 7, false)
             expect(await registry.getStreamMetadata(newStreamId)).to.equal(METADATA_1)
         })
 
@@ -276,9 +269,10 @@ describe("StreamRegistry", async (): Promise<void> => {
                 subscribeExpiration: 7,
                 canGrant: false
             }
+            const otherUser = await randomUser()
             await expect(await registry.createMultipleStreamsWithPermissions(
-                [newStreamPath1, newStreamPath2], [METADATA_1, METADATA_1], [[await user.getAddress(), await trustedUser.getAddress()],
-                    [await user.getAddress(), await trustedUser.getAddress()]], [[permissionA, permissionB], [permissionA, permissionB]]))
+                [newStreamPath1, newStreamPath2], [METADATA_1, METADATA_1], [[await user.getAddress(), await otherUser.getAddress()],
+                    [await user.getAddress(), await otherUser.getAddress()]], [[permissionA, permissionB], [permissionA, permissionB]]))
                 .to.emit(registry, "StreamCreated")
                 .withArgs(newStreamId1, METADATA_1)
                 .to.emit(registry, "StreamCreated")
@@ -292,9 +286,9 @@ describe("StreamRegistry", async (): Promise<void> => {
                 .to.emit(registry, "PermissionUpdated")
                 .withArgs(newStreamId2, await user.getAddress(), true, false, MaxUint256, MaxUint256, true)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId1, await trustedUser.getAddress(), false, false, 7, 7, false)
+                .withArgs(newStreamId1, await otherUser.getAddress(), false, false, 7, 7, false)
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(newStreamId2, await trustedUser.getAddress(), false, false, 7, 7, false)
+                .withArgs(newStreamId2, await otherUser.getAddress(), false, false, 7, 7, false)
             expect(await registry.getStreamMetadata(newStreamId1)).to.equal(METADATA_1)
             expect(await registry.getStreamMetadata(newStreamId2)).to.equal(METADATA_1)
         })
@@ -302,16 +296,17 @@ describe("StreamRegistry", async (): Promise<void> => {
         // test if create stream->delete stream->recreate stream with same id also wipes
         // all permissions (not trivial since you can't delete mappings)
         it("wipes permissions when you recreate stream with same ID", async (): Promise<void> => {
-            // give user0 all permissions
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(),
+            const otherUser = await randomUser()
+            // give other user all permissions
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(),
                 true, true, MaxUint256, MaxUint256, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, true])
             // delete stream, and recreate with same id
             await registry.deleteStream(streamId)
             await registry.createStream(getStreamPath(streamId), METADATA_0)
-            // check that user0 has no permission
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            // check that other user has no permission
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
     })
@@ -325,7 +320,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             const role = await registry.TRUSTED_ROLE()
             const has = await registry.hasRole(role, await trustedUser.getAddress())
             expect(has).to.equal(true)
-            await registryFromMigrator.setEnsCache("0x0000000000000000000000000000000000000000")
+            await registry.connect(trustedUser).setEnsCache("0x0000000000000000000000000000000000000000")
         })
 
         it("negativetest getStreamMetadata, stream doesn't exist", async (): Promise<void> => {
@@ -342,7 +337,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("negativetest updateStreamMetadata, not exist, no right", async (): Promise<void> => {
             await expect(registry.updateStreamMetadata("0x00", METADATA_0))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registryFromUser0.updateStreamMetadata(streamId, METADATA_0))
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).updateStreamMetadata(streamId, METADATA_0))
                 .to.be.revertedWith("error_noEditPermission")
         })
     })
@@ -360,7 +356,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("FAILS if stream does not exist, or no delete permission", async (): Promise<void> => {
             await expect(registry.deleteStream("0x00"))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registryFromUser0.deleteStream(streamId))
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).deleteStream(streamId))
                 .to.be.revertedWith("error_noDeletePermission")
         })
     })
@@ -380,7 +377,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("getPermissionForUser FAILS if stream not exist, or userentry not exist", async (): Promise<void> => {
             await expect(registry.getPermissionsForUser("0x00", await user.getAddress()))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
@@ -393,25 +390,28 @@ describe("StreamRegistry", async (): Promise<void> => {
     describe("Signer-user permissions setters", () => {
 
         it("positivetest setPermissionForUser", async (): Promise<void> => {
+            const otherUser1 = await randomUser()
+            const registryConnectedToOtherUser1 = registry.connect(otherUser1)
             // grant him all permissions
             let blockTime = BigNumber.from(await getBlocktime()).add(1)
-            await expect(await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, blockTime, blockTime, true))
+            await expect(await registry.setPermissionsForUser(streamId, otherUser1.address, true, true, blockTime, blockTime, true))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, true, blockTime, blockTime, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+                .withArgs(streamId, otherUser1.address, true, true, blockTime, blockTime, true)
+            expect(await registry.getPermissionsForUser(streamId, otherUser1.address))
                 .to.deep.equal([true, true, blockTime, blockTime, true])
             // test if he can edit streammetadata
-            await registryFromUser0.updateStreamMetadata(streamId, METADATA_1)
-            expect(await registryFromUser0.getStreamMetadata(streamId)).to.equal(METADATA_1)
+            await registryConnectedToOtherUser1.updateStreamMetadata(streamId, METADATA_1)
+            expect(await registryConnectedToOtherUser1.getStreamMetadata(streamId)).to.equal(METADATA_1)
             blockTime = blockTime.add(1)
             // test if he can share, edit other permissions
-            await expect(await registryFromUser0.setPermissionsForUser(streamId, await user1.getAddress(), true, true, blockTime, blockTime, true))
+            const otherUser2 = await randomUser()
+            await expect(await registryConnectedToOtherUser1.setPermissionsForUser(streamId, otherUser2.address, true, true, blockTime, blockTime, true))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user1.getAddress(), true, true, blockTime, blockTime, true)
-            expect(await registry.getPermissionsForUser(streamId, await user1.getAddress()))
+                .withArgs(streamId, otherUser2.address, true, true, blockTime, blockTime, true)
+            expect(await registry.getPermissionsForUser(streamId, otherUser2.address))
                 .to.deep.equal([true, true, blockTime, blockTime, true])
             // test if he can delete stream
-            await registryFromUser0.deleteStream(streamId)
+            await registryConnectedToOtherUser1.deleteStream(streamId)
             await expect(registry.getStreamMetadata(streamId))
                 .to.be.revertedWith("error_streamDoesNotExist")
         })
@@ -421,149 +421,158 @@ describe("StreamRegistry", async (): Promise<void> => {
             const otherStreamId = await getStreamId(user, otherStreamPath)
             await expect(registry.getPermissionsForUser(otherStreamId, await user.getAddress()))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registryFromUser0.setPermissionsForUser(otherStreamId, await user0.getAddress(), true, true, 0, 0, true))
+            const otherUser = await randomUser()
+            const registryConnectedToOtherUser = registry.connect(otherUser)
+            await expect(registryConnectedToOtherUser.setPermissionsForUser(otherStreamId, randomAddress(), true, true, 0, 0, true))
                 .to.be.revertedWith("error_streamDoesNotExist")
 
             await registry.createStream(otherStreamPath, METADATA_0)
-            await expect(registryFromUser0.setPermissionsForUser(otherStreamId, await user0.getAddress(), true, true, 0, 0, true))
+            await expect(registryConnectedToOtherUser.setPermissionsForUser(otherStreamId, randomAddress(), true, true, 0, 0, true))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("positivetest grantPermission, hasPermission", async (): Promise<void> => {
-            await expect(await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Edit))
+            const otherUser = await randomUser()
+            await expect(await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Edit))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, false, Zero, Zero, false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Edit))
+                .withArgs(streamId, await otherUser.getAddress(), true, false, Zero, Zero, false)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Edit))
                 .to.equal(true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, false, Zero, Zero, false])
 
-            await expect(await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Delete))
+            await expect(await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Delete))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, true, Zero, Zero, false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Delete))
+                .withArgs(streamId, await otherUser.getAddress(), true, true, Zero, Zero, false)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Delete))
                 .to.equal(true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, Zero, Zero, false])
 
-            await expect(await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            await expect(await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, true, MaxUint256, Zero, false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+                .withArgs(streamId, await otherUser.getAddress(), true, true, MaxUint256, Zero, false)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, Zero, false])
 
-            await expect(await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            await expect(await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, true, MaxUint256, MaxUint256, false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+                .withArgs(streamId, await otherUser.getAddress(), true, true, MaxUint256, MaxUint256, false)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, false])
 
-            await expect(await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Share))
+            await expect(await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Share))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), true, true, MaxUint256, MaxUint256, true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Share))
+                .withArgs(streamId, await otherUser.getAddress(), true, true, MaxUint256, MaxUint256, true)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Share))
                 .to.equal(true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, MaxUint256, MaxUint256, true])
         })
 
         it("negativetest grantPermission", async (): Promise<void> => {
-            // test from user1, who has no share permissions
-            await expect(registryFromUser1.grantPermission(streamId, await user0.getAddress(), PermissionType.Edit))
+            const otherUser = await randomUser()
+            const registryConnectedToOtherUser = registry.connect(otherUser)
+            await expect(registryConnectedToOtherUser.grantPermission(streamId, randomAddress(), PermissionType.Edit))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser1.grantPermission(streamId, await user0.getAddress(), PermissionType.Delete))
+            await expect(registryConnectedToOtherUser.grantPermission(streamId, randomAddress(), PermissionType.Delete))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser1.grantPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            await expect(registryConnectedToOtherUser.grantPermission(streamId, randomAddress(), PermissionType.Publish))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser1.grantPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            await expect(registryConnectedToOtherUser.grantPermission(streamId, randomAddress(), PermissionType.Subscribe))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser1.grantPermission(streamId, await user0.getAddress(), PermissionType.Share))
+            await expect(registryConnectedToOtherUser.grantPermission(streamId, randomAddress(), PermissionType.Share))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("positivetest revokePermission, hasPermission", async (): Promise<void> => {
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, MaxUint256, MaxUint256, true)
+            const otherUser = await randomUser()
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true, MaxUint256, MaxUint256, true)
 
-            await expect(await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Edit))
+            await expect(await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Edit))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), false, true, MaxUint256, MaxUint256, true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Edit))
+                .withArgs(streamId, await otherUser.getAddress(), false, true, MaxUint256, MaxUint256, true)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Edit))
                 .to.equal(false)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, true, MaxUint256, MaxUint256, true])
 
-            await expect(await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Delete))
+            await expect(await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Delete))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), false, false, MaxUint256, MaxUint256, true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Delete))
+                .withArgs(streamId, await otherUser.getAddress(), false, false, MaxUint256, MaxUint256, true)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Delete))
                 .to.equal(false)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, MaxUint256, MaxUint256, true])
 
-            await expect(await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            await expect(await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), false, false, Zero, MaxUint256, true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+                .withArgs(streamId, await otherUser.getAddress(), false, false, Zero, MaxUint256, true)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, MaxUint256, true])
 
-            await expect(await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            await expect(await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), false, false, Zero, Zero, true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+                .withArgs(streamId, await otherUser.getAddress(), false, false, Zero, Zero, true)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, true])
 
-            await expect(await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Share))
+            await expect(await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Share))
                 .to.emit(registry, "PermissionUpdated")
-                .withArgs(streamId, await user0.getAddress(), false, false, Zero, Zero, false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Share))
+                .withArgs(streamId, await otherUser.getAddress(), false, false, Zero, Zero, false)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Share))
                 .to.equal(false)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("negativetest grantPermission", async (): Promise<void> => {
-            // test from user0, all his permissions were revoked in test before
-            await expect(registryFromUser0.revokePermission(streamId, await user1.getAddress(), PermissionType.Edit))
+            const otherUser = await randomUser()
+            const registryConnectedToOtherUser = registry.connect(otherUser)
+            await expect(registryConnectedToOtherUser.revokePermission(streamId, randomAddress(), PermissionType.Edit))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser0.revokePermission(streamId, await user1.getAddress(), PermissionType.Delete))
+            await expect(registryConnectedToOtherUser.revokePermission(streamId, randomAddress(), PermissionType.Delete))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser0.revokePermission(streamId, await user1.getAddress(), PermissionType.Publish))
+            await expect(registryConnectedToOtherUser.revokePermission(streamId, randomAddress(), PermissionType.Publish))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser0.revokePermission(streamId, await user1.getAddress(), PermissionType.Subscribe))
+            await expect(registryConnectedToOtherUser.revokePermission(streamId, randomAddress(), PermissionType.Subscribe))
                 .to.be.revertedWith("error_noSharePermission")
-            await expect(registryFromUser0.revokePermission(streamId, await user1.getAddress(), PermissionType.Share))
+            await expect(registryConnectedToOtherUser.revokePermission(streamId, randomAddress(), PermissionType.Share))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("positivetest revokeAllPermissionsForUser, hasPermission", async (): Promise<void> => {
+            const otherUser = await randomUser()
             const blocktime = await getBlocktime()
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, blocktime, blocktime, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true, blocktime, blocktime, true)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, BigNumber.from(blocktime), BigNumber.from(blocktime), true])
-            await registry.revokeAllPermissionsForUser(streamId, await user0.getAddress())
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.revokeAllPermissionsForUser(streamId, await otherUser.getAddress())
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("negativetest revokeAllPermissionsForUser", async (): Promise<void> => {
-            await registry.revokePermission(streamId, await user0.getAddress(), PermissionType.Share)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Share))
+            const otherUser = await randomUser()
+            await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Share)
+            await registry.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Share)
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Share))
                 .to.equal(false)
-            await expect(registryFromUser0.revokeAllPermissionsForUser(streamId, await user1.getAddress()))
+            await expect(registry.connect(otherUser).revokeAllPermissionsForUser(streamId, randomAddress()))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("positivetest setPermissions", async (): Promise<void> => {
-            const userA = Wallet.createRandom().address
-            const userB = Wallet.createRandom().address
+            const userA = randomAddress()
+            const userB = randomAddress()
             const permissionA = {
                 canEdit: true,
                 canDelete: false,
@@ -587,8 +596,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest setPermissionsMultipleStreams", async (): Promise<void> => {
-            const userA = Wallet.createRandom().address
-            const userB = Wallet.createRandom().address
+            const userA = randomAddress()
+            const userB = randomAddress()
             const otherStreamId = await createStream()
             const permissionA = {
                 canEdit: true,
@@ -617,96 +626,101 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("positivetest setExpirationTime", async (): Promise<void> => {
+            const otherUser = await randomUser()
             const date = BigNumber.from(Date.now()).div(1000).add(10000)
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, MaxUint256, MaxUint256, true)
-            await expect(registry.setExpirationTime(streamId, await user0.getAddress(), PermissionType.Publish, date))
-                .to.emit(registry, "PermissionUpdated").withArgs(streamId, await user0.getAddress(), true, true, date, MaxUint256, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true, MaxUint256, MaxUint256, true)
+            await expect(registry.setExpirationTime(streamId, await otherUser.getAddress(), PermissionType.Publish, date))
+                .to.emit(registry, "PermissionUpdated").withArgs(streamId, await otherUser.getAddress(), true, true, date, MaxUint256, true)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, date, MaxUint256, true])
-            await expect(registry.setExpirationTime(streamId, await user0.getAddress(), PermissionType.Subscribe, date))
-                .to.emit(registry, "PermissionUpdated").withArgs(streamId, await user0.getAddress(), true, true, date, date, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await expect(registry.setExpirationTime(streamId, await otherUser.getAddress(), PermissionType.Subscribe, date))
+                .to.emit(registry, "PermissionUpdated").withArgs(streamId, await otherUser.getAddress(), true, true, date, date, true)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, date, date, true])
         })
 
         it("negativetest setExpirationTime", async (): Promise<void> => {
-            await expect(registry.setExpirationTime(streamId, await user0.getAddress(), PermissionType.Edit, 7))
+            await expect(registry.setExpirationTime(streamId, randomAddress(), PermissionType.Edit, 7))
                 .to.be.revertedWith("error_timeOnlyObPubSub")
-            await expect(registry.setExpirationTime(streamId, await user0.getAddress(), PermissionType.Delete, 7))
+            await expect(registry.setExpirationTime(streamId, randomAddress(), PermissionType.Delete, 7))
                 .to.be.revertedWith("error_timeOnlyObPubSub")
-            await expect(registry.setExpirationTime(streamId, await user0.getAddress(), PermissionType.Share, 7))
+            await expect(registry.setExpirationTime(streamId, randomAddress(), PermissionType.Share, 7))
                 .to.be.revertedWith("error_timeOnlyObPubSub")
         })
 
         it("positivetest revoke own permissions without share", async (): Promise<void> => {
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true,
+            const otherUser = await randomUser()
+            const registryConnectedToOtherUser = registry.connect(otherUser)
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true,
                 MaxUint256, MaxUint256, false)
-            await registryFromUser0.revokePermission(streamId, await user0.getAddress(), PermissionType.Edit)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registryConnectedToOtherUser.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Edit)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, true, MaxUint256, MaxUint256, false])
-            await registryFromUser0.revokePermission(streamId, await user0.getAddress(), PermissionType.Delete)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registryConnectedToOtherUser.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Delete)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, MaxUint256, MaxUint256, false])
-            await registryFromUser0.revokePermission(streamId, await user0.getAddress(), PermissionType.Publish)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registryConnectedToOtherUser.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Publish)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, MaxUint256, false])
-            await registryFromUser0.revokePermission(streamId, await user0.getAddress(), PermissionType.Subscribe)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registryConnectedToOtherUser.revokePermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("negativetest revokeAllPermissionsForUser", async (): Promise<void> => {
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(),
+            const otherUser = await randomUser()
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(),
                 true, true, MaxUint256, MaxUint256, false)
-            await registryFromUser0.revokeAllPermissionsForUser(streamId, await user0.getAddress())
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.connect(otherUser).revokeAllPermissionsForUser(streamId, await otherUser.getAddress())
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("edgecases expirationtime", async (): Promise<void> => {
+            const otherUser = await randomUser()
             const blocktime = await getBlocktime() + 1
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, blocktime, blocktime, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true, blocktime, blocktime, true)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, BigNumber.from(blocktime), BigNumber.from(blocktime), true])
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(true)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(true)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(true)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(true)
             // setting it again will advance the blocktime and expire the rights
-            await registry.setPermissionsForUser(streamId, await user0.getAddress(), true, true, blocktime, blocktime, true)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            await registry.setPermissionsForUser(streamId, await otherUser.getAddress(), true, true, blocktime, blocktime, true)
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([true, true, BigNumber.from(blocktime), BigNumber.from(blocktime), true])
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
             // give public publish permission, check again
             await registry.setPublicPermission(streamId, blocktime + 2, blocktime + 2)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(true)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(true)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
             // setting it again (one more transaction) with the same number will advance the blocktime and expire the rights
             await registry.setPublicPermission(streamId, blocktime + 2, blocktime + 2)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Publish))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Publish))
                 .to.equal(false)
-            expect(await registry.hasPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
-            expect(await registry.hasDirectPermission(streamId, await user0.getAddress(), PermissionType.Subscribe))
+            expect(await registry.hasDirectPermission(streamId, await otherUser.getAddress(), PermissionType.Subscribe))
                 .to.equal(false)
         })
     })
@@ -785,14 +799,16 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("setExpirationTimeForUserId FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
             await expect(registry.setExpirationTimeForUserId("0x00", USER_ID, PermissionType.Publish, MaxUint256))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registry.connect(user2).setExpirationTimeForUserId(streamId, USER_ID, PermissionType.Publish, MaxUint256))
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).setExpirationTimeForUserId(streamId, USER_ID, PermissionType.Publish, MaxUint256))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
         it("setPermissionsForUserIds FAILS for non-existent stream / no grant permission", async (): Promise<void> => {
             await expect(registry.setPermissionsForUserIds("0x00", [USER_ID], [NO_PERMISSIONS_STRUCT]))
                 .to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registry.connect(user2).setPermissionsForUserIds(streamId, [USER_ID], [NO_PERMISSIONS_STRUCT]))
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).setPermissionsForUserIds(streamId, [USER_ID], [NO_PERMISSIONS_STRUCT]))
                 .to.be.revertedWith("error_noSharePermission")
         })
 
@@ -803,7 +819,8 @@ describe("StreamRegistry", async (): Promise<void> => {
                 [[USER_ID], [USER_ID]],
                 [[perms], [perms]])
             ).to.be.revertedWith("error_streamDoesNotExist")
-            await expect(registryFromUser1.setMultipleStreamPermissionsForUserIds(
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).setMultipleStreamPermissionsForUserIds(
                 [streamId, "0x00"],
                 [[USER_ID], [USER_ID]],
                 [[perms], [perms]])
@@ -836,25 +853,27 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("should work with addresses just like non-bytes-id functions", async (): Promise<void> => {
-            expect(await registry.getPermissionsForUserId(streamId, await user0.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
-            await (await registry.grantPermission(streamId, await user0.getAddress(), PermissionType.Publish)).wait()
-            expect(await registry.getPermissionsForUserId(streamId, await user0.getAddress())).to.deep.equal([false, false, MaxUint256, Zero, false])
-            await (await registry.revokeAllPermissionsForUserId(streamId, await user0.getAddress())).wait()
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
-            await (await registry.grantPermissionForUserId(streamId, await user0.getAddress(), PermissionType.Subscribe)).wait()
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress())).to.deep.equal([false, false, Zero, MaxUint256, false])
-            await (await registry.revokeAllPermissionsForUser(streamId, await user0.getAddress())).wait()
-            expect(await registry.getPermissionsForUserId(streamId, await user0.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
+            const otherUser = await randomUser()
+            expect(await registry.getPermissionsForUserId(streamId, await otherUser.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
+            await (await registry.grantPermission(streamId, await otherUser.getAddress(), PermissionType.Publish)).wait()
+            expect(await registry.getPermissionsForUserId(streamId, await otherUser.getAddress())).to.deep.equal([false, false, MaxUint256, Zero, false])
+            await (await registry.revokeAllPermissionsForUserId(streamId, await otherUser.getAddress())).wait()
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
+            await (await registry.grantPermissionForUserId(streamId, await otherUser.getAddress(), PermissionType.Subscribe)).wait()
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress())).to.deep.equal([false, false, Zero, MaxUint256, false])
+            await (await registry.revokeAllPermissionsForUser(streamId, await otherUser.getAddress())).wait()
+            expect(await registry.getPermissionsForUserId(streamId, await otherUser.getAddress())).to.deep.equal([false, false, Zero, Zero, false])
         })
     })
 
     describe("Public permission get/set", () => {
         it("works using grantPublicPermission", async (): Promise<void> => {
+            const otherUser = await randomUser()
             await registry.grantPublicPermission(streamId, PermissionType.Publish)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, MaxUint256, Zero, false])
             await registry.grantPublicPermission(streamId, PermissionType.Subscribe)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, await otherUser.getAddress()))
                 .to.deep.equal([false, false, MaxUint256, MaxUint256, false])
             expect(await registry.hasPublicPermission(streamId, PermissionType.Publish)).to.equal(true)
             expect(await registry.hasPublicPermission(streamId, PermissionType.Subscribe)).to.equal(true)
@@ -866,23 +885,23 @@ describe("StreamRegistry", async (): Promise<void> => {
         it("works using revokePublicPermission", async (): Promise<void> => {
             await registry.setPublicPermission(streamId, MaxUint256, MaxUint256)
             await registry.revokePublicPermission(streamId, PermissionType.Publish)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, Zero, MaxUint256, false])
             await registry.revokePublicPermission(streamId, PermissionType.Subscribe)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
         it("works using setPublicPermission", async (): Promise<void> => {
             await registry.setPublicPermission(streamId, MaxUint256, MaxUint256)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, MaxUint256, MaxUint256, false])
             const blocktime = await getBlocktime() + 1
             await registry.setPublicPermission(streamId, blocktime, blocktime)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, BigNumber.from(blocktime), BigNumber.from(blocktime), false])
             await registry.setPublicPermission(streamId, 0, 0)
-            expect(await registry.getPermissionsForUser(streamId, await user0.getAddress()))
+            expect(await registry.getPermissionsForUser(streamId, randomAddress()))
                 .to.deep.equal([false, false, Zero, Zero, false])
         })
 
@@ -984,7 +1003,7 @@ describe("StreamRegistry", async (): Promise<void> => {
             signer = Wallet.createRandom(),
             gas
         }: { forwarder?: MinimalForwarder; signer?: Wallet; gas?: string } = {}) {
-            // signerWallet is creating and signing transaction, user0 is posting it and paying for gas
+            // signerWallet is creating and signing transaction, user is posting it and paying for gas
             // in the positive case signkey is the same as signerWallet.privateKey
             const path = "/path" + Wallet.createRandom().address
             const metadata = "metadata"
@@ -1083,7 +1102,8 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("PREVENTS resetting trusted forwarder if caller not trusted (negativetest)", async (): Promise<void> => {
-            await expect(registryFromUser0.setTrustedForwarder(Wallet.createRandom().address))
+            const otherUser = await randomUser()
+            await expect(registry.connect(otherUser).setTrustedForwarder(Wallet.createRandom().address))
                 .to.be.revertedWith("error_mustBeTrustedRole")
         })
     })
