@@ -88,7 +88,7 @@ const getAdminSigner = async (): Promise<Signer> => {
     return (await hardhatEthers.getSigners())[0]
 }
 
-describe.only("StreamRegistry", async (): Promise<void> => {
+describe("StreamRegistry", async (): Promise<void> => {
 
     let registry: StreamRegistry
     let streamId: string
