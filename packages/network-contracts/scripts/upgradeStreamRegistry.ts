@@ -5,6 +5,7 @@ import { config } from "@streamr/config"
 
 import type { Wallet, Overrides } from "ethers"
 import type { StreamRegistry } from "@streamr/network-contracts"
+import { StreamRegistryV5 } from "../typechain"
 
 const { parseUnits } = hardhatEthers.utils
 const { log } = console
@@ -75,9 +76,9 @@ async function main() {
     const upgradedStreamRegistry = await upgrades.upgradeProxy(
         streamRegistry.address,
         await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
-    ) as StreamRegistry
+    ) as StreamRegistryV5
     log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
-    log("    %s [OK]", await upgradedStreamRegistry.getAddressKeyForUserId("test.eth/1", "0x1234"))
+    log("    %s [OK]", await upgradedStreamRegistry.getUserKeyForUserId("test.eth/1", "0x1234"))
 
     const balanceAfter = await provider.getBalance(signer.address)
     const gasSpent = balanceBefore.sub(balanceAfter)
