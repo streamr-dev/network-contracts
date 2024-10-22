@@ -48,6 +48,7 @@ const PUB_SUB_ONLY_PERMISSIONS_STRUCT: StreamRegistry.PermissionStruct = {
 const USER_ID = "0x" + Array(64).join("0123456789abcdef") // repeat string X times
 const INITIAL_STREAM_1_METADATA = JSON.stringify({ foo: "meta-for-stream-1" })
 const INITIAL_STREAM_2_METADATA = JSON.stringify({ foo: "meta-for-stream-2" })
+const INITIAL_STREAM_3_METADATA = JSON.stringify({ foo: "meta-for-stream-3" })
 
 const getBlocktime = async (): Promise<number> => {
     const block = await hardhatEthers.provider.getBlock("latest")
@@ -95,6 +96,7 @@ describe("StreamRegistry", async (): Promise<void> => {
     // for upgrade test
     let initialStream1: string
     let initialStream2: string
+    let initialStream3: string
     let initialOtherUser: Signer
     // for meta-transaction test
     let forwarderUser: Signer
@@ -106,6 +108,7 @@ describe("StreamRegistry", async (): Promise<void> => {
         user = await createAndFundWallet()
         initialStream1 = await getStreamId(user, randomStreamPath())
         initialStream2 = await getStreamId(user, randomStreamPath())
+        initialStream3 = await getStreamId(user, randomStreamPath())
         initialOtherUser = await createAndFundWallet()
         forwarderUser = await createAndFundWallet()
         const minimalForwarderContractFactory = await hardhatEthers.getContractFactory("MinimalForwarder", forwarderUser)
@@ -123,6 +126,9 @@ describe("StreamRegistry", async (): Promise<void> => {
         await (await registryV2.createStream(getStreamPath(initialStream1), INITIAL_STREAM_1_METADATA)).wait()
         await (await registryV2.grantPermission(initialStream1, await initialOtherUser.getAddress(), PermissionType.Edit)).wait()
 
+        await (await registryV2.createStream(getStreamPath(initialStream2), INITIAL_STREAM_2_METADATA)).wait()
+        await (await registryV2.grantPublicPermission(initialStream2, PermissionType.Subscribe)).wait()
+
         // to upgrade the deployer must also have the trusted role, so
         //   we will grant it and revoke it after the upgrade to keep admin and trusted roles separate
         // go through the upgrade path here in the test setup; then all the tests will be run on an "upgraded" contract,
@@ -132,14 +138,14 @@ describe("StreamRegistry", async (): Promise<void> => {
         const streamRegistryFactoryV3Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV3)
         const registryV3 = (await streamRegistryFactoryV3Tx.deployed()).connect(user) as StreamRegistryV3
 
-        await (await registryV3.createStream(getStreamPath(initialStream2), INITIAL_STREAM_2_METADATA)).wait()
-        await (await registryV3.setExpirationTime(initialStream2, await initialOtherUser.getAddress(), PermissionType.Publish, 1000000)).wait()
+        await (await registryV3.createStream(getStreamPath(initialStream3), INITIAL_STREAM_3_METADATA)).wait()
+        await (await registryV3.setExpirationTime(initialStream3, await initialOtherUser.getAddress(), PermissionType.Publish, 1000000)).wait()
 
         const streamregistryFactoryV4 = await hardhatEthers.getContractFactory("StreamRegistryV4", admin)
         const streamRegistryFactoryV4Tx = await upgrades.upgradeProxy(streamRegistryFactoryV2Tx.address, streamregistryFactoryV4)
         const registryV4 = (await streamRegistryFactoryV4Tx.deployed()).connect(user) as StreamRegistryV4
 
-        await (await registryV4.setExpirationTime(initialStream2, await initialOtherUser.getAddress(), PermissionType.Subscribe, 2000000)).wait()
+        await (await registryV4.setExpirationTime(initialStream3, await initialOtherUser.getAddress(), PermissionType.Subscribe, 2000000)).wait()
 
         const streamRegistryFactory = await hardhatEthers.getContractFactory("StreamRegistryV5", admin)
         const streamRegistryDeployTx = await upgrades.upgradeProxy(streamRegistryFactoryV3Tx.address, streamRegistryFactory)
@@ -175,9 +181,13 @@ describe("StreamRegistry", async (): Promise<void> => {
         })
 
         it("successfully gets V3 stream and permission", async () => {
-            expect(await registry.getStreamMetadata(initialStream2)).to.equal(INITIAL_STREAM_2_METADATA)
-            expect(await registry.getPermissionsForUser(initialStream2, await initialOtherUser.getAddress()))
+            expect(await registry.getStreamMetadata(initialStream3)).to.equal(INITIAL_STREAM_3_METADATA)
+            expect(await registry.getPermissionsForUser(initialStream3, await initialOtherUser.getAddress()))
                 .to.deep.equal([false, false, 1000000, 2000000, false])
+        })
+
+        it("successfully gets public permissions", async () => {
+            expect(await registry.getPermissionsForUser(initialStream2, randomAddress())).to.deep.equal([false, false, 0, MaxUint256, false])
         })
     })
 
