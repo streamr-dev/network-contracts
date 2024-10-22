@@ -64,9 +64,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) public streamIdToVersion;
 
-    // the key in `streamIdToPermissions` mapping that corresponds to address(0), used for public permissions
-    mapping (string => bytes32) public streamIdToPublicPermissionUserKey;
-
     modifier streamExists(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
         _;
@@ -140,7 +137,6 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             subscribeExpiration: MAX_INT,
             canGrant: true
         });
-        streamIdToPublicPermissionUserKey[streamId] = getUserKey(streamId, address(0));
         emit StreamCreated(streamId, metadataJsonString);
         emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
         return streamId;
@@ -212,6 +208,9 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function getUserKey(string memory streamId, address user) internal view returns (bytes32) {
         return keccak256(abi.encode(streamIdToVersion[streamId], user));
     }
+    function streamIdToPublicPermissionUserKey(string memory streamId) public view returns (bytes32 userKey) {
+        return getUserKey(streamId, address(0));
+    }
 
     /**
      * Get user's permissions to stream.
@@ -241,7 +240,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             delete streamIdToPermissions[streamId][userKey];
             return;
         }
-        require(!(userKey == streamIdToPublicPermissionUserKey[streamId] && canEditDeleteOrGrant), "error_publicCanOnlySubsPubl");
+        require(!(userKey == streamIdToPublicPermissionUserKey(streamId) && canEditDeleteOrGrant), "error_publicCanOnlySubsPubl");
 
         Permission storage perm = streamIdToPermissions[streamId][userKey];
         perm.canEdit = canEdit;
@@ -330,7 +329,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         } else if (permissionType == PermissionType.Grant) {
             streamIdToPermissions[streamId][userKey].canGrant = grant;
         }
-        require(userKey != streamIdToPublicPermissionUserKey[streamId] || isPubOrSub, "error_publicCanOnlySubsPubl");
+        require(userKey != streamIdToPublicPermissionUserKey(streamId) || isPubOrSub, "error_publicCanOnlySubsPubl");
 
         perm = streamIdToPermissions[streamId][userKey];
         if (!perm.canEdit && !perm.canDelete && !perm.canGrant && perm.publishExpiration < block.timestamp && perm.subscribeExpiration < block.timestamp) {
@@ -437,7 +436,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
     function _getPermissionsForUser(string calldata streamId, bytes32 userKey) private view returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][userKey];
-        Permission memory publicPermission = streamIdToPermissions[streamId][streamIdToPublicPermissionUserKey[streamId]];
+        Permission memory publicPermission = streamIdToPermissions[streamId][streamIdToPublicPermissionUserKey(streamId)];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
             permission.publishExpiration = publicPermission.publishExpiration;
         }
