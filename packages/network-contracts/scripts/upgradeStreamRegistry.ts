@@ -80,12 +80,15 @@ async function main() {
     log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
     log("    %s [OK]", await upgradedStreamRegistry.getUserKeyForUserId("test.eth/1", "0x1234"))
 
+    const implementationAddress = await upgrades.erc1967.getImplementationAddress(streamRegistry.address)
+    log("Implementation address: %s", implementationAddress)
+
     const balanceAfter = await provider.getBalance(signer.address)
     const gasSpent = balanceBefore.sub(balanceAfter)
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
     if (OUTPUT_FILE) {
-        writeFileSync(OUTPUT_FILE, upgradedStreamRegistry.address)
+        writeFileSync(OUTPUT_FILE, implementationAddress)
     }
 }
 
