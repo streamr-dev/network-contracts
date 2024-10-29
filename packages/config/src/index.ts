@@ -287,9 +287,6 @@ export const config = {
                 "url": "https://rpc.ankr.com/polygon"
             },
             {
-                "url": "https://polygon.rpc.blxrbdn.com"
-            },
-            {
                 "url": "https://rpc-mainnet.matic.quiknode.pro"
             }
         ],
