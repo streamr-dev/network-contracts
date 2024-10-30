@@ -26,7 +26,7 @@ declare module "hardhat/types/config" {
 
 task(TASK_COMPILE, async (_, hre, runSuper) => {
     await runSuper()
-    hre.config.copyFilesAfterCompilation.forEach(({ from, to }) => {
+    hre?.config?.copyFilesAfterCompilation?.forEach(({ from, to }) => {
         copyFileSync(from, to)
     })
 })
