@@ -8,12 +8,16 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-contract-sizer"
 // import "hardhat-gas-reporter"
 
+import "./tasks/copyFilesAfterCompilation"
+
 import { HardhatUserConfig } from "hardhat/types"
 
 declare module "hardhat/types/config" {
     interface HardhatUserConfig {
-      dependencyCompiler?: any;
-      contractSizer?: any;
+        dependencyCompiler?: any;
+        contractSizer?: any;
+        warnings?: any;
+        etherscan?: any;
     }
 }
 
@@ -90,7 +94,21 @@ const config: HardhatUserConfig = {
             chainId: 3338,
             url: "https://peaq.api.onfinality.io/public",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        }
+        },
+        iotex: {
+            url: "https://babel-api.mainnet.IoTeX.io",
+            chainId: 4689,
+            gas: 8500000,
+            gasPrice: 1000000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"], // dummy key
+        },
+        iotexTestnet: {
+            url: "https://babel-api.testnet.IoTeX.io",
+            chainId: 4690,
+            gas: 8500000,
+            gasPrice: 1000000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"], // dummy key
+        },
     },
     dependencyCompiler: {
         paths: [
@@ -107,6 +125,11 @@ const config: HardhatUserConfig = {
             "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol", // exported in exports.ts
         ],
     },
+    copyFilesAfterCompilation: [{
+        from: "../../node_modules/" +
+            "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
+        to: "./artifacts/PublicResolver_mainnet_9412610.json",
+    }],
     solidity: {
         compilers: [
             {
@@ -181,6 +204,8 @@ const config: HardhatUserConfig = {
             polygon: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
             peaq: process.env.ETHERSCAN_KEY || "",
+            iotexTestnet: "no key needed!",
+            iotex: "no key needed!",
         },
         customChains: [{
             network: "polygonAmoy",
@@ -195,6 +220,20 @@ const config: HardhatUserConfig = {
             urls: {
                 apiURL: "https://peaq-testnet.api.subscan.io",
                 browserURL: "https://peaq.subscan.io/"
+            },
+        }, {
+            network: "iotex",
+            chainId: 4689,
+            urls: {
+                apiURL: "https://iotexscout.io/api",
+                browserURL: "https://iotexscan.io"
+            },
+        }, {
+            network: "iotexTestnet",
+            chainId: 4690,
+            urls: {
+                apiURL: "https://testnet.iotexscout.io/api",
+                browserURL: "https://testnet.iotexscan.io"
             },
         }]
     },

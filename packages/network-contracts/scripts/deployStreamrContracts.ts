@@ -65,6 +65,7 @@ const {
 
 async function main() {
     const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts
+    if (!deployer) { throw new Error(`No deployer wallet specified for "${CHAIN}" in hardhat.config.ts`) }
     console.log("Connected to network %o", await provider.getNetwork())
 
     const gasRequired = 60000000 // measured in hardhat test network
@@ -190,7 +191,7 @@ export default async function deployBaseContracts(
         const nodeRegistry = new Contract(nodeRegistryAddress, nodeRegistryABI, provider) as NodeRegistry
         await nodeRegistry.headNode().catch(() => { throw new Error(`Doesn't seem to be NodeRegistry: NodeRegistry=${nodeRegistryAddress}`) })
         log("Found NodeRegistry at %s", nodeRegistry.address)
-        contracts.nodeRegistry = nodeRegistry
+        contracts.storageNodeRegistry = nodeRegistry
     } else {
         const nodeRegistryCF = await getContractFactory("NodeRegistry", { signer })
         const nodeRegistry = await upgrades.deployProxy(nodeRegistryCF, [
@@ -203,12 +204,12 @@ export default async function deployBaseContracts(
         }) as NodeRegistry
         await nodeRegistry.deployed()
         log("Deployed NodeRegistry to %s", nodeRegistry.address)
-        contracts.nodeRegistry = nodeRegistry
+        contracts.storageNodeRegistry = nodeRegistry
 
         const streamStorageRegistryCF = await getContractFactory("StreamStorageRegistryV2", { signer })
         contracts.streamStorageRegistry = await upgrades.deployProxy(streamStorageRegistryCF, [
             contracts.streamRegistry.address,
-            contracts.nodeRegistry.address,
+            contracts.storageNodeRegistry.address,
             AddressZero, // trusted forwarder
         ], {
             kind: "uups", unsafeAllow: ["delegatecall"], timeout: 600000,

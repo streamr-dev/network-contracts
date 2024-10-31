@@ -69,6 +69,7 @@ const {
 
 async function main() {
     const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts
+    if (!deployer) { throw new Error(`No deployer wallet specified for "${CHAIN}" in hardhat.config.ts`) }
     console.log("Connected to network %o", await provider.getNetwork())
 
     const gasRequired = 60000000 // measured in hardhat test network
