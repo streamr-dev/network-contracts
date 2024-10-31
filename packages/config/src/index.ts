@@ -1,3 +1,81 @@
+export type ContractAddressKey =
+    | "core-api"
+    | "AMB"
+    | "BinanceAdapterDATA"
+    | "BinanceAdapterXDATA"
+    | "ChainlinkOracle"
+    | "cUSD"
+    | "DAI"
+    | "DATA"
+    | "DataUnionFactory"
+    | "DataUnionFeeOracle"
+    | "DataUnionTemplate"
+    | "DefaultFeeOracle"
+    | "ENS"
+    | "ENSCache"
+    | "ENSCacheV2"
+    | "FIFSRegistrar"
+    | "GSNForwarder"
+    | "GSNPayMaster"
+    | "LINK"
+    | "Marketplace"
+    | "MarketplaceV3"
+    | "MarketplaceV4"
+    | "Mediator"
+    | "MediatorDATA"
+    | "MediatorXDATA"
+    | "MigrationManager"
+    | "OperatorDefaultDelegationPolicy"
+    | "OperatorDefaultExchangeRatePolicy"
+    | "OperatorDefaultUndelegationPolicy"
+    | "OperatorFactory"
+    | "ProjectRegistryV1"
+    | "ProjectStakingV1"
+    | "PublicResolver"
+    | "RemoteMarketplaceV1"
+    | "SponsorshipDefaultLeavePolicy"
+    | "SponsorshipFactory"
+    | "SponsorshipMaxOperatorsJoinPolicy"
+    | "SponsorshipOperatorContractOnlyJoinPolicy"
+    | "SponsorshipStakeWeightedAllocationPolicy"
+    | "SponsorshipVoteKickPolicy"
+    | "StorageNodeRegistry"
+    | "StreamrConfig"
+    | "StreamRegistry"
+    | "StreamStorageRegistry"
+    | "TokenMediator"
+    | "TrackerRegistry"
+    | "Uniswap2AdapterForMarketplaceV3"
+    | "Uniswap2Router"
+    | "UniswapAdapter"
+    | "xdaiBridge"
+    | "XDATA";
+
+export interface Chain {
+    adminPrivateKey?: string;
+    blockExplorerUrl?: string;
+    contracts: Partial<Record<ContractAddressKey, string>>;
+    entryPoints?: {
+        nodeId: string;
+        websocket: {
+            host: string;
+            port: number;
+            tls: boolean;
+        };
+    }[];
+    id: number;
+    name: string;
+    nativeCurrency: {
+        decimals: number;
+        name: string;
+        symbol: string;
+    };
+    rpcEndpoints: {
+        url: string;
+    }[];
+    theGraphUrl?: string;
+}
+
 export const config = {
     "dev0": {
         "id": 8995,
@@ -449,5 +527,9 @@ export const config = {
                 }
             }
         ]
-    }
-}
+    },
+} satisfies Record<string, Chain>;
+
+export type ChainKey = typeof config extends Record<infer Key, unknown> ? Key : never;
+
+export type Config = Record<ChainKey, Chain>;
