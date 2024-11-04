@@ -76,7 +76,7 @@ export interface Chain {
     theGraphUrl?: string;
 }
 
-export const config = {
+export const rawConfig = {
     "dev0": {
         "id": 8995,
         "name": "dev0",
@@ -530,6 +530,8 @@ export const config = {
     },
 } satisfies Record<string, Chain>;
 
-export type ChainKey = typeof config extends Record<infer Key, unknown> ? Key : never;
+export type ChainKey = typeof rawConfig extends Record<infer Key, unknown> ? Key : never;
 
 export type Config = Record<ChainKey, Chain>;
+
+export const config: Config = rawConfig
