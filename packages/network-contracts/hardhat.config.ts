@@ -130,6 +130,12 @@ const config: HardhatUserConfig = {
         from: "../../node_modules/" +
             "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
         to: "./artifacts/PublicResolver_mainnet_9412610.json",
+        optional: true,
+    }, {
+        from: "./node_modules/" +
+            "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
+        to: "./artifacts/PublicResolver_mainnet_9412610.json",
+        optional: true,
     }],
     solidity: {
         compilers: [

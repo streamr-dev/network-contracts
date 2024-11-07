@@ -20,6 +20,7 @@ declare module "hardhat/types/config" {
         copyFilesAfterCompilation: [{
             from: string,
             to: string,
+            optional?: boolean,
         }]
     }
 }

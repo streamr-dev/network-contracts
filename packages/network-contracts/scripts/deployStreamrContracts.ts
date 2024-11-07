@@ -1,4 +1,5 @@
 /* eslint-disable require-atomic-updates,max-len */
+import { writeFileSync } from "fs"
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
 import { abi as ERC20ABI } from "../artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
@@ -46,6 +47,8 @@ const {
     ENSCACHE_UPDATER_ADDRESS = "0xa3d1F77ACfF0060F7213D7BF3c7fEC78df847De1",
     OWNER,
 
+    OUTPUT_FILE,
+
     IGNORE_BALANCE,
     IGNORE_TOKEN_SYMBOL, // set to bypass token check for testing
 } = process.env
@@ -64,7 +67,7 @@ const {
 } = (config as any)[CHAIN]
 
 async function main() {
-    const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts
+    const [ deployer ] = await getSigners() as unknown as Wallet[] // specified in hardhat.config.ts
     if (!deployer) { throw new Error(`No deployer wallet specified for "${CHAIN}" in hardhat.config.ts`) }
     console.log("Connected to network %o", await provider.getNetwork())
 
@@ -92,7 +95,13 @@ async function main() {
     const gasSpent = balanceBefore.sub(balanceAfter)
     log("Spent %s ETH for gas", formatEther(gasSpent))
 
-    log("All done! Streamr contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
+    const addressesOutput = JSON.stringify(getAddresses(contracts), null, 4)
+    if (OUTPUT_FILE) {
+        writeFileSync(OUTPUT_FILE, addressesOutput)
+        log("Wrote contract addresses to %s", OUTPUT_FILE)
+    } else {
+        log("All done! Streamr contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
+    }
 }
 
 function getAddresses(contracts: Partial<StreamrBaseContracts>) {
@@ -129,16 +138,22 @@ export default async function deployBaseContracts(
         log("Deployed DATAv2 token to %s", contracts.token.address)
     }
 
+    console.log("asdf")
     if (STREAM_REGISTRY_ADDRESS && await provider.getCode(STREAM_REGISTRY_ADDRESS) !== "0x") {
+        console.log("asdf2")
         const registry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, signer) as StreamRegistry
+        console.log("asdf3")
         await registry.TRUSTED_ROLE().catch(() => { throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}`) })
         log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
         contracts.streamRegistry = registry
     } else {
+        console.log("asdf2")
         const registryCF = await getContractFactory("StreamRegistryV5", { signer })
+        console.log("asdf3")
         contracts.streamRegistry = await upgrades.deployProxy(registryCF, [ AddressZero, AddressZero ], {
             kind: "uups", unsafeAllow: ["delegatecall"], timeout: 600000,
         }) as StreamRegistry
+        console.log("asdf4")
         await contracts.streamRegistry.deployed()
         log("Deployed StreamRegistry to %s", contracts.streamRegistry.address)
     }
