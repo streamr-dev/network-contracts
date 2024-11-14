@@ -72,10 +72,16 @@ async function main() {
     //     }
     // }
 
+    const contractFactory = await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
+
+    // If you get "Error: Deployment at address XXYY is not registered", this may help
+    // await upgrades.forceImport("XXYY", contractFactory)
+    // log("forceImport DONE")
+
     // see https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades
     const upgradedStreamRegistry = await upgrades.upgradeProxy(
         streamRegistry.address,
-        await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
+        contractFactory
     ) as StreamRegistryV5
     log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
     try {
