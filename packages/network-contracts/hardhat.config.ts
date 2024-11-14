@@ -8,12 +8,16 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-contract-sizer"
 // import "hardhat-gas-reporter"
 
+import "./tasks/copyFilesAfterCompilation"
+
 import { HardhatUserConfig } from "hardhat/types"
 
 declare module "hardhat/types/config" {
     interface HardhatUserConfig {
-      dependencyCompiler?: any;
-      contractSizer?: any;
+        dependencyCompiler?: any;
+        contractSizer?: any;
+        warnings?: any;
+        etherscan?: any;
     }
 }
 
@@ -90,7 +94,7 @@ const config: HardhatUserConfig = {
             chainId: 3338,
             url: "https://peaq.api.onfinality.io/public",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        }
+        },
     },
     dependencyCompiler: {
         paths: [
@@ -107,6 +111,10 @@ const config: HardhatUserConfig = {
             "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol", // exported in exports.ts
         ],
     },
+    copyFilesAfterCompilation: [{
+        from: "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
+        to: "./artifacts/PublicResolver_mainnet_9412610.json"
+    }],
     solidity: {
         compilers: [
             {
