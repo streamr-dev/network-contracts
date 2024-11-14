@@ -1,5 +1,4 @@
 /* eslint-disable require-atomic-updates,max-len */
-import { writeFileSync } from "fs"
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
 import { abi as ERC20ABI } from "../artifacts/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
@@ -50,8 +49,6 @@ export type StreamrTokenomicsContracts = {
 const {
     CHAIN,
 
-    OUTPUT_FILE,
-
     IGNORE_BALANCE,
     IGNORE_TOKEN_SYMBOL, // set to bypass token check for testing
 } = process.env
@@ -71,8 +68,7 @@ const {
 } = (config as any)[CHAIN]
 
 async function main() {
-    const [ deployer ] = await getSigners() as unknown as Wallet[] // specified in hardhat.config.ts
-    if (!deployer) { throw new Error(`No deployer wallet specified for "${CHAIN}" in hardhat.config.ts`) }
+    const [ deployer ] = await getSigners() as Wallet[] // specified in hardhat.config.ts
     console.log("Connected to network %o", await provider.getNetwork())
 
     const gasRequired = 60000000 // measured in hardhat test network
@@ -98,14 +94,6 @@ async function main() {
     const balanceAfter = await provider.getBalance(deployer.address)
     const gasSpent = balanceBefore.sub(balanceAfter)
     log("Spent %s ETH for gas", formatEther(gasSpent))
-
-    const addressesOutput = JSON.stringify(getAddresses(contracts), null, 4)
-    if (OUTPUT_FILE) {
-        writeFileSync(OUTPUT_FILE, addressesOutput)
-        log("Wrote contract addresses to %s", OUTPUT_FILE)
-    } else {
-        log("All done! Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
-    }
 
     log("All done! Streamr tokenomics contract addresses:\n%s", JSON.stringify(getAddresses(contracts), null, 4))
 }
