@@ -72,15 +72,10 @@ async function main() {
     //     }
     // }
 
-    const contractFactory = await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
-
-    // await upgrades.forceImport("0xF655955dc561356851e95a6D0febeB0BAc955Ab5", contractFactory)
-    // log("forceImport DONE")
-
     // see https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades
     const upgradedStreamRegistry = await upgrades.upgradeProxy(
         streamRegistry.address,
-        contractFactory
+        await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
     ) as StreamRegistryV5
     log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
     try {
