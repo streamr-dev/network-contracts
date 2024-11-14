@@ -8,10 +8,11 @@ else
     export KEY="$KEY"
 fi
 
-# export CHAIN=iotex
-# export CHAIN=iotexTestnet
 export CHAIN=dev2
 export IGNORE_TOKEN_SYMBOL=1
+
+# export CHAIN=iotex
+# export CHAIN=iotexTestnet
 export OUTPUT_FILE=addresses.json
 export SCRIPT_FILE=scripts/deployStreamrContracts.ts
 npm run hardhatScript
