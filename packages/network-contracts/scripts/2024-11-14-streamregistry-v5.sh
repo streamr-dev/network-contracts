@@ -2,7 +2,9 @@
 set -euxo pipefail
 
 export CHAIN=polygon
-# export GAS_PRICE_GWEI=30
+
+# export CHAIN=polygonAmoy
+# export GAS_PRICE_GWEI=30   # prevent error about zero gas price
 
 if declare -p KEY >/dev/null 2>&1; then
     echo "Using deployer private key from environment variable KEY"
