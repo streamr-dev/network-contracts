@@ -14,10 +14,10 @@ can be recreated with the Dockerfile. To do so:
 - build & publish image: `docker:buildAndPushMultiArch`
 
 ## Mainnet deployment to the Arbitrum / decentralized service (indexing Polygon MATIC)
-1. Authenticate: Log into `https://thegraph.com/studio/subgraph/streamr/` using "Streamr subgraph owner" key from 1password. On the right hand side, look for "Auth & Deploy" and "Authenticate in CLI". Copy the command and run it in the terminal: `npx graph auth --studio DEPLOY_KEY`
+1. Authenticate: Log into `https://thegraph.com/studio/subgraph/streamr/` using "Streamr subgraph owner" key from 1password. On the right hand side, look for "Auth & Deploy" and "Authenticate in CLI". Copy the command and run it in the terminal: `npx graph auth DEPLOY_KEY`
 1. `cp subgraph_matic.yaml subgraph.yaml`
 1. `npm run build` (optional)
-1. `npx graph deploy --studio streamr`
+1. `npx graph deploy streamr`
     * check version number from browser UI, bump it when asked
 1. Follow progress and look at https://thegraph.com/studio/subgraph/streamr/logs for errors
 
@@ -47,6 +47,11 @@ can be recreated with the Dockerfile. To do so:
   * Sponsorship APY fix (ETH-759)
 * v0.0.8
   * Sponsorship initial sponsoring event fix (FRONT-1921)
+  * Added StreamPermission.userId field, deprecated StreamPermission.userAddress (ETH-787)
+* v0.0.9
+  * StreamRegistryV5 (Arbitrary length user id, ETH-787) deployment to Polygon
+* v0.0.10
+  * Fixed log message
 
 # Developer notes
 
