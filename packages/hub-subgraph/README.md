@@ -1,3 +1,5 @@
+## Deprecated, moved to [network-subgraphs](../network-subgraphs/README.md)
+
 # Subgraph definitions for the project registry
 
 ## Setup
@@ -45,7 +47,7 @@ npm run deploy-local
 
 then you can paste graphQL queries at http://127.0.0.1:8000/subgraphs/name/<githubname>/<subgraphname>/graphql
 or send queries to http://localhost:8000/subgraphs/name/<githubname>/<subgraphname>
-for example with a gui like https://github.com/graphql/graphql-playground 
+for example with a gui like https://github.com/graphql/graphql-playground
 or from a webapplication
 
 example queries:
